@@ -21,7 +21,7 @@ from pring_cycle.health_types import (
     VerificationChecks,
 )
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.secrets import parse_secret_file
+from pring_cycle.secrets import parse_data_source_secrets
 
 
 class VerificationError(RuntimeError):
@@ -194,4 +194,6 @@ def _stop_process(process: subprocess.Popen[str]) -> str:
 
 
 def _contains_configured_secret(paths: RuntimePaths, output: str) -> bool:
-    return any(value and value in output for value in parse_secret_file(paths.secrets).values())
+    return any(
+        value and value in output for value in parse_data_source_secrets(paths.secrets).values()
+    )

@@ -13,13 +13,16 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
-def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
+def run_cli(
+    *arguments: str,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
-    environment["PYTHONDONTWRITEBYTECODE"] = "1"
     return subprocess.run(
         [sys.executable, "-m", "pring_cycle", *arguments],
         check=False,
         capture_output=True,
+        cwd=cwd,
         env=environment,
         text=True,
         timeout=60,
@@ -28,7 +31,6 @@ def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
 
 def start_cli(*arguments: str) -> subprocess.Popen[str]:
     environment = os.environ.copy()
-    environment["PYTHONDONTWRITEBYTECODE"] = "1"
     return subprocess.Popen(
         [sys.executable, "-m", "pring_cycle", *arguments],
         env=environment,
@@ -82,6 +84,19 @@ def stop_process(process: subprocess.Popen[str]) -> str:
     return stdout + stderr
 
 
+def test_installed_cli_keeps_bytecode_outside_the_source_tree(tmp_path: Path) -> None:
+    source_package = Path.cwd() / "src" / "pring_cycle"
+    assert list(source_package.rglob("__pycache__")) == []
+
+    runtime_root = tmp_path / "runtime"
+    initialized = run_cli("init", "--runtime-root", str(runtime_root), "--json")
+    diagnosed = run_cli("doctor", "--runtime-root", str(runtime_root), "--json")
+
+    assert initialized.returncode == 0, initialized.stderr
+    assert diagnosed.returncode == 0, diagnosed.stderr
+    assert list(source_package.rglob("__pycache__")) == []
+
+
 def test_user_can_initialize_and_diagnose_an_offline_runtime(tmp_path: Path) -> None:
     runtime_root = tmp_path / "runtime"
 
@@ -128,6 +143,31 @@ def test_user_can_initialize_and_diagnose_an_offline_runtime(tmp_path: Path) -> 
     text_diagnosis = run_cli("doctor", "--runtime-root", str(runtime_root))
     assert text_diagnosis.returncode == 0, text_diagnosis.stderr
     assert "backup_mode=none\n" in text_diagnosis.stdout
+
+
+def test_doctor_distinguishes_an_unobserved_project_lock(tmp_path: Path) -> None:
+    runtime_root = tmp_path / "runtime"
+    execution_root = tmp_path / "outside-project"
+    execution_root.mkdir()
+    initialized = run_cli(
+        "init",
+        "--runtime-root",
+        str(runtime_root),
+        "--json",
+        cwd=execution_root,
+    )
+
+    diagnosed = run_cli(
+        "doctor",
+        "--runtime-root",
+        str(runtime_root),
+        "--json",
+        cwd=execution_root,
+    )
+
+    assert initialized.returncode == 0, initialized.stderr
+    assert diagnosed.returncode == 0, diagnosed.stderr
+    assert json.loads(diagnosed.stdout)["dependency_lock"] == {"status": "not_observed"}
 
 
 def test_web_and_worker_start_offline_as_independent_local_processes(tmp_path: Path) -> None:
@@ -266,7 +306,6 @@ def test_uninitialized_web_and_worker_fail_without_runtime_writes(tmp_path: Path
 
 def test_offline_verification_uses_the_default_xdg_directory_split(tmp_path: Path) -> None:
     environment = os.environ.copy()
-    environment["PYTHONDONTWRITEBYTECODE"] = "1"
     environment.pop("PRING_CYCLE_RUNTIME_ROOT", None)
     environment["XDG_CONFIG_HOME"] = str(tmp_path / "xdg-config")
     environment["XDG_DATA_HOME"] = str(tmp_path / "xdg-data")

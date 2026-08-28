@@ -11,9 +11,13 @@ Windows 挂载盘时，按下面方式把项目虚拟环境放入 WSL 原生 XDG
 
 ```bash
 export PRING_CYCLE_DEV_ENV="${XDG_DATA_HOME:-$HOME/.local/share}/pring-cycle/dev-venv"
-UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv sync --extra dev
+UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv sync --extra dev --no-editable
 export PATH="$PRING_CYCLE_DEV_ENV/bin:$PATH"
 ```
+
+`--no-editable` 是源码位于 Windows 挂载盘时的运行边界：项目会复制安装到 WSL 原生虚拟
+环境，正常 Python 导入产生的字节码也留在该环境中，不会写回源码树。后续使用 `uv run` 时
+同样保留此选项，避免 uv 把项目切回 editable 安装。
 
 `uv.lock` 固定 FastAPI、Dash 4.2、SQLAlchemy、Alembic 和其他依赖版本。应用启动和日常离线
 验收不安装依赖，也不访问包索引。
@@ -103,9 +107,9 @@ pring-cycle verify --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 开发检查使用同一 WSL 原生虚拟环境：
 
 ```bash
-UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run pytest
-UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run mypy
-UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run ruff check src tests
+UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run --no-editable pytest
+UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run --no-editable mypy
+UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run --no-editable ruff check src tests
 ```
 
 `pring_cycle.domain` 提供框架无关的正式阶段、核心资产状态和证据/模型/投影/运行/报告身份

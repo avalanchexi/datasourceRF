@@ -8,15 +8,10 @@ from typing import TypedDict
 
 from pring_cycle.artifacts import artifact_health
 from pring_cycle.health_types import ArtifactHealth, DatabaseHealth, RuntimeHealthDocument
-from pring_cycle.secrets import parse_secret_file
+from pring_cycle.secrets import DATA_SOURCE_SECRET_ADAPTERS, parse_data_source_secrets
 from pring_cycle.storage import database_health, migrate_database, worker_status
 
 APPLICATION_NAME = "pring-cycle"
-ALLOWED_CREDENTIALS = {
-    "EXA_API_KEY": "exa",
-    "TAVILY_API_KEY": "tavily",
-    "TUSHARE_TOKEN": "tushare",
-}
 
 
 class RuntimePolicyError(ValueError):
@@ -79,9 +74,8 @@ class RuntimePaths:
         return self.config / "config.toml"
 
     def ensure_wsl_native(self) -> None:
-        source_root = Path(__file__).resolve().parents[2]
         for path in (self.config, self.data, self.state, self.cache):
-            if (source_root / "pyproject.toml").is_file() and path.is_relative_to(source_root):
+            if _find_project_root(path) is not None:
                 raise RuntimePolicyError("runtime_must_be_outside_source_tree")
             if path.is_relative_to(Path("/mnt")):
                 raise RuntimePolicyError("runtime_must_use_wsl_native_filesystem")
@@ -151,6 +145,14 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
     database = database_health(paths.database)
     credentials = _credential_states(paths.secrets)
     artifacts = artifact_health(paths.database, paths.artifacts)
+    project_root = _find_project_root(Path.cwd().resolve())
+    dependency_lock_status = (
+        "not_observed"
+        if project_root is None
+        else "present"
+        if (project_root / "uv.lock").is_file()
+        else "missing"
+    )
     status = (
         "ok" if database["status"] == "ok" and artifacts["status"] == "ok" else "action_required"
     )
@@ -164,9 +166,7 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
         "backup_mode": "none",
         "credentials": credentials,
         "database": database,
-        "dependency_lock": {
-            "status": "present" if (_source_root() / "uv.lock").is_file() else "missing"
-        },
+        "dependency_lock": {"status": dependency_lock_status},
         "network_requests": 0,
         "offline_start_available": database["status"] == "ok",
         "python": {
@@ -201,8 +201,13 @@ def _runtime_root_from_environment() -> Path | None:
     return Path(value) if value else None
 
 
-def _source_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+def _find_project_root(path: Path) -> Path | None:
+    for candidate in (path, *path.parents):
+        if (candidate / "pyproject.toml").is_file() and (
+            candidate / "src" / "pring_cycle"
+        ).is_dir():
+            return candidate
+    return None
 
 
 def _xdg_path(variable: str, fallback: Path) -> Path:
@@ -222,8 +227,8 @@ def _create_private_file(path: Path, contents: str) -> None:
 
 
 def _credential_states(secrets_path: Path) -> dict[str, str]:
-    configured = parse_secret_file(secrets_path)
+    configured = parse_data_source_secrets(secrets_path)
     return {
         adapter: "enabled" if key in configured else "disabled"
-        for key, adapter in sorted(ALLOWED_CREDENTIALS.items(), key=lambda item: item[1])
+        for key, adapter in sorted(DATA_SOURCE_SECRET_ADAPTERS.items(), key=lambda item: item[1])
     }
