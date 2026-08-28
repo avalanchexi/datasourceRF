@@ -117,8 +117,17 @@ def test_user_can_initialize_and_diagnose_an_offline_runtime(tmp_path: Path) -> 
         "rpo": "not_guaranteed",
         "rto": "not_guaranteed",
     }
+    assert diagnosis["backup_mode"] == "none"
+    assert diagnosis["dependency_lock"] == {"status": "present"}
+    assert diagnosis["python"]["required"] == ">=3.12,<3.13"
+    assert diagnosis["python"]["running"].startswith("3.12.")
+    assert diagnosis["python"]["status"] == "ok"
     assert diagnosis["offline_start_available"] is True
     assert diagnosis["network_requests"] == 0
+
+    text_diagnosis = run_cli("doctor", "--runtime-root", str(runtime_root))
+    assert text_diagnosis.returncode == 0, text_diagnosis.stderr
+    assert "backup_mode=none\n" in text_diagnosis.stdout
 
 
 def test_web_and_worker_start_offline_as_independent_local_processes(tmp_path: Path) -> None:
@@ -220,6 +229,7 @@ def test_offline_verification_is_idempotent_and_stops_its_processes(tmp_path: Pa
     expected = {
         "checks": {
             "alembic": "current",
+            "artifact_round_trip": "ok",
             "artifacts": "ok",
             "database": "ok",
             "idempotent_initialization": "ok",

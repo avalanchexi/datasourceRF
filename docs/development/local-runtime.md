@@ -45,11 +45,12 @@ pring-cycle doctor --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 ```
 
 `init` 是幂等的。它创建 SQLite WAL、升级到当前 Alembic head，并建立
-`artifacts/sha256` 内容寻址目录。Web 和 Worker 不会隐式初始化；未初始化时固定返回
-`runtime_not_initialized`，也不会创建运行文件。
+`artifacts/sha256` 内容寻址目录。制品先写入同目录临时文件，校验 SHA-256 后原子改名，
+最后才在 SQLite 登记字节数、媒体类型与来源引用，因此数据库不会指向半文件。Web 和
+Worker 不会隐式初始化；未初始化时固定返回 `runtime_not_initialized`，也不会创建运行文件。
 
-`doctor` 会报告运行路径、SQLite/WAL、Alembic、制品目录和三个数据源适配器的启用状态。
-缺少凭据只把对应外部能力标记为 `disabled`，不阻止离线启动。
+`doctor` 会报告 Python 版本、`uv.lock`、运行路径、SQLite/WAL、Alembic、制品注册表和三个
+数据源适配器的启用状态。缺少凭据只把对应外部能力标记为 `disabled`，不阻止离线启动。
 
 ## 密钥边界
 
@@ -86,8 +87,8 @@ Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；�
 
 ## 统一离线验收
 
-以下命令在临时 SQLite 和制品目录中重复初始化，启动正式 Web 与 Worker，执行健康探测和
-恶意 Origin 负例，最后停止两个进程：
+以下命令在临时 SQLite 和制品目录中重复初始化，执行原子制品写入/登记/读回，启动正式
+Web 与 Worker，执行健康探测和恶意 Origin 负例，最后停止两个进程：
 
 ```bash
 PRING_CYCLE_VERIFY_ROOT="$(mktemp -d)"
@@ -106,6 +107,9 @@ UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run pytest
 UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run mypy
 UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run ruff check src tests
 ```
+
+`pring_cycle.domain` 提供框架无关的正式阶段、核心资产状态和证据/模型/投影/运行/报告身份
+边界类型；导入它不会加载 Web、SQLite 或网络框架。
 
 ## 无备份风险
 

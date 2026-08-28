@@ -9,9 +9,9 @@ from dash import Dash, html
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from pring_cycle.health_types import RuntimeHealthDocument
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.runtime import (
-    RuntimeHealthDocument,
     RuntimeNotInitializedError,
     RuntimePaths,
     runtime_health,
@@ -56,16 +56,26 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
                 },
             )
         content_length = request.headers.get("content-length")
-        if content_length is not None and int(content_length) > 4096:
+        try:
+            declared_size = int(content_length) if content_length is not None else 0
+        except ValueError:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "invalid_content_length", "status": "rejected"},
+            )
+        if declared_size > 4096:
             return JSONResponse(
                 status_code=413,
                 content={"error": "command_body_too_large", "status": "rejected"},
             )
-        if len(await request.body()) > 4096:
-            return JSONResponse(
-                status_code=413,
-                content={"error": "command_body_too_large", "status": "rejected"},
-            )
+        observed_size = 0
+        async for body_chunk in request.stream():
+            observed_size += len(body_chunk)
+            if observed_size > 4096:
+                return JSONResponse(
+                    status_code=413,
+                    content={"error": "command_body_too_large", "status": "rejected"},
+                )
         return JSONResponse(
             status_code=501,
             content={"status": "command_append_not_available"},

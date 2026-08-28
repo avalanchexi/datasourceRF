@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
+from pring_cycle.artifacts import artifact_health
+from pring_cycle.health_types import ArtifactHealth, DatabaseHealth, RuntimeHealthDocument
+from pring_cycle.secrets import parse_secret_file
 from pring_cycle.storage import database_health, migrate_database, worker_status
 
 APPLICATION_NAME = "pring-cycle"
@@ -102,22 +106,16 @@ class InitializationDocument(TypedDict):
 
 
 class DiagnosisDocument(TypedDict):
-    artifacts: dict[str, str]
+    artifacts: ArtifactHealth
     backup: dict[str, str]
+    backup_mode: str
     credentials: dict[str, str]
-    database: dict[str, str]
+    database: DatabaseHealth
+    dependency_lock: dict[str, str]
     network_requests: int
     offline_start_available: bool
+    python: dict[str, str]
     runtime: dict[str, str]
-    status: str
-
-
-class RuntimeHealthDocument(TypedDict):
-    artifacts: dict[str, str]
-    binding: dict[str, object]
-    database: dict[str, str]
-    services: dict[str, dict[str, str]]
-    startup_actions: dict[str, int]
     status: str
 
 
@@ -131,6 +129,7 @@ def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
         paths.logs,
     ):
         directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        directory.chmod(0o700)
 
     _create_private_file(
         paths.config_file,
@@ -151,22 +150,30 @@ def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
 def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
     database = database_health(paths.database)
     credentials = _credential_states(paths.secrets)
-    artifacts_ok = paths.artifacts.is_dir()
-    status = "ok" if database["status"] == "ok" and artifacts_ok else "action_required"
+    artifacts = artifact_health(paths.database, paths.artifacts)
+    status = (
+        "ok" if database["status"] == "ok" and artifacts["status"] == "ok" else "action_required"
+    )
     return {
-        "artifacts": {
-            "addressing": "sha256",
-            "status": "ok" if artifacts_ok else "missing",
-        },
+        "artifacts": artifacts,
         "backup": {
             "mode": "none",
             "rpo": "not_guaranteed",
             "rto": "not_guaranteed",
         },
+        "backup_mode": "none",
         "credentials": credentials,
         "database": database,
+        "dependency_lock": {
+            "status": "present" if (_source_root() / "uv.lock").is_file() else "missing"
+        },
         "network_requests": 0,
         "offline_start_available": database["status"] == "ok",
+        "python": {
+            "required": ">=3.12,<3.13",
+            "running": ".".join(str(part) for part in sys.version_info[:3]),
+            "status": "ok" if sys.version_info[:2] == (3, 12) else "unsupported",
+        },
         "runtime": paths.as_document(),
         "status": status,
     }
@@ -174,10 +181,7 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
 
 def runtime_health(paths: RuntimePaths, port: int) -> RuntimeHealthDocument:
     database = database_health(paths.database)
-    artifacts = {
-        "addressing": "sha256",
-        "status": "ok" if paths.artifacts.is_dir() else "missing",
-    }
+    artifacts = artifact_health(paths.database, paths.artifacts)
     worker = worker_status(paths.database)
     is_healthy = (
         database["status"] == "ok" and artifacts["status"] == "ok" and worker["status"] == "healthy"
@@ -197,6 +201,10 @@ def _runtime_root_from_environment() -> Path | None:
     return Path(value) if value else None
 
 
+def _source_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
 def _xdg_path(variable: str, fallback: Path) -> Path:
     configured = Path(os.environ.get(variable, str(fallback))).expanduser().resolve()
     return configured / APPLICATION_NAME
@@ -214,15 +222,7 @@ def _create_private_file(path: Path, contents: str) -> None:
 
 
 def _credential_states(secrets_path: Path) -> dict[str, str]:
-    configured: set[str] = set()
-    if secrets_path.is_file():
-        for raw_line in secrets_path.read_text(encoding="utf-8").splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", maxsplit=1)
-            if key in ALLOWED_CREDENTIALS and value.strip():
-                configured.add(key)
+    configured = parse_secret_file(secrets_path)
     return {
         adapter: "enabled" if key in configured else "disabled"
         for key, adapter in sorted(ALLOWED_CREDENTIALS.items(), key=lambda item: item[1])

@@ -11,7 +11,17 @@ from typing import TypedDict, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, Request, build_opener
 
-from pring_cycle.runtime import RuntimeHealthDocument, RuntimePaths, initialize_runtime
+from pring_cycle.artifacts import (
+    artifact_registration_exists,
+    read_artifact,
+    store_artifact,
+)
+from pring_cycle.health_types import (
+    RuntimeHealthDocument,
+    VerificationChecks,
+)
+from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.secrets import parse_secret_file
 
 
 class VerificationError(RuntimeError):
@@ -19,7 +29,7 @@ class VerificationError(RuntimeError):
 
 
 class VerificationDocument(TypedDict):
-    checks: dict[str, str]
+    checks: VerificationChecks
     network_requests: int
     processes: str
     status: str
@@ -28,6 +38,7 @@ class VerificationDocument(TypedDict):
 def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
     initialize_runtime(paths)
     initialize_runtime(paths)
+    artifact_round_trip = _verify_artifact_round_trip(paths)
     port = _unused_loopback_port()
     worker = _start_process("worker", paths)
     web = _start_process("web", paths, "--port", str(port))
@@ -43,8 +54,9 @@ def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
     if _contains_configured_secret(paths, web_output + worker_output):
         raise VerificationError("sensitive_value_in_process_output")
 
-    checks = {
+    checks: VerificationChecks = {
         "alembic": health["database"]["migration"],
+        "artifact_round_trip": artifact_round_trip,
         "artifacts": health["artifacts"]["status"],
         "database": health["database"]["status"],
         "idempotent_initialization": "ok",
@@ -53,7 +65,18 @@ def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
         "web": health["services"]["web"]["status"],
         "worker": health["services"]["worker"]["status"],
     }
-    if set(checks.values()) != {"ok", "current", "rejected", "healthy", "outside_windows_mount"}:
+    expected_checks: VerificationChecks = {
+        "alembic": "current",
+        "artifact_round_trip": "ok",
+        "artifacts": "ok",
+        "database": "ok",
+        "idempotent_initialization": "ok",
+        "origin_boundary": "rejected",
+        "runtime_location": "outside_windows_mount",
+        "web": "healthy",
+        "worker": "healthy",
+    }
+    if checks != expected_checks:
         raise VerificationError("local_runtime_health_check_failed")
     return {
         "checks": checks,
@@ -61,6 +84,34 @@ def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
         "processes": "stopped",
         "status": "ok",
     }
+
+
+def _verify_artifact_round_trip(paths: RuntimePaths) -> str:
+    content = b"pring-cycle-ticket-01-offline-artifact\n"
+    source_reference = "verification:ticket-01"
+    first = store_artifact(
+        paths.database,
+        paths.artifacts,
+        content,
+        media_type="text/plain",
+        source_reference=source_reference,
+    )
+    second = store_artifact(
+        paths.database,
+        paths.artifacts,
+        content,
+        media_type="text/plain",
+        source_reference=source_reference,
+    )
+    if (
+        first.content_hash != second.content_hash
+        or first.path != second.path
+        or read_artifact(first) != content
+        or not artifact_registration_exists(paths.database, first)
+        or list(paths.artifacts.rglob("*.tmp"))
+    ):
+        raise VerificationError("artifact_round_trip_failed")
+    return "ok"
 
 
 def _start_process(command: str, paths: RuntimePaths, *arguments: str) -> subprocess.Popen[str]:
@@ -143,13 +194,4 @@ def _stop_process(process: subprocess.Popen[str]) -> str:
 
 
 def _contains_configured_secret(paths: RuntimePaths, output: str) -> bool:
-    if not paths.secrets.is_file():
-        return False
-    for raw_line in paths.secrets.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        _key, value = line.split("=", maxsplit=1)
-        if value and value in output:
-            return True
-    return False
+    return any(value and value in output for value in parse_secret_file(paths.secrets).values())
