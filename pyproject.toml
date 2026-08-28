@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pring-cycle"
+version = "0.1.0"
+description = "Local Pring market-cycle dashboard"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "alembic>=1.16,<2",
+  "dash[fastapi]==4.2.0",
+  "sqlalchemy>=2.0.44,<3",
+  "uvicorn>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.18,<2",
+  "pytest>=8.4,<9",
+  "ruff>=0.12,<1",
+]
+
+[project.scripts]
+pring-cycle = "pring_cycle.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pring_cycle"]
+
+[tool.pytest.ini_options]
+addopts = ["-p", "no:cacheprovider", "-p", "no:dash"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["pring_cycle"]
