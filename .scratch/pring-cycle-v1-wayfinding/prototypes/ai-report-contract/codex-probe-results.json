@@ -1,0 +1,133 @@
+{
+  "prototype": "ai-report-contract",
+  "fixture_only": true,
+  "bundle_id": "eb-prototype-v1",
+  "results": [
+    {
+      "adapter": "codex_cli",
+      "exit_code": 0,
+      "process_outcome": "completed",
+      "duration_seconds": 34.459,
+      "tool_events": 0,
+      "event_types": [
+        "item.completed",
+        "thread.started",
+        "turn.completed",
+        "turn.started"
+      ],
+      "cli_errors": [
+        "Skill descriptions were shortened to fit the skills context budget. Codex can still see every skill, but some descriptions are shorter. Disable unused skills or plugins to leave more room for the rest."
+      ],
+      "parse_error": null,
+      "schema_valid": true,
+      "validation_errors": [],
+      "output_sha256": "9d893547315cef05d08a36bee28e8b7a9eb05c550adfdc4ef055f81e31162c2b",
+      "report": {
+        "schema_version": "report.v1-prototype",
+        "bundle_id": "eb-prototype-v1",
+        "report_cutoff": "2026-08-19T18:00:00+08:00",
+        "current_stage": "Stage II",
+        "one_line_conclusion": "确定性引擎当前阶段为 Stage II；债券与权益为看多状态，商品为看空状态但出现看多转折观察，宏观状态呈现政策宽松、降温、主动去库存与上游价格压力。",
+        "sections": [
+          {
+            "section_id": "formal_stage",
+            "title": "正式阶段",
+            "conclusion": "当前正式阶段为 Stage II，系确定性引擎的不可变结果；上一确认阶段为 Stage I。本报告不对阶段重新分类或预测下一阶段。",
+            "evidence_ids": [
+              "ev-bond-state",
+              "ev-equity-state",
+              "ev-commodity-state"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "core_assets",
+            "title": "核心资产状态",
+            "conclusion": "截至报告截点，债券为看多状态，权益为看多状态，商品为看空状态。",
+            "evidence_ids": [
+              "ev-bond-state",
+              "ev-equity-state",
+              "ev-commodity-state"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "policy_and_credit",
+            "title": "政策与资金传导",
+            "conclusion": "政策方向状态为宽松；7天期公开市场操作利率为1.5%，DR007为1.42%，用于呈现政策行动与市场传导状态。",
+            "evidence_ids": [
+              "ev-policy-rate",
+              "ev-dr007"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "inventory_and_overheat",
+            "title": "库存与过热状态",
+            "conclusion": "经济过热状态为降温，库存周期处于主动去库存；2026年7月PMI新订单指数为48.7，产成品库存指数为47.9。",
+            "evidence_ids": [
+              "ev-pmi-orders",
+              "ev-pmi-inventory"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "price_pressure",
+            "title": "价格压力",
+            "conclusion": "价格压力状态为上游压力；2026年7月PPI同比为-1.6%，核心CPI同比为0.8%，布伦特原油30日方向截至2026年8月18日为上升。",
+            "evidence_ids": [
+              "ev-ppi",
+              "ev-core-cpi",
+              "ev-brent"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "data_quality",
+            "title": "数据质量",
+            "conclusion": "CBOE VIX指数来源尚待认证，影响仅限国际背景信息；未使用代理值填充该缺口。",
+            "evidence_ids": [],
+            "governance_refs": [
+              "gap-vix-source-certification"
+            ]
+          }
+        ],
+        "transition_watches": [
+          {
+            "asset": "commodity",
+            "direction": "bullish",
+            "status": "asset_candidate_only",
+            "conclusion": "商品仅处于资产候选状态：看多候选已持续4日，确认要求为8日；这不是候选阶段，也不构成下一阶段预测。",
+            "evidence_ids": [
+              "ev-commodity-state",
+              "ev-commodity-watch"
+            ]
+          }
+        ],
+        "data_gaps": [
+          {
+            "gap_id": "gap-vix-source-certification",
+            "metric_id": "CBOE_VIX_INDEX",
+            "status": "awaiting_source_certification",
+            "impact": "international_context_only",
+            "proxy_used": false
+          }
+        ],
+        "used_evidence_ids": [
+          "ev-bond-state",
+          "ev-equity-state",
+          "ev-commodity-state",
+          "ev-commodity-watch",
+          "ev-dr007",
+          "ev-policy-rate",
+          "ev-pmi-orders",
+          "ev-pmi-inventory",
+          "ev-ppi",
+          "ev-core-cpi",
+          "ev-brent"
+        ],
+        "disclaimer": "本报告为 fixture_only=true 的协议原型样本，不是实际市场报告；内容仅依据给定证据包渲染，不构成资产配置、买卖、目标价、收益承诺或其他交易建议。"
+      }
+    }
+  ]
+}

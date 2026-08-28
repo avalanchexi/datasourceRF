@@ -1,0 +1,42 @@
+{
+  "prototype": "ai-report-contract",
+  "fixture_only": true,
+  "bundle_id": "eb-prototype-v1",
+  "results": [
+    {
+      "adapter": "codex_cli",
+      "exit_code": 0,
+      "process_outcome": "timed_out",
+      "duration_seconds": 180.084,
+      "tool_events": 0,
+      "event_types": [
+        "error",
+        "item.completed",
+        "thread.started",
+        "turn.started"
+      ],
+      "parse_error": null,
+      "schema_valid": false,
+      "validation_errors": [
+        "output_not_object"
+      ],
+      "output_sha256": null,
+      "report": null
+    },
+    {
+      "adapter": "claude_code_cli",
+      "exit_code": 1,
+      "process_outcome": "completed",
+      "duration_seconds": 7.624,
+      "tool_events": 0,
+      "wrapper_subtype": "success",
+      "parse_error": "JSONDecodeError",
+      "schema_valid": false,
+      "validation_errors": [
+        "output_not_object"
+      ],
+      "output_sha256": null,
+      "report": null
+    }
+  ]
+}

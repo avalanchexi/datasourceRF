@@ -1,0 +1,128 @@
+{
+  "prototype": "ai-report-contract",
+  "fixture_only": true,
+  "bundle_id": "eb-prototype-v1",
+  "results": [
+    {
+      "adapter": "claude_code_cli",
+      "exit_code": 0,
+      "process_outcome": "completed",
+      "duration_seconds": 31.022,
+      "tool_events": 0,
+      "wrapper_subtype": "success",
+      "cli_is_error": false,
+      "terminal_reason": "completed",
+      "cli_error_message": null,
+      "parse_error": null,
+      "schema_valid": true,
+      "validation_errors": [],
+      "output_sha256": "45bcbe9c9fb3bb427bcb8e3a3ec624c677f2efeba1c343dcb039153deee12b0d",
+      "report": {
+        "bundle_id": "eb-prototype-v1",
+        "current_stage": "Stage II",
+        "data_gaps": [
+          {
+            "gap_id": "gap-vix-source-certification",
+            "metric_id": "CBOE_VIX_INDEX",
+            "status": "awaiting_source_certification",
+            "impact": "international_context_only",
+            "proxy_used": false
+          }
+        ],
+        "disclaimer": "本文为协议原型样本（fixture_only=true），不是实际市场报告，不构成任何投资建议、资产配置建议或买卖操作提示；全部内容仅来自给定证据包，未使用外部检索、外部数据或代理值。",
+        "one_line_conclusion": "在截止 2026-08-19 18:00(+08:00) 的原型证据包下，确定性引擎的正式阶段结果为 Stage II，债券与股票核心状态为多头、商品为空头，商品的多头信号仅记为转折观察；本文为协议原型样本，不是实际市场报告。",
+        "report_cutoff": "2026-08-19T18:00:00+08:00",
+        "schema_version": "report.v1-prototype",
+        "sections": [
+          {
+            "section_id": "formal_stage",
+            "title": "正式阶段（引擎结果，原样输出）",
+            "conclusion": "确定性引擎给出的当前阶段为 Stage II，该映射不可变，本报告原样输出，不做重新分类、投票或下一阶段预测；上一确认阶段为 Stage I。核心状态组合为债券多头、股票多头、商品空头。提示：本节属于协议原型样本，不是实际市场报告。",
+            "evidence_ids": [
+              "ev-bond-state",
+              "ev-equity-state",
+              "ev-commodity-state"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "core_assets",
+            "title": "三类核心资产状态",
+            "conclusion": "在 2026-02-26 至 2026-08-19 共 120 个交易日的证据窗口内，债券核心状态为多头，股票核心状态为多头，商品核心状态为空头，三者共同构成引擎读取的正式核心状态输入。本节仅描述状态事实，不含任何配置或交易含义。",
+            "evidence_ids": [
+              "ev-bond-state",
+              "ev-equity-state",
+              "ev-commodity-state"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "policy_and_credit",
+            "title": "政策与资金传导",
+            "conclusion": "政策方向标记为宽松：7 天公开市场操作利率为 1.5%，DR007 为 1.42%，资金面利率位于政策利率下方，显示政策动作已传导至短端市场利率。以上为证据包记录的观测值，不作利率路径预测。",
+            "evidence_ids": [
+              "ev-policy-rate",
+              "ev-dr007"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "inventory_and_overheat",
+            "title": "库存周期与过热度",
+            "conclusion": "过热状态标记为降温，库存周期标记为主动去库：2026 年 7 月 PMI 新订单为 48.7，产成品库存为 47.9，需求与库存指标同处收缩区间，与主动去库特征一致。该结论仅复述证据包事实，不外推后续库存节奏。",
+            "evidence_ids": [
+              "ev-pmi-orders",
+              "ev-pmi-inventory"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "price_pressure",
+            "title": "价格压力结构",
+            "conclusion": "价格压力标记为上游压力：2026 年 7 月 PPI 同比为 -1.6%，核心 CPI 同比为 0.8%，同时布伦特原油 30 日方向（截至 2026-08-18）为上行，构成上游价格端的压力来源与滞后确认的价格组合。本节不含价格预测或目标价。",
+            "evidence_ids": [
+              "ev-ppi",
+              "ev-core-cpi",
+              "ev-brent"
+            ],
+            "governance_refs": []
+          },
+          {
+            "section_id": "data_quality",
+            "title": "数据质量与治理缺口",
+            "conclusion": "存在一项治理缺口：CBOE_VIX_INDEX 处于等待来源认证状态（gap-vix-source-certification），不允许使用代理值填充，本报告未以任何其他观测替代该指标；其影响范围限于国际环境参考，不影响正式阶段结果的输出。",
+            "evidence_ids": [],
+            "governance_refs": [
+              "gap-vix-source-certification"
+            ]
+          }
+        ],
+        "transition_watches": [
+          {
+            "asset": "commodity",
+            "direction": "bullish",
+            "status": "asset_candidate_only",
+            "conclusion": "商品的 30 日方向出现多头候选，累计满足 4 天、要求 8 天，因此仅登记为资产层面的转折观察；它不是候选阶段、预计阶段或下一阶段，也不改变引擎给出的正式阶段结果，其正式核心状态仍为空头。",
+            "evidence_ids": [
+              "ev-commodity-state",
+              "ev-commodity-watch"
+            ]
+          }
+        ],
+        "used_evidence_ids": [
+          "ev-bond-state",
+          "ev-equity-state",
+          "ev-commodity-state",
+          "ev-commodity-watch",
+          "ev-dr007",
+          "ev-policy-rate",
+          "ev-pmi-orders",
+          "ev-pmi-inventory",
+          "ev-ppi",
+          "ev-core-cpi",
+          "ev-brent"
+        ]
+      }
+    }
+  ]
+}

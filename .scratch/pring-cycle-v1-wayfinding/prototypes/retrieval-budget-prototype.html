@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>检索降级链预算与缓存原型</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #14211c;
+      --muted: #64736b;
+      --paper: #f4f1e8;
+      --card: #fffdf7;
+      --line: #d8d7cd;
+      --green: #176b4d;
+      --green-soft: #e2f1e9;
+      --amber: #a55d11;
+      --amber-soft: #f8e9cd;
+      --red: #a53b35;
+      --red-soft: #f7dfdb;
+      --blue: #315e86;
+      --blue-soft: #e2edf6;
+      --shadow: 0 12px 32px rgba(34, 48, 41, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 94% 0%, rgba(49, 94, 134, .10), transparent 30rem),
+        radial-gradient(circle at 0% 36%, rgba(23, 107, 77, .08), transparent 34rem),
+        var(--paper);
+      color: var(--ink);
+      font: 14px/1.55 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .42; }
+    .shell { max-width: 1500px; margin: 0 auto; padding: 26px; }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+    .eyebrow { color: var(--green); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    h1 { margin: 5px 0 6px; font-size: clamp(25px, 3vw, 39px); letter-spacing: -.035em; line-height: 1.12; }
+    .hero p { margin: 0; color: var(--muted); max-width: 850px; }
+    .draft {
+      flex: 0 0 auto;
+      border: 1px solid #d0b96d;
+      background: #fff5cd;
+      color: #72520c;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 750;
+    }
+    .calibration, .budget-strip {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .stat, .budget-card, .panel {
+      border: 1px solid var(--line);
+      background: rgba(255, 253, 247, .92);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .stat { padding: 13px 15px; }
+    .stat span { display: block; color: var(--muted); font-size: 12px; }
+    .stat strong { display: block; font-size: 20px; margin-top: 2px; }
+    .stat small { display: block; margin-top: 2px; color: var(--muted); }
+    .budget-card { padding: 12px 14px; }
+    .budget-card .label { color: var(--muted); font-size: 12px; }
+    .budget-card .value { font-weight: 800; margin-top: 3px; }
+    .budget-card .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .layout { display: grid; grid-template-columns: 280px minmax(0, 1fr) 340px; gap: 12px; }
+    .panel { padding: 16px; min-width: 0; }
+    .panel h2 { font-size: 15px; margin: 0 0 11px; }
+    .panel-note { color: var(--muted); font-size: 12px; margin: -6px 0 12px; }
+    .scenario-list { display: grid; gap: 7px; }
+    .scenario {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 11px;
+      text-align: left;
+      color: var(--ink);
+    }
+    .scenario:hover, .scenario.active { border-color: var(--green); background: var(--green-soft); }
+    .scenario strong { display: block; font-size: 13px; }
+    .scenario small { color: var(--muted); }
+    .flow { display: grid; grid-template-columns: repeat(6, minmax(90px, 1fr)); gap: 6px; margin-bottom: 14px; }
+    .node {
+      position: relative;
+      min-height: 92px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 11px;
+      padding: 10px;
+    }
+    .node:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -10px;
+      top: 33px;
+      width: 14px;
+      text-align: center;
+      color: #8a958f;
+      z-index: 2;
+    }
+    .node .step { color: var(--muted); font-size: 11px; }
+    .node strong { display: block; font-size: 13px; margin: 3px 0; }
+    .node small { color: var(--muted); }
+    .node.used { border-color: var(--blue); background: var(--blue-soft); }
+    .node.hit { border-color: var(--green); background: var(--green-soft); }
+    .node.failed { border-color: var(--red); background: var(--red-soft); }
+    .node.next { border-color: var(--amber); background: var(--amber-soft); box-shadow: inset 0 0 0 1px var(--amber); }
+    .node.blocked { opacity: .48; }
+    .task-card { border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 14px; }
+    .task-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .pill { display: inline-flex; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 800; }
+    .pill.p0 { background: var(--red-soft); color: var(--red); }
+    .pill.p1 { background: var(--amber-soft); color: var(--amber); }
+    .pill.p2 { background: var(--blue-soft); color: var(--blue); }
+    .pill.good { background: var(--green-soft); color: var(--green); }
+    .pill.warn { background: var(--amber-soft); color: var(--amber); }
+    .pill.bad { background: var(--red-soft); color: var(--red); }
+    .task-meta { color: var(--muted); margin-top: 6px; font-size: 12px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
+    .chip { border: 1px solid var(--line); background: #f8f7f1; padding: 3px 7px; border-radius: 7px; font-size: 11px; }
+    .controls { margin-top: 12px; display: grid; gap: 8px; }
+    .control-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .control-row button {
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      padding: 7px 10px;
+      color: var(--ink);
+    }
+    .control-row button:hover:not(:disabled) { border-color: var(--green); }
+    .control-row button.primary { color: #fff; background: var(--green); border-color: var(--green); }
+    .control-row button.danger { color: var(--red); border-color: #dcaaa5; }
+    .usage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+    .usage > div { background: #f6f5ee; border-radius: 9px; padding: 9px; }
+    .usage span { display: block; color: var(--muted); font-size: 11px; }
+    .usage strong { font-size: 16px; }
+    .state-box { border-radius: 11px; padding: 12px; background: #f5f4ed; margin-bottom: 10px; }
+    .state-box .state { font-size: 18px; font-weight: 850; overflow-wrap: anywhere; }
+    .state-box .next-action { color: var(--muted); margin-top: 3px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 11px; }
+    .detail-grid > div { border-top: 1px solid var(--line); padding-top: 7px; min-width: 0; }
+    .detail-grid span { color: var(--muted); display: block; font-size: 11px; }
+    .detail-grid strong { display: block; overflow-wrap: anywhere; font-size: 12px; }
+    .audit { max-height: 360px; overflow: auto; border-top: 1px solid var(--line); }
+    .event { padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .event code { font-size: 11px; color: var(--blue); }
+    .event div { font-size: 12px; }
+    .event small { color: var(--muted); }
+    .policy { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .policy .panel { box-shadow: none; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    th, td { padding: 7px 6px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-weight: 700; }
+    .callout { margin-top: 10px; padding: 10px 12px; background: var(--amber-soft); color: #704719; border-radius: 10px; font-size: 12px; }
+    .tests { color: var(--green); font-weight: 800; }
+    footer { margin-top: 14px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 1120px) {
+      .layout { grid-template-columns: 240px 1fr; }
+      .status-panel { grid-column: 1 / -1; }
+      .flow { grid-template-columns: repeat(3, 1fr); }
+      .node:nth-child(3)::after { display: none; }
+    }
+    @media (max-width: 760px) {
+      .shell { padding: 14px; }
+      .hero { display: block; }
+      .draft { display: inline-block; margin-top: 12px; }
+      .calibration, .budget-strip { grid-template-columns: 1fr 1fr; }
+      .layout { grid-template-columns: 1fr; }
+      .status-panel { grid-column: auto; }
+      .flow { grid-template-columns: 1fr 1fr; }
+      .node:nth-child(2n)::after { display: none; }
+      .policy { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <div>
+        <div class="eyebrow">Wayfinder logic prototype</div>
+        <h1>检索降级链：先少搜，再可解释地失败</h1>
+        <p>验证发布事件合并、Tavily → Exa → 受限 AI WebSearch、硬预算、负缓存和报告 AI 隔离。这里验证的是控制逻辑，不是页面视觉定稿。</p>
+      </div>
+      <div class="draft">待你确认 · 仍为 claimed</div>
+    </header>
+
+    <section class="calibration" aria-label="实测基线">
+      <div class="stat"><span>脱敏探针</span><strong>5 次</strong><small>3 Tavily + 2 Exa</small></div>
+      <div class="stat"><span>Tavily 官方域命中</span><strong>3 / 3</strong><small>中位延迟 2.71s</small></div>
+      <div class="stat"><span>Exa 官方域命中</span><strong>2 / 2</strong><small>中位延迟 1.64s</small></div>
+      <div class="stat"><span>AI WebSearch</span><strong>0 次</strong><small>链路未触发，刻意不测</small></div>
+      <div class="stat"><span>旧流程警示</span><strong>9 / 97</strong><small>搜索成功；缓存命中 0%</small></div>
+    </section>
+
+    <section class="budget-strip" aria-label="建议硬预算">
+      <div class="budget-card"><div class="label">预算身份</div><div class="value">按发布事件，不按指标</div><div class="sub">CPI / 核心CPI / PPI 可合并一次检索</div></div>
+      <div class="budget-card"><div class="label">单事件</div><div class="value">T 1 · E 1 · AI 1</div><div class="sub">P2 的 AI 固定为 0；自动改写 0 次</div></div>
+      <div class="budget-card"><div class="label">单次运行</div><div class="value">T 8 · E 4 · AI 1</div><div class="sub">依次执行，不并行抢额度</div></div>
+      <div class="budget-card"><div class="label">每日</div><div class="value">T 16 · E 8 · AI 2</div><div class="sub">手动深搜另需用户明确触发</div></div>
+      <div class="budget-card"><div class="label">返回上限</div><div class="value">3 条 · 1,800 字</div><div class="sub">选中官方页面片段再限 1,600 字</div></div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <h2>引导场景</h2>
+        <p class="panel-note">每次场景都从空状态开始。</p>
+        <div class="scenario-list" id="scenario-list"></div>
+        <div class="callout">“命中”只表示搜索找到候选。值仍必须通过官方域名、统计期、单位、字段和 point-in-time 校验，AI 不能直接写值。</div>
+      </aside>
+
+      <section class="panel">
+        <h2>当前检索任务</h2>
+        <div class="flow" id="flow"></div>
+        <div class="task-card">
+          <div class="task-title">
+            <strong id="task-name">尚未创建任务</strong>
+            <span class="pill" id="priority-pill">—</span>
+            <span class="pill" id="blocking-pill">—</span>
+          </div>
+          <div class="task-meta" id="task-meta">请选择左侧场景，或用下方自由操作。</div>
+          <div class="chips" id="metric-chips"></div>
+        </div>
+
+        <div class="controls">
+          <div class="control-row">
+            <button class="primary" data-action="start-p1">新建 P1 发布事件</button>
+            <button data-action="start-p2">新建 P2 缺口</button>
+            <button data-action="awaiting">新值未发布</button>
+            <button data-action="local-hit">本地证据命中</button>
+          </div>
+          <div class="control-row">
+            <button data-provider="tavily" data-outcome="valid">Tavily 有效</button>
+            <button data-provider="tavily" data-outcome="quota">Tavily 配额耗尽</button>
+            <button data-provider="tavily" data-outcome="semantic_mismatch">Tavily 语义不符</button>
+            <button data-provider="exa" data-outcome="valid">Exa 有效</button>
+            <button data-provider="exa" data-outcome="timeout">Exa 超时</button>
+            <button data-provider="ai" data-outcome="valid">AI 候选有效</button>
+            <button data-provider="ai" data-outcome="validation_failed">AI 校验失败</button>
+          </div>
+          <div class="control-row">
+            <button data-action="retry">重复同一事件</button>
+            <button data-action="advance">推进到次日并新运行</button>
+            <button class="danger" data-action="report-ai">报告 AI 尝试直搜</button>
+            <button data-action="reset">清空</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel status-panel">
+        <h2>状态与可观测输出</h2>
+        <div class="state-box">
+          <div class="state" id="current-state">idle</div>
+          <div class="next-action" id="next-action">下一动作：无</div>
+        </div>
+        <div class="usage">
+          <div><span>Tavily 运行 / 日</span><strong id="usage-tavily">0/8 · 0/16</strong></div>
+          <div><span>Exa 运行 / 日</span><strong id="usage-exa">0/4 · 0/8</strong></div>
+          <div><span>AI 运行 / 日</span><strong id="usage-ai">0/1 · 0/2</strong></div>
+        </div>
+        <div class="detail-grid" style="margin-top: 12px">
+          <div><span>下一重试</span><strong id="next-retry">—</strong></div>
+          <div><span>旧值处理</span><strong id="old-value">—</strong></div>
+          <div><span>阶段影响</span><strong id="stage-impact">—</strong></div>
+          <div><span>报告AI越权</span><strong id="bypass-count">0 次，全部拦截</strong></div>
+        </div>
+        <h2>审计事件</h2>
+        <div class="audit" id="audit"></div>
+      </aside>
+    </section>
+
+    <section class="policy">
+      <article class="panel">
+        <h2>负缓存与重试窗口</h2>
+        <table>
+          <thead><tr><th>失败</th><th>自动重试</th><th>当前链路</th></tr></thead>
+          <tbody>
+            <tr><td>尚未发布</td><td>实际下一预计窗口</td><td>不搜索，展示上一期</td></tr>
+            <tr><td>401 / 配置错误</td><td>人工修复后</td><td>标记配置阻塞；可继续下级已配置渠道</td></tr>
+            <tr><td>402/403 配额</td><td>明确重置时点；未知则次日 00:05</td><td>立即转下一级</td></tr>
+            <tr><td>429</td><td><code>Retry-After</code>；未知则 60 分钟</td><td>立即转下一级</td></tr>
+            <tr><td>超时 / 网络 / 5xx</td><td>15 分钟，但同事件当日不重复自动搜</td><td>立即转下一级</td></tr>
+            <tr><td>空结果 / 统计期、单位、语义不符</td><td>P0/P1 6 小时，P2 24 小时；仍受每日一次约束</td><td>立即转下一级</td></tr>
+          </tbody>
+        </table>
+      </article>
+      <article class="panel">
+        <h2>输出与信任边界</h2>
+        <table>
+          <tbody>
+            <tr><th>必须记录</th><td><code>retrieval_task_id</code>、发布事件、指标列表、priority、as_of、provider、结果分类、延迟、预算余量、cache、next_retry_at、校验原因</td></tr>
+            <tr><th>不得记录</th><td>token、API key、Authorization、未脱敏响应；报告 AI 也看不到凭据</td></tr>
+            <tr><th>P0 全失败</th><td>保留上次确认阶段，不产生新正式阶段；显式 <code>source_failed</code></td></tr>
+            <tr><th>P1 全失败</th><td>旧值仅展示，不能验证当前转折；显式降级</td></tr>
+            <tr><th>P2 全失败</th><td>卡片暂缺，不进 AI WebSearch，不阻塞阶段或报告</td></tr>
+            <tr><th>原始保留</th><td>搜索原始响应 30 天；已验证观测、URL、内容指纹和审计长期保存</td></tr>
+          </tbody>
+        </table>
+        <div class="callout"><span class="tests" id="test-result">正在执行逻辑自测…</span><br>小样本只能证明预算可运行，不能把 3/3 或 2/2 外推成生产命中率。实现后还要用真实月度发布和故障注入调整。</div>
+      </article>
+    </section>
+
+    <footer>校准日期：2026-08-21。Tavily/Exa 探针仅输出汇总字段；没有输出或保存任何密钥、查询结果正文或URL。AI WebSearch 因未触发而保持 0 调用。</footer>
+  </main>
+
+  <script>
+  // PURE_LOGIC_START
+  const RetrievalBudget = (() => {
+    "use strict";
+
+    const PROVIDERS = ["tavily", "exa", "ai"];
+    const CONFIG = Object.freeze({
+      perEvent: Object.freeze({ tavily: 1, exa: 1, ai: 1 }),
+      perRun: Object.freeze({ tavily: 8, exa: 4, ai: 1 }),
+      perDay: Object.freeze({ tavily: 16, exa: 8, ai: 2 })
+    });
+
+    const clone = value => JSON.parse(JSON.stringify(value));
+    const emptyUsage = () => ({ tavily: 0, exa: 0, ai: 0 });
+    const plusMinutes = (iso, minutes) => new Date(new Date(iso).getTime() + minutes * 60000).toISOString();
+    const nextDayReset = iso => {
+      const date = new Date(iso);
+      date.setUTCDate(date.getUTCDate() + 1);
+      date.setUTCHours(0, 5, 0, 0);
+      return date.toISOString();
+    };
+
+    function initialState() {
+      return {
+        now: "2026-08-21T02:00:00.000Z",
+        runId: "run-20260821-a",
+        usage: { run: emptyUsage(), day: emptyUsage() },
+        task: null,
+        providerState: { tavily: "idle", exa: "idle", ai: "idle" },
+        negativeCache: {},
+        reportAiBypassBlocked: 0,
+        audit: []
+      };
+    }
+
+    function audit(state, code, message, details = {}) {
+      state.audit.unshift({ at: state.now, code, message, details });
+      state.audit = state.audit.slice(0, 40);
+    }
+
+    function cacheKey(task, provider) {
+      return `${task.releaseEventId}:${provider}`;
+    }
+
+    function retryAtFor(state, outcome) {
+      if (outcome === "quota" || outcome === "auth_error") return nextDayReset(state.now);
+      if (outcome === "rate_limited") return plusMinutes(state.now, 60);
+      if (["timeout", "network_error", "server_error"].includes(outcome)) return plusMinutes(state.now, 15);
+      const minutes = state.task.priority === "P2" ? 1440 : 360;
+      return plusMinutes(state.now, minutes);
+    }
+
+    function allowedForPriority(priority, provider) {
+      return !(priority === "P2" && provider === "ai");
+    }
+
+    function budgetReason(state, provider) {
+      const task = state.task;
+      if (!allowedForPriority(task.priority, provider)) return "priority_forbidden";
+      if ((task.usage[provider] || 0) >= CONFIG.perEvent[provider]) return "event_budget_exhausted";
+      if (state.usage.run[provider] >= CONFIG.perRun[provider]) return "run_budget_exhausted";
+      if (state.usage.day[provider] >= CONFIG.perDay[provider]) return "day_budget_exhausted";
+      const cache = state.negativeCache[cacheKey(task, provider)];
+      if (cache && new Date(cache.retryAt) > new Date(state.now)) return "negative_cache_active";
+      return null;
+    }
+
+    function firstAvailable(state, candidates) {
+      for (const provider of candidates) {
+        if (!budgetReason(state, provider)) return provider;
+      }
+      return null;
+    }
+
+    function downstream(priority, provider) {
+      if (provider === "tavily") return priority === "P2" ? ["exa"] : ["exa", "ai"];
+      if (provider === "exa") return priority === "P2" ? [] : ["ai"];
+      return [];
+    }
+
+    function finishFailed(state, reason) {
+      state.task.status = "source_failed";
+      state.task.nextAction = null;
+      state.task.failureReason = reason;
+      state.task.oldValue = state.task.priority === "P2" ? "显示暂缺" : "显示上一期，但降级";
+      state.task.stageImpact = state.task.priority === "P0"
+        ? "冻结新阶段，保留 last_confirmed_stage"
+        : state.task.priority === "P1"
+          ? "不能验证当前转折"
+          : "无；仅背景卡片暂缺";
+      audit(state, "retrieval_chain_failed", `全链路结束：${reason}`, { priority: state.task.priority });
+    }
+
+    function startTask(state, payload) {
+      state.task = {
+        id: payload.id,
+        name: payload.name,
+        priority: payload.priority,
+        releaseEventId: payload.releaseEventId,
+        metricIds: payload.metricIds || [],
+        expectedReleaseAt: payload.expectedReleaseAt || "2026-09-09T01:30:00.000Z",
+        released: payload.released !== false,
+        usage: emptyUsage(),
+        status: "checking_local",
+        nextAction: null,
+        failureReason: null,
+        oldValue: "待判断",
+        stageImpact: "待判断"
+      };
+      state.providerState = { tavily: "idle", exa: "idle", ai: "idle" };
+      audit(state, "task_created", `创建发布事件任务，合并 ${state.task.metricIds.length} 个指标`, { taskId: state.task.id });
+
+      if (payload.localFresh) {
+        state.task.status = "local_cache_hit";
+        state.task.oldValue = "使用已验证本地观测";
+        state.task.stageImpact = "按指标角色正常生效";
+        audit(state, "local_evidence_hit", "本地证据有效，未消耗搜索预算");
+        return;
+      }
+      if (!state.task.released) {
+        state.task.status = "awaiting_release";
+        state.task.oldValue = "沿用上一期并显示 age";
+        state.task.stageImpact = state.task.priority === "P0" ? "不产生新阶段" : "旧值仅展示";
+        state.task.nextRetryAt = state.task.expectedReleaseAt;
+        audit(state, "release_not_due", "新一期尚未发布，不调用任何搜索渠道");
+        return;
+      }
+      if (payload.directHit) {
+        state.task.status = "official_direct_hit";
+        state.task.oldValue = "使用官方直连观测";
+        state.task.stageImpact = "按指标角色正常生效";
+        audit(state, "official_direct_hit", "认证官方直连命中，未消耗搜索预算");
+        return;
+      }
+      state.task.status = "waiting_provider";
+      state.task.nextAction = firstAvailable(state, ["tavily", "exa"].concat(state.task.priority === "P2" ? [] : ["ai"]));
+      if (!state.task.nextAction) finishFailed(state, "all_budgets_or_caches_blocked");
+    }
+
+    function providerResult(state, payload) {
+      if (!state.task || state.task.status !== "waiting_provider") {
+        audit(state, "provider_call_rejected", "当前没有等待渠道的任务", { provider: payload.provider });
+        return;
+      }
+      if (state.task.nextAction !== payload.provider) {
+        audit(state, "provider_order_rejected", "渠道顺序不符，调用被拒绝", { expected: state.task.nextAction, attempted: payload.provider });
+        return;
+      }
+      const reason = budgetReason(state, payload.provider);
+      if (reason) {
+        audit(state, "provider_budget_rejected", `渠道调用被硬预算或负缓存拦截：${reason}`, { provider: payload.provider });
+        const next = firstAvailable(state, downstream(state.task.priority, payload.provider));
+        if (next) state.task.nextAction = next;
+        else finishFailed(state, reason);
+        return;
+      }
+
+      state.task.usage[payload.provider] += 1;
+      state.usage.run[payload.provider] += 1;
+      state.usage.day[payload.provider] += 1;
+
+      if (payload.outcome === "valid") {
+        state.providerState[payload.provider] = "hit";
+        state.task.status = `${payload.provider}_hit`;
+        state.task.nextAction = null;
+        state.task.oldValue = "写入经确定性校验的新观测";
+        state.task.stageImpact = "按指标角色正常生效";
+        audit(state, "provider_validated", `${payload.provider} 候选通过官方域、统计期、单位与字段校验`, { latencyMs: payload.latencyMs || null });
+        return;
+      }
+
+      state.providerState[payload.provider] = "failed";
+      const retryAt = retryAtFor(state, payload.outcome);
+      state.negativeCache[cacheKey(state.task, payload.provider)] = { reason: payload.outcome, retryAt };
+      state.task.nextRetryAt = retryAt;
+      audit(state, "provider_failed", `${payload.provider} 失败：${payload.outcome}`, { retryAt });
+      const next = firstAvailable(state, downstream(state.task.priority, payload.provider));
+      if (next) {
+        state.task.nextAction = next;
+        state.task.status = "waiting_provider";
+      } else {
+        finishFailed(state, payload.outcome);
+      }
+    }
+
+    function retrySameEvent(state) {
+      if (!state.task) return;
+      const active = PROVIDERS
+        .map(provider => ({ provider, entry: state.negativeCache[cacheKey(state.task, provider)] }))
+        .find(item => item.entry && new Date(item.entry.retryAt) > new Date(state.now));
+      if (active) {
+        state.task.status = "negative_cache_hit";
+        state.task.nextAction = null;
+        state.task.nextRetryAt = active.entry.retryAt;
+        audit(state, "negative_cache_hit", `重复事件未发出请求：${active.provider}`, { retryAt: active.entry.retryAt });
+      } else {
+        state.task.status = "waiting_provider";
+        state.task.nextAction = firstAvailable(state, ["tavily", "exa"].concat(state.task.priority === "P2" ? [] : ["ai"]));
+        if (!state.task.nextAction) finishFailed(state, "event_or_run_budget_exhausted");
+      }
+    }
+
+    function advanceDay(state) {
+      state.now = nextDayReset(state.now);
+      state.runId = `run-${state.now.slice(0, 10).replaceAll("-", "")}-a`;
+      state.usage.run = emptyUsage();
+      state.usage.day = emptyUsage();
+      if (state.task) state.task.usage = emptyUsage();
+      audit(state, "new_day_new_run", "推进至次日，重置运行与每日预算；未删除审计记录");
+    }
+
+    function reduce(inputState, action) {
+      const state = clone(inputState);
+      switch (action.type) {
+        case "START_TASK": startTask(state, action.payload); break;
+        case "PROVIDER_RESULT": providerResult(state, action.payload); break;
+        case "RETRY_EVENT": retrySameEvent(state); break;
+        case "ADVANCE_DAY": advanceDay(state); break;
+        case "REPORT_AI_DIRECT":
+          state.reportAiBypassBlocked += 1;
+          audit(state, "report_ai_bypass_blocked", "报告 AI 只能提交 gap request，不能调用检索渠道或写证据");
+          break;
+        default: throw new Error(`Unknown action: ${action.type}`);
+      }
+      return state;
+    }
+
+    function runActions(actions) {
+      return actions.reduce(reduce, initialState());
+    }
+
+    function selfTest() {
+      const tests = [];
+      const check = (name, condition) => tests.push({ name, pass: Boolean(condition) });
+      let s = runActions([
+        { type: "START_TASK", payload: taskPayload("merge", "P1", ["CPI", "CORE_CPI", "PPI"]) },
+        { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "valid" } }
+      ]);
+      check("合并发布只消耗一次Tavily", s.task.metricIds.length === 3 && s.usage.run.tavily === 1);
+      s = runActions([
+        { type: "START_TASK", payload: taskPayload("p2", "P2", ["VIX"]) },
+        { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "semantic_mismatch" } },
+        { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "timeout" } }
+      ]);
+      check("P2不进入AI", s.task.status === "source_failed" && s.usage.run.ai === 0);
+      s = runActions([
+        { type: "START_TASK", payload: taskPayload("quota", "P1", ["OMO_RATE", "OMO_AMOUNT"]) },
+        { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "quota" } }
+      ]);
+      check("Tavily配额转Exa", s.task.nextAction === "exa");
+      s = reduce(s, { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "valid" } });
+      check("Exa成功终止链路", s.task.status === "exa_hit");
+      s = runActions([{ type: "START_TASK", payload: { ...taskPayload("wait", "P1", ["CORE_CPI"]), released: false } }]);
+      check("未发布不搜索", s.task.status === "awaiting_release" && s.usage.run.tavily === 0);
+      s = reduce(initialState(), { type: "REPORT_AI_DIRECT" });
+      check("报告AI越权被拒", s.reportAiBypassBlocked === 1 && s.usage.run.ai === 0);
+      s = runActions([
+        { type: "START_TASK", payload: taskPayload("cache", "P1", ["CORE_CPI"]) },
+        { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "semantic_mismatch" } },
+        { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "timeout" } },
+        { type: "PROVIDER_RESULT", payload: { provider: "ai", outcome: "validation_failed" } },
+        { type: "RETRY_EVENT" }
+      ]);
+      check("负缓存阻止重复请求", s.task.status === "negative_cache_hit" && s.usage.run.tavily === 1);
+      check("P1全失败显式降级", s.task.stageImpact === "不能验证当前转折");
+      return tests;
+    }
+
+    function taskPayload(id, priority, metricIds) {
+      return {
+        id: `task-${id}`,
+        name: id,
+        priority,
+        releaseEventId: `release-${id}`,
+        metricIds,
+        released: true,
+        localFresh: false,
+        directHit: false
+      };
+    }
+
+    return { CONFIG, initialState, reduce, runActions, selfTest, taskPayload };
+  })();
+  // PURE_LOGIC_END
+  </script>
+
+  <script>
+  // UI_START
+  (() => {
+    "use strict";
+    const { initialState, reduce, selfTest } = RetrievalBudget;
+    let state = initialState();
+    let activeScenario = null;
+
+    const task = (id, name, priority, metrics, extra = {}) => ({
+      id, name, priority, releaseEventId: `release-${id}`, metricIds: metrics,
+      released: true, localFresh: false, directHit: false, ...extra
+    });
+
+    const scenarios = [
+      {
+        id: "merge-hit", title: "一次发布，拆三条观测", note: "P1 · Tavily命中",
+        actions: [
+          { type: "START_TASK", payload: task("nbs-price-202507", "国家统计局价格发布", "P1", ["CN_CPI", "CN_CORE_CPI", "CN_PPI"]) },
+          { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "valid", latencyMs: 2400 } }
+        ]
+      },
+      {
+        id: "quota-exa", title: "Tavily 配额耗尽", note: "P1 · 顺序切到Exa",
+        actions: [
+          { type: "START_TASK", payload: task("pbc-omo", "央行公开市场操作", "P1", ["CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT"]) },
+          { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "quota", latencyMs: 810 } },
+          { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "valid", latencyMs: 1732 } }
+        ]
+      },
+      {
+        id: "full-failure", title: "P1 全链路失败", note: "旧值展示但不能验证",
+        actions: [
+          { type: "START_TASK", payload: task("industrial-inventory", "工业库存发布", "P1", ["CN_FINISHED_GOODS_INVENTORY", "CN_INVENTORY_TURNOVER"]) },
+          { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "semantic_mismatch" } },
+          { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "timeout" } },
+          { type: "PROVIDER_RESULT", payload: { provider: "ai", outcome: "validation_failed" } },
+          { type: "REPORT_AI_DIRECT" }
+        ]
+      },
+      {
+        id: "p2-stop", title: "P2 在 Exa 后停止", note: "VIX暂缺，不耗AI",
+        actions: [
+          { type: "START_TASK", payload: task("vix-daily", "Cboe VIX 日线", "P2", ["US_VIX"]) },
+          { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "semantic_mismatch" } },
+          { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "timeout" } }
+        ]
+      },
+      {
+        id: "not-released", title: "本月数据尚未发布", note: "0搜索 · 沿用上一期",
+        actions: [
+          { type: "START_TASK", payload: task("core-cpi-next", "核心CPI下一期", "P1", ["CN_CORE_CPI"], { released: false, expectedReleaseAt: "2026-09-09T01:30:00.000Z" }) }
+        ]
+      },
+      {
+        id: "negative-cache", title: "重复运行命中负缓存", note: "不重复消耗渠道",
+        actions: [
+          { type: "START_TASK", payload: task("credit-structure", "贷款结构发布", "P1", ["CN_LOAN_STRUCTURE"]) },
+          { type: "PROVIDER_RESULT", payload: { provider: "tavily", outcome: "semantic_mismatch" } },
+          { type: "PROVIDER_RESULT", payload: { provider: "exa", outcome: "timeout" } },
+          { type: "PROVIDER_RESULT", payload: { provider: "ai", outcome: "validation_failed" } },
+          { type: "RETRY_EVENT" }
+        ]
+      }
+    ];
+
+    const names = { tavily: "Tavily", exa: "Exa", ai: "受限AI" };
+    const stateTone = value => value.includes("hit") ? "good" : value.includes("failed") || value.includes("blocked") ? "bad" : "warn";
+    const escapeHtml = text => String(text).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[c]));
+
+    function dispatch(action) {
+      state = reduce(state, action);
+      render();
+    }
+
+    function runScenario(scenario) {
+      activeScenario = scenario.id;
+      state = scenario.actions.reduce(reduce, initialState());
+      render();
+    }
+
+    function renderScenarios() {
+      document.getElementById("scenario-list").innerHTML = scenarios.map(item => `
+        <button class="scenario ${activeScenario === item.id ? "active" : ""}" data-scenario="${item.id}">
+          <strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.note)}</small>
+        </button>`).join("");
+    }
+
+    function renderFlow() {
+      const taskState = state.task;
+      const nodes = [
+        ["local", "本地证据", "先查已验证缓存"],
+        ["tushare", "TuShare", "结构化主源"],
+        ["direct", "官方直连", "认证适配器"],
+        ["tavily", "Tavily", "官方域最小查询"],
+        ["exa", "Exa", "仅在上级无有效值"],
+        ["ai", "受限 AI", "仅P0/P1最后兜底"]
+      ];
+      const html = nodes.map(([id, title, note], index) => {
+        let cls = "";
+        let status = "未使用";
+        if (id === "ai" && taskState?.priority === "P2") { cls = "blocked"; status = "P2禁止"; }
+        if (["tavily", "exa", "ai"].includes(id)) {
+          if (state.providerState[id] === "hit") { cls = "hit"; status = "命中并校验"; }
+          if (state.providerState[id] === "failed") { cls = "failed"; status = "失败，已缓存"; }
+          if (taskState?.nextAction === id) { cls = "next"; status = "下一动作"; }
+          if ((taskState?.usage[id] || 0) > 0 && state.providerState[id] === "idle") { cls = "used"; status = "已调用"; }
+        } else if (taskState) {
+          if (taskState.status === "local_cache_hit" && id === "local") { cls = "hit"; status = "命中"; }
+          else if (taskState.status === "official_direct_hit" && id === "direct") { cls = "hit"; status = "命中"; }
+          else { cls = "used"; status = index === 0 ? "已检查" : "无有效值"; }
+        }
+        return `<div class="node ${cls}"><div class="step">${index + 1} · ${status}</div><strong>${title}</strong><small>${note}</small></div>`;
+      }).join("");
+      document.getElementById("flow").innerHTML = html;
+    }
+
+    function renderTask() {
+      const t = state.task;
+      document.getElementById("task-name").textContent = t?.name || "尚未创建任务";
+      const pp = document.getElementById("priority-pill");
+      pp.textContent = t?.priority || "—";
+      pp.className = `pill ${(t?.priority || "").toLowerCase()}`;
+      const bp = document.getElementById("blocking-pill");
+      const impact = !t ? "—" : t.priority === "P0" ? "阶段阻塞" : t.priority === "P1" ? "验证降级" : "非阻塞";
+      bp.textContent = impact;
+      bp.className = `pill ${t?.priority === "P0" ? "bad" : t?.priority === "P1" ? "warn" : "good"}`;
+      document.getElementById("task-meta").textContent = t
+        ? `${t.releaseEventId} · ${t.metricIds.length}个指标共享查询预算 · ${state.runId}`
+        : "请选择左侧场景，或用下方自由操作。";
+      document.getElementById("metric-chips").innerHTML = (t?.metricIds || []).map(id => `<span class="chip">${escapeHtml(id)}</span>`).join("");
+    }
+
+    function renderStatus() {
+      const t = state.task;
+      const current = t?.status || "idle";
+      const stateEl = document.getElementById("current-state");
+      stateEl.textContent = current;
+      stateEl.className = `state ${stateTone(current)}`;
+      document.getElementById("next-action").textContent = `下一动作：${t?.nextAction ? names[t.nextAction] : "无"}`;
+      for (const provider of ["tavily", "exa", "ai"]) {
+        const config = RetrievalBudget.CONFIG;
+        document.getElementById(`usage-${provider}`).textContent = `${state.usage.run[provider]}/${config.perRun[provider]} · ${state.usage.day[provider]}/${config.perDay[provider]}`;
+      }
+      document.getElementById("next-retry").textContent = t?.nextRetryAt ? new Date(t.nextRetryAt).toLocaleString("zh-CN", { hour12: false }) : "—";
+      document.getElementById("old-value").textContent = t?.oldValue || "—";
+      document.getElementById("stage-impact").textContent = t?.stageImpact || "—";
+      document.getElementById("bypass-count").textContent = `${state.reportAiBypassBlocked} 次，全部拦截`;
+
+      document.getElementById("audit").innerHTML = state.audit.length
+        ? state.audit.map(event => `<div class="event"><code>${escapeHtml(event.code)}</code><div>${escapeHtml(event.message)}</div><small>${new Date(event.at).toLocaleString("zh-CN", { hour12: false })}</small></div>`).join("")
+        : '<div class="event"><small>尚无审计事件</small></div>';
+
+      document.querySelectorAll("[data-provider]").forEach(button => {
+        button.disabled = !t || t.status !== "waiting_provider" || t.nextAction !== button.dataset.provider;
+      });
+    }
+
+    function render() {
+      renderScenarios();
+      renderFlow();
+      renderTask();
+      renderStatus();
+    }
+
+    document.addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      if (button.dataset.scenario) {
+        runScenario(scenarios.find(item => item.id === button.dataset.scenario));
+        return;
+      }
+      if (button.dataset.provider) {
+        dispatch({ type: "PROVIDER_RESULT", payload: { provider: button.dataset.provider, outcome: button.dataset.outcome } });
+        return;
+      }
+      activeScenario = null;
+      const action = button.dataset.action;
+      if (action === "reset") { state = initialState(); render(); }
+      if (action === "start-p1") dispatch({ type: "START_TASK", payload: task("free-p1", "自由操作：P1联合发布", "P1", ["CN_CORE_CPI", "CN_PPI"]) });
+      if (action === "start-p2") dispatch({ type: "START_TASK", payload: task("free-p2", "自由操作：P2国际缺口", "P2", ["US_SOX"]) });
+      if (action === "awaiting") dispatch({ type: "START_TASK", payload: task("free-await", "自由操作：未发布月度数据", "P1", ["CN_CORE_CPI"], { released: false }) });
+      if (action === "local-hit") dispatch({ type: "START_TASK", payload: task("free-local", "自由操作：本地缓存", "P1", ["CN_CORE_CPI"], { localFresh: true }) });
+      if (action === "retry") dispatch({ type: "RETRY_EVENT" });
+      if (action === "advance") dispatch({ type: "ADVANCE_DAY" });
+      if (action === "report-ai") dispatch({ type: "REPORT_AI_DIRECT" });
+    });
+
+    const tests = selfTest();
+    const passed = tests.filter(item => item.pass).length;
+    const testEl = document.getElementById("test-result");
+    testEl.textContent = `逻辑自测 ${passed}/${tests.length} 通过`;
+    if (passed !== tests.length) { testEl.style.color = "var(--red)"; testEl.title = tests.filter(item => !item.pass).map(item => item.name).join("；"); }
+    render();
+    runScenario(scenarios[0]);
+  })();
+  // UI_END
+  </script>
+</body>
+</html>

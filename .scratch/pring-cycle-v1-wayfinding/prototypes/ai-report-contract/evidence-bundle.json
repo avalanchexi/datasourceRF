@@ -1,0 +1,180 @@
+{
+  "schema_version": "evidence-bundle.v1-prototype",
+  "bundle_id": "eb-prototype-v1",
+  "fixture_only": true,
+  "language": "zh-CN",
+  "report_business_date": "2026-08-19",
+  "report_cutoff": "2026-08-19T18:00:00+08:00",
+  "projection_set_id": "projection-prototype-v1",
+  "system_as_of": "2026-08-19T18:00:00+08:00",
+  "evidence_window": {
+    "start": "2026-02-26",
+    "end": "2026-08-19",
+    "trading_days": 120
+  },
+  "model_version": "pring-six-stage.prototype-v1",
+  "trend_rule_version": "trend-120d.prototype-v1",
+  "formal_stage": {
+    "current_stage": "Stage II",
+    "last_confirmed_stage": "Stage I",
+    "mapping_is_immutable": true,
+    "core_states": {
+      "bond": "bullish",
+      "equity": "bullish",
+      "commodity": "bearish"
+    }
+  },
+  "transition_watches": [
+    {
+      "asset": "commodity",
+      "direction": "bullish",
+      "candidate_days": 4,
+      "required_days": 8,
+      "statement": "商品仅处于资产候选状态，不是候选阶段，也不构成下一阶段预测。",
+      "evidence_ids": ["ev-commodity-state", "ev-commodity-watch"]
+    }
+  ],
+  "macro_states": {
+    "policy_direction": "easing",
+    "overheat_state": "cooling",
+    "price_pressure": "upstream_pressure",
+    "inventory_cycle_state": "active_destocking"
+  },
+  "evidence": [
+    {
+      "evidence_id": "ev-bond-state",
+      "metric_id": "CN_BOND_CORE_000012",
+      "period": "2026-08-19",
+      "value": "bullish",
+      "role": "formal_core",
+      "source": "TuShare licensed channel",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-equity-state",
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period": "2026-08-19",
+      "value": "bullish",
+      "role": "formal_core",
+      "source": "TuShare licensed channel",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-commodity-state",
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period": "2026-08-19",
+      "value": "bearish",
+      "role": "formal_core",
+      "source": "TuShare licensed channel",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-commodity-watch",
+      "metric_id": "CN_COMMODITY_CORE_NHII_30D_DIRECTION",
+      "period": "2026-08-19",
+      "value": "bullish_candidate_4_of_8",
+      "role": "transition_watch",
+      "source": "local deterministic derivation",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-dr007",
+      "metric_id": "CN_DR007",
+      "period": "2026-08-19",
+      "value": 1.42,
+      "unit": "percent",
+      "role": "market_transmission",
+      "source": "TuShare licensed channel",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-policy-rate",
+      "metric_id": "CN_OMO_7D_RATE",
+      "period": "2026-08-19",
+      "value": 1.5,
+      "unit": "percent",
+      "role": "policy_action",
+      "source": "PBOC official source fixture",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-pmi-orders",
+      "metric_id": "CN_PMI_NEW_ORDERS",
+      "period": "2026-07",
+      "value": 48.7,
+      "unit": "index",
+      "role": "overheat_and_inventory",
+      "source": "NBS official source fixture",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-pmi-inventory",
+      "metric_id": "CN_PMI_FINISHED_GOODS_INVENTORY",
+      "period": "2026-07",
+      "value": 47.9,
+      "unit": "index",
+      "role": "inventory_signature",
+      "source": "NBS official source fixture",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-ppi",
+      "metric_id": "CN_PPI_YOY",
+      "period": "2026-07",
+      "value": -1.6,
+      "unit": "percent",
+      "role": "price_pressure",
+      "source": "NBS official source fixture",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-core-cpi",
+      "metric_id": "CN_CORE_CPI_YOY",
+      "period": "2026-07",
+      "value": 0.8,
+      "unit": "percent",
+      "role": "price_lagging_confirmation",
+      "source": "NBS official source fixture",
+      "freshness": "current"
+    },
+    {
+      "evidence_id": "ev-brent",
+      "metric_id": "EIA_BRENT_RBRTE_30D_DIRECTION",
+      "period": "2026-08-18",
+      "value": "rising",
+      "role": "upstream_price_pressure",
+      "source": "EIA official source fixture",
+      "freshness": "current"
+    }
+  ],
+  "data_gaps": [
+    {
+      "gap_id": "gap-vix-source-certification",
+      "metric_id": "CBOE_VIX_INDEX",
+      "status": "awaiting_source_certification",
+      "impact": "international_context_only",
+      "proxy_allowed": false
+    }
+  ],
+  "constraints": {
+    "allowed_evidence_ids": [
+      "ev-bond-state",
+      "ev-equity-state",
+      "ev-commodity-state",
+      "ev-commodity-watch",
+      "ev-dr007",
+      "ev-policy-rate",
+      "ev-pmi-orders",
+      "ev-pmi-inventory",
+      "ev-ppi",
+      "ev-core-cpi",
+      "ev-brent"
+    ],
+    "allowed_governance_refs": ["gap-vix-source-certification"],
+    "forbid_external_search": true,
+    "forbid_tool_use": true,
+    "forbid_stage_reclassification": true,
+    "forbid_trading_advice": true,
+    "require_trace_refs_for_sections": true
+  }
+}

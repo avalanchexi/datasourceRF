@@ -1,0 +1,1486 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Pring 周期驾驶舱 · HTML 原型</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0e13;
+      --sidebar: #10141b;
+      --panel: #141922;
+      --panel-strong: #181f2a;
+      --panel-soft: #11161e;
+      --line: #26303d;
+      --line-strong: #344052;
+      --text: #edf1f7;
+      --muted: #8f9aaa;
+      --muted-2: #657184;
+      --blue: #6d8cff;
+      --blue-soft: rgba(109, 140, 255, .14);
+      --cyan: #4ecbbb;
+      --cyan-soft: rgba(78, 203, 187, .13);
+      --amber: #efa94a;
+      --amber-soft: rgba(239, 169, 74, .13);
+      --violet: #b488ef;
+      --violet-soft: rgba(180, 136, 239, .13);
+      --red: #ee7474;
+      --red-soft: rgba(238, 116, 116, .12);
+      --rise: #ee7474;
+      --rise-soft: rgba(238, 116, 116, .12);
+      --fall: #4ecbbb;
+      --fall-soft: rgba(78, 203, 187, .13);
+      --shadow: 0 18px 48px rgba(0, 0, 0, .24);
+      --radius: 16px;
+      --radius-sm: 11px;
+      --focus: #9bb0ff;
+      --success: var(--cyan);
+      --warning: var(--amber);
+      --danger: var(--red);
+      --info: var(--blue);
+      --surface-canvas: var(--bg);
+      --surface-sidebar: var(--sidebar);
+      --surface-panel: var(--panel);
+      --surface-elevated: var(--panel-strong);
+      --text-primary: var(--text);
+      --text-secondary: var(--muted);
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --font-meta: 12px;
+      --font-label: 13px;
+      --font-secondary: 14px;
+      --font-body: 16px;
+    }
+
+    html[data-theme="light"] {
+      color-scheme: light;
+      --bg: #f3f5f8;
+      --sidebar: #ffffff;
+      --panel: #ffffff;
+      --panel-strong: #f8f9fb;
+      --panel-soft: #edf1f6;
+      --line: #d9e0e8;
+      --line-strong: #b8c4d3;
+      --text: #182130;
+      --muted: #5d6a7b;
+      --muted-2: #7b8796;
+      --blue: #4568d4;
+      --blue-soft: rgba(69, 104, 212, .11);
+      --cyan: #167f76;
+      --cyan-soft: rgba(22, 127, 118, .10);
+      --amber: #a96513;
+      --amber-soft: rgba(169, 101, 19, .10);
+      --violet: #7952a8;
+      --violet-soft: rgba(121, 82, 168, .10);
+      --red: #b84949;
+      --red-soft: rgba(184, 73, 73, .10);
+      --rise: #b84949;
+      --rise-soft: rgba(184, 73, 73, .10);
+      --fall: #167f76;
+      --fall-soft: rgba(22, 127, 118, .10);
+      --shadow: 0 12px 34px rgba(44, 57, 77, .08);
+      --focus: #294fbf;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 72% -10%, rgba(109, 140, 255, .08), transparent 30rem),
+        var(--bg);
+      color: var(--text);
+      font: var(--font-body)/1.55 "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--focus) 55%, transparent);
+      outline-offset: 2px;
+    }
+    a { color: inherit; }
+    svg { display: block; }
+    ::selection { background: rgba(109, 140, 255, .32); }
+
+    html[data-theme="light"] body {
+      background: radial-gradient(circle at 72% -10%, rgba(69, 104, 212, .08), transparent 30rem), var(--bg);
+    }
+    html[data-theme="light"] .sidebar { background: rgba(255, 255, 255, .96); }
+    html[data-theme="light"] .topbar { background: rgba(243, 245, 248, .90); }
+    html[data-theme="light"] .card {
+      background: linear-gradient(160deg, rgba(255,255,255,.98), rgba(248,249,251,.98));
+      box-shadow: 0 1px 0 rgba(255,255,255,.7), var(--shadow);
+    }
+    html[data-theme="light"] .drawer { background: var(--panel); }
+    html[data-theme="light"] .stage-label strong,
+    html[data-theme="light"] .nav-item.active { color: var(--text); }
+    html[data-theme="light"] .demo-banner { color: #7d4b0f; }
+    html[data-theme="light"] .demo-banner code,
+    html[data-theme="light"] .event time,
+    html[data-theme="light"] .kv dd { color: var(--text); }
+    html[data-theme="light"] .top-chip,
+    html[data-theme="light"] .icon-button,
+    html[data-theme="light"] .close-button { background: var(--panel); color: var(--muted); }
+    html[data-theme="light"] .theme-toggle,
+    html[data-theme="light"] .tab.active { color: var(--text); }
+    html[data-theme="light"] .badge.blue { color: #294fbf; }
+    html[data-theme="light"] .badge.cyan { color: #126c64; }
+    html[data-theme="light"] .badge.amber { color: #8b520e; }
+    html[data-theme="light"] .badge.violet { color: #6b4195; }
+    html[data-theme="light"] .badge.red { color: #a13b3b; }
+    html[data-theme="light"] .badge.rise { color: #9f3737; }
+    html[data-theme="light"] .badge.fall { color: #126c64; }
+
+    .app { min-height: 100vh; }
+    .sidebar {
+      position: fixed;
+      inset: 0 auto 0 0;
+      z-index: 30;
+      width: 244px;
+      display: flex;
+      flex-direction: column;
+      background: rgba(16, 20, 27, .96);
+      border-right: 1px solid var(--line);
+      backdrop-filter: blur(18px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 78px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand-mark {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border: 1px solid rgba(109, 140, 255, .45);
+      border-radius: 12px;
+      background: var(--blue-soft);
+      overflow: hidden;
+    }
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--blue);
+      transform-origin: left center;
+    }
+    .brand-mark::before { top: 13px; transform: rotate(18deg); }
+    .brand-mark::after { top: 22px; transform: rotate(-25deg); background: var(--cyan); }
+    .brand strong { display: block; font-size: var(--font-label); letter-spacing: .04em; }
+    .brand span { color: var(--muted); font-size: var(--font-secondary); }
+
+    .nav-scroll { flex: 1; overflow-y: auto; padding: 18px 12px; }
+    .nav-label {
+      margin: 14px 10px 7px;
+      color: var(--muted-2);
+      font-size: var(--font-meta);
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    .nav-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 42px;
+      margin: 2px 0;
+      padding: 9px 11px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      text-align: left;
+      cursor: pointer;
+      transition: background .18s ease, color .18s ease, transform .18s ease;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255, 255, 255, .04); }
+    .nav-item.active { color: #fff; background: var(--blue-soft); }
+    .nav-item.active .nav-icon { color: var(--blue); border-color: rgba(109, 140, 255, .45); }
+    .nav-icon {
+      display: grid;
+      place-items: center;
+      width: 25px;
+      height: 25px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: var(--font-secondary);
+    }
+    .sidebar-foot { padding: 15px 18px 18px; border-top: 1px solid var(--line); }
+    .projection-mini {
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255, 255, 255, .025);
+    }
+    .projection-mini strong { display: flex; align-items: center; gap: 7px; font-size: 16px; }
+    .projection-mini p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-meta); }
+
+    .content { margin-left: 244px; min-height: 100vh; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 13px 28px;
+      border-bottom: 1px solid rgba(38, 48, 61, .82);
+      background: rgba(11, 14, 19, .84);
+      backdrop-filter: blur(18px);
+    }
+    .page-heading h1 { margin: 0; font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
+    .page-heading p { margin: 4px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
+    .top-chip,
+    .icon-button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(20, 25, 34, .84);
+      color: var(--muted);
+      font-size: var(--font-label);
+    }
+    .icon-button { cursor: pointer; }
+    .icon-button:hover { color: var(--text); border-color: var(--line-strong); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 0 4px rgba(78,203,187,.09); }
+    .dot.warn { background: var(--amber); box-shadow: 0 0 0 4px rgba(239,169,74,.09); }
+
+    .main { max-width: 1640px; margin: 0 auto; padding: 22px 28px 52px; }
+    .demo-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      padding: 10px 13px;
+      border: 1px solid rgba(239, 169, 74, .30);
+      border-radius: 11px;
+      background: rgba(239, 169, 74, .07);
+      color: #e9c68f;
+      font-size: var(--font-secondary);
+    }
+    .demo-banner strong { color: var(--amber); }
+    .demo-banner code { color: #d9dee7; }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .grid { display: grid; gap: 14px; }
+    .grid-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-5 { grid-column: span 5; }
+    .span-6 { grid-column: span 6; }
+    .span-7 { grid-column: span 7; }
+    .span-8 { grid-column: span 8; }
+    .span-9 { grid-column: span 9; }
+    .span-12 { grid-column: span 12; }
+    .section-gap { margin-top: 14px; }
+
+    .card {
+      position: relative;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(160deg, rgba(24, 31, 42, .88), rgba(20, 25, 34, .96));
+      box-shadow: 0 1px 0 rgba(255,255,255,.025), var(--shadow);
+      overflow: hidden;
+    }
+    .card.pad { padding: 17px; }
+    .card.interactive { cursor: pointer; transition: border-color .18s ease, transform .18s ease; }
+    .card.interactive:hover { transform: translateY(-2px); border-color: var(--line-strong); }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .eyebrow { color: var(--muted); font-size: var(--font-meta); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .card h2, .card h3 { margin: 0; }
+    .card h2 { font-size: 18px; }
+    .card h3 { font-size: 16px; }
+    .muted { color: var(--muted); }
+    .tiny { color: var(--muted); font-size: var(--font-label); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .divider { height: 1px; background: var(--line); margin: 14px 0; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,.025);
+      font-size: var(--font-meta);
+      white-space: nowrap;
+    }
+    .badge.blue { color: #b9c6ff; background: var(--blue-soft); border-color: rgba(109,140,255,.28); }
+    .badge.cyan { color: #9ce3d9; background: var(--cyan-soft); border-color: rgba(78,203,187,.25); }
+    .badge.amber { color: #efc781; background: var(--amber-soft); border-color: rgba(239,169,74,.26); }
+    .badge.violet { color: #d2b4f6; background: var(--violet-soft); border-color: rgba(180,136,239,.26); }
+    .badge.red { color: #f2a6a6; background: var(--red-soft); border-color: rgba(238,116,116,.25); }
+    .badge.rise { color: var(--rise); background: var(--rise-soft); border-color: color-mix(in srgb, var(--rise) 30%, transparent); }
+    .badge.fall { color: var(--fall); background: var(--fall-soft); border-color: color-mix(in srgb, var(--fall) 30%, transparent); }
+
+    .stage-hero { min-height: 258px; padding: 22px; }
+    .stage-hero::after {
+      content: "II";
+      position: absolute;
+      right: 22px;
+      bottom: -42px;
+      color: rgba(109, 140, 255, .06);
+      font: 900 220px/1 "Segoe UI", sans-serif;
+      letter-spacing: -.1em;
+      pointer-events: none;
+    }
+    .stage-label { display: flex; align-items: flex-end; gap: 13px; margin-top: 16px; }
+    .stage-label strong { color: #fff; font-size: clamp(48px, 5vw, 76px); line-height: .9; letter-spacing: -.065em; }
+    .stage-label div { padding-bottom: 6px; }
+    .stage-label b { display: block; font-size: 16px; }
+    .stage-label span { color: var(--muted); font-size: var(--font-secondary); }
+    .state-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 19px; }
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,.022);
+      color: #c8d0dc;
+      font-size: var(--font-secondary);
+    }
+    .state-pill i { width: 6px; height: 6px; border-radius: 50%; background: var(--rise); }
+    .state-pill.bear i { background: var(--fall); }
+    .hero-meta { display: flex; gap: 24px; margin-top: 19px; }
+    .hero-meta strong { display: block; font-size: var(--font-label); }
+    .hero-meta span { color: var(--muted); font-size: var(--font-meta); }
+
+    .change-card { min-height: 258px; padding: 20px; }
+    .change-list { display: grid; gap: 12px; margin-top: 17px; }
+    .change-item { display: grid; grid-template-columns: 26px 1fr; gap: 10px; }
+    .change-item .index {
+      display: grid;
+      place-items: center;
+      width: 25px;
+      height: 25px;
+      border-radius: 8px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: var(--font-meta);
+      font-weight: 800;
+    }
+    .change-item strong { display: block; margin-bottom: 2px; font-size: var(--font-secondary); }
+    .change-item p { margin: 0; color: var(--muted); font-size: var(--font-label); }
+
+    .asset-card { min-height: 245px; padding: 17px; }
+    .asset-title { display: flex; align-items: center; gap: 9px; }
+    .asset-symbol {
+      display: grid;
+      place-items: center;
+      width: 31px;
+      height: 31px;
+      border-radius: 10px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-size: var(--font-label);
+      font-weight: 900;
+    }
+    .asset-symbol.amber { color: var(--amber); background: var(--amber-soft); }
+    .asset-symbol.cyan { color: var(--cyan); background: var(--cyan-soft); }
+    .asset-card h3 { margin-bottom: 2px; }
+    .asset-state { display: flex; align-items: baseline; gap: 8px; margin-top: 15px; }
+    .asset-state strong { font-size: 25px; line-height: 1; letter-spacing: -.035em; }
+    .asset-state span { color: var(--muted); font-size: var(--font-label); }
+    .sparkline { width: 100%; height: 58px; margin: 9px 0 6px; overflow: visible; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .metric-row div { min-width: 0; }
+    .metric-row strong { display: block; font-size: 16px; }
+    .metric-row span { color: var(--muted); font-size: var(--font-meta); }
+    .positive { color: var(--rise) !important; }
+    .negative { color: var(--fall) !important; }
+    .candidate-state,
+    .operational-warning { color: var(--warning) !important; }
+    .operational-ok { color: var(--success) !important; }
+
+    .timeline-card { min-height: 275px; padding: 18px; }
+    .timeline-axis { display: flex; justify-content: space-between; margin: 14px 0 6px; color: var(--muted-2); font-size: var(--font-meta); }
+    .stage-track { display: flex; height: 45px; border-radius: 9px; overflow: hidden; border: 1px solid var(--line); }
+    .stage-segment { display: flex; align-items: center; justify-content: center; min-width: 18px; color: rgba(255,255,255,.86); font-size: var(--font-meta); font-weight: 800; }
+    .s1 { background: #3f587b; }
+    .s2 { background: #546fc4; }
+    .s3 { background: #6476a8; }
+    .s4 { background: #886a9e; }
+    .s5 { background: #9a6d64; }
+    .s6 { background: #715e62; }
+    .gap { background: repeating-linear-gradient(135deg, #222a35, #222a35 5px, #19202a 5px, #19202a 10px); color: var(--muted); }
+    .track-row { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 10px; margin-top: 11px; }
+    .track-row label { color: var(--muted); font-size: var(--font-meta); }
+    .micro-track { position: relative; display: flex; height: 7px; border-radius: 5px; overflow: hidden; background: #202733; }
+    .micro-track span { height: 100%; }
+    .watch-card { min-height: 275px; padding: 18px; }
+    .progress-ring {
+      width: 78px;
+      height: 78px;
+      display: grid;
+      place-items: center;
+      margin: 18px auto 14px;
+      border-radius: 50%;
+      background: conic-gradient(var(--violet) 0 62.5%, #252d39 62.5% 100%);
+    }
+    .progress-ring::before { content: ""; width: 60px; height: 60px; border-radius: 50%; background: var(--panel); }
+    .progress-ring strong { position: absolute; font-size: 17px; }
+    .watch-center { text-align: center; }
+    .watch-center p { margin: 5px auto 0; max-width: 260px; color: var(--muted); font-size: var(--font-secondary); }
+    .watch-flags { display: flex; justify-content: center; gap: 7px; margin-top: 13px; flex-wrap: wrap; }
+
+    .macro-card { min-height: 166px; padding: 16px; }
+    .macro-value { margin-top: 18px; font-size: 20px; font-weight: 800; letter-spacing: -.025em; }
+    .macro-card p { margin: 7px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .evidence-mini { display: flex; gap: 4px; margin-top: 13px; }
+    .evidence-mini i { height: 4px; flex: 1; border-radius: 4px; background: #2a3240; }
+    .evidence-mini i.on { background: var(--blue); }
+    .evidence-mini.amber i.on { background: var(--amber); }
+    .evidence-mini.cyan i.on { background: var(--cyan); }
+    .evidence-mini.violet i.on { background: var(--violet); }
+
+    .status-line { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--font-label); }
+    .status-list { display: grid; gap: 11px; margin-top: 15px; }
+    .status-list .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .risk-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 9px; margin-top: 15px; }
+    .risk-cell { padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
+    .risk-cell strong { display: block; font-size: 16px; }
+    .risk-cell span { color: var(--muted); font-size: var(--font-meta); }
+
+    .view-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .view-title h2 { margin: 0; font-size: 24px; letter-spacing: -.035em; }
+    .view-title p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .tabs { display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel-soft); }
+    .tab {
+      padding: 7px 12px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: var(--font-secondary);
+      cursor: pointer;
+    }
+    .tab.active { color: #fff; background: var(--blue-soft); }
+
+    .chart-card { padding: 18px; }
+    .chart-wrap { position: relative; margin-top: 14px; min-height: 300px; border-top: 1px solid var(--line); }
+    .chart-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 18px 0 24px;
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 49px, rgba(52,64,82,.38) 50px);
+      pointer-events: none;
+    }
+    .detail-chart { position: relative; width: 100%; height: 300px; }
+    .chart-legend { display: flex; gap: 14px; color: var(--muted); font-size: var(--font-meta); }
+    .legend-key { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-key i { width: 14px; height: 2px; border-radius: 2px; background: var(--blue); }
+    .legend-key i.ma { background: var(--amber); }
+    .detail-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-top: 14px; }
+    .detail-metric { padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.018); }
+    .detail-metric span { color: var(--muted); font-size: var(--font-meta); }
+    .detail-metric strong { display: block; margin-top: 3px; font-size: var(--font-secondary); }
+
+    .matrix { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .matrix th, .matrix td { padding: 11px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+    .matrix th { color: var(--muted); font-size: var(--font-meta); font-weight: 650; }
+    .matrix td { font-size: var(--font-secondary); }
+    .matrix tr:last-child td { border-bottom: 0; }
+    .matrix td strong { font-size: var(--font-secondary); }
+    .matrix .right { text-align: right; }
+
+    .chain { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+    .chain-step { position: relative; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.018); }
+    .chain-step:not(:last-child)::after { content: "→"; position: absolute; right: -19px; top: 50%; z-index: 2; color: var(--muted-2); }
+    .chain-step strong { display: block; font-size: 16px; }
+    .chain-step p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .price-chain { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 14px; }
+    .price-node { min-height: 88px; display: flex; flex-direction: column; justify-content: space-between; padding: 11px; border: 1px solid var(--line); border-radius: 11px; }
+    .price-node + .price-node { position: relative; }
+    .price-node strong { font-size: var(--font-secondary); }
+    .price-node span { color: var(--muted); font-size: var(--font-label); }
+
+    .quadrant { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px; }
+    .quadrant-cell { min-height: 110px; padding: 13px; border: 1px solid var(--line); border-radius: 11px; color: var(--muted); }
+    .quadrant-cell strong { display: block; color: var(--text); font-size: 16px; }
+    .quadrant-cell.active { border-color: rgba(180,136,239,.55); background: var(--violet-soft); color: #cbb4e8; }
+    .feature-card { min-height: 145px; padding: 14px; }
+    .feature-card p { margin: 8px 0; color: var(--muted); font-size: var(--font-secondary); }
+
+    .event-list { display: grid; gap: 9px; margin-top: 13px; }
+    .event {
+      display: grid;
+      grid-template-columns: 88px 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255,255,255,.017);
+    }
+    .event time { color: #cbd4e0; font-size: var(--font-label); font-weight: 700; }
+    .event strong { display: block; font-size: var(--font-secondary); }
+    .event p { margin: 2px 0 0; color: var(--muted); font-size: var(--font-label); }
+
+    .report-preview { padding: 22px; }
+    .report-preview h3 { margin: 22px 0 8px; font-size: 16px; }
+    .report-preview h3:first-of-type { margin-top: 14px; }
+    .report-preview p, .report-preview li { color: #aeb8c7; font-size: var(--font-body); }
+    .report-preview blockquote { margin: 14px 0; padding: 12px 14px; border-left: 3px solid var(--blue); background: var(--blue-soft); color: #d8dfff; }
+
+    .report-tabs { width: max-content; max-width: 100%; margin-bottom: 14px; }
+    .report-panel { display: none; }
+    .report-panel.active { display: block; }
+    .report-command { padding: 20px; }
+    .report-command > .card-head p,
+    .report-side-note p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .snapshot-field {
+      min-width: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,.018);
+    }
+    .snapshot-field span { display: block; color: var(--muted); font-size: var(--font-meta); }
+    .snapshot-field strong { display: block; margin-top: 4px; font-size: 16px; word-break: break-word; }
+    .preflight-box {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(220px, .65fr);
+      gap: 14px;
+      margin-top: 14px;
+      padding: 15px;
+      border: 1px solid rgba(78,203,187,.28);
+      border-radius: 13px;
+      background: var(--cyan-soft);
+    }
+    .preflight-box h3 { font-size: 16px; }
+    .preflight-box p { margin: 5px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .preflight-list { display: grid; gap: 8px; }
+    .preflight-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: var(--font-label); }
+    .preflight-item span:first-child { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+    .state-mark {
+      width: 18px;
+      height: 18px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border: 1px solid rgba(78,203,187,.35);
+      border-radius: 50%;
+      background: rgba(78,203,187,.12);
+      color: var(--cyan);
+      font-size: var(--font-meta);
+      font-weight: 900;
+    }
+    .preflight-summary { display: flex; flex-direction: column; justify-content: space-between; padding-left: 14px; border-left: 1px solid rgba(78,203,187,.22); }
+    .preflight-summary strong { font-size: 24px; line-height: 1; letter-spacing: -.04em; }
+    .preflight-summary span { color: var(--muted); font-size: var(--font-meta); }
+    .guardrail {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 12px 13px;
+      border: 1px solid rgba(109,140,255,.26);
+      border-radius: 11px;
+      background: var(--blue-soft);
+      color: var(--muted);
+      font-size: var(--font-secondary);
+    }
+    .guardrail strong { display: block; margin-bottom: 2px; color: var(--text); font-size: var(--font-secondary); }
+    .guardrail-icon { color: var(--blue); font-weight: 900; }
+    .job-stepper {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0;
+      margin: 20px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .job-step {
+      position: relative;
+      min-width: 0;
+      padding: 28px 9px 0 0;
+      color: var(--muted-2);
+      font-size: var(--font-meta);
+    }
+    .job-step::before {
+      content: "";
+      position: absolute;
+      z-index: 2;
+      top: 4px;
+      left: 0;
+      width: 13px;
+      height: 13px;
+      border: 3px solid var(--panel);
+      border-radius: 50%;
+      background: var(--line-strong);
+      box-shadow: 0 0 0 1px var(--line-strong);
+    }
+    .job-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 11px;
+      left: 14px;
+      right: 0;
+      height: 1px;
+      background: var(--line-strong);
+    }
+    .job-step strong { display: block; color: inherit; font-size: var(--font-label); }
+    .job-step span { display: block; margin-top: 2px; }
+    .job-step.complete { color: var(--text); }
+    .job-step.complete::before { background: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); }
+    .job-step.complete:not(:last-child)::after { background: var(--cyan); }
+    .job-step.active { color: var(--text); }
+    .job-step.active::before { background: var(--blue); box-shadow: 0 0 0 5px var(--blue-soft); animation: statusPulse 1.2s ease-in-out infinite; }
+    .report-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .report-actions-copy strong { display: block; font-size: var(--font-secondary); }
+    .report-actions-copy span { display: block; margin-top: 2px; color: var(--muted); font-size: var(--font-meta); }
+    .primary-button,
+    .secondary-button {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border: 1px solid transparent;
+      border-radius: 10px;
+      font-size: var(--font-secondary);
+      font-weight: 750;
+      cursor: pointer;
+      transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .primary-button { background: var(--blue); color: #fff; box-shadow: 0 8px 22px rgba(69,104,212,.22); }
+    .primary-button:hover { transform: translateY(-1px); }
+    .primary-button:disabled { cursor: wait; opacity: .65; transform: none; }
+    .secondary-button { border-color: var(--line); background: var(--panel-soft); color: var(--text); }
+    .report-side-stack { display: grid; gap: 14px; align-self: start; }
+    .report-side-note { padding: 17px; }
+    .report-side-note .status-list { margin-top: 13px; }
+    .report-side-note .status-list strong { font-size: var(--font-secondary); }
+    .separation-card { border-color: rgba(180,136,239,.28); }
+    .separation-card .separation-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-top: 14px; }
+    .separation-node { padding: 10px; border: 1px solid var(--line); border-radius: 10px; text-align: center; }
+    .separation-node strong { display: block; font-size: var(--font-secondary); }
+    .separation-node span { color: var(--muted); font-size: var(--font-meta); }
+    .separation-arrow { color: var(--violet); }
+    .report-history-list { display: grid; gap: 10px; }
+    .report-record {
+      display: grid;
+      grid-template-columns: 96px minmax(200px, 1.15fr) minmax(180px, .85fr) auto;
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,.017);
+    }
+    .report-record time { font-size: var(--font-label); font-weight: 750; }
+    .report-record strong { display: block; font-size: 16px; }
+    .report-record p { margin: 3px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .report-record-meta { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 3px 10px; color: var(--muted); font-size: var(--font-meta); }
+    .report-record-meta b { color: var(--text); font-weight: 650; }
+    .report-reader-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; }
+    .report-reader { padding: 24px; }
+    .report-reader blockquote { margin: 18px 0; padding: 14px 16px; border-left: 3px solid var(--blue); background: var(--blue-soft); color: var(--text); }
+    .report-reader h3 { margin: 24px 0 8px; font-size: 16px; }
+    .report-reader p,
+    .report-reader li { color: var(--muted); font-size: var(--font-body); }
+    .report-reader ol,
+    .report-reader ul { padding-left: 19px; }
+    .report-reader-aside { display: grid; align-content: start; gap: 14px; }
+    .report-meta-list { display: grid; gap: 9px; margin: 14px 0 0; }
+    .report-meta-list div { padding-bottom: 9px; border-bottom: 1px solid var(--line); }
+    .report-meta-list div:last-child { padding-bottom: 0; border-bottom: 0; }
+    .report-meta-list span { display: block; color: var(--muted); font-size: var(--font-meta); }
+    .report-meta-list strong { display: block; margin-top: 2px; font-size: var(--font-label); word-break: break-word; }
+    .citation-list { display: grid; gap: 8px; margin-top: 12px; }
+    .citation-item { padding: 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); font-size: var(--font-label); }
+    .citation-item strong { display: block; margin-bottom: 2px; color: var(--text); font-size: var(--font-secondary); }
+    .coverage-ledger { margin-top: 0; }
+    .coverage-intro { max-width: 880px; margin: 7px 0 0; color: var(--muted); font-size: var(--font-secondary); }
+    .coverage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    .coverage-column { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.016); }
+    .coverage-column.included { border-color: rgba(78,203,187,.25); }
+    .coverage-column.deferred { border-color: rgba(109,140,255,.25); }
+    .coverage-column.excluded { border-color: rgba(143,154,170,.25); }
+    .coverage-title { display: flex; align-items: center; gap: 10px; }
+    .coverage-index { width: 28px; height: 28px; display: inline-grid; place-items: center; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); font-size: var(--font-meta); font-weight: 900; }
+    .included .coverage-index { color: var(--cyan); background: var(--cyan-soft); border-color: rgba(78,203,187,.25); }
+    .deferred .coverage-index { color: var(--blue); background: var(--blue-soft); border-color: rgba(109,140,255,.25); }
+    .coverage-title strong { display: block; font-size: var(--font-secondary); }
+    .coverage-title small { display: block; margin-top: 1px; color: var(--muted); font-size: var(--font-meta); }
+    .coverage-column ul { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; list-style: none; }
+    .coverage-column li { padding-top: 10px; border-top: 1px solid var(--line); }
+    .coverage-column li b { display: block; font-size: var(--font-secondary); }
+    .coverage-column li span { display: block; margin-top: 3px; color: var(--muted); font: var(--font-meta)/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+    .theme-toggle { min-width: 92px; justify-content: center; color: var(--text); }
+
+    @keyframes statusPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+
+    html[data-theme="light"] .snapshot-field,
+    html[data-theme="light"] .report-record { background: rgba(24,33,48,.018); }
+    html[data-theme="light"] .report-preview p,
+    html[data-theme="light"] .report-preview li { color: var(--muted); }
+    html[data-theme="light"] .report-preview blockquote { color: var(--text); }
+
+    .cascade { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 14px; }
+    .cascade-step { padding: 12px 8px; border: 1px solid var(--line); border-radius: 10px; text-align: center; }
+    .cascade-step strong { display: block; font-size: var(--font-secondary); }
+    .cascade-step span { color: var(--muted); font-size: var(--font-meta); }
+    .cascade-step.success { border-color: rgba(78,203,187,.27); background: var(--cyan-soft); }
+    .budget { margin-top: 12px; }
+    .budget-head { display: flex; justify-content: space-between; color: var(--muted); font-size: var(--font-meta); }
+    .budget-bar { height: 6px; margin-top: 7px; border-radius: 6px; background: #252d39; overflow: hidden; }
+    .budget-bar i { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
+
+    .evidence-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #a9b8ff;
+      font-size: var(--font-label);
+      cursor: pointer;
+    }
+    .evidence-button:hover { color: #d6ddff; }
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(0,0,0,.54);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+    .drawer {
+      position: fixed;
+      z-index: 100;
+      inset: 0 0 0 auto;
+      width: min(460px, 94vw);
+      display: flex;
+      flex-direction: column;
+      background: #11161e;
+      border-left: 1px solid var(--line);
+      box-shadow: -24px 0 60px rgba(0,0,0,.36);
+      transform: translateX(102%);
+      transition: transform .25s ease;
+    }
+    body.drawer-open .drawer-backdrop { opacity: 1; pointer-events: auto; }
+    body.drawer-open .drawer { transform: none; }
+    .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px; border-bottom: 1px solid var(--line); }
+    .drawer-head h2 { margin: 3px 0 0; font-size: 17px; }
+    .drawer-body { overflow-y: auto; padding: 20px; }
+    .drawer-section { margin-bottom: 22px; }
+    .drawer-section h3 { margin: 0 0 10px; font-size: var(--font-label); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .kv { display: grid; grid-template-columns: 130px 1fr; gap: 9px 12px; font-size: var(--font-label); }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; color: #d3dae5; word-break: break-word; }
+    .close-button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel); cursor: pointer; }
+
+    .mobile-nav-toggle { display: none; }
+    .prototype-footer { margin-top: 18px; color: var(--muted-2); font-size: var(--font-meta); text-align: right; }
+
+    @media (max-width: 1180px) {
+      .span-3 { grid-column: span 6; }
+      .asset-card.span-4 { grid-column: span 6; }
+      .asset-card.span-4:last-child { grid-column: span 12; }
+      .risk-strip, .price-chain { grid-template-columns: repeat(3, 1fr); }
+      .snapshot-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .report-record { grid-template-columns: 84px minmax(180px, 1fr) minmax(160px, .75fr); }
+      .report-record .secondary-button { grid-column: 2 / -1; justify-self: start; }
+    }
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-102%); transition: transform .2s ease; }
+      body.nav-open .sidebar { transform: none; box-shadow: 18px 0 60px rgba(0,0,0,.4); }
+      .content { margin-left: 0; }
+      .mobile-nav-toggle { display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .page-heading { flex: 1; }
+      .topbar { padding: 12px 18px; }
+      .main { padding: 18px 18px 42px; }
+      .stage-hero.span-7, .change-card.span-5, .span-8, .span-4, .span-9, .span-3, .span-6 { grid-column: span 12; }
+      .asset-card.span-4 { grid-column: span 12; }
+      .chain { grid-template-columns: 1fr; }
+      .chain-step:not(:last-child)::after { display: none; }
+      .report-reader-layout { grid-template-columns: 1fr; }
+      .report-reader-aside { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .coverage-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      .top-actions { display: flex; }
+      .top-actions .top-chip,
+      .top-actions [data-evidence] { display: none; }
+      .main { padding: 14px 12px 36px; }
+      .demo-banner { align-items: flex-start; flex-direction: column; }
+      .stage-label { align-items: flex-start; flex-direction: column; gap: 10px; }
+      .stage-label div { padding-bottom: 0; }
+      .metric-row, .detail-metrics, .quadrant { grid-template-columns: 1fr; }
+      .risk-strip, .price-chain, .cascade { grid-template-columns: repeat(2, 1fr); }
+      .view-title { align-items: flex-start; flex-direction: column; }
+      .tabs { max-width: 100%; overflow-x: auto; }
+      .event { grid-template-columns: 72px 1fr; }
+      .event .badge { grid-column: 2; justify-self: start; }
+      .hero-meta { gap: 14px; }
+      .stage-hero::after { font-size: 150px; }
+      .snapshot-grid,
+      .preflight-box,
+      .report-reader-aside { grid-template-columns: 1fr; }
+      .preflight-summary { min-height: 76px; padding: 12px 0 0; border-top: 1px solid rgba(78,203,187,.22); border-left: 0; }
+      .job-stepper { grid-template-columns: 1fr; gap: 4px; }
+      .job-step { min-height: 48px; padding: 3px 0 3px 34px; }
+      .job-step::before { top: 5px; left: 4px; }
+      .job-step:not(:last-child)::after { top: 19px; bottom: -8px; left: 11px; width: 1px; height: auto; right: auto; }
+      .report-actions { align-items: stretch; flex-direction: column; }
+      .primary-button { width: 100%; }
+      .report-record { grid-template-columns: 1fr; }
+      .report-record .secondary-button { grid-column: auto; justify-self: stretch; }
+      .report-record-meta { grid-template-columns: 1fr; }
+      .report-reader { padding: 17px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div><strong>PRING CYCLE</strong><span>研究决策驾驶舱 · V1</span></div>
+      </div>
+      <div class="nav-scroll">
+        <div class="nav-label">周期判断</div>
+        <button class="nav-item active" data-view="home"><span class="nav-icon">⌂</span><span>首页</span></button>
+        <button class="nav-item" data-view="assets"><span class="nav-icon">△</span><span>核心资产</span></button>
+        <button class="nav-item" data-view="macro"><span class="nav-icon">≋</span><span>宏观证据</span></button>
+        <button class="nav-item" data-view="inventory"><span class="nav-icon">▦</span><span>库存特征</span></button>
+        <button class="nav-item" data-view="history"><span class="nav-icon">↗</span><span>阶段历史</span></button>
+        <div class="nav-label">运行与追溯</div>
+        <button class="nav-item" data-view="calendar"><span class="nav-icon">□</span><span>发布日历</span></button>
+        <button class="nav-item" data-view="reports"><span class="nav-icon">¶</span><span>报告</span></button>
+        <button class="nav-item" data-view="operations"><span class="nav-icon">◎</span><span>运行状态</span></button>
+      </div>
+      <div class="sidebar-foot">
+        <div class="projection-mini">
+          <strong><span class="dot"></span>完整投影可读</strong>
+          <p class="mono">projection_set_id · prj_20260821_1812</p>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content">
+      <header class="topbar">
+        <button class="mobile-nav-toggle" id="mobileNav" aria-label="打开导航">☰</button>
+        <div class="page-heading"><h1 id="pageTitle">周期判断</h1><p id="pageSubtitle">当前阶段、核心资产与转折观察</p></div>
+        <div class="top-actions">
+          <div class="top-chip"><span class="dot"></span>system_as_of · 08-21 18:12</div>
+          <div class="top-chip mono">projection_set_id · prj_20260821_1812</div>
+          <div class="top-chip"><span class="dot"></span>完整度 · complete</div>
+          <button class="icon-button" data-evidence="global">投影详情 ···</button>
+          <button class="icon-button theme-toggle" id="themeToggle" type="button" aria-label="切换暗色主题" aria-pressed="true">暗色主题</button>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="demo-banner"><span><strong>视觉原型</strong>　所有行情、状态和时间均为布局演示数据，不代表项目已经完成采集或形成真实判断。</span><code>fixture / system_as_of</code></div>
+
+        <section class="view active" data-view-panel="home">
+          <div class="grid grid-12">
+            <article class="card stage-hero span-7 interactive" data-evidence="stage">
+              <div class="card-head"><div><div class="eyebrow">Formal Pring Stage · 演示</div><h2>当前正式阶段</h2></div><span class="badge cyan"><span class="dot"></span>完整可判</span></div>
+              <div class="stage-label"><strong>Stage II</strong><div><b>维持上一完整投影</b><span>三资产120日稳定状态机械映射</span></div></div>
+              <div class="state-pills"><span class="state-pill"><i></i>债券 · 牛</span><span class="state-pill"><i></i>股票 · 牛</span><span class="state-pill bear"><i></i>商品 · 熊</span></div>
+              <div class="hero-meta"><div><strong>18 个交易日</strong><span>本阶段持续</span></div><div><strong>2026-07-28</strong><span>阶段起点</span></div><div><strong>model-v0001 / trend-0.3</strong><span>模型与规则</span></div></div>
+            </article>
+
+            <article class="card change-card span-5">
+              <div class="card-head"><div><div class="eyebrow">Since previous projection</div><h2>较上一投影为何变化</h2></div><span class="badge blue">阶段未变</span></div>
+              <div class="change-list">
+                <div class="change-item"><span class="index">01</span><div><strong>商品出现牛向候选</strong><p>候选连续第5日，尚未达到8日确认门槛。</p></div></div>
+                <div class="change-item"><span class="index">02</span><div><strong>股票广度继续改善</strong><p>MA120上方占比回升；仅作确认，不改变核心票。</p></div></div>
+                <div class="change-item"><span class="index">03</span><div><strong>核心数据无P0异常</strong><p>三条核心序列均为 current、selected、certified。</p></div></div>
+              </div>
+              <div class="divider"></div>
+              <button class="evidence-button" data-evidence="change">查看结构化变化原因 →</button>
+            </article>
+
+            <article class="card asset-card span-4 interactive" data-evidence="bond">
+              <div class="card-head"><div class="asset-title"><span class="asset-symbol">债</span><div><h3>上证国债指数</h3><span class="tiny mono">000012.SH</span></div></div><span class="badge rise">120日 · 牛</span></div>
+              <div class="asset-state"><strong>稳定上行</strong><span>无候选转换</span></div>
+              <svg class="sparkline" data-points="31,32,31.8,32.7,33.2,33.1,33.8,34.1,34,34.8,35.2,35.8" data-color="#6d8cff" aria-label="债券演示趋势"></svg>
+              <div class="metric-row"><div><strong class="positive">+1.82%</strong><span>120日收益</span></div><div><strong>+0.74%</strong><span>距MA120</span></div><div><strong>+0.09%</strong><span>20日斜率</span></div></div>
+            </article>
+
+            <article class="card asset-card span-4 interactive" data-evidence="equity">
+              <div class="card-head"><div class="asset-title"><span class="asset-symbol cyan">股</span><div><h3>中证全指</h3><span class="tiny mono">000985.CSI</span></div></div><span class="badge rise">120日 · 牛</span></div>
+              <div class="asset-state"><strong>稳定上行</strong><span>广度同步改善</span></div>
+              <svg class="sparkline" data-points="21,22.5,21.7,23.1,24.8,24.1,25.9,27.2,26.4,28.1,29.5,30.2" data-color="#4ecbbb" aria-label="股票演示趋势"></svg>
+              <div class="metric-row"><div><strong class="positive">+12.40%</strong><span>120日收益</span></div><div><strong>+6.20%</strong><span>距MA120</span></div><div><strong>+1.14%</strong><span>20日斜率</span></div></div>
+            </article>
+
+            <article class="card asset-card span-4 interactive" data-evidence="commodity">
+              <div class="card-head"><div class="asset-title"><span class="asset-symbol amber">商</span><div><h3>南华工业品指数</h3><span class="tiny mono">NHII.NH</span></div></div><span class="badge fall">120日 · 熊</span></div>
+              <div class="asset-state"><strong>反弹观察</strong><span class="candidate-state">牛向候选 5/8日</span></div>
+              <svg class="sparkline" data-points="34,33.2,32.5,31.7,30.4,29.8,28.9,29.2,29.8,30.5,31.4,32.1" data-color="#efa94a" aria-label="商品演示趋势"></svg>
+              <div class="metric-row"><div><strong class="negative">-4.80%</strong><span>120日收益</span></div><div><strong>-2.10%</strong><span>距MA120</span></div><div><strong class="positive">+2.60%</strong><span>30日收益</span></div></div>
+            </article>
+
+            <article class="card timeline-card span-8">
+              <div class="card-head"><div><div class="eyebrow">Formal stage history</div><h2>阶段与三资产状态</h2></div><span class="badge">最近120个交易日</span></div>
+              <div class="timeline-axis"><span>03-06</span><span>04-03</span><span>05-08</span><span>06-05</span><span>07-03</span><span>08-21</span></div>
+              <div class="stage-track"><span class="stage-segment s1" style="flex:16">I</span><span class="stage-segment s2" style="flex:29">II</span><span class="stage-segment gap" style="flex:8">空档</span><span class="stage-segment s3" style="flex:22">III</span><span class="stage-segment s2" style="flex:25">II</span></div>
+              <div class="track-row"><label>债券</label><div class="micro-track"><span style="width:76%;background:#6d8cff"></span><span style="width:24%;background:#efa94a"></span></div></div>
+              <div class="track-row"><label>股票</label><div class="micro-track"><span style="width:21%;background:#efa94a"></span><span style="width:79%;background:#4ecbbb"></span></div></div>
+              <div class="track-row"><label>商品</label><div class="micro-track"><span style="width:42%;background:#efa94a"></span><span style="width:31%;background:#6d8cff"></span><span style="width:27%;background:#efa94a"></span></div></div>
+              <div class="divider"></div><span class="tiny">斜纹区表示非典型组合或P0不可用；不使用上一阶段连续填充。</span>
+            </article>
+
+            <article class="card watch-card span-4">
+              <div class="card-head"><div><div class="eyebrow">Transition watch</div><h2>转折观察</h2></div><span class="badge violet">不改变阶段</span></div>
+              <div class="progress-ring"><strong>5 / 8</strong></div>
+              <div class="watch-center"><strong>商品 · 牛向候选</strong><p>价格位置与斜率已同向，但必须连续满足8个有效交易日。</p></div>
+              <div class="watch-flags"><span class="badge cyan">30日 · 牛</span><span class="badge amber">120日 · 熊</span><span class="badge">12M · 熊</span></div>
+            </article>
+
+            <article class="card macro-card span-3 interactive" data-evidence="policy"><div class="card-head"><div class="eyebrow">政策方向</div><span class="badge blue">事后确认</span></div><div class="macro-value">宽松</div><p>政策行动偏松，市场传导温和，信用响应仍待确认。</p><div class="evidence-mini"><i class="on"></i><i class="on"></i><i></i></div></article>
+            <article class="card macro-card span-3 interactive" data-evidence="overheat"><div class="card-head"><div class="eyebrow">过热程度</div><span class="badge cyan">解释层</span></div><div class="macro-value">升温</div><p>订单与生产同步改善，产能数据尚未进入新发布期。</p><div class="evidence-mini cyan"><i class="on"></i><i class="on"></i><i></i></div></article>
+            <article class="card macro-card span-3 interactive" data-evidence="prices"><div class="card-head"><div class="eyebrow">物价压力</div><span class="badge amber">解释层</span></div><div class="macro-value">回落</div><p>上游压力缓和，消费端扩散仍弱。</p><div class="evidence-mini amber"><i class="on"></i><i class="on"></i><i class="on"></i></div></article>
+            <article class="card macro-card span-3 interactive" data-evidence="inventory"><div class="card-head"><div class="eyebrow">库存周期</div><span class="badge violet">解释层</span></div><div class="macro-value">被动去库存</div><p>需求先回升，库存与周转证据总体一致。</p><div class="evidence-mini violet"><i class="on"></i><i class="on"></i><i></i></div></article>
+
+            <article class="card pad span-8">
+              <div class="card-head"><div><div class="eyebrow">International context · P2</div><h2>国际环境</h2></div><span class="badge">仅作背景</span></div>
+              <div class="risk-strip"><div class="risk-cell"><strong>2.13%</strong><span>美债2s10s</span></div><div class="risk-cell"><strong>17.8</strong><span>VIX · 待认证</span></div><div class="risk-cell"><strong>↘</strong><span>Brent方向</span></div><div class="risk-cell"><strong>↗</strong><span>COMEX金 · 待认证</span></div><div class="risk-cell"><strong>4,912</strong><span>SOX · 待认证</span></div><div class="risk-cell"><strong>7.16</strong><span>离岸CNH</span></div></div>
+            </article>
+            <article class="card pad span-4">
+              <div class="card-head"><div><div class="eyebrow">Data & report</div><h2>数据与报告状态</h2></div><span class="badge cyan">可读</span></div>
+              <div class="status-list"><div class="row"><span class="status-line"><span class="dot"></span>P0核心数据</span><strong>0 异常</strong></div><div class="row"><span class="status-line"><span class="dot warn"></span>P1待发布</span><strong>3 项</strong></div><div class="row"><span class="status-line"><span class="dot"></span>最新报告</span><strong>已生成</strong></div><div class="row"><span class="status-line"><span class="dot"></span>下一发布</span><strong>08-24 09:30</strong></div></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="assets">
+          <div class="view-title"><div><h2>核心资产</h2><p>共同骨架展示120日正式轨道；30日与12M保持独立。</p></div><div class="tabs" id="assetTabs"><button class="tab active" data-asset="bond">债券</button><button class="tab" data-asset="equity">股票</button><button class="tab" data-asset="commodity">商品</button></div></div>
+          <div class="grid grid-12">
+            <article class="card chart-card span-8"><div class="card-head"><div><div class="eyebrow" id="detailCode">000012.SH · 价格口径</div><h2 id="detailName">上证国债指数</h2></div><div class="chart-legend"><span class="legend-key"><i></i>连续收益链</span><span class="legend-key"><i class="ma"></i>MA120</span></div></div><div class="chart-wrap"><svg id="detailChart" class="detail-chart" aria-label="核心资产演示趋势图"></svg></div></article>
+            <article class="card pad span-4"><div class="card-head"><div><div class="eyebrow">120D state machine</div><h2 id="detailState">稳定牛向</h2></div><span class="badge blue" id="detailBadge">正式核心</span></div><div class="detail-metrics"><div class="detail-metric"><span>120日收益</span><strong id="mReturn">+1.82%</strong></div><div class="detail-metric"><span>距MA120</span><strong id="mDistance">+0.74%</strong></div><div class="detail-metric"><span>噪声带 H</span><strong id="mBand">0.31%</strong></div><div class="detail-metric"><span>MA120斜率</span><strong id="mSlope">+0.09%</strong></div><div class="detail-metric"><span>候选持续</span><strong id="mCandidate">—</strong></div><div class="detail-metric"><span>最近状态变化</span><strong id="mChanged">06-30</strong></div></div><div class="divider"></div><button class="evidence-button" data-evidence="assetDetail">查看计算输入与公式版本 →</button></article>
+            <article class="card pad span-5"><div class="card-head"><div><div class="eyebrow">Independent tracks</div><h2>多轨方向矩阵</h2></div><span class="badge violet">不合并投票</span></div><table class="matrix"><thead><tr><th>轨道</th><th>方向</th><th class="right">持续</th></tr></thead><tbody><tr><td>30日快速观察</td><td><span class="badge cyan">牛</span></td><td class="right">12日</td></tr><tr><td>120日正式轨道</td><td><span class="badge blue">牛</span></td><td class="right">37日</td></tr><tr><td>公开12M代理</td><td><span class="badge blue">牛</span></td><td class="right">7个月</td></tr></tbody></table></article>
+            <article class="card pad span-7"><div class="card-head"><div><div class="eyebrow">Cross confirmation</div><h2>确认指标</h2></div><span class="badge">不替代核心票</span></div><table class="matrix"><thead><tr><th>指标</th><th>角色</th><th>方向</th><th class="right">时效</th></tr></thead><tbody><tr><td>中证国债全价指数</td><td>价格确认</td><td>同向</td><td class="right">current</td></tr><tr><td>约10年国债指数</td><td>期限确认</td><td>同向</td><td class="right">current</td></tr><tr><td>DR007－政策利率</td><td>市场传导</td><td>温和</td><td class="right">current</td></tr></tbody></table></article>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="macro">
+          <div class="view-title"><div><h2>宏观证据</h2><p>政策、过热、物价和国际背景分别解释，不形成综合宏观票。</p></div><span class="badge violet">不改变正式阶段</span></div>
+          <div class="grid grid-12">
+            <article class="card pad span-12"><div class="card-head"><div><div class="eyebrow">Policy transmission</div><h2>货币政策链</h2></div><span class="badge blue">方向：宽松</span></div><div class="chain"><div class="chain-step"><span class="tiny">01 · 政策行动</span><strong>操作利率与净投放</strong><p>逆回购利率稳定，月内净投放为正；降准事件单列。</p></div><div class="chain-step"><span class="tiny">02 · 市场传导</span><strong>DR007与Shibor</strong><p>DR007－政策利率利差处于温和区间。</p></div><div class="chain-step"><span class="tiny">03 · 信用响应</span><strong>社融与贷款结构</strong><p>企业中长期贷款改善，居民端仍偏弱。</p></div></div></article>
+            <article class="card pad span-12"><div class="card-head"><div><div class="eyebrow">Price transmission</div><h2>物价传导链</h2></div><span class="badge amber">当前：回落</span></div><div class="price-chain"><div class="price-node"><strong>商品 / 原油</strong><span class="negative">压力缓和</span></div><div class="price-node"><strong>PMI购进价</strong><span>49.6 · 回落</span></div><div class="price-node"><strong>PPI生产资料</strong><span>-2.1% YoY</span></div><div class="price-node"><strong>PPI生活资料</strong><span>-0.2% YoY</span></div><div class="price-node"><strong>CPI</strong><span>+0.3% YoY</span></div><div class="price-node"><strong>核心CPI</strong><span>+0.7% YoY</span></div></div></article>
+            <article class="card pad span-6"><div class="card-head"><div><div class="eyebrow">Heat evidence</div><h2>过热程度 · 升温</h2></div><span class="badge cyan">4/5组可用</span></div><table class="matrix"><tbody><tr><td>PMI新订单</td><td class="right positive">改善</td></tr><tr><td>工业增加值</td><td class="right positive">扩张</td></tr><tr><td>产能利用率</td><td class="right">awaiting_release</td></tr><tr><td>工业利润</td><td class="right positive">改善</td></tr><tr><td>信用脉冲</td><td class="right">中性</td></tr></tbody></table></article>
+            <article class="card pad span-6"><div class="card-head"><div><div class="eyebrow">P2 context</div><h2>国际环境</h2></div><span class="badge">不影响中国阶段</span></div><table class="matrix"><tbody><tr><td>美债2s10s</td><td>期限利差</td><td class="right">+213bp</td></tr><tr><td>EIA Brent</td><td>现货价格</td><td class="right">回落</td></tr><tr><td>Cboe VIX</td><td>来源认证</td><td class="right">待认证</td></tr><tr><td>Nasdaq SOX</td><td>授权认证</td><td class="right">待认证</td></tr></tbody></table></article>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="inventory">
+          <div class="view-title"><div><h2>库存特征</h2><p>四象限解释与七张独立证据卡；证据冲突时不强行分类。</p></div><span class="badge violet">无库存总分</span></div>
+          <div class="grid grid-12">
+            <article class="card pad span-5"><div class="card-head"><div><div class="eyebrow">Inventory regime</div><h2>四象限解释</h2></div><span class="badge violet">被动去库存</span></div><div class="quadrant"><div class="quadrant-cell"><strong>主动去库存</strong>需求弱，生产采购主动收缩。</div><div class="quadrant-cell active"><strong>被动去库存</strong>需求先回升，库存下降或库销改善。</div><div class="quadrant-cell"><strong>主动补库存</strong>订单、生产和采购扩张。</div><div class="quadrant-cell"><strong>被动补库存</strong>需求转弱，生产调整滞后。</div></div></article>
+            <article class="card pad span-7"><div class="card-head"><div><div class="eyebrow">Evidence agreement</div><h2>证据一致性</h2></div><span class="badge cyan">5支持 · 1中性 · 1待发布</span></div><table class="matrix"><thead><tr><th>证据族</th><th>当前方向</th><th>备注</th></tr></thead><tbody><tr><td>订单－库存差</td><td class="positive">支持</td><td>新订单改善快于库存</td></tr><tr><td>实际库存</td><td class="positive">支持</td><td>名义与PPI近似调整并列</td></tr><tr><td>库销与周转</td><td>中性</td><td>周转天数变化有限</td></tr><tr><td>产能</td><td>待发布</td><td>保留上一季度值</td></tr></tbody></table></article>
+            <article class="card feature-card span-3"><div class="eyebrow">01</div><h3>订单－库存差</h3><p>同一期PMI输入，公式版本可追溯。</p><span class="badge cyan">改善</span></article>
+            <article class="card feature-card span-3"><div class="eyebrow">02</div><h3>原料－产成品</h3><p>扩散指数，不解释为库存数量。</p><span class="badge cyan">支持</span></article>
+            <article class="card feature-card span-3"><div class="eyebrow">03</div><h3>实际库存</h3><p>名义金额和价格调整结果并列。</p><span class="badge cyan">下降</span></article>
+            <article class="card feature-card span-3"><div class="eyebrow">04</div><h3>库销与周转</h3><p>沿用官方可比口径，不静默重算。</p><span class="badge">中性</span></article>
+            <article class="card feature-card span-3"><div class="eyebrow">05</div><h3>价格－利润</h3><p>区分成本冲击和需求改善。</p><span class="badge cyan">支持</span></article>
+            <article class="card feature-card span-3"><div class="eyebrow">06</div><h3>产能</h3><p>季度数据在实际发布后更新。</p><span class="badge amber">待发布</span></article>
+            <article class="card feature-card span-3"><div class="eyebrow">07</div><h3>信用与仓单</h3><p>注册仓单不代表全部产业库存。</p><span class="badge cyan">支持</span></article>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="history">
+          <div class="view-title"><div><h2>阶段历史</h2><p>正式区间、不可判空档、三资产状态与版本变化。</p></div><span class="badge">只读历史快照</span></div>
+          <article class="card timeline-card"><div class="card-head"><div><div class="eyebrow">2026 · demo history</div><h2>正式阶段区间</h2></div><button class="icon-button" data-evidence="history">回放说明</button></div><div class="timeline-axis"><span>01月</span><span>03月</span><span>05月</span><span>07月</span><span>08月</span></div><div class="stage-track" style="height:68px"><span class="stage-segment s6" style="flex:11">VI</span><span class="stage-segment s1" style="flex:20">I</span><span class="stage-segment s2" style="flex:25">II</span><span class="stage-segment gap" style="flex:8">不可判</span><span class="stage-segment s3" style="flex:18">III</span><span class="stage-segment s2" style="flex:18">II</span></div><div class="track-row"><label>债券</label><div class="micro-track"><span style="width:8%;background:#efa94a"></span><span style="width:92%;background:#6d8cff"></span></div></div><div class="track-row"><label>股票</label><div class="micro-track"><span style="width:31%;background:#efa94a"></span><span style="width:69%;background:#4ecbbb"></span></div></div><div class="track-row"><label>商品</label><div class="micro-track"><span style="width:52%;background:#efa94a"></span><span style="width:21%;background:#6d8cff"></span><span style="width:27%;background:#efa94a"></span></div></div></article>
+          <div class="grid grid-12 section-gap"><article class="card pad span-7"><div class="card-head"><div><div class="eyebrow">Stage events</div><h2>阶段变化事件</h2></div><span class="badge blue">5项</span></div><div class="event-list"><div class="event"><time>07-28</time><div><strong>Stage III → Stage II</strong><p>商品完成熊向8日确认；机械映射变化。</p></div><span class="badge">snapshot 241</span></div><div class="event"><time>06-19</time><div><strong>空档 → Stage III</strong><p>核心来源冲突解除，三资产恢复完整。</p></div><span class="badge">snapshot 209</span></div><div class="event"><time>06-12</time><div><strong>Stage II → 当前阶段暂不判定</strong><p>商品核心来源冲突，P0禁止生成新阶段。</p></div><span class="badge amber">conflicted</span></div></div></article><article class="card pad span-5"><div class="card-head"><div><div class="eyebrow">Version markers</div><h2>规则与数据版本</h2></div></div><table class="matrix"><tbody><tr><td>趋势规则</td><td class="right mono">trend-0.3</td></tr><tr><td>阶段模型</td><td class="right mono">stage-1.0</td></tr><tr><td>商品认证</td><td class="right">NHII certified</td></tr><tr><td>回放模式</td><td class="right">public_as_of</td></tr></tbody></table></article></div>
+        </section>
+
+        <section class="view" data-view-panel="calendar">
+          <div class="view-title"><div><h2>发布日历</h2><p>明确区分预计发布、实际上游发布和系统取得。</p></div><span class="badge amber">3项等待发布</span></div>
+          <div class="grid grid-12"><article class="card pad span-8"><div class="card-head"><div><div class="eyebrow">Upcoming releases</div><h2>未来七日</h2></div><span class="badge">中国时区</span></div><div class="event-list"><div class="event"><time>08-24<br>09:30</time><div><strong>LPR 1年 / 5年以上</strong><p>预计窗口 09:00–10:00 · 当前仍显示上一期</p></div><span class="badge amber">awaiting_release</span></div><div class="event"><time>08-25<br>盘后</time><div><strong>三核心资产行情</strong><p>交易日收盘后校验并原子发布完整投影</p></div><span class="badge blue">scheduled</span></div><div class="event"><time>08-27<br>09:30</time><div><strong>工业企业利润</strong><p>官方发布日程 · NBS适配器待实现</p></div><span class="badge">expected</span></div></div></article><article class="card pad span-4"><div class="card-head"><div><div class="eyebrow">Release semantics</div><h2>三个时点</h2></div></div><div class="status-list"><div><strong>预计窗口</strong><p class="tiny">只用于轮询和时效判断</p></div><div><strong>实际发布时间</strong><p class="tiny">以上游可靠时间为准</p></div><div><strong>系统可用时间</strong><p class="tiny">首次取得并通过全部校验</p></div></div></article></div>
+        </section>
+
+        <section class="view" data-view-panel="reports">
+          <div class="view-title">
+            <div><h2>报告</h2><p>先冻结证据，再异步解释；生成新版本，不覆盖历史报告。</p></div>
+            <span class="badge cyan" id="reportHeaderStatus">最新报告可读</span>
+          </div>
+
+          <div class="tabs report-tabs" role="tablist" aria-label="报告工作区">
+            <button class="tab active" id="reportTabGenerate" type="button" role="tab" aria-selected="true" aria-controls="reportPanelGenerate" data-report-tab="generate">生成报告</button>
+            <button class="tab" id="reportTabHistory" type="button" role="tab" aria-selected="false" aria-controls="reportPanelHistory" data-report-tab="history">报告历史</button>
+            <button class="tab" id="reportTabReader" type="button" role="tab" aria-selected="false" aria-controls="reportPanelReader" data-report-tab="reader">阅读报告</button>
+          </div>
+
+          <div class="report-panel active" id="reportPanelGenerate" role="tabpanel" aria-labelledby="reportTabGenerate" data-report-panel="generate">
+            <div class="grid grid-12">
+              <article class="card report-command span-8">
+                <div class="card-head">
+                  <div><div class="eyebrow">Report generation</div><h2>生成盘后报告</h2><p>基于当前完整投影构建证据包；演示按钮只模拟任务状态，不调用真实AI。</p></div>
+                  <span class="badge blue" id="reportRunStatus" role="status" aria-live="polite">待提交</span>
+                </div>
+
+                <div class="snapshot-grid" aria-label="冻结投影身份">
+                  <div class="snapshot-field"><span>业务日 / report_cutoff</span><strong>2026-08-21 · 18:12 CST</strong></div>
+                  <div class="snapshot-field"><span>证据窗口</span><strong>2026-03-06 → 2026-08-21</strong></div>
+                  <div class="snapshot-field"><span>数据快照</span><strong class="mono">data_snapshot_v241</strong></div>
+                  <div class="snapshot-field"><span>规则版本</span><strong class="mono">stage-1.0 / trend-0.3</strong></div>
+                </div>
+
+                <div class="preflight-box">
+                  <div>
+                    <div class="card-head"><div><div class="eyebrow">Evidence bundle preflight</div><h3>证据包预检</h3></div><span class="badge cyan">演示可生成</span></div>
+                    <div class="preflight-list">
+                      <div class="preflight-item"><span><i class="state-mark">✓</i>三类正式核心资产</span><strong>3 / 3 current · selected</strong></div>
+                      <div class="preflight-item"><span><i class="state-mark">✓</i>120日窗口与240日预热</span><strong>完整</strong></div>
+                      <div class="preflight-item"><span><i class="state-mark">✓</i>政策、库存、通胀解释层</span><strong>fixture 可用 · 部分适配器待实现</strong></div>
+                      <div class="preflight-item"><span><i class="state-mark">✓</i>国际环境与授权状态</span><strong>P2 · 授权待认证</strong></div>
+                    </div>
+                  </div>
+                  <div class="preflight-summary">
+                    <div><strong>完整</strong><span>completeness</span></div>
+                    <div><span>正式阶段</span><strong>Stage II</strong></div>
+                  </div>
+                </div>
+
+                <div class="guardrail">
+                  <span class="guardrail-icon" aria-hidden="true">◎</span>
+                  <div><strong>生成不会刷新数据，也不会重新分类</strong>页面仅追加幂等任务；Worker消费冻结证据包。AI失败时输出确定性简版，驾驶舱投影仍保持可读。</div>
+                </div>
+
+                <ol class="job-stepper" id="reportJobSteps" aria-label="报告生成进度">
+                  <li class="job-step complete" data-job-step="projection"><strong>冻结投影</strong><span>data_v241</span></li>
+                  <li class="job-step complete" data-job-step="bundle"><strong>证据包预检</strong><span>可生成</span></li>
+                  <li class="job-step" data-job-step="queue"><strong>进入任务队列</strong><span>等待提交</span></li>
+                  <li class="job-step" data-job-step="adapter"><strong>受限适配器</strong><span>未调用</span></li>
+                  <li class="job-step" data-job-step="snapshot"><strong>校验并落盘</strong><span>未开始</span></li>
+                </ol>
+
+                <div class="report-actions">
+                  <div class="report-actions-copy"><strong>生成新版本，不覆盖历史报告</strong><span id="reportRunDetail">同日已有 v2；本次将创建 report_20260821_v3（演示）。</span></div>
+                  <button class="primary-button" id="generateReportButton" type="button">生成新版本</button>
+                </div>
+              </article>
+
+              <div class="report-side-stack span-4">
+                <article class="card report-side-note">
+                  <div class="card-head"><div><div class="eyebrow">Last completed</div><h2>最近完成</h2></div><span class="badge cyan">completed</span></div>
+                  <div class="status-list">
+                    <div class="row"><span class="status-line">报告版本</span><strong>2026-08-21 · v2</strong></div>
+                    <div class="row"><span class="status-line">适配器</span><strong>Codex CLI</strong></div>
+                    <div class="row"><span class="status-line">耗时</span><strong>42s</strong></div>
+                    <div class="row"><span class="status-line">证据包</span><strong class="mono">eb_7d94…c2a1</strong></div>
+                    <div class="row"><span class="status-line">正文保留</span><strong>剩余 27 天</strong></div>
+                  </div>
+                  <div class="divider"></div>
+                  <button class="evidence-button" type="button" data-open-report="reader">阅读不可变报告 →</button>
+                </article>
+
+                <article class="card report-side-note separation-card">
+                  <div class="eyebrow">Data / report separation</div><h2>两类状态分开判断</h2>
+                  <div class="separation-row">
+                    <div class="separation-node"><strong>数据投影</strong><span>完整 · 可读</span></div>
+                    <span class="separation-arrow" aria-hidden="true">≠</span>
+                    <div class="separation-node"><strong>AI报告</strong><span>独立任务</span></div>
+                  </div>
+                  <p>报告失败不等于数据失败；数据不完整时也不会用AI补写正式阶段。</p>
+                </article>
+              </div>
+
+              <article class="card pad span-12 coverage-ledger">
+                <div class="card-head">
+                  <div><div class="eyebrow">Inventory coverage ledger</div><h2>数据覆盖与后续评估</h2></div>
+                  <span class="badge">基于 V1 数据盘点</span>
+                </div>
+                <p class="coverage-intro">区分“报告生成直接消费”“目录存在但本页未展开”和“V1明确排除”，避免把页面留白误认为数据缺失。</p>
+                <div class="coverage-grid">
+                  <section class="coverage-column included">
+                    <div class="coverage-title"><span class="coverage-index">A</span><div><strong>本页直接消费</strong><small>进入冻结证据包或生成治理</small></div></div>
+                    <ul>
+                      <li><b>正式核心</b><span>CN_EQUITY_CORE_000985、CN_BOND_CORE_000012、CN_COMMODITY_CORE_NHII</span></li>
+                      <li><b>宏观解释</b><span>PMI、CPI/PPI、政策利率与流动性、库存/利润/产能、社融与贷款结构</span></li>
+                      <li><b>治理与运行</b><span>发布日程、available_at、vintage、来源冲突、任务状态、预算与报告版本</span></li>
+                    </ul>
+                  </section>
+                  <section class="coverage-column deferred">
+                    <div class="coverage-title"><span class="coverage-index">B</span><div><strong>V1目录存在但本页未展开</strong><small>保留字段与证据角色，后续评估专页/图表</small></div></div>
+                    <ul>
+                      <li><b>股票广度与估值</b><span>CN_EQ_ADV_DEC、CN_EQ_AD_RATIO、CN_EQ_NEW_HIGH_LOW_120、CN_EQ_ABOVE_MA120、CN_INDEX_VALUATION</span></li>
+                      <li><b>商品结构</b><span>CN_COMMODITY_EX_HOG_BASKET、CN_COMMODITY_SLEEVE_CONTRIBUTION、CN_FUTURES_WARRANTS</span></li>
+                      <li><b>信用、汇率与国际</b><span>CN_CREDIT_IMPULSE、CN_USDCNY_CENTRAL_PARITY、COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT、LBMA Gold、VIX、SOX</span></li>
+                    </ul>
+                  </section>
+                  <section class="coverage-column excluded">
+                    <div class="coverage-title"><span class="coverage-index">C</span><div><strong>V1明确排除</strong><small>不作为后续页面缺口</small></div></div>
+                    <ul>
+                      <li><b>品种</b><span>生猪 LH；燃料油 FU、低硫燃料油 LU、沥青 BU、LPG PG；国内黄金核心</span></li>
+                      <li><b>市场叙事</b><span>沪深港通资金流、ETF份额、新闻情绪、未冻结细行业宏观分项</span></li>
+                      <li><b>替代口径与超长回填</b><span>FXCM金油替代标准源、ETF替代VIX/SOX、十年全市场广度</span></li>
+                    </ul>
+                  </section>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <div class="report-panel" id="reportPanelHistory" role="tabpanel" aria-labelledby="reportTabHistory" data-report-panel="history" hidden>
+            <article class="card pad">
+              <div class="card-head"><div><div class="eyebrow">Immutable report archive</div><h2>报告历史</h2></div><span class="badge">30天正文 · 结构化清单长期保留</span></div>
+              <div class="report-history-list">
+                <div class="report-record">
+                  <time>2026-08-21<br><span class="badge cyan">completed</span></time>
+                  <div><strong>盘后完整报告 · v2</strong><p>Stage II · Codex CLI · 42s · 正文剩余27天</p></div>
+                  <div class="report-record-meta"><span>cutoff <b>18:12 CST</b></span><span>snapshot <b>v241</b></span><span>bundle <b>eb_7d94…c2a1</b></span><span>schema <b>report-1.0</b></span></div>
+                  <button class="secondary-button" type="button" data-open-report="reader">阅读报告</button>
+                </div>
+                <div class="report-record">
+                  <time>2026-08-20<br><span class="badge cyan">completed</span></time>
+                  <div><strong>盘后完整报告 · v1</strong><p>Stage II · Claude Code CLI · 55s · 正文剩余26天</p></div>
+                  <div class="report-record-meta"><span>cutoff <b>18:08 CST</b></span><span>snapshot <b>v239</b></span><span>bundle <b>eb_490a…df21</b></span><span>schema <b>report-1.0</b></span></div>
+                  <button class="secondary-button" type="button" data-open-report="reader">阅读报告</button>
+                </div>
+                <div class="report-record">
+                  <time>2026-08-19<br><span class="badge amber">确定性简版</span></time>
+                  <div><strong>双AI适配器失败后的简版</strong><p>Stage II · deterministic template · 2s · 驾驶舱数据未受影响</p></div>
+                  <div class="report-record-meta"><span>cutoff <b>18:10 CST</b></span><span>snapshot <b>v237</b></span><span>failure <b>adapter_timeout</b></span><span>schema <b>compact-1.0</b></span></div>
+                  <button class="secondary-button" type="button" data-open-report="reader">阅读简版</button>
+                </div>
+                <div class="report-record">
+                  <time>2026-08-18<br><span class="badge red">failed</span></time>
+                  <div><strong>报告任务取消</strong><p>数据投影完整；报告任务未产生正文，保留失败摘要和证据包。</p></div>
+                  <div class="report-record-meta"><span>cutoff <b>18:14 CST</b></span><span>snapshot <b>v235</b></span><span>failure <b>user_canceled</b></span><span>body <b>not_created</b></span></div>
+                  <button class="secondary-button" type="button" data-evidence="report">查看证据包</button>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="report-panel" id="reportPanelReader" role="tabpanel" aria-labelledby="reportTabReader" data-report-panel="reader" hidden>
+            <div class="report-reader-layout">
+              <article class="card report-reader">
+                <div class="card-head"><div><div class="eyebrow">Immutable report snapshot</div><h2>2026-08-21 盘后报告 · v2</h2></div><span class="badge blue">Stage II</span></div>
+                <blockquote>当前正式阶段维持 Stage II。债券与股票保持120日稳定牛向，商品仍为稳定熊向；商品牛向候选已持续5个有效交易日，尚不改变正式阶段。</blockquote>
+                <h3>1. 报告身份与截止点</h3><p>业务日为2026-08-21，证据窗口覆盖最近120个中国交易日，使用 data_snapshot_v241、stage-1.0 与 trend-0.3。</p>
+                <h3>2. 正式阶段依据</h3><p>CN_BOND_CORE_000012、CN_EQUITY_CORE_000985、CN_COMMODITY_CORE_NHII 的稳定状态为“债牛 / 股牛 / 商熊”，由确定性规则机械映射为 Stage II。</p>
+                <h3>3. 三核心资产与转折观察</h3><ul><li>债券：稳定牛向，无候选转换。</li><li>股票：稳定牛向，广度只作确认。</li><li>商品：稳定熊向；30日方向转牛，120日牛向候选5/8日，不是下一阶段预测。</li></ul>
+                <h3>4. 货币政策链</h3><p>政策行动偏松，市场传导温和，信用响应仍待后续已发布观测确认；三层证据分别表达，不合成宏观投票。</p>
+                <h3>5. 库存、过热与物价</h3><p>当前解释为被动去库存与活动升温；上游价格压力回落，但核心CPI和部分工业官方适配器仍在实现清单中。</p>
+                <h3>6. 国际环境</h3><p>美债收益率等已认证数据只作为P2背景；COMEX、LBMA、VIX与SOX待许可或来源认证，不影响中国三资产正式阶段。</p>
+                <h3>7. 较上一报告为何变化</h3><p>商品牛向候选由4日增至5日；股票广度继续改善；三条P0核心序列未发生来源冲突或规则版本变化。</p>
+                <h3>8. 数据质量、缺口与下一发布</h3><p>P0无异常；三项P1证据处于 awaiting_release；国际授权源保持 awaiting_source_certification。下一关注事件为LPR发布窗口。</p>
+                <h3>9. 证据与来源</h3><p>关键结论仅绑定证据包内规范观测和已验证来源。打开本报告不会按最新数据重新生成正文。</p>
+                <button class="evidence-button" type="button" data-evidence="report">查看报告快照与证据包 →</button>
+              </article>
+
+              <aside class="report-reader-aside" aria-label="报告快照元数据">
+                <article class="card report-side-note">
+                  <div class="eyebrow">Snapshot metadata</div><h2>快照身份</h2>
+                  <div class="report-meta-list">
+                    <div><span>report_snapshot_id</span><strong class="mono">report_20260821_v2</strong></div>
+                    <div><span>report_cutoff</span><strong>2026-08-21 18:12 CST</strong></div>
+                    <div><span>bundle_hash</span><strong class="mono">sha256:7d94…c2a1</strong></div>
+                    <div><span>adapter / duration</span><strong>Codex CLI · 42s</strong></div>
+                    <div><span>model / prompt / schema</span><strong class="mono">codex-v1 / p1.2 / report-1.0</strong></div>
+                    <div><span>body_retention</span><strong>剩余 27 天</strong></div>
+                  </div>
+                </article>
+                <article class="card report-side-note">
+                  <div class="eyebrow">Bound citations</div><h2>证据引用</h2>
+                  <div class="citation-list">
+                    <div class="citation-item"><strong>正式阶段</strong>obs_stage_20260821 · 本地确定性引擎</div>
+                    <div class="citation-item"><strong>三核心资产</strong>obs_bond_241 / obs_equity_241 / obs_commodity_241</div>
+                    <div class="citation-item"><strong>宏观与库存</strong>已发布规范观测；3项 awaiting_release</div>
+                  </div>
+                </article>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" data-view-panel="operations">
+          <div class="view-title"><div><h2>运行状态</h2><p>任务、来源、预算、缓存和失败恢复；不属于宏观指标。</p></div><span class="badge cyan">Worker healthy</span></div>
+          <div class="grid grid-12"><article class="card pad span-8"><div class="card-head"><div><div class="eyebrow">Retrieval cascade</div><h2>本次检索链</h2></div><span class="badge">run_20260821_close</span></div><div class="cascade"><div class="cascade-step success"><strong>本地证据</strong><span>42命中</span></div><div class="cascade-step success"><strong>TuShare</strong><span>18成功</span></div><div class="cascade-step success"><strong>官方直连</strong><span>5成功</span></div><div class="cascade-step"><strong>Tavily</strong><span>2调用</span></div><div class="cascade-step"><strong>Exa</strong><span>0调用</span></div><div class="cascade-step"><strong>受限AI</strong><span>0调用</span></div></div><div class="divider"></div><span class="tiny">各级串行降级；Tavily与Exa不对同一缺口默认并行。</span></article><article class="card pad span-4"><div class="card-head"><div><div class="eyebrow">Job ledger</div><h2>任务账本</h2></div><span class="badge cyan">3/3完成</span></div><table class="matrix"><tbody><tr><td>数据刷新</td><td class="right operational-ok">completed</td></tr><tr><td>投影发布</td><td class="right operational-ok">completed</td></tr><tr><td>AI报告</td><td class="right operational-ok">completed</td></tr><tr><td>最后心跳</td><td class="right">18:13:04</td></tr></tbody></table></article><article class="card pad span-6"><div class="card-head"><div><div class="eyebrow">Search budgets</div><h2>检索预算</h2></div></div><div class="budget"><div class="budget-head"><span>Tavily · 每日</span><span>7 / 16</span></div><div class="budget-bar"><i style="width:44%"></i></div></div><div class="budget"><div class="budget-head"><span>Exa · 每日</span><span>1 / 8</span></div><div class="budget-bar"><i style="width:12%;background:var(--violet)"></i></div></div><div class="budget"><div class="budget-head"><span>受限AI · 每日</span><span>0 / 2</span></div><div class="budget-bar"><i style="width:0%;background:var(--amber)"></i></div></div></article><article class="card pad span-6"><div class="card-head"><div><div class="eyebrow">Source health</div><h2>来源健康</h2></div><span class="badge amber">5项待认证</span></div><table class="matrix"><tbody><tr><td>TuShare</td><td class="right operational-ok">healthy</td></tr><tr><td>NBS官方直连</td><td class="right operational-warning">adapter_pending</td></tr><tr><td>PBOC官方直连</td><td class="right operational-warning">adapter_pending</td></tr><tr><td>国际P2授权源</td><td class="right operational-warning">certification_pending</td></tr></tbody></table></article></div>
+        </section>
+
+        <div class="prototype-footer">Pring 周期驾驶舱 · Contract-aligned HTML prototype · 演示数据</div>
+      </main>
+    </div>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="drawer" id="evidenceDrawer" aria-hidden="true" aria-label="证据追溯">
+    <div class="drawer-head"><div><div class="eyebrow">Evidence trace</div><h2 id="drawerTitle">证据追溯</h2></div><button class="close-button" id="closeDrawer" aria-label="关闭">×</button></div>
+    <div class="drawer-body">
+      <div class="drawer-section"><h3>规范观测</h3><dl class="kv"><dt>指标</dt><dd id="drawerMetric">CN_BOND_CORE_000012</dd><dt>值 / 状态</dt><dd id="drawerValue">120日稳定牛向</dd><dt>统计期</dt><dd>2026-08-21</dd><dt>证据角色</dt><dd id="drawerRole">P0 · 正式核心</dd></dl></div>
+      <div class="drawer-section"><h3>点时语义</h3><dl class="kv"><dt>release_at</dt><dd>2026-08-21 15:05:00 CST</dd><dt>public_available_at</dt><dd>2026-08-21 15:05:00 CST</dd><dt>available_at</dt><dd>2026-08-21 15:16:42 CST</dd><dt>freshness</dt><dd><span class="badge cyan">current</span></dd></dl></div>
+      <div class="drawer-section"><h3>来源与版本</h3><dl class="kv"><dt>来源机构</dt><dd id="drawerSource">TuShare / 上交所口径</dd><dt>选择状态</dt><dd>selected · no conflict</dd><dt>definition</dt><dd class="mono">metric-v1.0</dd><dt>formula</dt><dd class="mono">trend-rule-0.3</dd><dt>vintage</dt><dd class="mono">obs_v20260821_151642</dd><dt>projection_set_id</dt><dd class="mono">prj_20260821_1812</dd><dt>data_snapshot_id</dt><dd class="mono">data_v241</dd><dt>model / trend</dt><dd class="mono">model-v0001 / trend-0.3</dd><dt>证据窗口</dt><dd>最近120个中国交易日</dd></dl></div>
+      <div class="drawer-section"><h3>原型说明</h3><p class="tiny">本抽屉用于验证来源、发布时间、系统可用时间、时效、冲突和版本血缘的展示层级。以上值均为演示 fixture。</p></div>
+    </div>
+  </aside>
+
+  <script>
+    const pageMeta = {
+      home: ['周期判断', '当前阶段、核心资产与转折观察'],
+      assets: ['核心资产', '120日正式轨道与独立观察轨道'],
+      macro: ['宏观证据', '政策、过热、物价与国际背景'],
+      inventory: ['库存特征', '四象限解释与七类独立证据'],
+      history: ['阶段历史', '正式区间、空档、事件与版本'],
+      calendar: ['发布日历', '预计、发布与系统可用三个时点'],
+      reports: ['报告', '生成、历史与不可变阅读工作区'],
+      operations: ['运行状态', '任务、来源、预算与失败恢复']
+    };
+
+    const evidenceContent = {
+      global: ['完整投影', 'projection_set_id', 'prj_20260821_1812 · complete', '运行与追溯', '本地投影仓库'],
+      stage: ['正式阶段', 'PRING_FORMAL_STAGE', 'Stage II（演示）', 'P0 · 机械分类', '本地确定性引擎'],
+      change: ['结构化变化原因', 'PROJECTION_CHANGESET', '3项变化 · 阶段未变', '解释 · 不参与分类', '本地投影模块'],
+      bond: ['债券核心', 'CN_BOND_CORE_000012', '120日稳定牛向', 'P0 · 正式核心', 'TuShare / 上交所口径'],
+      equity: ['股票核心', 'CN_EQUITY_CORE_000985', '120日稳定牛向', 'P0 · 正式核心', 'TuShare / 中证指数口径'],
+      commodity: ['商品核心', 'CN_COMMODITY_CORE_NHII', '120日稳定熊向 · 牛向候选5日', 'P0 · 正式核心', 'TuShare / 南华指数口径'],
+      policy: ['政策方向', 'CN_POLICY_DIRECTION', '宽松（演示）', 'P1 · 宏观确认', 'PBOC / CFETS / TuShare'],
+      overheat: ['过热程度', 'CN_OVERHEAT_STATE', '升温（演示）', 'P1 · 宏观确认', 'NBS / PBOC / 本地派生'],
+      prices: ['物价压力', 'CN_PRICE_PRESSURE', '回落（演示）', 'P1 · 宏观确认', 'NBS / EIA / TuShare'],
+      inventory: ['库存周期', 'CN_INVENTORY_STATE', '被动去库存（演示）', 'P1 · 解释状态', 'NBS / TuShare / 本地派生'],
+      assetDetail: ['趋势计算', 'CORE_ASSET_TREND', 'MA120 + 1.5σ + 8日确认', 'P0 · 派生观测', '本地确定性引擎'],
+      history: ['历史回放', 'STAGE_HISTORY_REPLAY', 'public_as_of（演示）', '研究 · 只读', '不可变证据仓库'],
+      report: ['报告快照', 'REPORT_SNAPSHOT', '2026-08-21 v2（演示）', '解释 · AI不分类', 'Codex CLI Adapter']
+    };
+
+    const assetData = {
+      bond: { code:'000012.SH · 债券价格口径', name:'上证国债指数', state:'稳定牛向', badge:'正式核心', ret:'+1.82%', distance:'+0.74%', band:'0.31%', slope:'+0.09%', candidate:'—', changed:'06-30', color:'#6d8cff', values:[30,30.4,30.2,30.8,31.2,31.1,31.7,32,31.9,32.5,32.9,33.4,33.6,34.2], ma:[29.8,29.9,30,30.1,30.2,30.35,30.5,30.7,30.9,31.1,31.35,31.6,31.85,32.1] },
+      equity: { code:'000985.CSI · 全收益连续链', name:'中证全指', state:'稳定牛向', badge:'正式核心', ret:'+12.40%', distance:'+6.20%', band:'2.84%', slope:'+1.14%', candidate:'—', changed:'07-04', color:'#4ecbbb', values:[24,25,24.5,26,27.6,27,28.5,29.9,29.1,30.4,31.9,32.5,33.8,34.4], ma:[24.4,24.6,24.8,25,25.2,25.5,25.8,26.1,26.5,26.9,27.3,27.7,28.1,28.5] },
+      commodity: { code:'NHII.NH · 连续收益链', name:'南华工业品指数', state:'稳定熊向 · 转折待确认', badge:'正式核心', ret:'-4.80%', distance:'-2.10%', band:'1.92%', slope:'-0.28%', candidate:'牛向 5/8日', changed:'07-28', color:'#efa94a', values:[35,34.2,33.5,32.7,31.6,30.9,30.1,29.4,29.1,29.6,30.2,31,31.7,32.4], ma:[34.4,34.1,33.8,33.5,33.2,32.9,32.6,32.3,32,31.8,31.6,31.5,31.45,31.4] }
+    };
+
+    function linePath(values, width, height, pad = 4) {
+      const min = Math.min(...values), max = Math.max(...values), range = max - min || 1;
+      return values.map((value, index) => {
+        const x = pad + index * (width - pad * 2) / (values.length - 1);
+        const y = height - pad - (value - min) * (height - pad * 2) / range;
+        return `${index ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+    }
+
+    function drawSparklines() {
+      document.querySelectorAll('.sparkline').forEach(svg => {
+        const values = svg.dataset.points.split(',').map(Number);
+        const color = svg.dataset.color;
+        const path = linePath(values, 360, 58, 4);
+        const area = `${path} L356,58 L4,58 Z`;
+        svg.setAttribute('viewBox', '0 0 360 58');
+        svg.innerHTML = `<defs><linearGradient id="g-${color.slice(1)}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".22"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#g-${color.slice(1)})"/><path d="${path}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="356" cy="${path.match(/,([\d.]+)$/)[1]}" r="3" fill="${color}"/>`;
+      });
+    }
+
+    function drawDetailChart(assetKey) {
+      const data = assetData[assetKey];
+      const svg = document.getElementById('detailChart');
+      const themeStyles = getComputedStyle(document.documentElement);
+      const chartPanel = themeStyles.getPropertyValue('--panel').trim();
+      const chartMuted = themeStyles.getPropertyValue('--muted-2').trim();
+      const chartAmber = themeStyles.getPropertyValue('--amber').trim();
+      const all = data.values.concat(data.ma);
+      const min = Math.min(...all), max = Math.max(...all), range = max - min || 1;
+      const sharedPath = values => values.map((value, index) => {
+        const x = 8 + index * 744 / (values.length - 1);
+        const y = 252 - (value - min) * 228 / range;
+        return `${index ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      const mainPath = sharedPath(data.values);
+      const maPath = sharedPath(data.ma);
+      const lastY = mainPath.match(/,([\d.]+)$/)[1];
+      svg.setAttribute('viewBox', '0 0 760 300');
+      svg.innerHTML = `<defs><linearGradient id="detailFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${data.color}" stop-opacity=".24"/><stop offset="1" stop-color="${data.color}" stop-opacity="0"/></linearGradient></defs><path d="${mainPath} L752,286 L8,286 Z" fill="url(#detailFill)"/><path d="${maPath}" fill="none" stroke="${chartAmber}" stroke-width="2" stroke-dasharray="5 5"/><path d="${mainPath}" fill="none" stroke="${data.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="752" cy="${lastY}" r="5" fill="${data.color}" stroke="${chartPanel}" stroke-width="3"/><text x="8" y="292" fill="${chartMuted}" font-size="12">03-06</text><text x="690" y="292" fill="${chartMuted}" font-size="12">08-21</text>`;
+      document.getElementById('detailCode').textContent = data.code;
+      document.getElementById('detailName').textContent = data.name;
+      document.getElementById('detailState').textContent = data.state;
+      document.getElementById('detailBadge').textContent = data.badge;
+      document.getElementById('mReturn').textContent = data.ret;
+      document.getElementById('mDistance').textContent = data.distance;
+      document.getElementById('mBand').textContent = data.band;
+      document.getElementById('mSlope').textContent = data.slope;
+      document.getElementById('mCandidate').textContent = data.candidate;
+      document.getElementById('mChanged').textContent = data.changed;
+    }
+
+    function switchView(view) {
+      document.querySelectorAll('.nav-item').forEach(button => button.classList.toggle('active', button.dataset.view === view));
+      document.querySelectorAll('.view').forEach(panel => panel.classList.toggle('active', panel.dataset.viewPanel === view));
+      document.getElementById('pageTitle').textContent = pageMeta[view][0];
+      document.getElementById('pageSubtitle').textContent = pageMeta[view][1];
+      document.body.classList.remove('nav-open');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (view === 'assets') drawDetailChart(document.querySelector('#assetTabs .tab.active').dataset.asset);
+    }
+
+    function openDrawer(key) {
+      const content = evidenceContent[key] || evidenceContent.global;
+      document.getElementById('drawerTitle').textContent = content[0];
+      document.getElementById('drawerMetric').textContent = content[1];
+      document.getElementById('drawerValue').textContent = content[2];
+      document.getElementById('drawerRole').textContent = content[3];
+      document.getElementById('drawerSource').textContent = content[4];
+      document.getElementById('evidenceDrawer').setAttribute('aria-hidden', 'false');
+      document.body.classList.add('drawer-open');
+    }
+
+    function closeDrawer() {
+      document.body.classList.remove('drawer-open');
+      document.getElementById('evidenceDrawer').setAttribute('aria-hidden', 'true');
+    }
+
+    function switchReportTab(tabName, moveFocus = false) {
+      document.querySelectorAll('[data-report-tab]').forEach(button => {
+        const isActive = button.dataset.reportTab === tabName;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+        button.tabIndex = isActive ? 0 : -1;
+        if (isActive && moveFocus) button.focus();
+      });
+      document.querySelectorAll('[data-report-panel]').forEach(panel => {
+        const isActive = panel.dataset.reportPanel === tabName;
+        panel.classList.toggle('active', isActive);
+        panel.hidden = !isActive;
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function applyTheme(theme) {
+      const isLight = theme === 'light';
+      document.documentElement.dataset.theme = isLight ? 'light' : 'dark';
+      const toggle = document.getElementById('themeToggle');
+      toggle.setAttribute('aria-pressed', String(isLight));
+      toggle.setAttribute('aria-label', isLight ? '切换暗色主题' : '切换亮色主题');
+      toggle.textContent = isLight ? '暗色主题' : '亮色主题';
+      try { localStorage.setItem('pring-theme', isLight ? 'light' : 'dark'); } catch (_) {}
+      const activeAsset = document.querySelector('#assetTabs .tab.active')?.dataset.asset || 'bond';
+      drawDetailChart(activeAsset);
+    }
+
+    function simulateReportRun() {
+      const button = document.getElementById('generateReportButton');
+      const status = document.getElementById('reportRunStatus');
+      const detail = document.getElementById('reportRunDetail');
+      const headerStatus = document.getElementById('reportHeaderStatus');
+      const steps = [...document.querySelectorAll('[data-job-step]')];
+      if (button.disabled) return;
+
+      button.disabled = true;
+      button.textContent = '生成中…';
+      button.setAttribute('aria-busy', 'true');
+      status.className = 'badge blue';
+      status.textContent = 'queued · 演示';
+      detail.textContent = '已追加幂等任务 report:2026-08-21:v3；等待独立 Worker 领取。';
+      steps.forEach((step, index) => {
+        step.classList.toggle('complete', index < 2);
+        step.classList.remove('active');
+      });
+      steps[2].classList.add('active');
+      steps[2].querySelector('span').textContent = 'queued';
+
+      window.setTimeout(() => {
+        steps[2].classList.remove('active');
+        steps[2].classList.add('complete');
+        steps[2].querySelector('span').textContent = 'claimed';
+        steps[3].classList.add('active');
+        steps[3].querySelector('span').textContent = 'Codex CLI';
+        status.textContent = 'running · 演示';
+        detail.textContent = 'Worker 正在使用冻结证据包；浏览器未直接调用 AI。';
+      }, 450);
+
+      window.setTimeout(() => {
+        steps[3].classList.remove('active');
+        steps[3].classList.add('complete');
+        steps[3].querySelector('span').textContent = 'validated output';
+        steps[4].classList.add('active');
+        steps[4].querySelector('span').textContent = 'citation check';
+        status.textContent = 'validating · 演示';
+      }, 950);
+
+      window.setTimeout(() => {
+        steps[4].classList.remove('active');
+        steps[4].classList.add('complete');
+        steps[4].querySelector('span').textContent = 'report_v3 stored';
+        status.className = 'badge cyan';
+        status.textContent = 'completed · 演示';
+        headerStatus.textContent = '新版本已生成（演示）';
+        detail.textContent = 'report_20260821_v3 已作为新快照保存；v2 未被覆盖。';
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+        button.textContent = '再次生成新版本';
+      }, 1500);
+    }
+
+    document.querySelectorAll('.nav-item').forEach(button => button.addEventListener('click', () => switchView(button.dataset.view)));
+    document.querySelectorAll('[data-evidence]').forEach(button => button.addEventListener('click', event => { event.stopPropagation(); openDrawer(button.dataset.evidence); }));
+    document.querySelectorAll('#assetTabs .tab').forEach(button => button.addEventListener('click', () => { document.querySelectorAll('#assetTabs .tab').forEach(tab => tab.classList.remove('active')); button.classList.add('active'); drawDetailChart(button.dataset.asset); }));
+    document.querySelectorAll('[data-report-tab]').forEach(button => {
+      button.addEventListener('click', () => switchReportTab(button.dataset.reportTab));
+      button.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        const tabs = [...document.querySelectorAll('[data-report-tab]')];
+        const offset = event.key === 'ArrowRight' ? 1 : -1;
+        const next = tabs[(tabs.indexOf(button) + offset + tabs.length) % tabs.length];
+        switchReportTab(next.dataset.reportTab, true);
+      });
+    });
+    document.querySelectorAll('[data-open-report]').forEach(button => button.addEventListener('click', () => switchReportTab(button.dataset.openReport)));
+    document.getElementById('generateReportButton').addEventListener('click', simulateReportRun);
+    document.getElementById('themeToggle').addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'));
+    document.getElementById('closeDrawer').addEventListener('click', closeDrawer);
+    document.getElementById('drawerBackdrop').addEventListener('click', closeDrawer);
+    document.getElementById('mobileNav').addEventListener('click', () => document.body.classList.toggle('nav-open'));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') { closeDrawer(); document.body.classList.remove('nav-open'); } });
+
+    drawSparklines();
+    let initialTheme = 'light';
+    try { initialTheme = localStorage.getItem('pring-theme') || 'light'; } catch (_) {}
+    applyTheme(initialTheme);
+    switchReportTab('generate');
+  </script>
+</body>
+</html>

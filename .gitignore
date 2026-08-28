@@ -1,0 +1,33 @@
+# Python build and tool output
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Runtime state and secrets must never enter the repository
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.log
+*.jsonl
+.env
+.env.*
+secrets.env
+artifacts/
+runtime/
+
+# Local browser/design tooling output
+.gstack/
+.playwright-cli/
+.superpowers/
+.scratch/**/node_modules/
+.scratch/**/dist/
+.scratch/**/__pycache__/
+.scratch/**/*.png

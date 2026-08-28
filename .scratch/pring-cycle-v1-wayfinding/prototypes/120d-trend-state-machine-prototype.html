@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>原型：120 日趋势状态机</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #66717e;
+      --line: #d9dee5;
+      --soft: #f4f6f8;
+      --panel: #ffffff;
+      --accent: #166b5b;
+      --accent-soft: #e8f4f0;
+      --warn: #9b5b00;
+      --warn-soft: #fff4dc;
+      --danger: #a43a3a;
+      --danger-soft: #fff0f0;
+      --bull: #13795b;
+      --bear: #a43a3a;
+      --shadow: 0 8px 24px rgba(28, 39, 49, .07);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef1f3;
+      color: var(--ink);
+      font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    button, input, select { font: inherit; }
+    button { cursor: pointer; }
+    .shell { max-width: 1240px; margin: 0 auto; padding: 32px 22px 64px; }
+    .hero, .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+    .hero { padding: 28px 30px; border-top: 5px solid var(--accent); }
+    .eyebrow { color: var(--accent); font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    h1 { margin: 5px 0 10px; font-size: clamp(25px, 3.5vw, 38px); line-height: 1.2; }
+    h2 { margin: 0 0 14px; font-size: 22px; }
+    h3 { margin: 0 0 10px; font-size: 17px; }
+    p { margin: 8px 0; }
+    .question { max-width: 920px; font-size: 17px; }
+    .notice {
+      margin-top: 18px;
+      padding: 13px 15px;
+      border-left: 4px solid var(--warn);
+      background: var(--warn-soft);
+      color: #62400b;
+    }
+    .main-tabs, .scenario-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 14px; }
+    .tab-button, .scenario-button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      padding: 9px 14px;
+    }
+    .tab-button.active, .scenario-button.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .tab-page, .scenario-page { display: none; }
+    .tab-page.active, .scenario-page.active { display: block; }
+    .panel { padding: 22px; margin-top: 14px; }
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stat {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      padding: 14px;
+    }
+    .stat .value { display: block; font-size: 26px; font-weight: 760; line-height: 1.2; }
+    .stat .label { color: var(--muted); }
+    .candidate { border-left: 5px solid #aab3bd; }
+    .candidate.recommended { border-left-color: var(--accent); background: #fbfefd; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--soft);
+      color: var(--muted);
+    }
+    .pill.bull { background: var(--accent-soft); color: var(--bull); }
+    .pill.bear { background: var(--danger-soft); color: var(--bear); }
+    .pill.warn { background: var(--warn-soft); color: var(--warn); }
+    .pill.null { background: #eceff2; color: #5b6671; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 10px 9px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .callout {
+      border: 1px solid #b9d9d1;
+      border-radius: 11px;
+      padding: 14px 16px;
+      background: var(--accent-soft);
+    }
+    .warning-callout { border-color: #ead2a7; background: var(--warn-soft); }
+    .state-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .stage-badge {
+      min-width: 145px;
+      padding: 13px 16px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: white;
+      text-align: center;
+    }
+    .stage-badge strong { display: block; font-size: 24px; }
+    .asset-state { padding: 15px; border: 1px solid var(--line); border-radius: 11px; }
+    .asset-state dl, .state-meta { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin: 10px 0 0; }
+    dt { color: var(--muted); }
+    dd { margin: 0; text-align: right; font-weight: 650; }
+    .config-row, .input-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    label { display: grid; gap: 5px; color: var(--muted); font-size: 13px; }
+    input, select {
+      width: 100%;
+      border: 1px solid #bbc3cc;
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      padding: 8px 9px;
+    }
+    .asset-input { border: 1px solid var(--line); border-radius: 11px; padding: 14px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
+    .action {
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent);
+      color: white;
+      padding: 9px 13px;
+    }
+    .action.secondary { background: white; color: var(--accent); }
+    .action.warn { border-color: var(--warn); background: var(--warn); }
+    .action.danger { border-color: var(--danger); background: var(--danger); }
+    .event-log {
+      margin-top: 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fafbfc;
+      padding: 10px 13px;
+      color: var(--muted);
+      min-height: 46px;
+    }
+    .walkthrough { min-height: 310px; }
+    .step-list { counter-reset: step; display: grid; gap: 10px; margin-top: 16px; }
+    .step {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: white;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--soft);
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .step.done { background: var(--accent-soft); border-color: #b9d9d1; }
+    .step button { white-space: nowrap; }
+    fieldset { border: 1px solid var(--line); border-radius: 11px; padding: 13px 15px; }
+    legend { padding: 0 6px; font-weight: 700; }
+    .choice { display: flex; gap: 9px; align-items: flex-start; margin: 8px 0; color: var(--ink); font-size: 14px; }
+    .choice input { width: auto; margin-top: 4px; }
+    textarea { width: 100%; min-height: 128px; border: 1px solid var(--line); border-radius: 9px; padding: 11px; resize: vertical; }
+    .footnote { color: var(--muted); font-size: 13px; }
+    code { background: var(--soft); border-radius: 4px; padding: 1px 5px; }
+    @media (max-width: 850px) {
+      .grid.two, .grid.three, .config-row, .input-row { grid-template-columns: 1fr; }
+      .step { grid-template-columns: 30px 1fr; }
+      .step button { grid-column: 2; justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="eyebrow">Throwaway logic prototype · 不进入生产</div>
+      <h1>120 日趋势状态机，怎样才既稳定又不失真？</h1>
+      <p class="question">本原型回答一个问题：三类核心资产应如何结合“价格相对 120 日均线、均线斜率、资产噪声带和连续确认天数”，形成稳定牛/熊状态；冲突、非典型组合、30 日预警和 12 个月代理又应怎样与正式阶段隔离？</p>
+      <div class="notice"><strong>阅读边界：</strong>历史比较使用 2018-06-01 至 2026-08-19 的 1,995 个三资产共同交易日，并严格只使用当日及过去数据。它衡量稳定性，不提供不可观测的“经济真阶段”标签；行情采用当前认证 vintage，因此不是对历史每个抓取版本的完整重放。</div>
+    </section>
+
+    <nav class="main-tabs" aria-label="原型区域">
+      <button class="tab-button active" data-tab="calibration">历史比较</button>
+      <button class="tab-button" data-tab="sandbox">自由试验</button>
+      <button class="tab-button" data-tab="walkthrough">难例演练</button>
+      <button class="tab-button" data-tab="decision">待你确认</button>
+    </nav>
+
+    <section id="calibration" class="tab-page active">
+      <div class="panel">
+        <h2>历史校准告诉了我们什么</h2>
+        <div class="grid three">
+          <div class="stat"><span class="value">203</span><span class="label">仅穿越均线的三资产翻转数</span></div>
+          <div class="stat"><span class="value">152</span><span class="label">其中 20 交易日内快速反转</span></div>
+          <div class="stat"><span class="value">100%</span><span class="label">原始点位与官方收益链状态一致率</span></div>
+        </div>
+        <p class="footnote">“确认延迟”相对于价格第一次穿越均线，不是相对于经济真拐点；“典型组合占比”是市场组合形态，不是模型准确率。</p>
+      </div>
+
+      <div class="panel">
+        <h2>三档可体验方案</h2>
+        <div class="grid three">
+          <article class="stat candidate">
+            <span class="pill">A · 偏快</span>
+            <h3>1.0σ 噪声带 / 5 日 / 10 日斜率</h3>
+            <p>三资产翻转 30 次，快速反转 3 次；阶段变化 19 次，其中快速阶段变化 4 次；中位确认延迟 16 日。</p>
+          </article>
+          <article class="stat candidate">
+            <span class="pill">B · 均衡</span>
+            <h3>1.0σ 噪声带 / 5 日 / 20 日斜率</h3>
+            <p>三资产翻转 24 次，快速反转 1 次；阶段变化 13 次，其中快速阶段变化 1 次；中位确认延迟 20 日。</p>
+          </article>
+          <article class="stat candidate recommended">
+            <span class="pill bull">C · 暂推荐</span>
+            <h3>1.5σ 噪声带 / 8 日 / 20 日斜率</h3>
+            <p>三资产翻转 21 次，无快速反转；阶段变化 11 次，无快速阶段变化；中位确认延迟 23 日。</p>
+          </article>
+        </div>
+        <div class="callout" style="margin-top:14px"><strong>暂推荐 C 的理由：</strong>正式 120 日轨道在项目中承担“稳定确认”，较早的变化已有独立 30 日转折观察承接。噪声带按各资产最近 20 日波动率归一化，避免同一 1% 对债券过宽、对商品偏窄。</div>
+      </div>
+
+      <div class="panel">
+        <h2>关键对照与失败信号</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>规则</th><th>三资产翻转</th><th>快速反转</th><th>阶段变化</th><th>快速阶段变化</th><th>中位延迟</th><th>结论</th></tr></thead>
+            <tbody>
+              <tr><td>仅价格穿越</td><td>203</td><td>152</td><td>101</td><td>77</td><td>0 日</td><td><span class="pill bear">拒绝：抖动严重</span></td></tr>
+              <tr><td>价格 + 20 日斜率</td><td>36</td><td>2</td><td>20</td><td>5</td><td>15.5 日</td><td>斜率已显著过滤噪声</td></tr>
+              <tr><td>统一 1% + 5 日 + 20 日斜率</td><td>20</td><td>0</td><td>13</td><td>1</td><td>19.8 日</td><td><span class="pill warn">债券 0 次翻转，尺度失衡</span></td></tr>
+              <tr><td>波动归一 B</td><td>24</td><td>1</td><td>13</td><td>1</td><td>20 日</td><td>债/股/商分别 2 / 6 / 16 次</td></tr>
+              <tr><td>波动归一 C</td><td>21</td><td>0</td><td>11</td><td>0</td><td>23 日</td><td><span class="pill bull">稳定优先</span></td></tr>
+              <tr><td>B + 冲突 20 日过期</td><td>32</td><td>1</td><td>13</td><td>2</td><td>16 日</td><td><span class="pill bear">20.15% 日期状态不可用</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="grid two" style="margin-top:14px">
+          <div class="callout warning-callout"><strong>非典型组合是真实结果：</strong><code>债牛/股熊/商牛</code>曾连续出现 142 个共同交易日；不能为了提高“典型组合占比”而强映射成六阶段之一。</div>
+          <div class="callout warning-callout"><strong>冲突可以很长：</strong>商品价格与均线斜率反向最长出现 45 个共同交易日。固定 20 日过期会大量清空状态，历史结果不支持它作为默认。</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>时间分段检查</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>方案</th><th>开发段 2018.06–2021</th><th>验证段 2022–2024</th><th>保留段 2025–2026.08</th></tr></thead>
+            <tbody>
+              <tr><td>A 偏快</td><td>11 次资产翻转 / 10 次阶段变化</td><td>11 / 5</td><td>8 / 5</td></tr>
+              <tr><td>B 均衡</td><td>7 / 6</td><td>11 / 5</td><td>6 / 3</td></tr>
+              <tr><td>C 高稳定</td><td>8 / 5</td><td>9 / 5</td><td>4 / 1</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="footnote">保留段只用于检查已提出规则的稳定性，不反过来逐次“修”参数。验证段非典型组合占比较高是当时三资产真实组合，不等于模型退化。</p>
+      </div>
+
+      <div class="panel">
+        <h2>独立轨道检查</h2>
+        <div class="grid two">
+          <div>
+            <h3>30 日转折观察</h3>
+            <p>裸 30 日均线穿越非常频繁：债券 34 次、股票 190 次、商品 186 次。后续 120 日同向转换的比例分别为 14.7%、19.5%、57.0%。</p>
+            <p><strong>含义：</strong>它适合显示“正在观察”，不适合形成另一张阶段选票；页面应同时显示观察方向、持续天数和是否扩散。</p>
+          </div>
+          <div>
+            <h3>公开 Pring 12M 代理</h3>
+            <p>月末 12 个月均线与 120 日稳定方向的一致率：债券 96.9%、股票 91.8%、商品 79.6%。</p>
+            <p><strong>含义：</strong>它是独立的长期参照。分歧要展示，不平均、不投票，也不在月中反复更新正式月末状态。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sandbox" class="tab-page">
+      <div class="panel">
+        <div class="state-head">
+          <div>
+            <h2>当前完整状态</h2>
+            <p class="footnote">每次点击代表一个新的共同交易日。只有 120 日稳定方向参与阶段映射。</p>
+          </div>
+          <div class="stage-badge"><span>当前正式阶段</span><strong id="current-stage">Stage I</strong><small id="stage-reason">典型组合</small></div>
+        </div>
+        <div id="asset-states" class="grid three" style="margin-top:16px"></div>
+        <dl class="state-meta">
+          <dt>模拟交易日序号</dt><dd id="day-number">0</dd>
+          <dt>上一确认阶段</dt><dd id="last-stage">Stage I</dd>
+          <dt>当前三资产组合</dt><dd id="pattern">+ − −</dd>
+          <dt>转折观察</dt><dd id="watch-summary">无</dd>
+        </dl>
+        <div id="event-log" class="event-log">已重置为 Stage I：债券牛、股票熊、商品熊。</div>
+      </div>
+
+      <div class="panel">
+        <h2>规则旋钮</h2>
+        <div class="config-row">
+          <label>噪声带口径
+            <select id="band-mode"><option value="volatility">按 20 日波动率归一</option><option value="fixed">固定百分比</option></select>
+          </label>
+          <label>噪声带宽度
+            <input id="band-value" type="number" value="1.5" step="0.25" min="0">
+          </label>
+          <label>连续确认天数
+            <input id="persistence" type="number" value="8" step="1" min="1" max="30">
+          </label>
+          <label>斜率观察跨度
+            <select id="slope-window"><option value="20">20 个交易日</option><option value="10">10 个交易日</option><option value="30">30 个交易日</option></select>
+          </label>
+        </div>
+        <div class="config-row" style="margin-top:12px">
+          <label>长期冲突处理
+            <select id="conflict-policy"><option value="hold">一直保留上一稳定方向</option><option value="expire">到期后方向不可用</option></select>
+          </label>
+          <label>冲突过期天数
+            <input id="conflict-expiry" type="number" value="20" step="1" min="1">
+          </label>
+          <label>操作资产
+            <select id="active-asset"><option value="bond">债券</option><option value="stock" selected>股票</option><option value="commodity">商品</option></select>
+          </label>
+          <label>数据是否有效
+            <select id="available"><option value="true">有效</option><option value="false">P0 缺失/失效</option></select>
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>输入一个交易日的 120 日证据</h2>
+        <div class="input-row">
+          <label>价格距 120 日均线 (%)<input id="distance" type="number" value="2.0" step="0.1"></label>
+          <label>120 日均线斜率 (%)<input id="slope" type="number" value="0.2" step="0.05"></label>
+          <label>最近 20 日日波动率 (%)<input id="volatility" type="number" value="1.0" step="0.05" min="0.01"></label>
+          <label>30 日 / 12M 旁路显示
+            <select id="side-track"><option value="unchanged">不改</option><option value="fast-bull">30日转牛</option><option value="fast-bear">30日转熊</option><option value="proxy-bull">12M转牛</option><option value="proxy-bear">12M转熊</option></select>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="action" id="advance">提交这一天</button>
+          <button class="action secondary" id="preset-bull">填入同向转强</button>
+          <button class="action secondary" id="preset-bear">填入同向转弱</button>
+          <button class="action warn" id="preset-conflict">填入价格/斜率冲突</button>
+          <button class="action secondary" id="preset-inside">填入噪声带内</button>
+          <button class="action danger" id="reset">重置 Stage I</button>
+          <button class="action secondary" id="macro-attempt">尝试用“货币政策收紧”改阶段</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="walkthrough" class="tab-page">
+      <div class="panel walkthrough">
+        <h2>难例演练</h2>
+        <p>先选场景，再按顺序点击每一步。每个按钮都会真实调用同一套纯状态逻辑，并把结果同步到“自由试验”的完整状态面板。</p>
+        <div id="scenario-live-state" class="callout"><strong>当前：</strong>Stage I · + − −</div>
+        <nav id="scenario-tabs" class="scenario-tabs"></nav>
+        <div id="scenario-pages"></div>
+      </div>
+    </section>
+
+    <section id="decision" class="tab-page">
+      <div class="panel">
+        <h2>需要你确认的四个决定</h2>
+        <div class="grid two">
+          <fieldset>
+            <legend>正式 120 日默认门槛</legend>
+            <label class="choice"><input type="radio" name="rule" value="C：1.5σ、8日持续、20日斜率" checked> C：1.5σ、8 日持续、20 日斜率（推荐，稳定优先）</label>
+            <label class="choice"><input type="radio" name="rule" value="B：1.0σ、5日持续、20日斜率"> B：1.0σ、5 日持续、20 日斜率（更快）</label>
+            <label class="choice"><input type="radio" name="rule" value="需要继续校准"> 暂不冻结，继续校准</label>
+          </fieldset>
+          <fieldset>
+            <legend>价格/斜率长期冲突</legend>
+            <label class="choice"><input type="radio" name="conflict" value="保留上一稳定方向并持续pending" checked> 保留上一稳定方向并持续标记 <code>transition_pending</code>（推荐）</label>
+            <label class="choice"><input type="radio" name="conflict" value="20日后清空当前方向"> 满 20 日后让当前方向不可用</label>
+          </fieldset>
+          <fieldset>
+            <legend>生产计算价格口径</legend>
+            <label class="choice"><input type="radio" name="series" value="官方日收益链；原始点位并列审计" checked> 按官方 <code>change/pre_close</code> 构造连续收益链；原始点位并列保存和展示（推荐）</label>
+            <label class="choice"><input type="radio" name="series" value="原始指数点位"> 直接使用原始指数点位</label>
+          </fieldset>
+          <fieldset>
+            <legend>再校准节奏</legend>
+            <label class="choice"><input type="radio" name="cadence" value="年度评审；季度只监测；方法变化触发认证" checked> 年度评审；季度只监测漂移；来源方法变化触发重新认证（推荐）</label>
+            <label class="choice"><input type="radio" name="cadence" value="每季度允许改参数"> 每季度允许改参数</label>
+          </fieldset>
+        </div>
+        <div class="actions">
+          <button class="action" id="summarize-choice">生成回复摘要</button>
+          <button class="action secondary" id="copy-choice">复制摘要</button>
+        </div>
+        <textarea id="choice-output" readonly placeholder="点击“生成回复摘要”，再把结果回复给我。票据在你确认前不会关闭。"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    /* Portable pure logic module: no DOM access. */
+    const TrendMachine = (() => {
+      const ASSETS = ["bond", "stock", "commodity"];
+      const STAGES = {
+        "bull,bear,bear": "I",
+        "bull,bull,bear": "II",
+        "bull,bull,bull": "III",
+        "bear,bull,bull": "IV",
+        "bear,bear,bull": "V",
+        "bear,bear,bear": "VI"
+      };
+
+      const clone = value => JSON.parse(JSON.stringify(value));
+
+      function initialAsset(direction) {
+        return {
+          stableDirection: direction,
+          lastConfirmedDirection: direction,
+          candidateDirection: null,
+          candidateDays: 0,
+          conflictDays: 0,
+          evidence: "沿用稳定方向",
+          transitionPending: false,
+          dataValid: true,
+          fastDirection: direction,
+          proxy12mDirection: direction
+        };
+      }
+
+      function initialState(pattern = { bond: "bull", stock: "bear", commodity: "bear" }, lastStage = "I") {
+        const state = {
+          day: 0,
+          assets: Object.fromEntries(ASSETS.map(key => [key, initialAsset(pattern[key])])),
+          currentStage: null,
+          lastConfirmedStage: lastStage,
+          stageReason: "",
+          pattern: "",
+          watchNotes: [],
+          lastEvent: "状态已重置"
+        };
+        return deriveStage(state);
+      }
+
+      function classify(observation, config) {
+        if (!observation.available) return { kind: "unavailable", direction: null, threshold: null };
+        const threshold = config.bandMode === "volatility"
+          ? config.bandValue * Math.abs(observation.volatilityPct)
+          : config.bandValue;
+        const distance = observation.distancePct;
+        const slope = observation.slopePct;
+        const conflict = distance !== 0 && slope !== 0 && Math.sign(distance) !== Math.sign(slope);
+        if (distance >= threshold && slope > 0) return { kind: "directional", direction: "bull", threshold };
+        if (distance <= -threshold && slope < 0) return { kind: "directional", direction: "bear", threshold };
+        if (conflict) return { kind: "conflict", direction: null, threshold };
+        return { kind: "inside_band", direction: null, threshold };
+      }
+
+      function stepAsset(previous, observation, config) {
+        const next = clone(previous);
+        const signal = classify(observation, config);
+        next.dataValid = observation.available;
+
+        if (signal.kind === "unavailable") {
+          next.stableDirection = null;
+          next.candidateDirection = null;
+          next.candidateDays = 0;
+          next.transitionPending = true;
+          next.evidence = "P0 数据不可用；保留历史方向但暂停当前状态";
+          return next;
+        }
+
+        if (signal.kind === "directional") {
+          next.conflictDays = 0;
+          if (signal.direction === next.stableDirection) {
+            next.candidateDirection = null;
+            next.candidateDays = 0;
+            next.transitionPending = false;
+            next.evidence = signal.direction === "bull" ? "牛向证据与稳定方向一致" : "熊向证据与稳定方向一致";
+            return next;
+          }
+          if (next.candidateDirection === signal.direction) next.candidateDays += 1;
+          else {
+            next.candidateDirection = signal.direction;
+            next.candidateDays = 1;
+          }
+          next.transitionPending = true;
+          next.evidence = `${signal.direction === "bull" ? "牛" : "熊"}向候选 ${next.candidateDays}/${config.persistence} 日`;
+          if (next.candidateDays >= config.persistence) {
+            next.stableDirection = signal.direction;
+            next.lastConfirmedDirection = signal.direction;
+            next.candidateDirection = null;
+            next.candidateDays = 0;
+            next.transitionPending = false;
+            next.evidence = signal.direction === "bull" ? "已确认转牛" : "已确认转熊";
+          }
+          return next;
+        }
+
+        next.candidateDirection = null;
+        next.candidateDays = 0;
+        next.transitionPending = signal.kind === "conflict";
+        if (signal.kind === "conflict") {
+          next.conflictDays += 1;
+          next.evidence = `价格与均线斜率冲突，第 ${next.conflictDays} 日`;
+          if (config.conflictPolicy === "expire" && next.conflictDays >= config.conflictExpiry) {
+            next.stableDirection = null;
+            next.evidence += "；当前方向已过期";
+          }
+        } else {
+          next.conflictDays = 0;
+          next.evidence = "价格处于噪声带内；沿用稳定方向";
+        }
+        return next;
+      }
+
+      function deriveStage(input) {
+        const state = clone(input);
+        const directions = ASSETS.map(key => state.assets[key].stableDirection);
+        state.pattern = directions.map(value => value === "bull" ? "+" : value === "bear" ? "−" : "?").join(" ");
+        if (directions.some(value => value === null)) {
+          state.currentStage = null;
+          state.stageReason = "核心资产状态不可用";
+          return state;
+        }
+        const mapped = STAGES[directions.join(",")] || null;
+        state.currentStage = mapped;
+        state.stageReason = mapped ? "典型六阶段组合" : "非典型组合；不强映射";
+        if (mapped) state.lastConfirmedStage = mapped;
+        return state;
+      }
+
+      function step(previous, observations, config, eventLabel = "提交一个交易日") {
+        const state = clone(previous);
+        state.day += 1;
+        for (const key of ASSETS) {
+          if (observations[key]) state.assets[key] = stepAsset(state.assets[key], observations[key], config);
+        }
+        state.lastEvent = eventLabel;
+        return deriveStage(state);
+      }
+
+      function setSideTrack(previous, asset, track, direction) {
+        const state = clone(previous);
+        if (track === "fast") state.assets[asset].fastDirection = direction;
+        if (track === "proxy12m") state.assets[asset].proxy12mDirection = direction;
+        state.lastEvent = `${asset} 的${track === "fast" ? "30日观察" : "12M代理"}已更新；120日状态未投票`;
+        return deriveStage(state);
+      }
+
+      function addExternalWatch(previous, note) {
+        const state = clone(previous);
+        state.watchNotes = [...state.watchNotes.slice(-2), note];
+        state.lastEvent = `${note}只进入转折观察，正式阶段未被改写`;
+        return deriveStage(state);
+      }
+
+      return Object.freeze({ initialState, step, setSideTrack, addExternalWatch });
+    })();
+
+    const LABELS = { bond: "债券", stock: "股票", commodity: "商品", bull: "牛", bear: "熊" };
+    let state = TrendMachine.initialState();
+
+    function configFromControls() {
+      return {
+        bandMode: document.querySelector("#band-mode").value,
+        bandValue: Number(document.querySelector("#band-value").value),
+        persistence: Number(document.querySelector("#persistence").value),
+        slopeWindow: Number(document.querySelector("#slope-window").value),
+        conflictPolicy: document.querySelector("#conflict-policy").value,
+        conflictExpiry: Number(document.querySelector("#conflict-expiry").value)
+      };
+    }
+
+    function badge(direction) {
+      if (!direction) return '<span class="pill null">不可用</span>';
+      return `<span class="pill ${direction}">${LABELS[direction]}</span>`;
+    }
+
+    function render() {
+      document.querySelector("#current-stage").textContent = state.currentStage ? `Stage ${state.currentStage}` : "—";
+      document.querySelector("#stage-reason").textContent = state.stageReason;
+      document.querySelector("#day-number").textContent = state.day;
+      document.querySelector("#last-stage").textContent = state.lastConfirmedStage ? `Stage ${state.lastConfirmedStage}` : "—";
+      document.querySelector("#pattern").textContent = state.pattern;
+      document.querySelector("#watch-summary").textContent = state.watchNotes.length ? state.watchNotes.join("；") : "无";
+      document.querySelector("#event-log").textContent = state.lastEvent;
+      document.querySelector("#scenario-live-state").innerHTML = `<strong>当前：</strong>${state.currentStage ? `Stage ${state.currentStage}` : "正式阶段为空"} · ${state.pattern}<br>${Object.entries(state.assets).map(([key, asset]) => `${LABELS[key]}：${asset.stableDirection ? LABELS[asset.stableDirection] : "不可用"}；${asset.evidence}`).join("<br>")}<br><strong>上一确认：</strong>${state.lastConfirmedStage ? `Stage ${state.lastConfirmedStage}` : "无"}`;
+      document.querySelector("#asset-states").innerHTML = Object.entries(state.assets).map(([key, asset]) => `
+        <article class="asset-state">
+          <h3>${LABELS[key]} ${badge(asset.stableDirection)}</h3>
+          <dl>
+            <dt>上一确认方向</dt><dd>${LABELS[asset.lastConfirmedDirection]}</dd>
+            <dt>候选方向</dt><dd>${asset.candidateDirection ? `${LABELS[asset.candidateDirection]} ${asset.candidateDays}日` : "无"}</dd>
+            <dt>冲突持续</dt><dd>${asset.conflictDays} 日</dd>
+            <dt>30 日观察</dt><dd>${LABELS[asset.fastDirection]}</dd>
+            <dt>12M 代理</dt><dd>${LABELS[asset.proxy12mDirection]}</dd>
+            <dt>当前证据</dt><dd>${asset.evidence}</dd>
+          </dl>
+        </article>`).join("");
+    }
+
+    function observationFromControls() {
+      return {
+        available: document.querySelector("#available").value === "true",
+        distancePct: Number(document.querySelector("#distance").value),
+        slopePct: Number(document.querySelector("#slope").value),
+        volatilityPct: Number(document.querySelector("#volatility").value)
+      };
+    }
+
+    function submitDay() {
+      const asset = document.querySelector("#active-asset").value;
+      state = TrendMachine.step(state, { [asset]: observationFromControls() }, configFromControls(), `已提交${LABELS[asset]}的第 ${state.day + 1} 个模拟日`);
+      const side = document.querySelector("#side-track").value;
+      if (side !== "unchanged") {
+        const [trackName, direction] = side.split("-");
+        state = TrendMachine.setSideTrack(state, asset, trackName === "fast" ? "fast" : "proxy12m", direction);
+      }
+      render();
+    }
+
+    document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => {
+      document.querySelectorAll(".tab-button").forEach(item => item.classList.toggle("active", item === button));
+      document.querySelectorAll(".tab-page").forEach(page => page.classList.toggle("active", page.id === button.dataset.tab));
+    }));
+    document.querySelector("#advance").addEventListener("click", submitDay);
+    const setControl = (id, value) => { document.querySelector(`#${id}`).value = value; };
+    document.querySelector("#preset-bull").addEventListener("click", () => { setControl("distance", 2); setControl("slope", .2); setControl("available", "true"); });
+    document.querySelector("#preset-bear").addEventListener("click", () => { setControl("distance", -2); setControl("slope", -.2); setControl("available", "true"); });
+    document.querySelector("#preset-conflict").addEventListener("click", () => { setControl("distance", 2); setControl("slope", -.2); setControl("available", "true"); });
+    document.querySelector("#preset-inside").addEventListener("click", () => { setControl("distance", .2); setControl("slope", .1); setControl("available", "true"); });
+    document.querySelector("#reset").addEventListener("click", () => { state = TrendMachine.initialState(); render(); });
+    document.querySelector("#macro-attempt").addEventListener("click", () => {
+      state = TrendMachine.addExternalWatch(state, "货币政策收紧");
+      render();
+    });
+
+    const baseObs = (distancePct, slopePct, volatilityPct = 1, available = true) => ({ distancePct, slopePct, volatilityPct, available });
+    const scenarios = [
+      {
+        id: "happy", title: "正常转折", description: "从 Stage I 开始，让股票连续形成牛向证据。观察候选天数达到门槛前阶段不变，达到后机械进入 Stage II。",
+        reset: () => TrendMachine.initialState(),
+        steps: [
+          { label: "改用 5 日持续，便于演示", run: () => { setControl("persistence", 5); return state; } },
+          { label: "提交 4 个股票牛向日", run: () => { for (let i=0;i<4;i++) state = TrendMachine.step(state,{stock:baseObs(2,.2)},configFromControls(),"股票牛向候选累积"); return state; } },
+          { label: "提交第 5 个股票牛向日", run: () => TrendMachine.step(state,{stock:baseObs(2,.2)},configFromControls(),"股票已确认转牛") }
+        ]
+      },
+      {
+        id: "false-break", title: "假突破", description: "价格与斜率短暂同向，但未满持续期就回到噪声带。候选应清零，不能翻转正式阶段。",
+        reset: () => TrendMachine.initialState(),
+        steps: [
+          { label: "股票连续 4 日短暂转强", run: () => { setControl("persistence", 5); for(let i=0;i<4;i++) state=TrendMachine.step(state,{stock:baseObs(2,.2)},configFromControls(),"短暂突破"); return state; } },
+          { label: "第 5 日回到噪声带", run: () => TrendMachine.step(state,{stock:baseObs(.2,.1)},configFromControls(),"突破失败，候选清零") },
+          { label: "再提交一个熊向日", run: () => TrendMachine.step(state,{stock:baseObs(-2,-.2)},configFromControls(),"原稳定方向得到支持") }
+        ]
+      },
+      {
+        id: "conflict", title: "价格/斜率冲突", description: "商品价格在均线上方，但 120 日均线仍向下。它只能标记 transition_pending，并保留商品上一稳定方向。",
+        reset: () => TrendMachine.initialState(),
+        steps: [
+          { label: "提交 1 个商品冲突日", run: () => TrendMachine.step(state,{commodity:baseObs(2,-.2)},configFromControls(),"商品价格/斜率冲突") },
+          { label: "再提交 9 个冲突日", run: () => { for(let i=0;i<9;i++) state=TrendMachine.step(state,{commodity:baseObs(2,-.2)},configFromControls(),"商品冲突持续"); return state; } },
+          { label: "改为价格和斜率同向", run: () => TrendMachine.step(state,{commodity:baseObs(2,.2)},configFromControls(),"商品开始形成牛向候选") }
+        ]
+      },
+      {
+        id: "expiry", title: "长期冲突", description: "历史上商品冲突最长 45 日。先体验“继续保留”，再重置并体验“20 日后过期”，比较哪种业务语义更合理。",
+        reset: () => TrendMachine.initialState({bond:"bull",stock:"bull",commodity:"bull"},"III"),
+        steps: [
+          { label: "保留策略下提交 25 个冲突日", run: () => { setControl("conflict-policy", "hold"); for(let i=0;i<25;i++) state=TrendMachine.step(state,{commodity:baseObs(-2,.2)},configFromControls(),"长期冲突但保留"); return state; } },
+          { label: "重置 Stage III 并改为 20 日过期", run: () => { state=TrendMachine.initialState({bond:"bull",stock:"bull",commodity:"bull"},"III"); setControl("conflict-policy", "expire"); setControl("conflict-expiry", 20); return state; } },
+          { label: "提交 20 个冲突日", run: () => { for(let i=0;i<20;i++) state=TrendMachine.step(state,{commodity:baseObs(-2,.2)},configFromControls(),"长期冲突触发过期"); return state; } }
+        ]
+      },
+      {
+        id: "noncanonical", title: "非典型组合", description: "债牛、股熊、商牛是有效资产状态，但不属于严格六阶段。当前阶段必须为空，上一确认阶段仅提供上下文。",
+        reset: () => TrendMachine.initialState({bond:"bull",stock:"bear",commodity:"bull"},"I"),
+        steps: [
+          { label: "查看 + − + 组合", run: () => state },
+          { label: "政策收紧尝试强行改阶段", run: () => TrendMachine.addExternalWatch(state,"货币政策收紧") }
+        ]
+      },
+      {
+        id: "fast", title: "30 日先转", description: "30 日股票观察先转牛，但 120 日股票仍熊。转折观察改变，Stage I 不改变。",
+        reset: () => TrendMachine.initialState(),
+        steps: [
+          { label: "把股票 30 日观察改为牛", run: () => TrendMachine.setSideTrack(state,"stock","fast","bull") },
+          { label: "提交一个 120 日牛向候选日", run: () => TrendMachine.step(state,{stock:baseObs(2,.2)},configFromControls(),"120日尚在候选") }
+        ]
+      },
+      {
+        id: "proxy", title: "12M 分歧", description: "把商品 12M 代理改为牛；正式 120 日商品仍熊，Stage I 不改变。",
+        reset: () => TrendMachine.initialState(),
+        steps: [
+          { label: "把商品 12M 代理改为牛", run: () => TrendMachine.setSideTrack(state,"commodity","proxy12m","bull") },
+          { label: "记录分歧但不投票", run: () => TrendMachine.addExternalWatch(state,"商品12M代理与120日轨道分歧") }
+        ]
+      },
+      {
+        id: "missing", title: "核心数据失效", description: "任一 P0 核心数据不可用时，当前阶段必须为空；上一确认阶段继续显示，宏观或代理数据不得顶替。",
+        reset: () => TrendMachine.initialState({bond:"bull",stock:"bull",commodity:"bull"},"III"),
+        steps: [
+          { label: "标记商品核心不可用", run: () => TrendMachine.step(state,{commodity:baseObs(0,0,1,false)},configFromControls(),"商品P0数据失效") },
+          { label: "尝试用商品 12M 牛向顶替", run: () => TrendMachine.setSideTrack(state,"commodity","proxy12m","bull") }
+        ]
+      }
+    ];
+
+    function buildScenarios() {
+      const tabs = document.querySelector("#scenario-tabs");
+      const pages = document.querySelector("#scenario-pages");
+      tabs.innerHTML = scenarios.map((scenario, index) => `<button class="scenario-button ${index===0?"active":""}" data-scenario="${scenario.id}">${scenario.title}</button>`).join("");
+      pages.innerHTML = scenarios.map((scenario, index) => `
+        <section class="scenario-page ${index===0?"active":""}" id="scenario-${scenario.id}">
+          <h3>${scenario.title}</h3><p>${scenario.description}</p>
+          <div class="actions"><button class="action secondary scenario-reset" data-reset="${scenario.id}">从场景初态开始</button></div>
+          <div class="step-list">${scenario.steps.map((step, i) => `<div class="step" data-step-wrap="${scenario.id}-${i}"><span>${step.label}</span><button class="action scenario-step" data-scenario-id="${scenario.id}" data-step="${i}">执行</button></div>`).join("")}</div>
+        </section>`).join("");
+      tabs.querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
+        tabs.querySelectorAll("button").forEach(item => item.classList.toggle("active", item===button));
+        pages.querySelectorAll(".scenario-page").forEach(page => page.classList.toggle("active", page.id===`scenario-${button.dataset.scenario}`));
+      }));
+      pages.querySelectorAll(".scenario-reset").forEach(button => button.addEventListener("click", () => {
+        const scenario = scenarios.find(item => item.id===button.dataset.reset);
+        state = scenario.reset();
+        pages.querySelectorAll(`[data-step-wrap^="${scenario.id}-"]`).forEach(item => item.classList.remove("done"));
+        render();
+      }));
+      pages.querySelectorAll(".scenario-step").forEach(button => button.addEventListener("click", () => {
+        const scenario = scenarios.find(item => item.id===button.dataset.scenarioId);
+        state = scenario.steps[Number(button.dataset.step)].run();
+        button.closest(".step").classList.add("done");
+        render();
+      }));
+    }
+
+    function selectedValue(name) {
+      return document.querySelector(`input[name="${name}"]:checked`).value;
+    }
+    document.querySelector("#summarize-choice").addEventListener("click", () => {
+      const output = document.querySelector("#choice-output");
+      output.value = [
+        "“校准 120 日趋势状态机与稳定性门槛”原型反馈：",
+        `1. 正式门槛：${selectedValue("rule")}`,
+        `2. 长期冲突：${selectedValue("conflict")}`,
+        `3. 价格口径：${selectedValue("series")}`,
+        `4. 再校准：${selectedValue("cadence")}`,
+        "5. 难例体验后的补充：无 / （请填写）"
+      ].join("\n");
+    });
+    document.querySelector("#copy-choice").addEventListener("click", async () => {
+      const output = document.querySelector("#choice-output");
+      if (!output.value) document.querySelector("#summarize-choice").click();
+      output.select();
+      if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(output.value);
+      else document.execCommand("copy");
+    });
+
+    buildScenarios();
+    render();
+  </script>
+</body>
+</html>

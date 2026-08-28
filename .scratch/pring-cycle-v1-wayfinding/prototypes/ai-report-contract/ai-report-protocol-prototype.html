@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI CLI 报告编排逻辑原型</title>
+  <style>
+    :root { color-scheme: light; --ink:#172033; --muted:#667085; --line:#d9deea; --accent:#3157d5; --soft:#f5f7fc; --ok:#18794e; --bad:#b42318; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--ink); background:#eef2f8; }
+    main { width:min(1080px,calc(100% - 32px)); margin:32px auto; }
+    header, section { background:white; border:1px solid var(--line); border-radius:14px; padding:22px; margin-bottom:16px; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { margin-bottom:8px; font-size:27px; }
+    h2 { font-size:19px; }
+    .tag { display:inline-block; padding:3px 9px; border-radius:999px; background:#fff1d6; color:#8a4b00; font-size:12px; font-weight:700; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .field { min-height:78px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--soft); }
+    .field small { display:block; color:var(--muted); margin-bottom:5px; }
+    .field strong { overflow-wrap:anywhere; }
+    .good { color:var(--ok); } .bad { color:var(--bad); }
+    button { border:1px solid var(--line); background:white; color:var(--ink); border-radius:9px; padding:9px 12px; cursor:pointer; font-weight:650; }
+    button:hover { border-color:var(--accent); }
+    button.primary { background:var(--accent); color:white; border-color:var(--accent); }
+    .actions { display:flex; flex-wrap:wrap; gap:8px; }
+    .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+    .tabs button[aria-selected="true"] { background:var(--ink); color:white; }
+    .scenario { display:none; }
+    .scenario.active { display:block; }
+    .steps { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .step-done { background:#e8f6ef; border-color:#9dd5bd; }
+    table { border-collapse:collapse; width:100%; }
+    th,td { border-bottom:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; }
+    pre { margin:0; max-height:260px; overflow:auto; background:#101828; color:#e9eefb; border-radius:10px; padding:14px; font-size:12px; }
+    .notice { border-left:4px solid var(--accent); padding-left:12px; }
+    @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <span class="tag">PROTOTYPE — 不调用真实 CLI</span>
+    <h1>双 AI CLI 报告编排逻辑</h1>
+    <p class="notice">问题：当 Codex 或 Claude 成功、失败、超时或被取消时，系统是否只在最终校验通过后写不可变快照，并能在双失败时安全生成确定性简版？</p>
+    <p class="muted">这是 Wayfinder 的单文件逻辑原型，用于推动状态机，不是页面设计或正式 Worker。下方实测数据来自 Ubuntu/WSL2 的真实 CLI 探针。</p>
+  </header>
+
+  <section>
+    <h2>当前状态</h2>
+    <div class="grid" id="stateFields"></div>
+  </section>
+
+  <section>
+    <h2>自由操作</h2>
+    <p class="muted">可故意乱序点击；非法转换只记录错误，不修改核心状态。</p>
+    <div class="actions" id="freePlay"></div>
+  </section>
+
+  <section>
+    <h2>引导场景</h2>
+    <div class="tabs" id="tabs"></div>
+    <div id="scenarios"></div>
+  </section>
+
+  <section>
+    <h2>真实探针基线</h2>
+    <table>
+      <thead><tr><th>场景</th><th>时长</th><th>工具事件</th><th>结果</th></tr></thead>
+      <tbody>
+        <tr><td>Codex CLI · 最终共同夹具</td><td>34.459秒</td><td>0</td><td>Schema与后置校验通过 · <code>9d8935…c2b</code></td></tr>
+        <tr><td>Claude Code CLI · 最终共同夹具</td><td>31.022秒</td><td>0</td><td>Schema与后置校验通过 · <code>45bcbe…b0d</code></td></tr>
+        <tr><td>Claude Code CLI · 超时样本</td><td>180.675秒</td><td>0</td><td>进程组终止；无报告快照</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>完整状态与事件日志</h2>
+    <pre id="rawState"></pre>
+  </section>
+</main>
+
+<script>
+const ProtocolMachine = (() => {
+  const initialState = () => ({
+    phase: 'idle',
+    run_id: null,
+    preferred_adapter: 'codex_cli',
+    active_adapter: null,
+    attempts: [],
+    snapshot: null,
+    partial_output_accepted: false,
+    last_error: null,
+    events: []
+  });
+
+  const allowed = {
+    idle: ['PREFLIGHT_OK'],
+    ready: ['START_PRIMARY', 'CANCEL'],
+    primary_running: ['PRIMARY_SUCCESS', 'PRIMARY_TIMEOUT', 'PRIMARY_INVALID', 'CANCEL'],
+    primary_failed: ['START_ALTERNATE', 'DETERMINISTIC_FALLBACK', 'CANCEL'],
+    alternate_running: ['ALTERNATE_SUCCESS', 'ALTERNATE_FAILURE', 'CANCEL'],
+    validating: ['VALIDATION_OK', 'VALIDATION_FAILED'],
+    alternate_validating: ['ALTERNATE_VALIDATION_OK', 'ALTERNATE_VALIDATION_FAILED'],
+    succeeded: ['WRITE_SNAPSHOT'],
+    fallback_ready: ['WRITE_FALLBACK_SNAPSHOT'],
+    completed: [], completed_degraded: [], cancelled: []
+  };
+
+  function append(state, action, detail) {
+    return {...state, events:[...state.events, {index:state.events.length + 1, action, detail}]};
+  }
+
+  function illegal(state, action) {
+    return append({...state, last_error:`非法转换：${state.phase} → ${action}`}, action, 'rejected');
+  }
+
+  function reduce(state, action) {
+    if (action.type === 'RESET') return initialState();
+    if (!(allowed[state.phase] || []).includes(action.type)) return illegal(state, action.type);
+    let next = {...state, last_error:null};
+    switch (action.type) {
+      case 'PREFLIGHT_OK': next = {...next, phase:'ready', run_id:'run-prototype-001'}; break;
+      case 'START_PRIMARY': next = {...next, phase:'primary_running', active_adapter:state.preferred_adapter}; break;
+      case 'PRIMARY_SUCCESS':
+        next = {...next, phase:'validating', attempts:[...state.attempts,{adapter:state.active_adapter,status:'process_completed',tool_events:0}]}; break;
+      case 'PRIMARY_TIMEOUT':
+        next = {...next, phase:'primary_failed', active_adapter:null, attempts:[...state.attempts,{adapter:state.active_adapter,status:'timed_out',snapshot_written:false}]}; break;
+      case 'PRIMARY_INVALID':
+        next = {...next, phase:'primary_failed', active_adapter:null, attempts:[...state.attempts,{adapter:state.active_adapter,status:'tool_use_rejected',snapshot_written:false}]}; break;
+      case 'VALIDATION_OK': next = {...next, phase:'succeeded'}; break;
+      case 'VALIDATION_FAILED':
+        next = {...next, phase:'primary_failed', active_adapter:null, attempts:state.attempts.map((x,i)=>i===state.attempts.length-1?{...x,status:'schema_validation_failed'}:x)}; break;
+      case 'START_ALTERNATE':
+        next = {...next, phase:'alternate_running', active_adapter:state.preferred_adapter==='codex_cli'?'claude_code_cli':'codex_cli'}; break;
+      case 'ALTERNATE_SUCCESS':
+        next = {...next, phase:'alternate_validating', attempts:[...state.attempts,{adapter:state.active_adapter,status:'process_completed',tool_events:0}]}; break;
+      case 'ALTERNATE_FAILURE':
+        next = {...next, phase:'primary_failed', active_adapter:null, attempts:[...state.attempts,{adapter:state.active_adapter,status:'failed',snapshot_written:false}]}; break;
+      case 'ALTERNATE_VALIDATION_OK': next = {...next, phase:'succeeded'}; break;
+      case 'ALTERNATE_VALIDATION_FAILED':
+        next = {...next, phase:'primary_failed', active_adapter:null, attempts:state.attempts.map((x,i)=>i===state.attempts.length-1?{...x,status:'schema_validation_failed'}:x)}; break;
+      case 'WRITE_SNAPSHOT':
+        next = {...next, phase:'completed', active_adapter:null, snapshot:{status:'ai_completed',version:1,immutable:true,body_retention_days:30}}; break;
+      case 'DETERMINISTIC_FALLBACK': next = {...next, phase:'fallback_ready', active_adapter:null}; break;
+      case 'WRITE_FALLBACK_SNAPSHOT':
+        next = {...next, phase:'completed_degraded', snapshot:{status:'deterministic_fallback',version:1,immutable:true,body_retention_days:30}}; break;
+      case 'CANCEL': next = {...next, phase:'cancelled', active_adapter:null, snapshot:null}; break;
+    }
+    return append(next, action.type, action.detail || 'accepted');
+  }
+  return {initialState, reduce};
+})();
+
+const actions = [
+  ['PREFLIGHT_OK','预检通过'], ['START_PRIMARY','启动首选CLI'], ['PRIMARY_SUCCESS','首选进程成功'],
+  ['PRIMARY_TIMEOUT','首选超时'], ['PRIMARY_INVALID','首选出现工具事件'], ['VALIDATION_OK','首选校验通过'],
+  ['VALIDATION_FAILED','首选校验失败'], ['START_ALTERNATE','启动替代CLI'], ['ALTERNATE_SUCCESS','替代进程成功'],
+  ['ALTERNATE_FAILURE','替代失败'], ['ALTERNATE_VALIDATION_OK','替代校验通过'], ['ALTERNATE_VALIDATION_FAILED','替代校验失败'],
+  ['WRITE_SNAPSHOT','写AI快照'], ['DETERMINISTIC_FALLBACK','生成确定性简版'], ['WRITE_FALLBACK_SNAPSHOT','写简版快照'],
+  ['CANCEL','主动取消'], ['RESET','重置']
+];
+
+const scenarios = [
+  {id:'primary', title:'首选成功', text:'Codex完成且校验通过，只有最终对象进入快照。', steps:['PREFLIGHT_OK','START_PRIMARY','PRIMARY_SUCCESS','VALIDATION_OK','WRITE_SNAPSHOT']},
+  {id:'alternate', title:'超时后替代', text:'首选达到硬超时，无半快照；Claude随后通过同一校验。', steps:['PREFLIGHT_OK','START_PRIMARY','PRIMARY_TIMEOUT','START_ALTERNATE','ALTERNATE_SUCCESS','ALTERNATE_VALIDATION_OK','WRITE_SNAPSHOT']},
+  {id:'both-fail', title:'双失败简版', text:'两个CLI均失败后，使用确定性事实骨架生成降级快照。', steps:['PREFLIGHT_OK','START_PRIMARY','PRIMARY_TIMEOUT','START_ALTERNATE','ALTERNATE_FAILURE','DETERMINISTIC_FALLBACK','WRITE_FALLBACK_SNAPSHOT']},
+  {id:'tool-reject', title:'工具事件拒收', text:'即使进程返回正文，只要Codex出现工具事件，输出也不能进入快照。', steps:['PREFLIGHT_OK','START_PRIMARY','PRIMARY_INVALID','START_ALTERNATE','ALTERNATE_SUCCESS','ALTERNATE_VALIDATION_OK','WRITE_SNAPSHOT']},
+  {id:'cancel', title:'主动取消', text:'运行中的任务被取消后只保留审计，不生成报告快照。', steps:['PREFLIGHT_OK','START_PRIMARY','CANCEL']}
+];
+
+let state = ProtocolMachine.initialState();
+let activeScenario = scenarios[0].id;
+let scenarioProgress = {};
+
+function dispatch(type, fromScenario) {
+  state = ProtocolMachine.reduce(state, {type});
+  if (fromScenario) scenarioProgress[fromScenario] = (scenarioProgress[fromScenario] || 0) + 1;
+  render();
+}
+
+function render() {
+  const fields = [
+    ['阶段',state.phase], ['首选适配器',state.preferred_adapter], ['当前适配器',state.active_adapter || '无'],
+    ['尝试次数',state.attempts.length], ['已写快照',state.snapshot?'是':'否'], ['接受部分输出',state.partial_output_accepted?'是':'否'],
+    ['快照状态',state.snapshot?.status || '无'], ['正文保留',state.snapshot?`${state.snapshot.body_retention_days}天`:'—'], ['最近错误',state.last_error || '无']
+  ];
+  document.querySelector('#stateFields').innerHTML = fields.map(([k,v])=>`<div class="field"><small>${k}</small><strong>${v}</strong></div>`).join('');
+  document.querySelector('#rawState').textContent = JSON.stringify(state,null,2);
+
+  document.querySelector('#freePlay').innerHTML = actions.map(([type,label])=>`<button class="${type==='RESET'?'':'primary'}" data-action="${type}">${label}</button>`).join('');
+  document.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=()=>dispatch(btn.dataset.action));
+
+  document.querySelector('#tabs').innerHTML = scenarios.map(s=>`<button data-tab="${s.id}" aria-selected="${s.id===activeScenario}">${s.title}</button>`).join('');
+  document.querySelectorAll('[data-tab]').forEach(btn=>btn.onclick=()=>{activeScenario=btn.dataset.tab; state=ProtocolMachine.initialState(); scenarioProgress[activeScenario]=0; render();});
+
+  document.querySelector('#scenarios').innerHTML = scenarios.map(s=>{
+    const progress=scenarioProgress[s.id]||0;
+    return `<div class="scenario ${s.id===activeScenario?'active':''}"><h3>${s.title}</h3><p>${s.text}</p><div class="steps">${s.steps.map((type,i)=>{
+      const label=actions.find(x=>x[0]===type)[1];
+      return `<button class="${i<progress?'step-done':''}" data-step="${type}" data-scenario="${s.id}" ${i!==progress?'disabled':''}>${i+1}. ${label}</button>`;
+    }).join('')}</div></div>`;
+  }).join('');
+  document.querySelectorAll('[data-step]').forEach(btn=>btn.onclick=()=>dispatch(btn.dataset.step,btn.dataset.scenario));
+}
+render();
+</script>
+</body>
+</html>
