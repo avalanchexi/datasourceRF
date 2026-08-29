@@ -173,6 +173,12 @@ a:visited { color: #765078; }
 }
 .nav-link:visited { color: var(--ink-body); }
 .nav-link:hover { background: var(--surface-muted); color: var(--ink-strong); }
+.nav-link[aria-current="page"] {
+  background: var(--surface-muted);
+  box-shadow: inset 3px 0 0 var(--accent);
+  color: var(--ink-strong);
+  font-weight: 700;
+}
 .workspace { min-width: 0; padding: 38px 32px 80px; }
 .page-stack { display: grid; gap: 32px; max-width: 980px; }
 .page-heading { border-bottom: 1px solid var(--line); padding-bottom: 18px; }

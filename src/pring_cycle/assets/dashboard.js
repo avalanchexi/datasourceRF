@@ -12,11 +12,27 @@
     document.documentElement.dataset.theme = theme;
   }
 
+  function markActiveNavigation() {
+    const pathname = window.location.pathname || "/";
+    document.querySelectorAll(".nav-link").forEach(function (link) {
+      const active = new URL(link.href, window.location.href).pathname === pathname;
+      if (active) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+  }
+
   applyTheme(preferredTheme());
+  markActiveNavigation();
+  new MutationObserver(markActiveNavigation).observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+  window.addEventListener("popstate", markActiveNavigation);
 
   document.addEventListener("click", function (event) {
     const target = event.target;
     if (!(target instanceof Element)) return;
+    if (target.closest(".nav-link")) queueMicrotask(markActiveNavigation);
     if (target.closest("#theme-toggle")) {
       const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
       localStorage.setItem(storageKey, next);
