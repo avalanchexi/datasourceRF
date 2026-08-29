@@ -121,6 +121,7 @@ def dashboard_page(
     projection: ProjectionSet | None,
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
+    stage_events: Sequence[dict[str, object]] = (),
 ) -> html.Div:
     route = pathname or "/"
     if route == "/":
@@ -132,7 +133,7 @@ def dashboard_page(
     if route == "/inventory":
         return _inventory_page(projection)
     if route == "/stage-history":
-        return _stage_history_page(projection)
+        return _stage_history_page(projection, stage_events)
     if route == "/release-calendar":
         return _release_calendar_page(projection)
     if route == "/reports":
@@ -310,10 +311,19 @@ def _inventory_page(projection: ProjectionSet | None) -> html.Div:
     )
 
 
-def _stage_history_page(projection: ProjectionSet | None) -> html.Div:
+def _stage_history_page(
+    projection: ProjectionSet | None,
+    stage_events: Sequence[dict[str, object]],
+) -> html.Div:
     document = _dataset(projection, "stage_history")
-    events = document.get("events")
-    rows = [item for item in events if isinstance(item, dict)] if isinstance(events, list) else []
+    projection_events = document.get("events")
+    rows = (
+        list(stage_events)
+        if stage_events
+        else [item for item in projection_events if isinstance(item, dict)]
+        if isinstance(projection_events, list)
+        else []
+    )
     return html.Div(
         [
             _page_heading("阶段历史", "FORMAL STAGE HISTORY"),
@@ -482,6 +492,13 @@ def _inventory_card(item: dict[str, object]) -> html.Article:
 
 
 def _stage_event_row(item: dict[str, object]) -> html.Li:
+    gaps = item.get("gaps")
+    gap_text = (
+        "；".join(_gap_label(str(value)) for value in gaps)
+        if isinstance(gaps, list) and gaps
+        else "无 P0 缺口"
+    )
+    last_confirmed = item.get("last_confirmed_stage")
     return html.Li(
         [
             html.Strong(
@@ -489,13 +506,34 @@ def _stage_event_row(item: dict[str, object]) -> html.Li:
                 f"{_stage_label(item.get('current_stage'))}"
             ),
             html.Span(
-                f"组合原因 {item.get('reason', '未记录')} · "
-                f"模型 {item.get('model_version_id', '见投影详情')}",
+                f"上一确认 {_stage_label(last_confirmed) if last_confirmed else '尚无'} · "
+                f"原因 {item.get('stage_reason', item.get('reason', '未记录'))} · "
+                f"{gap_text} · 模型 {item.get('model_version_id', '见投影详情')}",
                 className="secondary-copy",
             ),
         ],
         className="record-row",
     )
+
+
+def _gap_label(value: str) -> str:
+    asset, separator, reason = value.partition(":")
+    if not separator:
+        return value
+    asset_label = {
+        "bond": "债券",
+        "stock": "股票",
+        "commodity": "商品",
+    }.get(asset, asset)
+    reason_label = {
+        "insufficient_history": "历史不足",
+        "source_conflict": "来源冲突",
+        "source_missing": "来源缺失",
+        "stale_for_target_business_date": "目标日数据陈旧",
+        "source_identity_not_certified": "来源身份未认证",
+        "nonnumeric_core_observation": "核心观测不是有效数值",
+    }.get(reason, reason)
+    return f"{asset_label}：{reason_label}"
 
 
 def _release_event_row(item: dict[str, object]) -> html.Li:

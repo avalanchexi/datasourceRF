@@ -139,6 +139,20 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
     def model_index() -> list[dict[str, object]]:
         return [asdict(item) for item in ModelRepository(paths.database).list_versions()]
 
+    @server.get("/api/v1/stage-history", name="stage_history")
+    def stage_history() -> dict[str, object]:
+        return {
+            "events": list(ProjectionSetRepository(paths.database).stage_history()),
+            "status": "ok",
+        }
+
+    @server.get("/api/v1/gap-notices", name="gap_notice_index")
+    def gap_notice_index() -> dict[str, object]:
+        return {
+            "notices": list(ProjectionSetRepository(paths.database).gap_notices()),
+            "status": "ok",
+        }
+
     @server.post("/api/v1/commands", response_model=None, name="append_command")
     async def append_command(request: Request) -> JSONResponse:
         rejection = _command_origin_rejection(request, port)
@@ -178,6 +192,7 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
             _current_projection(paths),
             _runs(paths),
             _reports(paths),
+            _stage_history(paths),
         )
 
     return server
@@ -214,6 +229,13 @@ def _runs(paths: RuntimePaths) -> tuple[RunRecord, ...]:
 def _reports(paths: RuntimePaths) -> tuple[ReportSnapshot, ...]:
     try:
         return ReportRepository(paths.database).history()
+    except (OSError, ValueError):
+        return ()
+
+
+def _stage_history(paths: RuntimePaths) -> tuple[dict[str, object], ...]:
+    try:
+        return ProjectionSetRepository(paths.database).stage_history()
     except (OSError, ValueError):
         return ()
 
@@ -287,6 +309,11 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
     )
     if rejection is not None:
         raise ValueError(rejection)
+    if command == "data_gap_notice":
+        return ProjectionSetRepository(paths.database).create_gap_notice(
+            str(payload["assessment_id"]),
+            client_request_id=str(payload["client_request_id"]),
+        )
     repository = RunRepository(paths.database)
     if command == "resume":
         run = repository.resume(

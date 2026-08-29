@@ -118,6 +118,49 @@ pring-cycle evidence-query --observation-id OBSERVATION_ID \
   --mode system_as_of --as-of 2026-08-28T21:00:00+08:00 --json
 ```
 
+### 确定性三核心 fixture
+
+离线验收可通过正式 CLI 把冻结交易日历和三核心价格生成最小原子投影：
+
+```bash
+pring-cycle fixture-project --input /wsl/native/path/core-fixture.json --json
+pring-cycle projection --json
+pring-cycle stage-history --json
+```
+
+fixture 顶层 schema 固定为：
+
+```json
+{
+  "schema_version": "core-price-fixture-v0001",
+  "target_business_date": "2026-08-28",
+  "system_as_of": "2026-08-28T21:00:00+08:00",
+  "model_version_id": "model-v0001",
+  "trading_calendar": ["...按升序排列的中国交易日..."],
+  "assets": {
+    "bond": {"metric_id": "CN_BOND_CORE_000012", "prices": []},
+    "stock": {"metric_id": "CN_EQUITY_CORE_000985", "prices": []},
+    "commodity": {"metric_id": "CN_COMMODITY_CORE_NHII", "prices": []}
+  }
+}
+```
+
+每个 `prices` 元素只包含 `business_date` 和正的有限 `value`，日期必须与
+`trading_calendar` 完全一致。命令输出 `acceptance_only=true`、不联网、不激活候选模型，投影
+带 `acceptance_fixture_only` 警告，不能作为真实 P0、模型校准、真实演练或切换证据。
+
+若 P0 因历史不足、来源冲突、陈旧或身份错误未通过，命令返回 `action_required` 和不可变
+`assessment_id`，当前指针继续读取上一完整投影。用户可显式生成不调用 AI 的缺口说明：
+
+```bash
+pring-cycle gap-notice --assessment-id P0_ASSESSMENT_ID \
+  --request-id UNIQUE_GAP_NOTICE_ID --json
+pring-cycle gap-notices --json
+```
+
+阶段历史包含正式事件与空档，并保留三资产状态、候选/12M 观察、快照、模型和投影身份；缺口
+说明不是正式市场报告，也不出现在 `pring-cycle reports` 中。
+
 手动完整运行是主路径；命令先持久化，独立 Worker 再领取。定向刷新、手动深搜和报告任务使用
 同一账本与幂等键：
 

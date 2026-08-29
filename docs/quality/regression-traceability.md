@@ -25,7 +25,7 @@
 | `REG-RUN-001` | 事务中断不暴露半批结果 | ADR-0007, ADR-0008 | 16, 18 | `tests/integration/test_atomic_projection.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-002` | 重复命令幂等 | ADR-0010 | 17 | `tests/integration/test_run_orchestration.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-003` | 陈旧租约仅显式恢复 | ADR-0010 | 18 | `tests/integration/test_run_orchestration.py`, `tests/acceptance/test_v1_acceptance.py` |
-| `REG-RUN-004` | 固定输入离线确定性重放 | ADR-0004, ADR-0008 | 22, 24 | `tests/models/test_model_replay_rollback.py`, `tests/acceptance/test_v1_acceptance.py` |
+| `REG-RUN-004` | 固定输入离线确定性重放 | ADR-0004, ADR-0008 | 03, 22, 24 | `tests/e2e/test_core_fixture_cli.py`, `tests/models/test_model_replay_rollback.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-005` | CLI 不可用不破坏结构化驾驶舱 | ADR-0003, ADR-0009 | 19, 20 | `tests/reports/test_report_boundary.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-006` | 截止时缺 P0 不发布 | ADR-0002, ADR-0010 | 04, 17 | `tests/integration/test_p0_gate.py`, `tests/integration/test_worker_execution.py` |
 | `REG-STAGE-001` | 六个规范组合一一映射 | ADR-0001 | 03 | `tests/domain/test_pring_stage.py`, `tests/acceptance/test_v1_acceptance.py` |

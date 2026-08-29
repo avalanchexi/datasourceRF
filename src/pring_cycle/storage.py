@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0005_run_step_events"
+SCHEMA_HEAD = "0006_p0_assessment_history"
 
 
 def migrate_database(database_path: Path) -> None:

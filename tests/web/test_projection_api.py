@@ -7,6 +7,8 @@ from typing import Any, cast
 
 from fastapi import FastAPI
 
+from pring_cycle.domain import CoreAssetState, FormalStage
+from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ANALYTICAL_DATASETS, ProjectionEnvelope, ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.web import create_web_application
@@ -69,3 +71,53 @@ def test_runtime_init_bootstraps_the_candidate_model_without_activating_it(tmp_p
             "certified_replay_start": "2018-06-01",
         }
     ]
+
+
+def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projection(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = ProjectionSetRepository(paths.database)
+
+    def asset(name: str, state: CoreAssetState | None, reason: str) -> CoreAssetReadiness:
+        return CoreAssetReadiness(
+            asset=name,
+            metric_id={
+                "bond": "CN_BOND_CORE_000012",
+                "stock": "CN_EQUITY_CORE_000985",
+                "commodity": "CN_COMMODITY_CORE_NHII",
+            }[name],
+            state=state,
+            reason=reason,
+            observation_count=160 if state is not None else 0,
+            latest_business_date="2026-08-28" if state is not None else None,
+        )
+
+    P0ProjectionService(repository).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=(
+            asset("bond", CoreAssetState.BULL, "validated"),
+            asset("stock", CoreAssetState.BULL, "validated"),
+            asset("commodity", CoreAssetState.BEAR, "validated"),
+        ),
+        last_confirmed_stage=None,
+    )
+    P0ProjectionService(repository).publish(
+        target_business_date="2026-08-29",
+        system_as_of=datetime(2026, 8, 29, 13, tzinfo=UTC),
+        assets=(
+            asset("bond", CoreAssetState.BULL, "validated"),
+            asset("stock", CoreAssetState.BULL, "validated"),
+            asset("commodity", None, "source_conflict"),
+        ),
+        last_confirmed_stage=FormalStage.STAGE_II,
+    )
+    application = create_web_application(paths, 8050)
+
+    response = _route(application, "stage_history").endpoint()
+
+    assert [event["event_kind"] for event in response["events"]] == ["formal", "gap"]
+    assert response["events"][1]["projection_set_id"] is None
+    assert repository.current().envelope.target_business_date == "2026-08-28"

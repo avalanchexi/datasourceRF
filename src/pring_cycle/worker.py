@@ -214,6 +214,13 @@ def _execute_run(
         warnings=_explanatory_evidence_warnings(paths, run),
         evidence_snapshot_id=evidence_snapshot_id,
     )
+    if result.assessment_id is not None:
+        runs.record_checkpoint(
+            run.run_id,
+            "p0_assessment",
+            result.assessment_id,
+            verified=True,
+        )
     if result.status != "published" or result.projection_set_id is None:
         runs.mark_action_required(run.run_id, "p0_unavailable")
         return

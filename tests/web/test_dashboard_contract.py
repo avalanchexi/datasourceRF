@@ -143,3 +143,22 @@ def test_domain_pages_expose_fixed_sections_instead_of_generic_documents() -> No
     assert "四象限解释" in inventory and "七张阶段特征卡" in inventory
     assert "正式区间与空档" in history
     assert all(label in calendar for label in ("预计窗口", "实际发布", "系统首次可用"))
+
+
+def test_stage_history_page_can_show_an_unpublished_p0_gap_from_the_read_model() -> None:
+    gap = {
+        "business_date": "2026-08-31",
+        "current_stage": None,
+        "last_confirmed_stage": "stage_ii",
+        "event_kind": "gap",
+        "stage_reason": "p0_unavailable",
+        "gaps": ["commodity:source_conflict"],
+        "model_version_id": "model-v0001",
+    }
+
+    history = _text(dashboard_page("/stage-history", None, (), (), (gap,)))
+
+    assert "2026-08-31" in history
+    assert "当前阶段暂不判定" in history
+    assert "上一确认 第二阶段 · Stage II" in history
+    assert "商品：来源冲突" in history

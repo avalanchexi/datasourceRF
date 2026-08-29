@@ -57,7 +57,12 @@ def test_missing_p0_does_not_replace_the_previous_complete_projection(tmp_path: 
     assert blocked.current_stage is None
     assert blocked.last_confirmed_stage is FormalStage.STAGE_II
     assert blocked.gaps == ("commodity:source_conflict",)
+    assert blocked.assessment_id is not None
     assert projections.current().envelope.projection_set_id == first.projection_set_id
+    history = projections.stage_history()
+    assert [event["event_kind"] for event in history] == ["formal", "gap"]
+    assert history[1]["stage_reason"] == "p0_unavailable"
+    assert history[1]["core_assets"][2]["reason"] == "source_conflict"
 
 
 def test_noncanonical_valid_combination_publishes_an_explained_history_gap(
@@ -80,10 +85,8 @@ def test_noncanonical_valid_combination_publishes_an_explained_history_gap(
     assert result.last_confirmed_stage is FormalStage.STAGE_I
     assert result.stage_reason == "noncanonical_combination"
     history = projections.current().datasets["stage_history"]
-    assert history["events"] == [
-        {
-            "business_date": "2026-08-28",
-            "current_stage": None,
-            "reason": "noncanonical_combination",
-        }
-    ]
+    assert history["events"][0]["business_date"] == "2026-08-28"
+    assert history["events"][0]["current_stage"] is None
+    assert history["events"][0]["last_confirmed_stage"] == "stage_i"
+    assert history["events"][0]["event_kind"] == "gap"
+    assert history["events"][0]["stage_reason"] == "noncanonical_combination"

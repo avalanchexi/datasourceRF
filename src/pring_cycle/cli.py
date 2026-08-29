@@ -24,6 +24,8 @@ _MUTATING_COMMANDS = {
     "model-activate",
     "model-replay",
     "model-rollback",
+    "fixture-project",
+    "gap-notice",
     "run-submit",
     "schedule",
     "evidence-ingest",
@@ -105,6 +107,26 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         )
         if rejection is not None:
             raise ValueError(rejection)
+    if namespace.command == "fixture-project":
+        from pring_cycle.core_fixture import project_core_fixture
+
+        fixture = json.loads(namespace.input.read_text(encoding="utf-8"))
+        return asdict(project_core_fixture(paths, fixture))
+    if namespace.command == "stage-history":
+        return {
+            "events": list(ProjectionSetRepository(paths.database).stage_history()),
+            "status": "ok",
+        }
+    if namespace.command == "gap-notice":
+        return ProjectionSetRepository(paths.database).create_gap_notice(
+            namespace.assessment_id,
+            client_request_id=namespace.request_id,
+        )
+    if namespace.command == "gap-notices":
+        return {
+            "notices": list(ProjectionSetRepository(paths.database).gap_notices()),
+            "status": "ok",
+        }
     if namespace.command == "catalog":
         return {
             "catalog_version": METRIC_CATALOG_VERSION,
@@ -336,6 +358,8 @@ def _parser() -> argparse.ArgumentParser:
         "runs",
         "projection",
         "reports",
+        "stage-history",
+        "gap-notices",
         "cleanup",
         "rehearse-fixture-recovery",
         "cutover-status",
@@ -388,6 +412,11 @@ def _parser() -> argparse.ArgumentParser:
 
     evidence_ingest = _runtime_parser(subparsers, "evidence-ingest")
     evidence_ingest.add_argument("--input", type=Path, required=True)
+    fixture_project = _runtime_parser(subparsers, "fixture-project")
+    fixture_project.add_argument("--input", type=Path, required=True)
+    gap_notice = _runtime_parser(subparsers, "gap-notice")
+    gap_notice.add_argument("--assessment-id", required=True)
+    gap_notice.add_argument("--request-id", required=True)
     evidence_query = _runtime_parser(subparsers, "evidence-query")
     evidence_query.add_argument("--observation-id", required=True)
     evidence_query.add_argument(
