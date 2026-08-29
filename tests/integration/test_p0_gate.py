@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
-from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.projections import (
+    INVENTORY_CARD_NAMES,
+    ProjectionSetRepository,
+    validate_analytical_projection,
+)
 
 
 def readiness(
@@ -65,6 +72,34 @@ def test_missing_p0_does_not_replace_the_previous_complete_projection(tmp_path: 
     assert history[1]["core_assets"][2]["reason"] == "source_conflict"
 
 
+def test_complete_projection_validator_enforces_cross_dataset_domain_invariants(
+    tmp_path: Path,
+) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projection.sqlite3")
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 10, tzinfo=UTC),
+        assets=(
+            readiness("bond", CoreAssetState.BULL),
+            readiness("stock", CoreAssetState.BULL),
+            readiness("commodity", CoreAssetState.BEAR),
+        ),
+        last_confirmed_stage=None,
+    )
+    current = projections.current()
+
+    assert len(current.datasets["inventory"]["cards"]) == 7
+    invalid_stage = deepcopy(current.datasets)
+    invalid_stage["cycle_overview"]["current_stage"] = "stage_vi"
+    with pytest.raises(ValueError, match="projection_formal_stage_invariant_failed"):
+        validate_analytical_projection(current.envelope, invalid_stage)
+
+    invalid_score = deepcopy(current.datasets)
+    invalid_score["macro"]["score"] = 1
+    with pytest.raises(ValueError, match="projection_context_score_forbidden"):
+        validate_analytical_projection(current.envelope, invalid_score)
+
+
 def test_noncanonical_valid_combination_publishes_an_explained_history_gap(
     tmp_path: Path,
 ) -> None:
@@ -114,7 +149,14 @@ def test_macro_and_inventory_documents_change_context_but_never_formal_stage(
             "price_pressure": "upstream_pressure",
             "international_context": [],
         },
-        inventory_document={"quadrant": "active_restocking", "cards": []},
+        inventory_document={
+            "quadrant": "active_restocking",
+            "cards": [
+                {"name": name, "status": "support", "evidence_ids": []}
+                for name in INVENTORY_CARD_NAMES
+            ],
+            "score": None,
+        },
     )
     tightening = service.publish(
         target_business_date="2026-08-28",
@@ -128,7 +170,14 @@ def test_macro_and_inventory_documents_change_context_but_never_formal_stage(
             "price_pressure": "easing",
             "international_context": [],
         },
-        inventory_document={"quadrant": "active_destocking", "cards": []},
+        inventory_document={
+            "quadrant": "active_destocking",
+            "cards": [
+                {"name": name, "status": "support", "evidence_ids": []}
+                for name in INVENTORY_CARD_NAMES
+            ],
+            "score": None,
+        },
     )
 
     assert easing.current_stage is tightening.current_stage is FormalStage.STAGE_II

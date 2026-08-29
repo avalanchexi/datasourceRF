@@ -9,8 +9,10 @@ from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import derive_formal_stage
 from pring_cycle.projections import (
     ANALYTICAL_DATASETS,
+    INVENTORY_CARD_NAMES,
     ProjectionEnvelope,
     ProjectionSetRepository,
+    validate_analytical_projection,
 )
 
 
@@ -76,6 +78,8 @@ class P0ProjectionService:
             commodity=by_asset["commodity"].state,
             last_confirmed_stage=last_confirmed_stage,
         )
+        resolved_macro_document = macro_document or _default_macro_document()
+        resolved_inventory_document = inventory_document or _default_inventory_document()
         asset_documents = [_asset_document(item) for item in assets]
         resolved_snapshot_id = evidence_snapshot_id or (
             "snapshot-"
@@ -120,8 +124,8 @@ class P0ProjectionService:
             "system_as_of": system_as_of.isoformat(),
             "target_business_date": target_business_date,
             "warnings": list(warnings),
-            "macro": macro_document,
-            "inventory": inventory_document,
+            "macro": resolved_macro_document,
+            "inventory": resolved_inventory_document,
             "release_calendar_events": list(release_calendar_events),
         }
         projection_set_id = (
@@ -179,28 +183,18 @@ class P0ProjectionService:
                 "stage_reason": stage.reason,
                 "core_assets": asset_documents,
                 "transition_watch": [],
-                "macro_confirmation": _macro_confirmation(macro_document),
+                "macro_confirmation": _macro_confirmation(resolved_macro_document),
             }
         )
         datasets["core_assets"]["assets"] = asset_documents
-        datasets["macro"].update(
-            macro_document
-            or {
-                "policy_direction": "insufficient_data",
-                "credit_response": "insufficient_data",
-                "overheat_state": "insufficient_data",
-                "price_pressure": "insufficient_data",
-                "international_context": [],
-            }
-        )
-        datasets["inventory"].update(
-            inventory_document or {"quadrant": None, "cards": []}
-        )
+        datasets["macro"].update(resolved_macro_document)
+        datasets["inventory"].update(resolved_inventory_document)
         datasets["release_calendar"]["events"] = list(release_calendar_events)
         history = list(self._projections.stage_history())
         if not any(item.get("assessment_id") == assessment["assessment_id"] for item in history):
             history.append(assessment)
         datasets["stage_history"]["events"] = history
+        validate_analytical_projection(envelope, datasets)
         try:
             current = self._projections.current()
         except LookupError:
@@ -239,6 +233,49 @@ def _macro_confirmation(document: dict[str, object] | None) -> list[dict[str, st
         if state not in {None, "insufficient_data"}:
             confirmations.append({"context": key, "state": str(state)})
     return confirmations
+
+
+def _default_macro_document() -> dict[str, object]:
+    return {
+        "policy_direction": "insufficient_data",
+        "policy_action": {"direction": "insufficient_data", "evidence": []},
+        "transmission": {"direction": "insufficient_data", "evidence": []},
+        "credit_response": "insufficient_data",
+        "credit": {"state": "insufficient_data", "evidence": []},
+        "overheat_state": "insufficient_data",
+        "overheat": {
+            "state": "insufficient_data",
+            "support": [],
+            "counterevidence": [],
+            "gaps": [],
+        },
+        "price_pressure": "insufficient_data",
+        "price_chain": {
+            "state": "insufficient_data",
+            "support": [],
+            "counterevidence": [],
+            "gaps": [],
+        },
+        "international_context": [],
+        "score": None,
+    }
+
+
+def _default_inventory_document() -> dict[str, object]:
+    return {
+        "quadrant": None,
+        "directions": {"demand": None, "production": None, "inventory": None},
+        "cards": [
+            {"name": name, "status": "missing", "evidence_ids": [], "evidence": []}
+            for name in INVENTORY_CARD_NAMES
+        ],
+        "real_inventory_approximation": {
+            "formula_version": "inventory-ppi-v0001",
+            "status": "missing_certified_inputs",
+            "value": None,
+        },
+        "score": None,
+    }
 
 
 def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:

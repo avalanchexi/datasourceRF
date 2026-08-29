@@ -16,6 +16,23 @@ ANALYTICAL_DATASETS = (
     "release_calendar",
     "stage_history",
 )
+INVENTORY_CARD_NAMES = (
+    "orders_inventory_gap",
+    "materials_finished_goods",
+    "physical_inventory",
+    "inventory_sales_turnover",
+    "prices_profits",
+    "capacity",
+    "credit_physical_inventory",
+)
+_FORMAL_STAGE_BY_STATES = {
+    ("bull", "bear", "bear"): "stage_i",
+    ("bull", "bull", "bear"): "stage_ii",
+    ("bull", "bull", "bull"): "stage_iii",
+    ("bear", "bull", "bull"): "stage_iv",
+    ("bear", "bear", "bull"): "stage_v",
+    ("bear", "bear", "bear"): "stage_vi",
+}
 
 
 @dataclass(frozen=True)
@@ -288,6 +305,57 @@ def _validate_projection(
         for document in datasets.values()
     ):
         raise ValueError("projection_dataset_identity_mismatch")
+
+
+def validate_analytical_projection(
+    envelope: ProjectionEnvelope,
+    datasets: dict[str, dict[str, object]],
+) -> None:
+    _validate_projection(envelope, datasets)
+    if envelope.system_as_of.tzinfo is None or envelope.generated_at.tzinfo is None:
+        raise ValueError("projection_envelope_times_must_be_timezone_aware")
+    if envelope.evidence_window_end != envelope.target_business_date:
+        raise ValueError("projection_evidence_window_target_mismatch")
+    if envelope.completeness not in {"complete", "degraded"}:
+        raise ValueError("projection_completeness_invalid")
+    if bool(envelope.warnings) != (envelope.completeness == "degraded"):
+        raise ValueError("projection_completeness_warning_mismatch")
+    overview = datasets["cycle_overview"]
+    core = datasets["core_assets"]
+    macro = datasets["macro"]
+    inventory = datasets["inventory"]
+    assets = core.get("assets")
+    overview_assets = overview.get("core_assets")
+    if not isinstance(assets, list) or overview_assets != assets:
+        raise ValueError("projection_core_asset_reference_mismatch")
+    by_asset = {
+        str(item.get("asset")): item
+        for item in assets
+        if isinstance(item, dict) and item.get("asset") is not None
+    }
+    if set(by_asset) != {"bond", "stock", "commodity"}:
+        raise ValueError("projection_core_asset_manifest_invalid")
+    states = (
+        str(by_asset["bond"].get("state")),
+        str(by_asset["stock"].get("state")),
+        str(by_asset["commodity"].get("state")),
+    )
+    if any(state not in {"bull", "bear"} for state in states):
+        raise ValueError("projection_core_asset_state_invalid")
+    expected_stage = _FORMAL_STAGE_BY_STATES.get(states)
+    if overview.get("current_stage") != expected_stage:
+        raise ValueError("projection_formal_stage_invariant_failed")
+    if macro.get("score") is not None or inventory.get("score") is not None:
+        raise ValueError("projection_context_score_forbidden")
+    cards = inventory.get("cards")
+    if not isinstance(cards, list) or tuple(
+        str(card.get("name")) for card in cards if isinstance(card, dict)
+    ) != INVENTORY_CARD_NAMES:
+        raise ValueError("projection_inventory_card_manifest_invalid")
+    release_events = datasets["release_calendar"].get("events")
+    stage_events = datasets["stage_history"].get("events")
+    if not isinstance(release_events, list) or not isinstance(stage_events, list):
+        raise ValueError("projection_event_dataset_invalid")
 
 
 def _envelope_document(envelope: ProjectionEnvelope) -> dict[str, object]:
