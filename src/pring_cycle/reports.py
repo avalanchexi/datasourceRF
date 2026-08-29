@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -37,6 +37,7 @@ class EvidenceBundle:
     support: tuple[str, ...]
     counterevidence: tuple[str, ...]
     governance_gaps: tuple[str, ...]
+    structured_context: dict[str, Any] = field(default_factory=dict)
     schema_version: str = REPORT_SCHEMA_VERSION
     prompt_version: str = PROMPT_CONTRACT_VERSION
 
@@ -57,6 +58,7 @@ class EvidenceBundle:
         support: tuple[str, ...],
         counterevidence: tuple[str, ...],
         governance_gaps: tuple[str, ...],
+        structured_context: dict[str, Any] | None = None,
     ) -> EvidenceBundle:
         identity = {
             "projection_set_id": projection_set_id,
@@ -72,6 +74,7 @@ class EvidenceBundle:
             "support": support,
             "counterevidence": counterevidence,
             "governance_gaps": governance_gaps,
+            "structured_context": structured_context or {},
             "schema_version": REPORT_SCHEMA_VERSION,
             "prompt_version": PROMPT_CONTRACT_VERSION,
         }
@@ -91,6 +94,7 @@ class EvidenceBundle:
             support=support,
             counterevidence=counterevidence,
             governance_gaps=governance_gaps,
+            structured_context=structured_context or {},
         )
 
     def document(self) -> dict[str, Any]:
@@ -118,6 +122,7 @@ class EvidenceBundle:
             "counterevidence": list(self.counterevidence),
             "governance_gaps": list(self.governance_gaps),
             "evidence_references": list(self.allowed_evidence_ids),
+            **self.structured_context,
         }
 
 
@@ -138,6 +143,10 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
     if set(core_states) != {"bond", "stock", "commodity"}:
         raise ValueError("core_asset_projection_required_for_report")
     evidence_ids = tuple(sorted(_collect_evidence_ids(projection.datasets)))
+    macro = projection.datasets["macro"]
+    inventory = projection.datasets["inventory"]
+    history = projection.datasets["stage_history"].get("events")
+    latest_history = history[-1] if isinstance(history, list) and history else None
     return EvidenceBundle.create(
         projection_set_id=envelope.projection_set_id,
         target_business_date=envelope.target_business_date,
@@ -151,7 +160,27 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
         allowed_governance_refs=("ADR-0003", "ADR-0010", envelope.model_version_id),
         support=("三核心资产价格状态通过 P0 门禁。",),
         counterevidence=tuple(str(item) for item in envelope.warnings),
-        governance_gaps=(),
+        governance_gaps=tuple(str(item) for item in envelope.warnings),
+        structured_context={
+            "transition_watch": overview.get("transition_watch", []),
+            "macro_confirmation": overview.get("macro_confirmation", []),
+            "policy_context": {
+                "direction": macro.get("policy_direction"),
+                "actions": macro.get("policy_action"),
+                "transmission": macro.get("transmission"),
+                "credit": macro.get("credit"),
+            },
+            "inventory_context": {
+                "quadrant": inventory.get("quadrant"),
+                "directions": inventory.get("directions"),
+                "cards": inventory.get("cards"),
+                "real_inventory_approximation": inventory.get(
+                    "real_inventory_approximation"
+                ),
+            },
+            "price_context": macro.get("price_chain"),
+            "change_reasons": latest_history,
+        },
     )
 
 
@@ -218,7 +247,10 @@ class ReportSnapshot:
     model_version_id: str
     schema_version: str
     prompt_version: str
+    report_cutoff: datetime
+    system_as_of: datetime
     created_at: datetime
+    duration_ms: int
     body_retained: bool
     body: dict[str, Any]
 
@@ -228,6 +260,9 @@ class ReportAttempt:
     adapter: str
     adapter_version: str
     outcome: str
+    started_at: datetime
+    completed_at: datetime
+    duration_ms: int
     tool_events: int
     output_hash: str | None
 
@@ -247,7 +282,7 @@ class ReportRepository:
     def by_client_request(self, client_request_id: str) -> ReportSnapshot | None:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT * FROM report_snapshot WHERE client_request_id=?",
+                _REPORT_SNAPSHOT_SELECT + " WHERE report_snapshot.client_request_id=?",
                 (client_request_id,),
             ).fetchone()
         return _report_snapshot(row) if row is not None else None
@@ -290,10 +325,15 @@ class ReportRepository:
         adapter: str,
         adapter_version: str,
         outcome: str,
+        started_at: datetime,
+        completed_at: datetime,
         tool_events: int,
         output_hash: str | None,
     ) -> None:
-        observed_at = datetime.now(UTC).isoformat()
+        if started_at.tzinfo is None or completed_at.tzinfo is None:
+            raise ValueError("report_attempt_times_must_be_timezone_aware")
+        if completed_at < started_at:
+            raise ValueError("report_attempt_time_order_invalid")
         with self._connect() as connection:
             connection.execute(
                 """
@@ -306,8 +346,8 @@ class ReportRepository:
                     report_snapshot_id,
                     adapter,
                     adapter_version,
-                    observed_at,
-                    observed_at,
+                    started_at.astimezone(UTC).isoformat(),
+                    completed_at.astimezone(UTC).isoformat(),
                     outcome,
                     tool_events,
                     output_hash,
@@ -360,7 +400,8 @@ class ReportRepository:
     def get(self, report_snapshot_id: str) -> ReportSnapshot:
         with self._connect() as connection:
             row = connection.execute(
-                "SELECT * FROM report_snapshot WHERE report_snapshot_id=?",
+                _REPORT_SNAPSHOT_SELECT
+                + " WHERE report_snapshot.report_snapshot_id=?",
                 (report_snapshot_id,),
             ).fetchone()
         if row is None:
@@ -370,8 +411,8 @@ class ReportRepository:
     def history(self) -> tuple[ReportSnapshot, ...]:
         with self._connect() as connection:
             rows = connection.execute(
-                """
-                SELECT * FROM report_snapshot
+                _REPORT_SNAPSHOT_SELECT
+                + """
                 ORDER BY target_business_date DESC, version DESC
                 """
             ).fetchall()
@@ -387,13 +428,7 @@ class ReportRepository:
                 (report_snapshot_id,),
             ).fetchall()
         return tuple(
-            ReportAttempt(
-                adapter=str(row["adapter"]),
-                adapter_version=str(row["adapter_version"]),
-                outcome=str(row["outcome"]),
-                tool_events=int(row["tool_events"]),
-                output_hash=(str(row["output_hash"]) if row["output_hash"] is not None else None),
-            )
+            _report_attempt(row)
             for row in rows
         )
 
@@ -438,7 +473,9 @@ class ReportService:
         for adapter in self._adapters:
             if cancel_requested is not None and cancel_requested():
                 raise ValueError("report_generation_cancelled")
+            started_at = datetime.now(UTC)
             response = adapter.generate(bundle)
+            completed_at = datetime.now(UTC)
             if cancel_requested is not None and cancel_requested():
                 raise ValueError("report_generation_cancelled")
             outcome = response.error_classification or response.status
@@ -452,6 +489,8 @@ class ReportService:
                 adapter=adapter.name,
                 adapter_version=adapter.version,
                 outcome=outcome,
+                started_at=started_at,
+                completed_at=completed_at,
                 tool_events=response.tool_events,
                 output_hash=output_hash,
             )
@@ -779,6 +818,19 @@ def _validate_ai_document(bundle: EvidenceBundle, response: AdapterResponse) -> 
 
 def _report_snapshot(row: sqlite3.Row) -> ReportSnapshot:
     body_retained = bool(row["body_retained"])
+    bundle = json.loads(str(row["bundle_document_json"]))
+    if not isinstance(bundle, dict):
+        raise ValueError("report_bundle_document_invalid")
+    started_at = (
+        datetime.fromisoformat(str(row["attempt_started_at"]))
+        if row["attempt_started_at"] is not None
+        else datetime.fromisoformat(str(row["created_at"]))
+    )
+    completed_at = (
+        datetime.fromisoformat(str(row["attempt_completed_at"]))
+        if row["attempt_completed_at"] is not None
+        else started_at
+    )
     return ReportSnapshot(
         report_snapshot_id=str(row["report_snapshot_id"]),
         projection_set_id=str(row["projection_set_id"]),
@@ -792,9 +844,27 @@ def _report_snapshot(row: sqlite3.Row) -> ReportSnapshot:
         model_version_id=str(row["model_version_id"]),
         schema_version=str(row["schema_version"]),
         prompt_version=str(row["prompt_version"]),
+        report_cutoff=datetime.fromisoformat(str(bundle["report_cutoff"])),
+        system_as_of=datetime.fromisoformat(str(bundle["system_as_of"])),
         created_at=datetime.fromisoformat(str(row["created_at"])),
+        duration_ms=max(0, int((completed_at - started_at).total_seconds() * 1000)),
         body_retained=body_retained,
         body=json.loads(str(row["body_json"])) if body_retained else {},
+    )
+
+
+def _report_attempt(row: sqlite3.Row) -> ReportAttempt:
+    started_at = datetime.fromisoformat(str(row["started_at"]))
+    completed_at = datetime.fromisoformat(str(row["completed_at"]))
+    return ReportAttempt(
+        adapter=str(row["adapter"]),
+        adapter_version=str(row["adapter_version"]),
+        outcome=str(row["outcome"]),
+        started_at=started_at,
+        completed_at=completed_at,
+        duration_ms=max(0, int((completed_at - started_at).total_seconds() * 1000)),
+        tool_events=int(row["tool_events"]),
+        output_hash=(str(row["output_hash"]) if row["output_hash"] is not None else None),
     )
 
 
@@ -851,4 +921,16 @@ BEFORE UPDATE OF report_snapshot_id, projection_set_id, target_business_date,
 ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_immutable'); END;
 CREATE TRIGGER IF NOT EXISTS report_snapshot_no_delete
 BEFORE DELETE ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_immutable'); END;
+"""
+
+_REPORT_SNAPSHOT_SELECT = """
+SELECT report_snapshot.*, evidence_bundle.document_json AS bundle_document_json,
+       (SELECT MIN(started_at) FROM report_attempt
+        WHERE report_attempt.report_snapshot_id=report_snapshot.report_snapshot_id)
+           AS attempt_started_at,
+       (SELECT MAX(completed_at) FROM report_attempt
+        WHERE report_attempt.report_snapshot_id=report_snapshot.report_snapshot_id)
+           AS attempt_completed_at
+FROM report_snapshot
+JOIN evidence_bundle USING (bundle_id)
 """

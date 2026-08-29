@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 from collections.abc import Sequence
 from dataclasses import asdict
+from datetime import datetime
 from typing import Any, cast
+from zoneinfo import ZoneInfo
 
 from dash import dcc, html
 
@@ -36,6 +38,11 @@ def dashboard_shell(
     return html.Div(
         [
             dcc.Location(id="dashboard-location", refresh=False),
+            dcc.Interval(
+                id="runtime-poll",
+                interval=_poll_interval_ms(runs),
+                n_intervals=0,
+            ),
             dcc.Store(id="theme-state", storage_type="local"),
             html.A("跳至主要内容", href="#page-content", className="skip-link"),
             html.Header(
@@ -138,7 +145,7 @@ def dashboard_page(
     if route == "/release-calendar":
         return _release_calendar_page(projection, release_events)
     if route == "/reports":
-        return _reports_page(reports)
+        return _reports_page(reports, runs)
     if route == "/runs":
         return _runs_page(runs)
     return html.Div(
@@ -880,13 +887,29 @@ def _section_heading(title: str, kicker: str) -> html.Div:
     )
 
 
-def _reports_page(reports: Sequence[ReportSnapshot]) -> html.Div:
+def _reports_page(
+    reports: Sequence[ReportSnapshot],
+    runs: Sequence[RunRecord],
+) -> html.Div:
     history = [
         html.Li(
             [
                 html.Strong(f"{item.target_business_date} · v{item.version}"),
                 html.Span(
-                    f"{item.status} · {item.adapter} · {item.report_snapshot_id}",
+                    " · ".join(
+                        (
+                            f"状态 {item.status}",
+                            f"适配器 {item.adapter}",
+                            f"截止 {item.report_cutoff.isoformat()}",
+                            f"耗时 {item.duration_ms}ms",
+                            f"证据包 {item.bundle_hash}",
+                            f"模型 {item.model_version_id}",
+                            f"提示 {item.prompt_version}",
+                            f"Schema {item.schema_version}",
+                            "正文保留" if item.body_retained else "正文已过保留期",
+                            item.report_snapshot_id,
+                        )
+                    ),
                     className="secondary-copy",
                 ),
             ],
@@ -894,6 +917,32 @@ def _reports_page(reports: Sequence[ReportSnapshot]) -> html.Div:
         )
         for item in reports
     ]
+    active = next(
+        (
+            item
+            for item in runs
+            if item.command_type in {"manual_full", "scheduled_full", "report_generation"}
+            and item.current_step == "generating_report"
+            and item.status not in {"completed", "cancelled", "failed"}
+        ),
+        None,
+    )
+    reading = (
+        dcc.Tabs(
+            [
+                dcc.Tab(
+                    _report_reader(item),
+                    label=f"{item.target_business_date} · v{item.version}",
+                    value=item.report_snapshot_id,
+                )
+                for item in reports
+            ],
+            value=reports[0].report_snapshot_id,
+            className="report-reader-tabs",
+        )
+        if reports
+        else _empty_state("尚未选择报告", "生成首个不可变报告后可在此阅读。")
+    )
     return html.Div(
         [
             _page_heading("报告", "IMMUTABLE REPORT WORKSPACE"),
@@ -905,6 +954,15 @@ def _reports_page(reports: Sequence[ReportSnapshot]) -> html.Div:
                             html.P(
                                 "生成命令冻结当前证据包；AI 失败不会回滚分析投影。",
                                 className="body-copy",
+                            ),
+                            html.P(
+                                (
+                                    f"当前任务：{active.status} · {active.current_step} · "
+                                    f"{active.run_id}"
+                                    if active is not None
+                                    else "当前没有运行中的报告任务。"
+                                ),
+                                className="secondary-copy",
                             ),
                             html.Button(
                                 "基于当前投影生成新版本",
@@ -929,10 +987,7 @@ def _reports_page(reports: Sequence[ReportSnapshot]) -> html.Div:
                     dcc.Tab(
                         [
                             html.H2("报告阅读", className="section-title"),
-                            _empty_state(
-                                "尚未选择报告",
-                                "从“历史”选择一个不可变版本后在此阅读。",
-                            ),
+                            reading,
                         ],
                         label="阅读",
                         value="read",
@@ -959,6 +1014,12 @@ def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
                         className="primary-button",
                         type="button",
                     ),
+                    dcc.DatePickerSingle(
+                        id="manual-run-target",
+                        date=datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat(),
+                        display_format="YYYY-MM-DD",
+                        className="date-input",
+                    ),
                     html.P(
                         "命令仅在显式操作后联网；重复提交复用同一权威运行。",
                         className="secondary-copy",
@@ -974,6 +1035,69 @@ def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
     )
 
 
+def _report_reader(report: ReportSnapshot) -> html.Div:
+    identity = html.Dl(
+        [
+            _compact_fact("报告身份", report.report_snapshot_id),
+            _compact_fact("投影身份", report.projection_set_id),
+            _compact_fact("正式阶段", _stage_label(report.current_stage)),
+            _compact_fact("截止点", report.report_cutoff.isoformat()),
+        ],
+        className="compact-facts",
+    )
+    if not report.body_retained:
+        return html.Div(
+            [identity, _empty_state("正文已不在保留期", "结构化身份与证据包清单仍长期保留。")],
+            className="report-reader",
+        )
+    body = report.body
+    sections = body.get("ai_explanation")
+    if isinstance(sections, list):
+        content = [
+            html.Section(
+                [
+                    html.H3(str(section.get("title") or "未命名章节")),
+                    html.P(str(section.get("explanation") or ""), className="body-copy"),
+                    html.P(
+                        "证据 "
+                        + "、".join(str(item) for item in section.get("evidence_ids", [])),
+                        className="secondary-copy",
+                    ),
+                    html.P(
+                        "治理引用 "
+                        + "、".join(str(item) for item in section.get("governance_refs", [])),
+                        className="secondary-copy",
+                    ),
+                ],
+                className="report-section",
+            )
+            for section in sections
+            if isinstance(section, dict)
+        ]
+    else:
+        content = [
+            _report_fact_section("三核心", body.get("core_states")),
+            _report_fact_section("转折观察", body.get("transition_watch")),
+            _report_fact_section("宏观事后确认", body.get("macro_confirmation")),
+            _report_fact_section("政策与信用", body.get("policy_context")),
+            _report_fact_section("库存解释", body.get("inventory_context")),
+            _report_fact_section("物价传导", body.get("price_context")),
+            _report_fact_section("变化原因", body.get("change_reasons")),
+            _report_fact_section("支持证据", body.get("support")),
+            _report_fact_section("反证", body.get("counterevidence")),
+            _report_fact_section("数据缺口", body.get("governance_gaps")),
+            _report_fact_section("绑定引用", body.get("evidence_references")),
+        ]
+    return html.Div([identity, *content], className="report-reader")
+
+
+def _report_fact_section(title: str, value: object) -> html.Section:
+    return html.Section(
+        [html.H3(title), html.P(_display_value(value), className="body-copy")],
+        className="report-section",
+    )
+
+
 def _run_row(item: RunRecord) -> html.Li:
     attempt_summary = "；".join(
         _retrieval_attempt_summary(attempt) for attempt in item.retrieval_attempts
@@ -986,13 +1110,37 @@ def _run_row(item: RunRecord) -> html.Li:
     )
     if attempt_summary:
         details += f" · 检索 {attempt_summary}"
+    actions: list[html.Button] = []
+    if item.status in {"interrupted", "action_required"} and item.recoverable:
+        actions.append(
+            html.Button(
+                "确认并继续",
+                className="quiet-button run-action",
+                type="button",
+                **cast(Any, {"data-run-action": "resume", "data-run-id": item.run_id}),
+            )
+        )
+    if item.status in {"queued", "running"}:
+        actions.append(
+            html.Button(
+                "取消后续步骤",
+                className="quiet-button run-action",
+                type="button",
+                **cast(Any, {"data-run-action": "cancel", "data-run-id": item.run_id}),
+            )
+        )
     return html.Li(
         [
             html.Strong(f"{item.target_business_date} · {item.status}"),
             html.Span(details, className="secondary-copy"),
+            *actions,
         ],
         className="record-row",
     )
+
+
+def _poll_interval_ms(runs: Sequence[RunRecord]) -> int:
+    return 30_000 if any(item.status in {"queued", "running"} for item in runs) else 300_000
 
 
 def _retrieval_attempt_summary(attempt: dict[str, object]) -> str:

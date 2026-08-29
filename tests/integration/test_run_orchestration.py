@@ -152,6 +152,27 @@ def test_after_close_schedule_is_versioned_and_disabled_by_default(tmp_path: Pat
     assert runs.startup_actions() == {"automatic_runs": 0, "external_requests": 0}
 
 
+def test_explicit_manual_run_is_queued_ahead_of_an_unstarted_schedule(
+    tmp_path: Path,
+) -> None:
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    scheduled = runs.submit_scheduled_full(
+        target_business_date="2026-08-28",
+        client_request_id="scheduled-first",
+        model_version_id="model-v0001",
+        system_as_of=NOW,
+    )
+    manual = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="manual-second",
+        model_version_id="model-v0001",
+        system_as_of=NOW,
+    )
+
+    assert scheduled.run_id != manual.run_id
+    assert runs.next_queued().run_id == manual.run_id  # type: ignore[union-attr]
+
+
 def test_daily_retrieval_budget_counts_only_charged_non_exempt_queries(
     tmp_path: Path,
 ) -> None:

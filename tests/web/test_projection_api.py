@@ -12,8 +12,9 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ANALYTICAL_DATASETS, ProjectionEnvelope, ProjectionSetRepository
+from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.web import create_web_application
+from pring_cycle.web import _persist_command, create_web_application
 
 
 def _route(application: FastAPI, name: str) -> Any:
@@ -179,3 +180,46 @@ def test_evidence_trace_rest_resolves_derived_formula_lineage(tmp_path: Path) ->
     assert document["derived_observation_id"] == derived.derived_observation_id
     assert document["formula_version"] == "credit-impulse-rolling-share-v0001"
     assert document["input_observation_version_ids"] == ["claim-a", "claim-b"]
+
+
+def test_report_command_is_bound_to_the_current_projection_at_acceptance(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = ProjectionSetRepository(paths.database)
+    readiness = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=160,
+            latest_business_date="2026-08-28",
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    published = P0ProjectionService(repository).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=readiness,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+
+    accepted = _persist_command(
+        paths,
+        {
+            "command": "report_generation",
+            "target_business_date": "2099-01-01",
+            "client_request_id": "web-report-bound",
+        },
+    )
+
+    run = RunRepository(paths.database).get(str(accepted["run_id"]))
+    assert run.target_business_date == "2026-08-28"
+    assert run.projection_set_id == published.projection_set_id
+    assert accepted["target_projection_set_id"] == published.projection_set_id

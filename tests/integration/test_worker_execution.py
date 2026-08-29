@@ -224,6 +224,144 @@ def test_report_command_reads_the_published_projection_and_never_rewrites_it(
     assert reports[0].status == "completed_degraded"
 
 
+def test_resumed_run_reuses_its_published_projection_without_external_refresh(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = runtime(tmp_path)
+    projections = ProjectionSetRepository(paths.database)
+    readiness = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=160,
+            latest_business_date="2026-08-28",
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    published = P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=readiness,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+    assert published.projection_set_id is not None
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="worker-resume-projection",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+    runs.link_projection(submitted.run_id, published.projection_set_id)
+    runs.mark_interrupted(submitted.run_id, "fixture_after_projection_publish")
+    runs.resume(
+        submitted.run_id,
+        client_request_id="worker-resume-projection-confirmed",
+        confirm_external_calls=True,
+    )
+
+    def unexpected_refresh(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("published_projection_must_skip_external_refresh")
+
+    monkeypatch.setattr(worker_module, "_refresh_core_sources", unexpected_refresh)
+    monkeypatch.setattr(worker_module, "_refresh_context_sources", unexpected_refresh)
+
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(submitted.run_id)
+    reports = ReportRepository(paths.database).history()
+    assert stored.status == "completed"
+    assert stored.projection_set_id == published.projection_set_id
+    assert reports[0].projection_set_id == published.projection_set_id
+
+
+def test_report_run_reads_its_bound_projection_when_current_pointer_advances(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    projections = ProjectionSetRepository(paths.database)
+
+    def publish(target: str, commodity: CoreAssetState) -> str:
+        readiness = tuple(
+            CoreAssetReadiness(
+                asset=asset,
+                metric_id=metric_id,
+                state=state,
+                reason="validated",
+                observation_count=160,
+                latest_business_date=target,
+            )
+            for asset, metric_id, state in (
+                ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+                ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+                ("commodity", "CN_COMMODITY_CORE_NHII", commodity),
+            )
+        )
+        result = P0ProjectionService(projections).publish(
+            target_business_date=target,
+            system_as_of=datetime.fromisoformat(f"{target}T13:00:00+00:00"),
+            assets=readiness,  # type: ignore[arg-type]
+            last_confirmed_stage=None,
+        )
+        assert result.projection_set_id is not None
+        return result.projection_set_id
+
+    bound_projection_id = publish("2026-08-27", CoreAssetState.BEAR)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit(
+        command_type="report_generation",
+        target_business_date="2026-08-27",
+        client_request_id="bound-report-projection",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 27, 13, 5, tzinfo=UTC),
+    )
+    runs.link_projection(submitted.run_id, bound_projection_id)
+    current_projection_id = publish("2026-08-28", CoreAssetState.BULL)
+
+    process_pending_run(paths, report_adapters=())
+
+    report = ReportRepository(paths.database).history()[0]
+    assert report.projection_set_id == bound_projection_id
+    assert report.projection_set_id != current_projection_id
+    assert report.target_business_date == "2026-08-27"
+
+
+def test_scheduled_run_past_the_p0_deadline_makes_no_external_call(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = runtime(tmp_path)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_scheduled_full(
+        target_business_date="2026-08-28",
+        client_request_id="scheduled-deadline-fixture",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 10, 30, tzinfo=UTC),
+    )
+
+    def unexpected_refresh(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("expired_schedule_must_not_refresh")
+
+    monkeypatch.setattr(worker_module, "_refresh_core_sources", unexpected_refresh)
+
+    process_pending_run(
+        paths,
+        report_adapters=(),
+        execution_now=datetime(2026, 8, 28, 13, 1, tzinfo=UTC),
+    )
+
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "action_required"
+    assert stored.error_classification == "scheduled_p0_deadline_elapsed"
+
+
 def test_enabled_schedule_only_runs_when_a_live_worker_crosses_1830_shanghai(
     tmp_path: Path,
 ) -> None:

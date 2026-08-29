@@ -249,7 +249,7 @@ class ProjectionSetRepository:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT projection_set.projection_set_id, projection_set.envelope_json
+                SELECT projection_set.projection_set_id
                 FROM current_projection
                 JOIN projection_set USING (projection_set_id)
                 WHERE singleton = 1
@@ -257,12 +257,25 @@ class ProjectionSetRepository:
             ).fetchone()
             if row is None:
                 raise LookupError("current_projection_unavailable")
+        return self.get(str(row["projection_set_id"]))
+
+    def get(self, projection_set_id: str) -> ProjectionSet:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT projection_set_id, envelope_json FROM projection_set
+                WHERE projection_set_id = ?
+                """,
+                (projection_set_id,),
+            ).fetchone()
+            if row is None:
+                raise LookupError("projection_set_not_found")
             dataset_rows = connection.execute(
                 """
                 SELECT dataset_name, document_json FROM analytical_dataset
                 WHERE projection_set_id = ?
                 """,
-                (row["projection_set_id"],),
+                (projection_set_id,),
             ).fetchall()
         document = json.loads(str(row["envelope_json"]))
         envelope = ProjectionEnvelope(

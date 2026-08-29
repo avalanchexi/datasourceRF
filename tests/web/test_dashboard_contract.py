@@ -5,8 +5,14 @@ from pathlib import Path
 
 from dash.development.base_component import Component
 
-from pring_cycle.dashboard import DASHBOARD_NAVIGATION, dashboard_page, dashboard_shell
+from pring_cycle.dashboard import (
+    DASHBOARD_NAVIGATION,
+    _poll_interval_ms,
+    dashboard_page,
+    dashboard_shell,
+)
 from pring_cycle.projections import ProjectionEnvelope, ProjectionSet
+from pring_cycle.reports import ReportSnapshot
 from pring_cycle.runs import RunRepository
 
 
@@ -45,6 +51,48 @@ def test_report_workspace_has_generation_history_and_reading_areas() -> None:
     report = _text(dashboard_page("/reports", None, (), ()))
 
     assert all(label in report for label in ("生成", "历史", "阅读"))
+
+
+def test_report_workspace_renders_immutable_metadata_and_selected_body() -> None:
+    cutoff = datetime(2026, 8, 28, 13, tzinfo=UTC)
+    snapshot = ReportSnapshot(
+        report_snapshot_id="report-fixture",
+        projection_set_id="projection-fixture",
+        target_business_date="2026-08-28",
+        version=2,
+        status="completed",
+        adapter="codex_cli",
+        current_stage="stage_ii",
+        bundle_id="bundle-fixture",
+        bundle_hash="abc123",
+        model_version_id="model-v0001",
+        schema_version="report-schema-v0001",
+        prompt_version="report-prompt-v0001",
+        report_cutoff=cutoff,
+        system_as_of=cutoff,
+        created_at=cutoff,
+        duration_ms=1250,
+        body_retained=True,
+        body={
+            "ai_explanation": [
+                {
+                    "title": "政策传导",
+                    "explanation": "政策证据只解释，不改变正式阶段。",
+                    "evidence_ids": ["observation-policy"],
+                    "governance_refs": ["ADR-0003"],
+                }
+            ]
+        },
+    )
+
+    report = _text(dashboard_page("/reports", None, (), (snapshot,)))
+
+    assert "截止 2026-08-28T13:00:00+00:00" in report
+    assert "耗时 1250ms" in report
+    assert "证据包 abc123" in report
+    assert "报告身份 report-fixture" in report
+    assert "政策证据只解释，不改变正式阶段。" in report
+    assert "证据 observation-policy" in report
 
 
 def test_dashboard_shell_exposes_projection_identity_and_evidence_drawer() -> None:
@@ -326,3 +374,22 @@ def test_run_page_shows_retrieval_latency_budget_cache_and_next_action(tmp_path:
     assert "预算 Tavily 1/8、Exa 0/4、AI 0/1" in page
     assert "下一动作 wait_for_worker" in page
     assert "safe-url-only" not in page
+
+
+def test_run_page_exposes_safe_actions_and_adaptive_polling(tmp_path: Path) -> None:
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="dashboard-run-actions",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+
+    queued = runs.list_runs()
+    assert _poll_interval_ms(queued) == 30_000
+    assert "取消后续步骤" in _text(dashboard_page("/runs", None, queued, ()))
+
+    runs.mark_interrupted(submitted.run_id, "fixture_worker_lost")
+    interrupted = runs.list_runs()
+    assert _poll_interval_ms(interrupted) == 300_000
+    assert "确认并继续" in _text(dashboard_page("/runs", None, interrupted, ()))

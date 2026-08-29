@@ -214,16 +214,26 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
         _reports(paths),
     )
 
-    @dashboard.callback(Output("page-content", "children"), Input("dashboard-location", "pathname"))
-    def route_dashboard(pathname: str | None) -> object:
-        return dashboard_page(
+    @dashboard.callback(
+        Output("page-content", "children"),
+        Output("runtime-poll", "interval"),
+        Input("dashboard-location", "pathname"),
+        Input("runtime-poll", "n_intervals"),
+    )
+    def route_dashboard(pathname: str | None, _n_intervals: int) -> tuple[object, int]:
+        runs = _runs(paths)
+        page = dashboard_page(
             pathname,
             _current_projection(paths),
-            _runs(paths),
+            runs,
             _reports(paths),
             _stage_history(paths),
             _release_calendar_events(paths),
         )
+        interval = 30_000 if any(
+            item.status in {"queued", "running"} for item in runs
+        ) else 300_000
+        return page, interval
 
     return server
 
@@ -347,6 +357,17 @@ async def _command_payload(
 
 def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[str, object]:
     command = str(payload["command"])
+    public_commands = {
+        "manual_full",
+        "targeted_refresh",
+        "manual_deep_search",
+        "report_generation",
+        "resume",
+        "cancel",
+        "data_gap_notice",
+    }
+    if command not in public_commands:
+        raise ValueError("unsupported_public_command")
     rejection = mutation_rejection(
         paths.database,
         paths.data,
@@ -368,6 +389,17 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
         )
     elif command == "cancel":
         run = repository.cancel(str(payload["run_id"]))
+    elif command == "report_generation":
+        projection = ProjectionSetRepository(paths.database).current()
+        run = repository.submit(
+            command_type=command,
+            target_business_date=projection.envelope.target_business_date,
+            client_request_id=str(payload["client_request_id"]),
+            model_version_id=projection.envelope.model_version_id,
+            system_as_of=datetime.now(UTC),
+        )
+        repository.link_projection(run.run_id, projection.envelope.projection_set_id)
+        run = repository.get(run.run_id)
     else:
         model_version_id = str(payload.get("model_version_id") or _default_model(paths))
         metric_values = payload.get("metric_ids", ())

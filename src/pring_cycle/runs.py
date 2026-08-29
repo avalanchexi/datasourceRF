@@ -99,6 +99,22 @@ class RunRepository:
             system_as_of=system_as_of,
         )
 
+    def submit_scheduled_full(
+        self,
+        *,
+        target_business_date: str,
+        client_request_id: str,
+        model_version_id: str,
+        system_as_of: datetime,
+    ) -> RunRecord:
+        return self.submit(
+            command_type="scheduled_full",
+            target_business_date=target_business_date,
+            client_request_id=client_request_id,
+            model_version_id=model_version_id,
+            system_as_of=system_as_of,
+        )
+
     def submit(
         self,
         *,
@@ -114,6 +130,7 @@ class RunRepository:
     ) -> RunRecord:
         allowed_commands = {
             "manual_full",
+            "scheduled_full",
             "targeted_refresh",
             "manual_deep_search",
             "report_generation",
@@ -280,7 +297,17 @@ class RunRepository:
                            AS attempt_count
                 FROM parent_run
                 WHERE status='queued'
-                ORDER BY accepted_at, run_id
+                ORDER BY
+                    CASE command_type
+                        WHEN 'manual_full' THEN 0
+                        WHEN 'report_generation' THEN 1
+                        WHEN 'targeted_refresh' THEN 1
+                        WHEN 'manual_deep_search' THEN 1
+                        WHEN 'scheduled_full' THEN 2
+                        ELSE 3
+                    END,
+                    accepted_at,
+                    run_id
                 LIMIT 1
                 """
             ).fetchone()

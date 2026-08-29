@@ -39,21 +39,50 @@
       applyTheme(next);
       return;
     }
+    const runAction = target.closest("[data-run-action]");
+    if (runAction) {
+      const command = runAction.getAttribute("data-run-action");
+      const runId = runAction.getAttribute("data-run-id");
+      if (!command || !runId) return;
+      if (
+        command === "resume" &&
+        !window.confirm("继续会恢复该运行，并允许尚未完成的外部调用。是否继续？")
+      ) {
+        return;
+      }
+      submitCommand({
+        command: command,
+        run_id: runId,
+        confirm_external_calls: command === "resume",
+      });
+      return;
+    }
     const command = target.closest("#manual-run-command")
       ? "manual_full"
       : target.closest("#generate-report-command")
         ? "report_generation"
         : null;
     if (!command) return;
+    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
+    const targetInput = document.querySelector("#manual-run-target input");
+    const targetDate =
+      command === "manual_full" && targetInput instanceof HTMLInputElement
+        ? targetInput.value
+        : today;
+    submitCommand({
+      command: command,
+      target_business_date: targetDate,
+    });
+  });
+
+  function submitCommand(fields) {
     const feedback = document.querySelector("#command-feedback");
     if (feedback) feedback.textContent = "正在持久化命令…";
-    const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
     fetch("/api/v1/commands", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        command: command,
-        target_business_date: today,
+        ...fields,
         client_request_id: crypto.randomUUID(),
       }),
     })
@@ -65,5 +94,5 @@
       .catch(function (error) {
         if (feedback) feedback.textContent = `命令未提交：${error.message}`;
       });
-  });
+  }
 })();

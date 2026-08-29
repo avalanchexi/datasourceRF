@@ -194,9 +194,18 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
         last_confirmed_stage=None,
     )
 
-    evidence_ids = evidence_bundle_from_projection(projections.current()).allowed_evidence_ids
+    report_bundle = evidence_bundle_from_projection(projections.current())
+    evidence_ids = report_bundle.allowed_evidence_ids
 
     assert evidence_ids == ("version-bond", "version-commodity", "version-stock")
+    assert set(report_bundle.structured_context) == {
+        "transition_watch",
+        "macro_confirmation",
+        "policy_context",
+        "inventory_context",
+        "price_context",
+        "change_reasons",
+    }
 
 
 def test_cancellation_after_an_adapter_returns_prevents_report_publication(

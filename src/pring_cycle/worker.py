@@ -5,7 +5,7 @@ import os
 import signal
 import threading
 from collections.abc import Callable, Mapping
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from pring_cycle.context_projection import build_context_projection
@@ -114,7 +114,7 @@ def submit_schedule_if_crossed(
         model_version_id = ModelRepository(paths.database).active().model_version_id
     except LookupError:
         return None
-    run = repository.submit_manual_full(
+    run = repository.submit_scheduled_full(
         target_business_date=observed_local.date().isoformat(),
         client_request_id=(
             f"scheduled-{observed_local.date().isoformat()}-v{schedule['version']}"
@@ -136,6 +136,7 @@ def process_pending_run(
     | None = None,
     retrieval_now: datetime | None = None,
     retrieval_release_resolver: Callable[[RetrievalScope, datetime], bool] | None = None,
+    execution_now: datetime | None = None,
 ) -> str | None:
     if mutation_rejection(paths.database, paths.data) is not None:
         return None
@@ -162,6 +163,7 @@ def process_pending_run(
             retrieval_adapters=retrieval_adapters,
             retrieval_now=retrieval_now,
             retrieval_release_resolver=retrieval_release_resolver,
+            execution_now=execution_now,
         )
     except (LookupError, OSError, TypeError, ValueError) as error:
         if runs.get(queued.run_id).status != "cancelled":
@@ -189,6 +191,7 @@ def _execute_run(
     | None,
     retrieval_now: datetime | None,
     retrieval_release_resolver: Callable[[RetrievalScope, datetime], bool] | None,
+    execution_now: datetime | None,
 ) -> None:
     if run.command_type != "report_generation":
         try:
@@ -200,9 +203,47 @@ def _execute_run(
             runs.mark_action_required(run.run_id, "model_version_not_active")
             return
     runs.advance(run.run_id, "preflight")
-    if run.command_type == "report_generation":
+    checkpoints = {
+        item["kind"]: item["reference"]
+        for item in runs.reusable_checkpoints(run.run_id)
+    }
+    if report_snapshot_id := checkpoints.get("report_snapshot"):
+        snapshot = ReportRepository(paths.database).get(report_snapshot_id)
+        if (
+            run.projection_set_id is None
+            or snapshot.projection_set_id != run.projection_set_id
+        ):
+            raise ValueError("report_checkpoint_projection_mismatch")
+        runs.advance(run.run_id, "completed")
+        return
+    if projection_set_id := checkpoints.get("published_projection"):
+        if run.projection_set_id != projection_set_id:
+            raise ValueError("projection_checkpoint_identity_mismatch")
+        _validate_bound_projection(paths, run, projection_set_id)
         runs.advance(run.run_id, "generating_report")
-        _generate_report(paths, runs, run, report_adapters)
+        generated = _generate_report(paths, runs, run, report_adapters)
+        runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)
+        runs.advance(run.run_id, "completed")
+        return
+    observed_at = execution_now or datetime.now(UTC)
+    if observed_at.tzinfo is None:
+        raise ValueError("execution_now_must_be_timezone_aware")
+    if run.command_type == "scheduled_full" and _scheduled_p0_deadline_elapsed(
+        runs,
+        run,
+        observed_at=observed_at,
+    ):
+        runs.mark_action_required(run.run_id, "scheduled_p0_deadline_elapsed")
+        return
+    if run.command_type == "report_generation":
+        if run.projection_set_id is None:
+            projection = ProjectionSetRepository(paths.database).current()
+            _validate_projection_for_run(run, projection)
+            runs.link_projection(run.run_id, projection.envelope.projection_set_id)
+            run = runs.get(run.run_id)
+        runs.advance(run.run_id, "generating_report")
+        generated = _generate_report(paths, runs, run, report_adapters)
+        runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)
         runs.advance(run.run_id, "completed")
         return
     if run.command_type in {"targeted_refresh", "manual_deep_search"}:
@@ -217,9 +258,9 @@ def _execute_run(
         return
 
     runs.advance(run.run_id, "refreshing_evidence")
-    _refresh_core_sources(paths, run.target_business_date)
-    _refresh_context_sources(paths, run.target_business_date)
-    if run.attempt_count == 1:
+    if "verified_evidence" not in checkpoints:
+        _refresh_core_sources(paths, run.target_business_date)
+        _refresh_context_sources(paths, run.target_business_date)
         run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
     else:
         run = runs.get(run.run_id)
@@ -251,6 +292,12 @@ def _execute_run(
             mode=AsOfMode.SYSTEM,
             as_of=run.system_as_of,
         ).evidence_snapshot_id
+        runs.record_checkpoint(
+            run.run_id,
+            "verified_evidence",
+            evidence_snapshot_id,
+            verified=True,
+        )
     if ModelRepository(paths.database).active().model_version_id != run.model_version_id:
         runs.mark_action_required(run.run_id, "active_model_changed_during_run")
         return
@@ -279,6 +326,7 @@ def _execute_run(
         runs.mark_action_required(run.run_id, "p0_unavailable")
         return
     runs.link_projection(run.run_id, result.projection_set_id)
+    run = runs.get(run.run_id)
     ModelRepository(paths.database).record_first_publication(
         run.model_version_id,
         run.target_business_date,
@@ -758,6 +806,23 @@ def _refresh_context_sources(paths: RuntimePaths, target_business_date: str) -> 
                 )
 
 
+def _scheduled_p0_deadline_elapsed(
+    runs: RunRepository,
+    run: RunRecord,
+    *,
+    observed_at: datetime,
+) -> bool:
+    schedule = runs.schedule()
+    timezone = ZoneInfo(str(schedule["timezone"]))
+    hour, minute = (int(value) for value in str(schedule["p0_deadline"]).split(":"))
+    deadline = datetime.combine(
+        date.fromisoformat(run.target_business_date),
+        time(hour, minute),
+        timezone,
+    )
+    return observed_at.astimezone(timezone) > deadline
+
+
 def _refresh_core_sources(paths: RuntimePaths, target_business_date: str) -> None:
     secrets = parse_data_source_secrets(paths.secrets)
     token = secrets.get("TUSHARE_TOKEN")
@@ -853,7 +918,10 @@ def _generate_report(
     run: RunRecord,
     report_adapters: tuple[ReportAdapter, ...] | None,
 ) -> str:
-    projection = ProjectionSetRepository(paths.database).current()
+    if run.projection_set_id is None:
+        raise ValueError("report_projection_not_bound")
+    projection = ProjectionSetRepository(paths.database).get(run.projection_set_id)
+    _validate_projection_for_run(run, projection)
 
     def cancel_requested() -> bool:
         return runs.get(run.run_id).status == "cancelled"
@@ -872,6 +940,26 @@ def _generate_report(
         cancel_requested=cancel_requested,
     )
     return generated.report_snapshot_id
+
+
+def _validate_bound_projection(
+    paths: RuntimePaths,
+    run: RunRecord,
+    projection_set_id: str,
+) -> None:
+    projection = ProjectionSetRepository(paths.database).get(projection_set_id)
+    _validate_projection_for_run(run, projection)
+
+
+def _validate_projection_for_run(run: RunRecord, projection: object) -> None:
+    from pring_cycle.projections import ProjectionSet
+
+    if not isinstance(projection, ProjectionSet):
+        raise TypeError("projection_set_required")
+    if projection.envelope.target_business_date != run.target_business_date:
+        raise ValueError("report_projection_target_mismatch")
+    if projection.envelope.model_version_id != run.model_version_id:
+        raise ValueError("report_projection_model_mismatch")
 
 
 def _lease_heartbeat(
