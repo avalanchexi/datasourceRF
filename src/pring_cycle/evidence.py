@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -164,9 +165,44 @@ class RetrievalAttemptView:
     safe_metadata: dict[str, str]
 
 
+@dataclass(frozen=True)
+class ReleaseEventIdentity:
+    release_event_id: str
+    provider: str
+    release_at: datetime | None
+    public_available_at: datetime | None
+
+
+@dataclass(frozen=True)
+class SourceClaimRevision:
+    claim_id: str
+    observation_id: str
+    supersedes_claim_id: str | None
+    value: float | None
+    value_state: EvidenceValueState
+    unit: str
+    release_event_id: str
+    release_at: datetime | None
+    public_available_at: datetime | None
+
+
+@dataclass(frozen=True)
+class SourceClaimVintage:
+    claim_id: str
+    period_start: str
+    period_end: str
+    public_available_at: datetime | None
+    certification_status: str
+    quality_status: str
+
+
 class EvidenceRepository:
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
+        self._preloaded_series_rows: dict[
+            tuple[str, str, AsOfMode],
+            tuple[tuple[float, ...], tuple[sqlite3.Row, ...]],
+        ] = {}
 
     @classmethod
     def create(cls, database_path: Path) -> EvidenceRepository:
@@ -190,11 +226,68 @@ class EvidenceRepository:
         with self._connect() as connection:
             for claim in claims:
                 stored.append(_append_source_claim(connection, claim))
+        self._preloaded_series_rows.clear()
         return tuple(stored)
 
+    def preload_metric_series(
+        self,
+        metric_versions: set[tuple[str, str]],
+    ) -> None:
+        if not metric_versions:
+            return
+        ordered = sorted(metric_versions)
+        clauses = " OR ".join("(metric_id=? AND definition_version=?)" for _ in ordered)
+        parameters = tuple(value for pair in ordered for value in pair)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"SELECT * FROM source_claim WHERE {clauses}",
+                parameters,
+            ).fetchall()
+        grouped: dict[tuple[str, str], list[sqlite3.Row]] = {
+            pair: [] for pair in ordered
+        }
+        for row in rows:
+            grouped[(str(row["metric_id"]), str(row["definition_version"]))].append(row)
+        for pair, pair_rows in grouped.items():
+            for mode, time_column in (
+                (AsOfMode.PUBLIC, "public_available_at"),
+                (AsOfMode.SYSTEM, "available_at"),
+            ):
+                visible_rows = [row for row in pair_rows if row[time_column] is not None]
+                visible_rows.sort(
+                    key=lambda row: (
+                        _required_datetime(row[time_column]).timestamp(),
+                        _required_datetime(row["available_at"]).timestamp(),
+                        str(row["claim_id"]),
+                    )
+                )
+                timestamps = tuple(
+                    _required_datetime(row[time_column]).timestamp()
+                    for row in visible_rows
+                )
+                self._preloaded_series_rows[(*pair, mode)] = (
+                    timestamps,
+                    tuple(visible_rows),
+                )
+
     def release_events(self, *, metric_id: str | None = None) -> tuple[ReleaseEventView, ...]:
-        clause = "WHERE claim.metric_id = ?" if metric_id is not None else ""
-        parameters: tuple[str, ...] = (metric_id,) if metric_id is not None else ()
+        return self.release_events_for_definition(metric_id=metric_id)
+
+    def release_events_for_definition(
+        self,
+        *,
+        metric_id: str | None = None,
+        definition_version: str | None = None,
+    ) -> tuple[ReleaseEventView, ...]:
+        clauses = []
+        parameters: list[str] = []
+        if metric_id is not None:
+            clauses.append("claim.metric_id = ?")
+            parameters.append(metric_id)
+        if definition_version is not None:
+            clauses.append("claim.definition_version = ?")
+            parameters.append(definition_version)
+        clause = "WHERE " + " AND ".join(clauses) if clauses else ""
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
@@ -213,7 +306,7 @@ class EvidenceRepository:
                          event.release_at, event.public_available_at
                 ORDER BY MIN(claim.period_start), event.release_event_id
                 """,
-                parameters,
+                tuple(parameters),
             ).fetchall()
         return tuple(
             ReleaseEventView(
@@ -231,20 +324,164 @@ class EvidenceRepository:
             for row in rows
         )
 
+    def release_event_identity(self, release_event_id: str) -> ReleaseEventIdentity | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT release_event_id, provider, release_at, public_available_at
+                FROM release_event WHERE release_event_id=?
+                """,
+                (release_event_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return ReleaseEventIdentity(
+            release_event_id=str(row["release_event_id"]),
+            provider=str(row["provider"]),
+            release_at=_datetime(row["release_at"]),
+            public_available_at=_datetime(row["public_available_at"]),
+        )
+
+    def latest_source_claim(
+        self,
+        *,
+        metric_id: str,
+        definition_version: str,
+        period_kind: str,
+        period_start: str,
+        period_end: str,
+        dimensions: dict[str, str],
+        provider: str,
+        source_reference: str,
+    ) -> SourceClaimRevision | None:
+        return self.latest_provider_claim(
+            metric_id=metric_id,
+            definition_version=definition_version,
+            period_kind=period_kind,
+            period_start=period_start,
+            period_end=period_end,
+            dimensions=dimensions,
+            provider=provider,
+            source_reference=source_reference,
+        )
+
+    def latest_provider_claim(
+        self,
+        *,
+        metric_id: str,
+        period_kind: str,
+        period_start: str,
+        period_end: str,
+        dimensions: dict[str, str],
+        provider: str,
+        definition_version: str | None = None,
+        source_reference: str | None = None,
+    ) -> SourceClaimRevision | None:
+        clauses = [
+            "metric_id=?",
+            "period_kind=?",
+            "period_start=?",
+            "period_end=?",
+            "dimensions_json=?",
+            "provider=?",
+        ]
+        parameters = [
+            metric_id,
+            period_kind,
+            period_start,
+            period_end,
+            json.dumps(dimensions, ensure_ascii=False, sort_keys=True),
+            provider,
+        ]
+        if definition_version is not None:
+            clauses.append("definition_version=?")
+            parameters.append(definition_version)
+        if source_reference is not None:
+            clauses.append("source_reference=?")
+            parameters.append(source_reference)
+        with self._connect() as connection:
+            row = connection.execute(
+                f"""
+                SELECT claim_id, observation_id, supersedes_claim_id, value,
+                       value_state, unit, release_event_id, release_at,
+                       public_available_at
+                FROM source_claim
+                WHERE {' AND '.join(clauses)}
+                ORDER BY julianday(available_at) DESC, rowid DESC LIMIT 1
+                """,
+                tuple(parameters),
+            ).fetchone()
+        if row is None:
+            return None
+        return SourceClaimRevision(
+            claim_id=str(row["claim_id"]),
+            observation_id=str(row["observation_id"]),
+            supersedes_claim_id=(
+                str(row["supersedes_claim_id"])
+                if row["supersedes_claim_id"] is not None
+                else None
+            ),
+            value=float(row["value"]) if row["value"] is not None else None,
+            value_state=EvidenceValueState(str(row["value_state"])),
+            unit=str(row["unit"]),
+            release_event_id=str(row["release_event_id"]),
+            release_at=_datetime(row["release_at"]),
+            public_available_at=_datetime(row["public_available_at"]),
+        )
+
+    def source_claim_vintages(
+        self,
+        metric_id: str,
+        *,
+        definition_version: str,
+    ) -> tuple[SourceClaimVintage, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT claim_id, period_start, period_end, public_available_at,
+                       certification_status, quality_status
+                FROM source_claim
+                WHERE metric_id=? AND definition_version=?
+                ORDER BY julianday(public_available_at), rowid
+                """,
+                (metric_id, definition_version),
+            ).fetchall()
+        return tuple(
+            SourceClaimVintage(
+                claim_id=str(row["claim_id"]),
+                period_start=str(row["period_start"]),
+                period_end=str(row["period_end"]),
+                public_available_at=_datetime(row["public_available_at"]),
+                certification_status=str(row["certification_status"]),
+                quality_status=str(row["quality_status"]),
+            )
+            for row in rows
+        )
+
     def claims_for_release_source(
         self,
         release_event_id: str,
         source_reference: str,
+        *,
+        definition_version: str | None = None,
     ) -> tuple[StoredSourceClaim, ...]:
+        definition_clause = (
+            " AND definition_version=?" if definition_version is not None else ""
+        )
+        parameters = (
+            (release_event_id, source_reference, definition_version)
+            if definition_version is not None
+            else (release_event_id, source_reference)
+        )
         with self._connect() as connection:
             rows = connection.execute(
-                """
+                f"""
                 SELECT claim_id, observation_id, supersedes_claim_id
                 FROM source_claim
-                WHERE release_event_id=? AND source_reference=?
-                ORDER BY observation_id, claim_id
+                WHERE release_event_id=? AND source_reference=?{definition_clause}
+                ORDER BY rowid
                 """,
-                (release_event_id, source_reference),
+                parameters,
             ).fetchall()
         return tuple(
             StoredSourceClaim(
@@ -319,42 +556,12 @@ class EvidenceRepository:
                 """,
                 (observation_id, _iso(as_of)),
             ).fetchall()
-        newest_by_provider: dict[str, sqlite3.Row] = {}
-        for row in rows:
-            newest_by_provider[str(row["provider"])] = row
-        claims = tuple(_claim_view(row) for row in newest_by_provider.values())
-        if not claims:
-            return EvidenceQueryResult(
-                observation_id,
-                mode,
-                as_of,
-                "unavailable",
-                None,
-                None,
-                None,
-                (),
-            )
-        selected = sorted(
-            claims,
-            key=lambda item: (item.certification_status != "certified", item.provider),
-        )[0]
-        reported_values = [
-            item.value
-            for item in claims
-            if item.value_state is EvidenceValueState.REPORTED_VALUE and item.value is not None
-        ]
-        conflicted = bool(reported_values) and (
-            max(reported_values) - min(reported_values) > tolerance
-        )
-        return EvidenceQueryResult(
-            observation_id=observation_id,
+        return _select_claim_rows(
+            observation_id,
+            rows,
             mode=mode,
             as_of=as_of,
-            selection_status="conflicted" if conflicted else "selected",
-            selected_claim_id=selected.claim_id,
-            selected_value=selected.value,
-            value_state=selected.value_state,
-            claims=claims,
+            tolerance=tolerance,
         )
 
     def claim_count(self, observation_id: str) -> int:
@@ -372,28 +579,61 @@ class EvidenceRepository:
         mode: AsOfMode,
         as_of: datetime,
         tolerance: float = 0.0,
+        definition_version: str | None = None,
     ) -> tuple[MetricSeriesPoint, ...]:
-        with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT observation_id, period_start, period_end, dimensions_json
-                FROM source_claim
-                WHERE metric_id=?
-                GROUP BY observation_id, period_start, period_end, dimensions_json
-                ORDER BY period_end, observation_id
-                """,
-                (metric_id,),
-            ).fetchall()
-        points = []
+        if as_of.tzinfo is None:
+            raise ValueError("as_of_must_be_timezone_aware")
+        definition_clause = (
+            " AND definition_version=?" if definition_version is not None else ""
+        )
+        time_column = {
+            AsOfMode.PUBLIC: "public_available_at",
+            AsOfMode.SYSTEM: "available_at",
+        }[mode]
+        parameters = (
+            (metric_id, definition_version, _iso(as_of))
+            if definition_version is not None
+            else (metric_id, _iso(as_of))
+        )
+        cache_key = (
+            (metric_id, definition_version, mode)
+            if definition_version is not None
+            else None
+        )
+        preloaded = (
+            self._preloaded_series_rows.get(cache_key)
+            if cache_key is not None
+            else None
+        )
+        if preloaded is not None:
+            timestamps, cached_rows = preloaded
+            rows = list(cached_rows[: bisect_right(timestamps, as_of.timestamp())])
+        else:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    f"""
+                    SELECT * FROM source_claim
+                    WHERE metric_id=?{definition_clause}
+                      AND {time_column} IS NOT NULL
+                      AND julianday({time_column}) <= julianday(?)
+                    ORDER BY period_end, observation_id, julianday({time_column}),
+                             julianday(available_at), claim_id
+                    """,
+                    parameters,
+                ).fetchall()
+        rows_by_observation: dict[str, list[sqlite3.Row]] = {}
         for row in rows:
-            result = self.query(
-                str(row["observation_id"]),
+            rows_by_observation.setdefault(str(row["observation_id"]), []).append(row)
+        points = []
+        for observation_id, observation_rows in rows_by_observation.items():
+            result = _select_claim_rows(
+                observation_id,
+                observation_rows,
                 mode=mode,
                 as_of=as_of,
                 tolerance=tolerance,
             )
-            if result.selection_status == "unavailable":
-                continue
+            row = observation_rows[0]
             points.append(
                 MetricSeriesPoint(
                     observation_id=result.observation_id,
@@ -401,7 +641,9 @@ class EvidenceRepository:
                     period_end=str(row["period_end"]),
                     dimensions={
                         str(key): str(value)
-                        for key, value in json.loads(str(row["dimensions_json"])).items()
+                        for key, value in json.loads(
+                            str(row["dimensions_json"])
+                        ).items()
                     },
                     selected_value=result.selected_value,
                     value_state=result.value_state,
@@ -410,8 +652,8 @@ class EvidenceRepository:
                     claims=result.claims,
                 )
             )
+        points.sort(key=lambda point: (point.period_end, point.observation_id))
         return tuple(points)
-
     def trace(
         self,
         observation_id: str,
@@ -619,8 +861,58 @@ class EvidenceRepository:
         return connection
 
 
+def _select_claim_rows(
+    observation_id: str,
+    rows: list[sqlite3.Row],
+    *,
+    mode: AsOfMode,
+    as_of: datetime,
+    tolerance: float,
+) -> EvidenceQueryResult:
+    newest_by_provider: dict[str, sqlite3.Row] = {}
+    for row in rows:
+        newest_by_provider[str(row["provider"])] = row
+    claims = tuple(_claim_view(row) for row in newest_by_provider.values())
+    if not claims:
+        return EvidenceQueryResult(
+            observation_id,
+            mode,
+            as_of,
+            "unavailable",
+            None,
+            None,
+            None,
+            (),
+        )
+    selected = sorted(
+        claims,
+        key=lambda item: (item.certification_status != "certified", item.provider),
+    )[0]
+    reported_values = [
+        item.value
+        for item in claims
+        if item.value_state is EvidenceValueState.REPORTED_VALUE and item.value is not None
+    ]
+    conflicted = bool(reported_values) and (
+        max(reported_values) - min(reported_values) > tolerance
+    )
+    return EvidenceQueryResult(
+        observation_id=observation_id,
+        mode=mode,
+        as_of=as_of,
+        selection_status="conflicted" if conflicted else "selected",
+        selected_claim_id=selected.claim_id,
+        selected_value=selected.value,
+        value_state=selected.value_state,
+        claims=claims,
+    )
+
+
 def _validate_claim(claim: SourceClaimInput) -> None:
-    definition = metric_definition(claim.metric_id)
+    definition = metric_definition(
+        claim.metric_id,
+        definition_version=claim.definition_version,
+    )
     if claim.definition_version != definition.definition_version:
         raise ValueError("evidence_definition_version_mismatch")
     allowed_units = definition.allowed_units or (definition.unit,)

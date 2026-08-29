@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 import pring_cycle.worker as worker_module
+from pring_cycle.context_projection import (
+    build_context_projection as actual_build_context_projection,
+)
 from pring_cycle.domain import CoreAssetState
+from pring_cycle.eia_context import EiaSpotPrice
+from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.maintenance import MaintenanceRepository
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
-    certified_model_v0001_manifest,
 )
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -32,8 +37,84 @@ def runtime(tmp_path: Path) -> RuntimePaths:
     return paths
 
 
-def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(tmp_path: Path) -> None:
+def test_context_refresh_ingests_eia_independently_of_tushare(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     paths = runtime(tmp_path)
+    paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")
+    paths.secrets.chmod(0o600)
+
+    class FixtureEiaAdapter:
+        def spot_prices(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[EiaSpotPrice, ...]:
+            assert start_date == date(2026, 7, 14)
+            assert end_date == date(2026, 8, 28)
+            return (
+                EiaSpotPrice(
+                    metric_id="EIA_BRENT_RBRTE",
+                    series_id="RBRTE",
+                    series_description="Europe Brent Spot Price FOB",
+                    business_date=date(2026, 8, 27),
+                    value=71.25,
+                    unit="usd_per_barrel",
+                ),
+                EiaSpotPrice(
+                    metric_id="EIA_WTI_RWTC",
+                    series_id="RWTC",
+                    series_description="Cushing, OK WTI Spot Price FOB",
+                    business_date=date(2026, 8, 27),
+                    value=66.5,
+                    unit="usd_per_barrel",
+                ),
+            )
+
+    monkeypatch.setattr(
+        worker_module,
+        "_eia_context_adapter",
+        lambda api_key: FixtureEiaAdapter() if api_key == "fixture-eia-key" else None,
+    )
+
+    worker_module._refresh_context_sources(
+        paths,
+        "2026-08-28",
+        definition_version="metric-catalog-v0002",
+    )
+
+    repository = EvidenceRepository(paths.database)
+    cutoff = datetime.now(UTC)
+    brent = repository.metric_series(
+        "EIA_BRENT_RBRTE",
+        mode=AsOfMode.SYSTEM,
+        as_of=cutoff,
+    )
+    wti = repository.metric_series(
+        "EIA_WTI_RWTC",
+        mode=AsOfMode.SYSTEM,
+        as_of=cutoff,
+    )
+    assert brent[-1].selected_value == 71.25
+    assert wti[-1].selected_value == 66.5
+    assert brent[-1].claims[0].certification_status == "awaiting_source_certification"
+
+
+def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = runtime(tmp_path)
+    captured_manifest: dict[str, object] = {}
+    def model_bound_context(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
+        manifest = kwargs.get("model_manifest")
+        assert isinstance(manifest, dict)
+        captured_manifest.update(manifest)
+        return actual_build_context_projection(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr("pring_cycle.worker.build_context_projection", model_bound_context)
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date="2026-08-28",
@@ -48,6 +129,11 @@ def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(tmp_path: Pat
     assert runs.get(submitted.run_id).status == "action_required"
     assert runs.get(submitted.run_id).error_classification == "p0_unavailable"
     assert runs.next_queued() is None
+    assert captured_manifest["model_version_id"] == "model-v0001"
+    assert captured_manifest["metric_catalog_version"] == "metric-catalog-v0001"
+    formulas = captured_manifest["derived_formula_versions"]
+    assert isinstance(formulas, dict)
+    assert "omo_net_injection" not in formulas
 
 
 def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failures(
@@ -86,6 +172,65 @@ def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failur
         def money(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
             raise ValueError("fixture_money_source_failed")
 
+        def social_financing(
+            self,
+            *,
+            start_month: str,
+            end_month: str,
+        ) -> tuple[ContextScalar, ...]:
+            assert start_month < end_month == "202608"
+            return (
+                ContextScalar(
+                    metric_id="CN_SF_TOTAL",
+                    api_name="sf_month",
+                    source_field="inc_month",
+                    period_kind="month",
+                    period_start="2026-08-01",
+                    period_end="2026-08-31",
+                    dimensions={"measure": "monthly_increment"},
+                    value=5000.0,
+                    unit="hundred_million_cny",
+                ),
+            )
+
+        def futures_warrants(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+            symbol: str,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError(f"fixture_warrant_source_failed:{symbol}")
+
+        def gdp(
+            self,
+            *,
+            start_quarter: str,
+            end_quarter: str,
+        ) -> tuple[ContextScalar, ...]:
+            assert start_quarter < end_quarter == "2026Q3"
+            return (
+                ContextScalar(
+                    metric_id="CN_GDP",
+                    api_name="cn_gdp",
+                    source_field="gdp",
+                    period_kind="year_to_quarter",
+                    period_start="2026-01-01",
+                    period_end="2026-09-30",
+                    dimensions={"aggregate": "total", "measure": "nominal_ytd_level"},
+                    value=1000000.0,
+                    unit="hundred_million_cny",
+                ),
+            )
+
+        def treasury_yields(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_treasury_source_failed")
+
         def transmission(
             self,
             *,
@@ -109,7 +254,11 @@ def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failur
             ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
         )
     )
-    monkeypatch.setattr(worker_module, "_refresh_core_sources", lambda *_args: None)
+    monkeypatch.setattr(
+        worker_module,
+        "_refresh_core_sources",
+        lambda *_args, **_kwargs: None,
+    )
     monkeypatch.setattr(worker_module, "_core_readiness", lambda *_args, **_kwargs: readiness)
     monkeypatch.setattr(
         worker_module,
@@ -133,19 +282,42 @@ def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failur
         for row in projection.datasets["macro"]["overheat"]["gaps"]
         if row["metric_id"] == "CN_PMI_ACTIVITY"
     )
+    social_financing = next(
+        row
+        for row in projection.datasets["macro"]["credit"]["evidence"]
+        if row["metric_id"] == "CN_SF_TOTAL"
+    )
+    gdp = next(
+        row
+        for row in projection.datasets["macro"]["international_context"]
+        if row["metric_id"] == "CN_GDP"
+    )
     assert stored.status == "completed"
     assert projection.envelope.refresh_status == "completed"
     assert projection.envelope.completeness == "degraded"
     assert pmi["freshness"] == "awaiting_source_certification"
     assert pmi["value"] is None
+    assert social_financing["status"] == "awaiting_source_certification"
+    assert social_financing["value"] is None
+    assert gdp["status"] == "awaiting_source_certification"
+    assert gdp["value"] is None
+    evidence = EvidenceRepository(paths.database)
+    visible_at = datetime.now(UTC)
+    assert evidence.metric_series(
+        "CN_SF_TOTAL",
+        mode=AsOfMode.SYSTEM,
+        as_of=visible_at,
+    )[0].selected_value == 5000.0
+    assert evidence.metric_series(
+        "CN_GDP",
+        mode=AsOfMode.SYSTEM,
+        as_of=visible_at,
+    )[0].selected_value == 1000000.0
     assert "p1_evidence_incomplete" in " ".join(projection.envelope.warnings)
 
 
 def test_worker_rejects_a_formal_run_for_a_candidate_model(tmp_path: Path) -> None:
     paths = runtime(tmp_path)
-    candidate = certified_model_v0001_manifest()
-    candidate["model_version_id"] = "model-v0002"
-    ModelRepository(paths.database).create_candidate(candidate)
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date="2026-08-28",
@@ -431,6 +603,53 @@ def test_targeted_refresh_runs_serial_retrieval_and_persists_auditable_attempts(
     assert runs.reusable_checkpoints(submitted.run_id) == (
         {"kind": "verified_evidence", "reference": "claim:lpr:2026-08"},
     )
+
+
+def test_targeted_official_context_refresh_keeps_uncertified_result_as_candidate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = runtime(tmp_path)
+    runs = RunRepository(paths.database)
+    source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
+    submitted = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-07-09",
+        client_request_id="targeted-core-cpi-candidate",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 7, 9, 2, tzinfo=UTC),
+        release_event_id="nbs-core-cpi:2026-06",
+        metric_ids=("CN_CORE_CPI",),
+        period="2026-06",
+        source_url=source_url,
+    )
+    calls: list[str] = []
+
+    def refresh(*_args: object, **kwargs: object) -> object:
+        calls.append(str(kwargs["family"]))
+        return SimpleNamespace(
+            claim_ids=("candidate-claim",),
+            metric_ids=("CN_CORE_CPI",),
+        )
+
+    monkeypatch.setattr(
+        "pring_cycle.official_context.refresh_official_context_document",
+        refresh,
+    )
+
+    process_pending_run(
+        paths,
+        report_adapters=(),
+        retrieval_now=datetime(2026, 7, 9, 2, tzinfo=UTC),
+    )
+
+    stored = runs.get(submitted.run_id)
+    assert calls == ["nbs_core_cpi"]
+    assert stored.status == "action_required"
+    official = next(item for item in stored.retrieval_attempts if item["channel"] == "official")
+    assert official["outcome"] == "candidate_source"
+    assert official["candidate_source"] == source_url
+    assert runs.reusable_checkpoints(submitted.run_id) == ()
 
 
 def test_unreleased_targeted_refresh_and_active_negative_cache_make_no_calls(

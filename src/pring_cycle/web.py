@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 import json
+import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime
+from html import escape
 from pathlib import Path
 from typing import Any, cast
 
 import uvicorn
-from dash import Dash, Input, Output
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.routing import Mount
 
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
-from pring_cycle.dashboard import dashboard_page, dashboard_shell
+from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import (
     AsOfMode,
     DerivedEvidenceTrace,
@@ -26,6 +28,7 @@ from pring_cycle.health_types import RuntimeHealthDocument
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.models import ModelRepository
+from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.release_calendar import current_lpr_period, lpr_release_calendar
 from pring_cycle.reports import ReportRepository, ReportSnapshot
@@ -40,10 +43,24 @@ from pring_cycle.storage import database_health
 COMMAND_BODY_LIMIT = 4096
 
 
-def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
+def create_web_application(
+    paths: RuntimePaths,
+    port: int,
+    *,
+    eager_dashboard: bool = True,
+) -> FastAPI:
+    dashboard_state: dict[str, object] = {}
+
     @asynccontextmanager
     async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
         write_runtime_event(paths, "web", "web_started")
+        if not eager_dashboard:
+            threading.Thread(
+                target=_load_deferred_dashboard,
+                args=(dashboard_mount, paths, dashboard_state),
+                daemon=True,
+                name="pring-dashboard-loader",
+            ).start()
         try:
             yield
         finally:
@@ -132,6 +149,7 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
                     EvidenceRepository(paths.database),
                     period=period,
                     as_of=as_of,
+                    definition_version=_current_definition_version(paths),
                 )
             ],
             "status": "ok",
@@ -200,42 +218,169 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
             )
         return JSONResponse(status_code=202, content=jsonable_encoder(document))
 
-    dashboard = Dash(
-        __name__,
-        server=cast(Any, server),
-        title="Pring 本机运行状态",
-        assets_folder=str(Path(__file__).with_name("assets")),
-        suppress_callback_exceptions=True,
-        update_title="更新投影视图…",
-    )
-    dashboard.layout = lambda: dashboard_shell(
-        _current_projection(paths),
-        _runs(paths),
-        _reports(paths),
-    )
+    if eager_dashboard:
+        _load_dashboard(server, paths, dashboard_state)
+    else:
+        loading_server = FastAPI()
 
-    @dashboard.callback(
-        Output("page-content", "children"),
-        Output("runtime-poll", "interval"),
-        Input("dashboard-location", "pathname"),
-        Input("runtime-poll", "n_intervals"),
-    )
-    def route_dashboard(pathname: str | None, _n_intervals: int) -> tuple[object, int]:
-        runs = _runs(paths)
-        page = dashboard_page(
-            pathname,
-            _current_projection(paths),
-            runs,
-            _reports(paths),
-            _stage_history(paths),
-            _release_calendar_events(paths),
-        )
-        interval = 30_000 if any(
-            item.status in {"queued", "running"} for item in runs
-        ) else 300_000
-        return page, interval
+        @loading_server.get("/{path:path}", response_class=HTMLResponse)
+        def dashboard_loading(path: str) -> HTMLResponse:
+            del path
+            failure = dashboard_state.get("failure")
+            return HTMLResponse(_initial_dashboard_html(paths, failed=failure is not None))
+
+        dashboard_mount = Mount("/", app=loading_server, name="dashboard")
+        server.router.routes.append(dashboard_mount)
 
     return server
+
+
+def _initial_dashboard_html(paths: RuntimePaths, *, failed: bool) -> str:
+    status = "交互驾驶舱加载失败，请查看本机日志。" if failed else "交互驾驶舱正在加载…"
+    refresh = "" if failed else "<meta http-equiv='refresh' content='1'>"
+    return (
+        "<!doctype html><html lang='zh-CN'><head><meta charset='utf-8'>"
+        f"{refresh}<title>Pring 本机运行状态</title></head><body>"
+        f"{_meaningful_dashboard_shell(paths, status=status)}</body></html>"
+    )
+
+
+def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
+    projection = _current_projection(paths)
+    envelope = projection.envelope if projection is not None else None
+    system_as_of = envelope.system_as_of.isoformat() if envelope is not None else "尚无投影"
+    projection_id = (
+        envelope.projection_set_id if envelope is not None else "等待首次完整运行"
+    )
+    completeness = envelope.completeness if envelope is not None else "不可用"
+    navigation = "".join(
+        f"<a href='{escape(path)}'>{escape(label)}</a>"
+        for path, label in DASHBOARD_NAVIGATION
+    )
+    return (
+        "<header><p>PRING CYCLE</p><h1>周期驾驶舱</h1>"
+        f"<dl><dt>SYSTEM AS OF</dt><dd>{escape(system_as_of)}</dd>"
+        f"<dt>投影身份</dt><dd>{escape(projection_id)}</dd>"
+        f"<dt>完整度</dt><dd>{escape(completeness)}</dd></dl></header>"
+        f"<nav aria-label='一级导航'>{navigation}</nav>"
+        "<main id='page-content' data-pring-meaningful-content='true'>"
+        f"<h2>本机运行状态</h2><p>{escape(status)}</p></main>"
+    )
+
+
+def _dashboard_index_document(
+    paths: RuntimePaths,
+    *,
+    metas: str,
+    title: str,
+    css: str,
+    config: str,
+    scripts: str,
+    app_entry: str,
+    favicon: str,
+    renderer: str,
+) -> str:
+    shell = _meaningful_dashboard_shell(paths, status="交互驾驶舱正在启动…")
+    return (
+        f"<!doctype html><html lang='zh-CN'><head>{metas}"
+        f"<meta charset='utf-8'><title>{title}</title>{favicon}{css}</head><body>"
+        f"<div id='pring-initial-shell'>{shell}</div>{app_entry}"
+        f"<footer>{config}{scripts}{renderer}</footer>"
+        "<script>(function(){var fallback=document.getElementById('pring-initial-shell');"
+        "var root=document.getElementById('react-entry-point');"
+        "if(!fallback||!root||!window.MutationObserver){return;}"
+        "var hide=function(){if(root.querySelector('#page-content')){fallback.hidden=true;}};"
+        "new MutationObserver(hide).observe(root,{childList:true,subtree:true});hide();"
+        "})();</script></body></html>"
+    )
+
+
+def _load_deferred_dashboard(
+    mount: Mount,
+    paths: RuntimePaths,
+    state: dict[str, object],
+) -> None:
+    dashboard_server = FastAPI()
+    _load_dashboard(dashboard_server, paths, state)
+    if "dashboard" in state:
+        mount.app = dashboard_server
+
+
+def _load_dashboard(
+    server: FastAPI,
+    paths: RuntimePaths,
+    state: dict[str, object],
+) -> None:
+    try:
+        from dash import Dash, Input, Output
+
+        from pring_cycle.dashboard import dashboard_page, dashboard_shell
+
+        class MeaningfulDash(Dash):
+            def interpolate_index(
+                self,
+                metas: str = "",
+                title: str = "",
+                css: str = "",
+                config: str = "",
+                scripts: str = "",
+                app_entry: str = "",
+                favicon: str = "",
+                renderer: str = "",
+            ) -> str:
+                return _dashboard_index_document(
+                    paths,
+                    metas=metas,
+                    title=title,
+                    css=css,
+                    config=config,
+                    scripts=scripts,
+                    app_entry=app_entry,
+                    favicon=favicon,
+                    renderer=renderer,
+                )
+
+        dashboard = MeaningfulDash(
+            __name__,
+            server=cast(Any, server),
+            title="Pring 本机运行状态",
+            assets_folder=str(Path(__file__).with_name("assets")),
+            suppress_callback_exceptions=True,
+            update_title="更新投影视图…",
+        )
+        dashboard.layout = lambda: dashboard_shell(
+            _current_projection(paths),
+            _runs(paths),
+            _reports(paths),
+        )
+
+        @dashboard.callback(
+            Output("page-content", "children"),
+            Output("runtime-poll", "interval"),
+            Input("dashboard-location", "pathname"),
+            Input("runtime-poll", "n_intervals"),
+        )
+        def route_dashboard(pathname: str | None, _n_intervals: int) -> tuple[object, int]:
+            runs = _runs(paths)
+            page = dashboard_page(
+                pathname,
+                _current_projection(paths),
+                runs,
+                _reports(paths),
+                _stage_history(paths),
+                _release_calendar_events(paths),
+            )
+            interval = (
+                30_000
+                if any(item.status in {"queued", "running"} for item in runs)
+                else 300_000
+            )
+            return page, interval
+
+        state["dashboard"] = dashboard
+    except Exception as error:  # noqa: BLE001 - preserve API availability on UI failure
+        state["failure"] = type(error).__name__
+        write_runtime_event(paths, "web", "dashboard_load_failed", level="error")
 
 
 def run_web(paths: RuntimePaths, port: int) -> None:
@@ -244,7 +389,7 @@ def run_web(paths: RuntimePaths, port: int) -> None:
     if not 1 <= port <= 65535:
         raise ValueError("invalid_port")
     uvicorn.run(
-        create_web_application(paths, port),
+        create_web_application(paths, port, eager_dashboard=False),
         host="127.0.0.1",
         port=port,
         access_log=False,
@@ -289,10 +434,27 @@ def _release_calendar_events(paths: RuntimePaths) -> tuple[dict[str, object], ..
                 EvidenceRepository(paths.database),
                 period=current_lpr_period(now),
                 as_of=now,
+                definition_version=_current_definition_version(paths),
             )
         )
     except (OSError, ValueError):
         return ()
+
+
+def _current_definition_version(paths: RuntimePaths) -> str:
+    models = ModelRepository(paths.database)
+    projection = _current_projection(paths)
+    try:
+        model_version_id = (
+            projection.envelope.model_version_id
+            if projection is not None
+            else models.active().model_version_id
+        )
+        return ContextProjectionRules.from_manifest(
+            models.manifest(model_version_id)
+        ).metric_catalog_version
+    except (LookupError, ValueError):
+        return METRIC_CATALOG_VERSION
 
 
 def _projection_document(projection: ProjectionSet) -> dict[str, object]:

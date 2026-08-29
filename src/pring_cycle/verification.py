@@ -55,7 +55,7 @@ def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
         cold_start_seconds = time.perf_counter() - process_started
         origin_boundary = _verify_origin_boundary(port)
         rest_p95_ms = _benchmark_http_get(port, "/api/v1/projections/current", 100)
-        dashboard_html_ms = _benchmark_http_get(port, "/", 1)
+        dashboard_html_ms = _benchmark_dashboard_first_content(port)
         combined_rss_bytes = _process_rss_bytes(web.pid) + _process_rss_bytes(worker.pid)
     finally:
         if web is not None:
@@ -223,6 +223,26 @@ def _benchmark_http_get(port: int, path: str, samples: int) -> float:
         durations.append((time.perf_counter() - started) * 1000)
     ordered = sorted(durations)
     return ordered[max(0, int(len(ordered) * 0.95) - 1)]
+
+
+def _benchmark_dashboard_first_content(port: int) -> float:
+    opener = build_opener(ProxyHandler({}))
+    started = time.perf_counter()
+    try:
+        with opener.open(f"http://127.0.0.1:{port}/", timeout=2) as response:
+            document = response.read().decode("utf-8")
+    except (TimeoutError, URLError) as error:
+        raise VerificationError("dashboard_initial_navigation_failed") from error
+    required = (
+        "data-pring-meaningful-content='true'",
+        "周期驾驶舱",
+        "投影身份",
+        "核心资产",
+        "运行状态",
+    )
+    if not all(marker in document for marker in required):
+        raise VerificationError("dashboard_meaningful_content_missing")
+    return (time.perf_counter() - started) * 1000
 
 
 def _process_rss_bytes(process_id: int) -> int:

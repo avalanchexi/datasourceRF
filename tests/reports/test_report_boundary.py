@@ -12,6 +12,7 @@ from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import (
     AdapterResponse,
+    CliReportAdapter,
     EvidenceBundle,
     ReportRepository,
     ReportService,
@@ -151,6 +152,21 @@ def test_two_cli_failures_publish_a_deterministic_fact_skeleton(tmp_path: Path) 
         "commodity": "bear",
     }
     assert len(reports.attempts(result.report_snapshot_id)) == 2
+
+
+def test_cli_process_start_failure_is_classified_as_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("pring_cycle.reports.shutil.which", lambda _name: "/bin/codex")
+
+    def fail_to_start(*_args: object, **_kwargs: object) -> None:
+        raise OSError("fixture process launch failure")
+
+    monkeypatch.setattr("pring_cycle.reports.subprocess.Popen", fail_to_start)
+
+    response = CliReportAdapter("codex_cli").generate(bundle())
+
+    assert response == AdapterResponse.unavailable("process_start_failed")
 
 
 def test_same_day_regeneration_creates_versions_without_overwriting(tmp_path: Path) -> None:

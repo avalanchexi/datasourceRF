@@ -16,6 +16,7 @@ from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     SourceClaimInput,
+    StoredSourceClaim,
 )
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
@@ -160,6 +161,7 @@ def ingest_lpr_document(
     fetched_at: datetime,
     expected_period: str,
     media_type: str = "text/html",
+    definition_version: str = METRIC_CATALOG_VERSION,
 ) -> LprIngestionResult:
     parsed = parse_lpr_announcement(
         content,
@@ -178,37 +180,112 @@ def ingest_lpr_document(
     )
     period_start, period_end = month_bounds(parsed.period)
     source_reference = f"{source_url}#sha256={artifact.content_hash}"
-    claims = tuple(
-        SourceClaimInput(
-            metric_id=CHINAMONEY_METRIC_ID,
-            definition_version=METRIC_CATALOG_VERSION,
-            period_kind="month",
-            period_start=period_start,
-            period_end=period_end,
-            dimensions={"tenor": observation.tenor},
-            value=observation.value,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit="percent",
-            provider=CHINAMONEY_PROVIDER,
-            source_reference=source_reference,
-            release_event_id=parsed.release_event_id,
-            release_at=parsed.release_at,
-            public_available_at=parsed.public_available_at,
-            fetched_at=fetched_at,
-            available_at=fetched_at,
-            certification_status="certified",
-            quality_status="validated",
-        )
-        for observation in parsed.observations
-    )
     repository = EvidenceRepository(paths.database)
     existing = repository.claims_for_release_source(
         parsed.release_event_id,
         source_reference,
+        definition_version=definition_version,
     )
-    if existing and len(existing) != len(claims):
+    if existing and len(existing) != len(parsed.observations):
         raise ValueError("lpr_release_claim_set_incomplete")
-    stored = existing or repository.append_source_claims(claims)
+    release_event_id = parsed.release_event_id
+    if existing:
+        stored = existing
+    else:
+        exact_previous = tuple(
+            repository.latest_provider_claim(
+                metric_id=CHINAMONEY_METRIC_ID,
+                definition_version=definition_version,
+                period_kind="month",
+                period_start=period_start,
+                period_end=period_end,
+                dimensions={"tenor": observation.tenor},
+                provider=CHINAMONEY_PROVIDER,
+            )
+            for observation in parsed.observations
+        )
+        physical_previous = tuple(
+            repository.latest_provider_claim(
+                metric_id=CHINAMONEY_METRIC_ID,
+                period_kind="month",
+                period_start=period_start,
+                period_end=period_end,
+                dimensions={"tenor": observation.tenor},
+                provider=CHINAMONEY_PROVIDER,
+            )
+            for observation in parsed.observations
+        )
+        exact_same = all(
+            previous is not None
+            and previous.value_state is EvidenceValueState.REPORTED_VALUE
+            and previous.value == observation.value
+            and previous.unit == "percent"
+            for previous, observation in zip(
+                exact_previous,
+                parsed.observations,
+                strict=True,
+            )
+        )
+        cross_version_same = all(previous is None for previous in exact_previous) and all(
+            previous is not None
+            and previous.value_state is EvidenceValueState.REPORTED_VALUE
+            and previous.value == observation.value
+            and previous.unit == "percent"
+            for previous, observation in zip(
+                physical_previous,
+                parsed.observations,
+                strict=True,
+            )
+        )
+        if exact_same:
+            stored = tuple(
+                StoredSourceClaim(
+                    previous.claim_id,
+                    previous.observation_id,
+                    previous.supersedes_claim_id,
+                )
+                for previous in exact_previous
+                if previous is not None
+            )
+            release_event_id = exact_previous[0].release_event_id  # type: ignore[union-attr]
+        else:
+            if cross_version_same:
+                prior = physical_previous[0]
+                assert prior is not None
+                release_event_id = prior.release_event_id
+                release_at = prior.release_at
+                public_available_at = prior.public_available_at
+            elif any(previous is not None for previous in physical_previous):
+                release_event_id = _revision_event_id(parsed.release_event_id, fetched_at)
+                release_at = parsed.release_at
+                public_available_at = fetched_at
+            else:
+                release_at = parsed.release_at
+                public_available_at = parsed.public_available_at
+            claims = tuple(
+                SourceClaimInput(
+                    metric_id=CHINAMONEY_METRIC_ID,
+                    definition_version=definition_version,
+                    period_kind="month",
+                    period_start=period_start,
+                    period_end=period_end,
+                    dimensions={"tenor": observation.tenor},
+                    value=observation.value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percent",
+                    provider=CHINAMONEY_PROVIDER,
+                    source_reference=source_reference,
+                    release_event_id=release_event_id,
+                    release_at=release_at,
+                    public_available_at=public_available_at,
+                    fetched_at=fetched_at,
+                    available_at=fetched_at,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+                for observation in parsed.observations
+            )
+            stored = repository.append_source_claims(claims)
     repository.record_retrieval_attempt(
         metric_id=CHINAMONEY_METRIC_ID,
         channel="certified_official_direct",
@@ -223,13 +300,18 @@ def ingest_lpr_document(
     )
     return LprIngestionResult(
         status="stored",
-        release_event_id=parsed.release_event_id,
+        release_event_id=release_event_id,
         period=parsed.period,
         artifact_hash=artifact.content_hash,
         observation_ids=tuple(item.observation_id for item in stored),
         claim_ids=tuple(item.claim_id for item in stored),
         observation_count=len(stored),
     )
+
+
+def _revision_event_id(base_event_id: str, fetched_at: datetime) -> str:
+    suffix = hashlib.sha256(fetched_at.isoformat().encode()).hexdigest()[:16]
+    return f"{base_event_id}:revision:{suffix}"
 
 
 def refresh_lpr_release(
@@ -239,6 +321,7 @@ def refresh_lpr_release(
     expected_period: str,
     fetched_at: datetime,
     fetcher: Callable[[str], FetchedOfficialDocument] | None = None,
+    definition_version: str = METRIC_CATALOG_VERSION,
 ) -> LprIngestionResult:
     _validate_official_url(source_url)
     fetch = fetcher or fetch_official_document
@@ -256,6 +339,7 @@ def refresh_lpr_release(
             fetched_at=fetched_at,
             expected_period=expected_period,
             media_type=response.media_type,
+            definition_version=definition_version,
         )
     except (OSError, ValueError):
         EvidenceRepository(paths.database).record_retrieval_attempt(

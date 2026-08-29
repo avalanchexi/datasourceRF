@@ -10,9 +10,12 @@ from typing import Any
 
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
+from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.rehearsals import verify_source_smoke_artifacts
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.runtime_fingerprint import execution_fingerprint, fingerprint_matches
 from pring_cycle.storage import artifact_is_registered, database_health
 
 CUTOVER_CONFIRMATION = "DIRECT_CUTOVER_TO_PRING_V1"
@@ -47,8 +50,34 @@ def build_cutover_manifest(
             kind="real_rehearsal",
         ),
     }
-    active_model = ModelRepository(paths.database).active()
+    models = ModelRepository(paths.database)
+    active_model = models.active()
+    active_manifest = models.manifest(active_model.model_version_id)
+    try:
+        active_rules = ContextProjectionRules.from_manifest(active_manifest)
+    except ValueError:
+        active_rules = None
+    active_catalog_document = active_manifest.get("metric_definitions")
+    current_catalog_document = [asdict(item) for item in metric_catalog()]
+    active_catalog_hash = (
+        hashlib.sha256(_canonical_json(active_catalog_document).encode()).hexdigest()
+        if active_rules is not None
+        else None
+    )
+    current_catalog_hash = hashlib.sha256(
+        _canonical_json(current_catalog_document).encode()
+    ).hexdigest()
+    active_catalog_current = (
+        active_rules is not None
+        and active_rules.metric_catalog_version == METRIC_CATALOG_VERSION
+        and active_catalog_hash == current_catalog_hash
+    )
     projection = ProjectionSetRepository(paths.database).current()
+    common_fingerprint = execution_fingerprint(paths)
+    model_fingerprint = execution_fingerprint(
+        paths,
+        model_version_id=active_model.model_version_id,
+    )
     package_root = Path(__file__).parent
     project_root = _project_root(package_root)
     dependency_file = project_root / "uv.lock"
@@ -56,36 +85,47 @@ def build_cutover_manifest(
     checks = {
         "acceptance": referenced["acceptance"].get("status") == "ok"
         and referenced["acceptance"].get("schema_version") == "v1-acceptance-v0001",
+        "acceptance_fresh": _acceptance_fingerprint_matches(
+            referenced["acceptance"],
+            common_fingerprint,
+            model_version_id=active_model.model_version_id,
+            model_manifest_hash=active_model.manifest_hash,
+        ),
         "database_schema": database_health(paths.database)["migration"] == "current",
         "dependencies": dependency_file.is_file(),
         "documentation": documentation_root.is_dir(),
         "fixture_rehearsal": referenced["fixture_rehearsal"].get("status") == "ok"
         and referenced["fixture_rehearsal"].get("schema_version")
         == "fixture-recovery-rehearsal-v0001",
+        "fixture_rehearsal_fresh": fingerprint_matches(
+            referenced["fixture_rehearsal"],
+            common_fingerprint,
+        ),
         "legacy_system_read_only_stopped": legacy_system_read_only_stopped,
+        "model_catalog_current": active_catalog_current,
+        "model_catalog_manifest_valid": active_rules is not None,
         "model_matches_projection": active_model.model_version_id
         == projection.envelope.model_version_id,
         "quality_and_performance": _quality_gates_passed(referenced["acceptance"]),
-        "real_rehearsal": referenced["real_rehearsal"].get("status") == "ok"
-        and referenced["real_rehearsal"].get("schema_version")
-        == "real-projection-rehearsal-v0001",
+        "real_rehearsal": _real_rehearsal_passed(
+            paths,
+            referenced["real_rehearsal"],
+            projection_set_id=projection.envelope.projection_set_id,
+            target_business_date=projection.envelope.target_business_date,
+            expected_fingerprint=model_fingerprint,
+        ),
     }
     document = {
         "checks": checks,
-        "code_hash": _tree_hash(package_root, ("*.py", "*.css", "*.js")),
-        "configuration_version": "config-v0001",
-        "database_revision": "0005_run_step_events",
-        "dependency_hash": _file_hash(dependency_file) if dependency_file.is_file() else None,
+        **model_fingerprint,
         "documentation_hash": _tree_hash(documentation_root, ("*.md",)),
         "legacy_system_state": "read_only_stopped"
         if legacy_system_read_only_stopped
         else "not_attested",
-        "metric_catalog_hash": hashlib.sha256(
-            _canonical_json([asdict(item) for item in metric_catalog()]).encode()
-        ).hexdigest(),
-        "metric_catalog_version": METRIC_CATALOG_VERSION,
-        "model_manifest_hash": active_model.manifest_hash,
-        "model_version_id": active_model.model_version_id,
+        "metric_catalog_hash": active_catalog_hash,
+        "metric_catalog_version": (
+            active_rules.metric_catalog_version if active_rules is not None else None
+        ),
         "projection_set_id": projection.envelope.projection_set_id,
         "references": {
             "acceptance": acceptance_hash,
@@ -232,8 +272,64 @@ def _quality_gates_passed(document: dict[str, Any]) -> bool:
     )
 
 
-def _file_hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _real_rehearsal_passed(
+    paths: RuntimePaths,
+    document: dict[str, Any],
+    *,
+    projection_set_id: str,
+    target_business_date: str,
+    expected_fingerprint: dict[str, Any],
+) -> bool:
+    p0_assets = document.get("p0_assets")
+    p1_samples = document.get("p1_schema_samples")
+    source_hashes = document.get("source_smoke_hashes")
+    if not (
+        document.get("status") == "ok"
+        and document.get("schema_version") == "real-projection-rehearsal-v0001"
+        and document.get("acceptance_only") is True
+        and document.get("publication_history_written") is False
+        and document.get("dashboard_projection_visible") is True
+        and document.get("loopback_requests_during_validation") == 3
+        and document.get("network_requests_during_validation") == 0
+        and document.get("projection_set_id") == projection_set_id
+        and document.get("target_business_date") == target_business_date
+        and document.get("report_status") in {"completed", "completed_degraded"}
+        and isinstance(document.get("report_adapter"), str)
+        and isinstance(p0_assets, list)
+        and len(p0_assets) == 3
+        and all(isinstance(item, str) and item for item in p0_assets)
+        and isinstance(p1_samples, dict)
+        and bool(p1_samples)
+        and all(value is True for value in p1_samples.values())
+        and isinstance(source_hashes, list)
+        and all(isinstance(item, str) for item in source_hashes)
+        and fingerprint_matches(document, expected_fingerprint)
+    ):
+        return False
+    try:
+        verified = verify_source_smoke_artifacts(
+            paths,
+            tuple(source_hashes),
+            target_business_date=target_business_date,
+        )
+    except ValueError:
+        return False
+    return sorted(verified) == sorted(document.get("source_smoke_kinds", ()))
+
+
+def _acceptance_fingerprint_matches(
+    document: dict[str, Any],
+    expected: dict[str, Any],
+    *,
+    model_version_id: str,
+    model_manifest_hash: str,
+) -> bool:
+    manifests = document.get("model_manifest_hashes")
+    return bool(
+        fingerprint_matches(document, expected)
+        and isinstance(manifests, dict)
+        and manifests.get(model_version_id) == model_manifest_hash
+    )
 
 
 def _canonical_json(value: object) -> str:

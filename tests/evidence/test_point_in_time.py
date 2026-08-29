@@ -170,6 +170,54 @@ def test_revision_is_append_only_and_does_not_rewrite_old_as_of(tmp_path: Path) 
     assert evidence.claim_count(first.observation_id) == 2
 
 
+def test_preloaded_metric_series_preserves_point_in_time_revision_selection(
+    tmp_path: Path,
+) -> None:
+    evidence = repository(tmp_path)
+    evidence.append_source_claim(
+        claim(
+            value=1.2,
+            public_at="2026-07-15T02:00:00+00:00",
+            system_at="2026-07-15T02:05:00+00:00",
+        )
+    )
+    evidence.append_source_claim(
+        claim(
+            value=1.4,
+            public_at="2026-08-15T02:00:00+00:00",
+            system_at="2026-08-15T02:05:00+00:00",
+        )
+    )
+    cutoffs = (
+        datetime(2026, 7, 31, tzinfo=UTC),
+        datetime(2026, 8, 16, tzinfo=UTC),
+    )
+    uncached = tuple(
+        evidence.metric_series(
+            "CN_CPI_HEADLINE",
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+            definition_version="metric-catalog-v0001",
+        )
+        for cutoff in cutoffs
+    )
+
+    evidence.preload_metric_series(
+        {("CN_CPI_HEADLINE", "metric-catalog-v0001")}
+    )
+    cached = tuple(
+        evidence.metric_series(
+            "CN_CPI_HEADLINE",
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+            definition_version="metric-catalog-v0001",
+        )
+        for cutoff in cutoffs
+    )
+
+    assert cached == uncached
+
+
 def test_conflicting_sources_are_preserved_and_never_averaged(tmp_path: Path) -> None:
     evidence = repository(tmp_path)
     first = evidence.append_source_claim(
@@ -262,6 +310,42 @@ def test_metric_series_preserves_period_order_and_conflict_status(tmp_path: Path
     assert [item.period_end for item in series] == ["2026-06-30", "2026-08-28"]
     assert series[0].selection_status == "selected"
     assert series[1].selection_status == "conflicted"
+
+
+def test_metric_series_isolated_by_frozen_definition_version(tmp_path: Path) -> None:
+    evidence = repository(tmp_path)
+    v1 = claim(
+        value=1.2,
+        public_at="2026-07-15T02:00:00+00:00",
+        system_at="2026-07-15T02:05:00+00:00",
+    )
+    v2 = replace(
+        v1,
+        definition_version="metric-catalog-v0002",
+        value=2.4,
+        source_reference="fixture:v2",
+        release_event_id="release:v2",
+    )
+    evidence.append_source_claim(v1)
+    evidence.append_source_claim(v2)
+    cutoff = datetime(2026, 7, 16, tzinfo=UTC)
+
+    v1_series = evidence.metric_series(
+        v1.metric_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=cutoff,
+        definition_version="metric-catalog-v0001",
+    )
+    v2_series = evidence.metric_series(
+        v2.metric_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=cutoff,
+        definition_version="metric-catalog-v0002",
+    )
+
+    assert [point.selected_value for point in v1_series] == [1.2]
+    assert [point.selected_value for point in v2_series] == [2.4]
+    assert v1_series[0].observation_id != v2_series[0].observation_id
 
 
 def test_trace_derived_lineage_attempts_and_snapshots_are_immutable_ledger_entries(

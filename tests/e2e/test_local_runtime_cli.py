@@ -73,6 +73,19 @@ def wait_for_web(port: int) -> None:
     raise AssertionError("Web did not become reachable within 15 seconds")
 
 
+def wait_for_dashboard(port: int) -> dict[str, Any]:
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            with urlopen(f"http://127.0.0.1:{port}/_dash-layout", timeout=1) as response:
+                document: dict[str, Any] = json.load(response)
+            return document
+        except (ConnectionError, TimeoutError, URLError, json.JSONDecodeError):
+            pass
+        time.sleep(0.1)
+    raise AssertionError("Dashboard did not become reachable within 15 seconds")
+
+
 def stop_process(process: subprocess.Popen[str]) -> str:
     if process.poll() is None:
         process.terminate()
@@ -123,6 +136,7 @@ def test_user_can_initialize_and_diagnose_an_offline_runtime(tmp_path: Path) -> 
     }
     assert diagnosis["artifacts"] == {"addressing": "sha256", "status": "ok"}
     assert diagnosis["credentials"] == {
+        "eia": "disabled",
         "exa": "disabled",
         "tavily": "disabled",
         "tushare": "disabled",
@@ -206,6 +220,17 @@ def test_web_and_worker_start_offline_as_independent_local_processes(tmp_path: P
         assert response.status == 200
         assert "Pring 本机运行状态" in page
         assert sentinel_secret not in page
+        dashboard_layout = wait_for_dashboard(port)
+        assert dashboard_layout["type"] == "Div"
+        assert '"page-content"' in json.dumps(dashboard_layout)
+        with urlopen(f"http://127.0.0.1:{port}/", timeout=2) as response:
+            loaded_page = response.read().decode("utf-8")
+        assert response.status == 200
+        assert "data-pring-meaningful-content='true'" in loaded_page
+        assert "周期驾驶舱" in loaded_page
+        assert "投影身份" in loaded_page
+        assert "核心资产" in loaded_page
+        assert "运行状态" in loaded_page
 
         web_output = stop_process(web)
         time.sleep(0.2)

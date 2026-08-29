@@ -53,7 +53,7 @@ pring-cycle doctor --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 最后才在 SQLite 登记字节数、媒体类型与来源引用，因此数据库不会指向半文件。Web 和
 Worker 不会隐式初始化；未初始化时固定返回 `runtime_not_initialized`，也不会创建运行文件。
 
-`doctor` 会报告 Python 版本、`uv.lock`、运行路径、SQLite/WAL、Alembic、制品注册表和三个
+`doctor` 会报告 Python 版本、`uv.lock`、运行路径、SQLite/WAL、Alembic、制品注册表和四个
 数据源适配器的启用状态。缺少凭据只把对应外部能力标记为 `disabled`，不阻止离线启动。
 
 ## 密钥边界
@@ -62,6 +62,7 @@ Worker 不会隐式初始化；未初始化时固定返回 `runtime_not_initiali
 
 ```dotenv
 TUSHARE_TOKEN=
+EIA_API_KEY=
 TAVILY_API_KEY=
 EXA_API_KEY=
 ```
@@ -88,7 +89,10 @@ pring-cycle web --port 8050
 
 Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；没有可配置的
 局域网监听地址。健康页与 `/api/v1/health` 分别显示 Web、Worker、SQLite/Alembic 和制品
-目录状态。关闭页面或停止 Web 不会停止独立 Worker。
+目录状态。Web 先提供带真实投影身份和八页导航的轻量只读首屏，再在后台原子切入完整 Dash
+交互子应用；Dash 的正式 HTML 仍保留同一服务端首屏，直到浏览器完成交互布局，不会在后台
+加载完成后退回空白 Loading 页面。完整布局失败时首屏和 REST 仍可读并记录本机错误事件。关闭页面或停止 Web 不会
+停止独立 Worker。
 
 启动 Web、打开页面或启动 Worker 都不会补跑任务、联网、刷新证据或调用 AI。浏览器命令入口
 同时校验 `Host` 和 `Origin`；不受信网页得到脱敏的 `403`，不能进入后续命令追加接缝。
@@ -99,7 +103,11 @@ Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；�
 
 ## 模型、证据与运行操作
 
-初始化只登记 `model-v0001` 候选，不会隐式激活。`model-accept` 从仓库内已认证的三核心
+初始化登记冻结的 `model-v0001` 与新的 `model-v0002` 候选，不会隐式激活。v0001 的目录与
+清单哈希保持历史不变；v0002 固定本次 P1/P2 目录身份和派生公式，必须经过来源认证、回放和
+用户批准后才能生效。Worker 从该次运行绑定的生效模型清单加载上下文目录和派生公式，不从
+进程全局的“最新目录”读取；模型切换与回退因此会同时切换核心趋势和上下文语义。
+`model-accept` 从仓库内已认证的三核心
 `public_as_of` 历史重新运行冻结趋势与阶段规则；历史不完整或结果不满足冻结基线时直接失败，
 不接受人工传入的“通过”布尔值。机器校准通过后再由用户显式批准：
 
@@ -178,7 +186,8 @@ pring-cycle lpr-contract --input /wsl/native/path/lpr.html \
 ```
 
 人工真实烟雾必须显式给出当期公告的精确 HTTPS URL。它只输出来源身份、最终 URL、字段
-形状、发布时间、观测数量、字节数、SHA-256 和结论，不保存响应正文：
+形状、发布时间、观测数量、字节数、SHA-256 和结论，不保存响应正文；通过结果会登记为
+`source-smoke-v0001` 内容寻址制品，供真实演练按哈希核验：
 
 ```bash
 pring-cycle lpr-smoke \
@@ -187,7 +196,8 @@ pring-cycle lpr-smoke \
 ```
 
 烟雾通过后，显式摄取会把公告作为内容寻址制品保存，并以一个发布事件原子写入两条认证
-source claim；普通 `evidence-ingest` 不能自称这条来源已认证：
+source claim；同一正文重复获取保持幂等，后续修订只能从实际抓取修订的时点起进入
+`public_as_of`，不会回填到原公告时点。普通 `evidence-ingest` 不能自称这条来源已认证：
 
 ```bash
 pring-cycle lpr-refresh \
@@ -202,6 +212,56 @@ pring-cycle release-calendar --period YYYY-MM \
 `/api/v1/release-calendar?period=YYYY-MM&as_of=...` 和
 `/api/v1/evidence/{observation_id}`。页面“发布日历”显示事件族、统计期、时区、上一期沿用、
 最近获取、下一检查和关联观测数量，并分别保留实际发布、公开可用与系统首次可用时间。
+
+### PBOC/NBS 官方上下文与 EIA 原油
+
+PBOC/NBS 缺口使用同一严格 HTML 适配器边界。支持的 `family` 为
+`pbc_omo_notice`、`pbc_rrr_notice`、`pbc_tool_liquidity_monthly`、
+`pbc_social_financing`、`pbc_loan_structure`、`pbc_usdcny_central_parity`、
+`nbs_core_cpi`、`nbs_industrial_value_added`、`nbs_industrial_finance` 和
+`nbs_capacity_utilization`。先对保存的脱敏样本做无网络契约检查：
+
+```bash
+pring-cycle official-context-contract \
+  --input /wsl/native/path/official-sample.html \
+  --family FAMILY --url OFFICIAL_HTTPS_URL --period PERIOD \
+  --fetched-at 2026-08-28T10:05:00+08:00 --json
+```
+
+真实 smoke 必须由用户显式给出当期官方页面；结果只保留来源、字段、时间、数量、字节数、
+HTTP 状态和内容哈希，不保存正文，并返回真实演练所需的制品哈希：
+
+```bash
+pring-cycle official-context-smoke \
+  --family FAMILY --url OFFICIAL_HTTPS_URL --period PERIOD --json
+```
+
+smoke 通过只证明该次页面满足候选契约，不会自动把目录来源升级为 `certified`。来源认证还需
+人工核对历史覆盖、版式族、许可和单位，并通过新的指标目录/模型版本生效；此前候选 claim 会
+追加保存但在宏观和库存投影中遮蔽数值。需要摄取精确公告时，使用下述 `targeted_refresh` 并
+同时传 `--source-url`，Worker 会按指标集合选择唯一 family。
+
+EIA Brent `RBRTE` 与 WTI `RWTC` 使用官方 API v2
+`/v2/petroleum/pri/spt/data/`，固定日频、`Dollars per Barrel` 与两条 series identity。
+离线 JSON 契约检查和显式真实 smoke 为：
+
+```bash
+pring-cycle eia-contract --input /wsl/native/path/eia-response.json \
+  --start YYYY-MM-DD --end YYYY-MM-DD --json
+pring-cycle eia-smoke --start YYYY-MM-DD --end YYYY-MM-DD --json
+```
+
+后者只从仓库外 `secrets.env` 读取 `EIA_API_KEY`，输出不含 key 或完整响应。完整运行在配置该
+key 时独立刷新 EIA；没有 TuShare token 也不会阻断 EIA。两条 P2 原油在真实 smoke 与来源
+认证前保持 `awaiting_source_certification`，绝不替换 NHII 商品核心。
+
+TuShare 的 PMI、CPI/PPI、货币、社融、仓单、GDP、美债和资金市场 schema family 使用一条
+显式、只输出身份/时点/数量/哈希的汇总 smoke；它不会保存来源正文或回显 token，只登记脱敏
+结果制品：
+
+```bash
+pring-cycle context-source-smoke --target-date YYYY-MM-DD --json
+```
 
 手动完整运行是主路径；命令先持久化，独立 Worker 再领取。定向刷新、手动深搜和报告任务使用
 同一账本与幂等键：
@@ -261,7 +321,9 @@ pring-cycle report-read --report-id REPORT_ID --json
 同日重新生成创建新版本，不覆盖历史。正文保留 30 天；事实骨架、引用、哈希和版本长期保留。
 
 模型升级需要候选验收、与当前模型的认证区间交集回放，以及用户显式激活。回放命令自己从
-证据仓库计算质量、稳定性、差异和性能门，不接受调用者声明门禁结果。内部回退还要求首次
+证据仓库按各模型冻结的 definition version 计算核心与 PUBLIC-as-of 上下文输出、公式血缘、
+质量、稳定性、差异和性能门，不接受调用者声明门禁结果。认证标签但无历史证据或公式输出时
+回放仍失败。内部回退还要求首次
 发布后少于 30 个交易日和一份明确交易日日历；它不会启动旧系统：
 
 ```bash

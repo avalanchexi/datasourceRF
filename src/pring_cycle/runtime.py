@@ -130,7 +130,7 @@ def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
     )
     _create_private_file(
         paths.secrets,
-        "# TUSHARE_TOKEN=\n# TAVILY_API_KEY=\n# EXA_API_KEY=\n",
+        "# TUSHARE_TOKEN=\n# EIA_API_KEY=\n# TAVILY_API_KEY=\n# EXA_API_KEY=\n",
     )
     migrate_database(paths.database)
     _bootstrap_v1_repositories(paths)
@@ -234,7 +234,11 @@ def _create_private_file(path: Path, contents: str) -> None:
 
 def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
     from pring_cycle.maintenance import MaintenanceRepository
-    from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
+    from pring_cycle.models import (
+        ModelRepository,
+        analytical_model_v0002_manifest,
+        certified_model_v0001_manifest,
+    )
     from pring_cycle.projections import ProjectionSetRepository
     from pring_cycle.reports import ReportRepository
     from pring_cycle.runs import RunRepository
@@ -243,7 +247,9 @@ def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
     RunRepository.create(paths.database)
     ReportRepository.create(paths.database)
     MaintenanceRepository.create(paths.database)
-    ModelRepository.create(paths.database).create_candidate(certified_model_v0001_manifest())
+    models = ModelRepository.create(paths.database)
+    models.create_candidate(certified_model_v0001_manifest())
+    models.create_candidate(analytical_model_v0002_manifest())
 
 
 def _credential_states(secrets_path: Path) -> dict[str, str]:

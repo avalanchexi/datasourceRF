@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 DATA_SOURCE_SECRET_ADAPTERS = {
+    "EIA_API_KEY": "eia",
     "EXA_API_KEY": "exa",
     "TAVILY_API_KEY": "tavily",
     "TUSHARE_TOKEN": "tushare",

@@ -8,7 +8,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
+from pring_cycle.catalog import (
+    METRIC_CATALOG_V0001,
+    METRIC_CATALOG_VERSION,
+    metric_catalog,
+    metric_catalog_v0001,
+)
 
 CALIBRATION_BASELINE: dict[str, int] = {
     "asset_direction_changes": 21,
@@ -47,6 +52,7 @@ class ReplayResult:
     passed: bool
     stage_differences: int
     core_state_differences: int
+    context_output_differences: int
     gaps: tuple[str, ...]
 
 
@@ -87,9 +93,31 @@ def certified_model_v0001_manifest() -> dict[str, Any]:
             "order_inventory_spread": "order-inventory-v0001",
             "real_inventory_approximation": "inventory-ppi-v0001",
         },
-        "metric_catalog_version": METRIC_CATALOG_VERSION,
-        "metric_definitions": [asdict(item) for item in metric_catalog()],
+        "metric_catalog_version": METRIC_CATALOG_V0001,
+        "metric_definitions": [asdict(item) for item in metric_catalog_v0001()],
     }
+
+
+def analytical_model_v0002_manifest() -> dict[str, Any]:
+    manifest = certified_model_v0001_manifest()
+    manifest.update(
+        {
+            "model_version_id": "model-v0002",
+            "metric_catalog_version": METRIC_CATALOG_VERSION,
+            "metric_definitions": [asdict(item) for item in metric_catalog()],
+            "derived_formula_versions": {
+                "credit_impulse": "credit-impulse-rolling-share-v0001",
+                "dr007_policy_spread": "dr007-policy-spread-v0001",
+                "loan_monthly_change": "loan-stock-monthly-change-v0001",
+                "omo_net_injection": "repo-net-injection-v0001",
+                "order_inventory_spread": "pmi-order-inventory-spread-v0001",
+                "production_order_spread": "pmi-production-order-spread-v0001",
+                "real_inventory_approximation": "inventory-ppi-v0001",
+                "ust_2s10s_spread": "ust-2s10s-spread-v0001",
+            },
+        }
+    )
+    return manifest
 
 
 class ModelRepository:
@@ -102,6 +130,7 @@ class ModelRepository:
         repository = cls(database_path)
         with repository._connect() as connection:
             connection.executescript(_MODEL_SCHEMA)
+            _ensure_model_replay_context_column(connection)
         return repository
 
     def create_candidate(self, manifest: dict[str, Any]) -> ModelVersion:
@@ -239,6 +268,7 @@ class ModelRepository:
         stage_differences: int,
         core_state_differences: int,
         gaps: tuple[str, ...],
+        context_output_differences: int = 0,
     ) -> ReplayResult:
         candidate = self.get(model_version_id)
         comparison = self.get(compared_with)
@@ -256,9 +286,9 @@ class ModelRepository:
                 INSERT INTO model_replay(
                     model_version_id, compared_with, range_start, range_end,
                     quality_passed, regression_passed, performance_passed,
-                    stage_differences, core_state_differences, gaps_json,
-                    passed, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    stage_differences, core_state_differences,
+                    context_output_differences, gaps_json, passed, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     model_version_id,
@@ -270,6 +300,7 @@ class ModelRepository:
                     int(performance_passed),
                     stage_differences,
                     core_state_differences,
+                    context_output_differences,
                     _canonical_json(gaps),
                     int(passed),
                     datetime.now(UTC).isoformat(),
@@ -279,15 +310,16 @@ class ModelRepository:
                 raise RuntimeError("model_replay_identity_missing")
             replay_id = int(cursor.lastrowid)
         return ReplayResult(
-            replay_id,
-            model_version_id,
-            compared_with,
-            range_start,
-            requested_end,
-            passed,
-            stage_differences,
-            core_state_differences,
-            gaps,
+            replay_id=replay_id,
+            model_version_id=model_version_id,
+            compared_with=compared_with,
+            range_start=range_start,
+            range_end=requested_end,
+            passed=passed,
+            stage_differences=stage_differences,
+            core_state_differences=core_state_differences,
+            context_output_differences=context_output_differences,
+            gaps=gaps,
         )
 
     def record_first_publication(self, model_version_id: str, target_business_date: str) -> None:
@@ -529,3 +561,14 @@ END;
 CREATE TRIGGER IF NOT EXISTS model_version_no_delete
 BEFORE DELETE ON model_version BEGIN SELECT RAISE(ABORT, 'model_version_is_immutable'); END;
 """
+
+
+def _ensure_model_replay_context_column(connection: sqlite3.Connection) -> None:
+    columns = {
+        str(row[1]) for row in connection.execute("PRAGMA table_info(model_replay)")
+    }
+    if "context_output_differences" not in columns:
+        connection.execute(
+            "ALTER TABLE model_replay "
+            "ADD COLUMN context_output_differences INTEGER NOT NULL DEFAULT 0"
+        )

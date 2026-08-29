@@ -63,6 +63,7 @@ def project_core_fixture(
     context = build_context_projection(
         EvidenceRepository(paths.database),
         as_of=parsed["system_as_of"],
+        model_manifest=manifest,
     )
     service = P0ProjectionService(ProjectionSetRepository(paths.database))
     result = service.publish(

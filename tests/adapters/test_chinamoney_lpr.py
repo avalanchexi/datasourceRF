@@ -182,3 +182,39 @@ def test_repeating_same_official_artifact_reuses_first_system_availability(
     assert repeated.claim_ids == first.claim_ids
     assert len(trace.claims) == 1
     assert trace.claims[0].available_at == datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
+
+
+def test_lpr_revision_is_public_only_from_the_revision_fetch(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    first_fetch = datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
+    revision_fetch = datetime(2026, 8, 21, 1, 2, tzinfo=UTC)
+    first = ingest_lpr_document(
+        paths,
+        ANNOUNCEMENT,
+        source_url=OFFICIAL_URL,
+        fetched_at=first_fetch,
+        expected_period="2026-08",
+    )
+
+    ingest_lpr_document(
+        paths,
+        ANNOUNCEMENT.replace(b"3.0%", b"3.1%"),
+        source_url=OFFICIAL_URL,
+        fetched_at=revision_fetch,
+        expected_period="2026-08",
+    )
+    repository = EvidenceRepository(paths.database)
+    before_revision = repository.query(
+        first.observation_ids[0],
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 20, 12, tzinfo=UTC),
+    )
+    after_revision = repository.query(
+        first.observation_ids[0],
+        mode=AsOfMode.PUBLIC,
+        as_of=revision_fetch,
+    )
+
+    assert before_revision.selected_value == 3.0
+    assert after_revision.selected_value == 3.1

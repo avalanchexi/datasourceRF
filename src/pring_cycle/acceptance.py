@@ -15,6 +15,7 @@ from typing import Any, Protocol, cast
 
 from pring_cycle.adapters import MarketBar, validate_core_market_bars
 from pring_cycle.artifacts import store_artifact
+from pring_cycle.catalog import METRIC_CATALOG_VERSION
 from pring_cycle.dashboard import dashboard_page
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.market import (
@@ -46,6 +47,7 @@ from pring_cycle.reports import (
 )
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.runtime_fingerprint import execution_fingerprint, model_manifest_hashes
 from pring_cycle.verification import verify_local_runtime
 from pring_cycle.web import create_web_application
 
@@ -168,6 +170,8 @@ def run_v1_acceptance(
         "regressions": regressions,
         "schema_version": "v1-acceptance-v0001",
         "status": status,
+        **execution_fingerprint(paths),
+        "model_manifest_hashes": model_manifest_hashes(paths),
     }
     artifact = store_artifact(
         paths.database,
@@ -512,7 +516,7 @@ def _claim(
 ) -> SourceClaimInput:
     return SourceClaimInput(
         metric_id="CN_CPI_HEADLINE",
-        definition_version="metric-catalog-v0001",
+        definition_version=METRIC_CATALOG_VERSION,
         period_kind="month",
         period_start="2026-06-01",
         period_end="2026-06-30",

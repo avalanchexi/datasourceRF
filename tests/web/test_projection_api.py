@@ -9,12 +9,18 @@ from fastapi import FastAPI
 
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
+from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ANALYTICAL_DATASETS, ProjectionEnvelope, ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.web import _persist_command, create_web_application
+from pring_cycle.web import _initial_dashboard_html, _persist_command, create_web_application
+
+LPR_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
+LPR_ANNOUNCEMENT = (
+    Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
+).read_bytes()
 
 
 def _route(application: FastAPI, name: str) -> Any:
@@ -66,14 +72,56 @@ def test_runtime_init_bootstraps_the_candidate_model_without_activating_it(tmp_p
     response = _route(application, "model_index").endpoint()
 
     assert initialized["network_requests"] == 0
-    assert response == [
-        {
-            "model_version_id": "model-v0001",
-            "manifest_hash": response[0]["manifest_hash"],
-            "status": "candidate",
-            "certified_replay_start": "2018-06-01",
-        }
+    assert [item["model_version_id"] for item in response] == [
+        "model-v0001",
+        "model-v0002",
     ]
+    assert {item["status"] for item in response} == {"candidate"}
+    assert {item["certified_replay_start"] for item in response} == {"2018-06-01"}
+
+
+def test_release_calendar_api_reads_only_the_active_models_definition_version(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+    models.activate("model-v0001", explicitly_approved=True)
+    for definition_version in ("metric-catalog-v0001", "metric-catalog-v0002"):
+        ingest_lpr_document(
+            paths,
+            LPR_ANNOUNCEMENT,
+            source_url=LPR_URL,
+            fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
+            expected_period="2026-08",
+            definition_version=definition_version,
+        )
+    application = create_web_application(paths, 8050)
+
+    response = _route(application, "release_calendar").endpoint(
+        "2026-08",
+        datetime(2026, 8, 20, 2, tzinfo=UTC),
+    )
+
+    assert len(response["events"]) == 1
+    assert response["events"][0]["observation_count"] == 2
+
+
+def test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    document = _initial_dashboard_html(paths, failed=False)
+
+    assert "data-pring-meaningful-content='true'" in document
+    assert "周期驾驶舱" in document
+    assert "投影身份" in document
+    assert "等待首次完整运行" in document
+    assert "核心资产" in document
+    assert "运行状态" in document
 
 
 def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projection(

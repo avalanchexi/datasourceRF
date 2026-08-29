@@ -610,16 +610,19 @@ class CliReportAdapter:
                     _canonical_json(schema),
                 ]
             )
-            process = subprocess.Popen(
-                command,
-                cwd=work_directory,
-                env=environment,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                start_new_session=True,
-                text=True,
-            )
+            try:
+                process = subprocess.Popen(
+                    command,
+                    cwd=work_directory,
+                    env=environment,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True,
+                    text=True,
+                )
+            except OSError:
+                return AdapterResponse.unavailable("process_start_failed")
             stdout, outcome = _communicate_with_limits(
                 process,
                 prompt,

@@ -3,6 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import pytest
+
+import pring_cycle.maintenance as maintenance_module
 from pring_cycle.maintenance import (
     GIB,
     MaintenanceRepository,
@@ -55,6 +58,72 @@ def test_cleanup_removes_only_expired_unreferenced_objects_and_is_idempotent(
     assert protected.exists()
     assert recent.exists()
     assert maintenance.audit_events()[-1]["outcome"] == "completed"
+
+
+def test_cleanup_evicts_oldest_unreferenced_object_until_size_cap(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    maintenance = MaintenanceRepository.create(tmp_path / "maintenance.sqlite3")
+    oldest = tmp_path / "oldest.bin"
+    newest = tmp_path / "newest.bin"
+    oldest.write_bytes(b"1234567")
+    newest.write_bytes(b"7654321")
+    for object_id, path, created_at in (
+        ("oldest", oldest, NOW - timedelta(hours=2)),
+        ("newest", newest, NOW - timedelta(hours=1)),
+    ):
+        maintenance.register_object(
+            object_id,
+            path,
+            kind="fixture_size_limited",
+            created_at=created_at,
+            authoritative=False,
+            referenced=False,
+        )
+    monkeypatch.setattr(
+        maintenance_module,
+        "_retention_policy",
+        lambda _kind: (None, 10),
+    )
+
+    result = maintenance.cleanup(now=NOW)
+
+    assert result.deleted_object_ids == ("oldest",)
+    assert result.reclaimed_bytes == 7
+    assert not oldest.exists()
+    assert newest.exists()
+
+
+def test_interrupted_cleanup_can_be_retried_without_losing_registration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    maintenance = MaintenanceRepository.create(tmp_path / "maintenance.sqlite3")
+    expired = tmp_path / "expired.bin"
+    expired.write_bytes(b"fixture")
+    maintenance.register_object(
+        "expired",
+        expired,
+        kind="unverified_response",
+        created_at=NOW - timedelta(days=8),
+        authoritative=False,
+        referenced=False,
+    )
+    real_unlink = Path.unlink
+
+    def interrupt_unlink(_path: Path, *_args: object, **_kwargs: object) -> None:
+        raise OSError("fixture cleanup interruption")
+
+    monkeypatch.setattr(Path, "unlink", interrupt_unlink)
+    with pytest.raises(OSError, match="fixture cleanup interruption"):
+        maintenance.cleanup(now=NOW)
+
+    monkeypatch.setattr(Path, "unlink", real_unlink)
+    retried = maintenance.cleanup(now=NOW)
+
+    assert retried.deleted_object_ids == ("expired",)
+    assert not expired.exists()
 
 
 def test_capacity_watermarks_have_distinct_safe_actions() -> None:

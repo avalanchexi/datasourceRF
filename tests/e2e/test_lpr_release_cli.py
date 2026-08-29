@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 
 from pring_cycle.cli import main
+from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.official_lpr import LprIngestionResult
+from pring_cycle.runtime import RuntimePaths
 
 OFFICIAL_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
 ANNOUNCEMENT = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
@@ -94,3 +98,48 @@ def test_generic_evidence_command_cannot_self_certify_lpr(
         )
 
     assert "certified_evidence_requires_certified_adapter" in cast(Any, capsys).readouterr().err
+
+
+def test_lpr_refresh_uses_the_active_models_definition_version(
+    tmp_path: Path,
+    capsys: object,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    root = tmp_path / "runtime"
+    main(["init", "--runtime-root", str(root), "--json"])
+    cast(Any, capsys).readouterr()
+    paths = RuntimePaths.discover(root)
+    models = ModelRepository(paths.database)
+    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+    models.activate("model-v0001", explicitly_approved=True)
+    captured: dict[str, object] = {}
+
+    def fake_refresh(*_args: object, **kwargs: object) -> LprIngestionResult:
+        captured.update(kwargs)
+        return LprIngestionResult(
+            status="stored",
+            release_event_id="fixture:lpr",
+            period="2026-08",
+            artifact_hash="a" * 64,
+            observation_ids=("observation",),
+            claim_ids=("claim",),
+            observation_count=1,
+        )
+
+    monkeypatch.setattr("pring_cycle.official_lpr.refresh_lpr_release", fake_refresh)
+
+    document = invoke(
+        capsys,
+        "lpr-refresh",
+        "--runtime-root",
+        str(root),
+        "--url",
+        OFFICIAL_URL,
+        "--period",
+        "2026-08",
+    )
+
+    assert document["status"] == "stored"
+    assert captured["definition_version"] == "metric-catalog-v0001"
+    assert isinstance(captured["fetched_at"], datetime)
+    assert cast(datetime, captured["fetched_at"]).tzinfo is UTC

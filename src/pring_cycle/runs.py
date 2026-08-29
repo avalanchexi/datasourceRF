@@ -81,6 +81,15 @@ class RunRepository:
                 """,
                 (datetime.now(UTC).isoformat(),),
             )
+        from pring_cycle.models import (
+            ModelRepository,
+            analytical_model_v0002_manifest,
+            certified_model_v0001_manifest,
+        )
+
+        models = ModelRepository.create(database_path)
+        models.create_candidate(certified_model_v0001_manifest())
+        models.create_candidate(analytical_model_v0002_manifest())
         return repository
 
     def submit_manual_full(
@@ -141,6 +150,8 @@ class RunRepository:
             raise ValueError("system_as_of_must_be_timezone_aware")
         scope = _validated_retrieval_scope(
             command_type,
+            database_path=self._database_path,
+            model_version_id=model_version_id,
             release_event_id=release_event_id,
             metric_ids=metric_ids,
             period=period,
@@ -928,6 +939,8 @@ class RunRepository:
 def _validated_retrieval_scope(
     command_type: str,
     *,
+    database_path: Path,
+    model_version_id: str,
     release_event_id: str | None,
     metric_ids: tuple[str, ...],
     period: str | None,
@@ -949,9 +962,19 @@ def _validated_retrieval_scope(
         raise ValueError("retrieval_scope_duplicate_metric")
     if command_type == "manual_deep_search" and len(metric_ids) != 1:
         raise ValueError("manual_deep_search_requires_one_explicit_metric")
-    from pring_cycle.catalog import metric_definition
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.models import ModelRepository
 
-    definitions = tuple(metric_definition(metric_id) for metric_id in metric_ids)
+    model_rules = ContextProjectionRules.from_manifest(
+        ModelRepository(database_path).manifest(model_version_id)
+    )
+    definitions_by_id = {
+        definition.metric_id: definition for definition in model_rules.metric_definitions
+    }
+    try:
+        definitions = tuple(definitions_by_id[metric_id] for metric_id in metric_ids)
+    except KeyError as error:
+        raise ValueError("retrieval_scope_metric_not_in_model") from error
     priorities = {definition.priority for definition in definitions}
     if len(priorities) != 1:
         raise ValueError("retrieval_scope_priority_mismatch")

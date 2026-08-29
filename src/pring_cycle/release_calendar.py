@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from pring_cycle.evidence import EvidenceRepository, ReleaseEventView
+from pring_cycle.evidence import AsOfMode, EvidenceRepository, ReleaseEventView
 
 
 @dataclass(frozen=True)
@@ -165,22 +165,36 @@ def lpr_release_calendar(
     period: str,
     as_of: datetime,
     holidays: tuple[str, ...] = (),
+    as_of_mode: AsOfMode = AsOfMode.SYSTEM,
+    definition_version: str | None = None,
 ) -> tuple[ReleaseCalendarEvent, ...]:
     if as_of.tzinfo is None:
         raise ValueError("release_calendar_as_of_must_be_timezone_aware")
     expectation = lpr_release_expectation(period, holidays=holidays)
     visible = tuple(
         event
-        for event in repository.release_events(metric_id=expectation.metric_id)
-        if event.available_at <= as_of
+        for event in repository.release_events_for_definition(
+            metric_id=expectation.metric_id,
+            definition_version=definition_version,
+        )
+        if (
+            event.public_available_at is not None
+            and event.public_available_at <= as_of
+            if as_of_mode is AsOfMode.PUBLIC
+            else event.available_at <= as_of
+        )
     )
     current_event = next((item for item in reversed(visible) if item.period == period), None)
     previous_event = current_event or (visible[-1] if visible else None)
-    released = _released_observation(previous_event)
-    attempt = repository.latest_retrieval_attempt(
-        expectation.metric_id,
-        period=period,
-        as_of=as_of,
+    released = _released_observation(previous_event, mode=as_of_mode)
+    attempt = (
+        repository.latest_retrieval_attempt(
+            expectation.metric_id,
+            period=period,
+            as_of=as_of,
+        )
+        if as_of_mode is AsOfMode.SYSTEM
+        else None
     )
     state = assess_release_state(
         expectation,
@@ -241,14 +255,22 @@ def month_bounds(period: str) -> tuple[str, str]:
     return f"{year:04d}-{month:02d}-01", f"{year:04d}-{month:02d}-{last_day:02d}"
 
 
-def _released_observation(event: ReleaseEventView | None) -> ReleasedObservation | None:
+def _released_observation(
+    event: ReleaseEventView | None,
+    *,
+    mode: AsOfMode,
+) -> ReleasedObservation | None:
     if event is None or event.public_available_at is None:
         return None
     return ReleasedObservation(
         observation_id=event.release_event_id,
         period=event.period,
         public_available_at=event.public_available_at,
-        available_at=event.available_at,
+        available_at=(
+            event.public_available_at
+            if mode is AsOfMode.PUBLIC
+            else event.available_at
+        ),
     )
 
 

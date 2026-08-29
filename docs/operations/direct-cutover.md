@@ -7,11 +7,32 @@
 1. 在最新目标交易日用 `pring-cycle source-smoke --target-date YYYY-MM-DD --json` 校验
    中国交易日历、中证全指、上证国债指数和 NHII 的真实身份、连续性与规范化哈希。此命令需要
    本机 `TUSHARE_TOKEN`；失败或未执行不能由 fixture 替代。
-2. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。
-3. `pring-cycle rehearse-fixture-recovery --json`：独立 fixture 中断、陈旧 owner 审计和用户显式恢复；不写正式发布历史。
-4. 在最新完整目标交易日完成手动完整运行与报告后，执行 `pring-cycle rehearse-real --target-date YYYY-MM-DD --json`。它要求真实 P0、按 schema 家族抽样的 P1、当前原子投影，以及 AI 成功或确定性降级报告。
-5. 停止旧系统并将其置为只读。旧系统不再运行、不接受写入，也不是运行时降级源。
-6. 用验收和两次演练返回的制品哈希构建清单：
+2. 执行 `context-source-smoke`，对本次演练实际使用的 P1 官方 HTML schema family 逐一执行
+   `official-context-smoke`，并对 EIA 双序列执行 `eia-smoke`；COMEX、LBMA、VIX、SOX 和
+   16:30 在岸收盘价在许可/接口未认证时必须继续显示 `awaiting_source_certification`，不能用
+   代理补齐。一次 smoke 只证明该次响应，不自动完成目录来源认证。
+3. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。
+4. `pring-cycle rehearse-fixture-recovery --json`：独立 fixture 中断、陈旧 owner 审计和用户显式恢复；不写正式发布历史。
+5. 保留上述每条 smoke 返回的制品哈希。在最新完整目标交易日完成手动完整运行与报告并启动
+   本机 Dashboard 后，执行：
+
+```bash
+pring-cycle rehearse-real --target-date YYYY-MM-DD --dashboard-port 8877 \
+  --source-smoke-hash CORE_SHA256 \
+  --source-smoke-hash CONTEXT_SHA256 \
+  --source-smoke-hash LPR_SHA256 \
+  --source-smoke-hash EIA_SHA256 \
+  --source-smoke-hash EACH_REQUIRED_OFFICIAL_FAMILY_SHA256 \
+  --json
+```
+
+   命令要求真实 P0、按 schema 家族抽样的 P1、全部必需且目标期匹配的 smoke 制品、当前原子
+   投影，以及 AI 成功或确定性降级报告。每个 smoke 会按来源核对官方身份、字段族、观测数量、
+   响应/规范化哈希和日/月/季度周期语义；只有状态与请求数的空壳 JSON 不能通过。演练还会通过
+   禁用代理的 `127.0.0.1` 请求核对 Dashboard 有意义首屏、精确 `projection_set_id`，以及
+   `/_dash-layout` 的真实 Dash 布局；后台加载失败首屏不能通过。
+6. 停止旧系统并将其置为只读。旧系统不再运行、不接受写入，也不是运行时降级源。
+7. 用验收和两次演练返回的制品哈希构建清单：
 
 ```bash
 pring-cycle cutover-manifest \
@@ -22,9 +43,11 @@ pring-cycle cutover-manifest \
   --json
 ```
 
-清单固定代码、依赖、数据库/配置版本、指标目录、模型、投影、回归、质量、性能、文档和两次演练哈希。只有 `status=ready` 才可继续。
+清单固定代码、依赖、数据库/配置版本、生效模型内嵌的指标目录、模型、投影、回归、质量、性能、
+文档和两次演练哈希。生效模型必须绑定当前代码支持的目录版本；旧模型不能与新版全局目录哈希
+拼接成可切换清单。只有 `status=ready` 才可继续。
 
-7. 用户核对清单后，以完整确认词记录一次性切换：
+8. 用户核对清单后，以完整确认词记录一次性切换：
 
 ```bash
 pring-cycle cutover-record \
@@ -33,11 +56,16 @@ pring-cycle cutover-record \
   --json
 ```
 
-不存在 `force` 或等价绕过。清单只接受已登记且来源引用匹配的验收/演练制品；记录切换时会按
-当前代码、依赖、模型、投影和文档重新构建并拒绝陈旧清单。切换记录不可更新或删除；再次提交
+不存在 `force` 或等价绕过。清单只接受已登记且来源引用匹配的验收/演练制品；验收、fixture
+恢复演练和真实演练都绑定执行时的代码、依赖、数据库/配置版本，验收与真实演练还绑定模型
+manifest。任何相关内容变化后必须重跑对应命令。记录切换时会按当前代码、依赖、模型、投影和
+文档重新构建并拒绝陈旧制品或陈旧清单。切换记录不可更新或删除；再次提交
 同一清单是幂等的，换清单会被拒绝。切换后首次故障只在 V1 内修复、显式恢复，或在升级破坏
 完整性时重新初始化。不得恢复旧系统运行。
 
 ## 真实演练不是发布历史
 
-真实演练读取已经发布的当前投影和报告，验证后只写仓库外验收制品；fixture 演练使用独立临时运行目录。两者都带 `acceptance_only=true` 与 `publication_history_written=false`，不得被页面当成正式阶段历史。
+真实演练读取已经发布的当前投影和报告，验证后只写仓库外验收制品；fixture 演练使用独立临时
+运行目录。两者都带 `acceptance_only=true` 与 `publication_history_written=false`，不得被页面
+当成正式阶段历史。切换清单会重新验证真实演练的目标日期、投影身份、P0/P1、报告、Dashboard
+结论和全部 smoke 制品；仅伪造 `status=ok` 的最小 JSON 不能通过。

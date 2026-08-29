@@ -4,7 +4,7 @@ import argparse
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -36,6 +36,10 @@ _MUTATING_COMMANDS = {
     "cutover-manifest",
     "cutover-record",
     "source-smoke",
+    "context-source-smoke",
+    "official-context-smoke",
+    "eia-smoke",
+    "lpr-smoke",
 }
 
 
@@ -128,6 +132,78 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             "observation_count": len(parsed.observations),
             "status": "validated",
         }
+    if namespace.command == "official-context-contract":
+        from pring_cycle.official_context import parse_official_context_document
+
+        parsed_context = parse_official_context_document(
+            namespace.input.read_bytes(),
+            family=namespace.family,
+            source_url=namespace.url,
+            expected_period=namespace.period,
+            fetched_at=datetime.fromisoformat(namespace.fetched_at),
+        )
+        return {
+            **asdict(parsed_context),
+            "network_requests": 0,
+            "observation_count": len(parsed_context.scalars),
+            "status": "validated_candidate",
+        }
+    if namespace.command == "official-context-smoke":
+        from pring_cycle.official_context import smoke_official_context_document
+        from pring_cycle.rehearsals import store_source_smoke_result
+
+        result = asdict(
+            smoke_official_context_document(
+                family=namespace.family,
+                source_url=namespace.url,
+                expected_period=namespace.period,
+                fetched_at=datetime.now(UTC),
+            )
+        )
+        return store_source_smoke_result(
+            paths,
+            kind=f"official-context:{namespace.family}",
+            result=result,
+            target_scope={"period": namespace.period},
+        )
+    if namespace.command == "eia-contract":
+        from pring_cycle.eia_context import EiaPetroleumAdapter
+
+        response = json.loads(namespace.input.read_text(encoding="utf-8"))
+        prices = EiaPetroleumAdapter(
+            "offline-contract-key",
+            transport=lambda _parameters: response,
+        ).spot_prices(
+            start_date=date.fromisoformat(namespace.start),
+            end_date=date.fromisoformat(namespace.end),
+        )
+        return {
+            "metric_ids": sorted({item.metric_id for item in prices}),
+            "network_requests": 0,
+            "observation_count": len(prices),
+            "series_ids": sorted({item.series_id for item in prices}),
+            "status": "validated_candidate",
+        }
+    if namespace.command == "eia-smoke":
+        from pring_cycle.eia_context import EiaPetroleumAdapter
+        from pring_cycle.rehearsals import store_source_smoke_result
+        from pring_cycle.secrets import parse_data_source_secrets
+
+        api_key = parse_data_source_secrets(paths.secrets).get("EIA_API_KEY")
+        if api_key is None:
+            raise ValueError("eia_api_key_required")
+        result = asdict(
+            EiaPetroleumAdapter(api_key).smoke(
+                start_date=date.fromisoformat(namespace.start),
+                end_date=date.fromisoformat(namespace.end),
+            )
+        )
+        return store_source_smoke_result(
+            paths,
+            kind="eia",
+            result=result,
+            target_scope={"start": namespace.start, "end": namespace.end},
+        )
     if namespace.command == "lpr-refresh":
         from pring_cycle.official_lpr import refresh_lpr_release
 
@@ -136,17 +212,25 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             source_url=namespace.url,
             expected_period=namespace.period,
             fetched_at=datetime.now(UTC),
+            definition_version=_active_definition_version(paths),
         )
         return {**asdict(refreshed), "network_requests": 1}
     if namespace.command == "lpr-smoke":
         from pring_cycle.official_lpr import smoke_lpr_release
+        from pring_cycle.rehearsals import store_source_smoke_result
 
-        return asdict(
+        result = asdict(
             smoke_lpr_release(
                 source_url=namespace.url,
                 expected_period=namespace.period,
                 fetched_at=datetime.now(UTC),
             )
+        )
+        return store_source_smoke_result(
+            paths,
+            kind="lpr",
+            result=result,
+            target_scope={"period": namespace.period},
         )
     if namespace.command == "release-calendar":
         from pring_cycle.release_calendar import lpr_release_calendar
@@ -156,6 +240,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             period=namespace.period,
             as_of=datetime.fromisoformat(namespace.as_of),
             holidays=tuple(namespace.holiday),
+            definition_version=_active_definition_version(paths),
         )
         return {"events": [asdict(item) for item in events], "status": "ok"}
     if namespace.command == "stage-history":
@@ -224,6 +309,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             performance_passed=evaluation.performance_passed,
             stage_differences=evaluation.stage_differences,
             core_state_differences=evaluation.core_state_differences,
+            context_output_differences=evaluation.context_output_differences,
             gaps=evaluation.gaps,
         )
         return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
@@ -341,6 +427,8 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         return run_real_projection_rehearsal(
             paths,
             target_business_date=namespace.target_date,
+            dashboard_port=namespace.dashboard_port,
+            source_smoke_hashes=tuple(namespace.source_smoke_hash),
         )
     if namespace.command == "cutover-manifest":
         from pring_cycle.cutover import build_cutover_manifest
@@ -367,8 +455,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         record = cutover_status(paths)
         return {"cutover": asdict(record) if record is not None else None, "status": "ok"}
     if namespace.command == "source-smoke":
-        from datetime import date, timedelta
-
+        from pring_cycle.rehearsals import store_source_smoke_result
         from pring_cycle.secrets import parse_data_source_secrets
         from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
 
@@ -393,8 +480,49 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             )
             for metric_id in CORE_API_IDENTITIES
         ]
-        return {"network_requests": 4, "results": results, "status": "validated"}
+        return store_source_smoke_result(
+            paths,
+            kind="core",
+            result={"network_requests": 4, "results": results, "status": "validated"},
+            target_scope={"target_business_date": namespace.target_date},
+        )
+    if namespace.command == "context-source-smoke":
+        from pring_cycle.rehearsals import store_source_smoke_result
+        from pring_cycle.secrets import parse_data_source_secrets
+        from pring_cycle.tushare_context import (
+            TushareContextAdapter,
+            smoke_context_sources,
+        )
+
+        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+        if token is None:
+            raise ValueError("tushare_not_configured")
+        result = asdict(
+            smoke_context_sources(
+                TushareContextAdapter(token),
+                target_business_date=date.fromisoformat(namespace.target_date),
+            )
+        )
+        return store_source_smoke_result(
+            paths,
+            kind="tushare-context",
+            result=result,
+            target_scope={"target_business_date": namespace.target_date},
+        )
     raise ValueError("unsupported_command")
+
+
+def _active_definition_version(paths: RuntimePaths) -> str:
+    from pring_cycle.catalog import METRIC_CATALOG_VERSION
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.models import ModelRepository
+
+    models = ModelRepository(paths.database)
+    try:
+        manifest = models.manifest(models.active().model_version_id)
+    except LookupError:
+        return METRIC_CATALOG_VERSION
+    return ContextProjectionRules.from_manifest(manifest).metric_catalog_version
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -476,6 +604,23 @@ def _parser() -> argparse.ArgumentParser:
     lpr_contract.add_argument("--url", required=True)
     lpr_contract.add_argument("--period", required=True)
     lpr_contract.add_argument("--fetched-at", required=True)
+    official_context_contract = _runtime_parser(subparsers, "official-context-contract")
+    official_context_contract.add_argument("--input", type=Path, required=True)
+    official_context_contract.add_argument("--family", required=True)
+    official_context_contract.add_argument("--url", required=True)
+    official_context_contract.add_argument("--period", required=True)
+    official_context_contract.add_argument("--fetched-at", required=True)
+    official_context_smoke = _runtime_parser(subparsers, "official-context-smoke")
+    official_context_smoke.add_argument("--family", required=True)
+    official_context_smoke.add_argument("--url", required=True)
+    official_context_smoke.add_argument("--period", required=True)
+    eia_contract = _runtime_parser(subparsers, "eia-contract")
+    eia_contract.add_argument("--input", type=Path, required=True)
+    eia_contract.add_argument("--start", required=True)
+    eia_contract.add_argument("--end", required=True)
+    eia_smoke = _runtime_parser(subparsers, "eia-smoke")
+    eia_smoke.add_argument("--start", required=True)
+    eia_smoke.add_argument("--end", required=True)
     lpr_refresh = _runtime_parser(subparsers, "lpr-refresh")
     lpr_refresh.add_argument("--url", required=True)
     lpr_refresh.add_argument("--period", required=True)
@@ -505,6 +650,12 @@ def _parser() -> argparse.ArgumentParser:
     _runtime_parser(subparsers, "acceptance")
     real_rehearsal = _runtime_parser(subparsers, "rehearse-real")
     real_rehearsal.add_argument("--target-date", required=True)
+    real_rehearsal.add_argument("--dashboard-port", type=int, required=True)
+    real_rehearsal.add_argument(
+        "--source-smoke-hash",
+        action="append",
+        required=True,
+    )
     cutover_manifest = _runtime_parser(subparsers, "cutover-manifest")
     cutover_manifest.add_argument("--acceptance-hash", required=True)
     cutover_manifest.add_argument("--real-rehearsal-hash", required=True)
@@ -515,6 +666,8 @@ def _parser() -> argparse.ArgumentParser:
     cutover_record.add_argument("--confirm", required=True)
     source_smoke = _runtime_parser(subparsers, "source-smoke")
     source_smoke.add_argument("--target-date", required=True)
+    context_source_smoke = _runtime_parser(subparsers, "context-source-smoke")
+    context_source_smoke.add_argument("--target-date", required=True)
     return parser
 
 

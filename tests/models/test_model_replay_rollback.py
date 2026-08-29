@@ -50,11 +50,13 @@ def test_candidate_replay_uses_certified_range_intersection_without_switching_ac
         stage_differences=3,
         core_state_differences=5,
         gaps=(),
+        context_output_differences=7,
     )
 
     assert replay.range_start == "2020-01-01"
     assert replay.range_end == "2026-08-28"
     assert replay.passed is True
+    assert replay.context_output_differences == 7
     assert models.active().model_version_id == "model-v0001"
 
 
