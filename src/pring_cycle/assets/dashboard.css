@@ -173,7 +173,6 @@ a:visited { color: #765078; }
 }
 .nav-link:visited { color: var(--ink-body); }
 .nav-link:hover { background: var(--surface-muted); color: var(--ink-strong); }
-
 .workspace { min-width: 0; padding: 38px 32px 80px; }
 .page-stack { display: grid; gap: 32px; max-width: 980px; }
 .page-heading { border-bottom: 1px solid var(--line); padding-bottom: 18px; }
@@ -235,6 +234,51 @@ a:visited { color: #765078; }
 .technical-field { overflow-wrap: anywhere; color: var(--ink-muted); }
 .field-value { margin: 0; overflow-wrap: anywhere; color: var(--ink-strong); font-size: 16px; }
 
+.asset-card-grid,
+.evidence-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.asset-card-grid { grid-template-columns: 1fr; }
+.asset-card,
+.domain-panel {
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+  padding: 20px;
+  background: var(--surface-panel);
+}
+.asset-card { border-left: 4px solid var(--asset-bond); }
+.asset-card.asset-stock { border-left-color: var(--asset-equity); }
+.asset-card.asset-commodity { border-left-color: var(--asset-commodity); }
+.asset-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.asset-track-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 16px 0;
+}
+.asset-track-grid .compact-fact {
+  border-right: 1px solid var(--line);
+  padding: 8px 14px 12px 0;
+}
+.asset-track-grid .compact-fact + .compact-fact { padding-left: 14px; }
+.asset-track-grid .compact-fact:last-child { border-right: 0; }
+.domain-panel { display: grid; align-content: start; gap: 6px; min-height: 150px; }
+.domain-panel .section-kicker { margin: 0; }
+.domain-value { margin-top: 12px; }
+.card-title { margin: 0; color: var(--ink-strong); font-size: 18px; }
+.calendar-legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+}
+.calendar-legend .compact-fact { padding-right: 16px; }
+
 .evidence-drawer {
   position: sticky;
   top: 96px;
@@ -288,6 +332,9 @@ a:visited { color: #765078; }
   .evidence-drawer { margin: 0 20px 40px; }
   .stage-panel { grid-template-columns: 1fr; }
   .definition-row { grid-template-columns: 1fr; gap: 4px; }
+  .evidence-card-grid { grid-template-columns: 1fr; }
+  .asset-track-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .asset-track-grid .compact-fact:nth-child(2) { border-right: 0; }
 }
 
 @media (max-width: 520px) {
@@ -296,6 +343,9 @@ a:visited { color: #765078; }
   .metadata-pair { padding: 6px 0 6px 10px; }
   .section-heading, .command-row { align-items: flex-start; flex-direction: column; }
   .tab { padding-inline: 12px !important; }
+  .asset-card-heading { align-items: flex-start; flex-direction: column; }
+  .asset-track-grid, .calendar-legend { grid-template-columns: 1fr; }
+  .asset-track-grid .compact-fact { border-right: 0; padding-left: 0 !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {

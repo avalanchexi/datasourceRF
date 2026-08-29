@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 from dash.development.base_component import Component
 
 from pring_cycle.dashboard import DASHBOARD_NAVIGATION, dashboard_page, dashboard_shell
+from pring_cycle.projections import ProjectionEnvelope, ProjectionSet
 
 
 def _text(component: object) -> str:
@@ -71,3 +73,70 @@ def test_visual_contract_covers_theme_state_type_focus_motion_and_narrow_windows
     assert "@media (max-width:" in stylesheet
     assert "localStorage" in script and "pring-cycle-theme" in script
 
+
+def test_published_core_states_render_as_domain_ui_instead_of_raw_json() -> None:
+    projection = ProjectionSet(
+        ProjectionEnvelope(
+            projection_set_id="projection-test",
+            system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+            target_business_date="2026-08-28",
+            evidence_snapshot_id="snapshot-test",
+            model_version_id="model-v0001",
+            trend_rule_version="trend-v0001",
+            evidence_window_start="2026-03-01",
+            evidence_window_end="2026-08-28",
+            generated_at=datetime(2026, 8, 28, 13, tzinfo=UTC),
+            completeness="complete",
+            refresh_status="completed",
+            warnings=(),
+        ),
+        {
+            "cycle_overview": {
+                "current_stage": "stage_ii",
+                "last_confirmed_stage": "stage_ii",
+                "stage_reason": "canonical_mapping",
+                "transition_watch": [],
+            },
+            "core_assets": {
+                "assets": [
+                    {
+                        "asset": "bond",
+                        "metric_id": "CN_BOND_CORE_000012",
+                        "state": "bull",
+                        "reason": "validated",
+                        "candidate_days": 8,
+                        "candidate_state": "bear",
+                        "latest_business_date": "2026-08-28",
+                    }
+                ]
+            },
+            "macro": {},
+            "inventory": {},
+            "release_calendar": {},
+            "stage_history": {},
+        },
+    )
+
+    home = _text(dashboard_page("/", projection, (), ()))
+    detail = _text(dashboard_page("/core-assets", projection, (), ()))
+
+    assert "第二阶段 · Stage II" in home
+    assert "上证国债指数" in home
+    assert "偏多 · bull" in home
+    assert "2026-08-28" in home
+    assert "等待三类 P0" not in home
+    assert "120 日正式轨道" in detail
+    assert "30 日转折观察" in detail
+    assert '"asset": "bond"' not in detail
+
+
+def test_domain_pages_expose_fixed_sections_instead_of_generic_documents() -> None:
+    macro = _text(dashboard_page("/macro", None, (), ()))
+    inventory = _text(dashboard_page("/inventory", None, (), ()))
+    history = _text(dashboard_page("/stage-history", None, (), ()))
+    calendar = _text(dashboard_page("/release-calendar", None, (), ()))
+
+    assert all(label in macro for label in ("政策方向", "过热程度", "物价压力", "国际环境"))
+    assert "四象限解释" in inventory and "七张阶段特征卡" in inventory
+    assert "正式区间与空档" in history
+    assert all(label in calendar for label in ("预计窗口", "实际发布", "系统首次可用"))
