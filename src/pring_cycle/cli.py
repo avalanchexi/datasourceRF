@@ -26,6 +26,7 @@ _MUTATING_COMMANDS = {
     "model-rollback",
     "fixture-project",
     "gap-notice",
+    "lpr-refresh",
     "run-submit",
     "schedule",
     "evidence-ingest",
@@ -112,6 +113,51 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
 
         fixture = json.loads(namespace.input.read_text(encoding="utf-8"))
         return asdict(project_core_fixture(paths, fixture))
+    if namespace.command == "lpr-contract":
+        from pring_cycle.official_lpr import parse_lpr_announcement
+
+        parsed = parse_lpr_announcement(
+            namespace.input.read_bytes(),
+            source_url=namespace.url,
+            fetched_at=datetime.fromisoformat(namespace.fetched_at),
+            expected_period=namespace.period,
+        )
+        return {
+            **asdict(parsed),
+            "network_requests": 0,
+            "observation_count": len(parsed.observations),
+            "status": "validated",
+        }
+    if namespace.command == "lpr-refresh":
+        from pring_cycle.official_lpr import refresh_lpr_release
+
+        refreshed = refresh_lpr_release(
+            paths,
+            source_url=namespace.url,
+            expected_period=namespace.period,
+            fetched_at=datetime.now(UTC),
+        )
+        return {**asdict(refreshed), "network_requests": 1}
+    if namespace.command == "lpr-smoke":
+        from pring_cycle.official_lpr import smoke_lpr_release
+
+        return asdict(
+            smoke_lpr_release(
+                source_url=namespace.url,
+                expected_period=namespace.period,
+                fetched_at=datetime.now(UTC),
+            )
+        )
+    if namespace.command == "release-calendar":
+        from pring_cycle.release_calendar import lpr_release_calendar
+
+        events = lpr_release_calendar(
+            EvidenceRepository(paths.database),
+            period=namespace.period,
+            as_of=datetime.fromisoformat(namespace.as_of),
+            holidays=tuple(namespace.holiday),
+        )
+        return {"events": [asdict(item) for item in events], "status": "ok"}
     if namespace.command == "stage-history":
         return {
             "events": list(ProjectionSetRepository(paths.database).stage_history()),
@@ -417,6 +463,21 @@ def _parser() -> argparse.ArgumentParser:
     gap_notice = _runtime_parser(subparsers, "gap-notice")
     gap_notice.add_argument("--assessment-id", required=True)
     gap_notice.add_argument("--request-id", required=True)
+    lpr_contract = _runtime_parser(subparsers, "lpr-contract")
+    lpr_contract.add_argument("--input", type=Path, required=True)
+    lpr_contract.add_argument("--url", required=True)
+    lpr_contract.add_argument("--period", required=True)
+    lpr_contract.add_argument("--fetched-at", required=True)
+    lpr_refresh = _runtime_parser(subparsers, "lpr-refresh")
+    lpr_refresh.add_argument("--url", required=True)
+    lpr_refresh.add_argument("--period", required=True)
+    lpr_smoke = _runtime_parser(subparsers, "lpr-smoke")
+    lpr_smoke.add_argument("--url", required=True)
+    lpr_smoke.add_argument("--period", required=True)
+    release_calendar = _runtime_parser(subparsers, "release-calendar")
+    release_calendar.add_argument("--period", required=True)
+    release_calendar.add_argument("--as-of", required=True)
+    release_calendar.add_argument("--holiday", action="append", default=[])
     evidence_query = _runtime_parser(subparsers, "evidence-query")
     evidence_query.add_argument("--observation-id", required=True)
     evidence_query.add_argument(
@@ -456,6 +517,8 @@ def _source_claim_input(source: dict[str, Any]) -> SourceClaimInput:
     definition = metric_definition(str(source["metric_id"]))
     if definition.priority == "P0":
         raise ValueError("p0_evidence_requires_certified_adapter")
+    if source.get("certification_status") == "certified":
+        raise ValueError("certified_evidence_requires_certified_adapter")
     dimensions = source["dimensions"]
     if not isinstance(dimensions, dict) or any(
         not isinstance(key, str) or not isinstance(value, str)

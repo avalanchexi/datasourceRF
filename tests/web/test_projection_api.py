@@ -8,6 +8,7 @@ from typing import Any, cast
 from fastapi import FastAPI
 
 from pring_cycle.domain import CoreAssetState, FormalStage
+from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ANALYTICAL_DATASETS, ProjectionEnvelope, ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -121,3 +122,31 @@ def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projecti
     assert [event["event_kind"] for event in response["events"]] == ["formal", "gap"]
     assert response["events"][1]["projection_set_id"] is None
     assert repository.current().envelope.target_business_date == "2026-08-28"
+
+
+def test_release_calendar_rest_reads_certified_release_event_and_observation_count(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    content = (
+        Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
+    ).read_bytes()
+    ingest_lpr_document(
+        paths,
+        content,
+        source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+        fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
+        expected_period="2026-08",
+    )
+    application = create_web_application(paths, 8050)
+
+    response = _route(application, "release_calendar").endpoint(
+        "2026-08",
+        datetime(2026, 8, 20, 2, tzinfo=UTC),
+    )
+
+    assert response["status"] == "ok"
+    assert response["events"][0]["status"] == "current"
+    assert response["events"][0]["observation_count"] == 2
+    assert response["events"][0]["release_event_family"] == "chinamoney_lpr"

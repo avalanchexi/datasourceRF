@@ -22,6 +22,7 @@ from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
+from pring_cycle.release_calendar import current_lpr_period, lpr_release_calendar
 from pring_cycle.reports import ReportRepository, ReportSnapshot
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import (
@@ -106,6 +107,20 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
         return {
             "catalog_version": METRIC_CATALOG_VERSION,
             "metrics": [asdict(item) for item in metric_catalog()],
+        }
+
+    @server.get("/api/v1/release-calendar", name="release_calendar")
+    def release_calendar_view(period: str, as_of: datetime) -> dict[str, object]:
+        return {
+            "events": [
+                asdict(item)
+                for item in lpr_release_calendar(
+                    EvidenceRepository(paths.database),
+                    period=period,
+                    as_of=as_of,
+                )
+            ],
+            "status": "ok",
         }
 
     @server.get("/api/v1/runs", name="run_index")
@@ -193,6 +208,7 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
             _runs(paths),
             _reports(paths),
             _stage_history(paths),
+            _release_calendar_events(paths),
         )
 
     return server
@@ -236,6 +252,21 @@ def _reports(paths: RuntimePaths) -> tuple[ReportSnapshot, ...]:
 def _stage_history(paths: RuntimePaths) -> tuple[dict[str, object], ...]:
     try:
         return ProjectionSetRepository(paths.database).stage_history()
+    except (OSError, ValueError):
+        return ()
+
+
+def _release_calendar_events(paths: RuntimePaths) -> tuple[dict[str, object], ...]:
+    now = datetime.now(UTC)
+    try:
+        return tuple(
+            asdict(item)
+            for item in lpr_release_calendar(
+                EvidenceRepository(paths.database),
+                period=current_lpr_period(now),
+                as_of=now,
+            )
+        )
     except (OSError, ValueError):
         return ()
 

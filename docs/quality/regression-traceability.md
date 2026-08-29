@@ -21,7 +21,7 @@
 | `REG-PIT-004` | 修订不改写旧视角 | ADR-0006 | 02 | `tests/evidence/test_point_in_time.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-PIT-005` | 同期多 vintage 追加保存 | ADR-0006 | 02 | `tests/evidence/test_point_in_time.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-PIT-006` | 120 个中国交易日窗口频率语义 | ADR-0006 | 02, 03 | `tests/evidence/test_point_in_time.py`, `tests/acceptance/test_v1_acceptance.py` |
-| `REG-PIT-007` | 未发布时沿用上一期且不改期别 | ADR-0005, ADR-0006 | 08, 09 | `tests/catalog/test_release_calendar.py`, `tests/acceptance/test_v1_acceptance.py` |
+| `REG-PIT-007` | 未发布时沿用上一期且不改期别 | ADR-0005, ADR-0006 | 08, 09 | `tests/catalog/test_release_calendar.py`, `tests/adapters/test_chinamoney_lpr.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-001` | 事务中断不暴露半批结果 | ADR-0007, ADR-0008 | 16, 18 | `tests/integration/test_atomic_projection.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-002` | 重复命令幂等 | ADR-0010 | 17 | `tests/integration/test_run_orchestration.py`, `tests/acceptance/test_v1_acceptance.py` |
 | `REG-RUN-003` | 陈旧租约仅显式恢复 | ADR-0010 | 18 | `tests/integration/test_run_orchestration.py`, `tests/acceptance/test_v1_acceptance.py` |

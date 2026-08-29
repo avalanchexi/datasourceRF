@@ -6,6 +6,7 @@ from pring_cycle.release_calendar import (
     ReleasedObservation,
     ReleaseExpectation,
     assess_release_state,
+    lpr_release_expectation,
 )
 
 
@@ -107,3 +108,23 @@ def test_released_expected_period_becomes_current_and_unblocks_p0() -> None:
     assert state.observation_id == "obs-equity-2026-08-28"
     assert state.should_retrieve is False
     assert state.blocks_formal_stage is False
+
+
+def test_lpr_rule_uses_official_0900_shanghai_window_and_rolls_weekends() -> None:
+    normal = lpr_release_expectation("2026-08")
+    weekend = lpr_release_expectation("2026-06")
+
+    assert normal.window_start.isoformat() == "2026-08-20T09:00:00+08:00"
+    assert normal.window_end.isoformat() == "2026-08-20T09:05:00+08:00"
+    assert normal.grace_until.isoformat() == "2026-08-20T12:00:00+08:00"
+    assert normal.rule_version == "lpr-release-rule-v0001"
+    assert weekend.window_start.isoformat() == "2026-06-22T09:00:00+08:00"
+
+
+def test_lpr_rule_accepts_frozen_statutory_holidays_instead_of_guessing_release() -> None:
+    expectation = lpr_release_expectation(
+        "2026-09",
+        holidays=("2026-09-21",),
+    )
+
+    assert expectation.window_start.isoformat() == "2026-09-22T09:00:00+08:00"

@@ -125,6 +125,30 @@ class FrozenEvidenceSnapshot:
     observation_version_ids: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class ReleaseEventView:
+    release_event_id: str
+    metric_id: str
+    provider: str
+    period: str
+    release_at: datetime | None
+    public_available_at: datetime | None
+    available_at: datetime
+    latest_fetched_at: datetime
+    observation_count: int
+    source_reference: str
+
+
+@dataclass(frozen=True)
+class RetrievalAttemptView:
+    retrieval_attempt_id: str
+    metric_id: str
+    channel: str
+    outcome: str
+    fetched_at: datetime
+    safe_metadata: dict[str, str]
+
+
 class EvidenceRepository:
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
@@ -137,84 +161,123 @@ class EvidenceRepository:
         return repository
 
     def append_source_claim(self, claim: SourceClaimInput) -> StoredSourceClaim:
-        _validate_claim(claim)
-        dimensions_json = json.dumps(claim.dimensions, ensure_ascii=False, sort_keys=True)
-        observation_id = _stable_hash(
-            claim.metric_id,
-            claim.definition_version,
-            claim.period_kind,
-            claim.period_start,
-            claim.period_end,
-            dimensions_json,
-        )
-        claim_id = _stable_hash(
-            observation_id,
-            claim.provider,
-            claim.source_reference,
-            claim.value_state.value,
-            repr(claim.value),
-            _iso(claim.public_available_at) or "",
-            _iso(claim.available_at) or "",
-        )
+        return self.append_source_claims((claim,))[0]
+
+    def append_source_claims(
+        self,
+        claims: tuple[SourceClaimInput, ...],
+    ) -> tuple[StoredSourceClaim, ...]:
+        if not claims:
+            raise ValueError("evidence_claim_batch_required")
+        for claim in claims:
+            _validate_claim(claim)
+        stored: list[StoredSourceClaim] = []
         with self._connect() as connection:
-            previous = connection.execute(
-                """
-                SELECT claim_id FROM source_claim
-                WHERE observation_id = ? AND provider = ?
-                ORDER BY julianday(available_at) DESC, claim_id DESC LIMIT 1
+            for claim in claims:
+                stored.append(_append_source_claim(connection, claim))
+        return tuple(stored)
+
+    def release_events(self, *, metric_id: str | None = None) -> tuple[ReleaseEventView, ...]:
+        clause = "WHERE claim.metric_id = ?" if metric_id is not None else ""
+        parameters: tuple[str, ...] = (metric_id,) if metric_id is not None else ()
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT event.release_event_id, claim.metric_id, event.provider,
+                       substr(MIN(claim.period_start), 1, 7) AS period,
+                       event.release_at, event.public_available_at,
+                       MIN(claim.available_at) AS available_at,
+                       MAX(claim.fetched_at) AS latest_fetched_at,
+                       COUNT(DISTINCT claim.observation_id) AS observation_count,
+                       MIN(claim.source_reference) AS source_reference
+                FROM release_event AS event
+                JOIN source_claim AS claim
+                  ON claim.release_event_id = event.release_event_id
+                {clause}
+                GROUP BY event.release_event_id, claim.metric_id, event.provider,
+                         event.release_at, event.public_available_at
+                ORDER BY MIN(claim.period_start), event.release_event_id
                 """,
-                (observation_id, claim.provider),
-            ).fetchone()
-            supersedes_claim_id = str(previous[0]) if previous is not None else None
-            connection.execute(
+                parameters,
+            ).fetchall()
+        return tuple(
+            ReleaseEventView(
+                release_event_id=str(row["release_event_id"]),
+                metric_id=str(row["metric_id"]),
+                provider=str(row["provider"]),
+                period=str(row["period"]),
+                release_at=_datetime(row["release_at"]),
+                public_available_at=_datetime(row["public_available_at"]),
+                available_at=_required_datetime(row["available_at"]),
+                latest_fetched_at=_required_datetime(row["latest_fetched_at"]),
+                observation_count=int(row["observation_count"]),
+                source_reference=str(row["source_reference"]),
+            )
+            for row in rows
+        )
+
+    def claims_for_release_source(
+        self,
+        release_event_id: str,
+        source_reference: str,
+    ) -> tuple[StoredSourceClaim, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
                 """
-                INSERT OR IGNORE INTO release_event (
-                    release_event_id, provider, release_at, public_available_at
-                ) VALUES (?, ?, ?, ?)
+                SELECT claim_id, observation_id, supersedes_claim_id
+                FROM source_claim
+                WHERE release_event_id=? AND source_reference=?
+                ORDER BY observation_id, claim_id
                 """,
-                (
-                    claim.release_event_id,
-                    claim.provider,
-                    _iso(claim.release_at),
-                    _iso(claim.public_available_at),
+                (release_event_id, source_reference),
+            ).fetchall()
+        return tuple(
+            StoredSourceClaim(
+                claim_id=str(row["claim_id"]),
+                observation_id=str(row["observation_id"]),
+                supersedes_claim_id=(
+                    str(row["supersedes_claim_id"])
+                    if row["supersedes_claim_id"] is not None
+                    else None
                 ),
             )
-            connection.execute(
+            for row in rows
+        )
+
+    def latest_retrieval_attempt(
+        self,
+        metric_id: str,
+        *,
+        period: str,
+        as_of: datetime,
+    ) -> RetrievalAttemptView | None:
+        if as_of.tzinfo is None:
+            raise ValueError("retrieval_attempt_as_of_must_be_timezone_aware")
+        with self._connect() as connection:
+            rows = connection.execute(
                 """
-                INSERT OR IGNORE INTO source_claim (
-                    claim_id, observation_id, metric_id, definition_version,
-                    period_kind, period_start, period_end, dimensions_json,
-                    value, value_state, unit, provider, source_reference,
-                    release_event_id, release_at, public_available_at, fetched_at,
-                    available_at, certification_status, quality_status,
-                    supersedes_claim_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                SELECT * FROM retrieval_attempt
+                WHERE metric_id=? AND julianday(fetched_at) <= julianday(?)
+                ORDER BY julianday(fetched_at) DESC, retrieval_attempt_id DESC
                 """,
-                (
-                    claim_id,
-                    observation_id,
-                    claim.metric_id,
-                    claim.definition_version,
-                    claim.period_kind,
-                    claim.period_start,
-                    claim.period_end,
-                    dimensions_json,
-                    claim.value,
-                    claim.value_state.value,
-                    claim.unit,
-                    claim.provider,
-                    claim.source_reference,
-                    claim.release_event_id,
-                    _iso(claim.release_at),
-                    _iso(claim.public_available_at),
-                    _iso(claim.fetched_at),
-                    _iso(claim.available_at),
-                    claim.certification_status,
-                    claim.quality_status,
-                    supersedes_claim_id,
-                ),
+                (metric_id, _iso(as_of)),
+            ).fetchall()
+        for row in rows:
+            metadata = {
+                str(key): str(value)
+                for key, value in json.loads(str(row["safe_metadata_json"])).items()
+            }
+            if metadata.get("period") != period:
+                continue
+            return RetrievalAttemptView(
+                retrieval_attempt_id=str(row["retrieval_attempt_id"]),
+                metric_id=str(row["metric_id"]),
+                channel=str(row["channel"]),
+                outcome=str(row["outcome"]),
+                fetched_at=_required_datetime(row["fetched_at"]),
+                safe_metadata=metadata,
             )
-        return StoredSourceClaim(claim_id, observation_id, supersedes_claim_id)
+        return None
 
     def query(
         self,
@@ -489,6 +552,7 @@ class EvidenceRepository:
     def _initialize(self) -> None:
         with self._connect() as connection:
             connection.executescript(_EVIDENCE_SCHEMA)
+            connection.executescript(_RELEASE_EVENT_EXTENSIONS_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
@@ -528,6 +592,106 @@ def _validate_claim(claim: SourceClaimInput) -> None:
         raise ValueError("evidence_value_must_be_finite")
     if claim.value_state is not EvidenceValueState.REPORTED_VALUE and claim.value is not None:
         raise ValueError("non_numeric_value_state_rejects_number")
+
+
+def _append_source_claim(
+    connection: sqlite3.Connection,
+    claim: SourceClaimInput,
+) -> StoredSourceClaim:
+    dimensions_json = json.dumps(claim.dimensions, ensure_ascii=False, sort_keys=True)
+    observation_id = _stable_hash(
+        claim.metric_id,
+        claim.definition_version,
+        claim.period_kind,
+        claim.period_start,
+        claim.period_end,
+        dimensions_json,
+    )
+    claim_id = _stable_hash(
+        observation_id,
+        claim.provider,
+        claim.source_reference,
+        claim.value_state.value,
+        repr(claim.value),
+        _iso(claim.public_available_at) or "",
+        _iso(claim.available_at) or "",
+    )
+    existing_claim = connection.execute(
+        "SELECT supersedes_claim_id FROM source_claim WHERE claim_id=?",
+        (claim_id,),
+    ).fetchone()
+    if existing_claim is not None:
+        supersedes = (
+            str(existing_claim[0]) if existing_claim[0] is not None else None
+        )
+        return StoredSourceClaim(claim_id, observation_id, supersedes)
+    existing_event = connection.execute(
+        """
+        SELECT provider, release_at, public_available_at FROM release_event
+        WHERE release_event_id=?
+        """,
+        (claim.release_event_id,),
+    ).fetchone()
+    event_identity = (
+        claim.provider,
+        _iso(claim.release_at),
+        _iso(claim.public_available_at),
+    )
+    if existing_event is not None and tuple(existing_event) != event_identity:
+        raise ValueError("release_event_identity_conflict")
+    previous = connection.execute(
+        """
+        SELECT claim_id FROM source_claim
+        WHERE observation_id = ? AND provider = ?
+        ORDER BY julianday(available_at) DESC, claim_id DESC LIMIT 1
+        """,
+        (observation_id, claim.provider),
+    ).fetchone()
+    supersedes_claim_id = str(previous[0]) if previous is not None else None
+    connection.execute(
+        """
+        INSERT OR IGNORE INTO release_event (
+            release_event_id, provider, release_at, public_available_at
+        ) VALUES (?, ?, ?, ?)
+        """,
+        (claim.release_event_id, *event_identity),
+    )
+    connection.execute(
+        """
+        INSERT INTO source_claim (
+            claim_id, observation_id, metric_id, definition_version,
+            period_kind, period_start, period_end, dimensions_json,
+            value, value_state, unit, provider, source_reference,
+            release_event_id, release_at, public_available_at, fetched_at,
+            available_at, certification_status, quality_status,
+            supersedes_claim_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            claim_id,
+            observation_id,
+            claim.metric_id,
+            claim.definition_version,
+            claim.period_kind,
+            claim.period_start,
+            claim.period_end,
+            dimensions_json,
+            claim.value,
+            claim.value_state.value,
+            claim.unit,
+            claim.provider,
+            claim.source_reference,
+            claim.release_event_id,
+            _iso(claim.release_at),
+            _iso(claim.public_available_at),
+            _iso(claim.fetched_at),
+            _iso(claim.available_at),
+            claim.certification_status,
+            claim.quality_status,
+            supersedes_claim_id,
+        ),
+    )
+    return StoredSourceClaim(claim_id, observation_id, supersedes_claim_id)
 
 
 def _claim_view(row: sqlite3.Row) -> ClaimView:
@@ -654,5 +818,16 @@ END;
 CREATE TRIGGER IF NOT EXISTS evidence_snapshot_no_delete
 BEFORE DELETE ON evidence_snapshot BEGIN
     SELECT RAISE(ABORT, 'evidence_snapshot_is_immutable');
+END;
+"""
+
+_RELEASE_EVENT_EXTENSIONS_SCHEMA = """
+CREATE TRIGGER IF NOT EXISTS release_event_no_update
+BEFORE UPDATE ON release_event BEGIN
+    SELECT RAISE(ABORT, 'release_event_is_immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS release_event_no_delete
+BEFORE DELETE ON release_event BEGIN
+    SELECT RAISE(ABORT, 'release_event_is_immutable');
 END;
 """

@@ -122,6 +122,7 @@ def dashboard_page(
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
     stage_events: Sequence[dict[str, object]] = (),
+    release_events: Sequence[dict[str, object]] = (),
 ) -> html.Div:
     route = pathname or "/"
     if route == "/":
@@ -135,7 +136,7 @@ def dashboard_page(
     if route == "/stage-history":
         return _stage_history_page(projection, stage_events)
     if route == "/release-calendar":
-        return _release_calendar_page(projection)
+        return _release_calendar_page(projection, release_events)
     if route == "/reports":
         return _reports_page(reports)
     if route == "/runs":
@@ -351,10 +352,15 @@ def _stage_history_page(
     )
 
 
-def _release_calendar_page(projection: ProjectionSet | None) -> html.Div:
+def _release_calendar_page(
+    projection: ProjectionSet | None,
+    release_events: Sequence[dict[str, object]],
+) -> html.Div:
     document = _dataset(projection, "release_calendar")
-    events = document.get("events")
-    rows = [item for item in events if isinstance(item, dict)] if isinstance(events, list) else []
+    projected_events = document.get("events")
+    rows = list(release_events)
+    if not rows and isinstance(projected_events, list):
+        rows = [item for item in projected_events if isinstance(item, dict)]
     return html.Div(
         [
             _page_heading("发布日历", "RELEASE CALENDAR"),
@@ -537,16 +543,30 @@ def _gap_label(value: str) -> str:
 
 
 def _release_event_row(item: dict[str, object]) -> html.Li:
-    identity = item.get("metric_id") or item.get("release_event_id") or "发布事件"
+    identity = (
+        item.get("release_event_family")
+        or item.get("metric_id")
+        or item.get("release_event_id")
+        or "发布事件"
+    )
+    expected = item.get("expected_window_start", item.get("expected_window", "未记录"))
+    carried = item.get("carried_period") or "无"
+    next_check = item.get("next_check_at") or "无需检查"
     return html.Li(
         [
             html.Strong(str(identity)),
             html.Span(
                 " · ".join(
                     (
-                        f"预计 {item.get('expected_window', item.get('expected_at', '未记录'))}",
+                        f"统计期 {item.get('period', '未记录')}",
+                        f"时区 {item.get('timezone', '未记录')}",
+                        f"预计 {expected}",
                         f"发布 {item.get('release_at', '尚未发布')}",
                         f"可用 {item.get('available_at', '尚不可用')}",
+                        f"沿用上一期 {carried}",
+                        f"最近获取 {item.get('latest_fetched_at', '尚未获取')}",
+                        f"下一检查 {next_check}",
+                        f"关联观测 {item.get('observation_count', 0)}",
                         f"状态 {item.get('status', 'unknown')}",
                     )
                 ),

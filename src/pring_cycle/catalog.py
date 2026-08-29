@@ -17,6 +17,9 @@ class MetricDefinition:
     source_codes: tuple[str, ...]
     source_candidates: tuple[str, ...]
     certification_status: str
+    release_event_family: str
+    release_rule: str
+    release_timezone: str
     definition_version: str = METRIC_CATALOG_VERSION
 
 
@@ -97,6 +100,13 @@ _SOURCE_CODES = {
     "EIA_WTI_RWTC": ("RWTC",),
     "UST10Y_NOMINAL_YIELD": ("us_tycr.y10",),
     "UST2Y_NOMINAL_YIELD": ("us_tycr.y2",),
+    "CN_LPR_1Y_5Y": ("CHINAMONEY_LPR",),
+}
+
+_SOURCE_CANDIDATES = {
+    "CN_LPR_1Y_5Y": (
+        "https://www.chinamoney.com.cn/chinese/bklpr/",
+    ),
 }
 
 _CERTIFIED_SOURCES = {
@@ -104,6 +114,7 @@ _CERTIFIED_SOURCES = {
     "CN_EQUITY_CORE_000985",
     "CN_BOND_CORE_000012",
     "CN_COMMODITY_CORE_NHII",
+    "CN_LPR_1Y_5Y",
 }
 
 
@@ -122,12 +133,15 @@ def metric_catalog() -> tuple[MetricDefinition, ...]:
                     frequency=_frequency(metric_id),
                     dimensions=_dimensions(metric_id),
                     source_codes=source_codes,
-                    source_candidates=source_codes,
+                    source_candidates=_SOURCE_CANDIDATES.get(metric_id, source_codes),
                     certification_status=(
                         "certified"
                         if metric_id in _CERTIFIED_SOURCES
                         else "awaiting_source_certification"
                     ),
+                    release_event_family=_release_event_family(metric_id),
+                    release_rule=_release_rule(metric_id),
+                    release_timezone=_release_timezone(metric_id),
                 )
             )
     return tuple(definitions)
@@ -155,6 +169,8 @@ def _role(metric_id: str) -> str:
 
 
 def _unit(metric_id: str) -> str:
+    if metric_id == "CN_LPR_1Y_5Y":
+        return "percent"
     if metric_id in _P0[3:] or "INDEX" in metric_id or "NH" in metric_id:
         return "index_points"
     if any(token in metric_id for token in ("RATE", "YIELD", "CPI", "PPI", "PMI")):
@@ -167,7 +183,10 @@ def _unit(metric_id: str) -> str:
 def _frequency(metric_id: str) -> str:
     if metric_id.endswith("EVENT") or metric_id in {"CN_RELEASE_SCHEDULE"}:
         return "event"
-    if metric_id.startswith(("CN_PMI", "CN_CPI", "CN_CORE_CPI", "CN_PPI", "CN_SF")):
+    if (
+        metric_id.startswith(("CN_PMI", "CN_CPI", "CN_CORE_CPI", "CN_PPI", "CN_SF"))
+        or metric_id == "CN_LPR_1Y_5Y"
+    ):
         return "monthly"
     if metric_id in {"CN_CAPACITY_UTILIZATION", "CN_GDP"}:
         return "quarterly"
@@ -192,6 +211,28 @@ def _dimensions(metric_id: str) -> tuple[str, ...]:
     if metric_id.startswith(("COMEX", "LBMA")):
         return ("contract_or_fixing",)
     return ()
+
+
+def _release_event_family(metric_id: str) -> str:
+    if metric_id == "CN_LPR_1Y_5Y":
+        return "chinamoney_lpr"
+    return metric_id.lower()
+
+
+def _release_rule(metric_id: str) -> str:
+    if metric_id == "CN_LPR_1Y_5Y":
+        return "monthly_day_20_holiday_roll_0900_asia_shanghai"
+    if metric_id == "CN_TRADE_CALENDAR":
+        return "china_exchange_calendar"
+    if metric_id in _P0[3:]:
+        return "china_trading_day_source_schedule"
+    return "source_schedule_required"
+
+
+def _release_timezone(metric_id: str) -> str:
+    if metric_id.startswith("CN_") or metric_id == "SOURCE_OBSERVED_AVAILABILITY":
+        return "Asia/Shanghai"
+    return "source_local_timezone"
 
 
 _NAME_OVERRIDES = {

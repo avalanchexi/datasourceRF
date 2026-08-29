@@ -162,3 +162,28 @@ def test_stage_history_page_can_show_an_unpublished_p0_gap_from_the_read_model()
     assert "当前阶段暂不判定" in history
     assert "上一确认 第二阶段 · Stage II" in history
     assert "商品：来源冲突" in history
+
+
+def test_release_calendar_page_shows_operational_event_fields() -> None:
+    event = {
+        "release_event_family": "chinamoney_lpr",
+        "metric_id": "CN_LPR_1Y_5Y",
+        "period": "2026-08",
+        "timezone": "Asia/Shanghai",
+        "status": "current",
+        "carried_period": None,
+        "expected_window_start": "2026-08-20T09:00:00+08:00",
+        "release_at": "2026-08-20T09:00:00+08:00",
+        "available_at": "2026-08-20T01:02:00+00:00",
+        "latest_fetched_at": "2026-08-20T01:02:00+00:00",
+        "next_check_at": None,
+        "observation_count": 2,
+    }
+
+    calendar = _text(dashboard_page("/release-calendar", None, (), (), (), (event,)))
+
+    assert "chinamoney_lpr" in calendar
+    assert "2026-08" in calendar
+    assert "Asia/Shanghai" in calendar
+    assert "最近获取 2026-08-20T01:02:00+00:00" in calendar
+    assert "关联观测 2" in calendar

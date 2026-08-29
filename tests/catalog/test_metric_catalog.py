@@ -16,10 +16,15 @@ def test_v1_catalog_freezes_all_61_metric_groups() -> None:
     assert metric_definition("CN_COMMODITY_CORE_NHII").source_candidates == ("NHII.NH",)
     assert metric_definition("CN_COMMODITY_CORE_NHII").priority == "P0"
     assert metric_definition("CN_COMMODITY_CORE_NHII").certification_status == "certified"
-    assert (
-        metric_definition("CN_LPR_1Y_5Y").certification_status
-        == "awaiting_source_certification"
-    )
+    lpr = metric_definition("CN_LPR_1Y_5Y")
+    assert lpr.certification_status == "certified"
+    assert lpr.unit == "percent"
+    assert lpr.frequency == "monthly"
+    assert lpr.source_codes == ("CHINAMONEY_LPR",)
+    assert lpr.release_event_family == "chinamoney_lpr"
+    assert lpr.release_rule == "monthly_day_20_holiday_roll_0900_asia_shanghai"
+    assert lpr.release_timezone == "Asia/Shanghai"
+    assert all(item.release_rule for item in catalog)
     assert metric_definition("CN_SF_COMPONENTS").dimensions == ("component", "measure")
 
 

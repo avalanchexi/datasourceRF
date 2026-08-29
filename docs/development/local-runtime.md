@@ -161,6 +161,48 @@ pring-cycle gap-notices --json
 阶段历史包含正式事件与空档，并保留三资产状态、候选/12M 观察、快照、模型和投影身份；缺口
 说明不是正式市场报告，也不出现在 `pring-cycle reports` 中。
 
+### LPR 官方发布与发布日历
+
+V1 的首条 P1 认证官方链路是中国货币网 LPR 公告。目录身份固定为
+`CN_LPR_1Y_5Y` / `CHINAMONEY_LPR`，单位为百分比，频率为月度，维度仅允许
+`tenor=1y|5y_plus`。发布族是 `chinamoney_lpr`，规则版本固定为
+`monthly_day_20_holiday_roll_0900_asia_shanghai`：每月 20 日、节假日顺延、北京时间
+09:00 发布。预计窗口只决定等待和检查状态，绝不证明公告已经发布。
+
+先用已脱敏 HTML fixture 执行不联网、不初始化运行目录、不落库的契约检查：
+
+```bash
+pring-cycle lpr-contract --input /wsl/native/path/lpr.html \
+  --url https://www.chinamoney.com.cn/chinese/rdgz/YYYYMMDD/CONTENT_ID.html \
+  --period YYYY-MM --fetched-at 2026-08-20T09:02:00+08:00 --json
+```
+
+人工真实烟雾必须显式给出当期公告的精确 HTTPS URL。它只输出来源身份、最终 URL、字段
+形状、发布时间、观测数量、字节数、SHA-256 和结论，不保存响应正文：
+
+```bash
+pring-cycle lpr-smoke \
+  --url https://www.chinamoney.com.cn/chinese/rdgz/YYYYMMDD/CONTENT_ID.html \
+  --period YYYY-MM --json
+```
+
+烟雾通过后，显式摄取会把公告作为内容寻址制品保存，并以一个发布事件原子写入两条认证
+source claim；普通 `evidence-ingest` 不能自称这条来源已认证：
+
+```bash
+pring-cycle lpr-refresh \
+  --url https://www.chinamoney.com.cn/chinese/rdgz/YYYYMMDD/CONTENT_ID.html \
+  --period YYYY-MM --json
+pring-cycle release-calendar --period YYYY-MM \
+  --as-of 2026-08-20T09:05:00+08:00 --json
+```
+
+若 20 日之后存在已冻结的法定节假日，可向只读日历命令重复传入
+`--holiday YYYY-MM-DD`；周末自动顺延。REST 对应 `/api/v1/catalog`、
+`/api/v1/release-calendar?period=YYYY-MM&as_of=...` 和
+`/api/v1/evidence/{observation_id}`。页面“发布日历”显示事件族、统计期、时区、上一期沿用、
+最近获取、下一检查和关联观测数量，并分别保留实际发布、公开可用与系统首次可用时间。
+
 手动完整运行是主路径；命令先持久化，独立 Worker 再领取。定向刷新、手动深搜和报告任务使用
 同一账本与幂等键：
 
