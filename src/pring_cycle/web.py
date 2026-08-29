@@ -356,12 +356,27 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
         run = repository.cancel(str(payload["run_id"]))
     else:
         model_version_id = str(payload.get("model_version_id") or _default_model(paths))
+        metric_values = payload.get("metric_ids", ())
+        if not isinstance(metric_values, (list, tuple)) or any(
+            not isinstance(item, str) for item in metric_values
+        ):
+            raise ValueError("retrieval_metric_ids_must_be_string_list")
         run = repository.submit(
             command_type=command,
             target_business_date=str(payload["target_business_date"]),
             client_request_id=str(payload["client_request_id"]),
             model_version_id=model_version_id,
             system_as_of=datetime.now(UTC),
+            release_event_id=(
+                str(payload["release_event_id"])
+                if payload.get("release_event_id") is not None
+                else None
+            ),
+            metric_ids=tuple(metric_values),
+            period=str(payload["period"]) if payload.get("period") is not None else None,
+            source_url=(
+                str(payload["source_url"]) if payload.get("source_url") is not None else None
+            ),
         )
     return {
         "accepted_at": datetime.now(UTC).isoformat(),

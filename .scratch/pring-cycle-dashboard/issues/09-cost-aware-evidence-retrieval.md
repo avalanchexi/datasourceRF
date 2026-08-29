@@ -4,7 +4,7 @@
 
 **Blocked by:** 08 — 版本化指标目录与发布日历
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
 - [ ] 检索严格按有效本地证据、TuShare、认证官方直连、Tavily、Exa、受限 AI WebSearch 串行执行。
 - [ ] 同一实际发布事件内的多个指标合并查询后拆分观测，不重复消耗事件预算。
@@ -22,3 +22,10 @@
 2026-08-29：降级链、预算、负缓存、重试分类和 P2 截止规则已有领域实现与测试；但 Worker 的
 `targeted_refresh`/`manual_deep_search` 尚未真正调用该链，运行页面也未展示逐级延迟、预算和
 下一动作。因此该票保持 `ready-for-agent`。
+
+2026-08-30：`targeted_refresh` 与单指标 `manual_deep_search` 已使用不可变检索 scope 接入
+Worker；联合发布只调用事件一次。新增逐级尝试账本、1/1/1 事件约束、8/4/1 运行预算、
+16/8/2 上海自然日预算、负缓存、P2 截止、传输错误有限重试、预算豁免审计和运行页面摘要。
+Tavily/Exa 真实 HTTP 边界按官方 API 契约实现，但只能产生脱敏候选 URL，不能自认证。
+离线契约与 Worker 集成已通过；带真实密钥的外部烟雾仍留给人工显式执行，本次未联网、未
+声称外部搜索通过。

@@ -208,10 +208,26 @@ pring-cycle release-calendar --period YYYY-MM \
 
 ```bash
 pring-cycle run-submit --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
-pring-cycle run-submit --type targeted_refresh --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
-pring-cycle run-submit --type manual_deep_search --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
+pring-cycle run-submit --type targeted_refresh --target-date YYYY-MM-DD \
+  --release-event RELEASE_EVENT_ID --metric METRIC_ID --period YYYY-MM \
+  --request-id UNIQUE_ID --json
+pring-cycle run-submit --type manual_deep_search --target-date YYYY-MM-DD \
+  --release-event RELEASE_EVENT_ID --metric ONE_EXPLICIT_METRIC --period YYYY-MM \
+  --request-id UNIQUE_ID --json
 pring-cycle run-submit --type report_generation --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
 ```
+
+同一发布事件可重复 `--metric`，Worker 只按事件调用每个渠道一次，再由认证适配器拆分观测。
+若官方直连需要精确公告位置，另传 `--source-url OFFICIAL_HTTPS_URL`。检索顺序固定为有效本地
+证据、TuShare、认证官方直连、Tavily、Exa、受限 AI WebSearch；默认串行，P2 在 Exa 后
+停止。Tavily/Exa 只返回并保存候选 URL，不保存完整响应，也不能产生 certified claim 或清除
+原缺口。
+
+付费渠道每个发布事件各最多一次；单运行 Tavily/Exa/AI 预算为 8/4/1，上海自然日预算为
+16/8/2。有效负缓存和未到预计窗口不会调用外部渠道；只有短暂传输错误在同一级最多再试两
+次。手动深搜必须恰好指定一个指标，尝试账本标记 `manual_budget_exemption`，定时任务不会
+自动创建该命令。`pring-cycle runs --json` 和“运行状态”页显示逐级结果、失败分类、延迟、
+运行/每日余量、负缓存命中与下一动作，不显示密钥、认证头或外部完整正文。
 
 P0 缺失、陈旧、冲突或身份不符时运行进入 `action_required`，当前指针继续读取上一完整投影。
 查看、取消与显式恢复：

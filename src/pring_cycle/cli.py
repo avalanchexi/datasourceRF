@@ -251,6 +251,10 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             client_request_id=namespace.request_id,
             model_version_id=model_version_id,
             system_as_of=datetime.now(UTC),
+            release_event_id=namespace.release_event,
+            metric_ids=tuple(namespace.metric),
+            period=namespace.period,
+            source_url=namespace.source_url,
         )
         return asdict(submitted)
     if namespace.command == "runs":
@@ -444,6 +448,10 @@ def _parser() -> argparse.ArgumentParser:
     run_submit.add_argument("--target-date", required=True)
     run_submit.add_argument("--request-id", required=True)
     run_submit.add_argument("--model")
+    run_submit.add_argument("--release-event")
+    run_submit.add_argument("--metric", action="append", default=[])
+    run_submit.add_argument("--period")
+    run_submit.add_argument("--source-url")
     run_resume = _runtime_parser(subparsers, "run-resume")
     run_resume.add_argument("--run-id", required=True)
     run_resume.add_argument("--request-id", required=True)

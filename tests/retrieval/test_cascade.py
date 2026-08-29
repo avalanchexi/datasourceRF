@@ -133,3 +133,58 @@ def test_authentication_failure_does_not_retry() -> None:
     )
 
     assert calls == 1
+
+
+def test_unconfigured_paid_channels_do_not_consume_budget() -> None:
+    budget = RetrievalBudget()
+
+    result = run_retrieval_cascade(
+        RetrievalRequest("release-missing", ("CN_CORE_CPI",), "P1"),
+        {},
+        budget,
+    )
+
+    assert result.status == "unresolved"
+    assert budget.run_tavily_remaining == 8
+    assert budget.run_exa_remaining == 4
+    assert budget.run_ai_remaining == 1
+    assert [attempt.outcome for attempt in result.attempts] == ["not_configured"] * 6
+
+
+def test_attempts_capture_latency_classification_and_daily_budget() -> None:
+    result = run_retrieval_cascade(
+        RetrievalRequest("release-cpi", ("CN_CPI_HEADLINE",), "P1"),
+        {
+            "tavily": lambda _event: RetrievalAdapterResponse(
+                "failed",
+                classification="rate_limited",
+            )
+        },
+        RetrievalBudget(),
+    )
+
+    attempt = next(item for item in result.attempts if item.channel == "tavily")
+    assert attempt.classification == "rate_limited"
+    assert attempt.latency_ms >= 0
+    assert attempt.remaining_run_budget == 7
+    assert attempt.remaining_daily_budget == 15
+
+
+def test_adapter_semantic_validation_failure_is_sanitized_and_not_retried() -> None:
+    calls = 0
+
+    def invalid(_event: str) -> object:
+        nonlocal calls
+        calls += 1
+        raise ValueError("external-response-body-must-not-escape")
+
+    result = run_retrieval_cascade(
+        RetrievalRequest("release-cpi", ("CN_CPI_HEADLINE",), "P1"),
+        {"official": invalid},  # type: ignore[dict-item]
+        RetrievalBudget(),
+    )
+
+    assert calls == 1
+    attempt = next(item for item in result.attempts if item.channel == "official")
+    assert attempt.classification == "semantic_validation_failed"
+    assert "external-response-body" not in repr(result)

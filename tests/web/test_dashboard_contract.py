@@ -7,6 +7,7 @@ from dash.development.base_component import Component
 
 from pring_cycle.dashboard import DASHBOARD_NAVIGATION, dashboard_page, dashboard_shell
 from pring_cycle.projections import ProjectionEnvelope, ProjectionSet
+from pring_cycle.runs import RunRepository
 
 
 def _text(component: object) -> str:
@@ -187,3 +188,41 @@ def test_release_calendar_page_shows_operational_event_fields() -> None:
     assert "Asia/Shanghai" in calendar
     assert "最近获取 2026-08-20T01:02:00+00:00" in calendar
     assert "关联观测 2" in calendar
+
+
+def test_run_page_shows_retrieval_latency_budget_cache_and_next_action(tmp_path: Path) -> None:
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    submitted = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-20",
+        client_request_id="dashboard-retrieval",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 20, 2, tzinfo=UTC),
+        release_event_id="chinamoney-lpr:2026-08-20",
+        metric_ids=("CN_LPR_1Y_5Y",),
+        period="2026-08",
+    )
+    runs.record_retrieval_attempt(
+        submitted.run_id,
+        release_event_id="chinamoney-lpr:2026-08-20",
+        channel="tavily",
+        outcome="candidate_source",
+        classification=None,
+        latency_ms=123,
+        remaining_run_budget=7,
+        remaining_daily_budget=15,
+        budget_charged=True,
+        cache_hit=False,
+        manual_budget_exemption=False,
+        candidate_source="https://example.invalid/safe-url-only",
+        occurred_at=datetime(2026, 8, 20, 2, tzinfo=UTC),
+    )
+    runs.set_budget_consumption(submitted.run_id, tavily=1, exa=0, ai_websearch=0)
+
+    page = _text(dashboard_page("/runs", None, runs.list_runs(), ()))
+
+    assert "tavily candidate_source 123ms" in page
+    assert "运行余量 7 日余量 15" in page
+    assert "预算 Tavily 1/8、Exa 0/4、AI 0/1" in page
+    assert "下一动作 wait_for_worker" in page
+    assert "safe-url-only" not in page

@@ -4,7 +4,8 @@ import hashlib
 import os
 import signal
 import threading
-from datetime import UTC, date, datetime
+from collections.abc import Callable, Mapping
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from pring_cycle.domain import FormalStage
@@ -28,7 +29,13 @@ from pring_cycle.reports import (
     ReportService,
     evidence_bundle_from_projection,
 )
-from pring_cycle.runs import RunRecord, RunRepository
+from pring_cycle.retrieval import (
+    RetrievalAdapterResponse,
+    RetrievalBudget,
+    RetrievalRequest,
+    run_retrieval_cascade,
+)
+from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
@@ -116,6 +123,13 @@ def process_pending_run(
     paths: RuntimePaths,
     *,
     report_adapters: tuple[ReportAdapter, ...] | None = None,
+    retrieval_adapters: Mapping[
+        str,
+        Callable[[str], str | RetrievalAdapterResponse | None],
+    ]
+    | None = None,
+    retrieval_now: datetime | None = None,
+    retrieval_release_resolver: Callable[[RetrievalScope, datetime], bool] | None = None,
 ) -> str | None:
     if mutation_rejection(paths.database, paths.data) is not None:
         return None
@@ -134,7 +148,15 @@ def process_pending_run(
     )
     heartbeat.start()
     try:
-        _execute_run(paths, runs, queued, report_adapters)
+        _execute_run(
+            paths,
+            runs,
+            queued,
+            report_adapters,
+            retrieval_adapters=retrieval_adapters,
+            retrieval_now=retrieval_now,
+            retrieval_release_resolver=retrieval_release_resolver,
+        )
     except (LookupError, OSError, TypeError, ValueError) as error:
         if runs.get(queued.run_id).status != "cancelled":
             runs.mark_action_required(
@@ -153,6 +175,14 @@ def _execute_run(
     runs: RunRepository,
     run: RunRecord,
     report_adapters: tuple[ReportAdapter, ...] | None,
+    *,
+    retrieval_adapters: Mapping[
+        str,
+        Callable[[str], str | RetrievalAdapterResponse | None],
+    ]
+    | None,
+    retrieval_now: datetime | None,
+    retrieval_release_resolver: Callable[[RetrievalScope, datetime], bool] | None,
 ) -> None:
     if run.command_type != "report_generation":
         try:
@@ -170,7 +200,14 @@ def _execute_run(
         runs.advance(run.run_id, "completed")
         return
     if run.command_type in {"targeted_refresh", "manual_deep_search"}:
-        runs.mark_action_required(run.run_id, "configured_external_adapter_required")
+        _execute_retrieval_run(
+            paths,
+            runs,
+            run,
+            adapters=retrieval_adapters,
+            now=retrieval_now or datetime.now(UTC),
+            release_resolver=retrieval_release_resolver,
+        )
         return
 
     runs.advance(run.run_id, "refreshing_evidence")
@@ -233,6 +270,234 @@ def _execute_run(
     generated = _generate_report(paths, runs, run, report_adapters)
     runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)
     runs.advance(run.run_id, "completed")
+
+
+def _execute_retrieval_run(
+    paths: RuntimePaths,
+    runs: RunRepository,
+    run: RunRecord,
+    *,
+    adapters: Mapping[
+        str,
+        Callable[[str], str | RetrievalAdapterResponse | None],
+    ]
+    | None,
+    now: datetime,
+    release_resolver: Callable[[RetrievalScope, datetime], bool] | None,
+) -> None:
+    if now.tzinfo is None:
+        raise ValueError("retrieval_now_must_be_timezone_aware")
+    scope = runs.retrieval_scope(run.run_id)
+    runs.advance(run.run_id, "refreshing_evidence")
+    released = (
+        release_resolver(scope, now)
+        if release_resolver is not None
+        else _retrieval_release_ready(paths, scope, now)
+    )
+    cache_active = runs.negative_cache_active(
+        scope.release_event_id,
+        scope.metric_ids,
+        now=now,
+    )
+    if not released or cache_active:
+        channel = "negative_cache" if cache_active else "release_gate"
+        classification = "negative_cache_active" if cache_active else "awaiting_release"
+        runs.record_retrieval_attempt(
+            run.run_id,
+            release_event_id=scope.release_event_id,
+            channel=channel,
+            outcome="not_attempted",
+            classification=classification,
+            latency_ms=0,
+            remaining_run_budget=None,
+            remaining_daily_budget=None,
+            budget_charged=False,
+            cache_hit=cache_active,
+            manual_budget_exemption=run.command_type == "manual_deep_search",
+            candidate_source=None,
+            occurred_at=now,
+        )
+        runs.mark_retrieval_action_required(
+            run.run_id,
+            classification,
+            next_action="wait_for_release_or_cache_expiry",
+        )
+        return
+    consumed = run.consumed_budget
+    daily = runs.daily_budget_consumption(now)
+    budget = RetrievalBudget(
+        run_tavily_remaining=max(0, 8 - consumed["tavily"]),
+        run_exa_remaining=max(0, 4 - consumed["exa"]),
+        run_ai_remaining=max(0, 1 - consumed["ai_websearch"]),
+        daily_tavily_remaining=max(0, 16 - daily["tavily"]),
+        daily_exa_remaining=max(0, 8 - daily["exa"]),
+        daily_ai_remaining=max(0, 2 - daily["ai_websearch"]),
+    )
+    initial_run_budget = (
+        budget.run_tavily_remaining,
+        budget.run_exa_remaining,
+        budget.run_ai_remaining,
+    )
+    configured_adapters = adapters or _production_retrieval_adapters(paths, scope, now)
+    result = run_retrieval_cascade(
+        RetrievalRequest(
+            release_event_id=scope.release_event_id,
+            metric_ids=scope.metric_ids,
+            priority=scope.priority,
+            released=True,
+            manual_deep_search=run.command_type == "manual_deep_search",
+        ),
+        configured_adapters,
+        budget,
+    )
+    for attempt in result.attempts:
+        runs.record_retrieval_attempt(
+            run.run_id,
+            release_event_id=scope.release_event_id,
+            channel=attempt.channel,
+            outcome=attempt.outcome,
+            classification=attempt.classification,
+            latency_ms=attempt.latency_ms,
+            remaining_run_budget=attempt.remaining_run_budget,
+            remaining_daily_budget=attempt.remaining_daily_budget,
+            budget_charged=attempt.budget_charged,
+            cache_hit=attempt.cache_hit,
+            manual_budget_exemption=attempt.manual_budget_exemption,
+            candidate_source=attempt.candidate_source,
+            occurred_at=now,
+        )
+    if run.command_type != "manual_deep_search":
+        runs.set_budget_consumption(
+            run.run_id,
+            tavily=consumed["tavily"] + initial_run_budget[0] - budget.run_tavily_remaining,
+            exa=consumed["exa"] + initial_run_budget[1] - budget.run_exa_remaining,
+            ai_websearch=(
+                consumed["ai_websearch"]
+                + initial_run_budget[2]
+                - budget.run_ai_remaining
+            ),
+        )
+    if result.status == "verified" and result.evidence is not None:
+        runs.record_checkpoint(
+            run.run_id,
+            "verified_evidence",
+            result.evidence,
+            verified=True,
+        )
+        runs.advance(run.run_id, "completed")
+        return
+    cacheable = all(
+        attempt.outcome in {"not_found", "not_configured", "candidate_source"}
+        for attempt in result.attempts
+    ) and any(
+        attempt.outcome in {"not_found", "candidate_source"}
+        for attempt in result.attempts
+    )
+    if cacheable and result.attempts:
+        runs.store_negative_cache(
+            scope.release_event_id,
+            scope.metric_ids,
+            reason="unresolved",
+            expires_at=now + timedelta(minutes=30),
+            now=now,
+        )
+    runs.mark_retrieval_action_required(
+        run.run_id,
+        "retrieval_unresolved",
+        next_action=result.next_action,
+    )
+
+
+def _retrieval_release_ready(
+    _paths: RuntimePaths,
+    scope: RetrievalScope,
+    now: datetime,
+) -> bool:
+    if scope.metric_ids == ("CN_LPR_1Y_5Y",):
+        from pring_cycle.release_calendar import lpr_release_expectation
+
+        expectation = lpr_release_expectation(scope.period)
+        return now >= expectation.window_start
+    return False
+
+
+def _production_retrieval_adapters(
+    paths: RuntimePaths,
+    scope: RetrievalScope,
+    now: datetime,
+) -> dict[str, Callable[[str], str | RetrievalAdapterResponse | None]]:
+    adapters: dict[str, Callable[[str], str | RetrievalAdapterResponse | None]] = {
+        "local": lambda _event: _local_retrieval(paths, scope, now),
+    }
+    if scope.metric_ids == ("CN_LPR_1Y_5Y",):
+        adapters["official"] = lambda _event: _official_lpr_retrieval(paths, scope, now)
+    secrets = parse_data_source_secrets(paths.secrets)
+    if "TAVILY_API_KEY" in secrets or "EXA_API_KEY" in secrets:
+        from pring_cycle.search_discovery import (
+            build_search_query,
+            search_discovery_adapter,
+        )
+
+        query = build_search_query(scope.metric_ids, period=scope.period)
+        if token := secrets.get("TAVILY_API_KEY"):
+            adapters["tavily"] = search_discovery_adapter("tavily", token, query)
+        if token := secrets.get("EXA_API_KEY"):
+            adapters["exa"] = search_discovery_adapter("exa", token, query)
+    return adapters
+
+
+def _local_retrieval(
+    paths: RuntimePaths,
+    scope: RetrievalScope,
+    now: datetime,
+) -> str | None:
+    evidence = EvidenceRepository(paths.database)
+    selected_claim_ids: list[str] = []
+    for metric_id in scope.metric_ids:
+        points = evidence.metric_series(metric_id, mode=AsOfMode.SYSTEM, as_of=now)
+        matching = [item for item in points if item.period_end.startswith(scope.period)]
+        if not matching:
+            return None
+        for point in matching:
+            selected = next(
+                (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
+                None,
+            )
+            if (
+                point.selection_status != "selected"
+                or selected is None
+                or selected.certification_status != "certified"
+                or selected.quality_status != "validated"
+            ):
+                return None
+            selected_claim_ids.append(selected.claim_id)
+    if not selected_claim_ids:
+        return None
+    digest = hashlib.sha256("\x1f".join(sorted(selected_claim_ids)).encode()).hexdigest()
+    return f"local-evidence:{digest}"
+
+
+def _official_lpr_retrieval(
+    paths: RuntimePaths,
+    scope: RetrievalScope,
+    now: datetime,
+) -> str | RetrievalAdapterResponse:
+    if scope.source_url is None:
+        return RetrievalAdapterResponse(
+            "failed",
+            classification="official_url_required",
+        )
+    from pring_cycle.official_lpr import refresh_lpr_release
+
+    refreshed = refresh_lpr_release(
+        paths,
+        source_url=scope.source_url,
+        expected_period=scope.period,
+        fetched_at=now,
+    )
+    return "official-evidence:" + hashlib.sha256(
+        "\x1f".join(refreshed.claim_ids).encode()
+    ).hexdigest()
 
 
 def _core_readiness(

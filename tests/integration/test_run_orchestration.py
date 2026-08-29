@@ -150,3 +150,67 @@ def test_after_close_schedule_is_versioned_and_disabled_by_default(tmp_path: Pat
     assert enabled["enabled"] is True
     assert enabled["version"] == 2
     assert runs.startup_actions() == {"automatic_runs": 0, "external_requests": 0}
+
+
+def test_daily_retrieval_budget_counts_only_charged_non_exempt_queries(
+    tmp_path: Path,
+) -> None:
+    runs = RunRepository.create(tmp_path / "runs.sqlite3")
+    expected = {"tavily": 16, "exa": 8, "ai_websearch": 2}
+    sequence = 0
+    for channel, count in expected.items():
+        for _ in range(count):
+            sequence += 1
+            event_id = f"release-lpr-{sequence}"
+            run = runs.submit(
+                command_type="targeted_refresh",
+                target_business_date="2026-08-20",
+                client_request_id=f"budget-{sequence}",
+                model_version_id="model-v0001",
+                system_as_of=NOW,
+                release_event_id=event_id,
+                metric_ids=("CN_LPR_1Y_5Y",),
+                period="2026-08",
+            )
+            runs.record_retrieval_attempt(
+                run.run_id,
+                release_event_id=event_id,
+                channel=channel,
+                outcome="not_found",
+                classification=None,
+                latency_ms=1,
+                remaining_run_budget=0,
+                remaining_daily_budget=0,
+                budget_charged=True,
+                cache_hit=False,
+                manual_budget_exemption=False,
+                candidate_source=None,
+                occurred_at=NOW,
+            )
+    exempt = runs.submit(
+        command_type="manual_deep_search",
+        target_business_date="2026-08-20",
+        client_request_id="budget-exempt",
+        model_version_id="model-v0001",
+        system_as_of=NOW,
+        release_event_id="release-lpr-exempt",
+        metric_ids=("CN_LPR_1Y_5Y",),
+        period="2026-08",
+    )
+    runs.record_retrieval_attempt(
+        exempt.run_id,
+        release_event_id="release-lpr-exempt",
+        channel="tavily",
+        outcome="not_found",
+        classification=None,
+        latency_ms=1,
+        remaining_run_budget=None,
+        remaining_daily_budget=None,
+        budget_charged=False,
+        cache_hit=False,
+        manual_budget_exemption=True,
+        candidate_source=None,
+        occurred_at=NOW,
+    )
+
+    assert runs.daily_budget_consumption(NOW) == expected

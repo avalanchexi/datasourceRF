@@ -6,8 +6,9 @@ import os
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 RUN_STEPS = (
     "queued",
@@ -40,6 +41,17 @@ class RunRecord:
     consumed_budget: dict[str, int]
     projection_set_id: str | None
     error_classification: str | None
+    retrieval_scope: RetrievalScope | None
+    retrieval_attempts: tuple[dict[str, object], ...]
+
+
+@dataclass(frozen=True)
+class RetrievalScope:
+    release_event_id: str
+    metric_ids: tuple[str, ...]
+    period: str
+    priority: str
+    source_url: str | None
 
 
 @dataclass(frozen=True)
@@ -59,6 +71,7 @@ class RunRepository:
         repository = cls(database_path)
         with repository._connect() as connection:
             connection.executescript(_RUN_SCHEMA)
+            connection.executescript(_RETRIEVAL_RUN_SCHEMA)
             connection.execute(
                 """
                 INSERT OR IGNORE INTO schedule_configuration(
@@ -94,6 +107,10 @@ class RunRepository:
         client_request_id: str,
         model_version_id: str,
         system_as_of: datetime,
+        release_event_id: str | None = None,
+        metric_ids: tuple[str, ...] = (),
+        period: str | None = None,
+        source_url: str | None = None,
     ) -> RunRecord:
         allowed_commands = {
             "manual_full",
@@ -105,6 +122,13 @@ class RunRepository:
             raise ValueError("unsupported_run_command")
         if system_as_of.tzinfo is None:
             raise ValueError("system_as_of_must_be_timezone_aware")
+        scope = _validated_retrieval_scope(
+            command_type,
+            release_event_id=release_event_id,
+            metric_ids=metric_ids,
+            period=period,
+            source_url=source_url,
+        )
         with self._connect() as connection:
             existing_command = connection.execute(
                 """
@@ -114,7 +138,10 @@ class RunRepository:
                 (command_type, client_request_id),
             ).fetchone()
             if existing_command is not None:
-                return self.get(str(existing_command["run_id"]))
+                run_id = str(existing_command["run_id"])
+                if self._retrieval_scope(connection, run_id) != scope:
+                    raise ValueError("retrieval_scope_idempotency_conflict")
+                return self.get(run_id)
             active = None
             if command_type == "manual_full":
                 active = connection.execute(
@@ -185,6 +212,23 @@ class RunRepository:
                 "INSERT INTO run_attempt(run_id, reason, started_at) VALUES (?, 'initial', ?)",
                 (run_id, datetime.now(UTC).isoformat()),
             )
+            if scope is not None:
+                connection.execute(
+                    """
+                    INSERT INTO run_retrieval_scope(
+                        run_id, release_event_id, metric_ids_json, period,
+                        priority, source_url
+                    ) VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        run_id,
+                        scope.release_event_id,
+                        json.dumps(scope.metric_ids, separators=(",", ":")),
+                        scope.period,
+                        scope.priority,
+                        scope.source_url,
+                    ),
+                )
             connection.execute(
                 """
                 INSERT INTO run_step_event(run_id, step, event, occurred_at)
@@ -205,9 +249,9 @@ class RunRepository:
                 """,
                 (run_id,),
             ).fetchone()
-        if row is None:
-            raise LookupError("run_not_found")
-        return _run_record(row)
+            if row is None:
+                raise LookupError("run_not_found")
+            return self._run_record(connection, row)
 
     def count(self) -> int:
         with self._connect() as connection:
@@ -225,7 +269,7 @@ class RunRepository:
                 """,
                 (limit,),
             ).fetchall()
-        return tuple(_run_record(row) for row in rows)
+            return tuple(self._run_record(connection, row) for row in rows)
 
     def next_queued(self) -> RunRecord | None:
         with self._connect() as connection:
@@ -240,7 +284,7 @@ class RunRepository:
                 LIMIT 1
                 """
             ).fetchone()
-        return _run_record(row) if row is not None else None
+            return self._run_record(connection, row) if row is not None else None
 
     def acquire_lease(
         self,
@@ -496,6 +540,22 @@ class RunRepository:
         )
         return self.get(run_id)
 
+    def mark_retrieval_action_required(
+        self,
+        run_id: str,
+        classification: str,
+        *,
+        next_action: str,
+    ) -> RunRecord:
+        self._set_run_state(
+            run_id,
+            status="action_required",
+            recoverable=True,
+            next_action=next_action,
+            error_classification=classification,
+        )
+        return self.get(run_id)
+
     def set_budget_consumption(
         self, run_id: str, *, tavily: int, exa: int, ai_websearch: int
     ) -> None:
@@ -505,6 +565,155 @@ class RunRepository:
                 "UPDATE parent_run SET consumed_budget_json=? WHERE run_id=?",
                 (json.dumps(document, sort_keys=True), run_id),
             )
+
+    def retrieval_scope(self, run_id: str) -> RetrievalScope:
+        self.get(run_id)
+        with self._connect() as connection:
+            scope = self._retrieval_scope(connection, run_id)
+        if scope is None:
+            raise LookupError("run_retrieval_scope_missing")
+        return scope
+
+    def record_retrieval_attempt(
+        self,
+        run_id: str,
+        *,
+        release_event_id: str,
+        channel: str,
+        outcome: str,
+        classification: str | None,
+        latency_ms: int,
+        remaining_run_budget: int | None,
+        remaining_daily_budget: int | None,
+        budget_charged: bool,
+        cache_hit: bool,
+        manual_budget_exemption: bool,
+        candidate_source: str | None,
+        occurred_at: datetime,
+    ) -> None:
+        if occurred_at.tzinfo is None:
+            raise ValueError("retrieval_attempt_time_must_be_timezone_aware")
+        if latency_ms < 0:
+            raise ValueError("retrieval_attempt_latency_invalid")
+        with self._connect() as connection:
+            scope = self._retrieval_scope(connection, run_id)
+            if scope is None:
+                raise ValueError("retrieval_attempt_requires_scoped_run")
+            if scope.release_event_id != release_event_id:
+                raise ValueError("retrieval_attempt_release_event_mismatch")
+            sequence = connection.execute(
+                """
+                SELECT COALESCE(MAX(sequence), 0) + 1 FROM run_retrieval_attempt
+                WHERE run_id=?
+                """,
+                (run_id,),
+            ).fetchone()
+            connection.execute(
+                """
+                INSERT INTO run_retrieval_attempt(
+                    run_id, release_event_id, sequence, channel, outcome,
+                    classification, latency_ms, remaining_run_budget,
+                    remaining_daily_budget, budget_charged, cache_hit,
+                    manual_budget_exemption, candidate_source, occurred_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    release_event_id,
+                    int(sequence[0]),
+                    channel,
+                    outcome,
+                    classification,
+                    latency_ms,
+                    remaining_run_budget,
+                    remaining_daily_budget,
+                    int(budget_charged),
+                    int(cache_hit),
+                    int(manual_budget_exemption),
+                    candidate_source,
+                    occurred_at.astimezone(UTC).isoformat(),
+                ),
+            )
+
+    def daily_budget_consumption(self, observed_at: datetime) -> dict[str, int]:
+        if observed_at.tzinfo is None:
+            raise ValueError("retrieval_budget_time_must_be_timezone_aware")
+        local = observed_at.astimezone(ZoneInfo("Asia/Shanghai"))
+        start = local.replace(hour=0, minute=0, second=0, microsecond=0)
+        end = start + timedelta(days=1)
+        totals = {"tavily": 0, "exa": 0, "ai_websearch": 0}
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT channel, COUNT(*) AS consumed
+                FROM run_retrieval_attempt
+                WHERE budget_charged=1 AND manual_budget_exemption=0
+                  AND julianday(occurred_at) >= julianday(?)
+                  AND julianday(occurred_at) < julianday(?)
+                GROUP BY channel
+                """,
+                (start.astimezone(UTC).isoformat(), end.astimezone(UTC).isoformat()),
+            ).fetchall()
+        for row in rows:
+            channel = str(row["channel"])
+            if channel in totals:
+                totals[channel] = int(row["consumed"])
+        return totals
+
+    def store_negative_cache(
+        self,
+        release_event_id: str,
+        metric_ids: tuple[str, ...],
+        *,
+        reason: str,
+        expires_at: datetime,
+        now: datetime | None = None,
+    ) -> None:
+        observed_at = now or datetime.now(UTC)
+        if observed_at.tzinfo is None or expires_at.tzinfo is None:
+            raise ValueError("negative_cache_times_must_be_timezone_aware")
+        if expires_at <= observed_at:
+            raise ValueError("negative_cache_expiry_must_be_future")
+        identity = json.dumps(tuple(sorted(metric_ids)), separators=(",", ":"))
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO retrieval_negative_cache(
+                    release_event_id, metric_ids_json, reason, expires_at, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(release_event_id, metric_ids_json) DO UPDATE SET
+                    reason=excluded.reason, expires_at=excluded.expires_at,
+                    created_at=excluded.created_at
+                """,
+                (
+                    release_event_id,
+                    identity,
+                    reason,
+                    expires_at.astimezone(UTC).isoformat(),
+                    observed_at.astimezone(UTC).isoformat(),
+                ),
+            )
+
+    def negative_cache_active(
+        self,
+        release_event_id: str,
+        metric_ids: tuple[str, ...],
+        *,
+        now: datetime,
+    ) -> bool:
+        if now.tzinfo is None:
+            raise ValueError("negative_cache_time_must_be_timezone_aware")
+        identity = json.dumps(tuple(sorted(metric_ids)), separators=(",", ":"))
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT 1 FROM retrieval_negative_cache
+                WHERE release_event_id=? AND metric_ids_json=?
+                  AND julianday(expires_at) > julianday(?)
+                """,
+                (release_event_id, identity, now.astimezone(UTC).isoformat()),
+            ).fetchone()
+        return row is not None
 
     def record_checkpoint(self, run_id: str, kind: str, reference: str, *, verified: bool) -> None:
         with self._connect() as connection:
@@ -618,8 +827,122 @@ class RunRepository:
         connection.execute("PRAGMA journal_mode=WAL")
         return connection
 
+    def _run_record(self, connection: sqlite3.Connection, row: sqlite3.Row) -> RunRecord:
+        return _run_record(
+            row,
+            retrieval_scope=self._retrieval_scope(connection, str(row["run_id"])),
+            retrieval_attempts=self._retrieval_attempts(connection, str(row["run_id"])),
+        )
 
-def _run_record(row: sqlite3.Row) -> RunRecord:
+    def _retrieval_scope(
+        self,
+        connection: sqlite3.Connection,
+        run_id: str,
+    ) -> RetrievalScope | None:
+        row = connection.execute(
+            "SELECT * FROM run_retrieval_scope WHERE run_id=?",
+            (run_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return RetrievalScope(
+            release_event_id=str(row["release_event_id"]),
+            metric_ids=tuple(str(item) for item in json.loads(str(row["metric_ids_json"]))),
+            period=str(row["period"]),
+            priority=str(row["priority"]),
+            source_url=str(row["source_url"]) if row["source_url"] is not None else None,
+        )
+
+    def _retrieval_attempts(
+        self,
+        connection: sqlite3.Connection,
+        run_id: str,
+    ) -> tuple[dict[str, object], ...]:
+        rows = connection.execute(
+            """
+            SELECT * FROM run_retrieval_attempt WHERE run_id=? ORDER BY sequence
+            """,
+            (run_id,),
+        ).fetchall()
+        return tuple(
+            {
+                "channel": str(row["channel"]),
+                "outcome": str(row["outcome"]),
+                "classification": (
+                    str(row["classification"])
+                    if row["classification"] is not None
+                    else None
+                ),
+                "latency_ms": int(row["latency_ms"]),
+                "remaining_run_budget": (
+                    int(row["remaining_run_budget"])
+                    if row["remaining_run_budget"] is not None
+                    else None
+                ),
+                "remaining_daily_budget": (
+                    int(row["remaining_daily_budget"])
+                    if row["remaining_daily_budget"] is not None
+                    else None
+                ),
+                "budget_charged": bool(row["budget_charged"]),
+                "cache_hit": bool(row["cache_hit"]),
+                "manual_budget_exemption": bool(row["manual_budget_exemption"]),
+                "candidate_source": (
+                    str(row["candidate_source"])
+                    if row["candidate_source"] is not None
+                    else None
+                ),
+                "occurred_at": str(row["occurred_at"]),
+            }
+            for row in rows
+        )
+
+
+def _validated_retrieval_scope(
+    command_type: str,
+    *,
+    release_event_id: str | None,
+    metric_ids: tuple[str, ...],
+    period: str | None,
+    source_url: str | None,
+) -> RetrievalScope | None:
+    retrieval_command = command_type in {"targeted_refresh", "manual_deep_search"}
+    if not retrieval_command:
+        if (
+            release_event_id is not None
+            or metric_ids
+            or period is not None
+            or source_url is not None
+        ):
+            raise ValueError("retrieval_scope_not_allowed_for_command")
+        return None
+    if not release_event_id or not metric_ids or not period:
+        raise ValueError("retrieval_scope_required")
+    if len(set(metric_ids)) != len(metric_ids):
+        raise ValueError("retrieval_scope_duplicate_metric")
+    if command_type == "manual_deep_search" and len(metric_ids) != 1:
+        raise ValueError("manual_deep_search_requires_one_explicit_metric")
+    from pring_cycle.catalog import metric_definition
+
+    definitions = tuple(metric_definition(metric_id) for metric_id in metric_ids)
+    priorities = {definition.priority for definition in definitions}
+    if len(priorities) != 1:
+        raise ValueError("retrieval_scope_priority_mismatch")
+    return RetrievalScope(
+        release_event_id=release_event_id,
+        metric_ids=metric_ids,
+        period=period,
+        priority=priorities.pop(),
+        source_url=source_url,
+    )
+
+
+def _run_record(
+    row: sqlite3.Row,
+    *,
+    retrieval_scope: RetrievalScope | None,
+    retrieval_attempts: tuple[dict[str, object], ...],
+) -> RunRecord:
     return RunRecord(
         run_id=str(row["run_id"]),
         command_type=str(row["command_type"]),
@@ -643,6 +966,8 @@ def _run_record(row: sqlite3.Row) -> RunRecord:
         error_classification=(
             str(row["error_classification"]) if row["error_classification"] is not None else None
         ),
+        retrieval_scope=retrieval_scope,
+        retrieval_attempts=retrieval_attempts,
     )
 
 
@@ -736,4 +1061,57 @@ CREATE TABLE IF NOT EXISTS schedule_configuration (
     requested_by TEXT NOT NULL,
     created_at TEXT NOT NULL
 );
+"""
+
+_RETRIEVAL_RUN_SCHEMA = """
+CREATE TABLE IF NOT EXISTS run_retrieval_scope (
+    run_id TEXT PRIMARY KEY REFERENCES parent_run(run_id),
+    release_event_id TEXT NOT NULL,
+    metric_ids_json TEXT NOT NULL,
+    period TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    source_url TEXT
+);
+CREATE TABLE IF NOT EXISTS run_retrieval_attempt (
+    retrieval_attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES parent_run(run_id),
+    release_event_id TEXT NOT NULL,
+    sequence INTEGER NOT NULL,
+    channel TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    classification TEXT,
+    latency_ms INTEGER NOT NULL,
+    remaining_run_budget INTEGER,
+    remaining_daily_budget INTEGER,
+    budget_charged INTEGER NOT NULL,
+    cache_hit INTEGER NOT NULL,
+    manual_budget_exemption INTEGER NOT NULL,
+    candidate_source TEXT,
+    occurred_at TEXT NOT NULL,
+    UNIQUE(run_id, sequence)
+);
+CREATE TABLE IF NOT EXISTS retrieval_negative_cache (
+    release_event_id TEXT NOT NULL,
+    metric_ids_json TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(release_event_id, metric_ids_json)
+);
+CREATE TRIGGER IF NOT EXISTS run_retrieval_scope_no_update
+BEFORE UPDATE ON run_retrieval_scope BEGIN
+    SELECT RAISE(ABORT, 'run_retrieval_scope_is_immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS run_retrieval_scope_no_delete
+BEFORE DELETE ON run_retrieval_scope BEGIN
+    SELECT RAISE(ABORT, 'run_retrieval_scope_is_immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS run_retrieval_attempt_no_update
+BEFORE UPDATE ON run_retrieval_attempt BEGIN
+    SELECT RAISE(ABORT, 'run_retrieval_attempt_is_immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS run_retrieval_attempt_no_delete
+BEFORE DELETE ON run_retrieval_attempt BEGIN
+    SELECT RAISE(ABORT, 'run_retrieval_attempt_is_immutable');
+END;
 """

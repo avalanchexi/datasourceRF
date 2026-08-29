@@ -651,20 +651,7 @@ def _reports_page(reports: Sequence[ReportSnapshot]) -> html.Div:
 
 
 def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
-    rows = [
-        html.Li(
-            [
-                html.Strong(f"{item.target_business_date} · {item.status}"),
-                html.Span(
-                    f"{item.current_step} · 尝试 {item.attempt_count} · "
-                    f"下一动作 {item.next_action}",
-                    className="secondary-copy",
-                ),
-            ],
-            className="record-row",
-        )
-        for item in runs
-    ]
+    rows = [_run_row(item) for item in runs]
     return html.Div(
         [
             _page_heading("运行状态", "PERSISTENT RUN LEDGER"),
@@ -689,6 +676,42 @@ def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
         ],
         className="page-stack",
     )
+
+
+def _run_row(item: RunRecord) -> html.Li:
+    attempt_summary = "；".join(
+        _retrieval_attempt_summary(attempt) for attempt in item.retrieval_attempts
+    )
+    budget = item.consumed_budget
+    details = (
+        f"{item.current_step} · 尝试 {item.attempt_count} · "
+        f"预算 Tavily {budget['tavily']}/8、Exa {budget['exa']}/4、"
+        f"AI {budget['ai_websearch']}/1 · 下一动作 {item.next_action}"
+    )
+    if attempt_summary:
+        details += f" · 检索 {attempt_summary}"
+    return html.Li(
+        [
+            html.Strong(f"{item.target_business_date} · {item.status}"),
+            html.Span(details, className="secondary-copy"),
+        ],
+        className="record-row",
+    )
+
+
+def _retrieval_attempt_summary(attempt: dict[str, object]) -> str:
+    details = f"{attempt['channel']} {attempt['outcome']} {attempt['latency_ms']}ms"
+    if attempt.get("classification"):
+        details += f" 分类 {attempt['classification']}"
+    if attempt.get("remaining_run_budget") is not None:
+        details += f" 运行余量 {attempt['remaining_run_budget']}"
+    if attempt.get("remaining_daily_budget") is not None:
+        details += f" 日余量 {attempt['remaining_daily_budget']}"
+    if attempt.get("cache_hit") is True:
+        details += " 负缓存命中"
+    if attempt.get("manual_budget_exemption") is True:
+        details += " 人工预算豁免"
+    return details
 
 
 def _page_heading(title: str, eyebrow: str) -> html.Div:
