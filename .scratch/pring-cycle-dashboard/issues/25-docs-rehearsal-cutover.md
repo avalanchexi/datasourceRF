@@ -31,3 +31,11 @@
 `network_requests=0`，且 `publication_history_written=false`。组合验收项仍保持未勾选，因为
 真实 P0/P1、最新完整目标交易日原子投影/Dashboard/AI 演练尚未执行；旧系统只读停止与精确切换
 确认也未执行。未调用真实源、未创建真实演练制品、未生成或记录切换清单。
+
+2026-08-30：按 01–25 原始验收项重新做完成态审计，不能仅凭 `ready-for-human` 或全量测试宣称
+目标完成。当前 `doctor` 显示 TuShare、EIA、Tavily、Exa 凭据全部 disabled，正式运行目录未
+配置；验收临时目录的 `cutover-status` 为 `cutover: null`。仍需外部事实如下：05/06 的三核心
+120 日真实窗口、NHII 官方成分/方法与 P0 smoke；08/10/11/12/13 的各认证 Schema 族真实
+抽样与真实发布时间；15 的 CME/IBA/VIX/SOX 授权 feed；以及本票最新完整目标交易日的真实
+P0/P1、Dashboard、AI 演练和用户精确切换确认。fixture 恢复已通过，但组合项必须等真实演练
+也通过后才能勾选。上述步骤均不得由 fixture、未认证代理或自动确认替代。

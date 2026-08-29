@@ -27,3 +27,9 @@
 2026-08-30：EIA Brent/WTI 官方 API v2 契约已实现并保持与 NHII 隔离；无 EIA key 时不会阻塞
 TuShare 或 P0。COMEX、LBMA、现金 VIX、PHLX SOX 和 16:30 收盘口径继续诚实标记待授权，
 不引入替代品。真实 smoke/许可认证需人工执行，故转为 `ready-for-human`，前两项保持未勾选。
+
+2026-08-30：完成态审计确认美债 2Y/10Y 与 2s10s、EIA Brent/WTI 已有冻结身份、离线契约、
+点时摄取与 P2 隔离；剩余 COMEX、LBMA、现金 VIX、PHLX SOX 没有获批的账号、许可和交付
+Schema。CME/IBA 研究明确禁止用主力连续、FXCM、FRED 旧序列或搜索结果代替。未取得具体授权
+feed 前编写“正式适配器”只能臆造供应商 Schema，故前两项是实际外部认证缺口而非可安全补写的
+通用代码；继续显示 `awaiting_source_certification`。
