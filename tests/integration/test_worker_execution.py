@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 
+import pring_cycle.worker as worker_module
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.maintenance import MaintenanceRepository
 from pring_cycle.models import (
@@ -18,6 +19,7 @@ from pring_cycle.reports import ReportRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.tushare_context import ContextScalar
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
 
 
@@ -46,6 +48,97 @@ def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(tmp_path: Pat
     assert runs.get(submitted.run_id).status == "action_required"
     assert runs.get(submitted.run_id).error_classification == "p0_unavailable"
     assert runs.next_queued() is None
+
+
+def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = runtime(tmp_path)
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-token\n", encoding="utf-8")
+    paths.secrets.chmod(0o600)
+
+    class FixtureContextAdapter:
+        def pmi(
+            self,
+            *,
+            start_month: str,
+            end_month: str,
+        ) -> tuple[ContextScalar, ...]:
+            assert start_month < end_month == "202608"
+            return (
+                ContextScalar(
+                    metric_id="CN_PMI_ACTIVITY",
+                    api_name="cn_pmi",
+                    source_field="pmi010000",
+                    period_kind="month",
+                    period_start="2026-08-01",
+                    period_end="2026-08-31",
+                    dimensions={"series": "manufacturing", "measure": "level"},
+                    value=49.3,
+                    unit="diffusion_index_points",
+                ),
+            )
+
+        def prices(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_price_source_failed")
+
+        def money(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_money_source_failed")
+
+        def transmission(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_transmission_source_failed")
+
+    readiness = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=160,
+            latest_business_date="2026-08-28",
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    monkeypatch.setattr(worker_module, "_refresh_core_sources", lambda *_args: None)
+    monkeypatch.setattr(worker_module, "_core_readiness", lambda *_args, **_kwargs: readiness)
+    monkeypatch.setattr(
+        worker_module,
+        "_context_adapter",
+        lambda _token: FixtureContextAdapter(),
+    )
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="worker-candidate-context",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(submitted.run_id)
+    projection = ProjectionSetRepository(paths.database).current()
+    pmi = next(
+        row
+        for row in projection.datasets["macro"]["overheat"]["gaps"]
+        if row["metric_id"] == "CN_PMI_ACTIVITY"
+    )
+    assert stored.status == "completed"
+    assert projection.envelope.refresh_status == "completed"
+    assert projection.envelope.completeness == "degraded"
+    assert pmi["freshness"] == "awaiting_source_certification"
+    assert pmi["value"] is None
+    assert "p1_evidence_incomplete" in " ".join(projection.envelope.warnings)
 
 
 def test_worker_rejects_a_formal_run_for_a_candidate_model(tmp_path: Path) -> None:

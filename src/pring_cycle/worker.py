@@ -41,6 +41,11 @@ from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
 from pring_cycle.storage import database_health, record_worker_heartbeat
+from pring_cycle.tushare_context import (
+    ContextScalar,
+    TushareContextAdapter,
+    ingest_context_scalars,
+)
 
 CORE_METRICS = {
     "bond": "CN_BOND_CORE_000012",
@@ -213,6 +218,7 @@ def _execute_run(
 
     runs.advance(run.run_id, "refreshing_evidence")
     _refresh_core_sources(paths, run.target_business_date)
+    _refresh_context_sources(paths, run.target_business_date)
     if run.attempt_count == 1:
         run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
     else:
@@ -667,12 +673,89 @@ def _explanatory_evidence_warnings(
                 as_of=run.system_as_of,
             )
             if series and series[-1].selection_status == "selected":
-                available += 1
+                selected = next(
+                    (
+                        claim
+                        for claim in series[-1].claims
+                        if claim.claim_id == series[-1].selected_claim_id
+                    ),
+                    None,
+                )
+                if (
+                    selected is not None
+                    and selected.certification_status == "certified"
+                    and selected.quality_status == "validated"
+                ):
+                    available += 1
         if available != len(definitions):
             warnings.append(
                 f"{priority.lower()}_evidence_incomplete:{available}/{len(definitions)}"
             )
     return tuple(warnings)
+
+
+def _context_adapter(token: str) -> TushareContextAdapter:
+    return TushareContextAdapter(token)
+
+
+def _refresh_context_sources(paths: RuntimePaths, target_business_date: str) -> None:
+    token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+    if token is None:
+        return
+    target = date.fromisoformat(target_business_date)
+    start_month = date(target.year - 2, target.month, 1).strftime("%Y%m")
+    end_month = target.strftime("%Y%m")
+    adapter = _context_adapter(token)
+    families: tuple[
+        tuple[
+            str,
+            tuple[str, ...],
+            Callable[[], tuple[ContextScalar, ...]],
+        ],
+        ...,
+    ] = (
+        (
+            "pmi",
+            ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
+            lambda: adapter.pmi(start_month=start_month, end_month=end_month),
+        ),
+        (
+            "prices",
+            ("CN_CPI_HEADLINE", "CN_PPI"),
+            lambda: adapter.prices(start_month=start_month, end_month=end_month),
+        ),
+        (
+            "money",
+            ("CN_M1_M2",),
+            lambda: adapter.money(start_month=start_month, end_month=end_month),
+        ),
+        (
+            "transmission",
+            ("CN_DR007", "CN_SHIBOR_ON_1W_3M"),
+            lambda: adapter.transmission(
+                start_date=target - timedelta(days=45),
+                end_date=target,
+            ),
+        ),
+    )
+    repository = EvidenceRepository(paths.database)
+    for family, metric_ids, retrieve in families:
+        fetched_at = datetime.now(UTC)
+        try:
+            ingest_context_scalars(paths, retrieve(), fetched_at=fetched_at)
+        except (OSError, TypeError, ValueError) as error:
+            for metric_id in metric_ids:
+                repository.record_retrieval_attempt(
+                    metric_id=metric_id,
+                    channel="tushare",
+                    outcome="source_failed",
+                    fetched_at=fetched_at,
+                    safe_metadata={
+                        "error_type": type(error).__name__,
+                        "family": family,
+                        "target_business_date": target_business_date,
+                    },
+                )
 
 
 def _refresh_core_sources(paths: RuntimePaths, target_business_date: str) -> None:

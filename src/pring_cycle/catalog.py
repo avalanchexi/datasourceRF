@@ -188,6 +188,8 @@ def _unit(metric_id: str) -> str:
         return "percentage_points"
     if metric_id == "CN_INVENTORY_TURNOVER":
         return "days"
+    if metric_id.startswith("CN_PMI"):
+        return "diffusion_index_points"
     if metric_id in {"CBOE_VIX_INDEX", "NASDAQ_SOX_INDEX"}:
         return "index_points"
     if metric_id in _P0[3:] or "INDEX" in metric_id or "NH" in metric_id:

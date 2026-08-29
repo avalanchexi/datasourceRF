@@ -244,7 +244,10 @@ def _metric_rows(
             as_of=as_of,
             release_status=release_status,
         )
-        value = current.selected_value
+        candidate_value = current.selected_value
+        value = (
+            None if status == "awaiting_source_certification" else candidate_value
+        )
         rows.append(
             {
                 "available_at": selected.available_at.isoformat() if selected is not None else None,
@@ -269,7 +272,11 @@ def _metric_rows(
                         "selected": claim.claim_id == current.selected_claim_id,
                         "source_reference": claim.source_reference,
                         "unit": claim.unit,
-                        "value": claim.value,
+                        "value": (
+                            None
+                            if status == "awaiting_source_certification"
+                            else claim.value
+                        ),
                         "value_state": claim.value_state.value,
                     }
                     for claim in current.claims
@@ -278,7 +285,12 @@ def _metric_rows(
                 "direction": _raw_direction(
                     definition.metric_id,
                     value,
-                    previous.selected_value if previous is not None else None,
+                    (
+                        previous.selected_value
+                        if previous is not None
+                        and status != "awaiting_source_certification"
+                        else None
+                    ),
                 ),
                 "metric_id": definition.metric_id,
                 "observation_id": current.observation_id,
