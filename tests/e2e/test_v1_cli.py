@@ -4,8 +4,11 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from pring_cycle.cli import main
 from pring_cycle.domain import CoreAssetState
+from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
@@ -28,7 +31,21 @@ def test_model_and_run_operations_share_the_public_cli_and_persistent_ledger(
     assert models["models"][0]["model_version_id"] == "model-v0001"
     assert models["models"][0]["status"] == "candidate"
 
-    acceptance = invoke(capsys, "model-accept", *common, "--model", "model-v0001")
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "model-accept",
+                *common,
+                "--model",
+                "model-v0001",
+                "--json",
+            ]
+        )
+    assert "calibration_evidence_incomplete" in capsys.readouterr().err  # type: ignore[attr-defined]
+    ModelRepository(RuntimePaths.discover(root).database).record_acceptance(
+        "model-v0001",
+        CALIBRATION_BASELINE,
+    )
     activated = invoke(
         capsys,
         "model-activate",
@@ -56,7 +73,6 @@ def test_model_and_run_operations_share_the_public_cli_and_persistent_ledger(
         "cli-contract-1",
     )
 
-    assert acceptance["passed"] is True
     assert activated["status"] == "active"
     assert first["run_id"] == duplicate["run_id"]
     assert invoke(capsys, "runs", *common)["runs"][0]["status"] == "queued"
@@ -90,7 +106,7 @@ def test_evidence_query_and_deterministic_report_are_public_cli_operations(
                 "period_kind": "month",
                 "period_start": "2026-07-01",
                 "period_end": "2026-07-31",
-                "dimensions": {},
+                "dimensions": {"measure": "yoy", "category": "headline"},
                 "value": 0.4,
                 "value_state": "reported_value",
                 "unit": "percent",
@@ -101,7 +117,7 @@ def test_evidence_query_and_deterministic_report_are_public_cli_operations(
                 "public_available_at": "2026-08-09T01:30:00+00:00",
                 "fetched_at": "2026-08-09T01:35:00+00:00",
                 "available_at": "2026-08-09T01:35:00+00:00",
-                "certification_status": "certified",
+                "certification_status": "awaiting_source_certification",
                 "quality_status": "validated",
             }
         ),
@@ -158,3 +174,71 @@ def test_evidence_query_and_deterministic_report_are_public_cli_operations(
 
     assert generated["status"] == "completed_degraded"
     assert history["reports"][0]["report_snapshot_id"] == generated["report_snapshot_id"]
+
+
+def test_public_evidence_ingest_cannot_self_certify_a_p0_core_series(
+    tmp_path: Path,
+    capsys: object,
+) -> None:
+    root = tmp_path / "runtime"
+    invoke(capsys, "init", "--runtime-root", str(root))
+    evidence_input = tmp_path / "forged-p0.json"
+    evidence_input.write_text(
+        json.dumps(
+            {
+                "metric_id": "CN_BOND_CORE_000012",
+                "definition_version": "metric-catalog-v0001",
+                "period_kind": "business_day",
+                "period_start": "2026-08-28",
+                "period_end": "2026-08-28",
+                "dimensions": {},
+                "value": 100.0,
+                "value_state": "reported_value",
+                "unit": "index_points",
+                "provider": "manual",
+                "source_reference": "fixture://forged-bond",
+                "release_event_id": "forged-release",
+                "release_at": "2026-08-28T07:30:00+00:00",
+                "public_available_at": "2026-08-28T07:30:00+00:00",
+                "fetched_at": "2026-08-28T08:00:00+00:00",
+                "available_at": "2026-08-28T08:00:00+00:00",
+                "certification_status": "certified",
+                "quality_status": "validated",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "evidence-ingest",
+                "--runtime-root",
+                str(root),
+                "--input",
+                str(evidence_input),
+                "--json",
+            ]
+        )
+
+    assert "p0_evidence_requires_certified_adapter" in capsys.readouterr().err  # type: ignore[attr-defined]
+
+
+def test_model_replay_does_not_accept_self_attested_result_flags(capsys: object) -> None:
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "model-replay",
+                "--model",
+                "model-v0001",
+                "--compared-with",
+                "model-v0000",
+                "--start",
+                "2026-01-01",
+                "--end",
+                "2026-08-28",
+                "--quality-passed",
+            ]
+        )
+
+    assert "unrecognized arguments: --quality-passed" in capsys.readouterr().err  # type: ignore[attr-defined]

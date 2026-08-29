@@ -133,17 +133,17 @@ def _store_rehearsal(
     document: dict[str, Any],
 ) -> dict[str, Any]:
     normalized_hash = hashlib.sha256(_canonical_json(document).encode()).hexdigest()
+    artifact_document = {**document, "normalized_result_hash": normalized_hash}
     artifact = store_artifact(
         paths.database,
         paths.artifacts,
-        (_canonical_json(document) + "\n").encode(),
+        (_canonical_json(artifact_document) + "\n").encode(),
         media_type="application/json",
         source_reference=f"rehearsal:{kind}:{normalized_hash}",
     )
     return {
-        **document,
+        **artifact_document,
         "artifact": {"hash": artifact.content_hash, "path": str(artifact.path)},
-        "normalized_result_hash": normalized_hash,
     }
 
 

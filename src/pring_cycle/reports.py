@@ -9,6 +9,7 @@ import sqlite3
 import subprocess
 import tempfile
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -160,6 +161,10 @@ def _collect_evidence_ids(value: object) -> set[str]:
         for key, item in value.items():
             if key in {"evidence_id", "observation_id"} and isinstance(item, str):
                 found.add(item)
+            elif key in {"evidence_ids", "observation_version_ids"} and isinstance(
+                item, (list, tuple)
+            ):
+                found.update(reference for reference in item if isinstance(reference, str))
             else:
                 found.update(_collect_evidence_ids(item))
     elif isinstance(value, (list, tuple)):
@@ -411,9 +416,10 @@ class ReportService:
         *,
         client_request_id: str | None = None,
         cancelled: bool = False,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> ReportGenerationResult:
         _preflight_bundle(bundle)
-        if cancelled:
+        if cancelled or (cancel_requested is not None and cancel_requested()):
             raise ValueError("report_generation_cancelled")
         request_id = client_request_id or f"automatic-{time.time_ns()}"
         existing = self._repository.by_client_request(request_id)
@@ -430,7 +436,11 @@ class ReportService:
         )
         bundle_hash = self._repository.save_bundle(bundle)
         for adapter in self._adapters:
+            if cancel_requested is not None and cancel_requested():
+                raise ValueError("report_generation_cancelled")
             response = adapter.generate(bundle)
+            if cancel_requested is not None and cancel_requested():
+                raise ValueError("report_generation_cancelled")
             outcome = response.error_classification or response.status
             output_hash = (
                 _hash_document(response.document) if response.document is not None else None
@@ -483,12 +493,19 @@ class ReportService:
 
 
 class CliReportAdapter:
-    def __init__(self, name: str, *, timeout_seconds: int = 300) -> None:
+    def __init__(
+        self,
+        name: str,
+        *,
+        timeout_seconds: int = 300,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> None:
         if name not in {"codex_cli", "claude_code_cli"}:
             raise ValueError("unsupported_cli_report_adapter")
         self.name = name
         self.version = "runtime-detected"
         self._timeout_seconds = timeout_seconds
+        self._cancel_requested = cancel_requested
 
     def generate(self, bundle: EvidenceBundle) -> AdapterResponse:
         executable = "codex" if self.name == "codex_cli" else "claude"
@@ -564,16 +581,14 @@ class CliReportAdapter:
                 start_new_session=True,
                 text=True,
             )
-            try:
-                stdout, _stderr = process.communicate(prompt, timeout=self._timeout_seconds)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGTERM)
-                try:
-                    process.communicate(timeout=5)
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL)
-                    process.communicate()
-                return AdapterResponse.unavailable("timed_out")
+            stdout, outcome = _communicate_with_limits(
+                process,
+                prompt,
+                timeout_seconds=self._timeout_seconds,
+                cancel_requested=self._cancel_requested,
+            )
+            if outcome is not None:
+                return AdapterResponse.unavailable(outcome)
             if process.returncode != 0:
                 return AdapterResponse.unavailable("nonzero_exit")
             try:
@@ -587,6 +602,42 @@ class CliReportAdapter:
         if not isinstance(document, dict):
             return AdapterResponse.unavailable("invalid_json_schema")
         return AdapterResponse.succeeded(document, tool_events=tool_events)
+
+
+def _communicate_with_limits(
+    process: subprocess.Popen[str],
+    prompt: str,
+    *,
+    timeout_seconds: int,
+    cancel_requested: Callable[[], bool] | None,
+) -> tuple[str, str | None]:
+    deadline = time.monotonic() + timeout_seconds
+    first = True
+    while True:
+        if cancel_requested is not None and cancel_requested():
+            _terminate_process_group(process)
+            return "", "cancelled"
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            _terminate_process_group(process)
+            return "", "timed_out"
+        try:
+            stdout, _stderr = process.communicate(
+                prompt if first else None,
+                timeout=min(0.5, remaining),
+            )
+            return stdout, None
+        except subprocess.TimeoutExpired:
+            first = False
+
+
+def _terminate_process_group(process: subprocess.Popen[str]) -> None:
+    os.killpg(process.pid, signal.SIGTERM)
+    try:
+        process.communicate(timeout=5)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.communicate()
 
 
 def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:

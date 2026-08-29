@@ -6,15 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
-from pring_cycle.artifacts import artifact_health
 from pring_cycle.health_types import ArtifactHealth, DatabaseHealth, RuntimeHealthDocument
-from pring_cycle.maintenance import MaintenanceRepository
-from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
-from pring_cycle.projections import ProjectionSetRepository
-from pring_cycle.reports import ReportRepository
-from pring_cycle.runs import RunRepository
-from pring_cycle.secrets import DATA_SOURCE_SECRET_ADAPTERS, parse_data_source_secrets
-from pring_cycle.storage import database_health, migrate_database, worker_status
 
 APPLICATION_NAME = "pring-cycle"
 
@@ -119,6 +111,8 @@ class DiagnosisDocument(TypedDict):
 
 
 def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
+    from pring_cycle.storage import migrate_database
+
     for directory in (
         paths.config,
         paths.data,
@@ -148,6 +142,9 @@ def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
 
 
 def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
+    from pring_cycle.artifacts import artifact_health
+    from pring_cycle.storage import database_health
+
     database = database_health(paths.database)
     credentials = _credential_states(paths.secrets)
     artifacts = artifact_health(paths.database, paths.artifacts)
@@ -186,6 +183,9 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
 
 
 def runtime_health(paths: RuntimePaths, port: int) -> RuntimeHealthDocument:
+    from pring_cycle.artifacts import artifact_health
+    from pring_cycle.storage import database_health, worker_status
+
     database = database_health(paths.database)
     artifacts = artifact_health(paths.database, paths.artifacts)
     worker = worker_status(paths.database)
@@ -233,6 +233,12 @@ def _create_private_file(path: Path, contents: str) -> None:
 
 
 def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
+    from pring_cycle.maintenance import MaintenanceRepository
+    from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
+    from pring_cycle.projections import ProjectionSetRepository
+    from pring_cycle.reports import ReportRepository
+    from pring_cycle.runs import RunRepository
+
     ProjectionSetRepository.create(paths.database)
     RunRepository.create(paths.database)
     ReportRepository.create(paths.database)
@@ -241,6 +247,11 @@ def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
 
 
 def _credential_states(secrets_path: Path) -> dict[str, str]:
+    from pring_cycle.secrets import (
+        DATA_SOURCE_SECRET_ADAPTERS,
+        parse_data_source_secrets,
+    )
+
     configured = parse_data_source_secrets(secrets_path)
     return {
         adapter: "enabled" if key in configured else "disabled"

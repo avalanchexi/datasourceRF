@@ -294,6 +294,20 @@ class ModelRepository:
         if self.active().model_version_id != model_version_id:
             raise ValueError("publication_model_is_not_active")
         with self._connect() as connection:
+            activation = connection.execute(
+                """
+                SELECT first_published_business_date FROM model_activation
+                WHERE activation_id=(
+                    SELECT MAX(activation_id) FROM model_activation
+                    WHERE model_version_id=?
+                )
+                """,
+                (model_version_id,),
+            ).fetchone()
+            if activation is None:
+                raise ValueError("model_activation_missing")
+            if activation["first_published_business_date"] is not None:
+                return
             updated = connection.execute(
                 """
                 UPDATE model_activation SET first_published_business_date=?
@@ -305,7 +319,7 @@ class ModelRepository:
                 (target_business_date, model_version_id),
             ).rowcount
         if updated != 1:
-            raise ValueError("model_first_publication_already_recorded")
+            raise ValueError("model_first_publication_not_recorded")
 
     def rollback(
         self,
@@ -403,6 +417,19 @@ class ModelRepository:
         if row is None:
             raise LookupError("model_version_not_found")
         return _model_version(row)
+
+    def manifest(self, model_version_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT manifest_json FROM model_version WHERE model_version_id = ?",
+                (model_version_id,),
+            ).fetchone()
+        if row is None:
+            raise LookupError("model_version_not_found")
+        document = json.loads(str(row["manifest_json"]))
+        if not isinstance(document, dict):
+            raise ValueError("model_manifest_invalid")
+        return {str(key): value for key, value in document.items()}
 
     def active(self) -> ModelVersion:
         with self._connect() as connection:

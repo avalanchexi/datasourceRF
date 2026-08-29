@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any, cast
 
 from alembic import op
@@ -18,17 +19,30 @@ down_revision = "0001_runtime"
 branch_labels = None
 depends_on = None
 
+_FROZEN_SCHEMA_HASHES = (
+    "b03ced2e9fc27629c0473a48f0f11a1581da567138b0457a56d892b6a10e2269",
+    "77757c8340f8f9826f453395692965638977a997eccd7988064e7128fc98a430",
+    "6fd0cb0c78f48e773a011cc6bf5e40ef79530a84aecf974e7bb61994831fcf79",
+    "3faef5cc9c2eee5ad79202f87b91a9dcf4663f36923ab84b1f7734d44791867c",
+    "100c405d786fb59b4f6b280210e95914acd80525d4e9edce506c55e7bb498c76",
+    "3d7405ef66e80268733b53980a8681a5a6e0b49ecce74f46a9491a4cc5e69e29",
+)
+
 
 def upgrade() -> None:
     driver_connection = cast(Any, op.get_bind().connection).driver_connection
-    for schema in (
+    schemas = (
         _EVIDENCE_SCHEMA,
         _MODEL_SCHEMA,
         _PROJECTION_SCHEMA,
         _RUN_SCHEMA,
         _REPORT_SCHEMA,
         _MAINTENANCE_SCHEMA,
-    ):
+    )
+    observed_hashes = tuple(hashlib.sha256(schema.encode()).hexdigest() for schema in schemas)
+    if observed_hashes != _FROZEN_SCHEMA_HASHES:
+        raise RuntimeError("migration_0002_schema_snapshot_changed")
+    for schema in schemas:
         driver_connection.executescript(schema)
 
 

@@ -266,6 +266,10 @@ def test_offline_verification_is_idempotent_and_stops_its_processes(tmp_path: Pa
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
+    first_document = json.loads(first.stdout)
+    second_document = json.loads(second.stdout)
+    first_metrics = first_document.pop("metrics")
+    second_metrics = second_document.pop("metrics")
     expected = {
         "checks": {
             "alembic": "current",
@@ -282,8 +286,13 @@ def test_offline_verification_is_idempotent_and_stops_its_processes(tmp_path: Pa
         "processes": "stopped",
         "status": "ok",
     }
-    assert json.loads(first.stdout) == expected
-    assert json.loads(second.stdout) == expected
+    assert first_document == expected
+    assert second_document == expected
+    for metrics in (first_metrics, second_metrics):
+        assert metrics["web_worker_cold_start_seconds"] <= 15
+        assert metrics["rest_current_projection_p95_ms"] <= 500
+        assert metrics["dashboard_html_ms"] <= 3000
+        assert metrics["combined_rss_bytes"] <= int(1.5 * 1024**3)
 
     diagnosis = run_cli("doctor", "--runtime-root", str(runtime_root), "--json")
     assert diagnosis.returncode == 0, diagnosis.stderr

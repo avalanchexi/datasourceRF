@@ -19,6 +19,7 @@ from pring_cycle.dashboard import dashboard_page, dashboard_shell
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.health_types import RuntimeHealthDocument
 from pring_cycle.logging import write_runtime_event
+from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.reports import ReportRepository, ReportSnapshot
@@ -279,6 +280,13 @@ async def _command_payload(
 
 def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[str, object]:
     command = str(payload["command"])
+    rejection = mutation_rejection(
+        paths.database,
+        paths.data,
+        non_core_large_task=command in {"report_generation", "manual_deep_search"},
+    )
+    if rejection is not None:
+        raise ValueError(rejection)
     repository = RunRepository(paths.database)
     if command == "resume":
         run = repository.resume(
@@ -311,7 +319,4 @@ def _default_model(paths: RuntimePaths) -> str:
     try:
         return repository.active().model_version_id
     except LookupError:
-        versions = repository.list_versions()
-        if not versions:
-            raise LookupError("model_version_unavailable") from None
-        return versions[-1].model_version_id
+        raise LookupError("active_model_unavailable") from None

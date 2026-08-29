@@ -77,6 +77,8 @@ def test_resume_preserves_run_identity_cutoff_and_budget(tmp_path: Path) -> None
         system_as_of=NOW,
     )
     runs.set_budget_consumption(run.run_id, tavily=3, exa=1, ai_websearch=0)
+    runs.advance(run.run_id, "preflight")
+    runs.advance(run.run_id, "refreshing_evidence")
     runs.mark_interrupted(run.run_id, "worker_process_lost")
 
     with pytest.raises(ValueError, match="external_resume_confirmation_required"):
@@ -93,6 +95,7 @@ def test_resume_preserves_run_identity_cutoff_and_budget(tmp_path: Path) -> None
     assert resumed.attempt_count == 2
     assert resumed.consumed_budget == {"tavily": 3, "exa": 1, "ai_websearch": 0}
     assert resumed.status == "queued"
+    assert resumed.current_step == "queued"
 
 
 def test_only_verified_checkpoints_are_reusable(tmp_path: Path) -> None:
@@ -127,6 +130,8 @@ def test_cancel_preserves_an_already_published_projection(tmp_path: Path) -> Non
     assert cancelled.status == "cancelled"
     assert cancelled.projection_set_id == "projection-1"
     assert cancelled.next_action == "none"
+    with pytest.raises(ValueError, match="run_is_terminal"):
+        runs.advance(run.run_id, "completed")
 
 
 def test_after_close_schedule_is_versioned_and_disabled_by_default(tmp_path: Path) -> None:

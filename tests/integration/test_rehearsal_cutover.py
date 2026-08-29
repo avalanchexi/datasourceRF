@@ -78,16 +78,21 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
         {
             "schema_version": "v1-acceptance-v0001",
             "status": "ok",
+            "normalized_result_hash": "a" * 64,
             "performance_gates": {"all": {"passed": True}},
             "regressions": {item: {"passed": True} for item in REGRESSION_IDS},
         },
-        "test:acceptance",
+        f"acceptance:{'a' * 64}",
     )
     fixture_hash = str(run_fixture_recovery_rehearsal(paths)["artifact"]["hash"])
     real_hash = _artifact(
         paths,
-        {"schema_version": "real-projection-rehearsal-v0001", "status": "ok"},
-        "test:real-rehearsal",
+        {
+            "schema_version": "real-projection-rehearsal-v0001",
+            "status": "ok",
+            "normalized_result_hash": "b" * 64,
+        },
+        f"rehearsal:real-projection:{'b' * 64}",
     )
     manifest = build_cutover_manifest(
         paths,
@@ -112,3 +117,26 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
     )
     assert recorded.supported_path == "pring-v1-only"
     assert cutover_status(paths) == recorded
+
+
+def test_cutover_rejects_untrusted_artifact_provenance(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    forged = _artifact(
+        paths,
+        {
+            "schema_version": "v1-acceptance-v0001",
+            "status": "ok",
+            "normalized_result_hash": "c" * 64,
+        },
+        "test:forged-acceptance",
+    )
+
+    with pytest.raises(ValueError, match="artifact_provenance_invalid"):
+        build_cutover_manifest(
+            paths,
+            acceptance_hash=forged,
+            fixture_rehearsal_hash=forged,
+            real_rehearsal_hash=forged,
+            legacy_system_read_only_stopped=True,
+        )

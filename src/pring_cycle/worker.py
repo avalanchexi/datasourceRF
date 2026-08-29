@@ -13,9 +13,11 @@ from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
     EvidenceValueState,
+    MetricSeriesPoint,
     SourceClaimInput,
 )
 from pring_cycle.logging import write_runtime_event
+from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -42,6 +44,9 @@ CORE_METRICS = {
 def run_worker(paths: RuntimePaths) -> None:
     if database_health(paths.database)["status"] != "ok":
         raise RuntimeNotInitializedError("runtime_not_initialized")
+    rejection = mutation_rejection(paths.database, paths.data)
+    if rejection is not None:
+        raise RuntimeNotInitializedError(rejection)
 
     stopped = threading.Event()
 
@@ -112,6 +117,8 @@ def process_pending_run(
     *,
     report_adapters: tuple[ReportAdapter, ...] | None = None,
 ) -> str | None:
+    if mutation_rejection(paths.database, paths.data) is not None:
+        return None
     runs = RunRepository(paths.database)
     queued = runs.next_queued()
     if queued is None:
@@ -129,10 +136,11 @@ def process_pending_run(
     try:
         _execute_run(paths, runs, queued, report_adapters)
     except (LookupError, OSError, TypeError, ValueError) as error:
-        runs.mark_action_required(
-            queued.run_id,
-            f"worker_failure:{type(error).__name__}:{error}",
-        )
+        if runs.get(queued.run_id).status != "cancelled":
+            runs.mark_action_required(
+                queued.run_id,
+                f"worker_failure:{type(error).__name__}:{error}",
+            )
     finally:
         heartbeat_stop.set()
         heartbeat.join(timeout=1)
@@ -146,6 +154,15 @@ def _execute_run(
     run: RunRecord,
     report_adapters: tuple[ReportAdapter, ...] | None,
 ) -> None:
+    if run.command_type != "report_generation":
+        try:
+            active_model = ModelRepository(paths.database).active()
+        except LookupError:
+            runs.mark_action_required(run.run_id, "active_model_unavailable")
+            return
+        if active_model.model_version_id != run.model_version_id:
+            runs.mark_action_required(run.run_id, "model_version_not_active")
+            return
     runs.advance(run.run_id, "preflight")
     if run.command_type == "report_generation":
         runs.advance(run.run_id, "generating_report")
@@ -158,9 +175,16 @@ def _execute_run(
 
     runs.advance(run.run_id, "refreshing_evidence")
     _refresh_core_sources(paths, run.target_business_date)
-    run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
+    if run.attempt_count == 1:
+        run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
+    else:
+        run = runs.get(run.run_id)
     runs.advance(run.run_id, "validating_evidence")
-    readiness = _core_readiness(paths, run)
+    readiness = _core_readiness(
+        paths,
+        run,
+        rules=_trend_rules_for_model(paths, run.model_version_id),
+    )
     runs.advance(run.run_id, "evaluating_core_readiness")
     runs.advance(run.run_id, "deriving_states")
     runs.advance(run.run_id, "building_projection")
@@ -178,18 +202,26 @@ def _execute_run(
             mode=AsOfMode.SYSTEM,
             as_of=run.system_as_of,
         ).evidence_snapshot_id
+    if ModelRepository(paths.database).active().model_version_id != run.model_version_id:
+        runs.mark_action_required(run.run_id, "active_model_changed_during_run")
+        return
     result = P0ProjectionService(ProjectionSetRepository(paths.database)).publish(
         target_business_date=run.target_business_date,
         system_as_of=run.system_as_of,
         assets=readiness,
         last_confirmed_stage=last_stage,
         model_version_id=run.model_version_id,
+        warnings=_explanatory_evidence_warnings(paths, run),
         evidence_snapshot_id=evidence_snapshot_id,
     )
     if result.status != "published" or result.projection_set_id is None:
         runs.mark_action_required(run.run_id, "p0_unavailable")
         return
     runs.link_projection(run.run_id, result.projection_set_id)
+    ModelRepository(paths.database).record_first_publication(
+        run.model_version_id,
+        run.target_business_date,
+    )
     runs.advance(run.run_id, "generating_report")
     generated = _generate_report(paths, runs, run, report_adapters)
     runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)
@@ -199,6 +231,8 @@ def _execute_run(
 def _core_readiness(
     paths: RuntimePaths,
     run: RunRecord,
+    *,
+    rules: TrendRules,
 ) -> tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]:
     evidence = EvidenceRepository(paths.database)
     results = []
@@ -223,12 +257,8 @@ def _core_readiness(
             reason = "source_conflict"
         elif series[-1].period_end != run.target_business_date:
             reason = "stale_for_target_business_date"
-        elif any(
-            claim.certification_status != "certified" or claim.quality_status != "validated"
-            for point in series
-            for claim in point.claims
-        ):
-            reason = "source_not_certified"
+        elif any(not _selected_core_claim_is_valid(metric_id, point) for point in series):
+            reason = "source_identity_not_certified"
         elif any(
             item.value_state is not EvidenceValueState.REPORTED_VALUE
             or item.selected_value is None
@@ -241,7 +271,7 @@ def _core_readiness(
                 for item in series
                 if item.selected_value is not None
             ]
-            trend = evaluate_trend(points, TrendRules())
+            trend = evaluate_trend(points, rules)
             state = trend.stable_state
             candidate_state = trend.candidate_state
             candidate_days = trend.persistence_days
@@ -276,6 +306,70 @@ def _core_readiness(
             )
         )
     return tuple(results)  # type: ignore[return-value]
+
+
+def _trend_rules_for_model(paths: RuntimePaths, model_version_id: str) -> TrendRules:
+    manifest = ModelRepository(paths.database).manifest(model_version_id)
+    document = manifest.get("trend_rules")
+    if not isinstance(document, dict):
+        raise ValueError("model_trend_rules_missing")
+    try:
+        return TrendRules(
+            window_days=int(document["window_days"]),
+            slope_days=int(document["slope_days"]),
+            volatility_days=int(document["volatility_days"]),
+            noise_multiplier=float(document["noise_multiplier"]),
+            persistence_days=int(document["persistence_days"]),
+            candidate_window_days=int(document["candidate_window_days"]),
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("model_trend_rules_invalid") from error
+
+
+def _selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bool:
+    selected_claim_id = point.selected_claim_id
+    claims = point.claims
+    selected = next(
+        (claim for claim in claims if claim.claim_id == selected_claim_id),
+        None,
+    )
+    if selected is None:
+        return False
+    api_name, source_code = CORE_API_IDENTITIES[metric_id]
+    expected_reference = f"tushare:{api_name}:{source_code}:{point.period_end}"
+    return (
+        selected.provider == "tushare"
+        and selected.source_reference == expected_reference
+        and selected.unit == "index_points"
+        and selected.certification_status == "certified"
+        and selected.quality_status == "validated"
+    )
+
+
+def _explanatory_evidence_warnings(
+    paths: RuntimePaths,
+    run: RunRecord,
+) -> tuple[str, ...]:
+    from pring_cycle.catalog import metric_catalog
+
+    evidence = EvidenceRepository(paths.database)
+    warnings: list[str] = []
+    for priority in ("P1", "P2"):
+        definitions = [item for item in metric_catalog() if item.priority == priority]
+        available = 0
+        for definition in definitions:
+            series = evidence.metric_series(
+                definition.metric_id,
+                mode=AsOfMode.SYSTEM,
+                as_of=run.system_as_of,
+            )
+            if series and series[-1].selection_status == "selected":
+                available += 1
+        if available != len(definitions):
+            warnings.append(
+                f"{priority.lower()}_evidence_incomplete:{available}/{len(definitions)}"
+            )
+    return tuple(warnings)
 
 
 def _refresh_core_sources(paths: RuntimePaths, target_business_date: str) -> None:
@@ -374,14 +468,22 @@ def _generate_report(
     report_adapters: tuple[ReportAdapter, ...] | None,
 ) -> str:
     projection = ProjectionSetRepository(paths.database).current()
+
+    def cancel_requested() -> bool:
+        return runs.get(run.run_id).status == "cancelled"
+
     adapters = (
         report_adapters
         if report_adapters is not None
-        else (CliReportAdapter("codex_cli"), CliReportAdapter("claude_code_cli"))
+        else (
+            CliReportAdapter("codex_cli", cancel_requested=cancel_requested),
+            CliReportAdapter("claude_code_cli", cancel_requested=cancel_requested),
+        )
     )
     generated = ReportService(ReportRepository(paths.database), adapters).generate(
         evidence_bundle_from_projection(projection),
         client_request_id=f"{run.run_id}:report",
+        cancel_requested=cancel_requested,
     )
     return generated.report_snapshot_id
 

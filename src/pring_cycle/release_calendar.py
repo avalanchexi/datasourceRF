@@ -59,7 +59,15 @@ def assess_release_state(
             expected_window_end=None,
             next_check_at=None,
         )
-    if value_state in {"not_applicable", "not_disclosed"}:
+    current_observation = (
+        previous is not None
+        and previous.period == expectation.period
+        and previous.public_available_at <= as_of
+        and previous.available_at <= as_of
+    )
+    if current_observation:
+        status = "current"
+    elif value_state in {"not_applicable", "not_disclosed"}:
         status = value_state
     elif observation_conflicted:
         status = "conflicted"
@@ -70,6 +78,7 @@ def assess_release_state(
     else:
         status = "stale"
     should_retrieve = expectation.window_start <= as_of and status not in {
+        "current",
         "not_applicable",
         "not_disclosed",
         "conflicted",

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -43,6 +44,24 @@ def capacity_state(free_bytes: int) -> CapacityState:
         allow_non_core = True
         allow_writes = True
     return CapacityState(state, free_bytes, allow_non_core, allow_writes, True)
+
+
+def mutation_rejection(
+    database_path: Path,
+    data_path: Path,
+    *,
+    non_core_large_task: bool = False,
+) -> str | None:
+    integrity = MaintenanceRepository(database_path).runtime_integrity()
+    if integrity["status"] != "ok":
+        return "runtime_reinitialize_required"
+    free_bytes = shutil.disk_usage(data_path).free
+    capacity = capacity_state(free_bytes)
+    if not capacity.allow_worker_writes:
+        return "capacity_stops_worker_writes"
+    if non_core_large_task and not capacity.allow_non_core_large_tasks:
+        return "capacity_restricts_non_core_tasks"
+    return None
 
 
 class MaintenanceRepository:

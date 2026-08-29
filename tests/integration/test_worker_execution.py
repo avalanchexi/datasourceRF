@@ -3,8 +3,15 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
 from pring_cycle.domain import CoreAssetState
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.maintenance import MaintenanceRepository
+from pring_cycle.models import (
+    CALIBRATION_BASELINE,
+    ModelRepository,
+    certified_model_v0001_manifest,
+)
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
@@ -38,6 +45,45 @@ def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(tmp_path: Pat
     assert runs.get(submitted.run_id).status == "action_required"
     assert runs.get(submitted.run_id).error_classification == "p0_unavailable"
     assert runs.next_queued() is None
+
+
+def test_worker_rejects_a_formal_run_for_a_candidate_model(tmp_path: Path) -> None:
+    paths = runtime(tmp_path)
+    candidate = certified_model_v0001_manifest()
+    candidate["model_version_id"] = "model-v0002"
+    ModelRepository(paths.database).create_candidate(candidate)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="worker-candidate-model",
+        model_version_id="model-v0002",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "action_required"
+    assert stored.error_classification == "model_version_not_active"
+    with pytest.raises(LookupError, match="current_projection_unavailable"):
+        ProjectionSetRepository(paths.database).current()
+
+
+def test_worker_does_not_mutate_a_runtime_that_requires_reinitialization(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="worker-integrity-gate",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+    MaintenanceRepository(paths.database).record_upgrade_failure("fixture_failure")
+
+    assert process_pending_run(paths, report_adapters=()) is None
+    assert runs.get(submitted.run_id).status == "queued"
 
 
 def test_report_command_reads_the_published_projection_and_never_rewrites_it(

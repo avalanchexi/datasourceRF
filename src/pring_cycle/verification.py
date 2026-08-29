@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Mapping
+from pathlib import Path
 from typing import TypedDict, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import ProxyHandler, Request, build_opener
@@ -22,6 +23,7 @@ from pring_cycle.health_types import (
 )
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.secrets import parse_data_source_secrets
+from pring_cycle.storage import worker_status
 
 
 class VerificationError(RuntimeError):
@@ -30,6 +32,7 @@ class VerificationError(RuntimeError):
 
 class VerificationDocument(TypedDict):
     checks: VerificationChecks
+    metrics: dict[str, float | int]
     network_requests: int
     processes: str
     status: str
@@ -40,15 +43,23 @@ def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
     initialize_runtime(paths)
     artifact_round_trip = _verify_artifact_round_trip(paths)
     port = _unused_loopback_port()
+    process_started = time.perf_counter()
     worker = _start_process("worker", paths)
-    web = _start_process("web", paths, "--port", str(port))
+    web: subprocess.Popen[str] | None = None
     web_output = ""
     worker_output = ""
     try:
+        _wait_for_worker(paths, worker)
+        web = _start_process("web", paths, "--port", str(port))
         health = _wait_for_health(port)
+        cold_start_seconds = time.perf_counter() - process_started
         origin_boundary = _verify_origin_boundary(port)
+        rest_p95_ms = _benchmark_http_get(port, "/api/v1/projections/current", 100)
+        dashboard_html_ms = _benchmark_http_get(port, "/", 1)
+        combined_rss_bytes = _process_rss_bytes(web.pid) + _process_rss_bytes(worker.pid)
     finally:
-        web_output = _stop_process(web)
+        if web is not None:
+            web_output = _stop_process(web)
         worker_output = _stop_process(worker)
 
     if _contains_configured_secret(paths, web_output + worker_output):
@@ -80,6 +91,12 @@ def verify_local_runtime(paths: RuntimePaths) -> VerificationDocument:
         raise VerificationError("local_runtime_health_check_failed")
     return {
         "checks": checks,
+        "metrics": {
+            "combined_rss_bytes": combined_rss_bytes,
+            "dashboard_html_ms": dashboard_html_ms,
+            "rest_current_projection_p95_ms": rest_p95_ms,
+            "web_worker_cold_start_seconds": cold_start_seconds,
+        },
         "network_requests": 0,
         "processes": "stopped",
         "status": "ok",
@@ -165,6 +182,17 @@ def _wait_for_health(port: int) -> RuntimeHealthDocument:
     raise VerificationError("web_worker_start_timeout")
 
 
+def _wait_for_worker(paths: RuntimePaths, process: subprocess.Popen[str]) -> None:
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise VerificationError("worker_start_failed")
+        if worker_status(paths.database)["status"] == "healthy":
+            return
+        time.sleep(0.1)
+    raise VerificationError("worker_start_timeout")
+
+
 def _verify_origin_boundary(port: int) -> str:
     request = Request(
         f"http://127.0.0.1:{port}/api/v1/commands",
@@ -180,6 +208,33 @@ def _verify_origin_boundary(port: int) -> str:
     except URLError as error:
         raise VerificationError("origin_boundary_unreachable") from error
     raise VerificationError("untrusted_origin_was_not_rejected")
+
+
+def _benchmark_http_get(port: int, path: str, samples: int) -> float:
+    opener = build_opener(ProxyHandler({}))
+    durations: list[float] = []
+    for _index in range(samples):
+        started = time.perf_counter()
+        try:
+            with opener.open(f"http://127.0.0.1:{port}{path}", timeout=2) as response:
+                response.read()
+        except HTTPError as error:
+            error.read()
+        durations.append((time.perf_counter() - started) * 1000)
+    ordered = sorted(durations)
+    return ordered[max(0, int(len(ordered) * 0.95) - 1)]
+
+
+def _process_rss_bytes(process_id: int) -> int:
+    try:
+        status = Path(f"/proc/{process_id}/status").read_text(encoding="utf-8")
+    except OSError as error:
+        raise VerificationError("process_rss_unavailable") from error
+    for line in status.splitlines():
+        if line.startswith("VmRSS:"):
+            fields = line.split()
+            return int(fields[1]) * 1024
+    raise VerificationError("process_rss_unavailable")
 
 
 def _stop_process(process: subprocess.Popen[str]) -> str:

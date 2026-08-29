@@ -76,3 +76,34 @@ def test_unknown_p0_release_configuration_fails_closed() -> None:
     assert state.status == "unknown_release_configuration"
     assert state.blocks_formal_stage is True
     assert state.should_retrieve is False
+
+
+def test_released_expected_period_becomes_current_and_unblocks_p0() -> None:
+    expectation = ReleaseExpectation(
+        metric_id="CN_EQUITY_CORE_000985",
+        period="2026-08-28",
+        window_start=datetime(2026, 8, 28, 7, 30, tzinfo=UTC),
+        window_end=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        grace_until=datetime(2026, 8, 28, 9, tzinfo=UTC),
+        timezone="Asia/Shanghai",
+        rule_version="release-rule-v0001",
+    )
+    released = ReleasedObservation(
+        observation_id="obs-equity-2026-08-28",
+        period="2026-08-28",
+        public_available_at=datetime(2026, 8, 28, 7, 31, tzinfo=UTC),
+        available_at=datetime(2026, 8, 28, 7, 35, tzinfo=UTC),
+    )
+
+    state = assess_release_state(
+        expectation,
+        as_of=datetime(2026, 8, 28, 7, 40, tzinfo=UTC),
+        previous=released,
+        priority="P0",
+    )
+
+    assert state.status == "current"
+    assert state.display_period == "2026-08-28"
+    assert state.observation_id == "obs-equity-2026-08-28"
+    assert state.should_retrieve is False
+    assert state.blocks_formal_stage is False

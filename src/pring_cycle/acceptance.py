@@ -45,7 +45,7 @@ from pring_cycle.reports import (
     ReportService,
 )
 from pring_cycle.runs import RunRepository
-from pring_cycle.runtime import RuntimePaths
+from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.verification import verify_local_runtime
 from pring_cycle.web import create_web_application
 
@@ -264,26 +264,44 @@ def _performance_gates(
     daily_projection_seconds: float,
     include_process_probe: bool,
 ) -> dict[str, dict[str, object]]:
-    application_started = time.perf_counter()
-    application = create_web_application(paths, 8050)
-    application_boot_ms = (time.perf_counter() - application_started) * 1000
-    route = cast(
-        Any,
-        next(
-            item
-            for item in application.routes
-            if getattr(item, "name", None) == "current_projection"
-        ),
-    )
-    samples = []
-    for _index in range(100):
-        sample_started = time.perf_counter()
-        route.endpoint()
-        samples.append((time.perf_counter() - sample_started) * 1000)
-    rest_p95 = sorted(samples)[94]
-    fmp_started = time.perf_counter()
-    dashboard_page("/", projection, (), ())
-    fmp_ms = (time.perf_counter() - fmp_started) * 1000
+    if include_process_probe:
+        with tempfile.TemporaryDirectory(
+            prefix="acceptance-process-probe-",
+            dir=paths.cache,
+        ) as probe_directory:
+            probe_paths = RuntimePaths.discover(Path(probe_directory) / "runtime")
+            initialize_runtime(probe_paths)
+            _published_projection(probe_paths.database)
+            process_probe = verify_local_runtime(probe_paths)
+        rest_p95 = float(process_probe["metrics"]["rest_current_projection_p95_ms"])
+        fmp_ms = float(process_probe["metrics"]["dashboard_html_ms"])
+        cold_start_seconds = float(
+            process_probe["metrics"]["web_worker_cold_start_seconds"]
+        )
+        idle_rss_bytes = int(process_probe["metrics"]["combined_rss_bytes"])
+    else:
+        application_started = time.perf_counter()
+        application = create_web_application(paths, 8050)
+        application_boot_ms = (time.perf_counter() - application_started) * 1000
+        route = cast(
+            Any,
+            next(
+                item
+                for item in application.routes
+                if getattr(item, "name", None) == "current_projection"
+            ),
+        )
+        samples = []
+        for _index in range(100):
+            sample_started = time.perf_counter()
+            route.endpoint()
+            samples.append((time.perf_counter() - sample_started) * 1000)
+        rest_p95 = sorted(samples)[94]
+        fmp_started = time.perf_counter()
+        dashboard_page("/", projection, (), ())
+        fmp_ms = (time.perf_counter() - fmp_started) * 1000
+        cold_start_seconds = application_boot_ms / 1000
+        idle_rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
 
     command_database = paths.cache / "acceptance-command.sqlite3"
     command_repository = RunRepository.create(command_database)
@@ -296,21 +314,31 @@ def _performance_gates(
     )
     command_ms = (time.perf_counter() - command_started) * 1000
 
-    probe_started = time.perf_counter()
-    if include_process_probe:
-        verify_local_runtime(paths)
-    cold_start_seconds = time.perf_counter() - probe_started
-    if not include_process_probe:
-        cold_start_seconds = application_boot_ms / 1000
-
     replay_started = time.perf_counter()
-    for _index in range(2200):
-        derive_formal_stage(
-            bond=CoreAssetState.BULL,
-            stock=CoreAssetState.BULL,
-            commodity=CoreAssetState.BEAR,
-            last_confirmed_stage=FormalStage.STAGE_I,
-        )
+    replay_start = date(2018, 6, 1)
+    replay_assets = (
+        [
+            PricePoint(replay_start + timedelta(days=index), 100 + index * 0.1)
+            for index in range(2200)
+        ],
+        [
+            PricePoint(replay_start + timedelta(days=index), 120 + index * 0.08)
+            for index in range(2200)
+        ],
+        [
+            PricePoint(replay_start + timedelta(days=index), 400 - index * 0.1)
+            for index in range(2200)
+        ],
+    )
+    replay_states = tuple(
+        evaluate_trend(points, TrendRules()).stable_state for points in replay_assets
+    )
+    derive_formal_stage(
+        bond=replay_states[0],
+        stock=replay_states[1],
+        commodity=replay_states[2],
+        last_confirmed_stage=FormalStage.STAGE_I,
+    )
     replay_seconds = time.perf_counter() - replay_started
     suite_seconds = time.perf_counter() - suite_started
     rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
@@ -319,7 +347,7 @@ def _performance_gates(
         "command_persistence_ms": _gate(command_ms, 1000),
         "dashboard_first_content_ms": _gate(fmp_ms, 3000),
         "daily_projection_seconds": _gate(daily_projection_seconds, 60),
-        "idle_rss_bytes": _gate(rss_bytes, int(1.5 * GIB)),
+        "idle_rss_bytes": _gate(idle_rss_bytes, int(1.5 * GIB)),
         "replay_peak_rss_bytes": _gate(rss_bytes, 4 * GIB),
         "replay_since_2018_seconds": _gate(replay_seconds, 900),
         "rest_current_projection_p95_ms": _gate(rest_p95, 500),
@@ -488,7 +516,7 @@ def _claim(
         period_kind="month",
         period_start="2026-06-01",
         period_end="2026-06-30",
-        dimensions={},
+        dimensions={"measure": "yoy", "category": "headline"},
         value=value,
         value_state=EvidenceValueState.REPORTED_VALUE,
         unit="percent",
@@ -499,7 +527,7 @@ def _claim(
         public_available_at=public_at,
         fetched_at=available_at,
         available_at=available_at,
-        certification_status="certified",
+        certification_status="awaiting_source_certification",
         quality_status="validated",
     )
 

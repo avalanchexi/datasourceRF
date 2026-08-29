@@ -5,11 +5,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+from pring_cycle.domain import CoreAssetState
+from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
+from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import (
     AdapterResponse,
     EvidenceBundle,
     ReportRepository,
     ReportService,
+    evidence_bundle_from_projection,
 )
 
 
@@ -159,3 +165,57 @@ def test_same_day_regeneration_creates_versions_without_overwriting(tmp_path: Pa
     assert duplicate.report_snapshot_id == first.report_snapshot_id
     assert second.report_snapshot_id != first.report_snapshot_id
     assert [item.version for item in reports.history()] == [2, 1]
+
+
+def test_projection_observation_versions_are_preserved_in_the_report_bundle(
+    tmp_path: Path,
+) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
+    assets = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=160,
+            latest_business_date="2026-08-28",
+            observation_version_ids=(f"version-{asset}",),
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=assets,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+
+    evidence_ids = evidence_bundle_from_projection(projections.current()).allowed_evidence_ids
+
+    assert evidence_ids == ("version-bond", "version-commodity", "version-stock")
+
+
+def test_cancellation_after_an_adapter_returns_prevents_report_publication(
+    tmp_path: Path,
+) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    adapter = FakeAdapter("codex_cli", AdapterResponse.succeeded(valid_document()))
+    cancellation_checks = 0
+
+    def cancel_after_adapter() -> bool:
+        nonlocal cancellation_checks
+        cancellation_checks += 1
+        return cancellation_checks >= 3
+
+    with pytest.raises(ValueError, match="report_generation_cancelled"):
+        ReportService(reports, (adapter,)).generate(
+            bundle(),
+            cancel_requested=cancel_after_adapter,
+        )
+
+    assert adapter.calls == [bundle().bundle_id]
+    assert reports.history() == ()

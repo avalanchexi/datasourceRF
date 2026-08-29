@@ -15,6 +15,11 @@ def test_v1_catalog_freezes_all_61_metric_groups() -> None:
     assert metric_definition("CN_COMMODITY_CORE_NHII").source_codes == ("NHII.NH",)
     assert metric_definition("CN_COMMODITY_CORE_NHII").source_candidates == ("NHII.NH",)
     assert metric_definition("CN_COMMODITY_CORE_NHII").priority == "P0"
+    assert metric_definition("CN_COMMODITY_CORE_NHII").certification_status == "certified"
+    assert (
+        metric_definition("CN_LPR_1Y_5Y").certification_status
+        == "awaiting_source_certification"
+    )
     assert metric_definition("CN_SF_COMPONENTS").dimensions == ("component", "measure")
 
 

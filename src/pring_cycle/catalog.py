@@ -99,12 +99,11 @@ _SOURCE_CODES = {
     "UST2Y_NOMINAL_YIELD": ("us_tycr.y2",),
 }
 
-_AWAITING_CERTIFICATION = {
-    "CN_USDCNY_CLOSE_1630",
-    "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
-    "LBMA_GOLD_PRICE_PM_USD_OZT",
-    "CBOE_VIX_INDEX",
-    "NASDAQ_SOX_INDEX",
+_CERTIFIED_SOURCES = {
+    "CN_TRADE_CALENDAR",
+    "CN_EQUITY_CORE_000985",
+    "CN_BOND_CORE_000012",
+    "CN_COMMODITY_CORE_NHII",
 }
 
 
@@ -125,9 +124,9 @@ def metric_catalog() -> tuple[MetricDefinition, ...]:
                     source_codes=source_codes,
                     source_candidates=source_codes,
                     certification_status=(
-                        "awaiting_source_certification"
-                        if metric_id in _AWAITING_CERTIFICATION
-                        else "certified"
+                        "certified"
+                        if metric_id in _CERTIFIED_SOURCES
+                        else "awaiting_source_certification"
                     ),
                 )
             )

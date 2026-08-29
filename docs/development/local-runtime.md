@@ -99,7 +99,9 @@ Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；�
 
 ## 模型、证据与运行操作
 
-初始化只登记 `model-v0001` 候选，不会隐式激活。冻结校准通过后由用户显式批准：
+初始化只登记 `model-v0001` 候选，不会隐式激活。`model-accept` 从仓库内已认证的三核心
+`public_as_of` 历史重新运行冻结趋势与阶段规则；历史不完整或结果不满足冻结基线时直接失败，
+不接受人工传入的“通过”布尔值。机器校准通过后再由用户显式批准：
 
 ```bash
 pring-cycle models --json
@@ -157,13 +159,13 @@ pring-cycle report-read --report-id REPORT_ID --json
 
 同日重新生成创建新版本，不覆盖历史。正文保留 30 天；事实骨架、引用、哈希和版本长期保留。
 
-模型升级需要候选验收、与当前模型的认证区间交集回放，以及用户显式激活。内部回退还要求首次
+模型升级需要候选验收、与当前模型的认证区间交集回放，以及用户显式激活。回放命令自己从
+证据仓库计算质量、稳定性、差异和性能门，不接受调用者声明门禁结果。内部回退还要求首次
 发布后少于 30 个交易日和一份明确交易日日历；它不会启动旧系统：
 
 ```bash
 pring-cycle model-replay --model NEXT_MODEL --compared-with CURRENT_MODEL \
-  --start YYYY-MM-DD --end YYYY-MM-DD \
-  --quality-passed --regression-passed --performance-passed --json
+  --start YYYY-MM-DD --end YYYY-MM-DD --json
 pring-cycle model-rollback --model NEXT_MODEL --as-of-date YYYY-MM-DD \
   --calendar /wsl/native/path/trading-days.txt --confirm --json
 ```
@@ -185,7 +187,8 @@ pring-cycle verify --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 
 V1 切换级验收使用 `pring-cycle acceptance --json`。它额外覆盖 35 个 `REG-*`、离线确定性
 重放、八类故障注入、REST/首屏/命令/冷启动/回放时间以及 RSS 硬门，并把完整结果写入仓库外
-内容寻址制品。任一门失败返回 `status=blocked`，没有强制绕过。
+内容寻址制品。进程探测始终在独立临时运行目录中启动 Web 与 Worker，不会处理正式目录中的
+排队任务或读取其数据源凭据。任一门失败返回 `status=blocked`，没有强制绕过。
 
 开发检查使用同一 WSL 原生虚拟环境：
 

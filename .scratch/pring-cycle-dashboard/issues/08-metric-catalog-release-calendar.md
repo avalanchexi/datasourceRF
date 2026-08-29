@@ -15,3 +15,8 @@
 - [ ] 至少一条认证官方来源在离线契约、脱敏真实烟雾、证据仓库、REST 和页面上端到端通过。
 - [ ] 未知发布配置对 P0 fail-closed，预计日历不能证明数据已经发布。
 
+## Comments
+
+2026-08-29：61 项版本化目录、严格 claim 校验和 expected/current/awaiting/overdue 发布状态已实现；
+目录现在只把已具正式适配器的交易日历与三核心标为 `certified`，其余诚实保持
+`awaiting_source_certification`。仍缺至少一条 P1 官方来源从检查、摄取到页面的完整路径。

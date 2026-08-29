@@ -394,11 +394,18 @@ class RunRepository:
                 )
                 connection.execute(
                     """
-                    UPDATE parent_run SET status='queued', recoverable=0,
+                    UPDATE parent_run SET status='queued', current_step='queued', recoverable=0,
                         next_action='wait_for_worker', error_classification=NULL
                     WHERE run_id=?
                     """,
                     (run_id,),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO run_step_event(run_id, step, event, occurred_at)
+                    VALUES (?, 'queued', 'resumed', ?)
+                    """,
+                    (run_id, datetime.now(UTC).isoformat()),
                 )
         return self.get(run_id)
 
@@ -406,6 +413,8 @@ class RunRepository:
         if step not in RUN_STEPS:
             raise ValueError("unknown_run_step")
         current = self.get(run_id)
+        if current.status in {"cancelled", "completed", "failed"}:
+            raise ValueError("run_is_terminal")
         if RUN_STEPS.index(step) < RUN_STEPS.index(current.current_step):
             raise ValueError("invalid_run_step_transition")
         status = "completed" if step == "completed" else "running"

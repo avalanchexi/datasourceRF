@@ -13,7 +13,7 @@ from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.storage import database_health
+from pring_cycle.storage import artifact_is_registered, database_health
 
 CUTOVER_CONFIRMATION = "DIRECT_CUTOVER_TO_PRING_V1"
 
@@ -35,9 +35,17 @@ def build_cutover_manifest(
     legacy_system_read_only_stopped: bool,
 ) -> dict[str, Any]:
     referenced = {
-        "acceptance": _read_artifact(paths, acceptance_hash),
-        "fixture_rehearsal": _read_artifact(paths, fixture_rehearsal_hash),
-        "real_rehearsal": _read_artifact(paths, real_rehearsal_hash),
+        "acceptance": _read_artifact(paths, acceptance_hash, kind="acceptance"),
+        "fixture_rehearsal": _read_artifact(
+            paths,
+            fixture_rehearsal_hash,
+            kind="fixture_rehearsal",
+        ),
+        "real_rehearsal": _read_artifact(
+            paths,
+            real_rehearsal_hash,
+            kind="real_rehearsal",
+        ),
     }
     active_model = ModelRepository(paths.database).active()
     projection = ProjectionSetRepository(paths.database).current()
@@ -108,11 +116,30 @@ def record_direct_cutover(
 ) -> CutoverRecord:
     if confirmation != CUTOVER_CONFIRMATION:
         raise ValueError("explicit_direct_cutover_confirmation_required")
-    manifest = _read_artifact(paths, manifest_hash)
+    manifest = _read_artifact(paths, manifest_hash, kind="cutover_manifest")
     if manifest.get("schema_version") != "direct-cutover-manifest-v0001":
         raise ValueError("cutover_manifest_schema_invalid")
     if manifest.get("status") != "ready" or not all(manifest.get("checks", {}).values()):
         raise ValueError("cutover_manifest_blocked")
+    references = manifest.get("references")
+    if not isinstance(references, dict):
+        raise ValueError("cutover_manifest_references_invalid")
+    rebuilt = build_cutover_manifest(
+        paths,
+        acceptance_hash=str(references.get("acceptance", "")),
+        fixture_rehearsal_hash=str(references.get("fixture_rehearsal", "")),
+        real_rehearsal_hash=str(references.get("real_rehearsal", "")),
+        legacy_system_read_only_stopped=(
+            manifest.get("legacy_system_state") == "read_only_stopped"
+        ),
+    )
+    rebuilt_artifact = rebuilt.get("artifact")
+    if (
+        not isinstance(rebuilt_artifact, dict)
+        or rebuilt_artifact.get("hash") != manifest_hash
+        or rebuilt.get("status") != "ready"
+    ):
+        raise ValueError("cutover_manifest_stale")
     recorded_at = datetime.now(UTC)
     with _connect(paths.database) as connection:
         existing = connection.execute("SELECT * FROM system_cutover WHERE singleton=1").fetchone()
@@ -137,7 +164,12 @@ def cutover_status(paths: RuntimePaths) -> CutoverRecord | None:
     return _cutover_record(row) if row is not None else None
 
 
-def _read_artifact(paths: RuntimePaths, content_hash: str) -> dict[str, Any]:
+def _read_artifact(
+    paths: RuntimePaths,
+    content_hash: str,
+    *,
+    kind: str,
+) -> dict[str, Any]:
     if len(content_hash) != 64:
         raise ValueError("artifact_hash_invalid")
     artifact_path = paths.artifacts / content_hash[:2] / content_hash
@@ -150,7 +182,20 @@ def _read_artifact(paths: RuntimePaths, content_hash: str) -> dict[str, Any]:
     document = json.loads(content)
     if not isinstance(document, dict):
         raise ValueError("required_cutover_artifact_invalid")
-    return {str(key): item for key, item in document.items()}
+    normalized = {str(key): item for key, item in document.items()}
+    result_hash = normalized.get("normalized_result_hash")
+    source_reference = {
+        "acceptance": f"acceptance:{result_hash}",
+        "fixture_rehearsal": f"rehearsal:fixture-recovery:{result_hash}",
+        "real_rehearsal": f"rehearsal:real-projection:{result_hash}",
+        "cutover_manifest": "cutover:manifest-candidate",
+    }[kind]
+    if (
+        kind != "cutover_manifest"
+        and (not isinstance(result_hash, str) or len(result_hash) != 64)
+    ) or not artifact_is_registered(paths.database, content_hash, source_reference):
+        raise ValueError("artifact_provenance_invalid")
+    return normalized
 
 
 def _tree_hash(root: Path, patterns: tuple[str, ...]) -> str:

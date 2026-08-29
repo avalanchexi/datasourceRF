@@ -6,25 +6,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
-from pring_cycle.evidence import (
-    AsOfMode,
-    EvidenceRepository,
-    EvidenceValueState,
-    SourceClaimInput,
-)
-from pring_cycle.maintenance import MaintenanceRepository, capacity_state
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
-from pring_cycle.projections import ProjectionSetRepository
-from pring_cycle.reports import (
-    CliReportAdapter,
-    ReportRepository,
-    ReportService,
-    evidence_bundle_from_projection,
-)
-from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import (
     RuntimeNotInitializedError,
     RuntimePaths,
@@ -32,7 +15,25 @@ from pring_cycle.runtime import (
     diagnose_runtime,
     initialize_runtime,
 )
-from pring_cycle.verification import VerificationError, verify_local_runtime
+
+if TYPE_CHECKING:
+    from pring_cycle.evidence import SourceClaimInput
+
+_MUTATING_COMMANDS = {
+    "model-accept",
+    "model-activate",
+    "model-replay",
+    "model-rollback",
+    "run-submit",
+    "schedule",
+    "evidence-ingest",
+    "report-generate",
+    "rehearse-fixture-recovery",
+    "rehearse-real",
+    "cutover-manifest",
+    "cutover-record",
+    "source-smoke",
+}
 
 
 def main(arguments: Sequence[str] | None = None) -> None:
@@ -56,7 +57,12 @@ def main(arguments: Sequence[str] | None = None) -> None:
             run_worker(paths)
             return
         elif namespace.command in {"test", "verify"}:
-            document = verify_local_runtime(paths)
+            from pring_cycle.verification import VerificationError, verify_local_runtime
+
+            try:
+                document = verify_local_runtime(paths)
+            except VerificationError as error:
+                raise ValueError(str(error)) from error
         else:
             document = _v1_command(namespace, paths)
     except (
@@ -66,7 +72,6 @@ def main(arguments: Sequence[str] | None = None) -> None:
         RuntimePolicyError,
         TypeError,
         ValueError,
-        VerificationError,
     ) as error:
         parser.exit(2, f"error: {error}\n")
 
@@ -74,6 +79,32 @@ def main(arguments: Sequence[str] | None = None) -> None:
 
 
 def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[str, object]:
+    from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
+    from pring_cycle.evidence import AsOfMode, EvidenceRepository
+    from pring_cycle.maintenance import (
+        MaintenanceRepository,
+        capacity_state,
+        mutation_rejection,
+    )
+    from pring_cycle.models import ModelRepository
+    from pring_cycle.projections import ProjectionSetRepository
+    from pring_cycle.reports import (
+        CliReportAdapter,
+        ReportRepository,
+        ReportService,
+        evidence_bundle_from_projection,
+    )
+    from pring_cycle.runs import RunRepository
+
+    if namespace.command in _MUTATING_COMMANDS:
+        rejection = mutation_rejection(
+            paths.database,
+            paths.data,
+            non_core_large_task=namespace.command
+            in {"report-generate", "model-replay", "rehearse-real"},
+        )
+        if rejection is not None:
+            raise ValueError(rejection)
     if namespace.command == "catalog":
         return {
             "catalog_version": METRIC_CATALOG_VERSION,
@@ -89,9 +120,11 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             "status": "ok",
         }
     if namespace.command == "model-accept":
+        from pring_cycle.model_evaluation import calibrate_model
+
         acceptance = ModelRepository(paths.database).record_acceptance(
             namespace.model,
-            CALIBRATION_BASELINE,
+            calibrate_model(paths.database, namespace.model),
         )
         return {
             **asdict(acceptance),
@@ -104,17 +137,26 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         )
         return asdict(activated)
     if namespace.command == "model-replay":
+        from pring_cycle.model_evaluation import replay_models
+
+        evaluation = replay_models(
+            paths.database,
+            namespace.model,
+            namespace.compared_with,
+            requested_start=namespace.start,
+            requested_end=namespace.end,
+        )
         replay = ModelRepository(paths.database).record_replay(
             namespace.model,
             compared_with=namespace.compared_with,
             requested_start=namespace.start,
             requested_end=namespace.end,
-            quality_passed=namespace.quality_passed,
-            regression_passed=namespace.regression_passed,
-            performance_passed=namespace.performance_passed,
-            stage_differences=namespace.stage_differences,
-            core_state_differences=namespace.core_state_differences,
-            gaps=tuple(namespace.gap),
+            quality_passed=evaluation.quality_passed,
+            regression_passed=evaluation.regression_passed,
+            performance_passed=evaluation.performance_passed,
+            stage_differences=evaluation.stage_differences,
+            core_state_differences=evaluation.core_state_differences,
+            gaps=evaluation.gaps,
         )
         return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
     if namespace.command == "model-rollback":
@@ -131,11 +173,10 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         )
         return asdict(rolled_back)
     if namespace.command == "run-submit":
-        model_version_id = (
-            namespace.model
-            if namespace.model is not None
-            else ModelRepository(paths.database).active().model_version_id
-        )
+        active_model_id = ModelRepository(paths.database).active().model_version_id
+        if namespace.model is not None and namespace.model != active_model_id:
+            raise ValueError("run_model_is_not_active")
+        model_version_id = active_model_id
         submitted = RunRepository(paths.database).submit(
             command_type=namespace.type,
             target_business_date=namespace.target_date,
@@ -318,12 +359,6 @@ def _parser() -> argparse.ArgumentParser:
     model_replay.add_argument("--compared-with", required=True)
     model_replay.add_argument("--start", required=True)
     model_replay.add_argument("--end", required=True)
-    model_replay.add_argument("--quality-passed", action="store_true")
-    model_replay.add_argument("--regression-passed", action="store_true")
-    model_replay.add_argument("--performance-passed", action="store_true")
-    model_replay.add_argument("--stage-differences", type=int, default=0)
-    model_replay.add_argument("--core-state-differences", type=int, default=0)
-    model_replay.add_argument("--gap", action="append", default=[])
     model_rollback = _runtime_parser(subparsers, "model-rollback")
     model_rollback.add_argument("--model", required=True)
     model_rollback.add_argument("--as-of-date", required=True)
@@ -355,7 +390,11 @@ def _parser() -> argparse.ArgumentParser:
     evidence_ingest.add_argument("--input", type=Path, required=True)
     evidence_query = _runtime_parser(subparsers, "evidence-query")
     evidence_query.add_argument("--observation-id", required=True)
-    evidence_query.add_argument("--mode", choices=tuple(AsOfMode), required=True)
+    evidence_query.add_argument(
+        "--mode",
+        choices=("public_as_of", "system_as_of"),
+        required=True,
+    )
     evidence_query.add_argument("--as-of", required=True)
     evidence_query.add_argument("--tolerance", type=float, default=0.0)
     report_generate = _runtime_parser(subparsers, "report-generate")
@@ -382,6 +421,12 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _source_claim_input(source: dict[str, Any]) -> SourceClaimInput:
+    from pring_cycle.catalog import metric_definition
+    from pring_cycle.evidence import EvidenceValueState, SourceClaimInput
+
+    definition = metric_definition(str(source["metric_id"]))
+    if definition.priority == "P0":
+        raise ValueError("p0_evidence_requires_certified_adapter")
     dimensions = source["dimensions"]
     if not isinstance(dimensions, dict) or any(
         not isinstance(key, str) or not isinstance(value, str)
@@ -412,9 +457,6 @@ def _source_claim_input(source: dict[str, Any]) -> SourceClaimInput:
 
 def _optional_datetime(value: object) -> datetime | None:
     return datetime.fromisoformat(str(value)) if value is not None else None
-
-
-
 
 def _runtime_parser(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],

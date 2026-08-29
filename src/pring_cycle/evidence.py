@@ -4,10 +4,13 @@ import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
+from math import isfinite
 from pathlib import Path
 from typing import Any
+
+from pring_cycle.catalog import metric_definition
 
 
 class AsOfMode(StrEnum):
@@ -158,7 +161,7 @@ class EvidenceRepository:
                 """
                 SELECT claim_id FROM source_claim
                 WHERE observation_id = ? AND provider = ?
-                ORDER BY available_at DESC, claim_id DESC LIMIT 1
+                ORDER BY julianday(available_at) DESC, claim_id DESC LIMIT 1
                 """,
                 (observation_id, claim.provider),
             ).fetchone()
@@ -233,8 +236,8 @@ class EvidenceRepository:
                 SELECT * FROM source_claim
                 WHERE observation_id = ?
                   AND {time_column} IS NOT NULL
-                  AND {time_column} <= ?
-                ORDER BY {time_column}, available_at, claim_id
+                  AND julianday({time_column}) <= julianday(?)
+                ORDER BY julianday({time_column}), julianday(available_at), claim_id
                 """,
                 (observation_id, _iso(as_of)),
             ).fetchall()
@@ -496,12 +499,33 @@ class EvidenceRepository:
 
 
 def _validate_claim(claim: SourceClaimInput) -> None:
+    definition = metric_definition(claim.metric_id)
+    if claim.definition_version != definition.definition_version:
+        raise ValueError("evidence_definition_version_mismatch")
+    if claim.unit != definition.unit:
+        raise ValueError("evidence_unit_mismatch")
+    if set(claim.dimensions) != set(definition.dimensions):
+        raise ValueError("evidence_dimensions_mismatch")
+    if (
+        claim.certification_status == "certified"
+        and definition.certification_status != "certified"
+    ):
+        raise ValueError("evidence_source_not_certified_by_model")
+    if claim.certification_status not in {
+        "certified",
+        "awaiting_source_certification",
+    }:
+        raise ValueError("evidence_certification_status_invalid")
+    if claim.quality_status not in {"validated", "unverified", "invalid"}:
+        raise ValueError("evidence_quality_status_invalid")
     if claim.available_at.tzinfo is None or claim.fetched_at.tzinfo is None:
         raise ValueError("evidence_times_must_be_timezone_aware")
     if claim.public_available_at is not None and claim.public_available_at.tzinfo is None:
         raise ValueError("evidence_times_must_be_timezone_aware")
     if claim.value_state is EvidenceValueState.REPORTED_VALUE and claim.value is None:
         raise ValueError("reported_value_requires_number")
+    if claim.value is not None and not isfinite(claim.value):
+        raise ValueError("evidence_value_must_be_finite")
     if claim.value_state is not EvidenceValueState.REPORTED_VALUE and claim.value is not None:
         raise ValueError("non_numeric_value_state_rejects_number")
 
@@ -531,11 +555,11 @@ def _stable_hash(*parts: str) -> str:
 
 
 def _iso(value: datetime | None) -> str | None:
-    return value.isoformat() if value is not None else None
+    return value.astimezone(UTC).isoformat() if value is not None else None
 
 
 def _datetime(value: Any) -> datetime | None:
-    return datetime.fromisoformat(str(value)) if value is not None else None
+    return datetime.fromisoformat(str(value)).astimezone(UTC) if value is not None else None
 
 
 def _required_datetime(value: Any) -> datetime:

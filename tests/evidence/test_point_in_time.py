@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import UTC, datetime
+from math import nan
 from pathlib import Path
+
+import pytest
 
 from pring_cycle.evidence import (
     AsOfMode,
@@ -21,12 +24,12 @@ def claim(
     value_state: EvidenceValueState = EvidenceValueState.REPORTED_VALUE,
 ) -> SourceClaimInput:
     return SourceClaimInput(
-        metric_id="CN_CPI_YOY",
+        metric_id="CN_CPI_HEADLINE",
         definition_version="metric-catalog-v0001",
         period_kind="interval",
         period_start="2026-06-01",
         period_end="2026-06-30",
-        dimensions={},
+        dimensions={"measure": "yoy", "category": "headline"},
         value=value,
         value_state=value_state,
         unit="percent",
@@ -37,7 +40,7 @@ def claim(
         public_available_at=datetime.fromisoformat(public_at),
         fetched_at=datetime.fromisoformat(system_at),
         available_at=datetime.fromisoformat(system_at),
-        certification_status="certified",
+        certification_status="awaiting_source_certification",
         quality_status="validated",
     )
 
@@ -80,6 +83,57 @@ def test_public_and_system_as_of_are_explicit_and_distinct(tmp_path: Path) -> No
         ).selected_value
         == 1.2
     )
+
+
+def test_point_in_time_comparison_normalizes_equivalent_timezone_offsets(
+    tmp_path: Path,
+) -> None:
+    evidence = repository(tmp_path)
+    stored = evidence.append_source_claim(
+        claim(
+            value=1.2,
+            public_at="2026-07-15T10:00:00+08:00",
+            system_at="2026-07-15T10:05:00+08:00",
+        )
+    )
+
+    result = evidence.query(
+        stored.observation_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 7, 15, 2, 6, tzinfo=UTC),
+    )
+
+    assert result.selected_value == 1.2
+    assert result.claims[0].available_at == datetime(2026, 7, 15, 2, 5, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    (
+        ({"metric_id": "CPI"}, "unknown_metric_id"),
+        ({"unit": "basis_points"}, "evidence_unit_mismatch"),
+        ({"value": nan}, "evidence_value_must_be_finite"),
+        ({"dimensions": {}}, "evidence_dimensions_mismatch"),
+    ),
+)
+def test_claims_must_match_the_frozen_metric_identity(
+    tmp_path: Path,
+    change: dict[str, object],
+    message: str,
+) -> None:
+    evidence = repository(tmp_path)
+
+    with pytest.raises((KeyError, ValueError), match=message):
+        evidence.append_source_claim(
+            replace(
+                claim(
+                    value=1.2,
+                    public_at="2026-07-15T02:00:00+00:00",
+                    system_at="2026-07-15T02:05:00+00:00",
+                ),
+                **change,
+            )
+        )
 
 
 def test_revision_is_append_only_and_does_not_rewrite_old_as_of(tmp_path: Path) -> None:
@@ -235,7 +289,7 @@ def test_trace_derived_lineage_attempts_and_snapshots_are_immutable_ledger_entri
         unit="percentage_points",
     )
     attempt_id = evidence.record_retrieval_attempt(
-        metric_id="CN_CPI_YOY",
+        metric_id="CN_CPI_HEADLINE",
         channel="official",
         outcome="verified",
         fetched_at=cutoff,
@@ -247,7 +301,7 @@ def test_trace_derived_lineage_attempts_and_snapshots_are_immutable_ledger_entri
         as_of=cutoff,
     )
 
-    assert trace.metric_id == "CN_CPI_YOY"
+    assert trace.metric_id == "CN_CPI_HEADLINE"
     assert trace.period_end == "2026-06-30"
     assert trace.claims[0].available_at == datetime(2026, 7, 15, 2, 5, tzinfo=UTC)
     assert derived.input_observation_version_ids == (stored.claim_id,)

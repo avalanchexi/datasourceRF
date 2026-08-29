@@ -5,25 +5,40 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-
-from alembic import command
-from alembic.config import Config
-from alembic.migration import MigrationContext
-from alembic.script import ScriptDirectory
-from sqlalchemy import Engine, create_engine, event, text
-from sqlalchemy.exc import SQLAlchemyError
+from typing import TYPE_CHECKING
 
 from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 
+if TYPE_CHECKING:
+    from alembic.config import Config
+
+SCHEMA_HEAD = "0005_run_step_events"
+
 
 def migrate_database(database_path: Path) -> None:
+    from alembic import command
+    from sqlalchemy import create_engine, event
+
     configuration = _alembic_configuration()
-    with (
-        _database_engine_scope(database_path) as engine,
-        engine.connect() as connection,
-    ):
+    engine = create_engine(f"sqlite+pysqlite:///{database_path}")
+
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragmas(dbapi_connection: object, _connection_record: object) -> None:
+        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA busy_timeout=5000")
+        cursor.close()
+
+    try:
+        connection = engine.connect()
         configuration.attributes["connection"] = connection
-        command.upgrade(configuration, "head")
+        try:
+            command.upgrade(configuration, "head")
+        finally:
+            connection.close()
+    finally:
+        engine.dispose()
 
 
 def database_health(database_path: Path) -> DatabaseHealth:
@@ -31,22 +46,20 @@ def database_health(database_path: Path) -> DatabaseHealth:
         return {"migration": "missing", "status": "missing", "wal": "missing"}
 
     try:
-        with (
-            _database_engine_scope(database_path) as engine,
-            engine.connect() as connection,
-        ):
-            journal_mode = str(connection.exec_driver_sql("PRAGMA journal_mode").scalar_one())
-            current_revision = MigrationContext.configure(connection).get_current_revision()
-            target_revision = ScriptDirectory.from_config(
-                _alembic_configuration()
-            ).get_current_head()
-    except (OSError, SQLAlchemyError, sqlite3.DatabaseError):
+        with _sqlite_connection(database_path) as connection:
+            row = connection.execute("PRAGMA journal_mode").fetchone()
+            journal_mode = str(row[0]) if row is not None else "unknown"
+            revision_row = connection.execute(
+                "SELECT version_num FROM alembic_version LIMIT 1"
+            ).fetchone()
+            current_revision = str(revision_row[0]) if revision_row is not None else None
+    except (OSError, sqlite3.DatabaseError):
         return {"migration": "unknown", "status": "unavailable", "wal": "unknown"}
 
     return {
-        "migration": "current" if current_revision == target_revision else "outdated",
+        "migration": "current" if current_revision == SCHEMA_HEAD else "outdated",
         "status": (
-            "ok" if current_revision == target_revision and journal_mode == "wal" else "degraded"
+            "ok" if current_revision == SCHEMA_HEAD and journal_mode == "wal" else "degraded"
         ),
         "wal": "enabled" if journal_mode == "wal" else "disabled",
     }
@@ -58,21 +71,16 @@ def record_worker_heartbeat(
     started_at: datetime,
     heartbeat_at: datetime,
 ) -> None:
-    with (
-        _database_engine_scope(database_path) as engine,
-        engine.begin() as connection,
-    ):
+    with _sqlite_connection(database_path) as connection:
         connection.execute(
-            text(
-                """
-                INSERT INTO service_heartbeat (service, process_id, started_at, heartbeat_at)
-                VALUES ('worker', :process_id, :started_at, :heartbeat_at)
-                ON CONFLICT(service) DO UPDATE SET
-                    process_id = excluded.process_id,
-                    started_at = excluded.started_at,
-                    heartbeat_at = excluded.heartbeat_at
-                """
-            ),
+            """
+            INSERT INTO service_heartbeat (service, process_id, started_at, heartbeat_at)
+            VALUES ('worker', :process_id, :started_at, :heartbeat_at)
+            ON CONFLICT(service) DO UPDATE SET
+                process_id = excluded.process_id,
+                started_at = excluded.started_at,
+                heartbeat_at = excluded.heartbeat_at
+            """,
             {
                 "heartbeat_at": heartbeat_at.isoformat(),
                 "process_id": process_id,
@@ -89,18 +97,13 @@ def register_artifact(
     source_reference: str,
     created_at: datetime,
 ) -> None:
-    with (
-        _database_engine_scope(database_path) as engine,
-        engine.begin() as connection,
-    ):
+    with _sqlite_connection(database_path) as connection:
         connection.execute(
-            text(
-                """
-                INSERT INTO artifact (content_hash, byte_count, media_type, created_at)
-                VALUES (:content_hash, :byte_count, :media_type, :created_at)
-                ON CONFLICT(content_hash) DO NOTHING
-                """
-            ),
+            """
+            INSERT INTO artifact (content_hash, byte_count, media_type, created_at)
+            VALUES (:content_hash, :byte_count, :media_type, :created_at)
+            ON CONFLICT(content_hash) DO NOTHING
+            """,
             {
                 "byte_count": byte_count,
                 "content_hash": content_hash,
@@ -109,13 +112,11 @@ def register_artifact(
             },
         )
         connection.execute(
-            text(
-                """
-                INSERT INTO artifact_reference (content_hash, source_reference)
-                VALUES (:content_hash, :source_reference)
-                ON CONFLICT(content_hash, source_reference) DO NOTHING
-                """
-            ),
+            """
+            INSERT INTO artifact_reference (content_hash, source_reference)
+            VALUES (:content_hash, :source_reference)
+            ON CONFLICT(content_hash, source_reference) DO NOTHING
+            """,
             {"content_hash": content_hash, "source_reference": source_reference},
         )
 
@@ -126,39 +127,31 @@ def artifact_is_registered(
     source_reference: str,
 ) -> bool:
     try:
-        with (
-            _database_engine_scope(database_path) as engine,
-            engine.connect() as connection,
-        ):
+        with _sqlite_connection(database_path) as connection:
             registered = connection.execute(
-                text(
-                    """
-                    SELECT 1
-                    FROM artifact AS artifact_record
-                    JOIN artifact_reference AS reference
-                      ON reference.content_hash = artifact_record.content_hash
-                    WHERE artifact_record.content_hash = :content_hash
-                      AND reference.source_reference = :source_reference
-                    """
-                ),
+                """
+                SELECT 1
+                FROM artifact AS artifact_record
+                JOIN artifact_reference AS reference
+                  ON reference.content_hash = artifact_record.content_hash
+                WHERE artifact_record.content_hash = :content_hash
+                  AND reference.source_reference = :source_reference
+                """,
                 {"content_hash": content_hash, "source_reference": source_reference},
-            ).scalar_one_or_none()
-    except SQLAlchemyError:
+            ).fetchone()
+    except sqlite3.DatabaseError:
         return False
-    return registered == 1
+    return registered is not None and registered[0] == 1
 
 
 def artifact_registry_available(database_path: Path) -> bool:
     if not database_path.is_file():
         return False
     try:
-        with (
-            _database_engine_scope(database_path) as engine,
-            engine.connect() as connection,
-        ):
-            connection.execute(text("SELECT 1 FROM artifact LIMIT 1"))
-            connection.execute(text("SELECT 1 FROM artifact_reference LIMIT 1"))
-    except SQLAlchemyError:
+        with _sqlite_connection(database_path) as connection:
+            connection.execute("SELECT 1 FROM artifact LIMIT 1")
+            connection.execute("SELECT 1 FROM artifact_reference LIMIT 1")
+    except sqlite3.DatabaseError:
         return False
     return True
 
@@ -167,48 +160,37 @@ def worker_status(database_path: Path, now: datetime | None = None) -> WorkerHea
     if not database_path.is_file():
         return {"status": "not_initialized"}
     try:
-        with (
-            _database_engine_scope(database_path) as engine,
-            engine.connect() as connection,
-        ):
+        with _sqlite_connection(database_path) as connection:
             heartbeat_value = connection.execute(
-                text("SELECT heartbeat_at FROM service_heartbeat WHERE service = 'worker'")
-            ).scalar_one_or_none()
-    except SQLAlchemyError:
+                "SELECT heartbeat_at FROM service_heartbeat WHERE service = 'worker'"
+            ).fetchone()
+    except sqlite3.DatabaseError:
         return {"status": "unavailable"}
 
-    if not isinstance(heartbeat_value, str):
+    if heartbeat_value is None or not isinstance(heartbeat_value[0], str):
         return {"status": "stopped"}
-    heartbeat_at = datetime.fromisoformat(heartbeat_value)
+    heartbeat_at = datetime.fromisoformat(heartbeat_value[0])
     observed_at = now or datetime.now(UTC)
     age_seconds = (observed_at - heartbeat_at).total_seconds()
     return {"status": "healthy" if age_seconds <= 5 else "stale"}
 
 
-def _database_engine(database_path: Path) -> Engine:
-    engine = create_engine(f"sqlite+pysqlite:///{database_path}")
-
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragmas(dbapi_connection: object, _connection_record: object) -> None:
-        cursor = dbapi_connection.cursor()  # type: ignore[attr-defined]
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.execute("PRAGMA busy_timeout=5000")
-        cursor.close()
-
-    return engine
-
-
 @contextmanager
-def _database_engine_scope(database_path: Path) -> Iterator[Engine]:
-    engine = _database_engine(database_path)
+def _sqlite_connection(database_path: Path) -> Iterator[sqlite3.Connection]:
+    connection = sqlite3.connect(database_path, timeout=5)
     try:
-        yield engine
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA busy_timeout=5000")
+        yield connection
+        connection.commit()
     finally:
-        engine.dispose()
+        connection.close()
 
 
 def _alembic_configuration() -> Config:
+    from alembic.config import Config
+
     configuration = Config()
     configuration.set_main_option("script_location", str(Path(__file__).parent / "migrations"))
     return configuration

@@ -4,11 +4,14 @@
 
 直接切换按以下顺序执行，任一步失败都停止：
 
-1. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。
-2. `pring-cycle rehearse-fixture-recovery --json`：独立 fixture 中断、陈旧 owner 审计和用户显式恢复；不写正式发布历史。
-3. 在最新完整目标交易日完成手动完整运行与报告后，执行 `pring-cycle rehearse-real --target-date YYYY-MM-DD --json`。它要求真实 P0、按 schema 家族抽样的 P1、当前原子投影，以及 AI 成功或确定性降级报告。
-4. 停止旧系统并将其置为只读。旧系统不再运行、不接受写入，也不是运行时降级源。
-5. 用前三步返回的制品哈希构建清单：
+1. 在最新目标交易日用 `pring-cycle source-smoke --target-date YYYY-MM-DD --json` 校验
+   中国交易日历、中证全指、上证国债指数和 NHII 的真实身份、连续性与规范化哈希。此命令需要
+   本机 `TUSHARE_TOKEN`；失败或未执行不能由 fixture 替代。
+2. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。
+3. `pring-cycle rehearse-fixture-recovery --json`：独立 fixture 中断、陈旧 owner 审计和用户显式恢复；不写正式发布历史。
+4. 在最新完整目标交易日完成手动完整运行与报告后，执行 `pring-cycle rehearse-real --target-date YYYY-MM-DD --json`。它要求真实 P0、按 schema 家族抽样的 P1、当前原子投影，以及 AI 成功或确定性降级报告。
+5. 停止旧系统并将其置为只读。旧系统不再运行、不接受写入，也不是运行时降级源。
+6. 用验收和两次演练返回的制品哈希构建清单：
 
 ```bash
 pring-cycle cutover-manifest \
@@ -21,7 +24,7 @@ pring-cycle cutover-manifest \
 
 清单固定代码、依赖、数据库/配置版本、指标目录、模型、投影、回归、质量、性能、文档和两次演练哈希。只有 `status=ready` 才可继续。
 
-6. 用户核对清单后，以完整确认词记录一次性切换：
+7. 用户核对清单后，以完整确认词记录一次性切换：
 
 ```bash
 pring-cycle cutover-record \
@@ -30,7 +33,10 @@ pring-cycle cutover-record \
   --json
 ```
 
-不存在 `force` 或等价绕过。切换记录不可更新或删除；再次提交同一清单是幂等的，换清单会被拒绝。切换后首次故障只在 V1 内修复、显式恢复，或在升级破坏完整性时重新初始化。不得恢复旧系统运行。
+不存在 `force` 或等价绕过。清单只接受已登记且来源引用匹配的验收/演练制品；记录切换时会按
+当前代码、依赖、模型、投影和文档重新构建并拒绝陈旧清单。切换记录不可更新或删除；再次提交
+同一清单是幂等的，换清单会被拒绝。切换后首次故障只在 V1 内修复、显式恢复，或在升级破坏
+完整性时重新初始化。不得恢复旧系统运行。
 
 ## 真实演练不是发布历史
 
