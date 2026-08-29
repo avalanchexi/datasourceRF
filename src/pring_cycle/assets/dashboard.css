@@ -263,6 +263,7 @@ a:visited { color: #765078; }
   justify-content: space-between;
   gap: 20px;
 }
+.asset-card .section-title { overflow-wrap: anywhere; }
 .asset-track-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

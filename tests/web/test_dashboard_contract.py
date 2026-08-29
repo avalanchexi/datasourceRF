@@ -74,6 +74,7 @@ def test_visual_contract_covers_theme_state_type_focus_motion_and_narrow_windows
     assert "localStorage" in script and "pring-cycle-theme" in script
     assert 'aria-current", "page"' in script
     assert '.nav-link[aria-current="page"]' in stylesheet
+    assert ".asset-card .section-title { overflow-wrap: anywhere; }" in stylesheet
 
 
 def test_published_core_states_render_as_domain_ui_instead_of_raw_json() -> None:
