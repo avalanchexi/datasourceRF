@@ -16,7 +16,12 @@ from fastapi.responses import JSONResponse
 
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
 from pring_cycle.dashboard import dashboard_page, dashboard_shell
-from pring_cycle.evidence import AsOfMode, EvidenceRepository
+from pring_cycle.evidence import (
+    AsOfMode,
+    DerivedEvidenceTrace,
+    EvidenceRepository,
+    EvidenceTrace,
+)
 from pring_cycle.health_types import RuntimeHealthDocument
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
@@ -95,11 +100,20 @@ def create_web_application(paths: RuntimePaths, port: int) -> FastAPI:
         mode: AsOfMode,
         as_of: datetime,
     ) -> JSONResponse:
-        result = EvidenceRepository(paths.database).trace(
-            observation_id,
-            mode=mode,
-            as_of=as_of,
-        )
+        repository = EvidenceRepository(paths.database)
+        result: EvidenceTrace | DerivedEvidenceTrace
+        try:
+            result = repository.trace(
+                observation_id,
+                mode=mode,
+                as_of=as_of,
+            )
+        except LookupError:
+            result = repository.derived_trace(
+                observation_id,
+                mode=mode,
+                as_of=as_of,
+            )
         return JSONResponse(content=jsonable_encoder(asdict(result)))
 
     @server.get("/api/v1/catalog", name="metric_catalog")

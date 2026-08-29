@@ -90,3 +90,50 @@ def test_noncanonical_valid_combination_publishes_an_explained_history_gap(
     assert history["events"][0]["last_confirmed_stage"] == "stage_i"
     assert history["events"][0]["event_kind"] == "gap"
     assert history["events"][0]["stage_reason"] == "noncanonical_combination"
+
+
+def test_macro_and_inventory_documents_change_context_but_never_formal_stage(
+    tmp_path: Path,
+) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projection.sqlite3")
+    service = P0ProjectionService(projections)
+    assets = (
+        readiness("bond", CoreAssetState.BULL),
+        readiness("stock", CoreAssetState.BULL),
+        readiness("commodity", CoreAssetState.BEAR),
+    )
+    easing = service.publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 10, tzinfo=UTC),
+        assets=assets,
+        last_confirmed_stage=None,
+        macro_document={
+            "policy_direction": "easing",
+            "credit_response": "expanding",
+            "overheat_state": "heating",
+            "price_pressure": "upstream_pressure",
+            "international_context": [],
+        },
+        inventory_document={"quadrant": "active_restocking", "cards": []},
+    )
+    tightening = service.publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 10, 1, tzinfo=UTC),
+        assets=assets,
+        last_confirmed_stage=FormalStage.STAGE_II,
+        macro_document={
+            "policy_direction": "tightening",
+            "credit_response": "contracting",
+            "overheat_state": "cooling",
+            "price_pressure": "easing",
+            "international_context": [],
+        },
+        inventory_document={"quadrant": "active_destocking", "cards": []},
+    )
+
+    assert easing.current_stage is tightening.current_stage is FormalStage.STAGE_II
+    assert easing.projection_set_id != tightening.projection_set_id
+    current = projections.current()
+    assert current.datasets["cycle_overview"]["current_stage"] == "stage_ii"
+    assert current.datasets["macro"]["policy_direction"] == "tightening"
+    assert current.datasets["inventory"]["quadrant"] == "active_destocking"

@@ -58,6 +58,9 @@ class P0ProjectionService:
         model_version_id: str = "model-v0001",
         warnings: tuple[str, ...] = (),
         evidence_snapshot_id: str | None = None,
+        macro_document: dict[str, object] | None = None,
+        inventory_document: dict[str, object] | None = None,
+        release_calendar_events: tuple[dict[str, object], ...] = (),
     ) -> P0PublishResult:
         by_asset = {item.asset: item for item in assets}
         if set(by_asset) != {"bond", "stock", "commodity"}:
@@ -117,6 +120,9 @@ class P0ProjectionService:
             "system_as_of": system_as_of.isoformat(),
             "target_business_date": target_business_date,
             "warnings": list(warnings),
+            "macro": macro_document,
+            "inventory": inventory_document,
+            "release_calendar_events": list(release_calendar_events),
         }
         projection_set_id = (
             "projection-"
@@ -173,12 +179,13 @@ class P0ProjectionService:
                 "stage_reason": stage.reason,
                 "core_assets": asset_documents,
                 "transition_watch": [],
-                "macro_confirmation": [],
+                "macro_confirmation": _macro_confirmation(macro_document),
             }
         )
         datasets["core_assets"]["assets"] = asset_documents
         datasets["macro"].update(
-            {
+            macro_document
+            or {
                 "policy_direction": "insufficient_data",
                 "credit_response": "insufficient_data",
                 "overheat_state": "insufficient_data",
@@ -186,8 +193,10 @@ class P0ProjectionService:
                 "international_context": [],
             }
         )
-        datasets["inventory"].update({"quadrant": None, "cards": []})
-        datasets["release_calendar"]["events"] = []
+        datasets["inventory"].update(
+            inventory_document or {"quadrant": None, "cards": []}
+        )
+        datasets["release_calendar"]["events"] = list(release_calendar_events)
         history = list(self._projections.stage_history())
         if not any(item.get("assessment_id") == assessment["assessment_id"] for item in history):
             history.append(assessment)
@@ -219,6 +228,17 @@ class P0ProjectionService:
             (),
             str(assessment["assessment_id"]),
         )
+
+
+def _macro_confirmation(document: dict[str, object] | None) -> list[dict[str, str]]:
+    if document is None:
+        return []
+    confirmations = []
+    for key in ("policy_direction", "credit_response", "overheat_state", "price_pressure"):
+        state = document.get(key)
+        if state not in {None, "insufficient_data"}:
+            confirmations.append({"context": key, "state": str(state)})
+    return confirmations
 
 
 def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:

@@ -7,8 +7,10 @@ from datetime import UTC, date, datetime
 from math import isfinite
 from typing import Any
 
+from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import FormalStage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
+from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -58,6 +60,10 @@ def project_core_fixture(
         normalized.encode()
     ).hexdigest()[:20]
     previous_stage = _last_confirmed_stage(paths)
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=parsed["system_as_of"],
+    )
     service = P0ProjectionService(ProjectionSetRepository(paths.database))
     result = service.publish(
         target_business_date=parsed["target_business_date"],
@@ -65,8 +71,10 @@ def project_core_fixture(
         assets=assets,  # type: ignore[arg-type]
         last_confirmed_stage=previous_stage,
         model_version_id=model_version_id,
-        warnings=("acceptance_fixture_only",),
+        warnings=("acceptance_fixture_only", *context.warnings),
         evidence_snapshot_id=evidence_snapshot_id,
+        macro_document=context.macro,
+        inventory_document=context.inventory,
     )
     return CoreFixtureProjectionResult(
         acceptance_only=True,

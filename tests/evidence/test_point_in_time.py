@@ -305,7 +305,73 @@ def test_trace_derived_lineage_attempts_and_snapshots_are_immutable_ledger_entri
     assert trace.period_end == "2026-06-30"
     assert trace.claims[0].available_at == datetime(2026, 7, 15, 2, 5, tzinfo=UTC)
     assert derived.input_observation_version_ids == (stored.claim_id,)
+    derived_trace = evidence.derived_trace(
+        derived.derived_observation_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=cutoff,
+    )
+    assert derived_trace.metric_id == "CN_CREDIT_IMPULSE"
+    assert derived_trace.formula_version == "credit-impulse-v0001"
+    assert derived_trace.input_observation_version_ids == (stored.claim_id,)
+    assert derived_trace.value == 0.2
     assert len(attempt_id) == 64
     assert snapshot.observation_version_ids == tuple(
         sorted((stored.claim_id, derived.derived_observation_id))
     )
+
+
+def test_multiscalar_catalog_group_accepts_only_its_frozen_units(tmp_path: Path) -> None:
+    evidence = repository(tmp_path)
+    base = SourceClaimInput(
+        metric_id="CN_M1_M2",
+        definition_version="metric-catalog-v0001",
+        period_kind="month",
+        period_start="2026-07-01",
+        period_end="2026-07-31",
+        dimensions={"aggregate": "m2", "measure": "balance"},
+        value=320_000.0,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="hundred_million_cny",
+        provider="tushare",
+        source_reference="tushare:cn_m:2026-07:m2:balance",
+        release_event_id="release:cn_m:2026-07",
+        release_at=datetime(2026, 8, 12, 2, tzinfo=UTC),
+        public_available_at=datetime(2026, 8, 12, 2, tzinfo=UTC),
+        fetched_at=datetime(2026, 8, 12, 3, tzinfo=UTC),
+        available_at=datetime(2026, 8, 12, 3, tzinfo=UTC),
+        certification_status="awaiting_source_certification",
+        quality_status="validated",
+    )
+
+    stored = evidence.append_source_claim(base)
+    assert stored.observation_id
+    with pytest.raises(ValueError, match="evidence_unit_mismatch"):
+        evidence.append_source_claim(replace(base, unit="index_points"))
+
+
+def test_derived_trace_is_point_in_time_gated(tmp_path: Path) -> None:
+    evidence = repository(tmp_path)
+    cutoff = datetime(2026, 7, 16, tzinfo=UTC)
+    derived = evidence.append_derived_observation(
+        metric_id="CN_CREDIT_IMPULSE",
+        formula_version="credit-impulse-v0001",
+        input_observation_version_ids=("claim-input",),
+        as_of_mode=AsOfMode.SYSTEM,
+        as_of_cutoff=cutoff,
+        computed_at=cutoff,
+        value=0.2,
+        unit="percentage_points",
+    )
+
+    with pytest.raises(LookupError, match="derived_evidence_not_available"):
+        evidence.derived_trace(
+            derived.derived_observation_id,
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime(2026, 7, 15, tzinfo=UTC),
+        )
+    with pytest.raises(LookupError, match="derived_evidence_not_available"):
+        evidence.derived_trace(
+            derived.derived_observation_id,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 7, 17, tzinfo=UTC),
+        )

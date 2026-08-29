@@ -146,6 +146,106 @@ def test_domain_pages_expose_fixed_sections_instead_of_generic_documents() -> No
     assert all(label in calendar for label in ("预计窗口", "实际发布", "系统首次可用"))
 
 
+def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundaries() -> None:
+    envelope = ProjectionEnvelope(
+        projection_set_id="projection-context",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        evidence_snapshot_id="snapshot-context",
+        model_version_id="model-v0001",
+        trend_rule_version="trend-v0001",
+        evidence_window_start="2026-03-01",
+        evidence_window_end="2026-08-28",
+        generated_at=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        completeness="degraded",
+        refresh_status="completed",
+        warnings=("p1_evidence_incomplete",),
+    )
+    evidence = {
+        "metric_id": "CN_LPR_1Y_5Y",
+        "observation_id": "observation-lpr-1y",
+        "direction": "easing",
+        "period": "2026-08-31",
+        "status": "current",
+        "value": 3.0,
+        "unit": "percent",
+        "certification_status": "certified",
+        "source_reference": "https://www.chinamoney.com.cn/example#sha256=test",
+        "claims": [
+            {
+                "provider": "中国货币网",
+                "value": 3.0,
+                "unit": "percent",
+                "selected": True,
+            }
+        ],
+    }
+    projection = ProjectionSet(
+        envelope,
+        {
+            "cycle_overview": {},
+            "core_assets": {},
+            "macro": {
+                "policy_direction": "easing",
+                "policy_action": {"direction": "easing", "evidence": [evidence]},
+                "transmission": {"direction": "easing", "evidence": []},
+                "credit_response": "insufficient_data",
+                "credit": {"state": "insufficient_data", "evidence": [evidence]},
+                "overheat_state": "insufficient_data",
+                "overheat": {"support": [], "counterevidence": [], "gaps": []},
+                "price_pressure": "upstream_pressure",
+                "price_chain": {"support": [], "counterevidence": [], "gaps": []},
+                "international_context": [
+                    {
+                        "metric_id": "UST10Y_NOMINAL_YIELD",
+                        "name_cn": "美国10年期国债名义收益率",
+                        "status": "awaiting_source_certification",
+                        "direction": "unknown",
+                        "period": None,
+                        "certification_status": "awaiting_source_certification",
+                    }
+                ],
+            },
+            "inventory": {
+                "quadrant": None,
+                "directions": {"demand": "up", "production": "up", "inventory": None},
+                "cards": [
+                    {
+                        "name": "materials_finished_goods",
+                        "status": "stale",
+                        "evidence_ids": ["observation-pmi-inventory"],
+                    }
+                ],
+                "real_inventory_approximation": {
+                    "status": "missing_certified_inputs",
+                    "formula_version": "inventory-ppi-v0001",
+                },
+                "semantics": {
+                    "pmi_inventory": "diffusion_index_not_inventory_quantity",
+                    "futures_warrants": "registered_receipts_not_total_industrial_inventory",
+                },
+            },
+            "release_calendar": {},
+            "stage_history": {},
+        },
+    )
+
+    macro = _text(dashboard_page("/macro", projection, (), ()))
+    inventory = _text(dashboard_page("/inventory", projection, (), ()))
+
+    assert "政策行动" in macro and "市场传导" in macro and "信用响应" in macro
+    assert "CN_LPR_1Y_5Y" in macro
+    assert "统计期 2026-08-31" in macro
+    assert "认证 certified" in macro
+    assert "收益率方向，不是债券价格" in macro
+    assert "证据 observation-lpr-1y" in macro
+    assert "来源声明 中国货币网=3.0 percent（已选）" in macro
+    assert "需求 up · 生产 up · 库存 数据不足" in inventory
+    assert "PMI 库存是扩散指数，不是库存数量" in inventory
+    assert "注册仓单不代表产业总库存" in inventory
+    assert "证据 observation-pmi-inventory" in inventory
+
+
 def test_stage_history_page_can_show_an_unpublished_p0_gap_from_the_read_model() -> None:
     gap = {
         "business_date": "2026-08-31",

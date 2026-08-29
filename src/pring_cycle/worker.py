@@ -8,6 +8,7 @@ from collections.abc import Callable, Mapping
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import FormalStage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
 from pring_cycle.evidence import (
@@ -224,6 +225,11 @@ def _execute_run(
     )
     runs.advance(run.run_id, "evaluating_core_readiness")
     runs.advance(run.run_id, "deriving_states")
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=run.system_as_of,
+    )
+    release_calendar_events = _release_calendar_documents(paths, run)
     runs.advance(run.run_id, "building_projection")
     runs.advance(run.run_id, "publishing_projection")
     last_stage = _last_confirmed_stage(paths)
@@ -231,7 +237,7 @@ def _execute_run(
         version_id
         for item in readiness
         for version_id in item.observation_version_ids
-    )
+    ) + context.observation_version_ids
     evidence_snapshot_id = None
     if observation_versions:
         evidence_snapshot_id = EvidenceRepository(paths.database).freeze_snapshot(
@@ -248,8 +254,13 @@ def _execute_run(
         assets=readiness,
         last_confirmed_stage=last_stage,
         model_version_id=run.model_version_id,
-        warnings=_explanatory_evidence_warnings(paths, run),
+        warnings=tuple(
+            dict.fromkeys(_explanatory_evidence_warnings(paths, run) + context.warnings)
+        ),
         evidence_snapshot_id=evidence_snapshot_id,
+        macro_document=context.macro,
+        inventory_document=context.inventory,
+        release_calendar_events=release_calendar_events,
     )
     if result.assessment_id is not None:
         runs.record_checkpoint(
@@ -498,6 +509,26 @@ def _official_lpr_retrieval(
     return "official-evidence:" + hashlib.sha256(
         "\x1f".join(refreshed.claim_ids).encode()
     ).hexdigest()
+
+
+def _release_calendar_documents(
+    paths: RuntimePaths,
+    run: RunRecord,
+) -> tuple[dict[str, object], ...]:
+    from pring_cycle.release_calendar import lpr_release_calendar
+
+    events = lpr_release_calendar(
+        EvidenceRepository(paths.database),
+        period=run.target_business_date[:7],
+        as_of=run.system_as_of,
+    )
+    return tuple(
+        {
+            key: value.isoformat() if isinstance(value, datetime) else value
+            for key, value in vars(event).items()
+        }
+        for event in events
+    )
 
 
 def _core_readiness(

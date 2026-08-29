@@ -78,7 +78,11 @@ def test_public_fixture_command_projects_the_three_core_tracks_atomically(
     assert published["network_requests"] == 0
     assert published["current_stage"] == "stage_ii"
     assert published["projection_set_id"] == projection["envelope"]["projection_set_id"]  # type: ignore[index]
-    assert projection["envelope"]["warnings"] == ["acceptance_fixture_only"]  # type: ignore[index]
+    assert projection["envelope"]["warnings"][0] == "acceptance_fixture_only"  # type: ignore[index]
+    assert "policy_context_degraded:insufficient_data" in projection["envelope"][  # type: ignore[index]
+        "warnings"
+    ]
+    assert len(projection["datasets"]["inventory"]["cards"]) == 7  # type: ignore[index]
     assert projection["envelope"]["evidence_window_end"] == "2026-08-28"  # type: ignore[index]
     assert projection["datasets"]["cycle_overview"]["current_stage"] == "stage_ii"  # type: ignore[index]
     assets = projection["datasets"]["core_assets"]["assets"]  # type: ignore[index]

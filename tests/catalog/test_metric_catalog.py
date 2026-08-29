@@ -28,6 +28,29 @@ def test_v1_catalog_freezes_all_61_metric_groups() -> None:
     assert metric_definition("CN_SF_COMPONENTS").dimensions == ("component", "measure")
 
 
+def test_multiscalar_metric_groups_freeze_measure_dimensions_and_allowed_units() -> None:
+    money = metric_definition("CN_M1_M2")
+    social_financing = metric_definition("CN_SF_TOTAL")
+    industrial_finance = metric_definition("CN_INDUSTRIAL_FINANCE")
+    inventory = metric_definition("CN_FINISHED_GOODS_INVENTORY")
+
+    assert money.dimensions == ("aggregate", "measure")
+    assert money.allowed_units == ("hundred_million_cny", "percent")
+    assert social_financing.dimensions == ("measure",)
+    assert social_financing.allowed_units == ("hundred_million_cny", "percent")
+    assert industrial_finance.dimensions == ("item", "measure")
+    assert inventory.dimensions == ("measure",)
+
+
+def test_contract_and_derived_metric_identities_preserve_required_semantics() -> None:
+    comex = metric_definition("COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT")
+
+    assert comex.dimensions == ("contract_month", "measure", "roll_chain_version")
+    assert comex.unit == "usd_per_troy_ounce"
+    assert metric_definition("CN_CREDIT_IMPULSE").unit == "percentage_points"
+    assert metric_definition("EIA_BRENT_RBRTE").unit == "usd_per_barrel"
+
+
 def test_unknown_or_synonym_metric_ids_are_rejected() -> None:
     with pytest.raises(KeyError, match="unknown_metric_id"):
         metric_definition("CPI")

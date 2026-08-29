@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
 from pring_cycle.domain.macro import (
     EvidenceSignal,
+    calculate_credit_impulse,
     derive_credit_response,
     derive_inventory_cycle,
     derive_overheat_state,
@@ -83,6 +86,28 @@ def test_credit_response_keeps_money_social_financing_and_loan_structure_distinc
     assert {item.metric_id for item in result.counterevidence} == {"CN_LOAN_STRUCTURE"}
 
 
+def test_credit_impulse_is_change_in_rolling_flow_share_of_nominal_gdp() -> None:
+    result = calculate_credit_impulse(
+        current_rolling_social_financing=38.0,
+        previous_rolling_social_financing=32.0,
+        current_rolling_nominal_gdp=140.0,
+        previous_rolling_nominal_gdp=128.0,
+    )
+
+    assert result == pytest.approx(2.1428571428571423)
+
+
+@pytest.mark.parametrize("denominator", (0.0, -1.0))
+def test_credit_impulse_rejects_nonpositive_gdp_denominators(denominator: float) -> None:
+    with pytest.raises(ValueError, match="credit_impulse_gdp_must_be_positive"):
+        calculate_credit_impulse(
+            current_rolling_social_financing=38.0,
+            previous_rolling_social_financing=32.0,
+            current_rolling_nominal_gdp=denominator,
+            previous_rolling_nominal_gdp=128.0,
+        )
+
+
 def test_inventory_cards_do_not_duplicate_unrelated_evidence() -> None:
     result = derive_inventory_cycle(
         demand="up",
@@ -94,3 +119,49 @@ def test_inventory_cards_do_not_duplicate_unrelated_evidence() -> None:
     assert result.cards[0].status == "support"
     assert result.cards[0].evidence_ids == ("obs:CN_ORDER_INVENTORY_SPREAD",)
     assert all(card.evidence_ids == () for card in result.cards[1:])
+
+
+@pytest.mark.parametrize(
+    ("demand", "production", "inventory", "expected"),
+    (
+        ("down", "down", "down", "active_destocking"),
+        ("up", "up", "down", "passive_destocking"),
+        ("up", "up", "up", "active_restocking"),
+        ("down", "down", "up", "passive_restocking"),
+    ),
+)
+def test_inventory_four_quadrants_are_mechanical(
+    demand: str,
+    production: str,
+    inventory: str,
+    expected: str,
+) -> None:
+    result = derive_inventory_cycle(
+        demand=demand,
+        production=production,
+        inventory=inventory,
+        observations=[],
+    )
+
+    assert result.quadrant == expected
+
+
+def test_inventory_refuses_noncanonical_or_missing_direction_combinations() -> None:
+    assert (
+        derive_inventory_cycle(
+            demand="up",
+            production="down",
+            inventory="up",
+            observations=[],
+        ).quadrant
+        is None
+    )
+    assert (
+        derive_inventory_cycle(
+            demand=None,
+            production="up",
+            inventory="up",
+            observations=[],
+        ).quadrant
+        is None
+    )

@@ -21,6 +21,7 @@ class MetricDefinition:
     release_rule: str
     release_timezone: str
     definition_version: str = METRIC_CATALOG_VERSION
+    allowed_units: tuple[str, ...] = ()
 
 
 _P0 = (
@@ -142,6 +143,7 @@ def metric_catalog() -> tuple[MetricDefinition, ...]:
                     release_event_family=_release_event_family(metric_id),
                     release_rule=_release_rule(metric_id),
                     release_timezone=_release_timezone(metric_id),
+                    allowed_units=_allowed_units(metric_id),
                 )
             )
     return tuple(definitions)
@@ -171,6 +173,23 @@ def _role(metric_id: str) -> str:
 def _unit(metric_id: str) -> str:
     if metric_id == "CN_LPR_1Y_5Y":
         return "percent"
+    if metric_id == "CN_CREDIT_IMPULSE":
+        return "percentage_points"
+    if metric_id in {"EIA_BRENT_RBRTE", "EIA_WTI_RWTC"}:
+        return "usd_per_barrel"
+    if metric_id in {
+        "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "LBMA_GOLD_PRICE_PM_USD_OZT",
+    }:
+        return "usd_per_troy_ounce"
+    if metric_id in {"CN_OMO_7D_AMOUNT", "CN_TOOL_LIQUIDITY_MONTHLY"}:
+        return "hundred_million_cny"
+    if metric_id == "CN_RRR_EVENT":
+        return "percentage_points"
+    if metric_id == "CN_INVENTORY_TURNOVER":
+        return "days"
+    if metric_id in {"CBOE_VIX_INDEX", "NASDAQ_SOX_INDEX"}:
+        return "index_points"
     if metric_id in _P0[3:] or "INDEX" in metric_id or "NH" in metric_id:
         return "index_points"
     if any(token in metric_id for token in ("RATE", "YIELD", "CPI", "PPI", "PMI")):
@@ -178,6 +197,22 @@ def _unit(metric_id: str) -> str:
     if "SPREAD" in metric_id:
         return "basis_points"
     return "scalar"
+
+
+def _allowed_units(metric_id: str) -> tuple[str, ...]:
+    mixed = {
+        "CN_M1_M2": ("hundred_million_cny", "percent"),
+        "CN_SF_TOTAL": ("hundred_million_cny", "percent"),
+        "CN_SF_COMPONENTS": ("hundred_million_cny", "percent"),
+        "CN_LOAN_STRUCTURE": ("hundred_million_cny", "percent"),
+        "CN_INDUSTRIAL_FINANCE": ("hundred_million_cny", "percent"),
+        "CN_FINISHED_GOODS_INVENTORY": ("hundred_million_cny", "percent"),
+        "CN_INVENTORY_TURNOVER": ("days", "percent"),
+        "CN_CAPACITY_UTILIZATION": ("percent", "percentage_points"),
+        "CN_GDP": ("hundred_million_cny", "percent"),
+        "CN_FUTURES_WARRANTS": ("tonne", "kilogram", "sheet", "lot"),
+    }
+    return mixed.get(metric_id, (_unit(metric_id),))
 
 
 def _frequency(metric_id: str) -> str:
@@ -194,6 +229,16 @@ def _frequency(metric_id: str) -> str:
 
 
 def _dimensions(metric_id: str) -> tuple[str, ...]:
+    if metric_id == "CN_OMO_7D_AMOUNT":
+        return ("measure",)
+    if metric_id == "CN_RRR_EVENT":
+        return ("scope", "measure")
+    if metric_id == "CN_TOOL_LIQUIDITY_MONTHLY":
+        return ("tool", "measure")
+    if metric_id == "CN_M1_M2":
+        return ("aggregate", "measure")
+    if metric_id == "CN_SF_TOTAL":
+        return ("measure",)
     if metric_id == "CN_SF_COMPONENTS":
         return ("component", "measure")
     if metric_id == "CN_LOAN_STRUCTURE":
@@ -204,12 +249,24 @@ def _dimensions(metric_id: str) -> tuple[str, ...]:
         return ("tenor",)
     if metric_id == "CN_FUTURES_WARRANTS":
         return ("symbol", "warehouse", "exchange")
+    if metric_id == "CN_INDUSTRIAL_VA":
+        return ("measure",)
+    if metric_id == "CN_INDUSTRIAL_FINANCE":
+        return ("item", "measure")
+    if metric_id in {"CN_FINISHED_GOODS_INVENTORY", "CN_INVENTORY_TURNOVER"}:
+        return ("measure",)
+    if metric_id == "CN_CAPACITY_UTILIZATION":
+        return ("industry", "measure")
+    if metric_id == "CN_GDP":
+        return ("aggregate", "measure")
     if metric_id.startswith("CN_PMI"):
         return ("series", "measure")
     if metric_id in {"CN_CPI_HEADLINE", "CN_CORE_CPI", "CN_PPI"}:
         return ("measure", "category")
-    if metric_id.startswith(("COMEX", "LBMA")):
-        return ("contract_or_fixing",)
+    if metric_id.startswith("COMEX"):
+        return ("contract_month", "measure", "roll_chain_version")
+    if metric_id.startswith("LBMA"):
+        return ("fixing", "measure")
     return ()
 
 

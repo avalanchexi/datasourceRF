@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -12,6 +12,14 @@ class EvidenceSignal:
     role: str
     freshness: str
     conflict: bool
+    period: str | None = None
+    available_at: str | None = None
+    selected_claim_id: str | None = None
+    source_reference: str | None = None
+    value: float | None = None
+    unit: str | None = None
+    dimensions: dict[str, str] = field(default_factory=dict)
+    value_state: str | None = None
 
 
 @dataclass(frozen=True)
@@ -35,6 +43,20 @@ class InventoryCycle:
     quadrant: str | None
     cards: tuple[SignatureCard, ...]
     score: None = None
+
+
+def calculate_credit_impulse(
+    *,
+    current_rolling_social_financing: float,
+    previous_rolling_social_financing: float,
+    current_rolling_nominal_gdp: float,
+    previous_rolling_nominal_gdp: float,
+) -> float:
+    if current_rolling_nominal_gdp <= 0 or previous_rolling_nominal_gdp <= 0:
+        raise ValueError("credit_impulse_gdp_must_be_positive")
+    current_share = current_rolling_social_financing / current_rolling_nominal_gdp
+    previous_share = previous_rolling_social_financing / previous_rolling_nominal_gdp
+    return (current_share - previous_share) * 100
 
 
 def derive_policy_direction(
@@ -85,19 +107,24 @@ def derive_credit_response(signals: list[EvidenceSignal]) -> MacroState:
 
 def derive_overheat_state(signals: list[EvidenceSignal]) -> MacroState:
     valid = _valid(signals)
-    roles = {item.role for item in valid if item.direction == "up"}
+    required_roles = {"demand", "production", "credit"}
+    observed_roles = {item.role for item in valid}
+    up_roles = {item.role for item in valid if item.direction == "up"}
+    high_roles = {item.role for item in valid if item.direction == "high"}
     down = [item for item in valid if item.direction == "down"]
-    if len(valid) < 2:
+    if not required_roles.issubset(observed_roles):
         state = "insufficient_data"
-    elif len(roles & {"demand", "production", "credit"}) == 3:
+    elif len(high_roles & required_roles) >= 2:
+        state = "overheated"
+    elif up_roles >= required_roles:
         state = "heating"
     elif down:
         state = "cooling"
     else:
-        state = "overheated"
+        state = "insufficient_data"
     return MacroState(
         state,
-        tuple(item for item in valid if item.direction == "up"),
+        tuple(item for item in valid if item.direction in {"up", "high"}),
         tuple(down),
         tuple(item for item in signals if item not in valid),
     )

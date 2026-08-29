@@ -260,23 +260,116 @@ def _core_assets_page(projection: ProjectionSet | None) -> html.Div:
 
 def _macro_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "macro")
-    sections = (
-        ("政策方向", "POLICY DIRECTION", ("policy_direction", "policy_action", "transmission")),
-        ("过热程度", "OVERHEAT STATE", ("overheat_state", "credit_response")),
-        ("物价压力", "PRICE PRESSURE", ("price_pressure",)),
-        ("国际环境", "P2 CONTEXT ONLY", ("international_context",)),
+    as_of = (
+        projection.envelope.system_as_of.isoformat() if projection is not None else None
     )
-    return _fixed_section_page(
-        "宏观证据",
-        "MACRO POST-CONFIRMATION",
-        "政策、过热、物价与国际环境保持独立结论，不汇总成阶段票。",
-        document,
-        sections,
+    policy_action = _object_document(document.get("policy_action"))
+    transmission = _object_document(document.get("transmission"))
+    credit = _object_document(document.get("credit"))
+    overheat = _object_document(document.get("overheat"))
+    price_chain = _object_document(document.get("price_chain"))
+    international = _document_list(document.get("international_context"))
+    return html.Div(
+        [
+            _page_heading("宏观证据", "MACRO POST-CONFIRMATION"),
+            html.P(
+                "政策、信用、过热、物价与国际环境保持独立结论，不汇总成阶段票。",
+                className="body-copy page-intro",
+            ),
+            html.Section(
+                [
+                    _section_heading("政策方向", "POLICY DIRECTION · NO SCORE"),
+                    html.Div(
+                        [
+                            _evidence_panel(
+                                "政策行动",
+                                "CENTRAL-BANK ACTION",
+                                policy_action.get("direction"),
+                                _document_list(policy_action.get("evidence")),
+                                as_of=as_of,
+                            ),
+                            _evidence_panel(
+                                "市场传导",
+                                "MONEY-MARKET TRANSMISSION",
+                                transmission.get("direction"),
+                                _document_list(transmission.get("evidence")),
+                                as_of=as_of,
+                            ),
+                        ],
+                        className="evidence-card-grid",
+                    ),
+                ],
+                className="content-section",
+            ),
+            html.Section(
+                [
+                    _section_heading("信用响应", "CREDIT RESPONSE · SEPARATE LAYER"),
+                    _evidence_panel(
+                        "信用响应",
+                        "MONEY / SOCIAL FINANCING / LOAN STRUCTURE",
+                        document.get("credit_response"),
+                        _document_list(credit.get("evidence")),
+                        as_of=as_of,
+                        note=_formula_summary(credit.get("formula")),
+                    ),
+                ],
+                className="content-section",
+            ),
+            html.Section(
+                [
+                    _section_heading("过热程度", "OVERHEAT STATE"),
+                    _evidence_panel(
+                        "过热程度",
+                        "SUPPORT / COUNTEREVIDENCE / GAPS",
+                        document.get("overheat_state"),
+                        _grouped_evidence(overheat),
+                        as_of=as_of,
+                    ),
+                ],
+                className="content-section",
+            ),
+            html.Section(
+                [
+                    _section_heading("物价压力", "PRICE TRANSMISSION"),
+                    _evidence_panel(
+                        "物价压力",
+                        "UPSTREAM → PRODUCER → CONSUMER",
+                        document.get("price_pressure"),
+                        _grouped_evidence(price_chain),
+                        as_of=as_of,
+                        note="能源只解释广义 CPI、PPI 与投入成本，不是核心 CPI 直接组成。",
+                    ),
+                ],
+                className="content-section",
+            ),
+            html.Section(
+                [
+                    _section_heading("国际环境", "P2 CONTEXT ONLY · NO SCORE"),
+                    html.Ul(
+                        [
+                            _evidence_row(item, as_of=as_of, international=True)
+                            for item in international
+                        ],
+                        className="record-list",
+                    )
+                    if international
+                    else _empty_state(
+                        "国际背景尚无目录数据",
+                        "P2 缺失不影响中国正式阶段和页面整体可用性。",
+                    ),
+                ],
+                className="content-section",
+            ),
+        ],
+        className="page-stack",
     )
 
 
 def _inventory_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "inventory")
+    as_of = (
+        projection.envelope.system_as_of.isoformat() if projection is not None else None
+    )
     cards = document.get("cards")
     card_documents = (
         [item for item in cards if isinstance(item, dict)]
@@ -293,16 +386,36 @@ def _inventory_page(projection: ProjectionSet | None) -> html.Div:
             _domain_panel(
                 "四象限解释",
                 "INVENTORY QUADRANT",
-                _display_value(document.get("quadrant")),
+                " · ".join(
+                    (
+                        _state_label(document.get("quadrant")),
+                        _inventory_directions(document.get("directions")),
+                    )
+                ),
             ),
             html.Section(
                 [
                     _section_heading("七张阶段特征卡", "NO AGGREGATE SCORE"),
                     html.Div(
-                        [_inventory_card(item) for item in card_documents]
+                        [_inventory_card(item, as_of=as_of) for item in card_documents]
                         if card_documents
                         else _empty_state("特征卡待补齐", "当前投影尚无可用的库存特征证据。"),
                         className="evidence-card-grid",
+                    ),
+                ],
+                className="content-section",
+            ),
+            _domain_panel(
+                "价格调整后的近似实际库存",
+                "DERIVED · NOT AN OFFICIAL STATISTIC",
+                _formula_summary(document.get("real_inventory_approximation")),
+            ),
+            html.Section(
+                [
+                    _section_heading("口径边界", "SEMANTIC GUARDRAILS"),
+                    html.P(
+                        "PMI 库存是扩散指数，不是库存数量；注册仓单不代表产业总库存。",
+                        className="body-copy",
                     ),
                 ],
                 className="content-section",
@@ -430,6 +543,179 @@ def _domain_panel(title: str, kicker: str, value: str) -> html.Article:
     )
 
 
+def _evidence_panel(
+    title: str,
+    kicker: str,
+    state: object,
+    evidence: list[dict[str, object]],
+    *,
+    as_of: str | None,
+    note: str | None = None,
+) -> html.Article:
+    children: list[Any] = [
+        html.P(kicker, className="section-kicker"),
+        html.H3(title, className="card-title"),
+        html.P(_state_label(state), className="body-copy domain-value"),
+    ]
+    if note:
+        children.append(html.P(note, className="secondary-copy"))
+    children.append(
+        html.Ul(
+            [_evidence_row(item, as_of=as_of) for item in evidence],
+            className="record-list",
+        )
+        if evidence
+        else _empty_state("当前没有可用证据", "待发布、陈旧和来源失败会在此明确显示。")
+    )
+    return html.Article(children, className="domain-panel evidence-panel")
+
+
+def _evidence_row(
+    item: dict[str, object],
+    *,
+    as_of: str | None,
+    international: bool = False,
+) -> html.Li:
+    metric_id = str(item.get("metric_id") or "metric_identity_unavailable")
+    status = item.get("status", item.get("freshness", "unknown"))
+    value = item.get("value")
+    unit = item.get("unit")
+    source = item.get("source_reference")
+    observation_id = item.get("observation_id")
+    details = [
+        f"方向 {_state_label(item.get('direction'))}",
+        f"统计期 {_display_value(item.get('period'))}",
+        f"状态 {_state_label(status)}",
+        f"值 {_display_value(value)} {_display_value(unit)}",
+        f"认证 {_display_value(item.get('certification_status'))}",
+        f"来源 {_source_label(source)}",
+    ]
+    if international:
+        boundary = _international_boundary(metric_id)
+        if boundary:
+            details.append(boundary)
+    children: list[Any] = [
+        html.Strong(str(item.get("name_cn") or metric_id)),
+        html.Span(" · ".join(details), className="secondary-copy"),
+    ]
+    claims = _document_list(item.get("claims"))
+    if claims:
+        children.append(
+            html.Div(
+                [html.Span(_claim_summary(claim)) for claim in claims],
+                className="claim-list secondary-copy",
+            )
+        )
+    if (
+        isinstance(observation_id, str)
+        and not observation_id.startswith("gap:")
+        and as_of is not None
+    ):
+        children.append(
+            html.A(
+                f"证据 {observation_id}",
+                href=(
+                    f"/api/v1/evidence/{observation_id}"
+                    f"?mode=system_as_of&as_of={as_of}"
+                ),
+                className="evidence-link",
+            )
+        )
+    return html.Li(children, className="record-row")
+
+
+def _evidence_links(value: object, *, as_of: str | None) -> html.Div:
+    identifiers = (
+        [item for item in value if isinstance(item, str)]
+        if isinstance(value, list)
+        else []
+    )
+    if not identifiers:
+        return html.Div("证据：当前缺失", className="secondary-copy")
+    links: list[Any] = []
+    for identifier in identifiers:
+        if as_of is None or identifier.startswith("gap:"):
+            links.append(html.Span(f"证据 {identifier}"))
+        else:
+            links.append(
+                html.A(
+                    f"证据 {identifier}",
+                    href=(
+                        f"/api/v1/evidence/{identifier}"
+                        f"?mode=system_as_of&as_of={as_of}"
+                    ),
+                    className="evidence-link",
+                )
+            )
+    return html.Div(links, className="evidence-links")
+
+
+def _grouped_evidence(document: dict[str, object]) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for key in ("support", "counterevidence", "gaps"):
+        rows.extend(_document_list(document.get(key)))
+    return rows
+
+
+def _document_list(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _object_document(value: object) -> dict[str, object]:
+    return value if isinstance(value, dict) else {}
+
+
+def _formula_summary(value: object) -> str:
+    document = _object_document(value)
+    if not document:
+        return "公式状态：不可用"
+    parts = [
+        f"状态 {_state_label(document.get('status'))}",
+        f"公式版本 {_display_value(document.get('formula_version'))}",
+    ]
+    if document.get("value") is not None:
+        parts.append(f"值 {_display_value(document.get('value'))}")
+    if document.get("derived_observation_id") is not None:
+        parts.append(f"派生证据 {document['derived_observation_id']}")
+    return " · ".join(parts)
+
+
+def _inventory_directions(value: object) -> str:
+    document = _object_document(value)
+    return " · ".join(
+        (
+            f"需求 {_state_label(document.get('demand') or 'insufficient_data')}",
+            f"生产 {_state_label(document.get('production') or 'insufficient_data')}",
+            f"库存 {_state_label(document.get('inventory') or 'insufficient_data')}",
+        )
+    )
+
+
+def _source_label(value: object) -> str:
+    if not isinstance(value, str) or not value:
+        return "不可用"
+    return value.split("#", maxsplit=1)[0]
+
+
+def _claim_summary(document: dict[str, object]) -> str:
+    selected = "（已选）" if document.get("selected") is True else ""
+    return (
+        f"来源声明 {_display_value(document.get('provider'))}="
+        f"{_display_value(document.get('value'))} "
+        f"{_display_value(document.get('unit'))}{selected}"
+    )
+
+
+def _international_boundary(metric_id: str) -> str:
+    if metric_id in {"UST10Y_NOMINAL_YIELD", "UST2Y_NOMINAL_YIELD"}:
+        return "收益率方向，不是债券价格"
+    if metric_id.startswith(("EIA_", "COMEX_", "LBMA_")):
+        return "国际背景，不替代南华工业品指数"
+    return ""
+
+
 def _asset_card(item: dict[str, object]) -> html.Article:
     asset = str(item.get("asset") or "unknown")
     candidate = item.get("candidate_30d") or item.get("candidate_state")
@@ -481,7 +767,7 @@ def _asset_card(item: dict[str, object]) -> html.Article:
     )
 
 
-def _inventory_card(item: dict[str, object]) -> html.Article:
+def _inventory_card(item: dict[str, object], *, as_of: str | None) -> html.Article:
     title = str(item.get("title") or item.get("name") or item.get("signature") or "未命名特征")
     state = str(item.get("state") or item.get("status") or "insufficient_data")
     return html.Article(
@@ -492,6 +778,16 @@ def _inventory_card(item: dict[str, object]) -> html.Article:
                 str(item.get("explanation") or item.get("reason") or "当前没有进一步解释。"),
                 className="secondary-copy",
             ),
+            _evidence_links(item.get("evidence_ids"), as_of=as_of),
+            html.Ul(
+                [
+                    _evidence_row(evidence, as_of=as_of)
+                    for evidence in _document_list(item.get("evidence"))
+                ],
+                className="record-list",
+            )
+            if _document_list(item.get("evidence"))
+            else None,
         ],
         className="domain-panel",
     )

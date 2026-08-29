@@ -85,7 +85,9 @@ class EvidenceQueryResult:
 @dataclass(frozen=True)
 class MetricSeriesPoint:
     observation_id: str
+    period_start: str
     period_end: str
+    dimensions: dict[str, str]
     selected_value: float | None
     value_state: EvidenceValueState | None
     selection_status: str
@@ -109,6 +111,19 @@ class EvidenceTrace:
     selected_value: float | None
     value_state: EvidenceValueState | None
     claims: tuple[ClaimView, ...]
+
+
+@dataclass(frozen=True)
+class DerivedEvidenceTrace:
+    derived_observation_id: str
+    metric_id: str
+    formula_version: str
+    input_observation_version_ids: tuple[str, ...]
+    as_of_mode: AsOfMode
+    as_of_cutoff: datetime
+    computed_at: datetime
+    value: float | None
+    unit: str
 
 
 @dataclass(frozen=True)
@@ -361,10 +376,10 @@ class EvidenceRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT observation_id, period_end
+                SELECT observation_id, period_start, period_end, dimensions_json
                 FROM source_claim
                 WHERE metric_id=?
-                GROUP BY observation_id, period_end
+                GROUP BY observation_id, period_start, period_end, dimensions_json
                 ORDER BY period_end, observation_id
                 """,
                 (metric_id,),
@@ -382,7 +397,12 @@ class EvidenceRepository:
             points.append(
                 MetricSeriesPoint(
                     observation_id=result.observation_id,
+                    period_start=str(row["period_start"]),
                     period_end=str(row["period_end"]),
+                    dimensions={
+                        str(key): str(value)
+                        for key, value in json.loads(str(row["dimensions_json"])).items()
+                    },
                     selected_value=result.selected_value,
                     value_state=result.value_state,
                     selection_status=result.selection_status,
@@ -487,6 +507,43 @@ class EvidenceRepository:
             )
         return StoredDerivedObservation(derived_id, inputs)
 
+    def derived_trace(
+        self,
+        derived_observation_id: str,
+        *,
+        mode: AsOfMode,
+        as_of: datetime,
+    ) -> DerivedEvidenceTrace:
+        if as_of.tzinfo is None:
+            raise ValueError("as_of_must_be_timezone_aware")
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM derived_observation
+                WHERE derived_observation_id=?
+                  AND as_of_mode=?
+                  AND julianday(as_of_cutoff) <= julianday(?)
+                  AND julianday(computed_at) <= julianday(?)
+                """,
+                (derived_observation_id, mode.value, _iso(as_of), _iso(as_of)),
+            ).fetchone()
+        if row is None:
+            raise LookupError("derived_evidence_not_available")
+        return DerivedEvidenceTrace(
+            derived_observation_id=str(row["derived_observation_id"]),
+            metric_id=str(row["metric_id"]),
+            formula_version=str(row["formula_version"]),
+            input_observation_version_ids=tuple(
+                str(item)
+                for item in json.loads(str(row["input_observation_version_ids_json"]))
+            ),
+            as_of_mode=AsOfMode(str(row["as_of_mode"])),
+            as_of_cutoff=_required_datetime(row["as_of_cutoff"]),
+            computed_at=_required_datetime(row["computed_at"]),
+            value=float(row["value"]) if row["value"] is not None else None,
+            unit=str(row["unit"]),
+        )
+
     def record_retrieval_attempt(
         self,
         *,
@@ -566,7 +623,8 @@ def _validate_claim(claim: SourceClaimInput) -> None:
     definition = metric_definition(claim.metric_id)
     if claim.definition_version != definition.definition_version:
         raise ValueError("evidence_definition_version_mismatch")
-    if claim.unit != definition.unit:
+    allowed_units = definition.allowed_units or (definition.unit,)
+    if claim.unit not in allowed_units:
         raise ValueError("evidence_unit_mismatch")
     if set(claim.dimensions) != set(definition.dimensions):
         raise ValueError("evidence_dimensions_mismatch")

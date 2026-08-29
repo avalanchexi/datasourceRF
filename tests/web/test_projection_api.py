@@ -8,6 +8,7 @@ from typing import Any, cast
 from fastapi import FastAPI
 
 from pring_cycle.domain import CoreAssetState, FormalStage
+from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ANALYTICAL_DATASETS, ProjectionEnvelope, ProjectionSetRepository
@@ -150,3 +151,31 @@ def test_release_calendar_rest_reads_certified_release_event_and_observation_cou
     assert response["events"][0]["status"] == "current"
     assert response["events"][0]["observation_count"] == 2
     assert response["events"][0]["release_event_family"] == "chinamoney_lpr"
+
+
+def test_evidence_trace_rest_resolves_derived_formula_lineage(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    cutoff = datetime(2026, 8, 28, 13, tzinfo=UTC)
+    derived = EvidenceRepository(paths.database).append_derived_observation(
+        metric_id="CN_CREDIT_IMPULSE",
+        formula_version="credit-impulse-rolling-share-v0001",
+        input_observation_version_ids=("claim-a", "claim-b"),
+        as_of_mode=AsOfMode.SYSTEM,
+        as_of_cutoff=cutoff,
+        computed_at=cutoff,
+        value=1.25,
+        unit="percentage_points",
+    )
+    application = create_web_application(paths, 8050)
+
+    response = _route(application, "evidence_trace").endpoint(
+        derived.derived_observation_id,
+        AsOfMode.SYSTEM,
+        cutoff,
+    )
+    document = json.loads(cast(bytes, response.body))
+
+    assert document["derived_observation_id"] == derived.derived_observation_id
+    assert document["formula_version"] == "credit-impulse-rolling-share-v0001"
+    assert document["input_observation_version_ids"] == ["claim-a", "claim-b"]
