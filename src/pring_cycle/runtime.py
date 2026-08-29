@@ -8,6 +8,11 @@ from typing import TypedDict
 
 from pring_cycle.artifacts import artifact_health
 from pring_cycle.health_types import ArtifactHealth, DatabaseHealth, RuntimeHealthDocument
+from pring_cycle.maintenance import MaintenanceRepository
+from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
+from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.reports import ReportRepository
+from pring_cycle.runs import RunRepository
 from pring_cycle.secrets import DATA_SOURCE_SECRET_ADAPTERS, parse_data_source_secrets
 from pring_cycle.storage import database_health, migrate_database, worker_status
 
@@ -134,6 +139,7 @@ def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
         "# TUSHARE_TOKEN=\n# TAVILY_API_KEY=\n# EXA_API_KEY=\n",
     )
     migrate_database(paths.database)
+    _bootstrap_v1_repositories(paths)
     return {
         "network_requests": 0,
         "runtime": paths.as_document(),
@@ -224,6 +230,14 @@ def _create_private_file(path: Path, contents: str) -> None:
     with os.fdopen(descriptor, "w", encoding="utf-8") as private_file:
         private_file.write(contents)
     path.chmod(0o600)
+
+
+def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
+    ProjectionSetRepository.create(paths.database)
+    RunRepository.create(paths.database)
+    ReportRepository.create(paths.database)
+    MaintenanceRepository.create(paths.database)
+    ModelRepository.create(paths.database).create_candidate(certified_model_v0001_manifest())
 
 
 def _credential_states(secrets_path: Path) -> dict[str, str]:

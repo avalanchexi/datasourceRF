@@ -1,0 +1,730 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sqlite3
+from collections.abc import Callable
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
+
+RUN_STEPS = (
+    "queued",
+    "preflight",
+    "refreshing_evidence",
+    "validating_evidence",
+    "evaluating_core_readiness",
+    "deriving_states",
+    "building_projection",
+    "publishing_projection",
+    "generating_report",
+    "completed",
+)
+
+
+@dataclass(frozen=True)
+class RunRecord:
+    run_id: str
+    command_type: str
+    target_business_date: str
+    model_version_id: str
+    system_as_of: datetime
+    report_cutoff: datetime
+    status: str
+    current_step: str
+    outcome: str | None
+    recoverable: bool
+    next_action: str
+    attempt_count: int
+    consumed_budget: dict[str, int]
+    projection_set_id: str | None
+    error_classification: str | None
+
+
+@dataclass(frozen=True)
+class LeaseDecision:
+    owner_state: str
+    run_id: str | None
+    next_action: str
+
+
+class RunRepository:
+    def __init__(self, database_path: Path) -> None:
+        self._database_path = database_path
+
+    @classmethod
+    def create(cls, database_path: Path) -> RunRepository:
+        database_path.parent.mkdir(parents=True, exist_ok=True)
+        repository = cls(database_path)
+        with repository._connect() as connection:
+            connection.executescript(_RUN_SCHEMA)
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO schedule_configuration(
+                    version, enabled, timezone, start_time, p0_deadline,
+                    requested_by, created_at
+                ) VALUES (1, 0, 'Asia/Shanghai', '18:30', '21:00', 'system-default', ?)
+                """,
+                (datetime.now(UTC).isoformat(),),
+            )
+        return repository
+
+    def submit_manual_full(
+        self,
+        *,
+        target_business_date: str,
+        client_request_id: str,
+        model_version_id: str,
+        system_as_of: datetime,
+    ) -> RunRecord:
+        return self.submit(
+            command_type="manual_full",
+            target_business_date=target_business_date,
+            client_request_id=client_request_id,
+            model_version_id=model_version_id,
+            system_as_of=system_as_of,
+        )
+
+    def submit(
+        self,
+        *,
+        command_type: str,
+        target_business_date: str,
+        client_request_id: str,
+        model_version_id: str,
+        system_as_of: datetime,
+    ) -> RunRecord:
+        allowed_commands = {
+            "manual_full",
+            "targeted_refresh",
+            "manual_deep_search",
+            "report_generation",
+        }
+        if command_type not in allowed_commands:
+            raise ValueError("unsupported_run_command")
+        if system_as_of.tzinfo is None:
+            raise ValueError("system_as_of_must_be_timezone_aware")
+        with self._connect() as connection:
+            existing_command = connection.execute(
+                """
+                SELECT run_id FROM run_command
+                WHERE command_type = ? AND client_request_id = ?
+                """,
+                (command_type, client_request_id),
+            ).fetchone()
+            if existing_command is not None:
+                return self.get(str(existing_command["run_id"]))
+            active = None
+            if command_type == "manual_full":
+                active = connection.execute(
+                    """
+                    SELECT run_id FROM parent_run
+                    WHERE command_type = 'manual_full' AND target_business_date = ?
+                      AND model_version_id = ?
+                      AND status IN ('queued', 'running', 'interrupted', 'action_required')
+                    ORDER BY accepted_at DESC LIMIT 1
+                    """,
+                    (target_business_date, model_version_id),
+                ).fetchone()
+            if active is not None:
+                run_id = str(active["run_id"])
+                connection.execute(
+                    """
+                    INSERT INTO run_command(command_type, client_request_id, run_id, accepted_at)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (command_type, client_request_id, run_id, datetime.now(UTC).isoformat()),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO run_attempt(run_id, reason, started_at)
+                    VALUES (?, 'duplicate_manual_submission', ?)
+                    """,
+                    (run_id, datetime.now(UTC).isoformat()),
+                )
+                return self.get(run_id)
+            run_id = (
+                "run-"
+                + hashlib.sha256(
+                    (
+                        f"{command_type}:{target_business_date}:{model_version_id}:"
+                        f"{client_request_id}:{system_as_of.isoformat()}"
+                    ).encode()
+                ).hexdigest()[:20]
+            )
+            budget_json = json.dumps({"tavily": 0, "exa": 0, "ai_websearch": 0})
+            connection.execute(
+                """
+                INSERT INTO parent_run(
+                    run_id, command_type, target_business_date, model_version_id,
+                    system_as_of, report_cutoff, status, current_step, recoverable,
+                    next_action, consumed_budget_json, accepted_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 'queued', 'queued', 0,
+                          'wait_for_worker', ?, ?)
+                """,
+                (
+                    run_id,
+                    command_type,
+                    target_business_date,
+                    model_version_id,
+                    system_as_of.isoformat(),
+                    system_as_of.isoformat(),
+                    budget_json,
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO run_command(command_type, client_request_id, run_id, accepted_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (command_type, client_request_id, run_id, datetime.now(UTC).isoformat()),
+            )
+            connection.execute(
+                "INSERT INTO run_attempt(run_id, reason, started_at) VALUES (?, 'initial', ?)",
+                (run_id, datetime.now(UTC).isoformat()),
+            )
+            connection.execute(
+                """
+                INSERT INTO run_step_event(run_id, step, event, occurred_at)
+                VALUES (?, 'queued', 'entered', ?)
+                """,
+                (run_id, datetime.now(UTC).isoformat()),
+            )
+        return self.get(run_id)
+
+    def get(self, run_id: str) -> RunRecord:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT parent_run.*,
+                       (SELECT COUNT(*) FROM run_attempt WHERE run_id = parent_run.run_id)
+                           AS attempt_count
+                FROM parent_run WHERE run_id = ?
+                """,
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            raise LookupError("run_not_found")
+        return _run_record(row)
+
+    def count(self) -> int:
+        with self._connect() as connection:
+            row = connection.execute("SELECT COUNT(*) FROM parent_run").fetchone()
+        return int(row[0]) if row is not None else 0
+
+    def list_runs(self, limit: int = 50) -> tuple[RunRecord, ...]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT parent_run.*,
+                       (SELECT COUNT(*) FROM run_attempt WHERE run_id = parent_run.run_id)
+                           AS attempt_count
+                FROM parent_run ORDER BY accepted_at DESC LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+        return tuple(_run_record(row) for row in rows)
+
+    def next_queued(self) -> RunRecord | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT parent_run.*,
+                       (SELECT COUNT(*) FROM run_attempt WHERE run_id = parent_run.run_id)
+                           AS attempt_count
+                FROM parent_run
+                WHERE status='queued'
+                ORDER BY accepted_at, run_id
+                LIMIT 1
+                """
+            ).fetchone()
+        return _run_record(row) if row is not None else None
+
+    def acquire_lease(
+        self,
+        run_id: str,
+        *,
+        owner_id: str,
+        process_id: int | None = None,
+        now: datetime | None = None,
+    ) -> None:
+        observed_at = now or datetime.now(UTC)
+        process = process_id if process_id is not None else os.getpid()
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM worker_lease WHERE lease_name = 'worker:global-execution'"
+            ).fetchone()
+            if row is not None:
+                heartbeat = _parse_time(row["heartbeat_at"])
+                if (
+                    str(row["owner_id"]) != owner_id
+                    and (observed_at - heartbeat).total_seconds() <= 120
+                ):
+                    raise ValueError("worker_lease_active")
+                if str(row["owner_id"]) != owner_id:
+                    raise ValueError("stale_lease_requires_audit")
+            connection.execute(
+                """
+                INSERT INTO worker_lease(
+                    lease_name, run_id, owner_id, process_id, acquired_at,
+                    heartbeat_at, expires_at
+                ) VALUES ('worker:global-execution', ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(lease_name) DO UPDATE SET
+                    run_id=excluded.run_id, owner_id=excluded.owner_id,
+                    process_id=excluded.process_id, heartbeat_at=excluded.heartbeat_at,
+                    expires_at=excluded.expires_at
+                """,
+                (
+                    run_id,
+                    owner_id,
+                    process,
+                    observed_at.isoformat(),
+                    observed_at.isoformat(),
+                    datetime.fromtimestamp(observed_at.timestamp() + 120, UTC).isoformat(),
+                ),
+            )
+
+    def heartbeat_lease(self, owner_id: str, *, now: datetime | None = None) -> None:
+        observed_at = now or datetime.now(UTC)
+        with self._connect() as connection:
+            updated = connection.execute(
+                """
+                UPDATE worker_lease SET heartbeat_at = ?, expires_at = ?
+                WHERE lease_name = 'worker:global-execution' AND owner_id = ?
+                """,
+                (
+                    observed_at.isoformat(),
+                    datetime.fromtimestamp(observed_at.timestamp() + 120, UTC).isoformat(),
+                    owner_id,
+                ),
+            ).rowcount
+        if updated != 1:
+            raise ValueError("worker_lease_not_owned")
+
+    def release_lease(self, owner_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                DELETE FROM worker_lease
+                WHERE lease_name='worker:global-execution' AND owner_id=?
+                """,
+                (owner_id,),
+            )
+
+    def audit_lease(
+        self,
+        *,
+        now: datetime | None = None,
+        process_is_alive: Callable[[int], bool] | None = None,
+    ) -> LeaseDecision:
+        observed_at = now or datetime.now(UTC)
+        is_alive = process_is_alive or _process_is_alive
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM worker_lease WHERE lease_name = 'worker:global-execution'"
+            ).fetchone()
+            if row is None:
+                return LeaseDecision("absent", None, "worker_may_claim")
+            run_id = str(row["run_id"])
+            try:
+                heartbeat = _parse_time(row["heartbeat_at"])
+                age = (observed_at - heartbeat).total_seconds()
+                alive = is_alive(int(row["process_id"]))
+                owner_state = "stale" if age > 120 else "active" if alive else "dead"
+            except (TypeError, ValueError, OSError):
+                owner_state = "corrupt"
+            if owner_state == "active":
+                return LeaseDecision("active", run_id, "wait_for_active_owner")
+            connection.execute(
+                """
+                UPDATE parent_run SET status='interrupted', recoverable=1,
+                    next_action='explicit_resume', error_classification=?
+                WHERE run_id=? AND status NOT IN ('completed', 'cancelled', 'failed')
+                """,
+                (f"worker_owner_{owner_state}", run_id),
+            )
+            connection.execute(
+                "DELETE FROM worker_lease WHERE lease_name='worker:global-execution'"
+            )
+        return LeaseDecision(owner_state, run_id, "explicit_resume_required")
+
+    def mark_interrupted(self, run_id: str, classification: str) -> None:
+        self._set_run_state(
+            run_id,
+            status="interrupted",
+            recoverable=True,
+            next_action="explicit_resume",
+            error_classification=classification,
+        )
+
+    def resume(
+        self,
+        run_id: str,
+        *,
+        client_request_id: str,
+        confirm_external_calls: bool,
+    ) -> RunRecord:
+        current = self.get(run_id)
+        if current.status not in {"interrupted", "action_required"}:
+            raise ValueError("run_not_recoverable")
+        if not confirm_external_calls:
+            raise ValueError("external_resume_confirmation_required")
+        with self._connect() as connection:
+            existing = connection.execute(
+                """
+                SELECT 1 FROM run_command
+                WHERE command_type='resume' AND client_request_id=?
+                """,
+                (client_request_id,),
+            ).fetchone()
+            if existing is None:
+                connection.execute(
+                    """
+                    INSERT INTO run_command(command_type, client_request_id, run_id, accepted_at)
+                    VALUES ('resume', ?, ?, ?)
+                    """,
+                    (client_request_id, run_id, datetime.now(UTC).isoformat()),
+                )
+                connection.execute(
+                    "INSERT INTO run_attempt(run_id, reason, started_at) VALUES (?, 'resume', ?)",
+                    (run_id, datetime.now(UTC).isoformat()),
+                )
+                connection.execute(
+                    """
+                    UPDATE parent_run SET status='queued', recoverable=0,
+                        next_action='wait_for_worker', error_classification=NULL
+                    WHERE run_id=?
+                    """,
+                    (run_id,),
+                )
+        return self.get(run_id)
+
+    def advance(self, run_id: str, step: str) -> RunRecord:
+        if step not in RUN_STEPS:
+            raise ValueError("unknown_run_step")
+        current = self.get(run_id)
+        if RUN_STEPS.index(step) < RUN_STEPS.index(current.current_step):
+            raise ValueError("invalid_run_step_transition")
+        status = "completed" if step == "completed" else "running"
+        outcome = "changed" if step == "completed" else current.outcome
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE parent_run SET current_step=?, status=?, outcome=?,
+                    next_action=? WHERE run_id=?
+                """,
+                (
+                    step,
+                    status,
+                    outcome,
+                    "none" if step == "completed" else "worker_continue",
+                    run_id,
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO run_step_event(run_id, step, event, occurred_at)
+                VALUES (?, ?, 'entered', ?)
+                """,
+                (run_id, step, datetime.now(UTC).isoformat()),
+            )
+            if step == "completed":
+                connection.execute(
+                    """
+                    UPDATE run_attempt SET completed_at=?, outcome='completed'
+                    WHERE attempt_id=(
+                        SELECT MAX(attempt_id) FROM run_attempt WHERE run_id=?
+                    )
+                    """,
+                    (datetime.now(UTC).isoformat(), run_id),
+                )
+        return self.get(run_id)
+
+    def freeze_cutoffs(self, run_id: str, *, system_as_of: datetime) -> RunRecord:
+        if system_as_of.tzinfo is None:
+            raise ValueError("system_as_of_must_be_timezone_aware")
+        current = self.get(run_id)
+        if current.current_step not in {"queued", "preflight", "refreshing_evidence"}:
+            raise ValueError("run_cutoff_already_frozen")
+        with self._connect() as connection:
+            connection.execute(
+                """
+                UPDATE parent_run SET system_as_of=?, report_cutoff=? WHERE run_id=?
+                """,
+                (system_as_of.isoformat(), system_as_of.isoformat(), run_id),
+            )
+        return self.get(run_id)
+
+    def step_history(self, run_id: str) -> tuple[dict[str, str], ...]:
+        self.get(run_id)
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT step, event, occurred_at FROM run_step_event
+                WHERE run_id=? ORDER BY step_event_id
+                """,
+                (run_id,),
+            ).fetchall()
+        return tuple(
+            {
+                "step": str(row["step"]),
+                "event": str(row["event"]),
+                "occurred_at": str(row["occurred_at"]),
+            }
+            for row in rows
+        )
+
+    def mark_action_required(self, run_id: str, classification: str) -> RunRecord:
+        self._set_run_state(
+            run_id,
+            status="action_required",
+            recoverable=True,
+            next_action="refresh_p0_or_create_gap_notice",
+            error_classification=classification,
+        )
+        return self.get(run_id)
+
+    def set_budget_consumption(
+        self, run_id: str, *, tavily: int, exa: int, ai_websearch: int
+    ) -> None:
+        document = {"tavily": tavily, "exa": exa, "ai_websearch": ai_websearch}
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE parent_run SET consumed_budget_json=? WHERE run_id=?",
+                (json.dumps(document, sort_keys=True), run_id),
+            )
+
+    def record_checkpoint(self, run_id: str, kind: str, reference: str, *, verified: bool) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR IGNORE INTO run_checkpoint(
+                    run_id, kind, reference, verified, created_at
+                ) VALUES (?, ?, ?, ?, ?)
+                """,
+                (run_id, kind, reference, int(verified), datetime.now(UTC).isoformat()),
+            )
+
+    def reusable_checkpoints(self, run_id: str) -> tuple[dict[str, str], ...]:
+        reusable_kinds = (
+            "verified_evidence",
+            "verified_domain_result",
+            "published_projection",
+            "report_snapshot",
+        )
+        placeholders = ",".join("?" for _ in reusable_kinds)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT kind, reference FROM run_checkpoint
+                WHERE run_id=? AND verified=1 AND kind IN ({placeholders})
+                ORDER BY checkpoint_id
+                """,
+                (run_id, *reusable_kinds),
+            ).fetchall()
+        return tuple({"kind": str(row["kind"]), "reference": str(row["reference"])} for row in rows)
+
+    def link_projection(self, run_id: str, projection_set_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE parent_run SET projection_set_id=? WHERE run_id=?",
+                (projection_set_id, run_id),
+            )
+        self.record_checkpoint(run_id, "published_projection", projection_set_id, verified=True)
+
+    def cancel(self, run_id: str) -> RunRecord:
+        self._set_run_state(
+            run_id,
+            status="cancelled",
+            recoverable=False,
+            next_action="none",
+            error_classification=None,
+        )
+        return self.get(run_id)
+
+    def schedule(self) -> dict[str, object]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM schedule_configuration ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+        if row is None:
+            raise LookupError("schedule_configuration_missing")
+        return _schedule_document(row)
+
+    def configure_schedule(
+        self, *, enabled: bool, requested_by: str, now: datetime | None = None
+    ) -> dict[str, object]:
+        current = self.schedule()
+        current_version = current["version"]
+        if not isinstance(current_version, int):
+            raise ValueError("schedule_version_invalid")
+        version = current_version + 1
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO schedule_configuration(
+                    version, enabled, timezone, start_time, p0_deadline,
+                    requested_by, created_at
+                ) VALUES (?, ?, 'Asia/Shanghai', '18:30', '21:00', ?, ?)
+                """,
+                (
+                    version,
+                    int(enabled),
+                    requested_by,
+                    (now or datetime.now(UTC)).isoformat(),
+                ),
+            )
+        return self.schedule()
+
+    def startup_actions(self) -> dict[str, int]:
+        return {"automatic_runs": 0, "external_requests": 0}
+
+    def _set_run_state(
+        self,
+        run_id: str,
+        *,
+        status: str,
+        recoverable: bool,
+        next_action: str,
+        error_classification: str | None,
+    ) -> None:
+        with self._connect() as connection:
+            updated = connection.execute(
+                """
+                UPDATE parent_run SET status=?, recoverable=?, next_action=?,
+                    error_classification=? WHERE run_id=?
+                """,
+                (status, int(recoverable), next_action, error_classification, run_id),
+            ).rowcount
+        if updated != 1:
+            raise LookupError("run_not_found")
+
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self._database_path)
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute("PRAGMA journal_mode=WAL")
+        return connection
+
+
+def _run_record(row: sqlite3.Row) -> RunRecord:
+    return RunRecord(
+        run_id=str(row["run_id"]),
+        command_type=str(row["command_type"]),
+        target_business_date=str(row["target_business_date"]),
+        model_version_id=str(row["model_version_id"]),
+        system_as_of=_parse_time(row["system_as_of"]),
+        report_cutoff=_parse_time(row["report_cutoff"]),
+        status=str(row["status"]),
+        current_step=str(row["current_step"]),
+        outcome=str(row["outcome"]) if row["outcome"] is not None else None,
+        recoverable=bool(row["recoverable"]),
+        next_action=str(row["next_action"]),
+        attempt_count=int(row["attempt_count"]),
+        consumed_budget={
+            str(key): int(value)
+            for key, value in json.loads(str(row["consumed_budget_json"])).items()
+        },
+        projection_set_id=(
+            str(row["projection_set_id"]) if row["projection_set_id"] is not None else None
+        ),
+        error_classification=(
+            str(row["error_classification"]) if row["error_classification"] is not None else None
+        ),
+    )
+
+
+def _schedule_document(row: sqlite3.Row) -> dict[str, object]:
+    return {
+        "enabled": bool(row["enabled"]),
+        "timezone": str(row["timezone"]),
+        "start_time": str(row["start_time"]),
+        "p0_deadline": str(row["p0_deadline"]),
+        "version": int(row["version"]),
+    }
+
+
+def _parse_time(value: object) -> datetime:
+    return datetime.fromisoformat(str(value))
+
+
+def _process_is_alive(process_id: int) -> bool:
+    try:
+        os.kill(process_id, 0)
+    except (ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
+_RUN_SCHEMA = """
+CREATE TABLE IF NOT EXISTS parent_run (
+    run_id TEXT PRIMARY KEY,
+    command_type TEXT NOT NULL,
+    target_business_date TEXT NOT NULL,
+    model_version_id TEXT NOT NULL,
+    system_as_of TEXT NOT NULL,
+    report_cutoff TEXT NOT NULL,
+    status TEXT NOT NULL,
+    current_step TEXT NOT NULL,
+    outcome TEXT,
+    recoverable INTEGER NOT NULL,
+    next_action TEXT NOT NULL,
+    consumed_budget_json TEXT NOT NULL,
+    projection_set_id TEXT,
+    error_classification TEXT,
+    accepted_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS run_command (
+    command_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    command_type TEXT NOT NULL,
+    client_request_id TEXT NOT NULL,
+    run_id TEXT NOT NULL REFERENCES parent_run(run_id),
+    accepted_at TEXT NOT NULL,
+    UNIQUE(command_type, client_request_id)
+);
+CREATE TABLE IF NOT EXISTS run_attempt (
+    attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES parent_run(run_id),
+    reason TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    outcome TEXT
+);
+CREATE TABLE IF NOT EXISTS run_step_event (
+    step_event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES parent_run(run_id),
+    step TEXT NOT NULL,
+    event TEXT NOT NULL,
+    occurred_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS worker_lease (
+    lease_name TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES parent_run(run_id),
+    owner_id TEXT NOT NULL,
+    process_id INTEGER NOT NULL,
+    acquired_at TEXT NOT NULL,
+    heartbeat_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS run_checkpoint (
+    checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL REFERENCES parent_run(run_id),
+    kind TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    verified INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(run_id, kind, reference)
+);
+CREATE TABLE IF NOT EXISTS schedule_configuration (
+    version INTEGER PRIMARY KEY,
+    enabled INTEGER NOT NULL,
+    timezone TEXT NOT NULL,
+    start_time TEXT NOT NULL,
+    p0_deadline TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+"""

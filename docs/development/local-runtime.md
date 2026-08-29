@@ -70,6 +70,10 @@ EXA_API_KEY=
 Codex CLI 与 Claude Code CLI 的登录状态不由应用读取或保存；Ticket 01 的离线启动不要求任一
 CLI 已登录，也不接收模型厂商 API key。
 
+从旧环境迁移密钥时不要用 `echo TOKEN=...`，避免 shell 历史和终端回显。用权限为 `0600`
+的编辑器直接打开 `doctor` 所列 `secrets` 路径，逐项粘贴允许的键；保存后再次执行
+`pring-cycle doctor --json`，只检查适配器的 `enabled/disabled` 状态，不打印值。
+
 ## 启动 Web 与 Worker
 
 在两个 WSL 终端中使用同一正式 CLI：
@@ -89,6 +93,81 @@ Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；�
 启动 Web、打开页面或启动 Worker 都不会补跑任务、联网、刷新证据或调用 AI。浏览器命令入口
 同时校验 `Host` 和 `Origin`；不受信网页得到脱敏的 `403`，不能进入后续命令追加接缝。
 
+停止服务时在各自终端发送 `Ctrl-C` 或 `SIGTERM`。两个进程都会写停止事件并退出；不要用
+`kill -9` 作为正常停止方式。状态检查使用 `pring-cycle doctor --json`、
+`pring-cycle runs --json` 和 `pring-cycle cutover-status --json`。
+
+## 模型、证据与运行操作
+
+初始化只登记 `model-v0001` 候选，不会隐式激活。冻结校准通过后由用户显式批准：
+
+```bash
+pring-cycle models --json
+pring-cycle model-accept --model model-v0001 --json
+pring-cycle model-activate --model model-v0001 --confirm --json
+```
+
+证据 JSON 必须包含 metric identity、统计期、单位、来源、公开/抓取/系统可用时间、认证与质量
+状态。写入及点时查询示例：
+
+```bash
+pring-cycle evidence-ingest --input /wsl/native/path/claim.json --json
+pring-cycle evidence-query --observation-id OBSERVATION_ID \
+  --mode system_as_of --as-of 2026-08-28T21:00:00+08:00 --json
+```
+
+手动完整运行是主路径；命令先持久化，独立 Worker 再领取。定向刷新、手动深搜和报告任务使用
+同一账本与幂等键：
+
+```bash
+pring-cycle run-submit --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
+pring-cycle run-submit --type targeted_refresh --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
+pring-cycle run-submit --type manual_deep_search --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
+pring-cycle run-submit --type report_generation --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
+```
+
+P0 缺失、陈旧、冲突或身份不符时运行进入 `action_required`，当前指针继续读取上一完整投影。
+查看、取消与显式恢复：
+
+```bash
+pring-cycle runs --json
+pring-cycle run-cancel --run-id RUN_ID --json
+pring-cycle run-resume --run-id RUN_ID --request-id UNIQUE_RESUME_ID \
+  --confirm-external-calls --json
+```
+
+恢复保留原 `system_as_of`、`report_cutoff`、目标业务日和已消耗预算；没有确认参数时拒绝恢复。
+可选盘后计划默认关闭，启用后固定使用 `Asia/Shanghai`、18:30 开始与 21:00 P0 截止：
+
+```bash
+pring-cycle schedule --json
+pring-cycle schedule --enable --json
+pring-cycle schedule --disable --json
+```
+
+报告可以由 Worker 在投影后生成，也可显式运行。默认依次尝试已登录的 Codex CLI 与 Claude
+Code CLI；两者失败时保存确定性简版。离线维护可明确禁用 AI：
+
+```bash
+pring-cycle report-generate --request-id UNIQUE_REPORT_ID --json
+pring-cycle report-generate --request-id UNIQUE_REPORT_ID --deterministic-only --json
+pring-cycle reports --json
+pring-cycle report-read --report-id REPORT_ID --json
+```
+
+同日重新生成创建新版本，不覆盖历史。正文保留 30 天；事实骨架、引用、哈希和版本长期保留。
+
+模型升级需要候选验收、与当前模型的认证区间交集回放，以及用户显式激活。内部回退还要求首次
+发布后少于 30 个交易日和一份明确交易日日历；它不会启动旧系统：
+
+```bash
+pring-cycle model-replay --model NEXT_MODEL --compared-with CURRENT_MODEL \
+  --start YYYY-MM-DD --end YYYY-MM-DD \
+  --quality-passed --regression-passed --performance-passed --json
+pring-cycle model-rollback --model NEXT_MODEL --as-of-date YYYY-MM-DD \
+  --calendar /wsl/native/path/trading-days.txt --confirm --json
+```
+
 ## 统一离线验收
 
 以下命令在临时 SQLite 和制品目录中重复初始化，执行原子制品写入/登记/读回，启动正式
@@ -104,6 +183,10 @@ pring-cycle verify --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 `127.0.0.1`，不需要项目凭据或 AI CLI 登录。`pring-cycle test` 是同一验收入口的别名，
 不会建立第二套测试编排路径。
 
+V1 切换级验收使用 `pring-cycle acceptance --json`。它额外覆盖 35 个 `REG-*`、离线确定性
+重放、八类故障注入、REST/首屏/命令/冷启动/回放时间以及 RSS 硬门，并把完整结果写入仓库外
+内容寻址制品。任一门失败返回 `status=blocked`，没有强制绕过。
+
 开发检查使用同一 WSL 原生虚拟环境：
 
 ```bash
@@ -114,6 +197,23 @@ UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" uv run --no-editable ruff check sr
 
 `pring_cycle.domain` 提供框架无关的正式阶段、核心资产状态和证据/模型/投影/运行/报告身份
 边界类型；导入它不会加载 Web、SQLite 或网络框架。
+
+## 容量、升级失败与重新初始化
+
+容量水位按可用空间计算：20 GiB 进入警告；10 GiB 限制非核心大任务；5 GiB 停止 Worker
+写入但继续只读服务。规则检查与保留清理命令为：
+
+```bash
+pring-cycle capacity --free-bytes BYTES --json
+pring-cycle cleanup --json
+```
+
+保留策略只删除未被引用、非权威的可重建对象；权威证据、模型、投影身份和报告事实骨架不按
+容量直接删除。升级失败会把完整性状态记录为 `reinitialize_required`，系统不继续混用旧 schema。
+
+重新初始化是破坏性恢复，没有 RPO/RTO 保证。先停止 Web/Worker，把 `doctor` 列出的整个运行
+根目录移动到一个明确命名的隔离目录用于人工取证，再对一个新的 WSL 原生路径执行 `init`。
+不要覆盖原目录，不要把旧 SQLite 复制进新运行目录，也不要把旧报告或阶段当成重建真值。
 
 ## 无备份风险
 
