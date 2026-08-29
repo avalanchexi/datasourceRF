@@ -129,11 +129,14 @@ def run_v1_acceptance(
                     "duration_ms": round((time.perf_counter() - check_started) * 1000, 3),
                     "passed": True,
                 }
+        projection_started = time.perf_counter()
         projection = _published_projection(root / "performance.sqlite3")
+        daily_projection_seconds = time.perf_counter() - projection_started
         performance = _performance_gates(
             paths,
             projection,
             suite_started=started,
+            daily_projection_seconds=daily_projection_seconds,
             include_process_probe=include_process_probe,
         )
         failure_injections = _failure_injections(root)
@@ -258,6 +261,7 @@ def _performance_gates(
     projection: ProjectionSet,
     *,
     suite_started: float,
+    daily_projection_seconds: float,
     include_process_probe: bool,
 ) -> dict[str, dict[str, object]]:
     application_started = time.perf_counter()
@@ -314,7 +318,7 @@ def _performance_gates(
         "acceptance_suite_seconds": _gate(suite_seconds, 600),
         "command_persistence_ms": _gate(command_ms, 1000),
         "dashboard_first_content_ms": _gate(fmp_ms, 3000),
-        "daily_projection_seconds": _gate(0.0, 60),
+        "daily_projection_seconds": _gate(daily_projection_seconds, 60),
         "idle_rss_bytes": _gate(rss_bytes, int(1.5 * GIB)),
         "replay_peak_rss_bytes": _gate(rss_bytes, 4 * GIB),
         "replay_since_2018_seconds": _gate(replay_seconds, 900),

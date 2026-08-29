@@ -217,10 +217,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
     if namespace.command == "acceptance":
         from pring_cycle.acceptance import run_v1_acceptance
 
-        return run_v1_acceptance(
-            paths,
-            include_process_probe=not namespace.skip_process_probe,
-        )
+        return run_v1_acceptance(paths)
     if namespace.command == "rehearse-fixture-recovery":
         from pring_cycle.rehearsals import run_fixture_recovery_rehearsal
 
@@ -368,8 +365,7 @@ def _parser() -> argparse.ArgumentParser:
     report_read.add_argument("--report-id", required=True)
     capacity = _runtime_parser(subparsers, "capacity")
     capacity.add_argument("--free-bytes", type=int, required=True)
-    acceptance = _runtime_parser(subparsers, "acceptance")
-    acceptance.add_argument("--skip-process-probe", action="store_true")
+    _runtime_parser(subparsers, "acceptance")
     real_rehearsal = _runtime_parser(subparsers, "rehearse-real")
     real_rehearsal.add_argument("--target-date", required=True)
     cutover_manifest = _runtime_parser(subparsers, "cutover-manifest")
