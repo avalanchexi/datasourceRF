@@ -45,3 +45,10 @@ P0/P1、Dashboard、AI 演练和用户精确切换确认。fixture 恢复已通�
 期均与 2026-08-28 匹配。EIA 按冻结计划恢复为可选 P2，不再错误阻塞 P0/P1 演练；其缺失仍
 明确展示。三核心机器校准已通过，但模型尚未得到用户显式激活批准，因此没有越过门禁创建正式
 投影、真实 Dashboard/报告演练或切换记录；两项组合验收仍保持未勾选。
+
+2026-08-30：在同一代码指纹下，统一 acceptance 门再次通过，制品哈希为
+`88d5bae76939ab8516635977e2550c4bbbca4c03e96ae3d4fd95150092197734`；独立 fixture Worker
+中断、陈旧 owner 审计与用户显式恢复演练也通过，新制品哈希为
+`64b6d9f8c7b155976ac3a4d38296eaf679d7e58b32447630ee829f692d024604`，
+`network_requests=0`、`publication_history_written=false`。组合项仍等待真实 P0/P1 原子投影、
+Dashboard 与报告演练，不以 fixture 单项通过替代。
