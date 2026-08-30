@@ -361,7 +361,13 @@ def _allowed_units(metric_id: str) -> tuple[str, ...]:
         "CN_INVENTORY_TURNOVER": ("days", "percent"),
         "CN_CAPACITY_UTILIZATION": ("percent", "percentage_points"),
         "CN_GDP": ("hundred_million_cny", "percent"),
-        "CN_FUTURES_WARRANTS": ("tonne", "kilogram", "sheet", "lot"),
+        "CN_FUTURES_WARRANTS": (
+            "tonne",
+            "kilogram",
+            "sheet",
+            "lot",
+            "barrel",
+        ),
     }
     return mixed.get(metric_id, (_unit(metric_id),))
 

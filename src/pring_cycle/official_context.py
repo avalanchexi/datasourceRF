@@ -3,9 +3,9 @@ from __future__ import annotations
 import calendar
 import hashlib
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
@@ -55,6 +55,29 @@ _LOAN_STRUCTURE_ROWS = {
     ("企（事）业单位", "票据融资"): ("enterprise", "bill_financing"),
     ("非银行业金融机构", "合计"): ("nonbank_financial", "total"),
     ("人民币各项贷款", "合计"): ("all_rmb_loans", "total"),
+}
+
+_LIVE_SOCIAL_FINANCING_COMPONENTS = {
+    "renminbi_loans": (
+        "对实体经济发放的人民币贷款余额",
+        "对实体经济发放的人民币贷款",
+    ),
+    "foreign_currency_loans_rmb": (
+        "对实体经济发放的外币贷款折合人民币余额",
+        "对实体经济发放的外币贷款折合人民币",
+    ),
+    "entrusted_loans": ("委托贷款余额", "委托贷款"),
+    "trust_loans": ("信托贷款余额", "信托贷款"),
+    "undiscounted_bank_acceptances": (
+        "未贴现的银行承兑汇票余额",
+        "未贴现的银行承兑汇票",
+    ),
+    "corporate_bonds": ("企业债券余额", "企业债券"),
+    "government_bonds": ("政府债券余额", "政府债券"),
+    "nonfinancial_enterprise_equity": (
+        "非金融企业境内股票余额",
+        "非金融企业境内股票融资",
+    ),
 }
 
 _FAMILY_METRICS = {
@@ -473,19 +496,19 @@ def _parse_family(
     if family == "nbs_industrial_value_added":
         return _parse_industrial_value_added(tables, period, release_at)
     if family == "nbs_industrial_finance":
-        return _parse_industrial_finance(tables, period, release_at)
+        return _parse_industrial_finance(tables, text, period, release_at)
     if family == "nbs_capacity_utilization":
         return _parse_capacity_utilization(tables, period, release_at)
     if family == "pbc_omo_notice":
         return _parse_omo_notice(tables, period, release_at)
     if family == "pbc_rrr_notice":
-        return _parse_rrr_notice(tables, period, release_at)
+        return _parse_rrr_notice(tables, text, period, release_at)
     if family == "pbc_tool_liquidity_monthly":
         return _parse_tool_liquidity(tables, period, release_at)
     if family == "pbc_social_financing":
-        return _parse_social_financing(tables, period, release_at)
+        return _parse_social_financing(tables, text, period, release_at)
     if family == "pbc_loan_structure":
-        return _parse_loan_structure(tables, period, release_at)
+        return _parse_loan_structure(tables, text, period, release_at)
     if family == "pbc_usdcny_central_parity":
         return _parse_usdcny_central_parity(text, period, release_at)
     raise ValueError("official_context_family_unsupported")
@@ -497,8 +520,24 @@ def _parse_core_cpi(
     release_at: datetime,
 ) -> tuple[ContextScalar, ...]:
     header = ("指标", "环比（%）", "同比（%）", "累计平均同比（%）")
-    rows = _table_with_header(tables, header)
-    matching = [row for row in rows[1:] if row and row[0] == "不包括食品和能源"]
+    try:
+        rows = _table_with_header(tables, header)
+    except ValueError as error:
+        live_tables = _unique_tables(
+            table
+            for table in tables
+            if table
+            and tuple(_compact_text(cell) for cell in table[0])
+            == ("", "环比涨跌幅（%）", "同比涨跌幅（%）", "1—7月同比涨跌幅（%）")
+        )
+        if len(live_tables) != 1:
+            raise error
+        rows = live_tables[0]
+    matching = [
+        row
+        for row in rows[1:]
+        if row and row[0].removeprefix("其中：") == "不包括食品和能源"
+    ]
     if len(matching) != 1 or len(matching[0]) != len(header):
         raise ValueError("official_context_row_identity_mismatch")
     period_start, period_end = month_bounds(period)
@@ -535,10 +574,59 @@ def _parse_industrial_value_added(
     if period.endswith("-01"):
         raise ValueError("official_context_january_monthly_value_not_reported")
     header = ("指标", "当月实际同比（%）", "累计实际同比（%）", "季调环比（%）")
-    rows = _table_with_header(tables, header)
-    matching = [row for row in rows[1:] if row and row[0] == "规模以上工业增加值"]
-    if len(matching) != 1 or len(matching[0]) != len(header):
-        raise ValueError("official_context_row_identity_mismatch")
+    try:
+        rows = _table_with_header(tables, header)
+        matching = [row for row in rows[1:] if row and row[0] == "规模以上工业增加值"]
+        if len(matching) != 1 or len(matching[0]) != len(header):
+            raise ValueError("official_context_row_identity_mismatch")
+        current_yoy, ytd_yoy, mom_sa = matching[0][1:]
+    except ValueError as error:
+        year, month = (int(item) for item in period.split("-"))
+        main_tables = _unique_tables(
+            table
+            for table in tables
+            if len(table) >= 3
+            and len(table[0]) == 3
+            and _compact_text(table[0][0]) == "指标"
+            and _compact_text(table[0][1]) == f"{month}月"
+            and _compact_text(table[0][2]) == f"1—{month}月"
+            and tuple(_compact_text(cell) for cell in table[1])
+            == ("绝对量", "同比增长（%）", "绝对量", "同比增长（%）")
+        )
+        sa_tables = _unique_tables(
+            table
+            for table in tables
+            if table
+            and tuple(_compact_text(cell) for cell in table[0])
+            == ("年份", "月份", "环比增速（%）")
+        )
+        if len(main_tables) != 1 or len(sa_tables) != 1:
+            raise error
+        main_rows = [
+            row
+            for row in main_tables[0][2:]
+            if row and row[0] == "规模以上工业增加值" and len(row) == 5
+        ]
+        if len(main_rows) != 1:
+            raise ValueError("official_context_row_identity_mismatch") from error
+        mom_values: list[str] = []
+        observed_year: int | None = None
+        for row in sa_tables[0][1:]:
+            if len(row) == 3:
+                year_match = re.fullmatch(r"(\d{4})年", _compact_text(row[0]))
+                if year_match is None:
+                    raise ValueError("official_context_row_identity_mismatch") from error
+                observed_year = int(year_match.group(1))
+                month_cell, value_cell = row[1], row[2]
+            elif len(row) == 2 and observed_year is not None:
+                month_cell, value_cell = row
+            else:
+                raise ValueError("official_context_row_identity_mismatch") from error
+            if observed_year == year and _compact_text(month_cell) == f"{month}月":
+                mom_values.append(value_cell)
+        if len(mom_values) != 1:
+            raise ValueError("official_context_row_identity_mismatch") from error
+        current_yoy, ytd_yoy, mom_sa = main_rows[0][2], main_rows[0][4], mom_values[0]
     year_start = f"{period[:4]}-01-01"
     return tuple(
         _official_scalar(
@@ -557,21 +645,21 @@ def _parse_industrial_value_added(
             (
                 "industrial_va_yoy_real_pct",
                 "current_month_real_yoy",
-                matching[0][1],
+                current_yoy,
                 "month",
                 period_start,
             ),
             (
                 "industrial_va_ytd_yoy_real_pct",
                 "ytd_real_yoy",
-                matching[0][2],
+                ytd_yoy,
                 "year_to_month",
                 year_start,
             ),
             (
                 "industrial_va_mom_sa_pct",
                 "mom_seasonally_adjusted",
-                matching[0][3],
+                mom_sa,
                 "month",
                 period_start,
             ),
@@ -581,13 +669,17 @@ def _parse_industrial_value_added(
 
 def _parse_industrial_finance(
     tables: list[list[tuple[str, ...]]],
+    text: str,
     period: str,
     release_at: datetime,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     year_start = f"{period[:4]}-01-01"
     header = ("指标", "数值", "同比或变化", "数值单位", "同比或变化单位")
-    rows = _rows_by_first_cell(_table_with_header(tables, header))
+    try:
+        rows = _rows_by_first_cell(_table_with_header(tables, header))
+    except ValueError:
+        return _parse_industrial_finance_live(tables, text, period, release_at)
     required = {"利润总额", "营业收入", "营业成本", "产成品存货", "产成品周转天数"}
     if set(rows) != required or any(len(row) != len(header) for row in rows.values()):
         raise ValueError("official_context_industrial_finance_rows_mismatch")
@@ -678,6 +770,148 @@ def _parse_industrial_finance(
     return tuple(scalars)
 
 
+def _parse_industrial_finance_live(
+    tables: list[list[tuple[str, ...]]],
+    text: str,
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    period_start, period_end = month_bounds(period)
+    year_start = f"{period[:4]}-01-01"
+    finance_tables = _unique_tables(
+        table
+        for table in tables
+        if len(table) >= 3
+        and tuple(_compact_text(cell) for cell in table[0])
+        == ("分组", "营业收入", "营业成本", "利润总额")
+        and tuple(_compact_text(cell) for cell in table[1])
+        == (
+            "金额（亿元）",
+            "同比增长（%）",
+            "金额（亿元）",
+            "同比增长（%）",
+            "金额（亿元）",
+            "同比增长（%）",
+        )
+    )
+    turnover_tables = _unique_tables(
+        table
+        for table in tables
+        if table
+        and len(table[0]) == 9
+        and _compact_text(table[0][0]) == "分组"
+        and _compact_text(table[0][7]) == "产成品存货周转天数"
+    )
+    if len(finance_tables) != 1 or len(turnover_tables) != 1:
+        raise ValueError("official_context_table_schema_mismatch")
+    totals = [row for row in finance_tables[0][2:] if row and row[0] == "总计"]
+    turnover_totals = [row for row in turnover_tables[0][1:] if row and row[0] == "总计"]
+    if len(totals) != 1 or len(totals[0]) != 7:
+        raise ValueError("official_context_industrial_finance_rows_mismatch")
+    if len(turnover_totals) != 1 or len(turnover_totals[0]) != 9:
+        raise ValueError("official_context_industrial_finance_rows_mismatch")
+
+    compact = _compact_text(text)
+    inventory_match = re.search(
+        r"产成品存货(?P<level>\d+(?:\.\d+)?)万亿元[，,]"
+        r"(?:同比)?(?P<direction>增长|下降)(?P<change>\d+(?:\.\d+)?)%",
+        compact,
+    )
+    turnover_match = re.search(
+        r"产成品存货周转天数为(?P<level>\d+(?:\.\d+)?)天[，,]"
+        r"同比(?P<direction>增加|减少)(?P<change>\d+(?:\.\d+)?)天",
+        compact,
+    )
+    if inventory_match is None or turnover_match is None:
+        raise ValueError("official_context_industrial_finance_text_mismatch")
+    turnover_level = _bounded_number(turnover_match.group("level"), minimum=0)
+    if abs(turnover_level - _bounded_number(turnover_totals[0][7], minimum=0)) > 1e-6:
+        raise ValueError("official_context_industrial_finance_text_mismatch")
+
+    total = totals[0]
+    scalars: list[ContextScalar] = []
+    item_columns = {"revenue": (1, 2), "cost": (3, 4), "profit": (5, 6)}
+    for item, (level_index, yoy_index) in item_columns.items():
+        for source_field, measure, value, unit in (
+            (
+                f"industrial_{item}_ytd_100m",
+                "ytd_level",
+                _bounded_number(total[level_index], minimum=0),
+                "hundred_million_cny",
+            ),
+            (
+                f"industrial_{item}_ytd_yoy_pct",
+                "official_yoy",
+                _percent(total[yoy_index]),
+                "percent",
+            ),
+        ):
+            scalars.append(
+                _official_scalar(
+                    "CN_INDUSTRIAL_FINANCE",
+                    "nbs_industrial_finance",
+                    source_field,
+                    "year_to_month",
+                    year_start,
+                    period_end,
+                    {"item": item, "measure": measure},
+                    value,
+                    unit,
+                    release_at,
+                )
+            )
+
+    inventory_yoy = _bounded_number(inventory_match.group("change"))
+    if inventory_match.group("direction") == "下降":
+        inventory_yoy = -inventory_yoy
+    for source_field, measure, value, unit in (
+        (
+            "finished_goods_inventory_100m",
+            "nominal_end_level",
+            _bounded_number(inventory_match.group("level"), minimum=0) * 10_000,
+            "hundred_million_cny",
+        ),
+        ("finished_goods_inventory_yoy_pct", "official_yoy", inventory_yoy, "percent"),
+    ):
+        scalars.append(
+            _official_scalar(
+                "CN_FINISHED_GOODS_INVENTORY",
+                "nbs_industrial_finance",
+                source_field,
+                "month",
+                period_start,
+                period_end,
+                {"measure": measure},
+                value,
+                unit,
+                release_at,
+            )
+        )
+
+    turnover_change = _bounded_number(turnover_match.group("change"))
+    if turnover_match.group("direction") == "减少":
+        turnover_change = -turnover_change
+    for source_field, measure, value in (
+        ("finished_goods_turnover_days", "days", turnover_level),
+        ("finished_goods_turnover_days_yoy_change", "official_yoy_change", turnover_change),
+    ):
+        scalars.append(
+            _official_scalar(
+                "CN_INVENTORY_TURNOVER",
+                "nbs_industrial_finance",
+                source_field,
+                "year_to_month",
+                year_start,
+                period_end,
+                {"measure": measure},
+                value,
+                "days",
+                release_at,
+            )
+        )
+    return tuple(scalars)
+
+
 def _parse_capacity_utilization(
     tables: list[list[tuple[str, ...]]],
     period: str,
@@ -685,10 +919,40 @@ def _parse_capacity_utilization(
 ) -> tuple[ContextScalar, ...]:
     year_start, quarter_start, quarter_end = _quarter_bounds(period)
     header = ("行业", "当季（%）", "同比变化（百分点）", "累计（%）")
-    rows = _table_with_header(tables, header)
-    matching = [row for row in rows[1:] if row and row[0] == "全国规模以上工业"]
-    if len(matching) != 1 or len(matching[0]) != len(header):
-        raise ValueError("official_context_row_identity_mismatch")
+    try:
+        rows = _table_with_header(tables, header)
+        matching = [row for row in rows[1:] if row and row[0] == "全国规模以上工业"]
+        if len(matching) != 1 or len(matching[0]) != len(header):
+            raise ValueError("official_context_row_identity_mismatch")
+        quarter_rate, yoy_change, ytd_rate = matching[0][1:]
+    except ValueError as error:
+        quarter = int(period[-1])
+        quarter_name = {1: "一季度", 2: "二季度", 3: "三季度", 4: "四季度"}[quarter]
+        live_tables = _unique_tables(
+            table
+            for table in tables
+            if len(table) >= 3
+            and len(table[0]) == 3
+            and _compact_text(table[0][0]) == "行业"
+            and _compact_text(table[0][1]) == quarter_name
+            and tuple(_compact_text(cell) for cell in table[1])
+            == (
+                "产能利用率（%）",
+                "比上年同期增减（百分点）",
+                "产能利用率（%）",
+                "比上年同期增减（百分点）",
+            )
+        )
+        if len(live_tables) != 1:
+            raise error
+        matching = [
+            row
+            for row in live_tables[0][2:]
+            if row and row[0] == "工业" and len(row) == 5
+        ]
+        if len(matching) != 1:
+            raise ValueError("official_context_row_identity_mismatch") from error
+        quarter_rate, yoy_change, ytd_rate = matching[0][1:4]
     return tuple(
         _official_scalar(
             "CN_CAPACITY_UTILIZATION",
@@ -706,7 +970,7 @@ def _parse_capacity_utilization(
             (
                 "industrial_capacity_utilization_pct",
                 "quarter_rate",
-                matching[0][1],
+                quarter_rate,
                 "percent",
                 "quarter",
                 quarter_start,
@@ -714,7 +978,7 @@ def _parse_capacity_utilization(
             (
                 "industrial_capacity_utilization_yoy_change_pp",
                 "yoy_change",
-                matching[0][2],
+                yoy_change,
                 "percentage_points",
                 "quarter",
                 quarter_start,
@@ -722,7 +986,7 @@ def _parse_capacity_utilization(
             (
                 "industrial_capacity_utilization_ytd_pct",
                 "ytd_rate",
-                matching[0][3],
+                ytd_rate,
                 "percent",
                 "year_to_quarter",
                 year_start,
@@ -745,7 +1009,55 @@ def _parse_omo_notice(
         "投放量（亿元）",
         "到期量（亿元）",
     )
-    rows = _table_with_header(tables, header)
+    try:
+        rows = _table_with_header(tables, header)
+    except ValueError as error:
+        live_tables = _unique_tables(
+            table
+            for table in tables
+            if table
+            and len(table[0]) == 4
+            and "逆回购操作情况期限" in _compact_text(table[0][0])
+            and tuple(_compact_text(cell) for cell in table[0][1:])
+            == ("操作利率", "投标量", "中标量")
+        )
+        if len(live_tables) != 1:
+            raise error
+        live_rows = [
+            row
+            for row in live_tables[0][1:]
+            if len(row) == 4 and _compact_text(row[0]) == "7天"
+        ]
+        if len(live_rows) != 1:
+            raise ValueError("official_context_row_identity_mismatch") from error
+        rate = _percent(_compact_text(live_rows[0][1]))
+        injection = _pbc_amount(live_rows[0][3])
+        return (
+            _official_scalar(
+                "CN_OMO_7D_RATE",
+                "pbc_omo_notice",
+                "operation_rate_pct",
+                "business_day",
+                period,
+                period,
+                {},
+                rate,
+                "percent",
+                release_at,
+            ),
+            _official_scalar(
+                "CN_OMO_7D_AMOUNT",
+                "pbc_omo_notice",
+                "injection_100m",
+                "business_day",
+                period,
+                period,
+                {"measure": "injection"},
+                injection,
+                "hundred_million_cny",
+                release_at,
+            ),
+        )
     matching = [
         row
         for row in rows[1:]
@@ -799,6 +1111,7 @@ def _parse_omo_notice(
 
 def _parse_rrr_notice(
     tables: list[list[tuple[str, ...]]],
+    text: str,
     period: str,
     release_at: datetime,
 ) -> tuple[ContextScalar, ...]:
@@ -810,7 +1123,40 @@ def _parse_rrr_notice(
         "调整后准备金率（%）",
         "释放资金（亿元）",
     )
-    rows = _table_with_header(tables, header)
+    try:
+        rows = _table_with_header(tables, header)
+    except ValueError as error:
+        year, month = (int(item) for item in period.split("-"))
+        matches = re.findall(
+            r"(?P<month>\d{1,2})月(?P<day>\d{1,2})日[^。；]{0,80}"
+            r"下调金融机构存款准备金率\s*(?P<change>\d+(?:\.\d+)?)\s*个百分点"
+            r"(?P<scope>[^。；]*)",
+            text,
+        )
+        matching = [item for item in matches if int(item[0]) == month]
+        if len(matching) != 1:
+            raise error
+        matched_month, day, change, scope_text = matching[0]
+        effective_date = date(year, int(matched_month), int(day)).isoformat()
+        scope = (
+            "excluding_5_percent_institutions"
+            if re.search(r"不含已执行\s*5\s*%", scope_text)
+            else "all_eligible_financial_institutions"
+        )
+        return (
+            _official_scalar(
+                "CN_RRR_EVENT",
+                "pbc_rrr_notice",
+                "rrr_change_pp",
+                "event",
+                effective_date,
+                effective_date,
+                {"scope": scope, "measure": "rrr_change"},
+                -_bounded_number(change, minimum=0, maximum=100),
+                "percentage_points",
+                release_at,
+            ),
+        )
     matching = [row for row in rows[1:] if len(row) == len(header)]
     if len(matching) != 1:
         raise ValueError("official_context_row_identity_mismatch")
@@ -852,14 +1198,43 @@ def _parse_tool_liquidity(
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     header = ("工具", "投放（亿元）", "回笼（亿元）", "净投放（亿元）")
-    rows = _table_with_header(tables, header)
+    live_shape = False
+    try:
+        rows = _table_with_header(tables, header)
+    except ValueError as error:
+        live_tables = _unique_tables(
+            table
+            for table in tables
+            if table
+            and len(table[0]) == 5
+            and _compact_text(table[0][0]).endswith("工具类型")
+            and tuple(_compact_text(cell) for cell in table[0][1:])
+            == ("工具名称", "投放", "回笼", "净投放")
+        )
+        if len(live_tables) != 1:
+            raise error
+        rows = live_tables[0]
+        live_shape = True
     scalars: list[ContextScalar] = []
     for row in rows[1:]:
-        if len(row) != len(header) or not row[0].strip():
+        if live_shape:
+            if len(row) == 5:
+                tool, values = row[1], (row[2], row[3], row[4])
+            elif len(row) == 4:
+                tool, values = row[0], (row[1], row[2], row[3])
+            else:
+                raise ValueError("official_context_row_identity_mismatch")
+            if values == ("-", "-", "-"):
+                continue
+        else:
+            if len(row) != len(header) or not row[0].strip():
+                raise ValueError("official_context_row_identity_mismatch")
+            tool, values = row[0], (row[1], row[2], row[3])
+        if not tool.strip():
             raise ValueError("official_context_row_identity_mismatch")
-        injection = _bounded_number(row[1], minimum=0)
-        withdrawal = _bounded_number(row[2], minimum=0)
-        net = _bounded_number(row[3])
+        injection = _bounded_number(values[0], minimum=0)
+        withdrawal = _bounded_number(values[1], minimum=0)
+        net = _bounded_number(values[2])
         if abs(injection - withdrawal - net) > 1e-6:
             raise ValueError("official_context_liquidity_identity_mismatch")
         for source_field, measure, value in (
@@ -875,7 +1250,7 @@ def _parse_tool_liquidity(
                     "month",
                     period_start,
                     period_end,
-                    {"tool": row[0].strip(), "measure": measure},
+                    {"tool": tool.strip(), "measure": measure},
                     value,
                     "hundred_million_cny",
                     release_at,
@@ -888,16 +1263,20 @@ def _parse_tool_liquidity(
 
 def _parse_social_financing(
     tables: list[list[tuple[str, ...]]],
+    text: str,
     period: str,
     release_at: datetime,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
-    increment_rows = _rows_by_first_cell(
-        _table_with_header(tables, ("分项", "当月增量（亿元）"))
-    )
-    stock_rows = _rows_by_first_cell(
-        _table_with_header(tables, ("分项", "期末存量（万亿元）", "同比（%）"))
-    )
+    try:
+        increment_rows = _rows_by_first_cell(
+            _table_with_header(tables, ("分项", "当月增量（亿元）"))
+        )
+        stock_rows = _rows_by_first_cell(
+            _table_with_header(tables, ("分项", "期末存量（万亿元）", "同比（%）"))
+        )
+    except ValueError:
+        return _parse_social_financing_live(text, period, release_at)
     required = set(_SOCIAL_FINANCING_COMPONENTS)
     if set(increment_rows) != required or set(stock_rows) != required:
         raise ValueError("official_context_social_financing_components_mismatch")
@@ -941,13 +1320,99 @@ def _parse_social_financing(
     return tuple(scalars)
 
 
-def _parse_loan_structure(
-    tables: list[list[tuple[str, ...]]],
+def _parse_social_financing_live(
+    text: str,
     period: str,
     release_at: datetime,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
-    rows = _table_with_header(tables, ("借款人", "期限", "月末存量（亿元）"))
+    year_start = f"{period[:4]}-01-01"
+    compact = _compact_text(text)
+    total_stock, total_yoy = _stock_level_and_yoy(compact, "社会融资规模存量为")
+    total_increment = _signed_amount_after_label(compact, "社会融资规模增量累计为")
+    scalars = [
+        _official_scalar(
+            "CN_SF_TOTAL",
+            "pbc_social_financing",
+            source_field,
+            period_kind,
+            start,
+            period_end,
+            {"measure": measure},
+            value,
+            unit,
+            release_at,
+        )
+        for source_field, period_kind, start, measure, value, unit in (
+            (
+                "stock_end_trillion",
+                "month",
+                period_start,
+                "stock_end",
+                total_stock,
+                "hundred_million_cny",
+            ),
+            ("stock_yoy_pct", "month", period_start, "stock_yoy", total_yoy, "percent"),
+            (
+                "ytd_increment_100m",
+                "year_to_month",
+                year_start,
+                "ytd_increment",
+                total_increment,
+                "hundred_million_cny",
+            ),
+        )
+    ]
+    for component, (stock_label, increment_label) in _LIVE_SOCIAL_FINANCING_COMPONENTS.items():
+        stock, yoy = _stock_level_and_yoy(compact, stock_label)
+        increment = _signed_amount_after_label(compact, increment_label)
+        for source_field, period_kind, start, measure, value, unit in (
+            (
+                "stock_end_trillion",
+                "month",
+                period_start,
+                "stock_end",
+                stock,
+                "hundred_million_cny",
+            ),
+            ("stock_yoy_pct", "month", period_start, "stock_yoy", yoy, "percent"),
+            (
+                "ytd_increment_100m",
+                "year_to_month",
+                year_start,
+                "ytd_increment",
+                increment,
+                "hundred_million_cny",
+            ),
+        ):
+            scalars.append(
+                _official_scalar(
+                    "CN_SF_COMPONENTS",
+                    "pbc_social_financing",
+                    source_field,
+                    period_kind,
+                    start,
+                    period_end,
+                    {"component": component, "measure": measure},
+                    value,
+                    unit,
+                    release_at,
+                )
+            )
+    return tuple(scalars)
+
+
+def _parse_loan_structure(
+    tables: list[list[tuple[str, ...]]],
+    text: str,
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    period_start, period_end = month_bounds(period)
+    try:
+        rows = _table_with_header(tables, ("借款人", "期限", "月末存量（亿元）"))
+    except ValueError:
+        return _parse_loan_structure_live(text, period, release_at)
     observed: dict[tuple[str, str], tuple[str, ...]] = {}
     for row in rows[1:]:
         if len(row) != 3:
@@ -972,6 +1437,70 @@ def _parse_loan_structure(
             release_at,
         )
         for source_key, (borrower, tenor) in _LOAN_STRUCTURE_ROWS.items()
+    )
+
+
+def _parse_loan_structure_live(
+    text: str,
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    _, period_end = month_bounds(period)
+    year_start = f"{period[:4]}-01-01"
+    compact = _compact_text(text)
+    household_match = re.search(
+        r"(?P<section>住户贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元)，"
+        r"其中，短期贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元)，"
+        r"中长期贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元))；"
+        r"(?P<enterprise>企（事）业单位贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元)，"
+        r"其中，短期贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元)，"
+        r"中长期贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元)，"
+        r"票据融资(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元))；"
+        r"(?P<nonbank>非银行业金融机构贷款(?:增加|减少)\d+(?:\.\d+)?(?:万亿元|亿元))",
+        compact,
+    )
+    if household_match is None:
+        raise ValueError("official_context_loan_structure_rows_mismatch")
+    household = household_match.group("section")
+    enterprise = household_match.group("enterprise")
+    nonbank = household_match.group("nonbank")
+    values = {
+        ("household", "total"): _signed_amount_after_label(household, "住户贷款"),
+        ("household", "short_term"): _signed_amount_after_label(household, "短期贷款"),
+        ("household", "long_term"): _signed_amount_after_label(household, "中长期贷款"),
+        ("enterprise", "total"): _signed_amount_after_label(
+            enterprise, "企（事）业单位贷款"
+        ),
+        ("enterprise", "short_term"): _signed_amount_after_label(
+            enterprise, "短期贷款"
+        ),
+        ("enterprise", "long_term"): _signed_amount_after_label(
+            enterprise, "中长期贷款"
+        ),
+        ("enterprise", "bill_financing"): _signed_amount_after_label(
+            enterprise, "票据融资"
+        ),
+        ("nonbank_financial", "total"): _signed_amount_after_label(
+            nonbank, "非银行业金融机构贷款"
+        ),
+        ("all_rmb_loans", "total"): _signed_amount_after_label(
+            compact, "前七个月人民币贷款"
+        ),
+    }
+    return tuple(
+        _official_scalar(
+            "CN_LOAN_STRUCTURE",
+            "pbc_loan_structure",
+            "ytd_increment_100m",
+            "year_to_month",
+            year_start,
+            period_end,
+            {"borrower": borrower, "tenor": tenor, "measure": "ytd_increment"},
+            value,
+            "hundred_million_cny",
+            release_at,
+        )
+        for (borrower, tenor), value in values.items()
     )
 
 
@@ -1072,6 +1601,16 @@ def _release_timestamp(text: str) -> datetime:
         r"(\d{2}:\d{2}(?::\d{2})?)",
         text,
     )
+    if not matches:
+        slash_matches = {
+            (f"{year}-{month}-{day}", timestamp)
+            for year, month, day, timestamp in re.findall(
+                r"(?<!\d)(\d{4})/(\d{2})/(\d{2})\s+"
+                r"(\d{2}:\d{2}(?::\d{2})?)",
+                text,
+            )
+        }
+        matches = sorted(slash_matches)
     if len(matches) != 1:
         raise ValueError("official_context_release_timestamp_missing")
     timestamp = matches[0][1]
@@ -1087,7 +1626,10 @@ def _period_is_identified(text: str, period: str) -> bool:
         return period in text
     if re.fullmatch(r"\d{4}-\d{2}", period):
         year, month = period.split("-")
-        return re.search(rf"{year}年(?:1[—-])?0?{int(month)}月份?", text) is not None
+        return (
+            re.search(rf"{year}年(?:1[—-])?0?{int(month)}月份?", text) is not None
+            or re.search(rf"{year}年.*?0?{int(month)}月", text) is not None
+        )
     if re.fullmatch(r"\d{4}-Q[1-4]", period):
         year, quarter = period.split("-Q")
         names = {"1": "(?:一|1)", "2": "(?:二|2)", "3": "(?:三|3)", "4": "(?:四|4)"}
@@ -1122,6 +1664,58 @@ def _bounded_number(
     if maximum is not None and parsed > maximum:
         raise ValueError("official_context_numeric_value_out_of_range")
     return parsed
+
+
+def _pbc_amount(value: str) -> float:
+    normalized = _compact_text(value)
+    match = re.fullmatch(r"([+-]?\d+(?:\.\d+)?)亿元", normalized)
+    if match is None:
+        raise ValueError("official_context_numeric_value_invalid")
+    return _bounded_number(match.group(1), minimum=0)
+
+
+def _stock_level_and_yoy(text: str, label: str) -> tuple[float, float]:
+    match = re.search(
+        re.escape(label)
+        + r"(?P<level>\d+(?:\.\d+)?)万亿元[，,]同比(?P<direction>增长|下降)"
+        r"(?P<yoy>\d+(?:\.\d+)?)%",
+        text,
+    )
+    if match is None:
+        raise ValueError("official_context_social_financing_components_mismatch")
+    yoy = _bounded_number(match.group("yoy"))
+    if match.group("direction") == "下降":
+        yoy = -yoy
+    return round(_bounded_number(match.group("level"), minimum=0) * 10_000, 6), yoy
+
+
+def _signed_amount_after_label(text: str, label: str) -> float:
+    match = re.search(
+        re.escape(label)
+        + r"(?P<direction>增加|减少|净融资)?(?P<value>\d+(?:\.\d+)?)"
+        r"(?P<unit>万亿元|亿元)",
+        text,
+    )
+    if match is None:
+        raise ValueError("official_context_numeric_value_invalid")
+    value = _bounded_number(match.group("value"), minimum=0)
+    if match.group("unit") == "万亿元":
+        value = round(value * 10_000, 6)
+    return -value if match.group("direction") == "减少" else value
+
+
+def _compact_text(value: str) -> str:
+    return re.sub(r"\s+", "", value)
+
+
+def _unique_tables(
+    tables: Iterable[list[tuple[str, ...]]],
+) -> list[list[tuple[str, ...]]]:
+    unique: list[list[tuple[str, ...]]] = []
+    for table in tables:
+        if table not in unique:
+            unique.append(table)
+    return unique
 
 
 def _required_iso_date(value: str, error_code: str) -> str:

@@ -96,6 +96,7 @@ def test_contract_and_derived_metric_identities_preserve_required_semantics() ->
         "diffusion_index_points"
     )
     assert metric_definition("EIA_BRENT_RBRTE").unit == "usd_per_barrel"
+    assert "barrel" in metric_definition("CN_FUTURES_WARRANTS").allowed_units
 
 
 def test_unknown_or_synonym_metric_ids_are_rejected() -> None:

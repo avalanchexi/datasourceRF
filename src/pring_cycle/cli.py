@@ -40,6 +40,7 @@ _MUTATING_COMMANDS = {
     "official-context-smoke",
     "eia-smoke",
     "lpr-smoke",
+    "core-history-refresh",
 }
 
 
@@ -53,6 +54,12 @@ def main(arguments: Sequence[str] | None = None) -> None:
             document = initialize_runtime(paths)
         elif namespace.command == "doctor":
             document = diagnose_runtime(paths)
+        elif namespace.command == "secrets-migrate":
+            from pring_cycle.secrets import migrate_data_source_secrets
+
+            if not paths.database.is_file():
+                raise RuntimeNotInitializedError("runtime_not_initialized")
+            document = migrate_data_source_secrets(namespace.source, paths.secrets)
         elif namespace.command == "web":
             from pring_cycle.web import run_web
 
@@ -283,6 +290,22 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             **asdict(acceptance),
             "status": "accepted" if acceptance.passed else "rejected",
         }
+    if namespace.command == "core-history-refresh":
+        from pring_cycle.core_history import refresh_core_history
+        from pring_cycle.secrets import parse_data_source_secrets
+        from pring_cycle.source_adapters import TushareCoreAdapter
+
+        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+        if token is None:
+            raise ValueError("tushare_not_configured")
+        history_result = refresh_core_history(
+            paths,
+            TushareCoreAdapter(token),
+            start=date.fromisoformat(namespace.start),
+            end=date.fromisoformat(namespace.end),
+            definition_version=namespace.definition_version,
+        )
+        return asdict(history_result)
     if namespace.command == "model-activate":
         activated = ModelRepository(paths.database).activate(
             namespace.model,
@@ -531,6 +554,7 @@ def _parser() -> argparse.ArgumentParser:
     for command in (
         "init",
         "doctor",
+        "secrets-migrate",
         "catalog",
         "models",
         "runs",
@@ -543,6 +567,12 @@ def _parser() -> argparse.ArgumentParser:
         "cutover-status",
     ):
         _runtime_parser(subparsers, command)
+    subparsers.choices["secrets-migrate"].add_argument(
+        "--from",
+        dest="source",
+        type=Path,
+        required=True,
+    )
     web_parser = subparsers.add_parser("web")
     web_parser.add_argument("--runtime-root", type=Path)
     web_parser.add_argument("--port", type=int, default=8050)
@@ -553,6 +583,13 @@ def _parser() -> argparse.ArgumentParser:
 
     model_accept = _runtime_parser(subparsers, "model-accept")
     model_accept.add_argument("--model", required=True)
+    core_history = _runtime_parser(subparsers, "core-history-refresh")
+    core_history.add_argument("--start", required=True)
+    core_history.add_argument("--end", required=True)
+    core_history.add_argument(
+        "--definition-version",
+        default="metric-catalog-v0001",
+    )
     model_activate = _runtime_parser(subparsers, "model-activate")
     model_activate.add_argument("--model", required=True)
     model_activate.add_argument("--confirm", action="store_true")

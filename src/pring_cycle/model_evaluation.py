@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import statistics
 import time
@@ -16,9 +17,14 @@ from pring_cycle.context_projection import (
 )
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
+from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend_history
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+
+CALIBRATION_END = "2026-08-19"
+CALIBRATION_INPUT_START = "2017-01-01"
+CALIBRATION_EXPECTED_DAYS = 1995
+CALIBRATION_EXPECTED_INPUT_DAYS = 2338
 
 
 @dataclass(frozen=True)
@@ -31,6 +37,9 @@ class HistoricalEvaluation:
     duration_seconds: float
     core_states_by_day: dict[str, tuple[str | None, str | None, str | None]]
     stages_by_day: dict[str, str | None]
+    evidence_hash: str = ""
+    input_days: int = 0
+    input_range_start: str = ""
 
 
 @dataclass(frozen=True)
@@ -58,18 +67,38 @@ def calibrate_model(
     *,
     requested_start: str | None = None,
     requested_end: str | None = None,
-) -> dict[str, int]:
+) -> dict[str, int | str]:
     model = ModelRepository(database).get(model_version_id)
     evaluated = evaluate_history(
         database,
         model_version_id,
         requested_start=requested_start or model.certified_replay_start,
-        requested_end=requested_end,
+        requested_end=requested_end or CALIBRATION_END,
     )
-    results = {
+    if (
+        requested_start is None
+        and requested_end is None
+        and (
+            evaluated.evaluated_days != CALIBRATION_EXPECTED_DAYS
+            or evaluated.input_days != CALIBRATION_EXPECTED_INPUT_DAYS
+            or evaluated.input_range_start != "2017-01-03"
+        )
+    ):
+        raise ValueError("calibration_evidence_incomplete")
+    results: dict[str, int | str] = {
         key: int(getattr(evaluated, key))
         for key in CALIBRATION_BASELINE
     }
+    results.update(
+        {
+            "evidence_hash": evaluated.evidence_hash,
+            "evaluated_days": evaluated.evaluated_days,
+            "input_days": evaluated.input_days,
+            "input_range_start": evaluated.input_range_start,
+            "range_end": requested_end or CALIBRATION_END,
+            "range_start": requested_start or model.certified_replay_start,
+        }
+    )
     return results
 
 
@@ -188,61 +217,113 @@ def evaluate_history(
         )
         for asset, metric_id in zip(_ASSETS, metric_ids, strict=True)
     }
-    common_days = sorted(
+    all_common_days = sorted(
         set.intersection(
             *(set(point.period_end for point in final_series[asset]) for asset in _ASSETS)
         )
     )
-    common_days = [
-        day for day in common_days if requested_start <= day <= end_date.isoformat()
+    history_input_start = _history_input_start(manifest, requested_start)
+    input_days = [
+        day
+        for day in all_common_days
+        if history_input_start <= day <= end_date.isoformat()
     ]
-    if not common_days:
+    common_days = [day for day in input_days if requested_start <= day]
+    if not input_days or not common_days:
         raise ValueError("calibration_evidence_incomplete")
+    points_by_asset = {
+        asset: {point.period_end: point for point in final_series[asset]}
+        for asset in _ASSETS
+    }
+    if any(
+        points_by_asset[asset][day].selection_status != "selected"
+        or points_by_asset[asset][day].selected_value is None
+        for asset in _ASSETS
+        for day in input_days
+    ):
+        raise ValueError("calibration_evidence_incomplete")
+    evidence_hash = hashlib.sha256(
+        json.dumps(
+            {
+                "definition_version": definition_version,
+                "input_range_end": input_days[-1],
+                "input_range_start": input_days[0],
+                "measurement_range_end": common_days[-1],
+                "measurement_range_start": common_days[0],
+                "series": {
+                    asset: [
+                        [day, points_by_asset[asset][day].selected_value]
+                        for day in input_days
+                    ]
+                    for asset in _ASSETS
+                },
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    trend_history = {}
+    for asset in _ASSETS:
+        points: list[PricePoint] = []
+        for day in input_days:
+            selected_value = points_by_asset[asset][day].selected_value
+            if selected_value is None:
+                raise ValueError("calibration_evidence_incomplete")
+            points.append(
+                PricePoint(
+                    date.fromisoformat(day),
+                    float(selected_value),
+                )
+            )
+        trend_history[asset] = evaluate_trend_history(points, rules)
+    trend_by_day = {
+        asset: {point.business_date.isoformat(): point for point in trend_history[asset]}
+        for asset in _ASSETS
+    }
 
     states_by_day: dict[str, tuple[str | None, str | None, str | None]] = {}
     stages_by_day: dict[str, str | None] = {}
     previous_states: dict[str, CoreAssetState | None] = {asset: None for asset in _ASSETS}
     last_change_index: dict[str, int] = {}
-    candidate_onset: dict[tuple[str, CoreAssetState], int] = {}
+    crossing_onset: dict[tuple[str, CoreAssetState], int] = {}
     confirmation_delays: list[int] = []
     asset_changes = 0
     fast_reversals = 0
     stage_changes = 0
     previous_stage: str | None = None
 
-    for index, day_text in enumerate(common_days):
-        day = date.fromisoformat(day_text)
-        cutoff = datetime.combine(day, clock_time.max, UTC)
+    measurement_start_index = input_days.index(common_days[0])
+    for index, day_text in enumerate(input_days):
+        in_measurement_range = index >= measurement_start_index
         daily_states: list[CoreAssetState | None] = []
-        for asset, metric_id in zip(_ASSETS, metric_ids, strict=True):
-            series = evidence.metric_series(
-                metric_id,
-                mode=AsOfMode.PUBLIC,
-                as_of=cutoff,
-                definition_version=definition_version,
-            )
-            points = [
-                PricePoint(date.fromisoformat(point.period_end), float(point.selected_value))
-                for point in series
-                if point.period_end <= day_text and point.selected_value is not None
-            ]
-            trend = evaluate_trend(points, rules)
+        for asset in _ASSETS:
+            trend = trend_by_day[asset][day_text]
             state = trend.stable_state
             daily_states.append(state)
-            if trend.candidate_30d is not None and trend.candidate_30d is not state:
-                candidate_onset.setdefault((asset, trend.candidate_30d), index)
+            position = _ma_position(trend.distance_pct)
+            for direction in CoreAssetState:
+                key = (asset, direction)
+                if direction is not position:
+                    crossing_onset.pop(key, None)
+            if position is not None and position is not state:
+                crossing_onset.setdefault((asset, position), index)
             previous = previous_states[asset]
             if state is not None and previous is not None and state is not previous:
-                asset_changes += 1
-                previous_index = last_change_index.get(asset)
-                if previous_index is not None and index - previous_index < 20:
-                    fast_reversals += 1
-                last_change_index[asset] = index
-                onset = candidate_onset.pop((asset, state), None)
-                if onset is not None:
-                    confirmation_delays.append(index - onset)
+                onset = crossing_onset.pop((asset, state), None)
+                if in_measurement_range:
+                    asset_changes += 1
+                    previous_index = last_change_index.get(asset)
+                    if previous_index is not None and index - previous_index <= 20:
+                        fast_reversals += 1
+                    last_change_index[asset] = index
+                    if onset is not None:
+                        confirmation_delays.append(index - onset)
             if state is not None:
                 previous_states[asset] = state
+
+        if not in_measurement_range:
+            continue
 
         bond, stock, commodity = daily_states
         stage = derive_formal_stage(
@@ -273,7 +354,28 @@ def evaluate_history(
         time.perf_counter() - started,
         states_by_day,
         stages_by_day,
+        evidence_hash,
+        len(input_days),
+        input_days[0],
     )
+
+
+def _ma_position(distance_pct: float | None) -> CoreAssetState | None:
+    if distance_pct is None:
+        return None
+    if distance_pct > 0:
+        return CoreAssetState.BULL
+    if distance_pct < 0:
+        return CoreAssetState.BEAR
+    return None
+
+
+def _history_input_start(
+    manifest: dict[str, object], requested_start: str
+) -> str:
+    if manifest.get("model_version_id") == "model-v0001":
+        return min(CALIBRATION_INPUT_START, requested_start)
+    return str(manifest.get("certified_replay_start", requested_start))
 
 
 def _rules(manifest: dict[str, object]) -> TrendRules:

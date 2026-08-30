@@ -39,6 +39,13 @@ class TrendResult:
     network_requests: int = 0
 
 
+@dataclass(frozen=True)
+class TrendHistoryPoint:
+    business_date: date
+    stable_state: CoreAssetState | None
+    distance_pct: float | None
+
+
 def evaluate_trend(points: list[PricePoint], rules: TrendRules) -> TrendResult:
     ordered = sorted(points, key=lambda point: point.business_date)
     required = rules.window_days + rules.slope_days
@@ -109,6 +116,59 @@ def evaluate_trend(points: list[PricePoint], rules: TrendRules) -> TrendResult:
         noise_band_pct=noise_band_pct,
         rule_version=rules.rule_version,
     )
+
+
+def evaluate_trend_history(
+    points: list[PricePoint],
+    rules: TrendRules,
+) -> tuple[TrendHistoryPoint, ...]:
+    ordered = sorted(points, key=lambda point: point.business_date)
+    if any(point.value <= 0 for point in ordered):
+        return tuple(
+            TrendHistoryPoint(point.business_date, None, None) for point in ordered
+        )
+    required = rules.window_days + rules.slope_days
+    values = [point.value for point in ordered]
+    stable_state: CoreAssetState | None = None
+    candidate_state: CoreAssetState | None = None
+    candidate_days = 0
+    history: list[TrendHistoryPoint] = []
+    for index, point in enumerate(ordered):
+        if index < required - 1:
+            history.append(TrendHistoryPoint(point.business_date, None, None))
+            continue
+        current_ma = statistics.fmean(
+            values[index - rules.window_days + 1 : index + 1]
+        )
+        prior_end = index - rules.slope_days
+        prior_ma = statistics.fmean(
+            values[prior_end - rules.window_days + 1 : prior_end + 1]
+        )
+        distance_pct = (values[index] / current_ma - 1.0) * 100.0
+        slope_pct = (current_ma / prior_ma - 1.0) * 100.0
+        recent = values[index - rules.volatility_days : index + 1]
+        returns = [
+            (current / previous - 1.0) * 100.0
+            for previous, current in zip(recent, recent[1:], strict=False)
+        ]
+        noise_band_pct = rules.noise_multiplier * abs(statistics.pstdev(returns))
+        signal = _directional_signal(distance_pct, slope_pct, noise_band_pct)
+        if signal is None or signal is stable_state:
+            candidate_state = None
+            candidate_days = 0
+        elif signal is candidate_state:
+            candidate_days += 1
+        else:
+            candidate_state = signal
+            candidate_days = 1
+        if candidate_days >= rules.persistence_days:
+            stable_state = signal
+            candidate_state = None
+            candidate_days = 0
+        history.append(
+            TrendHistoryPoint(point.business_date, stable_state, distance_pct)
+        )
+    return tuple(history)
 
 
 def _directional_signal(

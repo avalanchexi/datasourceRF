@@ -3,7 +3,12 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from pring_cycle.domain import CoreAssetState
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
+from pring_cycle.domain.trend import (
+    PricePoint,
+    TrendRules,
+    evaluate_trend,
+    evaluate_trend_history,
+)
 
 
 def price_series(*, increasing: bool, count: int = 160) -> list[PricePoint]:
@@ -43,3 +48,23 @@ def test_30_day_candidate_and_12_month_proxy_do_not_vote_in_formal_state() -> No
     assert result.candidate_30d is CoreAssetState.BULL
     assert result.proxy_12m is None
     assert result.stable_state is CoreAssetState.BULL
+
+
+def test_linear_trend_history_matches_every_prefix_evaluation() -> None:
+    points = [
+        PricePoint(
+            date(2024, 1, 1) + timedelta(days=index),
+            100.0 + index * 0.03 + ((index % 17) - 8) * 0.4,
+        )
+        for index in range(320)
+    ]
+    rules = TrendRules()
+
+    history = evaluate_trend_history(points, rules)
+
+    assert len(history) == len(points)
+    for index, historical in enumerate(history):
+        prefix = evaluate_trend(points[: index + 1], rules)
+        assert historical.business_date == points[index].business_date
+        assert historical.stable_state is prefix.stable_state
+        assert historical.distance_pct == prefix.distance_pct

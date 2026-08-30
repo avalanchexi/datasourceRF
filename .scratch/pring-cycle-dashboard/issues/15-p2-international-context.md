@@ -33,3 +33,8 @@ TuShare 或 P0。COMEX、LBMA、现金 VIX、PHLX SOX 和 16:30 收盘口径继�
 Schema。CME/IBA 研究明确禁止用主力连续、FXCM、FRED 旧序列或搜索结果代替。未取得具体授权
 feed 前编写“正式适配器”只能臆造供应商 Schema，故前两项是实际外部认证缺口而非可安全补写的
 通用代码；继续显示 `awaiting_source_certification`。
+
+2026-08-30：再次审计旧项目、迁移后配置与进程环境均无 `EIA_API_KEY`；EIA 官方 API v2
+要求注册并使用分配给用户的唯一 key，没有公开 demo key。真实演练原先误把 EIA P2 smoke
+列为必需项，现以先失败后通过的回归修正为可选 P2 制品；这与“P2 可未认证且不阻塞切换”的
+冻结计划一致，同时保留 EIA 契约、适配器和显式 smoke 命令。其余授权 feed 缺口不变。

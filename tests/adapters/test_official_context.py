@@ -72,6 +72,31 @@ def official_multi_table_document(
     ).encode()
 
 
+def live_pbc_financial_report_document() -> bytes:
+    return """
+    <html><body>
+      <h1>2026年7月金融统计数据报告</h1>
+      <p>文章来源： 2026-08-14 16:30:05</p>
+      <p>一、社会融资规模存量同比增长7.4%</p>
+      <p>初步统计，2026年7月末社会融资规模存量为463.27万亿元，同比增长7.4%。
+      其中，对实体经济发放的人民币贷款余额278.57万亿元，同比增长5.2%；
+      对实体经济发放的外币贷款折合人民币余额1.19万亿元，同比下降1.7%；
+      委托贷款余额11.24万亿元，同比增长0.7%；信托贷款余额4.6万亿元，同比增长3.2%；
+      未贴现的银行承兑汇票余额1.97万亿元，同比增长2.7%；
+      企业债券余额36.47万亿元，同比增长9.2%；政府债券余额102.68万亿元，同比增长14.1%；
+      非金融企业境内股票余额12.6万亿元，同比增长5.5%。</p>
+      <p>二、前七个月社会融资规模增量累计为22.25万亿元。其中，对实体经济发放的人民币贷款增加10.17万亿元；
+      对实体经济发放的外币贷款折合人民币增加1694亿元；委托贷款减少810亿元；信托贷款减少672亿元；
+      未贴现的银行承兑汇票减少1786亿元；企业债券净融资2.52万亿元；政府债券净融资7.76万亿元；
+      非金融企业境内股票融资4061亿元。</p>
+      <p>五、前七个月人民币贷款增加10.38万亿元。分部门看，住户贷款减少8271亿元，
+      其中，短期贷款减少9281亿元，中长期贷款增加1010亿元；企（事）业单位贷款增加11万亿元，
+      其中，短期贷款增加4.34万亿元，中长期贷款增加5.32万亿元，票据融资增加1.19万亿元；
+      非银行业金融机构贷款减少3944亿元。</p>
+    </body></html>
+    """.encode()
+
+
 @pytest.mark.parametrize(
     ("year", "month", "values"),
     [
@@ -124,6 +149,31 @@ def test_core_cpi_offline_contract_rejects_changed_header() -> None:
             expected_period="2026-06",
             fetched_at=datetime(2026, 7, 9, 2, tzinfo=UTC),
         )
+
+
+def test_core_cpi_contract_accepts_live_nbs_table_and_slash_timestamp() -> None:
+    content = """
+    <html><body>
+      <h1>2026年7月份居民消费价格同比上涨0.5%</h1>
+      <p>2026/08/09 09:30</p>
+      <table>
+        <tr><th></th><th>环比涨跌幅（ % ）</th>
+        <th>同比涨跌幅（ % ）</th><th>1 — 7 月 同比涨跌幅（ % ）</th></tr>
+        <tr><td>其中：不包括食品和能源</td><td>0.3</td><td>0.9</td><td>1.1</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="nbs_core_cpi",
+        source_url="https://www.stats.gov.cn/sj/zxfbhjd/202608/t20260809_1965008.html",
+        expected_period="2026-07",
+        fetched_at=datetime(2026, 8, 9, 2, tzinfo=UTC),
+    )
+
+    assert parsed.release_at.isoformat() == "2026-08-09T09:30:00+08:00"
+    assert {item.value for item in parsed.scalars} == {0.3, 0.9, 1.1}
 
 
 def test_official_context_ingest_is_traceable_but_redacted_until_certified(
@@ -311,6 +361,39 @@ def test_pbc_omo_contract_separates_rate_injection_and_maturity() -> None:
     assert {item.period_end for item in parsed.scalars} == {"2026-08-28"}
 
 
+def test_pbc_omo_contract_accepts_live_notice_without_inventing_maturity() -> None:
+    content = """
+    <html><body>
+      <h1>公开市场业务交易公告 [2026]第168号</h1>
+      <p>文章来源： 2026-08-28 09:20:30</p>
+      <p>2026年8月28日中国人民银行开展了200亿元7天期逆回购操作。</p>
+      <table>
+        <tr><th>7天期逆回购操作情况 期限</th><th>操作 利率</th><th>投标量</th><th>中标量</th></tr>
+        <tr><td>7 天</td><td>1. 40 %</td><td>200 亿元</td><td>200 亿元</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="pbc_omo_notice",
+        source_url=(
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"
+            "2026082808585347002/index.html"
+        ),
+        expected_period="2026-08-28",
+        fetched_at=datetime(2026, 8, 28, 2, tzinfo=UTC),
+    )
+
+    assert {
+        (item.metric_id, item.dimensions.get("measure"), item.value)
+        for item in parsed.scalars
+    } == {
+        ("CN_OMO_7D_RATE", None, 1.4),
+        ("CN_OMO_7D_AMOUNT", "injection", 200.0),
+    }
+
+
 def test_pbc_rrr_contract_separates_announcement_and_effective_date() -> None:
     parsed = parse_official_context_document(
         official_table_document(
@@ -343,6 +426,32 @@ def test_pbc_rrr_contract_separates_announcement_and_effective_date() -> None:
     }
 
 
+def test_pbc_rrr_contract_accepts_live_policy_chronicle_prose() -> None:
+    content = """
+    <html><body>
+      <h1>2025年前三季度中国货币政策大事记</h1>
+      <p>文章来源： 2025-10-15 17:00:00</p>
+      <p>5月15日，中国人民银行下调金融机构存款准备金率0.5个百分点（不含已执行5%存款准备金率的金融机构）。</p>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="pbc_rrr_notice",
+        source_url="https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/5896228/index.html",
+        expected_period="2025-05",
+        fetched_at=datetime(2025, 10, 15, 10, tzinfo=UTC),
+    )
+
+    assert len(parsed.scalars) == 1
+    assert parsed.scalars[0].period_end == "2025-05-15"
+    assert parsed.scalars[0].value == -0.5
+    assert parsed.scalars[0].dimensions == {
+        "scope": "excluding_5_percent_institutions",
+        "measure": "rrr_change",
+    }
+
+
 def test_pbc_monthly_liquidity_contract_checks_official_net_identity() -> None:
     content = official_table_document(
         title="2026年7月各项工具流动性投放表",
@@ -370,6 +479,46 @@ def test_pbc_monthly_liquidity_contract_checks_official_net_identity() -> None:
             expected_period="2026-07",
             fetched_at=datetime(2026, 8, 5, 10, tzinfo=UTC),
         )
+
+
+def test_pbc_monthly_liquidity_contract_accepts_live_rowspan_shape() -> None:
+    content = """
+    <html><body>
+      <h1>2026年7月中央银行各项工具流动性投放情况</h1>
+      <p>文章来源： 2026-08-04 17:00:00</p>
+      <table>
+        <tr><th>单位：亿元 工具类型</th><th>工具名称</th>
+        <th>投放</th><th>回笼</th><th>净投放</th></tr>
+        <tr><td rowspan="4">中央银行贷款</td><td>常备借贷便利（SLF）</td>
+        <td>0</td><td>10</td><td>-10</td></tr>
+        <tr><td>中期借贷便利（MLF）</td><td>5000</td><td>4000</td><td>1000</td></tr>
+        <tr><td>抵押补充贷款（PSL）</td><td>0</td><td>1161</td><td>-1161</td></tr>
+        <tr><td>其他结构性货币政策工具</td><td>6171</td><td>4427</td><td>1744</td></tr>
+        <tr><td rowspan="3">公开市场业务</td><td>7天期逆回购</td>
+        <td>47395</td><td>49890</td><td>-2495</td></tr>
+        <tr><td>其他期限逆回购</td><td>42000</td><td>35000</td><td>7000</td></tr>
+        <tr><td>公开市场国债买卖</td><td>500</td><td>0</td><td>500</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="pbc_tool_liquidity_monthly",
+        source_url=(
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+            "2026080416515912098/index.html"
+        ),
+        expected_period="2026-07",
+        fetched_at=datetime(2026, 8, 4, 10, tzinfo=UTC),
+    )
+
+    assert len(parsed.scalars) == 21
+    assert any(
+        item.dimensions == {"tool": "7天期逆回购", "measure": "net_injection"}
+        and item.value == -2495
+        for item in parsed.scalars
+    )
 
 
 def test_pbc_social_financing_contract_keeps_total_and_components_separate() -> None:
@@ -419,6 +568,37 @@ def test_pbc_social_financing_contract_keeps_total_and_components_separate() -> 
     assert government_stock.value == 3070000.0
 
 
+def test_pbc_social_financing_contract_accepts_live_combined_report_prose() -> None:
+    parsed = parse_official_context_document(
+        live_pbc_financial_report_document(),
+        family="pbc_social_financing",
+        source_url=(
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
+            "2026081416320925645/index.html"
+        ),
+        expected_period="2026-07",
+        fetched_at=datetime(2026, 8, 14, 9, tzinfo=UTC),
+    )
+
+    assert len(parsed.scalars) == 27
+    total = [item for item in parsed.scalars if item.metric_id == "CN_SF_TOTAL"]
+    assert {(item.dimensions["measure"], item.value) for item in total} == {
+        ("stock_end", 4_632_700.0),
+        ("stock_yoy", 7.4),
+        ("ytd_increment", 222_500.0),
+    }
+    government = [
+        item
+        for item in parsed.scalars
+        if item.dimensions.get("component") == "government_bonds"
+    ]
+    assert {(item.dimensions["measure"], item.value) for item in government} == {
+        ("stock_end", 1_026_800.0),
+        ("stock_yoy", 14.1),
+        ("ytd_increment", 77_600.0),
+    }
+
+
 def test_pbc_loan_structure_contract_preserves_borrower_and_tenor() -> None:
     parsed = parse_official_context_document(
         official_table_document(
@@ -452,6 +632,36 @@ def test_pbc_loan_structure_contract_preserves_borrower_and_tenor() -> None:
     )
     assert household_long.value == 640000.0
     assert household_long.unit == "hundred_million_cny"
+
+
+def test_pbc_loan_structure_contract_accepts_live_ytd_report_prose() -> None:
+    parsed = parse_official_context_document(
+        live_pbc_financial_report_document(),
+        family="pbc_loan_structure",
+        source_url=(
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
+            "2026081416320925645/index.html"
+        ),
+        expected_period="2026-07",
+        fetched_at=datetime(2026, 8, 14, 9, tzinfo=UTC),
+    )
+
+    assert len(parsed.scalars) == 9
+    assert {
+        (item.dimensions["borrower"], item.dimensions["tenor"], item.value)
+        for item in parsed.scalars
+    } == {
+        ("household", "total", -8271.0),
+        ("household", "short_term", -9281.0),
+        ("household", "long_term", 1010.0),
+        ("enterprise", "total", 110000.0),
+        ("enterprise", "short_term", 43400.0),
+        ("enterprise", "long_term", 53200.0),
+        ("enterprise", "bill_financing", 11900.0),
+        ("nonbank_financial", "total", -3944.0),
+        ("all_rmb_loans", "total", 103800.0),
+    }
+    assert {item.dimensions["measure"] for item in parsed.scalars} == {"ytd_increment"}
 
 
 def test_pbc_usdcny_central_parity_contract_preserves_quote_direction() -> None:
@@ -546,6 +756,42 @@ def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures() ->
         )
 
 
+def test_nbs_industrial_value_added_contract_accepts_live_multilevel_tables() -> None:
+    content = """
+    <html><body>
+      <h1>2026年7月份规模以上工业增加值增长4.5%</h1>
+      <p>2026/08/17 15:00</p>
+      <table>
+        <tr><th>指标</th><th>7 月</th><th>1 — 7 月</th></tr>
+        <tr><th>绝对量</th><th>同比增长（ % ）</th><th>绝对量</th><th>同比增长（ % ）</th></tr>
+        <tr><td>规模以上工业增加值</td><td>…</td><td>4.5</td><td>…</td><td>5.3</td></tr>
+      </table>
+      <table>
+        <tr><th>年份</th><th>月份</th><th>环比增速（ % ）</th></tr>
+        <tr><td>2026 年</td><td>6 月</td><td>0.76</td></tr>
+        <tr><td>7 月</td><td>0.11</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="nbs_industrial_value_added",
+        source_url="https://www.stats.gov.cn/sj/zxfbhjd/202608/t20260817_1965055.html",
+        expected_period="2026-07",
+        fetched_at=datetime(2026, 8, 17, 8, tzinfo=UTC),
+    )
+
+    assert {
+        (item.dimensions["measure"], item.value)
+        for item in parsed.scalars
+    } == {
+        ("current_month_real_yoy", 4.5),
+        ("ytd_real_yoy", 5.3),
+        ("mom_seasonally_adjusted", 0.11),
+    }
+
+
 def test_nbs_industrial_finance_contract_keeps_nominal_inventory_and_turnover() -> None:
     parsed = parse_official_context_document(
         official_table_document(
@@ -585,6 +831,57 @@ def test_nbs_industrial_finance_contract_keeps_nominal_inventory_and_turnover() 
     }
 
 
+def test_nbs_industrial_finance_contract_accepts_live_tables_and_prose() -> None:
+    content = """
+    <html><body>
+      <h1>2026年1—7月份全国规模以上工业企业利润增长17.6%</h1>
+      <p>2026/08/27 09:30</p>
+      <p>7 月末，规模以上工业企业应收账款 28.88 万亿元，同比增长 8.5% ；
+      产成品存货 7.27 万亿元，增长 10.8% 。</p>
+      <p>产成品存货周转天数为 21.3 天，同比增加 0.6 天。</p>
+      <table>
+        <tr><th>分 组</th><th>营业收入</th><th>营业成本</th><th>利润总额</th></tr>
+        <tr><th>金额（亿元）</th><th>同比增长（ % ）</th>
+        <th>金额（亿元）</th><th>同比增长（ % ）</th>
+        <th>金额（亿元）</th><th>同比增长（ % ）</th></tr>
+        <tr><td>总计</td><td>809230.7</td><td>6.5</td><td>687861.5</td><td>5.9</td><td>45820.6</td><td>17.6</td></tr>
+      </table>
+      <table>
+        <tr><th>分 组</th><th>营业收入 利润率</th><th>每百元营业收入中的成本</th>
+        <th>每百元营业收入中的费用</th><th>每百元资产实现的营业收入</th>
+        <th>人均营业收入</th><th>资产负债率</th>
+        <th>产成品 存货 周转天数</th><th>应收账款平均回收期</th></tr>
+        <tr><th>1-7月</th><th>1-7月</th><th>1-7月</th><th>7月末</th><th>7月末</th><th>7月末</th><th>7月末</th><th>7月末</th></tr>
+        <tr><td>（ % ）</td><td>（元）</td><td>（元）</td><td>（元）</td>
+        <td>（万元 / 人）</td><td>（ % ）</td><td>（天）</td><td>（天）</td></tr>
+        <tr><td>总计</td><td>5.66</td><td>85.00</td><td>8.41</td><td>72.2</td><td>191.3</td><td>58.4</td><td>21.3</td><td>71.9</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="nbs_industrial_finance",
+        source_url="https://www.stats.gov.cn/sj/zxfbhjd/202608/t20260827_1965126.html",
+        expected_period="2026-07",
+        fetched_at=datetime(2026, 8, 27, 2, tzinfo=UTC),
+    )
+
+    assert len(parsed.scalars) == 10
+    inventory = [
+        item for item in parsed.scalars if item.metric_id == "CN_FINISHED_GOODS_INVENTORY"
+    ]
+    assert {(item.dimensions["measure"], item.value) for item in inventory} == {
+        ("nominal_end_level", 72700.0),
+        ("official_yoy", 10.8),
+    }
+    turnover = [item for item in parsed.scalars if item.metric_id == "CN_INVENTORY_TURNOVER"]
+    assert {(item.dimensions["measure"], item.value) for item in turnover} == {
+        ("days", 21.3),
+        ("official_yoy_change", 0.6),
+    }
+
+
 def test_nbs_capacity_contract_preserves_quarter_ytd_and_yoy_change() -> None:
     parsed = parse_official_context_document(
         official_table_document(
@@ -608,3 +905,31 @@ def test_nbs_capacity_contract_preserves_quarter_ytd_and_yoy_change() -> None:
         ("ytd_rate", 74.3, "percent"),
     }
     assert {item.period_end for item in parsed.scalars} == {"2026-06-30"}
+
+
+def test_nbs_capacity_contract_accepts_live_multilevel_table() -> None:
+    content = """
+    <html><body>
+      <h1>2026年二季度全国规模以上工业产能利用率为73.0%</h1>
+      <p>2026/07/15 10:00</p>
+      <table>
+        <tr><th>行业</th><th>二季度</th><th>上半年</th></tr>
+        <tr><th>产能利用率（ % ）</th><th>比上年同期增减（百分点）</th>
+        <th>产能利用率（ % ）</th><th>比上年同期增减（百分点）</th></tr>
+        <tr><td>工业</td><td>73.0</td><td>-1.0</td><td>73.3</td><td>-0.7</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+
+    parsed = parse_official_context_document(
+        content,
+        family="nbs_capacity_utilization",
+        source_url="https://www.stats.gov.cn/sj/zxfbhjd/202607/t20260715_1964130.html",
+        expected_period="2026-Q2",
+        fetched_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
+    )
+
+    assert {
+        (item.dimensions["measure"], item.value)
+        for item in parsed.scalars
+    } == {("quarter_rate", 73.0), ("yoy_change", -1.0), ("ytd_rate", 73.3)}

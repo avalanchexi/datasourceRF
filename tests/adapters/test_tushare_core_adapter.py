@@ -19,13 +19,14 @@ def transport(payloads: list[dict[str, Any]]) -> Any:
                     "items": [["20260827", 1], ["20260828", 1]],
                 },
             }
+        pct_chg = 0.01 if payload["api_name"] == "fut_index_daily" else 1.0
         return {
             "code": 0,
             "data": {
                 "fields": ["ts_code", "trade_date", "close", "pre_close", "pct_chg"],
                 "items": [
-                    [payload["params"]["ts_code"], "20260828", 101.0, 100.0, 1.0],
-                    [payload["params"]["ts_code"], "20260827", 100.0, 99.0, 1.0101],
+                    [payload["params"]["ts_code"], "20260828", 101.0, 100.0, pct_chg],
+                    [payload["params"]["ts_code"], "20260827", 100.0, 99.0, pct_chg],
                 ],
             },
         }
@@ -62,6 +63,29 @@ def test_tushare_core_adapter_binds_the_frozen_api_identity(
     assert smoke.observations == 2
     assert payloads[-1]["params"]["ts_code"] == source_code
     assert "fixture-token" not in repr(smoke)
+
+
+@pytest.mark.parametrize(
+    ("metric_id", "expected_return"),
+    [
+        ("CN_EQUITY_CORE_000985", 0.01),
+        ("CN_BOND_CORE_000012", 0.01),
+        ("CN_COMMODITY_CORE_NHII", 0.01),
+    ],
+)
+def test_tushare_core_adapter_normalizes_endpoint_specific_return_units(
+    metric_id: str,
+    expected_return: float,
+) -> None:
+    adapter = TushareCoreAdapter("fixture-token", transport=transport([]))
+
+    bars = adapter.core_bars(
+        metric_id,
+        start=date(2026, 8, 27),
+        end=date(2026, 8, 28),
+    )
+
+    assert {bar.official_return for bar in bars} == {expected_return}
 
 
 def test_calendar_gap_fails_the_core_source_smoke() -> None:

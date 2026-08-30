@@ -45,6 +45,8 @@ _P1_SCHEMA_FAMILIES = {
     ),
 }
 
+_RRR_EVENT_MAX_AGE_DAYS = 730
+
 
 def run_fixture_recovery_rehearsal(paths: RuntimePaths) -> dict[str, Any]:
     paths.cache.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -226,7 +228,6 @@ def required_real_smoke_kinds() -> frozenset[str]:
     return frozenset(
         {
             "core",
-            "eia",
             "lpr",
             "tushare-context",
             *(
@@ -245,7 +246,7 @@ def store_source_smoke_result(
     result: dict[str, Any],
     target_scope: dict[str, str],
 ) -> dict[str, Any]:
-    allowed_kinds = required_real_smoke_kinds() | {
+    allowed_kinds = required_real_smoke_kinds() | {"eia"} | {
         f"official-context:{family}" for family in OFFICIAL_CONTEXT_FAMILIES
     }
     if kind not in allowed_kinds:
@@ -387,14 +388,14 @@ def _period_is_fresh_for_target(
         target = date.fromisoformat(target_business_date)
         if len(period) == 10:
             period_end = date.fromisoformat(period)
-            freshness = 370 if family == "pbc_rrr_notice" else 10
+            freshness = _RRR_EVENT_MAX_AGE_DAYS if family == "pbc_rrr_notice" else 10
         elif len(period) == 7 and period[4] == "-" and period[5:].isdigit():
             year, month = (int(item) for item in period.split("-"))
             next_month = date(year + (month == 12), month % 12 + 1, 1)
             period_end = next_month - timedelta(days=1)
             if period_end > target and (year, month) == (target.year, target.month):
                 period_end = target
-            freshness = 370 if family == "pbc_rrr_notice" else 95
+            freshness = _RRR_EVENT_MAX_AGE_DAYS if family == "pbc_rrr_notice" else 95
         else:
             normalized = period.replace("-Q", "Q")
             if len(normalized) != 6 or normalized[4] != "Q":

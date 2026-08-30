@@ -74,6 +74,7 @@ class TushareCoreAdapter:
             {"ts_code": source_code, "start_date": _compact(start), "end_date": _compact(end)},
             "ts_code,trade_date,close,pre_close,pct_chg",
         )
+        return_divisor = 1.0 if api_name == "fut_index_daily" else 100.0
         bars = tuple(
             sorted(
                 (
@@ -83,7 +84,7 @@ class TushareCoreAdapter:
                         business_date=_trade_date(row["trade_date"]),
                         close=float(row["close"]),
                         pre_close=float(row["pre_close"]),
-                        official_return=float(row["pct_chg"]) / 100.0,
+                        official_return=float(row["pct_chg"]) / return_divisor,
                         unit="index_points",
                         certification_status="certified",
                     )

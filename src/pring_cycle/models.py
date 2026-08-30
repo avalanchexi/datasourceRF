@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -40,6 +41,12 @@ class CalibrationAcceptance:
     fast_reversals_20d: int
     median_confirmation_delay_days: int
     result_hash: str
+    range_start: str = "unspecified"
+    range_end: str = "unspecified"
+    evidence_hash: str = "unspecified"
+    evaluated_days: int = 0
+    input_range_start: str = "unspecified"
+    input_days: int = 0
 
 
 @dataclass(frozen=True)
@@ -167,12 +174,40 @@ class ModelRepository:
         return ModelVersion(model_version_id, manifest_hash, "candidate", certified_replay_start)
 
     def record_acceptance(
-        self, model_version_id: str, results: dict[str, int]
+        self, model_version_id: str, results: Mapping[str, object]
     ) -> CalibrationAcceptance:
         self.get(model_version_id)
-        normalized = {key: int(results[key]) for key in CALIBRATION_BASELINE}
-        passed = normalized == CALIBRATION_BASELINE
-        result_json = _canonical_json(normalized)
+        normalized = {
+            key: _acceptance_integer(results[key]) for key in CALIBRATION_BASELINE
+        }
+        evidence_hash = str(results.get("evidence_hash", "unspecified"))
+        evaluated_days = _acceptance_integer(results.get("evaluated_days", 0))
+        input_days = _acceptance_integer(results.get("input_days", 0))
+        input_range_start = str(results.get("input_range_start", "unspecified"))
+        range_end = str(results.get("range_end", "unspecified"))
+        range_start = str(results.get("range_start", "unspecified"))
+        metadata: dict[str, object] = {
+            "evidence_hash": evidence_hash,
+            "evaluated_days": evaluated_days,
+            "input_days": input_days,
+            "input_range_start": input_range_start,
+            "range_end": range_end,
+            "range_start": range_start,
+        }
+        machine_result = any(key in results for key in metadata)
+        metadata_complete = (
+            len(evidence_hash) == 64
+            and evaluated_days > 0
+            and input_days >= evaluated_days
+            and input_range_start != "unspecified"
+            and range_start != "unspecified"
+            and range_end != "unspecified"
+        )
+        passed = normalized == CALIBRATION_BASELINE and (
+            metadata_complete or not machine_result
+        )
+        result_document = {**normalized, **metadata}
+        result_json = _canonical_json(result_document)
         result_hash = hashlib.sha256(result_json.encode()).hexdigest()
         with self._connect() as connection:
             connection.execute(
@@ -190,7 +225,21 @@ class ModelRepository:
                 ),
             )
         return CalibrationAcceptance(
-            model_version_id, passed, result_hash=result_hash, **normalized
+            model_version_id=model_version_id,
+            passed=passed,
+            asset_direction_changes=normalized["asset_direction_changes"],
+            formal_stage_changes=normalized["formal_stage_changes"],
+            fast_reversals_20d=normalized["fast_reversals_20d"],
+            median_confirmation_delay_days=normalized[
+                "median_confirmation_delay_days"
+            ],
+            result_hash=result_hash,
+            range_start=range_start,
+            range_end=range_end,
+            evidence_hash=evidence_hash,
+            evaluated_days=evaluated_days,
+            input_range_start=input_range_start,
+            input_days=input_days,
         )
 
     def activate(self, model_version_id: str, *, explicitly_approved: bool) -> ModelVersion:
@@ -502,6 +551,12 @@ def _model_version(row: sqlite3.Row) -> ModelVersion:
 
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def _acceptance_integer(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError("model_acceptance_integer_invalid")
+    return value
 
 
 _MODEL_SCHEMA = """

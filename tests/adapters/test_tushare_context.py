@@ -223,6 +223,65 @@ def test_futures_warrant_contract_preserves_three_measures_and_rejects_hog() -> 
         )
 
 
+def test_futures_warrant_contract_accepts_live_exchange_shape_variants() -> None:
+    requested_symbols: list[str] = []
+
+    def live_shape_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        requested_symbol = str(payload["params"]["symbol"])
+        requested_symbols.append(requested_symbol)
+        if requested_symbol == "SC":
+            return response(
+                [
+                    {
+                        "trade_date": "20260828",
+                        "symbol": "SC",
+                        "warehouse": "中质含硫原油",
+                        "pre_vol": None,
+                        "vol": 1200,
+                        "vol_chg": -50,
+                        "unit": "桶",
+                        "exchange": "INE",
+                    }
+                ]
+            )
+        assert requested_symbol == "PTA"
+        return response(
+            [
+                {
+                    "trade_date": "20260828",
+                    "symbol": "PTA",
+                    "warehouse": "郑州商品交易所",
+                    "pre_vol": None,
+                    "vol": 800,
+                    "vol_chg": 20,
+                    "unit": "张",
+                    "exchange": "CZCE",
+                }
+            ]
+        )
+
+    adapter = TushareContextAdapter("fixture-token", transport=live_shape_transport)
+
+    crude = adapter.futures_warrants(
+        start_date=date(2026, 8, 28),
+        end_date=date(2026, 8, 28),
+        symbol="SC",
+    )
+    pta = adapter.futures_warrants(
+        start_date=date(2026, 8, 28),
+        end_date=date(2026, 8, 28),
+        symbol="TA",
+    )
+
+    assert requested_symbols == ["SC", "PTA"]
+    assert {(item.source_field, item.value, item.unit) for item in crude} == {
+        ("vol", 1200.0, "barrel"),
+        ("vol_chg", -50.0, "barrel"),
+    }
+    assert {item.dimensions["symbol"] for item in pta} == {"TA"}
+    assert {item.source_field for item in pta} == {"vol", "vol_chg"}
+
+
 def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy() -> None:
     adapter = TushareContextAdapter(
         "fixture-token",

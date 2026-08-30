@@ -243,6 +243,26 @@ def test_source_smoke_scope_accepts_daily_and_quarterly_official_periods() -> No
         "2026-08-28",
         kind="official-context:pbc_rrr_notice",
     )
+    assert _smoke_scope_matches(
+        {"period": "2025-05"},
+        "2026-08-28",
+        kind="official-context:pbc_rrr_notice",
+    )
+
+
+def test_p2_eia_smoke_is_optional_for_real_rehearsal(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    assert "eia" not in required_real_smoke_kinds()
+    stored = store_source_smoke_result(
+        paths,
+        kind="eia",
+        result=_source_smoke_result("eia", "2026-08-28"),
+        target_scope={"start": "2026-08-28", "end": "2026-08-28"},
+    )
+
+    assert stored["smoke_kind"] == "eia"
 
 
 def test_content_poor_source_smoke_artifact_is_rejected(tmp_path: Path) -> None:

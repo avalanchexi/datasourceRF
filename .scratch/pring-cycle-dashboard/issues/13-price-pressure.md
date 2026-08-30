@@ -31,3 +31,10 @@
 2026-08-30：审查确认 TuShare 月频表不含公告时间；摄取现以首次 schema 校验成功的抓取时刻
 作为保守 `public_available_at`，不会把统计期回填为公开时间，但 `release_at` 仍诚实为空。
 因此 CPI/PPI 真实发布时间项与来源认证项继续留给官方抽样/人工认证，不作完成声明。
+
+2026-08-30：NHII、TuShare PMI 价格/CPI/PPI 与 NBS 核心 CPI 的真实 smoke 已通过；核心 CPI
+制品哈希为 `59edf7e207508a2b89e839f0bfffc9cbeb59636f86f004a5541231f502a15fc3`，TuShare 聚合制品
+为 `6ab3b35c71fbd38df1632f7de10c4309d623d7ad6cac23f8ca8494c352ec4e74`。旧项目没有
+`EIA_API_KEY`，EIA 官方文档又明确要求每个 API 用户的唯一 key，因此没有伪造演示凭据；EIA
+继续为 `awaiting_source_certification`。TuShare CPI/PPI 仍无正式公告时间字段，故前两项保持
+未勾选并准确披露缺口。

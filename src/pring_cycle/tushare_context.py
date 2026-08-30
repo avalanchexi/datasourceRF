@@ -30,7 +30,9 @@ _WARRANT_UNITS = {
     "公斤": "kilogram",
     "张": "sheet",
     "手": "lot",
+    "桶": "barrel",
 }
+_WARRANT_SOURCE_SYMBOLS = {"TA": "PTA"}
 
 
 @dataclass(frozen=True)
@@ -263,6 +265,10 @@ class TushareContextAdapter:
         normalized_symbol = symbol.upper()
         if normalized_symbol not in WARRANT_SYMBOLS:
             raise ValueError("tushare_warrant_symbol_not_allowed")
+        source_symbol = _WARRANT_SOURCE_SYMBOLS.get(
+            normalized_symbol,
+            normalized_symbol,
+        )
         fields = (
             ("pre_vol", "previous_registered_receipts"),
             ("vol", "registered_receipts"),
@@ -273,7 +279,7 @@ class TushareContextAdapter:
             {
                 "start_date": start_date.strftime("%Y%m%d"),
                 "end_date": end_date.strftime("%Y%m%d"),
-                "symbol": normalized_symbol,
+                "symbol": source_symbol,
             },
             (
                 "trade_date",
@@ -287,7 +293,7 @@ class TushareContextAdapter:
         scalars: list[ContextScalar] = []
         for row in rows:
             row_symbol = _required_text(row.get("symbol"), "tushare_warrant_symbol_invalid")
-            if row_symbol != normalized_symbol:
+            if row_symbol != source_symbol:
                 raise ValueError("tushare_warrant_symbol_mismatch")
             warehouse = _required_text(
                 row.get("warehouse"),
@@ -303,6 +309,8 @@ class TushareContextAdapter:
             except KeyError as error:
                 raise ValueError("tushare_warrant_unit_unknown") from error
             for source_field, measure in fields:
+                if _number(row.get(source_field)) is None:
+                    continue
                 scalars.append(
                     _daily_scalar(
                         "CN_FUTURES_WARRANTS",

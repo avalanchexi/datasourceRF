@@ -159,6 +159,59 @@ def test_user_can_initialize_and_diagnose_an_offline_runtime(tmp_path: Path) -> 
     assert "backup_mode=none\n" in text_diagnosis.stdout
 
 
+def test_user_can_migrate_only_supported_secrets_without_echoing_values(
+    tmp_path: Path,
+) -> None:
+    runtime_root = tmp_path / "runtime"
+    source = tmp_path / "old-project.env"
+    source.write_text(
+        "TUSHARE_TOKEN=tushare-sentinel-must-not-leak\n"
+        "TAVILY_API_KEY=tavily-sentinel-must-not-leak\n"
+        "EXA_API_KEY=exa-sentinel-must-not-leak\n"
+        "DEEPSEEK_API_KEY=unsupported-sentinel-must-not-migrate\n",
+        encoding="utf-8",
+    )
+    initialized = run_cli("init", "--runtime-root", str(runtime_root), "--json")
+    assert initialized.returncode == 0, initialized.stderr
+
+    migrated = run_cli(
+        "secrets-migrate",
+        "--runtime-root",
+        str(runtime_root),
+        "--from",
+        str(source),
+        "--json",
+    )
+
+    assert migrated.returncode == 0, migrated.stderr
+    document = json.loads(migrated.stdout)
+    assert document == {
+        "configured": {
+            "eia": "disabled",
+            "exa": "enabled",
+            "tavily": "enabled",
+            "tushare": "enabled",
+        },
+        "migrated_adapters": ["exa", "tavily", "tushare"],
+        "network_requests": 0,
+        "status": "ok",
+    }
+    combined_output = migrated.stdout + migrated.stderr
+    assert "sentinel" not in combined_output
+    assert "DEEPSEEK" not in combined_output
+    destination = runtime_root / "config" / "secrets.env"
+    destination_text = destination.read_text(encoding="utf-8")
+    assert "TUSHARE_TOKEN=tushare-sentinel-must-not-leak" in destination_text
+    assert "TAVILY_API_KEY=tavily-sentinel-must-not-leak" in destination_text
+    assert "EXA_API_KEY=exa-sentinel-must-not-leak" in destination_text
+    assert "DEEPSEEK" not in destination_text
+    assert stat.S_IMODE(destination.stat().st_mode) == 0o600
+
+    diagnosed = run_cli("doctor", "--runtime-root", str(runtime_root), "--json")
+    assert diagnosed.returncode == 0, diagnosed.stderr
+    assert json.loads(diagnosed.stdout)["credentials"] == document["configured"]
+
+
 def test_doctor_distinguishes_an_unobserved_project_lock(tmp_path: Path) -> None:
     runtime_root = tmp_path / "runtime"
     execution_root = tmp_path / "outside-project"

@@ -8,9 +8,10 @@
    中国交易日历、中证全指、上证国债指数和 NHII 的真实身份、连续性与规范化哈希。此命令需要
    本机 `TUSHARE_TOKEN`；失败或未执行不能由 fixture 替代。
 2. 执行 `context-source-smoke`，对本次演练实际使用的 P1 官方 HTML schema family 逐一执行
-   `official-context-smoke`，并对 EIA 双序列执行 `eia-smoke`；COMEX、LBMA、VIX、SOX 和
-   16:30 在岸收盘价在许可/接口未认证时必须继续显示 `awaiting_source_certification`，不能用
-   代理补齐。一次 smoke 只证明该次响应，不自动完成目录来源认证。
+   `official-context-smoke`。EIA 双序列属于 P2；配置 EIA key 时可额外执行 `eia-smoke`，但
+   未配置时必须继续显示 `awaiting_source_certification`，不会阻塞只要求 P0/P1 的切换门。
+   COMEX、LBMA、VIX、SOX 和 16:30 在岸收盘价同样不得用代理补齐。一次 smoke 只证明该次
+   响应，不自动完成目录来源认证。
 3. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。
 4. `pring-cycle rehearse-fixture-recovery --json`：独立 fixture 中断、陈旧 owner 审计和用户显式恢复；不写正式发布历史。
 5. 保留上述每条 smoke 返回的制品哈希。在最新完整目标交易日完成手动完整运行与报告并启动
@@ -21,10 +22,12 @@ pring-cycle rehearse-real --target-date YYYY-MM-DD --dashboard-port 8877 \
   --source-smoke-hash CORE_SHA256 \
   --source-smoke-hash CONTEXT_SHA256 \
   --source-smoke-hash LPR_SHA256 \
-  --source-smoke-hash EIA_SHA256 \
   --source-smoke-hash EACH_REQUIRED_OFFICIAL_FAMILY_SHA256 \
   --json
 ```
+
+若本次另外执行了 EIA P2 smoke，可以再追加其 `--source-smoke-hash EIA_SHA256`；它会被校验
+并记录为已知 P2 证据，但不是 P0/P1 切换硬门。
 
    命令要求真实 P0、按 schema 家族抽样的 P1、全部必需且目标期匹配的 smoke 制品、当前原子
    投影，以及 AI 成功或确定性降级报告。每个 smoke 会按来源核对官方身份、字段族、观测数量、

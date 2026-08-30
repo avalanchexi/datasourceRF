@@ -71,9 +71,17 @@ EXA_API_KEY=
 Codex CLI 与 Claude Code CLI 的登录状态不由应用读取或保存；Ticket 01 的离线启动不要求任一
 CLI 已登录，也不接收模型厂商 API key。
 
-从旧环境迁移密钥时不要用 `echo TOKEN=...`，避免 shell 历史和终端回显。用权限为 `0600`
-的编辑器直接打开 `doctor` 所列 `secrets` 路径，逐项粘贴允许的键；保存后再次执行
-`pring-cycle doctor --json`，只检查适配器的 `enabled/disabled` 状态，不打印值。
+从旧环境迁移密钥时，使用白名单迁移命令；它只导入上述四个键，原子更新仓库外文件并保持
+`0600`，输出仅包含适配器名称和 `enabled/disabled` 状态，不回显值：
+
+```bash
+pring-cycle secrets-migrate --from /wsl/path/to/original-project/.env --json
+pring-cycle doctor --json
+```
+
+源文件没有的允许键会保留目标文件中的现有值，其他键一律忽略。也可以用权限为 `0600` 的
+编辑器直接打开 `doctor` 所列 `secrets` 路径逐项配置；不要用 `echo TOKEN=...`，避免 shell
+历史和终端回显。
 
 ## 启动 Web 与 Worker
 
@@ -113,9 +121,19 @@ Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；�
 
 ```bash
 pring-cycle models --json
+pring-cycle core-history-refresh \
+  --start 2017-01-01 --end 2026-08-19 \
+  --definition-version metric-catalog-v0001 --json
 pring-cycle model-accept --model model-v0001 --json
 pring-cycle model-activate --model model-v0001 --confirm --json
 ```
+
+历史刷新按自然年分片调用 TuShare，三条核心必须逐年共享同一上交所交易日历，任一缺口都会在
+写入前失败。规范化的 `close/pre_close/official_return` 输入会保存为本机内容寻址制品；校准
+从 2017-01-01 起加载 2,338 个共同交易日作为状态机预热与证据输入，但只在
+2018-06-01—2026-08-19 的 1,995 个共同交易日内计数验收指标。验收结果同时绑定输入区间、
+计数区间、交易日数和规范化证据哈希；预热期不得折算为正式转换。后续实时数据不会静默扩大
+`model-v0001` 的冻结校准区间。
 
 证据 JSON 必须包含 metric identity、统计期、单位、来源、公开/抓取/系统可用时间、认证与质量
 状态。写入及点时查询示例：
