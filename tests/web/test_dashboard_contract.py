@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 from dash.development.base_component import Component
 
@@ -25,6 +26,15 @@ def _text(component: object) -> str:
             return " ".join(_text(child) for child in children)
         return _text(children)
     return ""
+
+
+def _hrefs(component: object) -> list[str]:
+    if isinstance(component, (list, tuple)):
+        return [href for child in component for href in _hrefs(child)]
+    if not isinstance(component, Component):
+        return []
+    href = getattr(component, "href", None)
+    return ([href] if isinstance(href, str) else []) + _hrefs(getattr(component, "children", None))
 
 
 def test_navigation_and_home_hierarchy_match_the_confirmed_eight_page_contract() -> None:
@@ -343,6 +353,17 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
     assert "PMI 库存是扩散指数，不是库存数量" in inventory
     assert "注册仓单不代表产业总库存" in inventory
     assert "证据 observation-pmi-inventory" in inventory
+    for route in ("/macro", "/inventory"):
+        links = [
+            href
+            for href in _hrefs(dashboard_page(route, projection, (), ()))
+            if href.startswith("/api/v1/evidence/")
+        ]
+        assert links
+        for href in links:
+            query = parse_qs(urlsplit(href).query)
+            assert query["mode"] == ["system_as_of"]
+            assert datetime.fromisoformat(query["as_of"][0]) == envelope.system_as_of
 
 
 def test_stage_history_page_can_show_an_unpublished_p0_gap_from_the_read_model() -> None:

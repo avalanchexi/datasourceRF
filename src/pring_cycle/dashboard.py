@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, cast
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from dash import dcc, html
@@ -624,7 +625,7 @@ def _evidence_row(
         children.append(
             html.A(
                 f"证据 {observation_id}",
-                href=(f"/api/v1/evidence/{observation_id}?mode=system_as_of&as_of={as_of}"),
+                href=_evidence_href(observation_id, as_of),
                 className="evidence-link",
             )
         )
@@ -645,11 +646,16 @@ def _evidence_links(value: object, *, as_of: str | None) -> html.Div:
             links.append(
                 html.A(
                     f"证据 {identifier}",
-                    href=(f"/api/v1/evidence/{identifier}?mode=system_as_of&as_of={as_of}"),
+                    href=_evidence_href(identifier, as_of),
                     className="evidence-link",
                 )
             )
     return html.Div(links, className="evidence-links")
+
+
+def _evidence_href(identifier: str, as_of: str) -> str:
+    query = urlencode({"mode": "system_as_of", "as_of": as_of})
+    return f"/api/v1/evidence/{identifier}?{query}"
 
 
 def _grouped_evidence(document: dict[str, object]) -> list[dict[str, object]]:
