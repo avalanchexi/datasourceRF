@@ -9,6 +9,7 @@ from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILY_BY_METRIC
 METRIC_CATALOG_V0001 = "metric-catalog-v0001"
 METRIC_CATALOG_VERSION = "metric-catalog-v0002"
 METRIC_CATALOG_V0003 = "metric-catalog-v0003"
+MARGIN_FINANCING_V0002 = "margin-financing-v0002"
 _METRIC_CATALOG_V0003_SHA256 = (
     "594524ea647db3ab3824e4ea8ca4e1c7ce04fd53e9f29226b4a22364d10525fa"
 )
@@ -401,6 +402,7 @@ def metric_definition(
         METRIC_CATALOG_V0001: _BY_ID_V0001,
         METRIC_CATALOG_VERSION: _BY_ID,
         METRIC_CATALOG_V0003: _BY_ID_V0003,
+        MARGIN_FINANCING_V0002: _MARGIN_FINANCING_V0002,
     }.get(definition_version)
     if catalog is None:
         raise KeyError("unknown_metric_definition_version")
@@ -688,3 +690,13 @@ _NAME_OVERRIDES = {
 _BY_ID = {item.metric_id: item for item in metric_catalog()}
 _BY_ID_V0001 = {item.metric_id: item for item in metric_catalog_v0001()}
 _BY_ID_V0003 = {item.metric_id: item for item in metric_catalog_v0003()}
+_MARGIN_FINANCING_V0002 = {
+    "CN_MARGIN_BALANCE": replace(
+        _BY_ID_V0003["CN_MARGIN_BALANCE"],
+        definition_version=MARGIN_FINANCING_V0002,
+        certification_status="awaiting_source_certification",
+        source_codes=("tushare:margin:SSE+SZSE+BSE:v0002",),
+        source_candidates=("tushare:margin:SSE+SZSE+BSE:v0002",),
+        release_rule="publication_unknown_until_official_evidence",
+    )
+}

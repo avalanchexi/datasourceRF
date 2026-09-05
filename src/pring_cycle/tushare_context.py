@@ -12,7 +12,7 @@ from typing import Any
 from urllib.request import Request, build_opener
 from zoneinfo import ZoneInfo
 
-from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
+from pring_cycle.catalog import MARGIN_FINANCING_V0002, METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
@@ -78,6 +78,7 @@ class ContextScalar:
     unit: str
     release_at: datetime | None = None
     public_available_at: datetime | None = None
+    definition_version: str | None = None
 
 
 @dataclass(frozen=True)
@@ -652,6 +653,68 @@ class TushareContextAdapter:
                 )
         return tuple(scalars)
 
+    def margin_financing_candidate(
+        self,
+        *,
+        trading_days: tuple[date, ...],
+    ) -> tuple[ContextScalar, ...]:
+        """Collect the new, uncertified three-exchange contract for source review."""
+        if not trading_days or len(set(trading_days)) != len(trading_days):
+            raise ValueError("tushare_margin_calendar_invalid")
+        rows = self._call(
+            "margin",
+            {
+                "start_date": min(trading_days).strftime("%Y%m%d"),
+                "end_date": max(trading_days).strftime("%Y%m%d"),
+            },
+            ("trade_date", "exchange_id", "rzye", "rzmre"),
+        )
+        totals: dict[date, dict[str, float]] = defaultdict(
+            lambda: {"financing_balance": 0.0, "financing_buy_amount": 0.0}
+        )
+        expected_dates = set(trading_days)
+        expected_exchanges = {"SSE", "SZSE", "BSE"}
+        seen: set[tuple[date, str]] = set()
+        for row in rows:
+            trading_day = _compact_date(row.get("trade_date"))
+            if trading_day not in expected_dates:
+                raise ValueError("tushare_margin_unexpected_trading_day")
+            exchange = str(row.get("exchange_id"))
+            if exchange not in expected_exchanges:
+                raise ValueError("tushare_margin_exchange_invalid")
+            identity = (trading_day, exchange)
+            if identity in seen:
+                raise ValueError("tushare_margin_duplicate_exchange_day")
+            seen.add(identity)
+            for field, measure in (
+                ("rzye", "financing_balance"),
+                ("rzmre", "financing_buy_amount"),
+            ):
+                value = _number(row.get(field))
+                if value is None:
+                    raise ValueError("tushare_margin_value_missing")
+                if value < 0:
+                    raise ValueError("tushare_margin_value_negative")
+                totals[trading_day][measure] += value
+        if seen != {(day, exchange) for day in expected_dates for exchange in expected_exchanges}:
+            raise ValueError("tushare_margin_exchange_coverage_incomplete")
+        return tuple(
+            ContextScalar(
+                metric_id="CN_MARGIN_BALANCE",
+                api_name="margin",
+                source_field=measure,
+                period_kind="business_day",
+                period_start=trading_day.isoformat(),
+                period_end=trading_day.isoformat(),
+                dimensions={"measure": measure, "scope": "SSE+SZSE+BSE"},
+                value=value / 100_000_000,
+                unit="hundred_million_cny",
+                definition_version=MARGIN_FINANCING_V0002,
+            )
+            for trading_day, measures in sorted(totals.items())
+            for measure, value in measures.items()
+        )
+
     def index_valuation(
         self,
         *,
@@ -936,12 +999,27 @@ def ingest_context_scalars(
     claims: list[SourceClaimInput] = []
     stored_by_input: list[StoredSourceClaim | None] = []
     for scalar in scalars:
+        if (
+            scalar.definition_version is not None
+            and scalar.definition_version != definition_version
+        ):
+            raise ValueError("tushare_context_definition_version_mismatch")
+        margin_candidate = definition_version == MARGIN_FINANCING_V0002
+        if margin_candidate and (
+            scalar.definition_version != MARGIN_FINANCING_V0002
+            or scalar.release_at is not None
+            or scalar.public_available_at is not None
+        ):
+            raise ValueError("tushare_margin_candidate_contract_mismatch")
         definition = metric_definition(
             scalar.metric_id,
             definition_version=definition_version,
         )
         source_reference = f"tushare:{scalar.api_name}:{scalar.source_field}:{scalar.period_end}"
         base_event_id = f"tushare:{scalar.api_name}:{scalar.period_end}"
+        if margin_candidate:
+            source_reference = f"{source_reference}:{MARGIN_FINANCING_V0002}"
+            base_event_id = f"{base_event_id}:{MARGIN_FINANCING_V0002}"
         existing = repository.latest_source_claim(
             metric_id=scalar.metric_id,
             definition_version=definition.definition_version,
@@ -995,7 +1073,17 @@ def ingest_context_scalars(
         )
         release_at: datetime | None
         public_available_at: datetime | None
-        if scalar.public_available_at is not None and (physical_existing is None or physical_same):
+        if margin_candidate:
+            release_at = None
+            public_available_at = None
+            release_event_id = (
+                base_event_id
+                if physical_existing is None
+                else _revision_event_id(base_event_id, fetched_at)
+            )
+        elif scalar.public_available_at is not None and (
+            physical_existing is None or physical_same
+        ):
             release_at = scalar.release_at
             public_available_at = scalar.public_available_at
             release_event_id = _schedule_event_id(

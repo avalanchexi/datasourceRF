@@ -54,3 +54,5 @@ pring-cycle model-replay --model model-v0009 --compared-with model-v0001 \
 创建新的不可变候选并通过精确120日回放；不得直接修改或激活失败的 v0009。
 
 2026-09-05: Review reopened the v3 source-certification contract. The 15 market P1 metrics in five families still lack complete official semantic validation; observed margin publication and commodity return mismatches are blocked at write/activation/cutover boundaries. Historical data remains readable. Status stays `ready-for-agent`; neither model/source acceptance nor real cutover is complete. See `../closeout-2026-09-05.md` and `docs/research/market-source-semantic-review-2026-09-05.md`.
+
+2026-09-05（继续）：独立融资候选定义 `margin-financing-v0002` 完成三交易所／完整日期矩阵校验与未知公开时间隔离；真实 120 日、360 行、240 观测及沪深四字段元级比较通过。四份官方补证记录已落盘；估值实际比较发现 PE 不匹配与中证1000空响应。全量366测试、两轴审查、离线验收及恢复演练通过，但 BSE／发布时间及其他 family 规则仍未闭合，尚未建立可生效的新完整目录或模型。保持 `ready-for-agent`，续接见 [本轮记录](../closeout-followup-2026-09-05.md)。

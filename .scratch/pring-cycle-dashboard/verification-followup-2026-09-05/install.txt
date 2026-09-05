@@ -1,0 +1,7 @@
+Resolved 55 packages in 41ms
+   Building pring-cycle @ file:///mnt/d/cursor/datasourceRF
+      Built pring-cycle @ file:///mnt/d/cursor/datasourceRF
+Prepared 1 package in 2.57s
+Uninstalled 1 package in 16ms
+Installed 1 package in 4ms
+ ~ pring-cycle==0.1.0 (from file:///mnt/d/cursor/datasourceRF)
