@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import sqlite3
 from dataclasses import asdict, replace
@@ -7,6 +8,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 from pring_cycle.catalog import metric_catalog_v0003
 from pring_cycle.domain import CoreAssetState
@@ -22,6 +25,7 @@ from pring_cycle.reports import ReportRepository, ReportService, evidence_bundle
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, diagnose_runtime, initialize_runtime
 from pring_cycle.source_certification import refresh_source_certified_candidate
+from pring_cycle.web import create_web_application
 from pring_cycle.worker import process_pending_run
 
 
@@ -191,3 +195,74 @@ def test_pre_audit_projection_stays_readable_but_cannot_be_republished(tmp_path:
     assert diagnosis["offline_start_available"] is True
     assert diagnosis["status"] == "action_required"
     assert diagnosis["source_contract_review"]["status"] == "blocked"
+
+    prior_runs = runs.list_runs()
+    for command in ("manual_full", "report_generation", "resume"):
+        response = _command_response(
+            paths,
+            {
+                "command": command,
+                "client_request_id": f"blocked-web-{command}",
+                "target_business_date": "2026-08-28",
+                "run_id": run.run_id,
+                "confirm_external_calls": True,
+            },
+        )
+        assert response.status_code == 409
+        assert "source_certification_contract_unresolved" in json.loads(response.body)["error"]
+    assert runs.list_runs() == prior_runs
+    assert projections.current() == historical
+    assert ReportRepository(paths.database).history() == ()
+    # Cancellation is still available while the source contract is blocked.
+    response = _command_response(
+        paths,
+        {"command": "cancel", "client_request_id": "cancel-web", "run_id": run.run_id},
+    )
+    assert response.status_code == 202
+    assert runs.get(run.run_id).status == "cancelled"
+
+
+def test_web_command_checks_explicit_model_without_blocking_unaffected_active_model(
+    tmp_path: Path,
+) -> None:
+    paths, candidate_id = _candidate_runtime(tmp_path)
+    payload = {
+        "command": "manual_full",
+        "target_business_date": "2026-08-28",
+        "client_request_id": "explicit-audited-model",
+        "model_version_id": candidate_id,
+    }
+    response = _command_response(paths, payload)
+    assert response.status_code == 409
+    assert "source_certification_contract_unresolved" in json.loads(response.body)["error"]
+    assert RunRepository(paths.database).list_runs() == ()
+    del payload["model_version_id"]
+    payload["client_request_id"] = "unaffected-active-model"
+    response = _command_response(paths, payload)
+    assert response.status_code == 202
+    assert RunRepository(paths.database).get(
+        json.loads(response.body)["run_id"]
+    ).model_version_id == ("model-v0001")
+
+
+def _command_response(paths: RuntimePaths, payload: dict[str, object]) -> JSONResponse:
+    application = create_web_application(paths, 8877, eager_dashboard=False)
+    endpoint = next(
+        route.endpoint
+        for route in application.routes
+        if getattr(route, "name", None) == "append_command"
+    )
+
+    async def receive() -> dict[str, object]:
+        return {"type": "http.request", "body": json.dumps(payload).encode(), "more_body": False}
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/api/v1/commands",
+            "headers": [(b"host", b"127.0.0.1:8877"), (b"origin", b"http://127.0.0.1:8877")],
+        },
+        receive=receive,
+    )
+    return asyncio.run(endpoint(request))

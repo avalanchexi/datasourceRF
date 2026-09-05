@@ -38,7 +38,10 @@ from pring_cycle.runtime import (
     RuntimePaths,
     runtime_health,
 )
-from pring_cycle.source_contract_review import active_source_contract_review
+from pring_cycle.source_contract_review import (
+    active_source_contract_review,
+    require_model_source_contract,
+)
 from pring_cycle.storage import database_health
 
 COMMAND_BODY_LIMIT = 4096
@@ -250,13 +253,10 @@ def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
     projection = _current_projection(paths)
     envelope = projection.envelope if projection is not None else None
     system_as_of = envelope.system_as_of.isoformat() if envelope is not None else "尚无投影"
-    projection_id = (
-        envelope.projection_set_id if envelope is not None else "等待首次完整运行"
-    )
+    projection_id = envelope.projection_set_id if envelope is not None else "等待首次完整运行"
     completeness = envelope.completeness if envelope is not None else "不可用"
     navigation = "".join(
-        f"<a href='{escape(path)}'>{escape(label)}</a>"
-        for path, label in DASHBOARD_NAVIGATION
+        f"<a href='{escape(path)}'>{escape(label)}</a>" for path, label in DASHBOARD_NAVIGATION
     )
     notice = _source_contract_notice(paths)
     notice_html = f"<aside role='alert'>{escape(notice)}</aside>" if notice is not None else ""
@@ -402,9 +402,7 @@ def _load_dashboard(
                 _release_calendar_events(paths),
             )
             interval = (
-                30_000
-                if any(item.status in {"queued", "running"} for item in runs)
-                else 300_000
+                30_000 if any(item.status in {"queued", "running"} for item in runs) else 300_000
             )
             return page, interval
 
@@ -574,7 +572,10 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
             client_request_id=str(payload["client_request_id"]),
         )
     repository = RunRepository(paths.database)
+    models = ModelRepository(paths.database)
     if command == "resume":
+        bound_run = repository.get(str(payload["run_id"]))
+        require_model_source_contract(models.manifest(bound_run.model_version_id))
         run = repository.resume(
             str(payload["run_id"]),
             client_request_id=str(payload["client_request_id"]),
@@ -584,6 +585,7 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
         run = repository.cancel(str(payload["run_id"]))
     elif command == "report_generation":
         projection = ProjectionSetRepository(paths.database).current()
+        require_model_source_contract(models.manifest(projection.envelope.model_version_id))
         run = repository.submit(
             command_type=command,
             target_business_date=projection.envelope.target_business_date,
@@ -595,6 +597,7 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
         run = repository.get(run.run_id)
     else:
         model_version_id = str(payload.get("model_version_id") or _default_model(paths))
+        require_model_source_contract(models.manifest(model_version_id))
         metric_values = payload.get("metric_ids", ())
         if not isinstance(metric_values, (list, tuple)) or any(
             not isinstance(item, str) for item in metric_values

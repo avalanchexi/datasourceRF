@@ -92,7 +92,10 @@
         if (feedback) feedback.textContent = `命令已持久化：${document.run_id}`;
       })
       .catch(function (error) {
-        if (feedback) feedback.textContent = `命令未提交：${error.message}`;
+        const message = String(error.message).startsWith("source_certification_contract_unresolved:")
+          ? "来源认证尚未完成，请先完成来源复核及新模型验收。历史结果仍可查看。"
+          : error.message;
+        if (feedback) feedback.textContent = `命令未提交：${message}`;
       });
   }
 })();
