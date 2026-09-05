@@ -19,6 +19,12 @@ from pring_cycle.evidence import (
     SourceClaimInput,
     StoredSourceClaim,
 )
+from pring_cycle.market_breadth import (
+    FullDaySuspensionEvidence,
+    MarketBreadthDay,
+    _input_day,
+    _listing_intervals,
+)
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
 
@@ -759,6 +765,69 @@ class TushareContextAdapter:
                     )
         return tuple(scalars)
 
+    def market_breadth_inputs(
+        self,
+        *,
+        trading_days: tuple[date, ...],
+        full_day_suspension_evidence: tuple[FullDaySuspensionEvidence, ...] = (),
+    ) -> tuple[MarketBreadthDay, ...]:
+        """Reconstruct listing intervals; these are not historical publication claims.
+
+        Include currently delisted/suspended listings, not just current survivors.
+        bak_basic is insufficient: it can omit still-trading delisting-period stocks.
+        Dated, previously reviewed official evidence can resolve an S/R conflict;
+        its hash is preserved in the frame and never establishes public availability.
+        """
+        if not trading_days or len(set(trading_days)) != len(trading_days):
+            raise ValueError("tushare_breadth_calendar_invalid")
+        evidence_keys = {
+            (item.business_date, item.ts_code) for item in full_day_suspension_evidence
+        }
+        if len(evidence_keys) != len(full_day_suspension_evidence) or any(
+            day not in trading_days for day, _ in evidence_keys
+        ):
+            raise ValueError("tushare_breadth_suspension_evidence_invalid")
+        member_rows: list[dict[str, object]] = []
+        for status in ("L", "D", "P"):
+            rows = self._call(
+                "stock_basic",
+                {"list_status": status},
+                ("ts_code", "list_status", "list_date", "delist_date"),
+            )
+            if len(rows) >= 6_000:
+                raise ValueError("tushare_breadth_response_incomplete")
+            if any(row["list_status"] != status for row in rows):
+                raise ValueError("tushare_breadth_listing_status_invalid")
+            member_rows.extend(rows)
+        listings = _listing_intervals(
+            tuple(member_rows), first_day=min(trading_days), last_day=max(trading_days)
+        )
+        result = []
+        for trading_day in sorted(trading_days):
+            params = {"trade_date": trading_day.strftime("%Y%m%d")}
+            quotes = self._call(
+                "daily",
+                params,
+                ("ts_code", "trade_date", "close", "pre_close", "amount", "ah_amount"),
+            )
+            suspensions = self._call(
+                "suspend_d", params, ("ts_code", "trade_date", "suspend_type", "suspend_timing")
+            )
+            result.append(
+                _input_day(
+                    trading_day,
+                    listings=listings,
+                    quotes=quotes,
+                    suspensions=suspensions,
+                    full_day_suspension_evidence=tuple(
+                        item
+                        for item in full_day_suspension_evidence
+                        if item.business_date == trading_day
+                    ),
+                )
+            )
+        return tuple(result)
+
     def market_breadth(
         self,
         *,
@@ -1484,7 +1553,11 @@ def _response_rows(
     items = data.get("items")
     if not isinstance(fields, list) or not isinstance(items, list):
         raise ValueError("tushare_response_schema_invalid")
-    names = [str(item) for item in fields]
+    if any(not isinstance(item, str) or not item for item in fields) or len(set(fields)) != len(
+        fields
+    ):
+        raise ValueError("tushare_response_schema_invalid")
+    names = fields
     if any(name not in names for name in required_fields):
         raise ValueError("tushare_response_required_field_missing")
     rows = []

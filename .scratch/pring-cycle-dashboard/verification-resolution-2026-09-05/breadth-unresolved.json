@@ -1,0 +1,5816 @@
+{
+  "manifest_sha256": "2fcf0094fcc44c53a9f575ea156b4ca6f2a8a6c506127482be6f4a20e03888e3",
+  "kind": "breadth_source_input_review",
+  "status": "awaiting_source_certification",
+  "execution_fingerprint": {
+    "code_hash": "68800f999640644f0b209075b1e8d7d9fd75a2930e3e47247c54c321b78fe801",
+    "configuration_version": "config-v0001",
+    "database_revision": "0013_source_claim_provider_identity_index",
+    "dependency_hash": "28cdd2d2003f3235ab2bd8fcc8ec82c45c178d67e5f3fde16b1308ae8e0890b1"
+  },
+  "review_script_sha256": "7eb554f6af86c3f9a6e7fe78476a9487288d17e8173b409be168aed88217a32e",
+  "calendar_sha256": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+  "days": [
+    {
+      "date": "2026-03-09",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 8,
+      "quoted": 5480,
+      "unknown_after_hours": 5480,
+      "normalized_sha256": "c20aac7bfb8ca92bbd254c0c25c6a6689dfee8e1a1b20752e39f5a099838e5cc"
+    },
+    {
+      "date": "2026-03-10",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 10,
+      "quoted": 5478,
+      "unknown_after_hours": 5478,
+      "normalized_sha256": "5ab9bfaea5ac86e9d0535c5fe0b96f13d65331d364df43aabd390c9680f1a97f"
+    },
+    {
+      "date": "2026-03-11",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 7,
+      "quoted": 5481,
+      "unknown_after_hours": 5481,
+      "normalized_sha256": "c9cbcc58982d752786a7d5161827793084a114f234d9fff83c3d44014d21a307"
+    },
+    {
+      "date": "2026-03-12",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 7,
+      "quoted": 5481,
+      "unknown_after_hours": 5481,
+      "normalized_sha256": "157e0fc35141a0f74951fb2cc561854efee62a2f8505dd7631a063de323a6970"
+    },
+    {
+      "date": "2026-03-13",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 8,
+      "quoted": 5480,
+      "unknown_after_hours": 5480,
+      "normalized_sha256": "bcd989f72e99b1f34881f729b822f58f4c8d6afd4f89c49db3d76c32802e36df"
+    },
+    {
+      "date": "2026-03-16",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 9,
+      "quoted": 5479,
+      "unknown_after_hours": 5479,
+      "normalized_sha256": "640b45287f65cd6db413601509177ab079a76c1d46a0753bd8979c356979e886"
+    },
+    {
+      "date": "2026-03-17",
+      "status": "inputs_validated",
+      "listed": 5488,
+      "suspended": 11,
+      "quoted": 5477,
+      "unknown_after_hours": 5477,
+      "normalized_sha256": "9a011b08949838d3e8c398ddcdd40ae428b0706ca0c62a7486fcfd8bee426088"
+    },
+    {
+      "date": "2026-03-18",
+      "status": "inputs_validated",
+      "listed": 5489,
+      "suspended": 11,
+      "quoted": 5478,
+      "unknown_after_hours": 5478,
+      "normalized_sha256": "55284ce74831353a86ef7c030e7c74e8700b066bbf6817d1aa0357e5d5896d13"
+    },
+    {
+      "date": "2026-03-19",
+      "status": "inputs_validated",
+      "listed": 5489,
+      "suspended": 11,
+      "quoted": 5478,
+      "unknown_after_hours": 5478,
+      "normalized_sha256": "f426309a85f1c62b7c46be70949d533bd826b1ab0310218f789d200dd74a26f1"
+    },
+    {
+      "date": "2026-03-20",
+      "status": "inputs_validated",
+      "listed": 5490,
+      "suspended": 10,
+      "quoted": 5480,
+      "unknown_after_hours": 5480,
+      "normalized_sha256": "b5b46ff2b23166b47af6df7f9ca8ea13f830ef7d9e74b7a1d257869e9e6d7d4b"
+    },
+    {
+      "date": "2026-03-23",
+      "status": "inputs_validated",
+      "listed": 5490,
+      "suspended": 8,
+      "quoted": 5482,
+      "unknown_after_hours": 5482,
+      "normalized_sha256": "04e9188deaf5170df43c7f9358ea062811dbdd095a43a3677580ddf7174e3b30"
+    },
+    {
+      "date": "2026-03-24",
+      "status": "inputs_validated",
+      "listed": 5490,
+      "suspended": 10,
+      "quoted": 5480,
+      "unknown_after_hours": 5480,
+      "normalized_sha256": "d106378d6e94a04dee3881ac76467a70402833fbc0b812fc89dd214a3ea0ac00"
+    },
+    {
+      "date": "2026-03-25",
+      "status": "inputs_validated",
+      "listed": 5492,
+      "suspended": 11,
+      "quoted": 5481,
+      "unknown_after_hours": 5481,
+      "normalized_sha256": "5c671c470dc7d1795ba9a6055190005c62948cd4cd0ae6adb42ff75109cdccfe"
+    },
+    {
+      "date": "2026-03-26",
+      "status": "inputs_validated",
+      "listed": 5492,
+      "suspended": 12,
+      "quoted": 5480,
+      "unknown_after_hours": 5480,
+      "normalized_sha256": "4c544f50d4aba4e7463d06d748a6f270b73ba72f5d99d3c22aa296a1f10c0e73"
+    },
+    {
+      "date": "2026-03-27",
+      "status": "inputs_validated",
+      "listed": 5492,
+      "suspended": 15,
+      "quoted": 5477,
+      "unknown_after_hours": 5477,
+      "normalized_sha256": "007a0606d9f5b17820ce755b548193c30e1e10a134a3532d86d95ce971916cb1"
+    },
+    {
+      "date": "2026-03-30",
+      "status": "inputs_validated",
+      "listed": 5493,
+      "suspended": 18,
+      "quoted": 5475,
+      "unknown_after_hours": 5475,
+      "normalized_sha256": "e698137e994f3a7cfe223eedd715d7cb95fe49c34793619c1d0efc2e8d8559ff"
+    },
+    {
+      "date": "2026-03-31",
+      "status": "inputs_validated",
+      "listed": 5495,
+      "suspended": 14,
+      "quoted": 5481,
+      "unknown_after_hours": 5481,
+      "normalized_sha256": "8946504e843847f1ef2786d8c13ba66b97b50fe797f3c1002363d4ce9bb8417e"
+    },
+    {
+      "date": "2026-04-01",
+      "status": "inputs_validated",
+      "listed": 5496,
+      "suspended": 12,
+      "quoted": 5484,
+      "unknown_after_hours": 5484,
+      "normalized_sha256": "23913f1db0fe507699e7341092d693b26f944564d81184b8363c894ad35c9520"
+    },
+    {
+      "date": "2026-04-02",
+      "status": "inputs_validated",
+      "listed": 5496,
+      "suspended": 12,
+      "quoted": 5484,
+      "unknown_after_hours": 5484,
+      "normalized_sha256": "c7b931289c6c48785e3a495d1842776a54956716ff34ef297f903b48c30d146a"
+    },
+    {
+      "date": "2026-04-03",
+      "status": "inputs_validated",
+      "listed": 5496,
+      "suspended": 11,
+      "quoted": 5485,
+      "unknown_after_hours": 5485,
+      "normalized_sha256": "ce2168544e7ca55bbbc13a117d3454c87a751be6332418220212a50a30ad7d43"
+    },
+    {
+      "date": "2026-04-07",
+      "status": "inputs_validated",
+      "listed": 5496,
+      "suspended": 13,
+      "quoted": 5483,
+      "unknown_after_hours": 5483,
+      "normalized_sha256": "701ff9b177d6ab8d0633bc45def36f59917761d74ce70b5fcdfbf508c6c20c8a"
+    },
+    {
+      "date": "2026-04-08",
+      "status": "inputs_validated",
+      "listed": 5498,
+      "suspended": 9,
+      "quoted": 5489,
+      "unknown_after_hours": 5489,
+      "normalized_sha256": "f9d1c8c32b338022e7e60b346fb5595278c5c58905d811efcb29f3aa24fc9e6d"
+    },
+    {
+      "date": "2026-04-09",
+      "status": "inputs_validated",
+      "listed": 5498,
+      "suspended": 8,
+      "quoted": 5490,
+      "unknown_after_hours": 5490,
+      "normalized_sha256": "55a368f89a04835bdacecb24d3cbd260108f8b656989689c1da65fabb19a61e9"
+    },
+    {
+      "date": "2026-04-10",
+      "status": "inputs_validated",
+      "listed": 5501,
+      "suspended": 7,
+      "quoted": 5494,
+      "unknown_after_hours": 5494,
+      "normalized_sha256": "66f51584f71a6d8b686eb22ef14fd96e80e4fc43d6aca00d0fe6802310cd178d"
+    },
+    {
+      "date": "2026-04-13",
+      "status": "inputs_validated",
+      "listed": 5501,
+      "suspended": 8,
+      "quoted": 5493,
+      "unknown_after_hours": 5493,
+      "normalized_sha256": "f7ca66360d6becab4d644b6fec2796cff669e5574ff1921eeadf31c955fa9d01"
+    },
+    {
+      "date": "2026-04-14",
+      "status": "inputs_validated",
+      "listed": 5501,
+      "suspended": 6,
+      "quoted": 5495,
+      "unknown_after_hours": 5495,
+      "normalized_sha256": "7dd9277f79ae4694a75f0778e6a25dfd1e1be113850332be3977a6c352dab36b"
+    },
+    {
+      "date": "2026-04-15",
+      "status": "inputs_validated",
+      "listed": 5501,
+      "suspended": 8,
+      "quoted": 5493,
+      "unknown_after_hours": 5493,
+      "normalized_sha256": "4d05185a0ea2d9deb739b870291a2e95b17f852b4ea3e4a93caa6d4555b6357d"
+    },
+    {
+      "date": "2026-04-16",
+      "status": "inputs_validated",
+      "listed": 5504,
+      "suspended": 7,
+      "quoted": 5497,
+      "unknown_after_hours": 5497,
+      "normalized_sha256": "b035f925a93a34de877df67840b3c2de31d4411db73b966d0e84f95369b03e90"
+    },
+    {
+      "date": "2026-04-17",
+      "status": "inputs_validated",
+      "listed": 5505,
+      "suspended": 9,
+      "quoted": 5496,
+      "unknown_after_hours": 5496,
+      "normalized_sha256": "850f5a13100aaab930f2c064b36748d3ba693d61ddc5fcfa248262238c43a61d"
+    },
+    {
+      "date": "2026-04-20",
+      "status": "inputs_validated",
+      "listed": 5506,
+      "suspended": 14,
+      "quoted": 5492,
+      "unknown_after_hours": 5492,
+      "normalized_sha256": "412f2b816d725743bd69b3ab61fcda69310be37c12e998b4063f9364b8e1edbd"
+    },
+    {
+      "date": "2026-04-21",
+      "status": "inputs_validated",
+      "listed": 5508,
+      "suspended": 11,
+      "quoted": 5497,
+      "unknown_after_hours": 5497,
+      "normalized_sha256": "c53639af1867b943dff452970c5957fb10bb11ef66723b367164b534d45fac69"
+    },
+    {
+      "date": "2026-04-22",
+      "status": "inputs_validated",
+      "listed": 5507,
+      "suspended": 11,
+      "quoted": 5496,
+      "unknown_after_hours": 5496,
+      "normalized_sha256": "f68b53cde5ba6bd2870d94302733ac1b5aa2f15497299904f89e12c75bc5af8c"
+    },
+    {
+      "date": "2026-04-23",
+      "status": "inputs_validated",
+      "listed": 5507,
+      "suspended": 14,
+      "quoted": 5493,
+      "unknown_after_hours": 5493,
+      "normalized_sha256": "57acdbd2571e29a8f1e231be7755489562c40b3611473c557e03ba5356437257"
+    },
+    {
+      "date": "2026-04-24",
+      "status": "inputs_validated",
+      "listed": 5509,
+      "suspended": 14,
+      "quoted": 5495,
+      "unknown_after_hours": 5495,
+      "normalized_sha256": "0ad17a2cb99b09003880bc41d32a1bcab3477630c82d7cd737f5efab83bb2fb4"
+    },
+    {
+      "date": "2026-04-27",
+      "status": "inputs_validated",
+      "listed": 5509,
+      "suspended": 15,
+      "quoted": 5494,
+      "unknown_after_hours": 5494,
+      "normalized_sha256": "6af6595cf396a90a8b53e8f72c14f16140ecc3ac0c964f74bfbe5da2d6e376c5"
+    },
+    {
+      "date": "2026-04-28",
+      "status": "inputs_validated",
+      "listed": 5509,
+      "suspended": 22,
+      "quoted": 5487,
+      "unknown_after_hours": 5487,
+      "normalized_sha256": "5165b1a14d6466ee7ae8ec488740d11893894dce9173f4ff44dd6f93f5d0f2bb"
+    },
+    {
+      "date": "2026-04-29",
+      "status": "inputs_validated",
+      "listed": 5510,
+      "suspended": 49,
+      "quoted": 5461,
+      "unknown_after_hours": 5461,
+      "normalized_sha256": "f7ebdd68da24364edf5773cf21330bb95e5c75a9917a9a239c88cc6a6f99a42b"
+    },
+    {
+      "date": "2026-04-30",
+      "status": "inputs_validated",
+      "listed": 5511,
+      "suspended": 52,
+      "quoted": 5459,
+      "unknown_after_hours": 5459,
+      "normalized_sha256": "de13bd6f283585c9f0dbd6cea5ba7ede3573c9237261cbd3f493a587c440ce65"
+    },
+    {
+      "date": "2026-05-06",
+      "status": "inputs_validated",
+      "listed": 5511,
+      "suspended": 22,
+      "quoted": 5489,
+      "unknown_after_hours": 5489,
+      "normalized_sha256": "54b0f6cc3bf1df675a570fa0203672c19c3122b3eb679186cc8351a00b7c12e7"
+    },
+    {
+      "date": "2026-05-07",
+      "status": "inputs_validated",
+      "listed": 5512,
+      "suspended": 20,
+      "quoted": 5492,
+      "unknown_after_hours": 5492,
+      "normalized_sha256": "105c5486af314cca2156a30e360147a1b920695120e64184986f4f5da1f97718"
+    },
+    {
+      "date": "2026-05-08",
+      "status": "inputs_validated",
+      "listed": 5512,
+      "suspended": 22,
+      "quoted": 5490,
+      "unknown_after_hours": 5490,
+      "normalized_sha256": "5d264f8e0f49eefcbe220bc744f15b473d25d93a82ecd31117f421d7e97a3a78"
+    },
+    {
+      "date": "2026-05-11",
+      "status": "inputs_validated",
+      "listed": 5514,
+      "suspended": 24,
+      "quoted": 5490,
+      "unknown_after_hours": 5490,
+      "normalized_sha256": "0a1267597329a83d7193d452ad81eaaeec56b57444ceea30bcc0dd5004b3b564"
+    },
+    {
+      "date": "2026-05-12",
+      "status": "inputs_validated",
+      "listed": 5514,
+      "suspended": 25,
+      "quoted": 5489,
+      "unknown_after_hours": 5489,
+      "normalized_sha256": "d957437f8d2271daf5746b94b56adc32d3ebbb292d7c321639e30f92fcbf8b7f"
+    },
+    {
+      "date": "2026-05-13",
+      "status": "inputs_validated",
+      "listed": 5514,
+      "suspended": 22,
+      "quoted": 5492,
+      "unknown_after_hours": 5492,
+      "normalized_sha256": "558418d77e2d6ed3dd8e9e74a5a864968f105a92960dd971b2bdd1efb2361d9c"
+    },
+    {
+      "date": "2026-05-14",
+      "status": "inputs_validated",
+      "listed": 5514,
+      "suspended": 22,
+      "quoted": 5492,
+      "unknown_after_hours": 5492,
+      "normalized_sha256": "882032c771c7b95c2df4526c4739f0e7a0bd22b409855ff7d7a2b540ac25a141"
+    },
+    {
+      "date": "2026-05-15",
+      "status": "inputs_validated",
+      "listed": 5516,
+      "suspended": 22,
+      "quoted": 5494,
+      "unknown_after_hours": 5494,
+      "normalized_sha256": "7430512dae072ff39a1316e01eef50823f287ccbb8277534061fcda307f85430"
+    },
+    {
+      "date": "2026-05-18",
+      "status": "inputs_validated",
+      "listed": 5518,
+      "suspended": 20,
+      "quoted": 5498,
+      "unknown_after_hours": 5498,
+      "normalized_sha256": "4af040a8e40a83625001d08b58a9b4a7fcdf341e9c4bd4b65c52cdf8adbc9823"
+    },
+    {
+      "date": "2026-05-19",
+      "status": "inputs_validated",
+      "listed": 5518,
+      "suspended": 25,
+      "quoted": 5493,
+      "unknown_after_hours": 5493,
+      "normalized_sha256": "8c1ca8ee9a882e1d10a336e8a562de7e686c9c1c4c966991dd21a4b2cf2d851f"
+    },
+    {
+      "date": "2026-05-20",
+      "status": "inputs_validated",
+      "listed": 5518,
+      "suspended": 21,
+      "quoted": 5497,
+      "unknown_after_hours": 5497,
+      "normalized_sha256": "9a5004ed4ca11fc142e769c97ae03bb08aaf795c7c940ef49675b3f54cf64c8a"
+    },
+    {
+      "date": "2026-05-21",
+      "status": "inputs_validated",
+      "listed": 5518,
+      "suspended": 18,
+      "quoted": 5500,
+      "unknown_after_hours": 5500,
+      "normalized_sha256": "244aa6f6de67dc2b30d0754822a4d585ce653270e26338c1e9ff994c8e9d29b9"
+    },
+    {
+      "date": "2026-05-22",
+      "status": "inputs_validated",
+      "listed": 5521,
+      "suspended": 18,
+      "quoted": 5503,
+      "unknown_after_hours": 5503,
+      "normalized_sha256": "dd656c1457eb324b98bfd160a22da26a822f4c2592145daa1c1b0a985ee1578e"
+    },
+    {
+      "date": "2026-05-25",
+      "status": "inputs_validated",
+      "listed": 5521,
+      "suspended": 18,
+      "quoted": 5503,
+      "unknown_after_hours": 5503,
+      "normalized_sha256": "902ad7aba9521c32c960ca288064a0a7019124eb9f0e07a2cac926134de7e9a8"
+    },
+    {
+      "date": "2026-05-26",
+      "status": "inputs_validated",
+      "listed": 5521,
+      "suspended": 18,
+      "quoted": 5503,
+      "unknown_after_hours": 5503,
+      "normalized_sha256": "be38aa3e6e0990b70009db0d066d56db12b391cd9374b78f5e002cedf4d25ead"
+    },
+    {
+      "date": "2026-05-27",
+      "status": "inputs_validated",
+      "listed": 5523,
+      "suspended": 18,
+      "quoted": 5505,
+      "unknown_after_hours": 5505,
+      "normalized_sha256": "c96175c67f424ed1a5c48da314abe2312ebfb68f1fb96e234d6e52088ec6702c"
+    },
+    {
+      "date": "2026-05-28",
+      "status": "inputs_validated",
+      "listed": 5523,
+      "suspended": 18,
+      "quoted": 5505,
+      "unknown_after_hours": 5505,
+      "normalized_sha256": "31f009752187f6a00b22da934e25547797ff1f2a02eb66658cd96dcea5993f0a"
+    },
+    {
+      "date": "2026-05-29",
+      "status": "inputs_validated",
+      "listed": 5524,
+      "suspended": 19,
+      "quoted": 5505,
+      "unknown_after_hours": 5505,
+      "normalized_sha256": "04c0bbe2450ddfdb9a593793a4aac05f4326e32e55cfe5e0a6018ad147bc3dc7"
+    },
+    {
+      "date": "2026-06-01",
+      "status": "inputs_validated",
+      "listed": 5524,
+      "suspended": 17,
+      "quoted": 5507,
+      "unknown_after_hours": 5507,
+      "normalized_sha256": "a16e6f753558fb97dbb0de9cbd0a01d45a6c0943c2dc1262566e01590a6bdd13"
+    },
+    {
+      "date": "2026-06-02",
+      "status": "inputs_validated",
+      "listed": 5524,
+      "suspended": 18,
+      "quoted": 5506,
+      "unknown_after_hours": 5506,
+      "normalized_sha256": "4ffb7ca19fd270839acba9b39ab88f32690ba12e5dc45a675ccf3f3da45df41f"
+    },
+    {
+      "date": "2026-06-03",
+      "status": "inputs_validated",
+      "listed": 5523,
+      "suspended": 13,
+      "quoted": 5510,
+      "unknown_after_hours": 5510,
+      "normalized_sha256": "8a277bffef7a4d1efc680dd58847844c47f818262fb0a4a4ecc02965e8683ec9"
+    },
+    {
+      "date": "2026-06-04",
+      "status": "inputs_validated",
+      "listed": 5523,
+      "suspended": 13,
+      "quoted": 5510,
+      "unknown_after_hours": 5510,
+      "normalized_sha256": "a8e4d436b39ad0a51805018144d8baac12f2be13f6ac1bad8061173a0d9a6118"
+    },
+    {
+      "date": "2026-06-05",
+      "status": "inputs_validated",
+      "listed": 5524,
+      "suspended": 11,
+      "quoted": 5513,
+      "unknown_after_hours": 5513,
+      "normalized_sha256": "4712fc9bec3b532219132a5d5b79af386c31572728c9c3d0f28005c0faf13ba5"
+    },
+    {
+      "date": "2026-06-08",
+      "status": "inputs_validated",
+      "listed": 5525,
+      "suspended": 11,
+      "quoted": 5514,
+      "unknown_after_hours": 5514,
+      "normalized_sha256": "5472760f9c8e3ddb9164718dd4c47631a7e0828c2cf976378235b295e35219ab"
+    },
+    {
+      "date": "2026-06-09",
+      "status": "inputs_validated",
+      "listed": 5526,
+      "suspended": 12,
+      "quoted": 5514,
+      "unknown_after_hours": 5514,
+      "normalized_sha256": "b08c867495f5bc3ee8702dc94f33b1449b0ba31371a6c18eebbcc9831fff39f3"
+    },
+    {
+      "date": "2026-06-10",
+      "status": "inputs_validated",
+      "listed": 5525,
+      "suspended": 14,
+      "quoted": 5511,
+      "unknown_after_hours": 5511,
+      "normalized_sha256": "ea2ab87f67c1de472aea5c62ba8faf113e422d61e689a933e594b92322e9a72f"
+    },
+    {
+      "date": "2026-06-11",
+      "status": "inputs_validated",
+      "listed": 5526,
+      "suspended": 16,
+      "quoted": 5510,
+      "unknown_after_hours": 5510,
+      "normalized_sha256": "62788817d3285e13d3d7cf96c4e74ca2c386b0dcf559adbd272e2b9d7243335c"
+    },
+    {
+      "date": "2026-06-12",
+      "status": "inputs_validated",
+      "listed": 5526,
+      "suspended": 15,
+      "quoted": 5511,
+      "unknown_after_hours": 5511,
+      "normalized_sha256": "0442e9d7c2c1a0f74deb4b26cf4b15f53b61f2257e5781eba677ac2a53f364fa"
+    },
+    {
+      "date": "2026-06-15",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 20,
+      "quoted": 5507,
+      "unknown_after_hours": 5507,
+      "normalized_sha256": "22fdada76e78a5ed9c05f5eed25ad3b82440c53c0653c8671f8986edca4be240"
+    },
+    {
+      "date": "2026-06-16",
+      "status": "failed",
+      "reason": "tushare_breadth_suspension_conflict"
+    },
+    {
+      "date": "2026-06-17",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 19,
+      "quoted": 5508,
+      "unknown_after_hours": 5508,
+      "normalized_sha256": "351c205c004ef9dc592ff976fa81498acb5f12341098ee99825d352fedf48705"
+    },
+    {
+      "date": "2026-06-18",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 21,
+      "quoted": 5506,
+      "unknown_after_hours": 5506,
+      "normalized_sha256": "a23be02ded4297f72ff5a74a5fd8de1ab6bbfe227ecaafcc02be0109e81a1009"
+    },
+    {
+      "date": "2026-06-22",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 18,
+      "quoted": 5509,
+      "unknown_after_hours": 5509,
+      "normalized_sha256": "0df8d884b63cc98d894963db30a93d79f5e239feab5f3a9bb2fc4a54996afbc2"
+    },
+    {
+      "date": "2026-06-23",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 15,
+      "quoted": 5512,
+      "unknown_after_hours": 5512,
+      "normalized_sha256": "48c2eddeadb4cb2e991221e7fb8a7c909244dbe4e794a197c07e5440f950de0a"
+    },
+    {
+      "date": "2026-06-24",
+      "status": "inputs_validated",
+      "listed": 5528,
+      "suspended": 17,
+      "quoted": 5511,
+      "unknown_after_hours": 5511,
+      "normalized_sha256": "bc0bfa15242182b514747bb9cef6c6ec182e6e49718bee6a8f3615ad4887fa51"
+    },
+    {
+      "date": "2026-06-25",
+      "status": "inputs_validated",
+      "listed": 5528,
+      "suspended": 18,
+      "quoted": 5510,
+      "unknown_after_hours": 5510,
+      "normalized_sha256": "878f8e3aa7b3450dc02a41b880acfb733be7e1a5a54bf35a61d0a2de92c6b61c"
+    },
+    {
+      "date": "2026-06-26",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 15,
+      "quoted": 5512,
+      "unknown_after_hours": 5512,
+      "normalized_sha256": "72f2f5dd6f676c72619337a22ba6ccfbc28dae7b5c84074a026b027e6536a036"
+    },
+    {
+      "date": "2026-06-29",
+      "status": "inputs_validated",
+      "listed": 5526,
+      "suspended": 17,
+      "quoted": 5509,
+      "unknown_after_hours": 5509,
+      "normalized_sha256": "471fd9b2e33401cec4541f777ea11bdb366a6267ae286e7f1714ac6453459ff4"
+    },
+    {
+      "date": "2026-06-30",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 20,
+      "quoted": 5507,
+      "unknown_after_hours": 5507,
+      "normalized_sha256": "6258b45380a6d5f9439f74e5f55c35f13c796b3e439bacc431a572024e20fcbb"
+    },
+    {
+      "date": "2026-07-01",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 17,
+      "quoted": 5510,
+      "unknown_after_hours": 5510,
+      "normalized_sha256": "81a7663e1463d136b82940f4efddf888e09b4a91808511b00cacb3ded73d2cbf"
+    },
+    {
+      "date": "2026-07-02",
+      "status": "inputs_validated",
+      "listed": 5529,
+      "suspended": 13,
+      "quoted": 5516,
+      "unknown_after_hours": 5516,
+      "normalized_sha256": "f52bf7a9dcd683b14eb334341dd4ead9a8e359fecf9cc68f0598eca0519cac66"
+    },
+    {
+      "date": "2026-07-03",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 12,
+      "quoted": 5515,
+      "unknown_after_hours": 5515,
+      "normalized_sha256": "eb28c04083ed4e8363c5da2a0341dda3933786647ed2f1a3123456ceae8b3bd5"
+    },
+    {
+      "date": "2026-07-06",
+      "status": "failed",
+      "reason": "tushare_breadth_suspension_conflict"
+    },
+    {
+      "date": "2026-07-07",
+      "status": "inputs_validated",
+      "listed": 5526,
+      "suspended": 10,
+      "quoted": 5516,
+      "unknown_after_hours": 323,
+      "normalized_sha256": "36bc11cc978775d2a520ce8f260bcf368d9bb4dddde5edf5940d3b1f45487150"
+    },
+    {
+      "date": "2026-07-08",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 10,
+      "quoted": 5517,
+      "unknown_after_hours": 324,
+      "normalized_sha256": "60a155f185a17c3e9f54cae98c2b8ff8d64d3bf99541fe6d00a8b0d53b2cb0a2"
+    },
+    {
+      "date": "2026-07-09",
+      "status": "inputs_validated",
+      "listed": 5528,
+      "suspended": 9,
+      "quoted": 5519,
+      "unknown_after_hours": 326,
+      "normalized_sha256": "9f67bfa7750cd85a7eea34343d62ed02e8c1b03701bacacdd6f5ecbdfc1e48e2"
+    },
+    {
+      "date": "2026-07-10",
+      "status": "inputs_validated",
+      "listed": 5529,
+      "suspended": 9,
+      "quoted": 5520,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "f135c076cba564d67eadef4af773e164a8087de9afcf474ab9a62b59239fddf9"
+    },
+    {
+      "date": "2026-07-13",
+      "status": "inputs_validated",
+      "listed": 5529,
+      "suspended": 6,
+      "quoted": 5523,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "3f66f00662da2df5a1478f8faac9c9d4fa4dfc7906ccf8a839996894b6df2c93"
+    },
+    {
+      "date": "2026-07-14",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 4,
+      "quoted": 5523,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "fb05659dd4ea75504fb77e491839409e7795adc211aa030d74992914ca340bf3"
+    },
+    {
+      "date": "2026-07-15",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 3,
+      "quoted": 5524,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "3c0cf6e96a50aeee96f19d592611b67e821a8837a6feedc8a789541e854270b6"
+    },
+    {
+      "date": "2026-07-16",
+      "status": "inputs_validated",
+      "listed": 5528,
+      "suspended": 5,
+      "quoted": 5523,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "aa8702af90d4733e267b7aee2f877c4f84cdfe1dd2a633ea6fbf01886e68ee19"
+    },
+    {
+      "date": "2026-07-17",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 6,
+      "quoted": 5521,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "7e7fd332d2d9016d57fd988bec86dc13dc22bf6ffcc3f869848e0d9a28b52cbb"
+    },
+    {
+      "date": "2026-07-20",
+      "status": "inputs_validated",
+      "listed": 5527,
+      "suspended": 4,
+      "quoted": 5523,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "047c2f3a31b238ad252622b69c81e6fdda45b74ddfa74508a18a0f35c70e5bf6"
+    },
+    {
+      "date": "2026-07-21",
+      "status": "inputs_validated",
+      "listed": 5528,
+      "suspended": 4,
+      "quoted": 5524,
+      "unknown_after_hours": 327,
+      "normalized_sha256": "46215aa3c30f49cfd6f3dfaf63933f3df904b8c9fa9f1e13aeee4b3bdbfbd81a"
+    },
+    {
+      "date": "2026-07-22",
+      "status": "inputs_validated",
+      "listed": 5529,
+      "suspended": 4,
+      "quoted": 5525,
+      "unknown_after_hours": 328,
+      "normalized_sha256": "13a94e5b092783f291c2112567d85e9994ae7883bc0a8ce90bdc1f1679572c4d"
+    },
+    {
+      "date": "2026-07-23",
+      "status": "inputs_validated",
+      "listed": 5529,
+      "suspended": 4,
+      "quoted": 5525,
+      "unknown_after_hours": 328,
+      "normalized_sha256": "c9cd6135a62db06682784a86ea0b4c1544af75e86f851e2080e5c73cdd0ca2a4"
+    },
+    {
+      "date": "2026-07-24",
+      "status": "inputs_validated",
+      "listed": 5530,
+      "suspended": 5,
+      "quoted": 5525,
+      "unknown_after_hours": 329,
+      "normalized_sha256": "cb706533af7af05779f834a286c9c47bf34738d0780be75152176a76835247b3"
+    },
+    {
+      "date": "2026-07-27",
+      "status": "inputs_validated",
+      "listed": 5532,
+      "suspended": 10,
+      "quoted": 5522,
+      "unknown_after_hours": 330,
+      "normalized_sha256": "00fda77880c368c12cba80b59c2c400c683358edc546c05caa315be3bf86bc5f"
+    },
+    {
+      "date": "2026-07-28",
+      "status": "inputs_validated",
+      "listed": 5532,
+      "suspended": 9,
+      "quoted": 5523,
+      "unknown_after_hours": 330,
+      "normalized_sha256": "7ee28dfffb7df07f887586815329ee68b1c05c381501a5dd066133c23979675a"
+    },
+    {
+      "date": "2026-07-29",
+      "status": "inputs_validated",
+      "listed": 5533,
+      "suspended": 10,
+      "quoted": 5523,
+      "unknown_after_hours": 331,
+      "normalized_sha256": "c1c324c80f448cb8ba6934e8f64d89cc766eef0230be93265f5fdef126b3c33a"
+    },
+    {
+      "date": "2026-07-30",
+      "status": "inputs_validated",
+      "listed": 5533,
+      "suspended": 6,
+      "quoted": 5527,
+      "unknown_after_hours": 331,
+      "normalized_sha256": "8f8a8f5cbf4ae121ba3676fbff3a435acb8ae748c7d33693e4ac56cc05b5ad51"
+    },
+    {
+      "date": "2026-07-31",
+      "status": "inputs_validated",
+      "listed": 5533,
+      "suspended": 6,
+      "quoted": 5527,
+      "unknown_after_hours": 331,
+      "normalized_sha256": "c6112a2a02ba60789dfa3f75fe3e142d5b218d3b12e323791b42b778f48df7ed"
+    },
+    {
+      "date": "2026-08-03",
+      "status": "inputs_validated",
+      "listed": 5534,
+      "suspended": 6,
+      "quoted": 5528,
+      "unknown_after_hours": 332,
+      "normalized_sha256": "9f970b8bb0fed188739af8b6427e57ca2d5c95a5bf6045aa2feafe0a16fe9769"
+    },
+    {
+      "date": "2026-08-04",
+      "status": "inputs_validated",
+      "listed": 5535,
+      "suspended": 7,
+      "quoted": 5528,
+      "unknown_after_hours": 332,
+      "normalized_sha256": "377ee8fe205ad7202a69f919dd50eadf196ae95ec253aba544b4bb684c3025fd"
+    },
+    {
+      "date": "2026-08-05",
+      "status": "inputs_validated",
+      "listed": 5536,
+      "suspended": 5,
+      "quoted": 5531,
+      "unknown_after_hours": 333,
+      "normalized_sha256": "e1ca69ce2fa149a4ac4758c8acc9192a281eac9e22448fb7c4c6dedb4325efc1"
+    },
+    {
+      "date": "2026-08-06",
+      "status": "inputs_validated",
+      "listed": 5537,
+      "suspended": 5,
+      "quoted": 5532,
+      "unknown_after_hours": 333,
+      "normalized_sha256": "1f7f45f58cc51b8f4287c0f56c659152c44fa98fdfe935e23f907498e27039b6"
+    },
+    {
+      "date": "2026-08-07",
+      "status": "inputs_validated",
+      "listed": 5538,
+      "suspended": 4,
+      "quoted": 5534,
+      "unknown_after_hours": 333,
+      "normalized_sha256": "bac1f4d0593f895058a1245bf8d6731f71c03e908f9d350292731467eae2de7a"
+    },
+    {
+      "date": "2026-08-10",
+      "status": "inputs_validated",
+      "listed": 5538,
+      "suspended": 1,
+      "quoted": 5537,
+      "unknown_after_hours": 333,
+      "normalized_sha256": "f32c57425d4cd70f344d73ef0d32fa15b7e7b93bb43a3648423f30c0ece6955b"
+    },
+    {
+      "date": "2026-08-11",
+      "status": "inputs_validated",
+      "listed": 5541,
+      "suspended": 3,
+      "quoted": 5538,
+      "unknown_after_hours": 334,
+      "normalized_sha256": "d2ec2e4d36c37160d520d64c2fabe6d97628fcc6bc6922738c77aa999fede22f"
+    },
+    {
+      "date": "2026-08-12",
+      "status": "inputs_validated",
+      "listed": 5542,
+      "suspended": 4,
+      "quoted": 5538,
+      "unknown_after_hours": 335,
+      "normalized_sha256": "ac8ecf08160712e11595b06f9f09e3c3d342a26c102705e4571df70ebdb0ba69"
+    },
+    {
+      "date": "2026-08-13",
+      "status": "inputs_validated",
+      "listed": 5542,
+      "suspended": 3,
+      "quoted": 5539,
+      "unknown_after_hours": 335,
+      "normalized_sha256": "eea9571d2abf60eafa0df57e01451f388346589be89360a0d7668c591a10be89"
+    },
+    {
+      "date": "2026-08-14",
+      "status": "inputs_validated",
+      "listed": 5542,
+      "suspended": 3,
+      "quoted": 5539,
+      "unknown_after_hours": 335,
+      "normalized_sha256": "5d0335a44b2f7178d6001bf41223fac49dd6fff07033be6d00b07ba4632617f2"
+    },
+    {
+      "date": "2026-08-17",
+      "status": "inputs_validated",
+      "listed": 5543,
+      "suspended": 5,
+      "quoted": 5538,
+      "unknown_after_hours": 336,
+      "normalized_sha256": "87c831e2122d797c88c0fe6f2979cca2d6ffd64bc5dadeeead2c3d98369d0c35"
+    },
+    {
+      "date": "2026-08-18",
+      "status": "inputs_validated",
+      "listed": 5544,
+      "suspended": 5,
+      "quoted": 5539,
+      "unknown_after_hours": 336,
+      "normalized_sha256": "9328bd98cc21b3be6c253be6d83888a7305a33b90acd34243b66d589544a9582"
+    },
+    {
+      "date": "2026-08-19",
+      "status": "inputs_validated",
+      "listed": 5546,
+      "suspended": 6,
+      "quoted": 5540,
+      "unknown_after_hours": 337,
+      "normalized_sha256": "79a47a3a8d94b9a04094b571095f84d803e6d2c0691e14bd01d3b844b9e23da5"
+    },
+    {
+      "date": "2026-08-20",
+      "status": "inputs_validated",
+      "listed": 5547,
+      "suspended": 7,
+      "quoted": 5540,
+      "unknown_after_hours": 337,
+      "normalized_sha256": "6402cde40e65409e80bb77846bc4ad784172027bbdedd1f7f39add6508d9e9e5"
+    },
+    {
+      "date": "2026-08-21",
+      "status": "inputs_validated",
+      "listed": 5548,
+      "suspended": 6,
+      "quoted": 5542,
+      "unknown_after_hours": 338,
+      "normalized_sha256": "0101ddd5684a9d37ca40af347eed4d99d5f7bb893f84c8de500cbf9d0cb36a50"
+    },
+    {
+      "date": "2026-08-24",
+      "status": "inputs_validated",
+      "listed": 5548,
+      "suspended": 4,
+      "quoted": 5544,
+      "unknown_after_hours": 338,
+      "normalized_sha256": "4d366d529d4fd5d468cc8f1c7639648b4e2129abad90160b1d8861ef06f4e4d7"
+    },
+    {
+      "date": "2026-08-25",
+      "status": "inputs_validated",
+      "listed": 5549,
+      "suspended": 4,
+      "quoted": 5545,
+      "unknown_after_hours": 338,
+      "normalized_sha256": "490f6fa8224554cbe18b59c71ab963988cab48013591620da044789c17fcc796"
+    },
+    {
+      "date": "2026-08-26",
+      "status": "inputs_validated",
+      "listed": 5549,
+      "suspended": 3,
+      "quoted": 5546,
+      "unknown_after_hours": 338,
+      "normalized_sha256": "52c989bf5c22e98a951b49ab0a2d3674553e9b7ea159699628eb7b6d5a075e5f"
+    },
+    {
+      "date": "2026-08-27",
+      "status": "inputs_validated",
+      "listed": 5549,
+      "suspended": 3,
+      "quoted": 5546,
+      "unknown_after_hours": 338,
+      "normalized_sha256": "2fb997fc9058141890779ee02b328404a4c059c0afe7f6f98e23ac2e372ba916"
+    },
+    {
+      "date": "2026-08-28",
+      "status": "inputs_validated",
+      "listed": 5550,
+      "suspended": 4,
+      "quoted": 5546,
+      "unknown_after_hours": 339,
+      "normalized_sha256": "e2ff95bf5ecdc3d2c39221049175842633fd3cb9d15b1a654c474f2e6b4954d9"
+    }
+  ],
+  "receipts": [
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260309"
+        }
+      },
+      "fetched_at": "2026-09-05T13:37:59.245017+00:00",
+      "raw_sha256": "294e4bde9637f4bd72cab6b40d1fb597b82a2f3d31c0db1b7507dedde9040f22",
+      "bytes": 197869
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260309"
+        }
+      },
+      "fetched_at": "2026-09-05T13:37:59.770458+00:00",
+      "raw_sha256": "ff4114485d45e5740316e7760f8df447aaa10dea740f64d140c0cb48bc8d1b21",
+      "bytes": 284511
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260309"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:00.173961+00:00",
+      "raw_sha256": "795af5d2d796474257b106d2f2f8662bd74490c50b15770fbbe0fc89076939b9",
+      "bytes": 572
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260310"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:00.725560+00:00",
+      "raw_sha256": "1b3b781e035bd5f97e868e0e4ddda728dc78d6bbbf66a64b3a645d1f7a05d229",
+      "bytes": 197869
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260310"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:01.296651+00:00",
+      "raw_sha256": "732ce25f25a14bd40069a615af1af0ea60a297fe43fdbf369082cc53458d3e5a",
+      "bytes": 284027
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260310"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:00.542655+00:00",
+      "raw_sha256": "3c7e58ebed36ca64e7f50c38f8f9cb3f15d4aa667bf19e4300f763e49ab871bd",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260311"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:01.113444+00:00",
+      "raw_sha256": "1b1c6bc5e45d9efa099f629085430fcad80df1691636e05a0897bcba155a3c28",
+      "bytes": 197898
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260311"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:01.596777+00:00",
+      "raw_sha256": "e8a8023b66393bf2de0f93e50dffd354534e6b12c1af165ba4165eead30fd602",
+      "bytes": 284375
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260311"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:02.060055+00:00",
+      "raw_sha256": "29f303f186bded453be0881024f57bcd8f506a07fe7c9ecc8317e6a8313e497d",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260312"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:02.598678+00:00",
+      "raw_sha256": "475dca076ea0660bdcffb2944e761453fe80872690068b738a0720ee0ecf7cfa",
+      "bytes": 197898
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260312"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:03.094599+00:00",
+      "raw_sha256": "0ceefea2955335fbd0620b41730349b82e0f762a89e51805cbf7b77adb2673b8",
+      "bytes": 284245
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260312"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:03.532716+00:00",
+      "raw_sha256": "64aaff0f1282363c13a5cc2efc73db48d6510570d0041e53dea90afa23cd1400",
+      "bytes": 436
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260313"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:04.111283+00:00",
+      "raw_sha256": "d7f99e1d60b1d9703026fe1e9513bb202168528dbcfc646fc797c8c829c08eed",
+      "bytes": 197985
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260313"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:04.604449+00:00",
+      "raw_sha256": "0fbf78047342636357058641a217ac08141e46c5d2bcc184309936fe8fc9f05b",
+      "bytes": 284213
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260313"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:05.036471+00:00",
+      "raw_sha256": "087837bd50664e9fb5da0ce3cefdc4b410454573eac76a687d55b39c57735c1a",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260316"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:05.578202+00:00",
+      "raw_sha256": "363eecc003b42840611eec096b666b9c956baf4844d38080c04aafd624483bcf",
+      "bytes": 198014
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260316"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:06.101515+00:00",
+      "raw_sha256": "818338c1588cc52f52c8c7543978f9f3926c060bd26e986119c1960db0c0b330",
+      "bytes": 283968
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260316"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:06.543220+00:00",
+      "raw_sha256": "f509fdc3d236ab6fa773cc77b3817b4db3052afed664b23b4cc6741b7a1b1158",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260317"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:07.082131+00:00",
+      "raw_sha256": "b276145cccbfcbfea16d51d63c151f7a3a4679c738194719516946b4762c29a5",
+      "bytes": 198014
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260317"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:07.597706+00:00",
+      "raw_sha256": "c651737c248d2e084135ba3692229379e752a320d273b7d67d31eb63f355426b",
+      "bytes": 283919
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260317"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:08.027183+00:00",
+      "raw_sha256": "13626bde6c5feb0a0359f43feaff475dea4333a2f13e5dcfd9639900e78f3d0b",
+      "bytes": 606
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260318"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:08.610807+00:00",
+      "raw_sha256": "2ca31ebe1262fe9bd08af03df5e6451cbce512e3bf597c22593ea1dbb4bf84fd",
+      "bytes": 198050
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260318"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:09.137867+00:00",
+      "raw_sha256": "573b1597b1d04244c15411aa5d1e2ad246ec5caed6391dd9fe5a28adcd3d1cba",
+      "bytes": 283703
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260318"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:09.541389+00:00",
+      "raw_sha256": "e64bb5e2424c37cd3a2c52eb7de34a4602caf2e9258f266b8e1c4d9e63321707",
+      "bytes": 572
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260319"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:10.109177+00:00",
+      "raw_sha256": "30d8191e3bb61bd19788aa7b3247e32637588072be33475bc161cb7e2981ebb5",
+      "bytes": 198050
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260319"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:10.635988+00:00",
+      "raw_sha256": "ab2a229adb8b983597d482c1376f87db6f6d2846c2a849c58d7824e655651cca",
+      "bytes": 283733
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260319"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:11.051315+00:00",
+      "raw_sha256": "5763ee8817016b04b524a016ecfe9fa5ee80d1459c510fa9c24ee7b9dde1f703",
+      "bytes": 606
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260320"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:11.761885+00:00",
+      "raw_sha256": "e6d15611a6f0b81640b62f39311ebff43a7f7e1367e5bf2d014284dfae1c916d",
+      "bytes": 198079
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260320"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:12.124330+00:00",
+      "raw_sha256": "dcb60fa76c9dfe62b8c09075275fbb8b72c5e16a008886091999382b2028f98e",
+      "bytes": 283766
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260320"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:12.539529+00:00",
+      "raw_sha256": "d67745582cc8e66df6414942cc056f29aae1d6ddf8c54e3331c7cd51f5ac368b",
+      "bytes": 661
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260323"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:13.119678+00:00",
+      "raw_sha256": "7aee0f386fbe0a7aa722f87efaf0142424f57ca53b1a84bdb614c6c99e70602b",
+      "bytes": 198137
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260323"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:13.610188+00:00",
+      "raw_sha256": "d619d02b54367a1d43c3de8aa1448070d2f2cfd54a278b97a0675cd2f583dd4a",
+      "bytes": 284219
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260323"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:14.054417+00:00",
+      "raw_sha256": "4e38686116ca305fd760a827969f473b2f85859a86c6f01641fa3f9e08e73167",
+      "bytes": 572
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260324"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:14.599618+00:00",
+      "raw_sha256": "e23a5c6070cfb746fdb0d8eba7c3e28d9e05c77ea1b0c26583f4daf2abc9b99c",
+      "bytes": 198137
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260324"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:15.116569+00:00",
+      "raw_sha256": "087118ee5ca8416b8a1dede28432bf6226b9281abea55ae020bd7319de55c31c",
+      "bytes": 283493
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260324"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:15.540931+00:00",
+      "raw_sha256": "7f745a477fcfbbc5602ae44ccb8c3b9db4ae432e9a060dd14416415df9b34ccb",
+      "bytes": 572
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260325"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:16.126253+00:00",
+      "raw_sha256": "a1df87775830c16ac976b1007787910948f6132cc4904e408528bddf03851108",
+      "bytes": 198180
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260325"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:16.630375+00:00",
+      "raw_sha256": "832b947338cf2121601151a8a1b09d4e7a5f54be6ed6c1a6954eec3e6d909d2d",
+      "bytes": 283681
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260325"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:17.068043+00:00",
+      "raw_sha256": "d3791f23a6f8bf6abac1513aaea2fa80de9da7d4d88242600f40494b97ca10d5",
+      "bytes": 572
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260326"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:17.617078+00:00",
+      "raw_sha256": "ca8d9b75b1c2a55c31dae1c396cbf13ca190810f15925774163372657366b348",
+      "bytes": 198180
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260326"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:18.118032+00:00",
+      "raw_sha256": "784dc8115a3f9de51f9e669f975f96af428e6e6b2fa7e1dcb7778cb076d3410a",
+      "bytes": 283437
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260326"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:18.547136+00:00",
+      "raw_sha256": "f07a49d91d765386479b2dbd4d611c84520dfcd073bdd9cc43eabb6aa7c0a7a6",
+      "bytes": 640
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260327"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:19.162424+00:00",
+      "raw_sha256": "aa55252c6b569128e739de74db4c758155f33f39f4b534aaf2602f23b250cee5",
+      "bytes": 198180
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260327"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:19.611961+00:00",
+      "raw_sha256": "7e0402a9fcd11d7b4b75f85cc523a0833cb74128c3b386320c55667f4e2363b0",
+      "bytes": 283104
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260327"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:20.051088+00:00",
+      "raw_sha256": "b5fa7fa1c8406b9b74dcfc57278d6a068f93bda9d8f11ed12d7f1606640a8794",
+      "bytes": 742
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260330"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:20.617324+00:00",
+      "raw_sha256": "7542bf845dc13fc458574b13de2b18f30b80c679d0272dddfb3355bd2cb9e37e",
+      "bytes": 198274
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260330"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:21.177453+00:00",
+      "raw_sha256": "28a23f2864a2201c6104876cc7b18e4679bdd6846fba842c44884516468ceafd",
+      "bytes": 283160
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260330"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:21.551589+00:00",
+      "raw_sha256": "49b3cdd6f673c0415ebb1f0ffdbb51fe8edbfdeec628de2868a4bf62c9046ec1",
+      "bytes": 878
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260331"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:22.106528+00:00",
+      "raw_sha256": "c6d5ba1c9ca32299e4bee6f7e380049c8ccca0a34cf82aabc3bd3009aecd01c7",
+      "bytes": 198223
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260331"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:22.616736+00:00",
+      "raw_sha256": "e288efb9c817d6c21ce3998a247b7f57172e0f1670ca7e5dc20ba52689608403",
+      "bytes": 283414
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260331"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:23.051344+00:00",
+      "raw_sha256": "d744bcfa787b5ccf3d37bd9e5fcaa497bdedf0f71eed51aa64e251d1654f3ff6",
+      "bytes": 878
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260401"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:23.626897+00:00",
+      "raw_sha256": "6b8dedf018cfc3655592178a264ac85e367fcfb4cf210a61544e3e1c8e2d1791",
+      "bytes": 198317
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260401"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:24.136680+00:00",
+      "raw_sha256": "6c00ec64db71185344a5428d66808cee3f651b0c9ea5e9bd88a4f1550377e81a",
+      "bytes": 283517
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260401"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:29.565655+00:00",
+      "raw_sha256": "b9c02429f8da809b4aa63398c33cf25ef78214d2bd11cf6736714ed8d89c1744",
+      "bytes": 708
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260402"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:29.753116+00:00",
+      "raw_sha256": "8e24b361f8c3152c91d1cce091144ac0e7be04c4e8c923f182e6b5a40d0345ce",
+      "bytes": 198317
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260402"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:30.256087+00:00",
+      "raw_sha256": "2b5b6089172b51c0db5dac9a5a86de733939850d533d5a50ba1b1841f5683617",
+      "bytes": 283630
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260402"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:30.675376+00:00",
+      "raw_sha256": "876276ad3c68dbc890a36e3df3f168940c498cb265ffa025fe29de9cdf39eb0c",
+      "bytes": 674
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260403"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:31.222223+00:00",
+      "raw_sha256": "36a90c4fc748f71c547fd0367ec739be8cbda6832f1d9b3720e4a2ef63b325cb",
+      "bytes": 198317
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260403"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:31.903803+00:00",
+      "raw_sha256": "7bf3fafc2f942bcf72efadb51d5fff7b54cb78567b4740a60735b9afba0386bc",
+      "bytes": 283286
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260403"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:32.319932+00:00",
+      "raw_sha256": "ea9e727d8f43c1acbd56c483e2ed91f88e39323c4e807c4800481a616c5ab5aa",
+      "bytes": 640
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260407"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:32.944857+00:00",
+      "raw_sha256": "a6bf2ad44012990883a549a3e701b4d74172a80ae0b2ee59b687b2955c7aead4",
+      "bytes": 198375
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260407"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:32.453054+00:00",
+      "raw_sha256": "d3f1da04d9c66c54b61f17b2e11c38002bee954221ab4f262a31fd56b645e74e",
+      "bytes": 282947
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260407"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:32.730679+00:00",
+      "raw_sha256": "b4349aa057ec096863e59d9c279be8b045b8ff17575b8c2ab403eb9f178ca988",
+      "bytes": 708
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260408"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:33.229242+00:00",
+      "raw_sha256": "7f2fdd80a221ed7d0a027c7edc0d327539c1539837a2e0b43a6db2ef25d57a66",
+      "bytes": 198389
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260408"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:33.791270+00:00",
+      "raw_sha256": "0613f307c179d298dd6c29a8154de10e73ec76869dcc6bb476cf8a00c9456d9c",
+      "bytes": 284377
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260408"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:34.148543+00:00",
+      "raw_sha256": "2e4775c8108c4cbf4dd5ae8f1b67449134393a6bfa14146eae47a0db62fc5f7f",
+      "bytes": 674
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260409"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:34.716493+00:00",
+      "raw_sha256": "3d029cae2df74560e6095fc9185389f079e41033781320f868fa3fa8de3c3cbe",
+      "bytes": 198418
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260409"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:35.217042+00:00",
+      "raw_sha256": "47118096e65761104e226371e906d16c9c2732096383a8e7637ede9c308c1ed8",
+      "bytes": 284218
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260409"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:35.670400+00:00",
+      "raw_sha256": "c8a8658658231575e5da6076ccc124ec2652ced864b27998106913b4b9b9b993",
+      "bytes": 504
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260410"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:36.222620+00:00",
+      "raw_sha256": "0d1b2bba4eee87283749e372d8f15e03ba6828f15a80f12d8516543896902cd2",
+      "bytes": 198439
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260410"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:36.752765+00:00",
+      "raw_sha256": "3529c212514e230d389014506c35a9be7b1438303b4af465f369ea17235bde3b",
+      "bytes": 284479
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260410"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:37.151797+00:00",
+      "raw_sha256": "aff2cf6667e5c2e64bf07921e207f7135e69b58dfed39ef0976613c7335b6f6d",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260413"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:37.701042+00:00",
+      "raw_sha256": "005d07714d902701887b09d0e2c6505045cb1f5180a2dc871b9a8b21910621be",
+      "bytes": 198533
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260413"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:38.231456+00:00",
+      "raw_sha256": "9ff146e2377dc91a1adb2579c6c8d3b5d2836949761f3ea69544ee3936c6e858",
+      "bytes": 284252
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260413"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:38.651033+00:00",
+      "raw_sha256": "782f143cf735d09c6f44fc24987f290ce314e3341a669e607e3a2ea76c09ac01",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260414"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:39.210368+00:00",
+      "raw_sha256": "8f5870cbbdd8b332f620459d36421111e4dc5c3f3299328e25323103c61a8551",
+      "bytes": 198533
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260414"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:39.719888+00:00",
+      "raw_sha256": "77f0a9dec41cf4c8c5ee8f9128154884f86d68ce6e78486fce2d89a3471da9e5",
+      "bytes": 284619
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260414"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:40.166180+00:00",
+      "raw_sha256": "0365dc41d2ecb09f9382b705245c8a5f834207da84471dfd84865b5e27fe30b0",
+      "bytes": 504
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260415"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:40.731135+00:00",
+      "raw_sha256": "2b1402b86736793eace9bebd37f9ee5b6b32806703952ff877e706280f48904c",
+      "bytes": 198562
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260415"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:41.254884+00:00",
+      "raw_sha256": "22aa8cf3df79f0af9b8e588b6e75a72b4171ca318583ac013f1ed6cb745bfd01",
+      "bytes": 284534
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260415"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:41.657650+00:00",
+      "raw_sha256": "5a1ea89207fc0712a3c267c99f1caf73340bde2faebebb4e579ea164f243fedb",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260416"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:42.244089+00:00",
+      "raw_sha256": "bd94c2a2f75bc6d99d4ffc41da16339fcccd04e056f38a780fea5969c9e56069",
+      "bytes": 198583
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260416"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:42.742197+00:00",
+      "raw_sha256": "1cdff5ded5c705328d86e539f6393dfe5bb6d3330e348ab8bfb794bdfa13b9fa",
+      "bytes": 284699
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260416"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:43.148360+00:00",
+      "raw_sha256": "9df67bd0411e6bd6b18916890342aaa9f9dde85a89ba70714d93211c6d4a41eb",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260417"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:43.728868+00:00",
+      "raw_sha256": "f7beb55c4195a33c568c02068c5013a2aba0a6cc4e7edf682621d532a355dcae",
+      "bytes": 198619
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260417"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:44.248833+00:00",
+      "raw_sha256": "b770d3e22e341945760b9bb15eed82612db051cd77860cee75e60d50df07d878",
+      "bytes": 284863
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260417"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:44.658088+00:00",
+      "raw_sha256": "e4cc937b5dcfc5d3d405b5bb1b1293cd839f0f8e41337c8d774d475b7ff54407",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260420"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:45.260757+00:00",
+      "raw_sha256": "c823c92dc6a639b50c172fb7f0b37a70adea83dacb4152596ab5273562eea890",
+      "bytes": 198655
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260420"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:45.748264+00:00",
+      "raw_sha256": "42c1cb2703ac93913a0834d743d5ecc387804f7dba87880172807c97e551c5f6",
+      "bytes": 284804
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260420"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:46.188061+00:00",
+      "raw_sha256": "28dbf476a451f1b8e29b4b83e89e37ad3ab8c93a5dcfc93b449266dc54cc7880",
+      "bytes": 742
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260421"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:46.730573+00:00",
+      "raw_sha256": "6a7edff05a9d047e59563ff22455d0ab3c257ebfdbe035b2387846ac9fd3cc59",
+      "bytes": 198669
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260421"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:47.243805+00:00",
+      "raw_sha256": "c771467f357c9b44bb297eb7eca6df049c749b21d11306cb4961e72daf7b9fb0",
+      "bytes": 284904
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260421"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:47.700546+00:00",
+      "raw_sha256": "dedc5d3305289e61d752cbe61ed70765ad3afee18cb857d84d3eeffadf22e298",
+      "bytes": 810
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260422"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:48.232843+00:00",
+      "raw_sha256": "abaa1366a4308be204dbf1823e7be84336bcef9d40ee8e12ce212d897130399a",
+      "bytes": 198698
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260422"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:48.773994+00:00",
+      "raw_sha256": "ec7e1cc45e0f704bc076f878689da021d0bf546625b02006dfe61989540721f6",
+      "bytes": 284887
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260422"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:49.158725+00:00",
+      "raw_sha256": "e12ea3a575791df798832a51b65dd4ae45021d0dceffc50e5f8a7300b97fc6a4",
+      "bytes": 708
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260423"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:49.722470+00:00",
+      "raw_sha256": "6700d462e6088e940cec642ef6c8ed811fbfbb169d1f705979299565c6ec2d31",
+      "bytes": 198698
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260423"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:50.382977+00:00",
+      "raw_sha256": "d9c78132826d34f6112c8387af52bab1d2ff001ece6fd9642d6e4f360623877e",
+      "bytes": 284950
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260423"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:50.662634+00:00",
+      "raw_sha256": "511d47eb8aa69af331f332d340cfd6e8cd3f9d2bea540d5621e9d6c8c1769566",
+      "bytes": 742
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260424"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:51.213940+00:00",
+      "raw_sha256": "dc28a0ce714d9cabe9f175ce6a0a94627a323271538af4eddfb96f2ec80f18c2",
+      "bytes": 198741
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260424"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:52.771486+00:00",
+      "raw_sha256": "497e16fb7a29f9236f8c709d9402c1c911ceb93538b55f950ce4135d80c888a5",
+      "bytes": 284770
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260424"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:52.878357+00:00",
+      "raw_sha256": "5ef3d03dfd4e54b8d37a065d5a83cf1299fc0e943016a1b0a3d1075abf825fb0",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260427"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:53.436826+00:00",
+      "raw_sha256": "76cd4f86f38ceb9b8c6e2eee3a898bd35bb047fcd7173631d1e1127ac0e91e77",
+      "bytes": 198770
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260427"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:53.953009+00:00",
+      "raw_sha256": "344488fe9cefc83703ab31975cb8af0799bb967cf8a2708d9823bbad88ae81db",
+      "bytes": 284863
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260427"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:54.362641+00:00",
+      "raw_sha256": "7ef7da400168bfa4d150e281c8ac79fc69dd481c7381aaa491faf26c6a521749",
+      "bytes": 946
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260428"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:54.922158+00:00",
+      "raw_sha256": "469ed23bc50c16147c0e678df62910ba6b6b97eb7cfdf270b75f79ca5265bec0",
+      "bytes": 198770
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260428"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:55.455401+00:00",
+      "raw_sha256": "b997c02ef264bd738bbb1837f2acb7bc5984049b166484219e250cbdbdb4ff5d",
+      "bytes": 284490
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260428"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:55.876199+00:00",
+      "raw_sha256": "d7fd9cadeeb3250323363a7d5fc29069772a6019101f640b53e380adb1166976",
+      "bytes": 1252
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260429"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:56.464739+00:00",
+      "raw_sha256": "8f73cf803eeb0b14ded3e7537753783c15e3cbaea75fa96c4886f42ee76c9170",
+      "bytes": 198777
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260429"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:56.959811+00:00",
+      "raw_sha256": "b913703cd5c554b4a8087787e80a9f7c1ace318dabbdb0ff77f727a3284bb25a",
+      "bytes": 283223
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260429"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:57.375612+00:00",
+      "raw_sha256": "bdea85cf7263dc72978c247d290a1a8f96d5e0efe91e8cb18ca64ddebb4cc5b5",
+      "bytes": 2374
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260430"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:57.971843+00:00",
+      "raw_sha256": "bbc20ef7ec2bc363e7c7059e5f93ad72c5dc608f161111c010f7e2310c43515d",
+      "bytes": 198784
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260430"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:58.484279+00:00",
+      "raw_sha256": "b8b595880c4bd105fdf4281306e1104f048ab44974636c1fe8c8dfdd91f7ebf5",
+      "bytes": 283189
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260430"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:58.890458+00:00",
+      "raw_sha256": "8d22d20697687bc09bcc6f03cd0a654c337f9a45e9d6185076b858e2cb5ffeef",
+      "bytes": 3403
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260506"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:59.429453+00:00",
+      "raw_sha256": "e87ba6b004776cfd1f625a60b626197078811ff89864781aeaee772dc5b7e803",
+      "bytes": 198871
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260506"
+        }
+      },
+      "fetched_at": "2026-09-05T13:38:59.972399+00:00",
+      "raw_sha256": "b614490b874f85232517d5249f3863ec5564250f8ae84fae3e781e69e5ab1424",
+      "bytes": 285167
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260506"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:00.369606+00:00",
+      "raw_sha256": "5a6e5860bbe4be72d444cee30eb0973b4c74064582e3079a5e0c74c497f6a00d",
+      "bytes": 2170
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260507"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:01.004146+00:00",
+      "raw_sha256": "e3fe140912c77dc197d95599b402b33f21fb4a6f02df94fa182186e6ed47033c",
+      "bytes": 198878
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260507"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:01.458618+00:00",
+      "raw_sha256": "a87794e6f69e8deb02cd248a800c5974f7c6f5bc28a684481102fea0904e1cce",
+      "bytes": 285243
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260507"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:01.866234+00:00",
+      "raw_sha256": "30adae4d3e7f1029fcfb5d8eb37bacc35211f0eaf6d9f4ee7c0533061cbd12fd",
+      "bytes": 1001
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260508"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:02.451206+00:00",
+      "raw_sha256": "e32cfa3b5dd0b9983a71fd3d390bb896748fb92989d87713ddecdc97d0e55a93",
+      "bytes": 198878
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260508"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:02.948900+00:00",
+      "raw_sha256": "cfb0fad9b2151948c275631c61403376ab1a65abaca8a708a5267621712b9f95",
+      "bytes": 285276
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260508"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:03.371625+00:00",
+      "raw_sha256": "4dffa32bdca2fa41679e3505399cbe11eea6889561fe4a7a4861054623c26080",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260511"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:03.933603+00:00",
+      "raw_sha256": "5f37bb9967db5ebbef98ebe5b650221131c71a43ab03314da85eff0cf4a39792",
+      "bytes": 198921
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260511"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:03.396725+00:00",
+      "raw_sha256": "ec9b3e213bb774e8b97ac495bbd4e86e8812a5ad2a0eec06aeb1131c477bc5c0",
+      "bytes": 285646
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260511"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:03.800461+00:00",
+      "raw_sha256": "ade9758b4dbfa6e4ea0237dc71cbb119b575c6870d17fc9fcbe1f1fcffc49db4",
+      "bytes": 1091
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260512"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:04.419026+00:00",
+      "raw_sha256": "a97f19d6317c0210cf76808ad3d4e77c3ffd086d46c920edef28e86e94ba7f0e",
+      "bytes": 198921
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260512"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:04.907098+00:00",
+      "raw_sha256": "0243085f0943eb48bf34ef1e2be7716e8c406853e4a49e72439bb999ba2f35db",
+      "bytes": 285248
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260512"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:05.318865+00:00",
+      "raw_sha256": "02ae7aebe98d899534968dfbbfa3a0655cd9d5bf174bffdf35573441c8f63825",
+      "bytes": 1150
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260513"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:05.866396+00:00",
+      "raw_sha256": "b9dc6bc5c3a84f96d125d698de7f26ad964409514cef33f75e1356ee152c55d3",
+      "bytes": 198950
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260513"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:06.424969+00:00",
+      "raw_sha256": "34f4a31137307856d0052d4746a556e13e329d3a37c6ac5db70b5105c9549eea",
+      "bytes": 285349
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260513"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:06.846755+00:00",
+      "raw_sha256": "2fbee374d3a131c6812de36c6044eb698930951d552365b5b56e5c48e92cc91c",
+      "bytes": 1116
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260514"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:07.405687+00:00",
+      "raw_sha256": "19f2c7c13ccd4a3dfdb9838e808babaa78d5495d3a44889365d0e38b176d1ebc",
+      "bytes": 198950
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260514"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:07.900851+00:00",
+      "raw_sha256": "89b8279018d514cedf8318eb8da29ca3c54d8687e6781e085a3f9d04e6147d8e",
+      "bytes": 285277
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260514"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:08.307520+00:00",
+      "raw_sha256": "2b4dc9fa8f3554eaef477a57d3f9fa94c0180e1967b6fbd71053cd236075b7fd",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260515"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:08.873644+00:00",
+      "raw_sha256": "5cc4354e1cf5354dac223b124fb1ca38057168c56d5fa3b76940bfb1bba095cc",
+      "bytes": 198964
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260515"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:09.387563+00:00",
+      "raw_sha256": "94f6a68da8f1e924f56c393d48ab7466839306063d07a50b37049d33d0f3e551",
+      "bytes": 285276
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260515"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:09.798615+00:00",
+      "raw_sha256": "39519995b23bd4203eed0e5eb3cc085aa8f039a125288e29c79c4d76e5d587d6",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260518"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:10.383929+00:00",
+      "raw_sha256": "7d19d496cee08ddc20ec44ddf3923c903159b2e0716e58aff9853af92443e3a8",
+      "bytes": 199007
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260518"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:10.876781+00:00",
+      "raw_sha256": "5a8f25a9256e15878ac9461d0ab9351a819e26ea9ef5652c96aae18847a02219",
+      "bytes": 285320
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260518"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:11.326593+00:00",
+      "raw_sha256": "bf18183c4a4bb65b27456ef232e6aab27a38b19b7fc2a89464d8361941b9d6f8",
+      "bytes": 1001
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260519"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:11.891802+00:00",
+      "raw_sha256": "b666c56b8759ba8cef72d1099e20410cdd73855e1d9478c4e5a3d5666838ad8f",
+      "bytes": 198971
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260519"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:12.383163+00:00",
+      "raw_sha256": "9dfe47bb94c8efbf3be3db59893e759175fc0e796defa31414903a0993b9cde3",
+      "bytes": 284940
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260519"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:12.813369+00:00",
+      "raw_sha256": "c73c0ce3f55466cb5859fc5e4b87ad84872ada3259a3e82144327752fbd00e40",
+      "bytes": 1082
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260520"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:13.383410+00:00",
+      "raw_sha256": "39366d88cf5bd2745368439ef8a5450f0752b8bf47a5e1667fe85a7726deea82",
+      "bytes": 199000
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260520"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:13.904455+00:00",
+      "raw_sha256": "de4325f1b81007f3d57b7b89da8cdbe5c045c3e274f457b89a9d9ed0d5ff7bd2",
+      "bytes": 285239
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260520"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:14.316712+00:00",
+      "raw_sha256": "197859d22336da509fc822f76dd9d3390e76d8e8c412e79add773c27e2db2e85",
+      "bytes": 1116
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260521"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:14.896404+00:00",
+      "raw_sha256": "e5db1551506ba82cae47e5b3ee8a2d0308148fec7f8a9b01eede8575d5977712",
+      "bytes": 199000
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260521"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:15.389611+00:00",
+      "raw_sha256": "0d063926c32e07274d66f9a7e806ba88616520f80f3512045f1809c465765267",
+      "bytes": 285665
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260521"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:15.830282+00:00",
+      "raw_sha256": "e3b3fe40746b8dd2a2c53f687b87885790eb85fd7ee3ebca4aaf8573f199c910",
+      "bytes": 912
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260522"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:16.375896+00:00",
+      "raw_sha256": "06844ee9753f1041e1130f08b820f9bf08ce56d066ce2e26454b61a03a6a15fd",
+      "bytes": 199050
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260522"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:16.886860+00:00",
+      "raw_sha256": "56f287486859f5d16c92b9162fbeb22faac2187433186939524c4e4936b2a313",
+      "bytes": 285290
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260522"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:17.323083+00:00",
+      "raw_sha256": "71ec6c3763b77f6ee4474c76f9e5de57cbc6ba23a61ecca3e8077e0d27426b13",
+      "bytes": 938
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260525"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:17.879963+00:00",
+      "raw_sha256": "c6de5ac9a51bcbd2f67b27f4114f6316e0168c1e7094fcf203ed75524f4f29c8",
+      "bytes": 199079
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260525"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:18.471625+00:00",
+      "raw_sha256": "2897a5629186910522355442bf295c8b06d4b3344a8afbe728d84acf27a923b5",
+      "bytes": 285540
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260525"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:18.865290+00:00",
+      "raw_sha256": "5a9bc752c363451796b7b3d26caf294cce891e0ea074e4b9354220aaca3152b1",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260526"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:19.411483+00:00",
+      "raw_sha256": "2d40f0c3ab23c7e9a38e9b330dc5ee98fcabbf0aad3296970902f837547abb4c",
+      "bytes": 199079
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260526"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:20.080357+00:00",
+      "raw_sha256": "cb48afb49d7aec60062ecedfea9556b7c4b1dc6a5777866985e158df4fd021f2",
+      "bytes": 285413
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260526"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:20.348159+00:00",
+      "raw_sha256": "ffa4057121f00aa5ca11b982f7ded5028d58668a97415ccbbb9b36b048ee97e6",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260527"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:20.935445+00:00",
+      "raw_sha256": "6c2074416d569bc338b618c625fef2a5002589d8b9d79b0173c3e346fb20f069",
+      "bytes": 199122
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260527"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:21.440373+00:00",
+      "raw_sha256": "23ec788c6f53dce25c9d0b982482e3962188425e3bd48d20e755249865c90184",
+      "bytes": 285404
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260527"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:21.850554+00:00",
+      "raw_sha256": "a87697eb28d174c71c48932bba531c9a097ef22c74a9c946f5914852cdf0b46e",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260528"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:22.423801+00:00",
+      "raw_sha256": "eef0a01126f5b988cfdb780497ff36ff8be1b1ea3f7bc7d39a961ba11d1b9a6d",
+      "bytes": 199122
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260528"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:22.925246+00:00",
+      "raw_sha256": "ead0373dd676aa5d570c8d06a4c580d4aadbbbe685bf016066ed32b0e1cef566",
+      "bytes": 285195
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260528"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:23.352670+00:00",
+      "raw_sha256": "357c6e295e04d64ccd45f5228bb2767356d2e328d4e3b665576df363977f7df1",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260529"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:23.943620+00:00",
+      "raw_sha256": "62a1d08a476c0a5cfbeec9c28247db8483f6ca41afb62949c6575115dfabc195",
+      "bytes": 199129
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260529"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:24.471983+00:00",
+      "raw_sha256": "54e467b1a53de26dfac35017ca8de7f871cf547c17c43df0039ed4d1d6974152",
+      "bytes": 285368
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260529"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:24.858642+00:00",
+      "raw_sha256": "9c2f9f92836ffb2e4c6ff90d720c750f80bc65316723a97f22c01362f26f8873",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260601"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:25.472659+00:00",
+      "raw_sha256": "4b47ea5fe2e5196a689e4d0320b60ceefc5204050b932fbd7b67137353525bda",
+      "bytes": 199014
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260601"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:25.998759+00:00",
+      "raw_sha256": "93645636511dad90624ae8c142053ee9ad9e359d138191b27eb83e739de8faa5",
+      "bytes": 285175
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260601"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:26.383447+00:00",
+      "raw_sha256": "2741def6b2068cf24466b76e52f45bd4d19b48b3f91af58cdc3e4f811b5605a1",
+      "bytes": 1113
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260602"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:26.919387+00:00",
+      "raw_sha256": "53d3c865230ea14d974392b38c25d07d8a3e9e6a8d669ffe640de6fce4461457",
+      "bytes": 199014
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260602"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:27.552358+00:00",
+      "raw_sha256": "2090c4fbe54b07489e27f82d2a8d426f47ba9bdfd2506b6fc3a31d9c0cdcf814",
+      "bytes": 285083
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260602"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:27.859707+00:00",
+      "raw_sha256": "4f4bcfc1e03ad889521f2c6fa5bf827445c596ea7707e3e531e6c3461773c3f9",
+      "bytes": 912
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260603"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:28.430051+00:00",
+      "raw_sha256": "6f9c30866d320e3b197df2de153c9ebb4ade39e2ca9b5a65608c56a1157d8b70",
+      "bytes": 199007
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260603"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:28.961165+00:00",
+      "raw_sha256": "aff4af53bdf070ddbfc040eadf23ebd041eb123c825854150e06d22f588438e4",
+      "bytes": 285274
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260603"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:29.378988+00:00",
+      "raw_sha256": "a0a1672308558347e8087783363f63abf8cebccf88dde382d94ce5623ef870e5",
+      "bytes": 776
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260604"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:29.958209+00:00",
+      "raw_sha256": "c173896c06bdaf887568a35aaffa2e0e2e36864efd0e742c00132277d204fda0",
+      "bytes": 199007
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260604"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:30.599503+00:00",
+      "raw_sha256": "0dfc456a557334bb0e6c92c8b24a163d7a13cf5a297525b76ac825505acbb935",
+      "bytes": 285039
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260604"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:30.861314+00:00",
+      "raw_sha256": "a07d5d1bb74642678a0c4591ec052424abc557bb5c30cc823124a339dc720cbd",
+      "bytes": 640
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260605"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:31.418936+00:00",
+      "raw_sha256": "c14717f626fc81d3b46755633b0bd9b199b75f9303e4ca3f95b91b301998b9c7",
+      "bytes": 199072
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260605"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:31.968580+00:00",
+      "raw_sha256": "02f147a6c34f56398d20fd4989e01d52ec097a4583e4390f32ef6557fe5d4cd7",
+      "bytes": 285457
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260605"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:32.353008+00:00",
+      "raw_sha256": "e040530a03937c0acfab330ac09c0fb5682b772b6562ab4b2c788575a0565a65",
+      "bytes": 640
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260608"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:32.918060+00:00",
+      "raw_sha256": "ff823085b15472dff9cbe78021abd6d773b68d5b272e70a16dfd21064d72033c",
+      "bytes": 199000
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260608"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:33.440436+00:00",
+      "raw_sha256": "46a0b3207fff1c6baa687bfa0d58d09dfc4e455a1d5390b828afeefaa9cb97f3",
+      "bytes": 285445
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260608"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:33.870901+00:00",
+      "raw_sha256": "4831a20c60cb25bba8809ed8462bf580e70fa1669058988321b26bfc9a07b0f5",
+      "bytes": 848
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260609"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:34.477134+00:00",
+      "raw_sha256": "17570c83668ccc330a3500f21a951437112f37cd833e7aca47008dc537fc52e1",
+      "bytes": 199007
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260609"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:34.937527+00:00",
+      "raw_sha256": "06b868a95955f7a72ad34ac6f84d096fc208ec520616207552557e35f1252cdc",
+      "bytes": 289936
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260609"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:35.352847+00:00",
+      "raw_sha256": "066d7267392df129d20c4a826eab74555ed90b2362119446e9ee92f93292ac30",
+      "bytes": 674
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260610"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:34.996766+00:00",
+      "raw_sha256": "f66261e49019db3c2562cd1cd3312500ea46ad4c293af0a29cf1bf3e2e8f1b4d",
+      "bytes": 199007
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260610"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:35.505967+00:00",
+      "raw_sha256": "5d06747242e8bdea7da0d3501ba73a9e983e506825027d65b7888fb5404e2c1c",
+      "bytes": 289832
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260610"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:35.931178+00:00",
+      "raw_sha256": "b159b785b88e8e16bb970b1639db4f006924f4cd90fb41a5f792aece03949828",
+      "bytes": 674
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260611"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:36.490288+00:00",
+      "raw_sha256": "d50cb9aa3e576c2751b2a06f5fc2729b2f2e800934494cca2561292e3c5d5617",
+      "bytes": 199014
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260611"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:37.015613+00:00",
+      "raw_sha256": "c31405b2665e36a658a2f422d5fbf12799f7a639a81dbc93c195396132f2ed8a",
+      "bytes": 289664
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260611"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:37.464008+00:00",
+      "raw_sha256": "4d27994ffa65c9e7b5292ecf834127c2be220d1a7bcec0c37e47006e02467584",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260612"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:38.002168+00:00",
+      "raw_sha256": "374bbb1930575058564ab792f533e14fe4915d0ecffccb31eb1dd238c46e0428",
+      "bytes": 199043
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260612"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:38.523552+00:00",
+      "raw_sha256": "8729faf4b23e5e4199b4e872a67d2ed17c5a215b75b3d51c4f3dfaadbac7b6b6",
+      "bytes": 290150
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260612"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:38.959532+00:00",
+      "raw_sha256": "b8892c0ba9dc3510da92f3ac543b3cba27b1f7f904f0a535bded27cc51a98bd6",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260615"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:39.491402+00:00",
+      "raw_sha256": "96e72f23086275c8837f70345f97a1955404db5ffcf19c0fa1fdf1c12314218a",
+      "bytes": 199050
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260615"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:40.039229+00:00",
+      "raw_sha256": "528c311c5efe0242e3b21eccef9def68480d735ab7d2acc279971ed8097e71f5",
+      "bytes": 289987
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260615"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:41.463462+00:00",
+      "raw_sha256": "5b4a8104e38d74fd6ddc96d910262429f027f04ff95b8f104844325c279b1d03",
+      "bytes": 946
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260616"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:41.601158+00:00",
+      "raw_sha256": "6b409619bda4fb73cdfa8ba3876a850191e3ad06fa82700b0afb700835e0d327",
+      "bytes": 199050
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260616"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:42.140608+00:00",
+      "raw_sha256": "d89e01e4a83438b2d43fd3f4a6c249a4710cd55e2dcac1eecf70d9afd37f29ec",
+      "bytes": 290443
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260616"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:42.550458+00:00",
+      "raw_sha256": "8a537de6b0cd8cc9f5aa7b2c66499ae93bbc5ef859fdfd9549e975ed55e73d2e",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260617"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:43.117876+00:00",
+      "raw_sha256": "7498e88b2b6a202311ddca128d5176c9b1110a3fde655cb9eefd39b2aa9c9573",
+      "bytes": 199079
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260617"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:43.705867+00:00",
+      "raw_sha256": "a92a1384ffb5ab4c94f6f535e54ab5b513833ad7e8bfd5dd26fd69a08b5c9575",
+      "bytes": 290205
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260617"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:44.050510+00:00",
+      "raw_sha256": "ffb3104bad1c97000a0d973914a379e7c781f7144216ca34e57b04c7e5a1772b",
+      "bytes": 844
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260618"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:44.610607+00:00",
+      "raw_sha256": "56875942e8502516a28582041107dc2fe257ffc4c161f15816f3228183422d63",
+      "bytes": 199043
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260618"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:45.141545+00:00",
+      "raw_sha256": "5456f5e0cb798b0eb905b6f1e2a21d2d364f82488ffe73d0ca4f21f2d17164ca",
+      "bytes": 290045
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260618"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:45.567900+00:00",
+      "raw_sha256": "7ee1f57cff34e41c810b02ca2ce8873f3e3b48ea97e9ca737f472fa094c162b3",
+      "bytes": 1014
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260622"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:46.138603+00:00",
+      "raw_sha256": "01d13c10866bca7ecfc83018d81c5fb0c3e295fb2acdf249e7fd18c94f65d6f4",
+      "bytes": 199101
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260622"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:46.664957+00:00",
+      "raw_sha256": "eeb823fb844bf0642441ed0d1cddf78def9f968829faf2a63e64027a202edb25",
+      "bytes": 291171
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260622"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:47.048187+00:00",
+      "raw_sha256": "f618d816f39206e9910f3670604be8b07b9ff28a843e598462fbcb45a86ad273",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260623"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:47.634801+00:00",
+      "raw_sha256": "83bd69eb710af44c139649a33be33f566f6c8ab2f864aa4830778c52ed96388c",
+      "bytes": 199029
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260623"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:48.140914+00:00",
+      "raw_sha256": "b58e7cd6853c8fe2625984d9de8f4b46441edc41cf2e5afa1a920e8f457a7888",
+      "bytes": 290739
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260623"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:48.565364+00:00",
+      "raw_sha256": "10d8671d053cea7e8c3d7c0e34b801653212df4f689023d47ffd4952e91b723b",
+      "bytes": 1124
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260624"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:49.110718+00:00",
+      "raw_sha256": "70fd50b154cc18f098e8cbc0c507bb8fdc689bf23dd0660772b3436a98566e5c",
+      "bytes": 199065
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260624"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:49.646310+00:00",
+      "raw_sha256": "d444124d72fb6af889c2493bf0eb2287a72548fb632106e942c29f89007d666d",
+      "bytes": 290337
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260624"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:50.053513+00:00",
+      "raw_sha256": "b16d476ff50a534863bb3df432b8aefb484d5a83734532e14f21ade509cd7a24",
+      "bytes": 819
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260625"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:50.659552+00:00",
+      "raw_sha256": "04772d01d99d6343066947ad52a5d95f507a5916c5c48a1c922850afb232c4ae",
+      "bytes": 199065
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260625"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:51.122187+00:00",
+      "raw_sha256": "6dc048281166c2f94e7b7cd184a3b8ce1e3b7d9022d9d28b37e0c95bcd23bdf5",
+      "bytes": 290520
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260625"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:51.555907+00:00",
+      "raw_sha256": "f3f7cb62c6548fd140871a9f2b4be136159f159274130198ddf35387f1c2b141",
+      "bytes": 878
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260626"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:52.133079+00:00",
+      "raw_sha256": "d35ee96b1629596445858d153a6f56ea470f35b8d61c210b8268d8a88a2b3d85",
+      "bytes": 199036
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260626"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:52.623035+00:00",
+      "raw_sha256": "552e3e400533525554e7b7ee33c091ef622497660ed580a17fdbce9a9bc103d7",
+      "bytes": 290169
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260626"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:53.057065+00:00",
+      "raw_sha256": "134e81ff1b207013ddee30f59a81b2d0317e021f91148258100175ede4dee956",
+      "bytes": 936
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260629"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:53.616767+00:00",
+      "raw_sha256": "5c919c166fbe6fc420929cc2e0948d8e41eeeda38d334582e48280f5f25b3685",
+      "bytes": 199072
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260629"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:54.177494+00:00",
+      "raw_sha256": "b883892878fada8e9f9745fb9b9557e8c997cbbc33826cee7de8c3ab11496d93",
+      "bytes": 289948
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260629"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:54.605262+00:00",
+      "raw_sha256": "036538ab3cc337c007daa2118a3d0045eb0678baa8e18007670447ff98844a4d",
+      "bytes": 878
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260630"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:55.118383+00:00",
+      "raw_sha256": "ec43ccf16b560e269d1ec42cd36306695176c08b994bdb18ec8b77d72ead69e0",
+      "bytes": 199079
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260630"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:55.715279+00:00",
+      "raw_sha256": "3db5e505cccc21bb2225d24a63b621e8040125aaff82e29cfb234f55402517d4",
+      "bytes": 289665
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260630"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:56.132536+00:00",
+      "raw_sha256": "a567c589913980736c04f4e97558e8dbfc57269769637cf06bdf4aa020e9d00d",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260701"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:56.613249+00:00",
+      "raw_sha256": "f5be3c9ea180e0755597004afff45e31d76d192aaf10cb80d4c40e6ec2017c1c",
+      "bytes": 199108
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260701"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:57.121485+00:00",
+      "raw_sha256": "f3a9e6e440da08baf0ab884a6208c5b926ffed19336affebb9fa27ca99c816de",
+      "bytes": 290473
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260701"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:57.568466+00:00",
+      "raw_sha256": "4d2ee8cbadd6c8ed5a35b7cafff8dd3d81cbe5a2d58bc3c63e7bde1bfcb654ae",
+      "bytes": 980
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260702"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:58.129241+00:00",
+      "raw_sha256": "4d287f62b1f72bd37a6d745d6279f9c321e3eeae53900eb3dfb7f866457dceff",
+      "bytes": 199122
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260702"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:58.643667+00:00",
+      "raw_sha256": "70c005056ce4d85614ebde8a135bdc822ca0116cf0064ddbee800aaa9e9f124c",
+      "bytes": 290577
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260702"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:59.067771+00:00",
+      "raw_sha256": "324e0c21bbd725de685957606f25056440b27cba8dcb639abc63761be3a8d388",
+      "bytes": 817
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260703"
+        }
+      },
+      "fetched_at": "2026-09-05T13:39:59.689725+00:00",
+      "raw_sha256": "71fc02e1ad398eee751e8c68af8cbe93d22fcc95a6dc35185c883c64419f9bda",
+      "bytes": 199151
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260703"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:00.158428+00:00",
+      "raw_sha256": "a11f604c692f61b69f4c54f413269e0ab972363e3c0be5ae7914a108e500e66d",
+      "bytes": 290377
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260703"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:00.571780+00:00",
+      "raw_sha256": "5f2270793d02dec0aa454234f5f47ee1f1bcbd4294628762ae7d7b2bc1fa7cdc",
+      "bytes": 606
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260706"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:01.132549+00:00",
+      "raw_sha256": "b87f95ab5abcd6f1ca50d0a43925c0b5723885d73cb51d64c09b859f95e4a2bc",
+      "bytes": 199180
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260706"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:01.664026+00:00",
+      "raw_sha256": "c12c4acc52d8d8d2cda02a175e0926cc4848bb725efad368f39f6580389db95c",
+      "bytes": 296028
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260706"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:02.192206+00:00",
+      "raw_sha256": "4a8010edac812a9bfe894283458b78ce94034ab8bb3af3352b2acee798db61bc",
+      "bytes": 640
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260707"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:03.242467+00:00",
+      "raw_sha256": "e973a32a826aab2ad9be63baad98bf7dbd0c6a70cceb2f1f5e1d5201d0572ed9",
+      "bytes": 199180
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260707"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:03.467174+00:00",
+      "raw_sha256": "f92f341223b2b133e35da43d4ccbe890072927ee83114920c2522db0a9a677c5",
+      "bytes": 294283
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260707"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:03.832754+00:00",
+      "raw_sha256": "78582677c61d29cd3d9d0bf061ca91b966f9836fad3fa3ffe9e078fe97126834",
+      "bytes": 606
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260708"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:04.404918+00:00",
+      "raw_sha256": "75384e6c4c5b78ec001df663330c491bc62ae070a4c14936f00ea18b1dbbfe20",
+      "bytes": 199216
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260708"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:04.923213+00:00",
+      "raw_sha256": "a4819a0c995126d0bb37543fc7307dc3796bb42fe5d16c51696ab4384cc5e829",
+      "bytes": 294274
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260708"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:05.327880+00:00",
+      "raw_sha256": "b626f3db171db86e00d234055445aac84cc5e06b61d9f928339a41d677f4bfe9",
+      "bytes": 572
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260709"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:05.912601+00:00",
+      "raw_sha256": "f2004c0eb77981899245107fdd9e485fa684bff16e26a49b5775973b9d39c00b",
+      "bytes": 199187
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260709"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:06.484142+00:00",
+      "raw_sha256": "03d5036c83f9e0e85879cc6a0befe719d7494bddc685274a20607894a74ed3cd",
+      "bytes": 295271
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260709"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:06.881354+00:00",
+      "raw_sha256": "910db42e90a4f45c8d7b7d9335c449ba910e4e9ed00be5512aeb4dff1a664450",
+      "bytes": 613
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260710"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:06.361769+00:00",
+      "raw_sha256": "ebc76d4b893f758bfb3524d9481c49644299f8740ad0bee6e34a01a85632a9bd",
+      "bytes": 199230
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260710"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:06.870656+00:00",
+      "raw_sha256": "54032c60b4112acc087582bf1797230d6bd334c71feec10402b6871299b6ef32",
+      "bytes": 295945
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260710"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:07.282808+00:00",
+      "raw_sha256": "75c76159201e8754180d9737206fab5ac9cdb8b2d62f9d45120f4e2583abf2c0",
+      "bytes": 579
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260713"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:07.851088+00:00",
+      "raw_sha256": "2e1280f6680d43865e9279c65fe24f4813f63677a8b60e87c6ebc136ff67de5d",
+      "bytes": 199288
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260713"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:08.398091+00:00",
+      "raw_sha256": "7c91433989f147eae5bd8d2eb60ba7722daa58e40e6169c69cd96dc3094439fa",
+      "bytes": 294099
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260713"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:08.782876+00:00",
+      "raw_sha256": "29e92e2a4d312d72a07fcc97aad95b7dc28c85f6c5ceb913717a122832209e86",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260714"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:10.042695+00:00",
+      "raw_sha256": "679e9f437ecabe58bbd6696cfbb606e2f95892b15dc5344f04f9bb0b6ae0c9e6",
+      "bytes": 199288
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260714"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:10.281435+00:00",
+      "raw_sha256": "128fa6d8652df535f065e14bedfa38013ee417de9cd94c91beeffa94b422e742",
+      "bytes": 294892
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260714"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:10.665108+00:00",
+      "raw_sha256": "b201ad3e1a5df6df48e239d9a9cbb3b01b5a577d14deab682be6066d40f23f25",
+      "bytes": 436
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260715"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:11.202637+00:00",
+      "raw_sha256": "928b61736a0d12d99b5a6fb699d3bf32de6cf9765979e8293ae6ff62adc3cc31",
+      "bytes": 199317
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260715"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:11.770409+00:00",
+      "raw_sha256": "82ce4bdb68407f68981219e11a818352c2a0d9fe81a224213dc72b206437c834",
+      "bytes": 295034
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260715"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:12.159861+00:00",
+      "raw_sha256": "f192e1ad619954815fe482c6d9350c932565c016d7bf1798ac52d9270e1402b4",
+      "bytes": 334
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260716"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:13.453764+00:00",
+      "raw_sha256": "6f9a6fc991547c3352545a75816de555f85d07e4417023bd8e5b45280a4496de",
+      "bytes": 199324
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260716"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:13.668005+00:00",
+      "raw_sha256": "cd89f0471407a16b2a7bce6f5390c63ae4d238c92fa89a17b0bf54cd255ed711",
+      "bytes": 295032
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260716"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:14.048941+00:00",
+      "raw_sha256": "7ade803e1ead42d08fdcc04a3e0aec7090fb41e8c44249ba094e439e3faa448b",
+      "bytes": 402
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260717"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:14.675235+00:00",
+      "raw_sha256": "6d0b001eb049168e73e1353f2ba6181fa36fa63411d348f2024d0b83042d48ed",
+      "bytes": 199382
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260717"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:15.206805+00:00",
+      "raw_sha256": "b5d6bb78c157637544c3bc535842c6b8dcb645fbc93e5e115e8bd0fcfa816b5d",
+      "bytes": 294967
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260717"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:15.581555+00:00",
+      "raw_sha256": "b592201222c8ff36bc546e50fe98ac27d106775f45b01082dff6b0018fc8691f",
+      "bytes": 436
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260720"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:16.151978+00:00",
+      "raw_sha256": "a2e45eeac12f0e08022040e506200bff968048d2bc0e3b6e302d52d561f4a0e5",
+      "bytes": 199440
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260720"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:16.686243+00:00",
+      "raw_sha256": "ca10bf6db3d0b4b27c00ff40a151af39fb3fab0e06af77dd59476bdeb979b5e7",
+      "bytes": 294818
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260720"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:17.094514+00:00",
+      "raw_sha256": "50254606ed3154c28f77ac7a568ad5b2062e3165c883419abe1df68481e1a173",
+      "bytes": 402
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260721"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:17.633149+00:00",
+      "raw_sha256": "f1e14fe16bc27db2b91a60290d25779919f8853355237837e8524d222e6e4bca",
+      "bytes": 199447
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260721"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:18.158956+00:00",
+      "raw_sha256": "231b1dd57c8e069d14ceef9066d457c4d9ddb7531390fb3fda59a595377bb88c",
+      "bytes": 295677
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260721"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:18.564093+00:00",
+      "raw_sha256": "7313ba75e3c39800c6281c0e105591439fc774c642e521f02f012e4997603089",
+      "bytes": 377
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260722"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:19.136622+00:00",
+      "raw_sha256": "d8874cc89b7c88b498de8594cd03bb502ce15ce8a49a96601756e36223876590",
+      "bytes": 199483
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260722"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:19.665820+00:00",
+      "raw_sha256": "1e0164a0337199ff82c9f77cd63a25df3a332604b56870d6778f5e02ef0964b7",
+      "bytes": 293892
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260722"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:20.061348+00:00",
+      "raw_sha256": "f4f52a5cd12178aee3cdc391228209e9d1329cc97f6f0bea83ac2aa8fa4fbde7",
+      "bytes": 411
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260723"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:20.637745+00:00",
+      "raw_sha256": "d317f4ec7695d1a5e34127898cf05e066d049846ff16745a1823906b7e4649c5",
+      "bytes": 199483
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260723"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:21.167909+00:00",
+      "raw_sha256": "67478329d40dc57c80fa3a0153cd138d0aab2545be2e6df7cf36c85a7be4cf06",
+      "bytes": 295104
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260723"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:21.571107+00:00",
+      "raw_sha256": "0f1472f213392967dff8f240d87cd5ffdcc0dd2bcd28ed0fd9a739db662010cd",
+      "bytes": 402
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260724"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:22.124814+00:00",
+      "raw_sha256": "4725cd77d16d05945a912dc0a536653112f953c38d9ebf425d5dfd91f7087899",
+      "bytes": 199548
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260724"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:22.651747+00:00",
+      "raw_sha256": "5fc51e02c24ef6ff61e6f8c45f56360dfdba774c6e17bf807879727f729bf31b",
+      "bytes": 293566
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260724"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:23.059881+00:00",
+      "raw_sha256": "214be0ba83498223df746eea4b41453647a736e5291464a35e472442db16f5f7",
+      "bytes": 368
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260727"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:23.622684+00:00",
+      "raw_sha256": "dd1c03bbe50c36b499fed65a1515c1db01f79270105310378915e0e9ea1338db",
+      "bytes": 199591
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260727"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:24.146487+00:00",
+      "raw_sha256": "18bc2cadf6e0d63c656608fdbc300bd6dcb271c9b8680eba0008e674e861ef8f",
+      "bytes": 294320
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260727"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:24.570382+00:00",
+      "raw_sha256": "7b16a885e6860cfa44aa4380611348c06c9001a3e09e05ee037571f61b25d183",
+      "bytes": 593
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260728"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:25.212946+00:00",
+      "raw_sha256": "c564547efd75ee8e39b56bf7a5cafd16d9afae9524dacb51aa6b9946b4e47c88",
+      "bytes": 199591
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260728"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:25.664938+00:00",
+      "raw_sha256": "73e5fade09e652c628bdcff460bbc8f8a64754767094efd3ed8221e9637b122c",
+      "bytes": 292979
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260728"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:26.070928+00:00",
+      "raw_sha256": "df959465b88d34378992225baa54cb47512c9e323ac337f7c98945bb002dd1bd",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260729"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:26.641378+00:00",
+      "raw_sha256": "7fce228d8b922b5c6de7bb60f6d3bd36a9a92ae652a062706d84f02b2e8a5753",
+      "bytes": 199627
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260729"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:27.164161+00:00",
+      "raw_sha256": "b83611f57fa26e00fb337409f9f4f3306ef7ca4a76d3cdf7d858d20706cda3cb",
+      "bytes": 295184
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260729"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:27.567368+00:00",
+      "raw_sha256": "2253f00fdca2f6ed27ad3c3f933928376487f8c05c41f789d0ca054f18e7dbdd",
+      "bytes": 591
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260730"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:28.130042+00:00",
+      "raw_sha256": "6a4ac251ad2294e59cb0604e3307d6d322567857564df4b0fcbd3c6e9b0b236a",
+      "bytes": 199634
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260730"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:28.670682+00:00",
+      "raw_sha256": "4718c2983ec98fdd69acf2660adf8383117e6bad2d135b26dc940076d41c32ff",
+      "bytes": 294857
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260730"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:29.069258+00:00",
+      "raw_sha256": "b506e4b5847323462ce3b0146c5aaf10c581842dad0c3fbc801be47263bfb226",
+      "bytes": 606
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260731"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:29.659219+00:00",
+      "raw_sha256": "24bfdcd7ba0a2c273224b9dc546eba7b1da59e6325cc05c85ca154c671bebea9",
+      "bytes": 199663
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260731"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:30.147264+00:00",
+      "raw_sha256": "90b9a5b32d711e85f1e0cbbbf1a49eaede0616cd41bc92c9c2f309e28224aaa6",
+      "bytes": 296619
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260731"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:30.570710+00:00",
+      "raw_sha256": "9abbb9a7757f81aba13a74b95c2cdfff58a9d9b5ce7f85dc75f8263ce7ff00df",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260803"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:31.134190+00:00",
+      "raw_sha256": "b4c67719ca3f51092005feca9f83cea8f674c5343121da24c0cd0ac6333586d8",
+      "bytes": 199757
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260803"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:31.646335+00:00",
+      "raw_sha256": "1f1e4ac0d8a53fb0d3f9636c4eb5e96cb4e27774e4d000f9a3e21f05e23a504a",
+      "bytes": 295614
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260803"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:32.064173+00:00",
+      "raw_sha256": "067698abf42eefa6c9899b13e4d5b19a4a2e1c16e286bcfa33a91190cc438ce7",
+      "bytes": 538
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260804"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:32.774841+00:00",
+      "raw_sha256": "fedd88cbdd17346679527c475fe05f350e8a543ae56cbe48a3c13940a2d6f1f1",
+      "bytes": 199764
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260804"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:33.179754+00:00",
+      "raw_sha256": "7cc52da32ce46339fc04b7bce1ff1082b4ad92185726b6c06c700760a37c4737",
+      "bytes": 295971
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260804"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:33.583002+00:00",
+      "raw_sha256": "27167cb640314c3d8f0df819ed13de67bce69fa1d5c4fbe735bb6a3df02e1c6a",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260805"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:34.131944+00:00",
+      "raw_sha256": "c29e32b273752cd07502f47e1cb041988287088c5323b4b6c2fdbf86590d1692",
+      "bytes": 199800
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260805"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:34.647237+00:00",
+      "raw_sha256": "3ad78aa5f398da010eac02b5220911140bb4ca6cac2e3dea2168e2cf31760614",
+      "bytes": 296943
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260805"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:35.098042+00:00",
+      "raw_sha256": "c61edc144224312a3f93a8b41832f7f029a4dc6e6753540397384fc1851cd759",
+      "bytes": 436
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260806"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:35.628064+00:00",
+      "raw_sha256": "6219e9e00da2d549a8ce466a5e2345f8647efb2431d6f3e30b2ad993ce880626",
+      "bytes": 199807
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260806"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:36.157889+00:00",
+      "raw_sha256": "44f7660201ddcec8d49254867badf11eff192e004c19d82ff0a61a300e08449f",
+      "bytes": 297071
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260806"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:36.586440+00:00",
+      "raw_sha256": "6ab0fafce0c42b6d8db472a5749b9947e71a8270f874c49440877222d7b26f38",
+      "bytes": 402
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260807"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:37.344804+00:00",
+      "raw_sha256": "0592e6fbe914c91ed4a041997b2618bcfcdf60db2a46076d8fbc3b5104a9fdb8",
+      "bytes": 199872
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260807"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:37.650422+00:00",
+      "raw_sha256": "54d0648c41c2a671851034b628445b788f651ba12b3a1d7a2f5381ff350e7591",
+      "bytes": 297657
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260807"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:38.083899+00:00",
+      "raw_sha256": "56c4b5af6d0dfb4e91fb63bc38be6049115b68da5c075a55316cd2e04fa438d8",
+      "bytes": 368
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260810"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:37.609961+00:00",
+      "raw_sha256": "244c721a0109d25e543aea2a183cedfa7d19453372ff448742b7a1f49f1cd2dc",
+      "bytes": 199901
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260810"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:38.156300+00:00",
+      "raw_sha256": "f32db5516a581cf3882f760c8c5d656ed1079eb0313bfce5bd62d0ef4ca5e623",
+      "bytes": 297851
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260810"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:38.557093+00:00",
+      "raw_sha256": "1db04314c60992babf602ba9ba0881ad9e75be26685eeb1259c3ee440d0897cb",
+      "bytes": 334
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260811"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:39.135757+00:00",
+      "raw_sha256": "57ac515600d7a1b26014e3497c4a45d1207b9a04dbfd89da822f64d56333635c",
+      "bytes": 199922
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260811"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:39.646447+00:00",
+      "raw_sha256": "9cc0fa8d877bc87767c7a5fba92b440e7ef46ad17b953adfa087791e23c79687",
+      "bytes": 296445
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260811"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:40.090545+00:00",
+      "raw_sha256": "e9ae4a41b9f08aa4193d5e630a8fe84748d12f128e5389eddd8ee4422c60e74b",
+      "bytes": 300
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260812"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:40.632552+00:00",
+      "raw_sha256": "03a824d67886653ffb7da838ea02b043934631eb8e875e17dda7e173f4103906",
+      "bytes": 199987
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260812"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:41.154837+00:00",
+      "raw_sha256": "a72fccff7f01f4f97e576e120a01e68e801cf53d492d3f3d0d64abb88e566034",
+      "bytes": 297201
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260812"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:41.563663+00:00",
+      "raw_sha256": "58fdc091c4ad95f27dbadafdf528b0905e6dd6d4599808ff2954c76ffc053f60",
+      "bytes": 334
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260813"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:42.137529+00:00",
+      "raw_sha256": "fa3d4b0733c85b223f27804773b2fbe1c3c1be14e928fd37c687dbafa838b11e",
+      "bytes": 199987
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260813"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:42.691629+00:00",
+      "raw_sha256": "6ca3ecb2ad200537b9545d3c481d2c92928b4363abffeb5ac72f948af2474d42",
+      "bytes": 297651
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260813"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:43.063558+00:00",
+      "raw_sha256": "f737314fd627782623829adc0dde3fa418b4b9ad9e43ceed0db8b8ec29a11058",
+      "bytes": 368
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260814"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:43.625942+00:00",
+      "raw_sha256": "c2a4ed90c54462f380225faaa24929fa6c98c87d83fb251abd38ef7448ed6161",
+      "bytes": 200016
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260814"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:44.145646+00:00",
+      "raw_sha256": "0c69b8aa182cc0ace0b6d388ebbf9f54c66418acda839036ab35b156d8848eff",
+      "bytes": 296502
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260814"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:44.566042+00:00",
+      "raw_sha256": "6420df675da21b95e9f4a6b4e0c5dd73c01915e91af1a74894aa20aac2d3c768",
+      "bytes": 300
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260817"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:45.134758+00:00",
+      "raw_sha256": "6b9446689fd89e3a20d610e5eae65a731e959c7a4bad5c547077d3a2a72dad29",
+      "bytes": 200052
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260817"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:45.684703+00:00",
+      "raw_sha256": "aebbbb641664a1b6b1f9591b5844ff1b48c9da775e1766daa3df9e533cb6c41e",
+      "bytes": 297470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260817"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:46.059797+00:00",
+      "raw_sha256": "edc8ca7b6c5d391ef6f283e0a0856c88ce46ad20aaf9b2f747eb0f45c9ef87fc",
+      "bytes": 368
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260818"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:46.634453+00:00",
+      "raw_sha256": "6715899d1d6efea55bf9fcfa362f2c81d01c9e372830dca96df1ccb47d923483",
+      "bytes": 200059
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260818"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:47.161737+00:00",
+      "raw_sha256": "5c6bdba5c11c2bf08edb07d28ce503fbe663d7d266d1fc00093b913c9f6a9a11",
+      "bytes": 297004
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260818"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:47.579315+00:00",
+      "raw_sha256": "cb25a77456ec5cf91276d387952644639d3b3544dbc53dda5272df6c1355746f",
+      "bytes": 402
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260819"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:48.118623+00:00",
+      "raw_sha256": "3cc3434ee59cec29a31c5364cd2f60334730654709ed2bfb04d38be81efbab48",
+      "bytes": 200160
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260819"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:48.639466+00:00",
+      "raw_sha256": "1f07cb82aa7653fc7f4e873b958d639b92f7b4277db9e3e15c3feddc17568b9f",
+      "bytes": 296807
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260819"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:49.066094+00:00",
+      "raw_sha256": "e40635645ab209a34f6c67dcad984f7e42d3e90b1a332f6006d375ba60e5392f",
+      "bytes": 454
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260820"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:49.617997+00:00",
+      "raw_sha256": "713923b38ee5030f59d924c30e5f35086d898ecfa128eb74c4c99957fb97f34d",
+      "bytes": 200167
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260820"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:50.152992+00:00",
+      "raw_sha256": "c2e8f76a96b76d88c657f19e0777dffae46714b03e523f85405470943b20b52f",
+      "bytes": 296046
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260820"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:50.572006+00:00",
+      "raw_sha256": "3bf576cea11a775a92ccc33e97683aaf40839d42088761b1bbdfada63a453db2",
+      "bytes": 436
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260821"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:51.172554+00:00",
+      "raw_sha256": "44811e05774bf3b16480a1cbebb05a35b0ccf618ec90ea1114a6dd063d64d841",
+      "bytes": 200203
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260821"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:51.644903+00:00",
+      "raw_sha256": "6be8023f1054f969ebae6282626d2778fd9719ab14b50ce3fb751f3808ea9114",
+      "bytes": 296676
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260821"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:52.067120+00:00",
+      "raw_sha256": "0f6582d2d09f3748b334855dd2b7f24697058e1fb045d39441fd75ca4dc444cf",
+      "bytes": 436
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260824"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:52.654095+00:00",
+      "raw_sha256": "fec81bece1f873a2e1355c94eb3cbfb2b58457a1fcca99d9b8fed7e18914712f",
+      "bytes": 200232
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260824"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:53.151603+00:00",
+      "raw_sha256": "9623d7b4368b558278b3d91c876ea92ff9dffd7af4c54cf5096a791bf4f28bcb",
+      "bytes": 295582
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260824"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:53.681563+00:00",
+      "raw_sha256": "88ad60ea36700a2e568f39b53bc38b157023e37dcd1af2bb77464a59f358cfdf",
+      "bytes": 470
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260825"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:54.156429+00:00",
+      "raw_sha256": "e9ff391dce9133c9eb034f0492b0b536e06cd0261e1e00662adb73077212ddd1",
+      "bytes": 200239
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260825"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:54.655868+00:00",
+      "raw_sha256": "bed4ccb782358bfe5ff78e89a10a59dbd28935acc44928bfa080084bff65ea4a",
+      "bytes": 296727
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260825"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:55.080522+00:00",
+      "raw_sha256": "dbc82f0a6def4beb40ff11d67ae069fc3cfc531f2714773bd00a114aa7261637",
+      "bytes": 402
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260826"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:55.660931+00:00",
+      "raw_sha256": "743591d397d1145210f8a215434cc97cf3bddf69876b5b5b446ea3f4b166be02",
+      "bytes": 200297
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260826"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:56.136996+00:00",
+      "raw_sha256": "74dc82528363112e8b5e0027c60e2390147a36a8f0c7a1aefae31cacf2e1bd77",
+      "bytes": 296562
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260826"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:56.566784+00:00",
+      "raw_sha256": "63037117858111e760b9c2e9ed3f38f9706dadd4dfb0f89fa092c7d10c27def4",
+      "bytes": 368
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260827"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:57.187451+00:00",
+      "raw_sha256": "06f16297e1fc27d2484c7acb4ce40714562f1aa565bc24888370958c7763743b",
+      "bytes": 200326
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260827"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:57.666421+00:00",
+      "raw_sha256": "032c6abba6c07522881fb12078f8f629a28fbe9791f999dfb9069d10fa3b6628",
+      "bytes": 297982
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260827"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:58.106989+00:00",
+      "raw_sha256": "5444f7b675f8c4152de2e59964fc337787be227e04cd641f3ace3d1aea7cc560",
+      "bytes": 334
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "bak_basic",
+        "fields": "trade_date,ts_code,list_date",
+        "params": {
+          "trade_date": "20260828"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:58.660588+00:00",
+      "raw_sha256": "9aec28e0e379e7c4a80e2aa3ec120670cb1c09acf61ad1ca6300b4e7fd170b5c",
+      "bytes": 200333
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "daily",
+        "fields": "ts_code,trade_date,close,pre_close,amount,ah_amount",
+        "params": {
+          "trade_date": "20260828"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:59.205356+00:00",
+      "raw_sha256": "df9d8200b8746ad9559713f432af8b79a5a16452cc36c3ec84e09f5b37c5d6dd",
+      "bytes": 297793
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "suspend_d",
+        "fields": "ts_code,trade_date,suspend_type,suspend_timing",
+        "params": {
+          "trade_date": "20260828"
+        }
+      },
+      "fetched_at": "2026-09-05T13:40:59.573696+00:00",
+      "raw_sha256": "59f3446dea9b8d1d27bf2dce61a42c58fc05d0e8cce4a888039a6401811a5d65",
+      "bytes": 445
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "stock_basic",
+        "fields": "ts_code,list_status,list_date,delist_date",
+        "params": {
+          "list_status": "L"
+        }
+      },
+      "fetched_at": "2026-09-05T13:50:10.179260+00:00",
+      "raw_sha256": "29398877a441e7c24ddc18d4301f20661dc9ae75e5c1c9bca88d07e68f4c4787",
+      "bytes": 189097
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "stock_basic",
+        "fields": "ts_code,list_status,list_date,delist_date",
+        "params": {
+          "list_status": "D"
+        }
+      },
+      "fetched_at": "2026-09-05T13:50:10.612767+00:00",
+      "raw_sha256": "4f63ca8ba58609fb71e9a787298eb0761079363869e66ad7f34d9967c63cd643",
+      "bytes": 13754
+    },
+    {
+      "url": "https://api.tushare.pro",
+      "request": {
+        "api_name": "stock_basic",
+        "fields": "ts_code,list_status,list_date,delist_date",
+        "params": {
+          "list_status": "P"
+        }
+      },
+      "fetched_at": "2026-09-05T13:50:11.154066+00:00",
+      "raw_sha256": "76bd8b47dc15968eb7e91ff0becb0bbad322488cfa026f53d578c182b5152eaf",
+      "bytes": 194
+    }
+  ],
+  "official_suspension_evidence": [],
+  "input_validation_status": "failed",
+  "network_requests_this_run": 0,
+  "validated_days": 118,
+  "requested_days": 120,
+  "active_database_modified": false,
+  "publication_claims_created": 0,
+  "certification_records_created": 0
+}
