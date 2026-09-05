@@ -223,6 +223,14 @@ a:visited { color: #765078; }
 .section-title { margin: 0; color: var(--ink-strong); font-size: 22px; line-height: 1.25; }
 .section-kicker { margin: 0; }
 .warning-label { color: var(--state-warning); font-size: 13px; font-weight: 700; }
+.source-contract-notice {
+  border-block: 1px solid var(--state-warning);
+  padding: 14px 24px;
+  color: var(--ink-strong);
+  background: var(--surface-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
 
 .table-scroll { overflow-x: auto; border-top: 1px solid var(--line); }
 .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }

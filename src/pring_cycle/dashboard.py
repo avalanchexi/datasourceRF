@@ -19,6 +19,8 @@ def dashboard_shell(
     projection: ProjectionSet | None,
     runs: Sequence[RunRecord],
     reports: Sequence[ReportSnapshot],
+    *,
+    source_contract_notice: str | None = None,
 ) -> html.Div:
     envelope = projection.envelope if projection is not None else None
     system_as_of = envelope.system_as_of.isoformat() if envelope is not None else "尚无投影"
@@ -62,6 +64,9 @@ def dashboard_shell(
                 ],
                 className="topbar",
             ),
+            html.Aside(source_contract_notice, className="source-contract-notice", role="alert")
+            if source_contract_notice is not None
+            else None,
             html.Div(
                 [
                     html.Nav(
@@ -178,9 +183,7 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                                 if projection is not None
                                 else "尚无",
                             ),
-                            _compact_fact(
-                                "映射口径", "债券 / 股票 / 商品 120 日稳定状态"
-                            ),
+                            _compact_fact("映射口径", "债券 / 股票 / 商品 120 日稳定状态"),
                         ],
                         className="stage-facts",
                     ),
@@ -257,9 +260,7 @@ def _core_assets_page(projection: ProjectionSet | None) -> html.Div:
 
 def _macro_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "macro")
-    as_of = (
-        projection.envelope.system_as_of.isoformat() if projection is not None else None
-    )
+    as_of = projection.envelope.system_as_of.isoformat() if projection is not None else None
     policy_action = _object_document(document.get("policy_action"))
     transmission = _object_document(document.get("transmission"))
     credit = _object_document(document.get("credit"))
@@ -364,14 +365,10 @@ def _macro_page(projection: ProjectionSet | None) -> html.Div:
 
 def _inventory_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "inventory")
-    as_of = (
-        projection.envelope.system_as_of.isoformat() if projection is not None else None
-    )
+    as_of = projection.envelope.system_as_of.isoformat() if projection is not None else None
     cards = document.get("cards")
     card_documents = (
-        [item for item in cards if isinstance(item, dict)]
-        if isinstance(cards, list)
-        else []
+        [item for item in cards if isinstance(item, dict)] if isinstance(cards, list) else []
     )
     return html.Div(
         [
@@ -516,9 +513,7 @@ def _fixed_section_page(
                     _domain_panel(
                         label,
                         kicker,
-                        " · ".join(
-                            f"{key}: {_display_value(document.get(key))}" for key in keys
-                        ),
+                        " · ".join(f"{key}: {_display_value(document.get(key))}" for key in keys),
                     )
                     for label, kicker, keys in sections
                 ],
@@ -553,10 +548,7 @@ def _macro_summary(document: dict[str, object]) -> html.Div:
         ("物价压力", "PRICE", document.get("price_pressure")),
     )
     return html.Div(
-        [
-            _domain_panel(title, kicker, _state_label(value))
-            for title, kicker, value in summaries
-        ],
+        [_domain_panel(title, kicker, _state_label(value)) for title, kicker, value in summaries],
         className="evidence-card-grid macro-summary-grid",
     )
 
@@ -632,10 +624,7 @@ def _evidence_row(
         children.append(
             html.A(
                 f"证据 {observation_id}",
-                href=(
-                    f"/api/v1/evidence/{observation_id}"
-                    f"?mode=system_as_of&as_of={as_of}"
-                ),
+                href=(f"/api/v1/evidence/{observation_id}?mode=system_as_of&as_of={as_of}"),
                 className="evidence-link",
             )
         )
@@ -644,9 +633,7 @@ def _evidence_row(
 
 def _evidence_links(value: object, *, as_of: str | None) -> html.Div:
     identifiers = (
-        [item for item in value if isinstance(item, str)]
-        if isinstance(value, list)
-        else []
+        [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
     )
     if not identifiers:
         return html.Div("证据：当前缺失", className="secondary-copy")
@@ -658,10 +645,7 @@ def _evidence_links(value: object, *, as_of: str | None) -> html.Div:
             links.append(
                 html.A(
                     f"证据 {identifier}",
-                    href=(
-                        f"/api/v1/evidence/{identifier}"
-                        f"?mode=system_as_of&as_of={as_of}"
-                    ),
+                    href=(f"/api/v1/evidence/{identifier}?mode=system_as_of&as_of={as_of}"),
                     className="evidence-link",
                 )
             )
@@ -1070,8 +1054,7 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
                     html.H3(str(section.get("title") or "未命名章节")),
                     html.P(str(section.get("explanation") or ""), className="body-copy"),
                     html.P(
-                        "证据 "
-                        + "、".join(str(item) for item in section.get("evidence_ids", [])),
+                        "证据 " + "、".join(str(item) for item in section.get("evidence_ids", [])),
                         className="secondary-copy",
                     ),
                     html.P(

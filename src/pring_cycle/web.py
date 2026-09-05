@@ -38,6 +38,7 @@ from pring_cycle.runtime import (
     RuntimePaths,
     runtime_health,
 )
+from pring_cycle.source_contract_review import active_source_contract_review
 from pring_cycle.storage import database_health
 
 COMMAND_BODY_LIMIT = 4096
@@ -257,14 +258,26 @@ def _meaningful_dashboard_shell(paths: RuntimePaths, *, status: str) -> str:
         f"<a href='{escape(path)}'>{escape(label)}</a>"
         for path, label in DASHBOARD_NAVIGATION
     )
+    notice = _source_contract_notice(paths)
+    notice_html = f"<aside role='alert'>{escape(notice)}</aside>" if notice is not None else ""
     return (
         "<header><p>PRING CYCLE</p><h1>周期驾驶舱</h1>"
         f"<dl><dt>SYSTEM AS OF</dt><dd>{escape(system_as_of)}</dd>"
         f"<dt>投影身份</dt><dd>{escape(projection_id)}</dd>"
         f"<dt>完整度</dt><dd>{escape(completeness)}</dd></dl></header>"
+        f"{notice_html}"
         f"<nav aria-label='一级导航'>{navigation}</nav>"
         "<main id='page-content' data-pring-meaningful-content='true'>"
         f"<h2>本机运行状态</h2><p>{escape(status)}</p></main>"
+    )
+
+
+def _source_contract_notice(paths: RuntimePaths) -> str | None:
+    if active_source_contract_review(paths.database) is None:
+        return None
+    return (
+        "来源认证仍有缺口，已暂停更新和新报告。下方保留上次发布的历史结果。"
+        "融资发布时间、估值方法、商品篮子口径及官方样本仍需复核。"
     )
 
 
@@ -352,6 +365,7 @@ def _load_dashboard(
             _current_projection(paths),
             _runs(paths),
             _reports(paths),
+            source_contract_notice=_source_contract_notice(paths),
         )
 
         dashboard_index_endpoint = next(
