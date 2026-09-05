@@ -1,0 +1,25 @@
+{
+  "acceptance_only": true,
+  "artifact": {
+    "hash": "fb95cba2ce63a37680200c7e4d8479349225245bd8628a6e76936207a38865ef",
+    "path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/fb/fb95cba2ce63a37680200c7e4d8479349225245bd8628a6e76936207a38865ef"
+  },
+  "attempt_count": 2,
+  "code_hash": "14e1764c44792a7d06ca6b281502588cadc66caac0f41e7ac1a22136a8f42fcb",
+  "configuration_version": "config-v0001",
+  "cutoffs_preserved": true,
+  "database_revision": "0013_source_claim_provider_identity_index",
+  "dependency_hash": "28cdd2d2003f3235ab2bd8fcc8ec82c45c178d67e5f3fde16b1308ae8e0890b1",
+  "interrupted_status": "interrupted",
+  "lease_audit": {
+    "next_action": "explicit_resume_required",
+    "owner_state": "stale",
+    "run_id": "run-3f926a4f2caf87ee7db8"
+  },
+  "network_requests": 0,
+  "normalized_result_hash": "837abc5cccc2f7dc29ea3666e68d1d27cb5edfabe0f92f2d776f109a466b02bd",
+  "publication_history_written": false,
+  "resumed_status": "queued",
+  "schema_version": "fixture-recovery-rehearsal-v0001",
+  "status": "ok"
+}

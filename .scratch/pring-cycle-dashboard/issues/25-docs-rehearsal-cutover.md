@@ -64,3 +64,9 @@ Dashboard 与报告演练，不以 fixture 单项通过替代。
 重新执行真实原子投影、Dashboard、报告及本票两项组合演练，不能以旧投影或 fixture 代替。
 
 2026-09-05: Review reopened the v3 source-certification contract. The 15 market P1 metrics in five families still lack complete official semantic validation; observed margin publication and commodity return mismatches are blocked at write/activation/cutover boundaries. Historical data remains readable. Status stays `ready-for-agent`; neither model/source acceptance nor real cutover is complete. See `../closeout-2026-09-05.md` and `docs/research/market-source-semantic-review-2026-09-05.md`.
+
+2026-09-05：工程续接验证已落盘：`42da5c7` 下 352 项测试通过（157.60 秒），
+Ruff/mypy、35 项离线验收回归、8 类故障注入和独立 fixture 中断恢复通过；浏览器八页导航与
+三项 QA 修复已复测。证据 JSON 的直接浏览器导航仍受客户端限制，修正后的 href 与 HTTP 200
+分别核验。最终制品与日志见 `../closeout-2026-09-05.md`。两项组合演练仍不勾选：最新目标日
+来源认证、新候选验收与真实演练未完成，未生成或记录正式切换。

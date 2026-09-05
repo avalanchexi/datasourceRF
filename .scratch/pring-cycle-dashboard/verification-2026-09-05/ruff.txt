@@ -1,0 +1,3 @@
+All checks passed!
+
+WALL_SECONDS=0.69 EXIT_CODE=0

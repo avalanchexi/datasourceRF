@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-05",
+  "url": "http://127.0.0.1:8877/",
+  "commit": "42da5c7",
+  "scope": "observed application UI findings only; not source certification or cutover acceptance",
+  "healthScore": 99.7,
+  "baselineHealthScore": 94.2,
+  "categoryScores": {"console": 100, "links": 100, "visual": 97, "functional": 100, "ux": 100, "performance": 100, "content": 100, "accessibility": 100},
+  "issues": [
+    {"id": "ISSUE-001", "severity": "medium", "category": "ux", "status": "fixed", "commit": "54ff189"},
+    {"id": "ISSUE-002", "severity": "medium", "category": "ux", "status": "fixed", "commit": "2b7e812"},
+    {"id": "ISSUE-003", "severity": "medium", "category": "functional", "status": "fixed", "commit": "42da5c7"},
+    {"id": "ISSUE-004", "severity": "low", "category": "visual", "status": "deferred"}
+  ],
+  "limitations": [
+    "Chrome/CUA JSON navigation reports ERR_BLOCKED_BY_CLIENT; corrected href and HTTP 200 verified separately",
+    "Source semantic certification remains blocked for fifteen P1 metrics in five families",
+    "No latest-target real rehearsal or direct cutover was performed"
+  ]
+}
