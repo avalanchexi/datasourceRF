@@ -9,13 +9,19 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.artifacts import store_artifact
-from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
+from pring_cycle.catalog import (
+    METRIC_CATALOG_V0003,
+    METRIC_CATALOG_VERSION,
+    metric_catalog,
+    metric_catalog_v0003,
+)
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.rehearsals import verify_source_smoke_artifacts
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.runtime_fingerprint import execution_fingerprint, fingerprint_matches
+from pring_cycle.source_contract_review import source_contract_review
 from pring_cycle.storage import artifact_is_registered, database_health
 
 CUTOVER_CONFIRMATION = "DIRECT_CUTOVER_TO_PRING_V1"
@@ -53,12 +59,20 @@ def build_cutover_manifest(
     models = ModelRepository(paths.database)
     active_model = models.active()
     active_manifest = models.manifest(active_model.model_version_id)
+    contract_review = source_contract_review(str(active_manifest.get("metric_catalog_version")))
     try:
         active_rules = ContextProjectionRules.from_manifest(active_manifest)
     except ValueError:
         active_rules = None
     active_catalog_document = active_manifest.get("metric_definitions")
-    current_catalog_document = [asdict(item) for item in metric_catalog()]
+    supported_catalogs = {
+        METRIC_CATALOG_VERSION: metric_catalog,
+        METRIC_CATALOG_V0003: metric_catalog_v0003,
+    }
+    catalog_factory = supported_catalogs.get(str(active_manifest.get("metric_catalog_version")))
+    current_catalog_document = (
+        [asdict(item) for item in catalog_factory()] if catalog_factory is not None else None
+    )
     active_catalog_hash = (
         hashlib.sha256(_canonical_json(active_catalog_document).encode()).hexdigest()
         if active_rules is not None
@@ -69,7 +83,7 @@ def build_cutover_manifest(
     ).hexdigest()
     active_catalog_current = (
         active_rules is not None
-        and active_rules.metric_catalog_version == METRIC_CATALOG_VERSION
+        and catalog_factory is not None
         and active_catalog_hash == current_catalog_hash
     )
     projection = ProjectionSetRepository(paths.database).current()
@@ -104,6 +118,7 @@ def build_cutover_manifest(
         "legacy_system_read_only_stopped": legacy_system_read_only_stopped,
         "model_catalog_current": active_catalog_current,
         "model_catalog_manifest_valid": active_rules is not None,
+        "model_source_contract_review": contract_review is None,
         "model_matches_projection": active_model.model_version_id
         == projection.envelope.model_version_id,
         "quality_and_performance": _quality_gates_passed(referenced["acceptance"]),
@@ -127,6 +142,7 @@ def build_cutover_manifest(
             active_rules.metric_catalog_version if active_rules is not None else None
         ),
         "projection_set_id": projection.envelope.projection_set_id,
+        "source_contract_review": contract_review,
         "references": {
             "acceptance": acceptance_hash,
             "fixture_rehearsal": fixture_rehearsal_hash,

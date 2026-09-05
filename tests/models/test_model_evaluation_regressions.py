@@ -18,8 +18,68 @@ from pring_cycle.model_evaluation import (
     HistoricalEvaluation,
     calibrate_model,
     evaluate_history,
+    replay_models,
 )
-from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
+from pring_cycle.models import (
+    CALIBRATION_BASELINE,
+    ModelRepository,
+    analytical_model_v0003_manifest,
+    certified_120d_model_v0006_manifest,
+    certified_model_v0001_manifest,
+)
+
+
+def test_legacy_model_replay_uses_its_certified_interval_without_an_exact_120_day_rule(
+    tmp_path: Path,
+) -> None:
+    database = tmp_path / "legacy-replay.sqlite3"
+    models = ModelRepository.create(database)
+    manifest = certified_model_v0001_manifest()
+    models.create_candidate(manifest)
+    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+    models.activate("model-v0001", explicitly_approved=True)
+    manifest["model_version_id"] = "legacy-candidate"
+    models.create_candidate(manifest)
+    evidence = EvidenceRepository.create(database)
+    days = []
+    day = datetime(2018, 1, 1, tzinfo=UTC)
+    while len(days) < 170:
+        if day.weekday() < 5:
+            days.append(day)
+        day += timedelta(days=1)
+    for index, observed in enumerate(days):
+        for metric_id in ("CN_BOND_CORE_000012", "CN_EQUITY_CORE_000985", "CN_COMMODITY_CORE_NHII"):
+            evidence.append_source_claim(
+                SourceClaimInput(
+                    metric_id=metric_id,
+                    definition_version="metric-catalog-v0001",
+                    period_kind="business_day",
+                    period_start=observed.date().isoformat(),
+                    period_end=observed.date().isoformat(),
+                    dimensions={},
+                    value=100.0 + index,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="index_points",
+                    provider="fixture",
+                    source_reference=f"fixture:{metric_id}:{index}",
+                    release_event_id=f"fixture:{metric_id}:{index}",
+                    release_at=observed,
+                    public_available_at=observed,
+                    fetched_at=observed,
+                    available_at=observed,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+    result = replay_models(
+        database,
+        "legacy-candidate",
+        "model-v0001",
+        requested_start=days[-5].date().isoformat(),
+        requested_end=days[-1].date().isoformat(),
+    )
+    assert result.quality_passed is True, result.gaps
+    assert result.evaluated_trading_days == 5
 
 
 def test_confirmation_delay_restarts_after_price_recrosses_120d_average(
@@ -68,9 +128,7 @@ def test_confirmation_delay_restarts_after_price_recrosses_120d_average(
         day_number = int(latest % 100)
         if asset_bucket == 1:
             state = CoreAssetState.BULL if day_number == 6 else CoreAssetState.BEAR
-            distance = {1: -1.0, 2: -1.0, 3: 0.1, 4: -0.1, 5: 0.1, 6: 1.0}[
-                day_number
-            ]
+            distance = {1: -1.0, 2: -1.0, 3: 0.1, 4: -0.1, 5: 0.1, 6: 1.0}[day_number]
             fast = CoreAssetState.BULL if day_number >= 3 else CoreAssetState.BEAR
         elif asset_bucket == 2:
             state = CoreAssetState.BULL
@@ -168,6 +226,48 @@ def test_v0001_machine_acceptance_uses_the_frozen_calibration_end(
     assert result["input_range_start"] == "2017-01-03"
 
 
+def test_v0006_calibration_keeps_the_frozen_core_range(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    database = tmp_path / "model.sqlite3"
+    models = ModelRepository.create(database)
+    models.create_candidate(
+        certified_120d_model_v0006_manifest(({"package_id": "source-certification-fixture"},))
+    )
+    observed: dict[str, str | None] = {}
+
+    def fake_evaluate(
+        _database: Path,
+        _model_version_id: str,
+        *,
+        requested_start: str,
+        requested_end: str | None,
+    ) -> HistoricalEvaluation:
+        observed["start"] = requested_start
+        observed["end"] = requested_end
+        return HistoricalEvaluation(
+            21,
+            11,
+            0,
+            23,
+            1995,
+            0.1,
+            {},
+            {},
+            "b" * 64,
+            2338,
+            "2017-01-03",
+        )
+
+    monkeypatch.setattr("pring_cycle.model_evaluation.evaluate_history", fake_evaluate)
+
+    result = calibrate_model(database, "model-v0006")
+
+    assert observed == {"start": "2018-06-01", "end": CALIBRATION_END}
+    assert result["range_start"] == "2018-06-01"
+
+
 def test_acceptance_hash_is_bound_to_the_calibration_evidence_vintage(
     tmp_path: Path,
 ) -> None:
@@ -200,13 +300,22 @@ def test_acceptance_hash_is_bound_to_the_calibration_evidence_vintage(
     assert first.result_hash != second.result_hash
 
 
-def test_history_uses_v0001_warmup_but_only_counts_the_requested_window(
+@pytest.mark.parametrize(
+    ("manifest", "definition_version"),
+    (
+        (certified_model_v0001_manifest(), "metric-catalog-v0001"),
+        (analytical_model_v0003_manifest(), "metric-catalog-v0002"),
+    ),
+)
+def test_history_uses_model_warmup_but_only_counts_the_requested_window(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    manifest: dict[str, object],
+    definition_version: str,
 ) -> None:
     database = tmp_path / "model.sqlite3"
     models = ModelRepository.create(database)
-    models.create_candidate(certified_model_v0001_manifest())
+    model = models.create_candidate(manifest)
     evidence = EvidenceRepository.create(database)
     days = [
         datetime(2017, 1, 3, tzinfo=UTC),
@@ -224,7 +333,7 @@ def test_history_uses_v0001_warmup_but_only_counts_the_requested_window(
             evidence.append_source_claim(
                 SourceClaimInput(
                     metric_id=metric_id,
-                    definition_version="metric-catalog-v0001",
+                    definition_version=definition_version,
                     period_kind="business_day",
                     period_start=observed.date().isoformat(),
                     period_end=observed.date().isoformat(),
@@ -246,9 +355,7 @@ def test_history_uses_v0001_warmup_but_only_counts_the_requested_window(
 
     observed_inputs: list[tuple[str, ...]] = []
 
-    def warm_history(
-        points: list[object], _rules: object
-    ) -> tuple[TrendHistoryPoint, ...]:
+    def warm_history(points: list[object], _rules: object) -> tuple[TrendHistoryPoint, ...]:
         observed_inputs.append(
             tuple(point.business_date.isoformat() for point in points)  # type: ignore[attr-defined]
         )
@@ -268,7 +375,7 @@ def test_history_uses_v0001_warmup_but_only_counts_the_requested_window(
 
     evaluated = evaluate_history(
         database,
-        "model-v0001",
+        model.model_version_id,
         requested_start="2018-06-01",
         requested_end="2018-06-04",
     )

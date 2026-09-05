@@ -4,12 +4,14 @@ import hashlib
 import json
 import statistics
 import time
-from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from dataclasses import asdict, dataclass
+from datetime import date, datetime, timedelta
 from datetime import time as clock_time
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
+from pring_cycle.catalog import MetricDefinition
 from pring_cycle.context_projection import (
     ContextProjectionRules,
     build_context_projection,
@@ -19,6 +21,7 @@ from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend_history
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS, evidence_frequency
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 
 CALIBRATION_END = "2026-08-19"
@@ -51,6 +54,10 @@ class ParallelReplayEvaluation:
     core_state_differences: int
     context_output_differences: int
     gaps: tuple[str, ...]
+    evaluated_trading_days: int
+    calendar_hash: str
+    evaluated_range_start: str
+    evaluated_range_end: str
 
 
 @dataclass(frozen=True)
@@ -68,11 +75,14 @@ def calibrate_model(
     requested_start: str | None = None,
     requested_end: str | None = None,
 ) -> dict[str, int | str]:
-    model = ModelRepository(database).get(model_version_id)
+    models = ModelRepository(database)
+    model = models.get(model_version_id)
+    manifest = models.manifest(model_version_id)
+    calibration_start = str(manifest.get("calibration_range_start", model.certified_replay_start))
     evaluated = evaluate_history(
         database,
         model_version_id,
-        requested_start=requested_start or model.certified_replay_start,
+        requested_start=requested_start or calibration_start,
         requested_end=requested_end or CALIBRATION_END,
     )
     if (
@@ -86,8 +96,7 @@ def calibrate_model(
     ):
         raise ValueError("calibration_evidence_incomplete")
     results: dict[str, int | str] = {
-        key: int(getattr(evaluated, key))
-        for key in CALIBRATION_BASELINE
+        key: int(getattr(evaluated, key)) for key in CALIBRATION_BASELINE
     }
     results.update(
         {
@@ -96,7 +105,7 @@ def calibrate_model(
             "input_days": evaluated.input_days,
             "input_range_start": evaluated.input_range_start,
             "range_end": requested_end or CALIBRATION_END,
-            "range_start": requested_start or model.certified_replay_start,
+            "range_start": requested_start or calibration_start,
         }
     )
     return results
@@ -110,7 +119,11 @@ def replay_models(
     requested_start: str,
     requested_end: str,
 ) -> ParallelReplayEvaluation:
+    if candidate_model_version_id == comparison_model_version_id:
+        raise ValueError("model_replay_self_comparison_forbidden")
     models = ModelRepository(database)
+    if models.active().model_version_id != comparison_model_version_id:
+        raise ValueError("model_replay_comparison_must_be_active")
     candidate = models.get(candidate_model_version_id)
     comparison = models.get(comparison_model_version_id)
     candidate_manifest = models.manifest(candidate_model_version_id)
@@ -133,9 +146,9 @@ def replay_models(
         requested_end=requested_end,
     )
     days = sorted(
-        set(candidate_result.core_states_by_day)
-        & set(comparison_result.core_states_by_day)
+        set(candidate_result.core_states_by_day) & set(comparison_result.core_states_by_day)
     )
+    calendar_hash = hashlib.sha256("\n".join(days).encode()).hexdigest() if days else ""
     context_result = evaluate_context_replay(
         database,
         candidate_manifest,
@@ -147,9 +160,13 @@ def replay_models(
     gaps = list(context_result.gaps)
     if not days:
         gaps.append("certified_replay_has_no_common_complete_days")
+    required_days = int(candidate_manifest.get("visible_evidence_window_trading_days", 0))
+    if required_days > 0 and len(days) != required_days:
+        gaps.append(f"certified_replay_trading_days_invalid:{len(days)}:{required_days}")
+    if days and (days[0] != range_start or days[-1] != requested_end):
+        gaps.append("certified_replay_range_not_exact")
     stage_differences = sum(
-        candidate_result.stages_by_day[day] != comparison_result.stages_by_day[day]
-        for day in days
+        candidate_result.stages_by_day[day] != comparison_result.stages_by_day[day] for day in days
     )
     core_state_differences = sum(
         left != right
@@ -163,8 +180,7 @@ def replay_models(
     quality_passed = bool(days) and not gaps
     regression_passed = (
         quality_passed
-        and candidate_result.fast_reversals_20d
-        <= comparison_result.fast_reversals_20d
+        and candidate_result.fast_reversals_20d <= comparison_result.fast_reversals_20d
     )
     performance_passed = (
         candidate_result.duration_seconds
@@ -180,6 +196,10 @@ def replay_models(
         core_state_differences,
         context_result.context_output_differences,
         tuple(gaps),
+        len(days),
+        calendar_hash,
+        days[0] if days else range_start,
+        days[-1] if days else requested_end,
     )
 
 
@@ -203,11 +223,9 @@ def evaluate_history(
     if any(not metric_id for metric_id in metric_ids):
         raise ValueError("model_core_metrics_invalid")
     evidence = EvidenceRepository(database)
-    evidence.preload_metric_series(
-        {(metric_id, definition_version) for metric_id in metric_ids}
-    )
+    evidence.preload_metric_series({(metric_id, definition_version) for metric_id in metric_ids})
     end_date = date.fromisoformat(requested_end) if requested_end is not None else date.max
-    final_cutoff = datetime.combine(end_date, clock_time.max, UTC)
+    final_cutoff = _china_business_day_end(end_date)
     final_series = {
         asset: evidence.metric_series(
             metric_id,
@@ -224,16 +242,13 @@ def evaluate_history(
     )
     history_input_start = _history_input_start(manifest, requested_start)
     input_days = [
-        day
-        for day in all_common_days
-        if history_input_start <= day <= end_date.isoformat()
+        day for day in all_common_days if history_input_start <= day <= end_date.isoformat()
     ]
     common_days = [day for day in input_days if requested_start <= day]
     if not input_days or not common_days:
         raise ValueError("calibration_evidence_incomplete")
     points_by_asset = {
-        asset: {point.period_end: point for point in final_series[asset]}
-        for asset in _ASSETS
+        asset: {point.period_end: point for point in final_series[asset]} for asset in _ASSETS
     }
     if any(
         points_by_asset[asset][day].selection_status != "selected"
@@ -251,10 +266,7 @@ def evaluate_history(
                 "measurement_range_end": common_days[-1],
                 "measurement_range_start": common_days[0],
                 "series": {
-                    asset: [
-                        [day, points_by_asset[asset][day].selected_value]
-                        for day in input_days
-                    ]
+                    asset: [[day, points_by_asset[asset][day].selected_value] for day in input_days]
                     for asset in _ASSETS
                 },
             },
@@ -342,9 +354,7 @@ def evaluate_history(
         )  # type: ignore[assignment]
         stages_by_day[day_text] = stage_value
 
-    median_delay = (
-        int(statistics.median(confirmation_delays)) if confirmation_delays else 0
-    )
+    median_delay = int(statistics.median(confirmation_delays)) if confirmation_delays else 0
     return HistoricalEvaluation(
         asset_changes,
         stage_changes,
@@ -370,12 +380,13 @@ def _ma_position(distance_pct: float | None) -> CoreAssetState | None:
     return None
 
 
-def _history_input_start(
-    manifest: dict[str, object], requested_start: str
-) -> str:
+def _history_input_start(manifest: dict[str, object], requested_start: str) -> str:
     if manifest.get("model_version_id") == "model-v0001":
         return min(CALIBRATION_INPUT_START, requested_start)
-    return str(manifest.get("certified_replay_start", requested_start))
+    return min(
+        str(manifest.get("history_input_start", manifest.get("certified_replay_start"))),
+        requested_start,
+    )
 
 
 def _rules(manifest: dict[str, object]) -> TrendRules:
@@ -404,11 +415,12 @@ def context_replay_gaps(
     comparison = ContextProjectionRules.from_manifest(comparison_manifest)
     candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
     changed_metrics, changed_formulas = _context_changes(candidate, comparison)
+    changed_metrics |= _full_p1_replay_metric_ids(candidate_manifest, candidate)
+    if _source_certification_packages_changed(candidate_manifest, comparison_manifest):
+        changed_metrics |= _replay_metric_ids(candidate, comparison)
     affected_formulas = _affected_context_formulas(changed_metrics, changed_formulas)
     formula_inputs = {
-        metric_id
-        for key in affected_formulas
-        for metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
+        metric_id for key in affected_formulas for metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
     }
     requires_certification = (changed_metrics - _CONTEXT_DERIVED_OUTPUTS) | formula_inputs
     uncertified = sorted(
@@ -416,7 +428,10 @@ def context_replay_gaps(
         for metric_id in requires_certification
         if (definition := candidate_definitions.get(metric_id)) is None
         or (
-            definition.priority in {"P1", "P2"}
+            (
+                definition.priority == "P1"
+                or (definition.priority == "P2" and metric_id in formula_inputs)
+            )
             and definition.certification_status != "certified"
         )
     )
@@ -439,26 +454,32 @@ def evaluate_context_replay(
     end_date = date.fromisoformat(requested_end)
     if start_date > end_date:
         raise ValueError("context_replay_range_empty")
+    days = replay_days if replay_days is not None else _weekday_replay_days(start_date, end_date)
     candidate = ContextProjectionRules.from_manifest(candidate_manifest)
     comparison = ContextProjectionRules.from_manifest(comparison_manifest)
     changed_metrics, changed_formulas = _context_changes(candidate, comparison)
+    changed_metrics |= _full_p1_replay_metric_ids(candidate_manifest, candidate)
+    if _source_certification_packages_changed(candidate_manifest, comparison_manifest):
+        changed_metrics |= _replay_metric_ids(candidate, comparison)
     if not changed_metrics and not changed_formulas:
         return ContextReplayEvaluation(0, 0, time.perf_counter() - started, ())
 
     gaps = list(context_replay_gaps(candidate_manifest, comparison_manifest))
     affected_formulas = _affected_context_formulas(changed_metrics, changed_formulas)
     formula_inputs = {
-        metric_id
-        for key in affected_formulas
-        for metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
+        metric_id for key in affected_formulas for metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
     }
-    source_metrics = (changed_metrics | formula_inputs) - _CONTEXT_DERIVED_OUTPUTS
     candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
-    comparison_definitions = {
-        item.metric_id: item for item in comparison.metric_definitions
+    comparison_definitions = {item.metric_id: item for item in comparison.metric_definitions}
+    source_metrics = {
+        metric_id
+        for metric_id in (changed_metrics | formula_inputs) - _CONTEXT_DERIVED_OUTPUTS
+        if (
+            (definition := candidate_definitions.get(metric_id)) is not None
+            and (definition.priority == "P1" or definition.certification_status == "certified")
+        )
     }
     evidence = EvidenceRepository(database)
-    public_cutoffs: set[datetime] = set()
     coverage_gaps: list[str] = []
     replay_sources = (
         (
@@ -494,12 +515,9 @@ def evaluate_context_replay(
                     start_date=start_date,
                     end_date=end_date,
                     warmup_days=_metric_warmup_days(metric_id, affected_formulas),
+                    required_days=days,
                 )
             )
-            for vintage in vintages:
-                public_at = vintage.public_available_at
-                if public_at is not None and start_date <= public_at.date() <= end_date:
-                    public_cutoffs.add(public_at)
     gaps.extend(coverage_gaps)
 
     candidate_formula_versions = {
@@ -520,8 +538,7 @@ def evaluate_context_replay(
             gaps=tuple(dict.fromkeys(gaps)),
         )
 
-    evidence.preload_metric_series(
-        {
+    preload_metrics = {
             (metric_id, definition_version)
             for definition_version, metric_ids in (
                 (
@@ -535,19 +552,22 @@ def evaluate_context_replay(
             )
             for metric_id in metric_ids
         }
-    )
+    for manifest, definition_version in (
+        (candidate_manifest, candidate.metric_catalog_version),
+        (comparison_manifest, comparison.metric_catalog_version),
+    ):
+        core_metrics = manifest.get("core_metrics")
+        if isinstance(core_metrics, dict):
+            stock_metric_id = core_metrics.get("stock")
+            if isinstance(stock_metric_id, str) and stock_metric_id:
+                preload_metrics.add((stock_metric_id, definition_version))
+    evidence.preload_metric_series(preload_metrics)
 
-    days = (
-        replay_days
-        if replay_days is not None
-        else _weekday_replay_days(start_date, end_date)
-    )
-    public_cutoffs.update(
-        datetime.combine(date.fromisoformat(day), clock_time.max, UTC)
+    cutoffs = tuple(
+        _china_business_day_end(date.fromisoformat(day))
         for day in days
         if requested_start <= day <= requested_end
     )
-    cutoffs = tuple(sorted(public_cutoffs))
     output_differences = 0
     for cutoff in cutoffs:
         for side, definition_version, definitions in replay_sources:
@@ -599,16 +619,12 @@ def evaluate_context_replay(
             "macro": comparison_projection.macro,
             "inventory": comparison_projection.inventory,
         }
-        if _normalized_context(candidate_document) != _normalized_context(
-            comparison_document
-        ):
+        if _normalized_context(candidate_document) != _normalized_context(comparison_document):
             output_differences += 1
         for key, version in candidate_formula_versions.items():
             formula_documents = _formula_documents(candidate_document, version)
             available = [
-                item
-                for item in formula_documents
-                if item.get("status") in {"available", "current"}
+                item for item in formula_documents if item.get("status") in {"available", "current"}
             ]
             if not available:
                 gaps.append(f"candidate_context_formula_output_missing:{key}")
@@ -630,17 +646,14 @@ def _context_changes(
     candidate: ContextProjectionRules,
     comparison: ContextProjectionRules,
 ) -> tuple[set[str], set[str]]:
-    candidate_definitions = {
-        item.metric_id: item for item in candidate.metric_definitions
-    }
-    comparison_definitions = {
-        item.metric_id: item for item in comparison.metric_definitions
-    }
-    relevant = context_metric_ids(candidate) | context_metric_ids(comparison)
+    candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
+    comparison_definitions = {item.metric_id: item for item in comparison.metric_definitions}
+    relevant = _replay_metric_ids(candidate, comparison)
     changed_metrics = {
         metric_id
         for metric_id in relevant
-        if candidate_definitions.get(metric_id) != comparison_definitions.get(metric_id)
+        if _definition_signature(candidate_definitions.get(metric_id))
+        != _definition_signature(comparison_definitions.get(metric_id))
     }
     changed_formulas = {
         key
@@ -650,14 +663,54 @@ def _context_changes(
     return changed_metrics, changed_formulas
 
 
+def _replay_metric_ids(
+    candidate: ContextProjectionRules,
+    comparison: ContextProjectionRules,
+) -> set[str]:
+    return {
+        item.metric_id
+        for item in (*candidate.metric_definitions, *comparison.metric_definitions)
+        if item.priority in {"P1", "P2"}
+    }
+
+
+def _source_certification_packages_changed(
+    candidate_manifest: dict[str, object],
+    comparison_manifest: dict[str, object],
+) -> bool:
+    return candidate_manifest.get("source_certification_packages") != comparison_manifest.get(
+        "source_certification_packages"
+    )
+
+
+def _full_p1_replay_metric_ids(
+    manifest: dict[str, object],
+    rules: ContextProjectionRules,
+) -> set[str]:
+    packages = manifest.get("source_certification_packages")
+    if not isinstance(packages, list) or not packages:
+        return set()
+    return {item.metric_id for item in rules.metric_definitions if item.priority == "P1"}
+
+
+def _china_business_day_end(day: date) -> datetime:
+    return datetime.combine(day, clock_time.max, ZoneInfo("Asia/Shanghai"))
+
+
+def _definition_signature(definition: MetricDefinition | None) -> dict[str, object] | None:
+    if definition is None:
+        return None
+    document = asdict(definition)
+    document.pop("definition_version", None)
+    return document
+
+
 def _affected_context_formulas(
     changed_metrics: set[str],
     changed_formulas: set[str],
 ) -> set[str]:
     return changed_formulas | {
-        key
-        for key, inputs in _CONTEXT_FORMULA_INPUTS.items()
-        if changed_metrics & set(inputs)
+        key for key, inputs in _CONTEXT_FORMULA_INPUTS.items() if changed_metrics & set(inputs)
     }
 
 
@@ -670,6 +723,7 @@ def _context_coverage_gaps(
     start_date: date,
     end_date: date,
     warmup_days: int,
+    required_days: tuple[str, ...] | None = None,
 ) -> list[str]:
     valid = [
         item
@@ -678,28 +732,94 @@ def _context_coverage_gaps(
         and item.quality_status == "validated"
         and item.public_available_at is not None
     ]
+    required_members = (
+        REQUIRED_DIMENSION_MEMBERS.get(metric_id, ())
+        if metric_id == "CN_FUTURES_WARRANTS"
+        else ()
+    )
+    if required_members:
+        gaps: list[str] = []
+        for required in required_members:
+            member_vintages = tuple(
+                item
+                for item in valid
+                if all(item.dimensions.get(key) == value for key, value in required.items())
+            )
+            member = ",".join(f"{key}={value}" for key, value in sorted(required.items()))
+            gaps.extend(
+                _single_context_coverage_gaps(
+                    side,
+                    metric_id,
+                    frequency,
+                    member_vintages,
+                    start_date=start_date,
+                    end_date=end_date,
+                    warmup_days=warmup_days,
+                    member=member,
+                    required_days=required_days,
+                )
+            )
+        return list(dict.fromkeys(gaps))
+    return _single_context_coverage_gaps(
+        side,
+        metric_id,
+        frequency,
+        tuple(valid),
+        start_date=start_date,
+        end_date=end_date,
+        warmup_days=warmup_days,
+        required_days=required_days,
+    )
+
+
+def _single_context_coverage_gaps(
+    side: str,
+    metric_id: str,
+    frequency: str,
+    valid: tuple[Any, ...],
+    *,
+    start_date: date,
+    end_date: date,
+    warmup_days: int,
+    member: str | None = None,
+    required_days: tuple[str, ...] | None = None,
+) -> list[str]:
+    frequency = evidence_frequency(metric_id, frequency)
+    suffix = f":[{member}]" if member is not None else ""
     if not valid:
-        return [f"{side}_context_evidence_missing:{metric_id}"]
+        return [f"{side}_context_evidence_missing:{metric_id}{suffix}"]
     required_start = start_date - timedelta(days=warmup_days)
     earliest_period = min(date.fromisoformat(item.period_start) for item in valid)
     earliest_public = min(item.public_available_at.date() for item in valid)
     latest_period = max(date.fromisoformat(item.period_end) for item in valid)
     gaps = []
     if earliest_period > required_start or earliest_public > start_date:
-        gaps.append(f"{side}_context_coverage_start_missing:{metric_id}")
-    freshness_days = {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
-        frequency,
-        95,
+        gaps.append(f"{side}_context_coverage_start_missing:{metric_id}{suffix}")
+    freshness_days = (
+        730
+        if metric_id == "CN_RRR_EVENT"
+        else {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
+            frequency,
+            95,
+        )
     )
     if (end_date - latest_period).days > freshness_days:
-        gaps.append(f"{side}_context_coverage_end_missing:{metric_id}")
+        gaps.append(f"{side}_context_coverage_end_missing:{metric_id}{suffix}")
     period_dates = sorted({date.fromisoformat(item.period_end) for item in valid})
-    maximum_gap = {"daily": 10, "monthly": 62, "quarterly": 130}.get(frequency)
+    maximum_gap = {"daily": 14, "monthly": 62, "quarterly": 130}.get(frequency)
     if maximum_gap is not None and any(
         (current - previous).days > maximum_gap
         for previous, current in zip(period_dates, period_dates[1:], strict=False)
     ):
-        gaps.append(f"{side}_context_coverage_gap:{metric_id}")
+        gaps.append(f"{side}_context_coverage_gap:{metric_id}{suffix}")
+    if frequency == "daily" and required_days:
+        required = {
+            day for day in required_days if start_date.isoformat() <= day <= end_date.isoformat()
+        }
+        observed = {item.period_end for item in valid if item.period_end in required}
+        minimum_observations = (len(required) * 95 + 99) // 100
+        if len(observed) < minimum_observations:
+            gaps.append(f"{side}_context_coverage_density:{metric_id}{suffix}")
     return gaps
 
 
@@ -712,6 +832,7 @@ def _context_selection_gaps(
     frequency: str,
     cutoff: datetime,
 ) -> tuple[str, ...]:
+    frequency = evidence_frequency(metric_id, frequency)
     series = repository.metric_series(
         metric_id,
         mode=AsOfMode.PUBLIC,
@@ -724,38 +845,64 @@ def _context_selection_gaps(
     if not grouped:
         return (f"{side}_context_selection_missing:{metric_id}",)
     statuses: set[str] = set()
-    required_members = _CONTEXT_REQUIRED_DIMENSION_MEMBERS.get(metric_id, ())
+    required_members = REQUIRED_DIMENSION_MEMBERS.get(metric_id, ())
     current_points = [points[-1] for points in grouped.values()]
-    latest_period = max(
-        (point.period_end, point.period_start) for point in current_points
-    )
-    observed_dimensions = [
-        point.dimensions
-        for point in current_points
-        if (point.period_end, point.period_start) == latest_period
-    ]
-    if any(
-        not any(
-            all(dimensions.get(key) == value for key, value in required.items())
-            for dimensions in observed_dimensions
+    latest_period_end = max(point.period_end for point in current_points)
+    if metric_id == "CN_FUTURES_WARRANTS":
+        validation_points: list[Any] = []
+        for required in required_members:
+            matching = [
+                point
+                for point in current_points
+                if all(point.dimensions.get(key) == value for key, value in required.items())
+            ]
+            if not matching:
+                statuses.add("members_missing")
+                continue
+            member_latest_period_end = max(point.period_end for point in matching)
+            validation_points.extend(
+                point
+                for point in matching
+                if point.period_end == member_latest_period_end
+            )
+    else:
+        validation_points = [
+            point
+            for point in current_points
+            if point.period_end == latest_period_end
+        ]
+        observed_dimensions = [point.dimensions for point in validation_points]
+        if any(
+            not any(
+                all(dimensions.get(key) == value for key, value in required.items())
+                for dimensions in observed_dimensions
+            )
+            for required in required_members
+        ):
+            statuses.add("members_missing")
+        if required_members:
+            validation_points = [
+                point
+                for point in validation_points
+                if any(
+                    all(point.dimensions.get(key) == value for key, value in required.items())
+                    for required in required_members
+                )
+            ]
+    freshness_days = (
+        730
+        if metric_id == "CN_RRR_EVENT"
+        else {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
+            frequency,
+            95,
         )
-        for required in required_members
-    ):
-        statuses.add("members_missing")
-    freshness_days = {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
-        frequency,
-        95,
     )
-    for current in current_points:
+    for current in validation_points:
         if current.selection_status != "selected":
             statuses.add(current.selection_status)
             continue
         selected = next(
-            (
-                claim
-                for claim in current.claims
-                if claim.claim_id == current.selected_claim_id
-            ),
+            (claim for claim in current.claims if claim.claim_id == current.selected_claim_id),
             None,
         )
         if (
@@ -772,10 +919,7 @@ def _context_selection_gaps(
             statuses.add("future")
         elif (cutoff.date() - period_end).days > freshness_days:
             statuses.add("stale")
-    return tuple(
-        f"{side}_context_selection_{status}:{metric_id}"
-        for status in sorted(statuses)
-    )
+    return tuple(f"{side}_context_selection_{status}:{metric_id}" for status in sorted(statuses))
 
 
 def _metric_warmup_days(metric_id: str, affected_formulas: set[str]) -> int:
@@ -865,43 +1009,6 @@ _CONTEXT_FORMULA_WARMUP_DAYS = {
     "production_order_spread": 62,
     "real_inventory_approximation": 95,
     "ust_2s10s_spread": 10,
-}
-
-_CONTEXT_REQUIRED_DIMENSION_MEMBERS = {
-    "CN_LPR_1Y_5Y": (
-        {"tenor": "1y"},
-        {"tenor": "5y_plus"},
-    ),
-    "CN_M1_M2": tuple(
-        {"aggregate": aggregate, "measure": measure}
-        for aggregate in ("m1", "m2")
-        for measure in ("balance", "yoy", "mom")
-    ),
-    "CN_OMO_7D_AMOUNT": (
-        {"measure": "injection"},
-        {"measure": "maturity"},
-    ),
-    "CN_PMI_ACTIVITY": (
-        {"series": "manufacturing", "measure": "level"},
-        {"series": "production", "measure": "level"},
-        {"series": "new_orders", "measure": "level"},
-        {"series": "purchase_volume", "measure": "level"},
-    ),
-    "CN_PMI_INVENTORY": (
-        {"series": "raw_materials", "measure": "level"},
-        {"series": "finished_goods", "measure": "level"},
-    ),
-    "CN_PMI_PRICES": (
-        {"series": "purchase_prices", "measure": "level"},
-        {"series": "output_prices", "measure": "level"},
-    ),
-    "CN_SHIBOR_ON_1W_3M": tuple(
-        {"tenor": tenor} for tenor in ("overnight", "1w", "3m")
-    ),
-    "CN_SF_TOTAL": tuple(
-        {"measure": measure}
-        for measure in ("monthly_increment", "ytd_increment", "stock_end")
-    ),
 }
 
 _CONTEXT_DERIVED_OUTPUTS = {

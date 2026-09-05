@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0010_context_replay_indexes"
+SCHEMA_HEAD = "0013_source_claim_provider_identity_index"
 
 
 def migrate_database(database_path: Path) -> None:

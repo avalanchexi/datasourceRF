@@ -41,6 +41,7 @@ def bundle() -> EvidenceBundle:
         model_version_id="model-v0001",
         trend_rule_version="trend-v0001",
         current_stage="stage_ii",
+        stage_reason="canonical_combination",
         core_states={"bond": "bull", "stock": "bull", "commodity": "bear"},
         allowed_evidence_ids=("obs-bond", "obs-stock", "obs-commodity", "obs-policy"),
         allowed_governance_refs=("gap-vix",),
@@ -154,6 +155,45 @@ def test_two_cli_failures_publish_a_deterministic_fact_skeleton(tmp_path: Path) 
     assert len(reports.attempts(result.report_snapshot_id)) == 2
 
 
+def test_noncanonical_projection_generates_a_report_without_inventing_a_stage(
+    tmp_path: Path,
+) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
+    assets = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=120,
+            latest_business_date="2026-08-28",
+            observation_version_ids=(f"version-{asset}",),
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BEAR),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BULL),
+        )
+    )
+    result = P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=assets,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+    assert result.status == "published"
+    source = evidence_bundle_from_projection(projections.current())
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    generated = ReportService(reports, ()).generate(source)
+    stored = reports.get(generated.report_snapshot_id)
+    assert stored.current_stage is None
+    assert stored.body["formal_stage_basis"]["current_stage"] is None
+    assert stored.body["formal_stage_basis"]["stage_reason"] == "noncanonical_combination"
+    assert stored.body["core_states"] == {
+        "bond": "bull", "stock": "bear", "commodity": "bull"
+    }
+
+
 def test_cli_process_start_failure_is_classified_as_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -193,7 +233,7 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
             observation_version_ids=(f"version-{asset}",),
         )
@@ -222,6 +262,84 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
         "price_context",
         "change_reasons",
     }
+
+
+def test_report_bundle_does_not_import_evidence_from_older_stage_history(
+    tmp_path: Path,
+) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
+    assets = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=1,
+            latest_business_date="2026-08-28",
+            observation_version_ids=(f"current-{asset}",),
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=assets,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+    projection = projections.current()
+    events = projection.datasets["stage_history"]["events"]
+    assert isinstance(events, list)
+    events.insert(
+        0,
+        {
+            "projection_set_id": "projection-older",
+            "observation_version_ids": ["old-history-claim"],
+        },
+    )
+
+    report_bundle = evidence_bundle_from_projection(projection)
+
+    assert "old-history-claim" not in report_bundle.allowed_evidence_ids
+    assert set(report_bundle.allowed_evidence_ids) == {
+        "current-bond",
+        "current-stock",
+        "current-commodity",
+    }
+
+
+def test_report_rejects_projection_that_exposes_preheat_history(tmp_path: Path) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
+    assets = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=121,
+            latest_business_date="2026-08-28",
+            observation_version_ids=tuple(
+                f"version-{asset}-{index}" for index in range(121)
+            ),
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=assets,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+
+    with pytest.raises(ValueError, match="report_evidence_window_exceeds_120_days"):
+        evidence_bundle_from_projection(projections.current())
 
 
 def test_cancellation_after_an_adapter_returns_prevents_report_publication(

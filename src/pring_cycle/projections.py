@@ -4,9 +4,11 @@ import hashlib
 import json
 import sqlite3
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
+
+from pring_cycle.source_contract_review import require_stored_model_source_contract
 
 ANALYTICAL_DATASETS = (
     "cycle_overview",
@@ -82,6 +84,7 @@ class ProjectionSetRepository:
         envelope_json = _canonical_json(_envelope_document(envelope))
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            require_stored_model_source_contract(connection, envelope.model_version_id)
             connection.execute(
                 "INSERT INTO projection_set(projection_set_id, envelope_json) VALUES (?, ?)",
                 (envelope.projection_set_id, envelope_json),
@@ -103,13 +106,27 @@ class ProjectionSetRepository:
                 raise RuntimeError("injected_projection_failure")
             if p0_assessment is not None:
                 self._insert_p0_assessment(connection, p0_assessment)
-            connection.execute(
+            current_row = connection.execute(
                 """
-                INSERT INTO current_projection(singleton, projection_set_id) VALUES (1, ?)
-                ON CONFLICT(singleton) DO UPDATE SET projection_set_id=excluded.projection_set_id
-                """,
-                (envelope.projection_set_id,),
-            )
+                SELECT projection_set.envelope_json
+                FROM current_projection
+                JOIN projection_set USING (projection_set_id)
+                WHERE current_projection.singleton=1
+                """
+            ).fetchone()
+            current_target = None
+            if current_row is not None:
+                current_document = json.loads(str(current_row["envelope_json"]))
+                current_target = str(current_document["target_business_date"])
+            if current_target is None or envelope.target_business_date >= current_target:
+                connection.execute(
+                    """
+                    INSERT INTO current_projection(singleton, projection_set_id) VALUES (1, ?)
+                    ON CONFLICT(singleton) DO UPDATE
+                    SET projection_set_id=excluded.projection_set_id
+                    """,
+                    (envelope.projection_set_id,),
+                )
 
     def prepare_p0_assessment(self, document: dict[str, object]) -> dict[str, object]:
         normalized = _canonical_json(document)
@@ -146,6 +163,25 @@ class ProjectionSetRepository:
             {str(key): value for key, value in json.loads(str(row["document_json"])).items()}
             for row in rows
         )
+
+    def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
+        date.fromisoformat(on_or_before)
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT document_json FROM p0_assessment
+                WHERE event_kind='formal' AND target_business_date <= ?
+                ORDER BY target_business_date DESC, julianday(system_as_of) DESC,
+                         assessment_id DESC
+                LIMIT 1
+                """,
+                (on_or_before,),
+            ).fetchone()
+        if row is None:
+            return None
+        document = json.loads(str(row["document_json"]))
+        value = document.get("current_stage")
+        return str(value) if value is not None else None
 
     def create_gap_notice(
         self,
@@ -360,6 +396,11 @@ def validate_analytical_projection(
         raise ValueError("projection_formal_stage_invariant_failed")
     if macro.get("score") is not None or inventory.get("score") is not None:
         raise ValueError("projection_context_score_forbidden")
+    _validate_visible_context_window(
+        (macro, inventory),
+        window_start=envelope.evidence_window_start,
+        window_end=envelope.evidence_window_end,
+    )
     cards = inventory.get("cards")
     if not isinstance(cards, list) or tuple(
         str(card.get("name")) for card in cards if isinstance(card, dict)
@@ -369,6 +410,52 @@ def validate_analytical_projection(
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
         raise ValueError("projection_event_dataset_invalid")
+
+
+def _validate_visible_context_window(
+    documents: tuple[dict[str, object], ...],
+    *,
+    window_start: str,
+    window_end: str,
+) -> None:
+    try:
+        visible_start = date.fromisoformat(window_start)
+        visible_end = date.fromisoformat(window_end)
+    except ValueError as error:
+        raise ValueError("projection_context_visible_window_invalid") from error
+    if visible_start > visible_end:
+        raise ValueError("projection_context_visible_window_invalid")
+
+    def walk(value: object) -> None:
+        if isinstance(value, dict):
+            period = value.get("period")
+            if value.get("metric_id") is not None and period is not None:
+                period_start = value.get("period_start", period)
+                try:
+                    evidence_start = date.fromisoformat(str(period_start))
+                    evidence_end = date.fromisoformat(str(period))
+                except ValueError as error:
+                    raise ValueError(
+                        "projection_context_evidence_outside_visible_window"
+                    ) from error
+                if (
+                    not isinstance(period, str)
+                    or not isinstance(period_start, str)
+                    or evidence_start > evidence_end
+                    or evidence_end < visible_start
+                    or evidence_start > visible_end
+                ):
+                    raise ValueError(
+                        "projection_context_evidence_outside_visible_window"
+                    )
+            for child in value.values():
+                walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child)
+
+    for document in documents:
+        walk(document)
 
 
 def _envelope_document(envelope: ProjectionEnvelope) -> dict[str, object]:

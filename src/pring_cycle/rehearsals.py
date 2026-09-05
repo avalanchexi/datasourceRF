@@ -21,6 +21,7 @@ from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.runtime_fingerprint import execution_fingerprint, fingerprint_matches
+from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.storage import artifact_is_registered
 
@@ -116,7 +117,7 @@ def run_real_projection_rehearsal(
     if any(
         not isinstance(item, dict)
         or item.get("reason") != "validated"
-        or int(item.get("observation_count", 0)) < 140
+        or int(item.get("observation_count", 0)) != 120
         or item.get("latest_business_date") != target_business_date
         for item in assets
     ):
@@ -125,9 +126,9 @@ def run_real_projection_rehearsal(
     inventory = projection.datasets["inventory"]
     inventory_cards = inventory.get("cards")
     projection_evidence_ids = _projection_evidence_ids(projection.datasets)
-    model_rules = ContextProjectionRules.from_manifest(
-        ModelRepository(paths.database).manifest(projection.envelope.model_version_id)
-    )
+    model_manifest = ModelRepository(paths.database).manifest(projection.envelope.model_version_id)
+    require_model_source_contract(model_manifest)
+    model_rules = ContextProjectionRules.from_manifest(model_manifest)
     verified_smokes = verify_source_smoke_artifacts(
         paths,
         source_smoke_hashes,
@@ -155,10 +156,10 @@ def run_real_projection_rehearsal(
     )
     if not reports or reports[0].status not in {"completed", "completed_degraded"}:
         raise ValueError("real_rehearsal_report_missing")
-    if overview.get("current_stage") is None and overview.get("stage_reason") not in {
-        "noncanonical_combination",
-        "core_state_unavailable",
-    }:
+    if (
+        overview.get("current_stage") is None
+        and overview.get("stage_reason") != "noncanonical_combination"
+    ):
         raise ValueError("real_rehearsal_stage_semantics_invalid")
     if not _dashboard_projection_visible(
         dashboard_port,
@@ -230,6 +231,7 @@ def required_real_smoke_kinds() -> frozenset[str]:
             "core",
             "lpr",
             "tushare-context",
+            "tushare-market",
             *(
                 f"official-context:{family}"
                 for family, descriptor in OFFICIAL_CONTEXT_FAMILIES.items()
@@ -246,7 +248,11 @@ def store_source_smoke_result(
     result: dict[str, Any],
     target_scope: dict[str, str],
 ) -> dict[str, Any]:
-    allowed_kinds = required_real_smoke_kinds() | {"eia"} | {
+    allowed_kinds = required_real_smoke_kinds() | {
+        "eia",
+        "source-history",
+        "tushare-market",
+    } | {
         f"official-context:{family}" for family in OFFICIAL_CONTEXT_FAMILIES
     }
     if kind not in allowed_kinds:
@@ -427,9 +433,50 @@ def _source_smoke_shape_valid(
         return _lpr_smoke_shape_valid(document, target_business_date)
     if kind == "tushare-context":
         return _tushare_smoke_shape_valid(document, target_business_date)
+    if kind == "tushare-market":
+        return _tushare_market_smoke_shape_valid(document, target_business_date)
+    if kind == "source-history":
+        return _source_history_smoke_shape_valid(document, target_business_date)
     if kind.startswith("official-context:"):
         return _official_smoke_shape_valid(kind, document, target_business_date)
     return False
+
+
+def _source_history_smoke_shape_valid(document: dict[str, Any], target: str) -> bool:
+    expected_coverage = {
+        "lpr",
+        "nbs_capacity_utilization",
+        "nbs_core_cpi",
+        "nbs_gdp",
+        "nbs_industrial_finance",
+        "nbs_industrial_value_added",
+        "nbs_pmi",
+        "nbs_ppi",
+        "pbc_loan_structure",
+        "pbc_money",
+        "pbc_omo_notice",
+        "pbc_social_financing",
+        "pbc_tool_liquidity_monthly",
+    }
+    coverage = document.get("coverage")
+    records = document.get("records")
+    return bool(
+        document.get("target_business_date") == target
+        and isinstance(coverage, dict)
+        and set(coverage) == expected_coverage
+        and isinstance(records, list)
+        and len(records) == document.get("record_count")
+        and len(records) >= 100
+        and all(
+            isinstance(record, dict)
+            and _is_sha256(record.get("artifact_hash"))
+            and isinstance(record.get("source_url"), str)
+            and str(record["source_url"]).startswith("https://")
+            and _is_timezone_aware(record.get("release_at"))
+            for record in records
+        )
+        and _is_sha256(document.get("normalized_hash"))
+    )
 
 
 def _core_smoke_shape_valid(document: dict[str, Any], target: str) -> bool:
@@ -572,6 +619,72 @@ def _tushare_smoke_shape_valid(document: dict[str, Any], target: str) -> bool:
             and str(family["first_period"]) <= str(family["last_period"])
             and type(family.get("observation_count")) is int
             and int(family["observation_count"]) > 0
+            and type(family.get("network_requests")) is int
+            and int(family["network_requests"]) > 0
+            and _is_sha256(family.get("normalized_hash"))
+        ):
+            return False
+        observed.add(name)
+        request_count += int(family["network_requests"])
+    return observed == set(expected_metrics) and document.get("network_requests") == request_count
+
+
+def _tushare_market_smoke_shape_valid(document: dict[str, Any], target: str) -> bool:
+    expected_metrics = {
+        "market_indices": {
+            "CN_EQ_CSI300",
+            "CN_EQ_CSI500",
+            "CN_EQ_CSI1000",
+            "CN_BOND_FULL_PRICE_CNY030",
+            "CN_BOND_10Y_930916",
+            "CN_COMMODITY_BROAD_NHCI",
+        },
+        "market_breadth": {
+            "CN_EQ_ADV_DEC",
+            "CN_EQ_AD_RATIO",
+            "CN_EQ_NEW_HIGH_LOW_120",
+            "CN_EQ_ABOVE_MA120",
+            "CN_EQ_ADV_AMOUNT_SHARE",
+        },
+        "margin_financing": {"CN_MARGIN_BALANCE"},
+        "index_valuation": {"CN_INDEX_VALUATION"},
+        "commodity_basket": {
+            "CN_COMMODITY_EX_HOG_BASKET",
+            "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        },
+    }
+    minimum_observations = {
+        "market_indices": 120 * 6,
+        "market_breadth": 120 * 9,
+        "margin_financing": 120 * 2,
+        "index_valuation": 120 * 6,
+        "commodity_basket": 120 * 8,
+    }
+    families = document.get("families")
+    if (
+        document.get("target_business_date") != target
+        or not isinstance(families, list)
+        or len(families) != len(expected_metrics)
+    ):
+        return False
+    observed: set[str] = set()
+    request_count = 0
+    for family in families:
+        if not isinstance(family, dict):
+            return False
+        name = family.get("family")
+        if not isinstance(name, str) or name not in expected_metrics:
+            return False
+        if not (
+            family.get("status") == "validated_candidate"
+            and set(_string_list(family.get("metric_ids"))) == expected_metrics[name]
+            and bool(_string_list(family.get("api_names")))
+            and isinstance(family.get("first_period"), str)
+            and isinstance(family.get("last_period"), str)
+            and str(family["first_period"]) < target
+            and str(family["last_period"]) == target
+            and type(family.get("observation_count")) is int
+            and int(family["observation_count"]) >= minimum_observations[name]
             and type(family.get("network_requests")) is int
             and int(family["network_requests"]) > 0
             and _is_sha256(family.get("normalized_hash"))

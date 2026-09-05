@@ -17,8 +17,8 @@ from typing import Any, Protocol
 
 from pring_cycle.projections import ProjectionSet
 
-REPORT_SCHEMA_VERSION = "report-schema-v0001"
-PROMPT_CONTRACT_VERSION = "report-prompt-v0001"
+REPORT_SCHEMA_VERSION = "report-schema-v0002"
+PROMPT_CONTRACT_VERSION = "report-prompt-v0002"
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,8 @@ class EvidenceBundle:
     system_as_of: datetime
     model_version_id: str
     trend_rule_version: str
-    current_stage: str
+    current_stage: str | None
+    stage_reason: str
     core_states: dict[str, str]
     allowed_evidence_ids: tuple[str, ...]
     allowed_governance_refs: tuple[str, ...]
@@ -51,7 +52,8 @@ class EvidenceBundle:
         system_as_of: datetime,
         model_version_id: str,
         trend_rule_version: str,
-        current_stage: str,
+        current_stage: str | None,
+        stage_reason: str,
         core_states: dict[str, str],
         allowed_evidence_ids: tuple[str, ...],
         allowed_governance_refs: tuple[str, ...],
@@ -68,6 +70,7 @@ class EvidenceBundle:
             "model_version_id": model_version_id,
             "trend_rule_version": trend_rule_version,
             "current_stage": current_stage,
+            "stage_reason": stage_reason,
             "core_states": core_states,
             "allowed_evidence_ids": allowed_evidence_ids,
             "allowed_governance_refs": allowed_governance_refs,
@@ -88,6 +91,7 @@ class EvidenceBundle:
             model_version_id=model_version_id,
             trend_rule_version=trend_rule_version,
             current_stage=current_stage,
+            stage_reason=stage_reason,
             core_states=core_states,
             allowed_evidence_ids=allowed_evidence_ids,
             allowed_governance_refs=allowed_governance_refs,
@@ -115,6 +119,7 @@ class EvidenceBundle:
             },
             "formal_stage_basis": {
                 "current_stage": self.current_stage,
+                "stage_reason": self.stage_reason,
                 "classification_source": "three_core_price_states_only",
             },
             "core_states": dict(self.core_states),
@@ -130,11 +135,39 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
     envelope = projection.envelope
     overview = projection.datasets["cycle_overview"]
     current_stage = overview.get("current_stage")
-    if not isinstance(current_stage, str):
+    stage_reason = overview.get("stage_reason")
+    if current_stage is None and stage_reason != "noncanonical_combination":
         raise ValueError("formal_stage_required_for_report")
+    if current_stage is not None and not isinstance(current_stage, str):
+        raise ValueError("formal_stage_required_for_report")
+    if not isinstance(stage_reason, str):
+        raise ValueError("stage_reason_required_for_report")
     assets_value = projection.datasets["core_assets"].get("assets")
     if not isinstance(assets_value, list):
         raise ValueError("core_asset_projection_required_for_report")
+    for item in assets_value:
+        if not isinstance(item, dict):
+            raise ValueError("core_asset_projection_required_for_report")
+        observation_count = item.get("observation_count")
+        observation_ids = item.get("observation_version_ids")
+        exact_120_required = envelope.model_version_id.startswith(
+            ("model-v0010-", "model-v0011-")
+        )
+        if (
+            not isinstance(observation_count, int)
+            or (observation_count != 120 if exact_120_required else observation_count > 120)
+            or not isinstance(observation_ids, list)
+            or (len(observation_ids) != 120 if exact_120_required else len(observation_ids) > 120)
+            or (
+                exact_120_required
+                and item.get("evidence_window_start") != envelope.evidence_window_start
+            )
+        ):
+            raise ValueError(
+                "report_evidence_window_must_equal_120_days"
+                if exact_120_required
+                else "report_evidence_window_exceeds_120_days"
+            )
     core_states = {
         str(item["asset"]): str(item["state"])
         for item in assets_value
@@ -142,11 +175,33 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
     }
     if set(core_states) != {"bond", "stock", "commodity"}:
         raise ValueError("core_asset_projection_required_for_report")
-    evidence_ids = tuple(sorted(_collect_evidence_ids(projection.datasets)))
     macro = projection.datasets["macro"]
     inventory = projection.datasets["inventory"]
     history = projection.datasets["stage_history"].get("events")
-    latest_history = history[-1] if isinstance(history, list) and history else None
+    latest_history = (
+        next(
+            (
+                item
+                for item in reversed(history)
+                if isinstance(item, dict)
+                and item.get("projection_set_id") == envelope.projection_set_id
+            ),
+            None,
+        )
+        if isinstance(history, list)
+        else None
+    )
+    current_documents = {
+        name: document
+        for name, document in projection.datasets.items()
+        if name != "stage_history"
+    }
+    evidence_ids = tuple(
+        sorted(
+            _collect_evidence_ids(current_documents)
+            | _collect_evidence_ids(latest_history)
+        )
+    )
     return EvidenceBundle.create(
         projection_set_id=envelope.projection_set_id,
         target_business_date=envelope.target_business_date,
@@ -155,6 +210,7 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
         model_version_id=envelope.model_version_id,
         trend_rule_version=envelope.trend_rule_version,
         current_stage=current_stage,
+        stage_reason=stage_reason,
         core_states=core_states,
         allowed_evidence_ids=evidence_ids,
         allowed_governance_refs=("ADR-0003", "ADR-0010", envelope.model_version_id),
@@ -241,7 +297,7 @@ class ReportSnapshot:
     version: int
     status: str
     adapter: str
-    current_stage: str
+    current_stage: str | None
     bundle_id: str
     bundle_hash: str
     model_version_id: str
@@ -277,6 +333,7 @@ class ReportRepository:
         repository = cls(database_path)
         with repository._connect() as connection:
             connection.executescript(_REPORT_SCHEMA)
+            upgrade_report_snapshot_nullable_stage(connection)
         return repository
 
     def by_client_request(self, client_request_id: str) -> ReportSnapshot | None:
@@ -299,9 +356,12 @@ class ReportRepository:
         return int(row[0]) if row is not None else 1
 
     def save_bundle(self, bundle: EvidenceBundle) -> str:
+        from pring_cycle.source_contract_review import require_stored_model_source_contract
+
         document_json = _canonical_json(bundle.document())
         bundle_hash = hashlib.sha256(document_json.encode()).hexdigest()
         with self._connect() as connection:
+            require_stored_model_source_contract(connection, bundle.model_version_id)
             connection.execute(
                 """
                 INSERT OR IGNORE INTO evidence_bundle(
@@ -366,8 +426,11 @@ class ReportRepository:
         adapter: str,
         body: dict[str, Any],
     ) -> ReportSnapshot:
+        from pring_cycle.source_contract_review import require_stored_model_source_contract
+
         body_json = _canonical_json(body)
         with self._connect() as connection:
+            require_stored_model_source_contract(connection, bundle.model_version_id)
             connection.execute(
                 """
                 INSERT INTO report_snapshot(
@@ -705,7 +768,10 @@ def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
         "additionalProperties": False,
         "properties": {
             "bundle_id": {"type": "string", "const": bundle.bundle_id},
-            "current_stage": {"type": "string", "const": bundle.current_stage},
+            "current_stage": {
+                "type": ["string", "null"],
+                "const": bundle.current_stage,
+            },
             "report_cutoff": {
                 "type": "string",
                 "const": bundle.report_cutoff.isoformat(),
@@ -755,14 +821,24 @@ def _claude_output(stdout: str) -> tuple[dict[str, Any], int]:
 
 
 def _preflight_bundle(bundle: EvidenceBundle) -> None:
-    if bundle.current_stage not in {
+    formal_stages = {
         "stage_i",
         "stage_ii",
         "stage_iii",
         "stage_iv",
         "stage_v",
         "stage_vi",
-    }:
+    }
+    noncanonical = (
+        bundle.current_stage is None
+        and bundle.stage_reason == "noncanonical_combination"
+        and (
+            bundle.core_states.get("bond"),
+            bundle.core_states.get("stock"),
+            bundle.core_states.get("commodity"),
+        ) in {("bull", "bear", "bull"), ("bear", "bull", "bear")}
+    )
+    if bundle.current_stage not in formal_stages and not noncanonical:
         raise ValueError("report_preflight_stage_invalid")
     if set(bundle.core_states) != {"bond", "stock", "commodity"}:
         raise ValueError("report_preflight_core_identity_invalid")
@@ -841,7 +917,9 @@ def _report_snapshot(row: sqlite3.Row) -> ReportSnapshot:
         version=int(row["version"]),
         status=str(row["status"]),
         adapter=str(row["adapter"]),
-        current_stage=str(row["current_stage"]),
+        current_stage=(
+            str(row["current_stage"]) if row["current_stage"] is not None else None
+        ),
         bundle_id=str(row["bundle_id"]),
         bundle_hash=str(row["bundle_hash"]),
         model_version_id=str(row["model_version_id"]),
@@ -925,6 +1003,84 @@ ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_immutable'); EN
 CREATE TRIGGER IF NOT EXISTS report_snapshot_no_delete
 BEFORE DELETE ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_immutable'); END;
 """
+
+_REPORT_SNAPSHOT_NULLABLE_STAGE_SCHEMA = """
+CREATE TABLE report_snapshot (
+    report_snapshot_id TEXT PRIMARY KEY,
+    client_request_id TEXT NOT NULL UNIQUE,
+    projection_set_id TEXT NOT NULL,
+    target_business_date TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    adapter TEXT NOT NULL,
+    current_stage TEXT,
+    bundle_id TEXT NOT NULL REFERENCES evidence_bundle(bundle_id),
+    bundle_hash TEXT NOT NULL,
+    model_version_id TEXT NOT NULL,
+    schema_version TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    body_json TEXT NOT NULL,
+    body_retained INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(target_business_date, version)
+);
+"""
+
+_REPORT_SNAPSHOT_IMMUTABILITY_TRIGGERS = """
+CREATE TRIGGER report_snapshot_identity_no_update
+BEFORE UPDATE OF report_snapshot_id, projection_set_id, target_business_date,
+    version, status, adapter, current_stage, bundle_id, bundle_hash,
+    model_version_id, schema_version, prompt_version, created_at
+ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_immutable'); END;
+CREATE TRIGGER report_snapshot_no_delete
+BEFORE DELETE ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_immutable'); END;
+"""
+
+
+def upgrade_report_snapshot_nullable_stage(connection: sqlite3.Connection) -> None:
+    columns = connection.execute("PRAGMA table_info(report_snapshot)").fetchall()
+    stage_column = next((row for row in columns if str(row[1]) == "current_stage"), None)
+    if stage_column is None:
+        raise RuntimeError("report_snapshot_current_stage_missing")
+    if int(stage_column[3]) == 0:
+        return
+    rebuild_report_snapshot_stage_column(connection, nullable=True)
+
+
+def rebuild_report_snapshot_stage_column(
+    connection: sqlite3.Connection,
+    *,
+    nullable: bool,
+) -> None:
+    connection.execute("DROP TRIGGER IF EXISTS report_snapshot_identity_no_update")
+    connection.execute("DROP TRIGGER IF EXISTS report_snapshot_no_delete")
+    connection.execute("ALTER TABLE report_snapshot RENAME TO report_snapshot_legacy")
+    schema = (
+        _REPORT_SNAPSHOT_NULLABLE_STAGE_SCHEMA
+        if nullable
+        else _REPORT_SNAPSHOT_NULLABLE_STAGE_SCHEMA.replace(
+            "current_stage TEXT,",
+            "current_stage TEXT NOT NULL,",
+        )
+    )
+    connection.executescript(schema)
+    connection.execute(
+        """
+        INSERT INTO report_snapshot(
+            report_snapshot_id, client_request_id, projection_set_id,
+            target_business_date, version, status, adapter, current_stage,
+            bundle_id, bundle_hash, model_version_id, schema_version,
+            prompt_version, body_json, body_retained, created_at
+        )
+        SELECT report_snapshot_id, client_request_id, projection_set_id,
+            target_business_date, version, status, adapter, current_stage,
+            bundle_id, bundle_hash, model_version_id, schema_version,
+            prompt_version, body_json, body_retained, created_at
+        FROM report_snapshot_legacy
+        """
+    )
+    connection.execute("DROP TABLE report_snapshot_legacy")
+    connection.executescript(_REPORT_SNAPSHOT_IMMUTABILITY_TRIGGERS)
 
 _REPORT_SNAPSHOT_SELECT = """
 SELECT report_snapshot.*, evidence_bundle.document_json AS bundle_document_json,

@@ -72,3 +72,11 @@ manifest。任何相关内容变化后必须重跑对应命令。记录切换时
 运行目录。两者都带 `acceptance_only=true` 与 `publication_history_written=false`，不得被页面
 当成正式阶段历史。切换清单会重新验证真实演练的目标日期、投影身份、P0/P1、报告、Dashboard
 结论和全部 smoke 制品；仅伪造 `status=ok` 的最小 JSON 不能通过。
+# 2026-09-05 审查阻塞
+
+当前 `metric-catalog-v0003` 的市场来源认证合同未通过官方语义复核，
+`doctor`／健康 API 的 `source_contract_review` 会列出受影响 family 和原因。
+该目录的新认证、候选刷新、激活、正式写入和切换均被拦截，已有历史数据仍可读取。
+不要通过改目录版本字符串、重盖 smoke 指纹或确认词绕过。先按
+`docs/research/market-source-semantic-review-2026-09-05.md` 完成来源样本与修正后的新不可变模型，
+再执行下述演练和切换步骤。当前没有可供用户确认的就绪切换清单。

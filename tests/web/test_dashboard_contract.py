@@ -182,6 +182,53 @@ def test_published_core_states_render_as_domain_ui_instead_of_raw_json() -> None
     assert '"asset": "bond"' not in detail
 
 
+def test_home_summarizes_macro_states_without_dumping_nested_evidence_json() -> None:
+    projection = ProjectionSet(
+        ProjectionEnvelope(
+            projection_set_id="projection-summary",
+            system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+            target_business_date="2026-08-28",
+            evidence_snapshot_id="snapshot-summary",
+            model_version_id="model-v0001",
+            trend_rule_version="trend-v0001",
+            evidence_window_start="2026-03-09",
+            evidence_window_end="2026-08-28",
+            generated_at=datetime(2026, 8, 28, 13, tzinfo=UTC),
+            completeness="degraded",
+            refresh_status="completed",
+            warnings=("p1_evidence_incomplete:0/42",),
+        ),
+        {
+            "cycle_overview": {"current_stage": None, "stage_reason": "noncanonical_combination"},
+            "core_assets": {"assets": []},
+            "macro": {
+                "policy_direction": "insufficient_data",
+                "credit_response": "insufficient_data",
+                "overheat_state": "insufficient_data",
+                "price_pressure": "upstream_pressure",
+                "credit": {
+                    "evidence": [
+                        {
+                            "metric_id": "CN_M1_M2",
+                            "observation_id": "must-not-appear-on-home",
+                        }
+                    ]
+                },
+            },
+            "inventory": {},
+            "release_calendar": {},
+            "stage_history": {},
+        },
+    )
+
+    home = _text(dashboard_page("/", projection, (), ()))
+
+    assert all(label in home for label in ("政策方向", "信用响应", "过热程度", "物价压力"))
+    assert "数据不足" in home and "上游压力" in home
+    assert "CN_M1_M2" not in home
+    assert "must-not-appear-on-home" not in home
+
+
 def test_domain_pages_expose_fixed_sections_instead_of_generic_documents() -> None:
     macro = _text(dashboard_page("/macro", None, (), ()))
     inventory = _text(dashboard_page("/inventory", None, (), ()))
@@ -256,7 +303,11 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
             },
             "inventory": {
                 "quadrant": None,
-                "directions": {"demand": "up", "production": "up", "inventory": None},
+                "directions": {
+                    "demand": "up",
+                    "production": "conflict",
+                    "inventory": None,
+                },
                 "cards": [
                     {
                         "name": "materials_finished_goods",
@@ -288,7 +339,7 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
     assert "收益率方向，不是债券价格" in macro
     assert "证据 observation-lpr-1y" in macro
     assert "来源声明 中国货币网=3.0 percent（已选）" in macro
-    assert "需求 up · 生产 up · 库存 数据不足" in inventory
+    assert "需求 up · 生产 矛盾 · 库存 数据不足" in inventory
     assert "PMI 库存是扩散指数，不是库存数量" in inventory
     assert "注册仓单不代表产业总库存" in inventory
     assert "证据 observation-pmi-inventory" in inventory

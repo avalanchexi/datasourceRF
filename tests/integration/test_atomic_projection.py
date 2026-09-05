@@ -12,11 +12,15 @@ from pring_cycle.projections import (
 )
 
 
-def envelope(projection_set_id: str) -> ProjectionEnvelope:
+def envelope(
+    projection_set_id: str,
+    *,
+    target_business_date: str = "2026-08-28",
+) -> ProjectionEnvelope:
     return ProjectionEnvelope(
         projection_set_id=projection_set_id,
         system_as_of=datetime(2026, 8, 28, 10, tzinfo=UTC),
-        target_business_date="2026-08-28",
+        target_business_date=target_business_date,
         evidence_snapshot_id="snapshot-1",
         model_version_id="model-v0001",
         trend_rule_version="trend-v0001",
@@ -62,3 +66,18 @@ def test_transaction_interruption_preserves_previous_current_projection(tmp_path
     current = repository.current()
     assert current.envelope.projection_set_id == "projection-1"
     assert set(current.datasets) == set(ANALYTICAL_DATASETS)
+
+
+def test_historical_projection_is_stored_without_rewinding_current_pointer(
+    tmp_path: Path,
+) -> None:
+    repository = ProjectionSetRepository.create(tmp_path / "projection.sqlite3")
+    repository.publish(envelope("projection-current"), datasets("projection-current"))
+
+    repository.publish(
+        envelope("projection-history", target_business_date="2026-08-03"),
+        datasets("projection-history"),
+    )
+
+    assert repository.get("projection-history").envelope.target_business_date == "2026-08-03"
+    assert repository.current().envelope.projection_set_id == "projection-current"

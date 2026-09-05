@@ -107,6 +107,7 @@ class DiagnosisDocument(TypedDict):
     offline_start_available: bool
     python: dict[str, str]
     runtime: dict[str, str]
+    source_contract_review: dict[str, object] | None
     status: str
 
 
@@ -143,11 +144,15 @@ def initialize_runtime(paths: RuntimePaths) -> InitializationDocument:
 
 def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
     from pring_cycle.artifacts import artifact_health
+    from pring_cycle.source_contract_review import active_source_contract_review
     from pring_cycle.storage import database_health
 
     database = database_health(paths.database)
     credentials = _credential_states(paths.secrets)
     artifacts = artifact_health(paths.database, paths.artifacts)
+    contract_review = (
+        active_source_contract_review(paths.database) if database["status"] == "ok" else None
+    )
     project_root = _find_project_root(Path.cwd().resolve())
     dependency_lock_status = (
         "not_observed"
@@ -157,7 +162,9 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
         else "missing"
     )
     status = (
-        "ok" if database["status"] == "ok" and artifacts["status"] == "ok" else "action_required"
+        "ok"
+        if database["status"] == "ok" and artifacts["status"] == "ok" and contract_review is None
+        else "action_required"
     )
     return {
         "artifacts": artifacts,
@@ -178,19 +185,27 @@ def diagnose_runtime(paths: RuntimePaths) -> DiagnosisDocument:
             "status": "ok" if sys.version_info[:2] == (3, 12) else "unsupported",
         },
         "runtime": paths.as_document(),
+        "source_contract_review": contract_review,
         "status": status,
     }
 
 
 def runtime_health(paths: RuntimePaths, port: int) -> RuntimeHealthDocument:
     from pring_cycle.artifacts import artifact_health
+    from pring_cycle.source_contract_review import active_source_contract_review
     from pring_cycle.storage import database_health, worker_status
 
     database = database_health(paths.database)
     artifacts = artifact_health(paths.database, paths.artifacts)
     worker = worker_status(paths.database)
+    contract_review = (
+        active_source_contract_review(paths.database) if database["status"] == "ok" else None
+    )
     is_healthy = (
-        database["status"] == "ok" and artifacts["status"] == "ok" and worker["status"] == "healthy"
+        database["status"] == "ok"
+        and artifacts["status"] == "ok"
+        and worker["status"] == "healthy"
+        and contract_review is None
     )
     return {
         "artifacts": artifacts,
@@ -198,6 +213,7 @@ def runtime_health(paths: RuntimePaths, port: int) -> RuntimeHealthDocument:
         "database": database,
         "services": {"web": {"status": "healthy"}, "worker": worker},
         "startup_actions": {"automatic_runs": 0, "external_requests": 0},
+        "source_contract_review": contract_review,
         "status": "ok" if is_healthy else "degraded",
     }
 
@@ -237,6 +253,7 @@ def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
     from pring_cycle.models import (
         ModelRepository,
         analytical_model_v0002_manifest,
+        analytical_model_v0003_manifest,
         certified_model_v0001_manifest,
     )
     from pring_cycle.projections import ProjectionSetRepository
@@ -250,6 +267,7 @@ def _bootstrap_v1_repositories(paths: RuntimePaths) -> None:
     models = ModelRepository.create(paths.database)
     models.create_candidate(certified_model_v0001_manifest())
     models.create_candidate(analytical_model_v0002_manifest())
+    models.create_candidate(analytical_model_v0003_manifest())
 
 
 def _credential_states(secrets_path: Path) -> dict[str, str]:

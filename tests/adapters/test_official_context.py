@@ -599,6 +599,54 @@ def test_pbc_social_financing_contract_accepts_live_combined_report_prose() -> N
     }
 
 
+@pytest.mark.parametrize(
+    ("section", "expected_count", "expected_measures"),
+    [
+        (
+            """初步统计，2024年1月末社会融资规模存量为384.29万亿元，同比增长9.5%。
+            其中，对实体经济发放的人民币贷款余额为240.32万亿元，同比增长10.1%；
+            对实体经济发放的外币贷款折合人民币余额为1.76万亿元，同比下降0.9%；
+            委托贷款余额为11.23万亿元，同比下降0.7%；信托贷款余额为3.98万亿元，同比增长6.3%；
+            未贴现的银行承兑汇票余额为3.05万亿元，同比增长3%；企业债券余额为31.41万亿元，同比增长1.3%；
+            政府债券余额为70.09万亿元，同比增长15.7%；非金融企业境内股票余额为11.47万亿元，同比增长6.9%。""",
+            18,
+            {"stock_end", "stock_yoy"},
+        ),
+        (
+            """初步统计，2024年1月社会融资规模增量为6.5万亿元。其中，
+            对实体经济发放的人民币贷款增加4.84万亿元；对实体经济发放的外币贷款折合人民币增加989亿元；
+            委托贷款减少359亿元；信托贷款增加732亿元；未贴现的银行承兑汇票增加5635亿元；
+            企业债券净融资4835亿元；政府债券净融资2947亿元；非金融企业境内股票融资422亿元。""",
+            9,
+            {"ytd_increment"},
+        ),
+    ],
+)
+def test_pbc_social_financing_accepts_separate_official_releases(
+    section: str,
+    expected_count: int,
+    expected_measures: set[str],
+) -> None:
+    parsed = parse_official_context_document(
+        (
+            "<html><body><h1>2024年1月社会融资规模统计数据报告</h1>"
+            "<p>文章来源： 2024-02-09 17:00:00</p><p>"
+            + section
+            + "</p></body></html>"
+        ).encode(),
+        family="pbc_social_financing",
+        source_url=(
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
+            "official-release/index.html"
+        ),
+        expected_period="2024-01",
+        fetched_at=datetime(2024, 2, 9, 10, tzinfo=UTC),
+    )
+
+    assert len(parsed.scalars) == expected_count
+    assert {item.dimensions["measure"] for item in parsed.scalars} == expected_measures
+
+
 def test_pbc_loan_structure_contract_preserves_borrower_and_tenor() -> None:
     parsed = parse_official_context_document(
         official_table_document(
@@ -719,14 +767,17 @@ def test_pbc_usdcny_central_parity_rejects_reverse_or_ambiguous_quotes() -> None
         )
 
 
-def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures() -> None:
-    parsed = parse_official_context_document(
-        official_table_document(
+def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures(
+    tmp_path: Path,
+) -> None:
+    content = official_table_document(
             title="2026年6月份规模以上工业增加值",
             release_at="2026-07-15 10:00",
             header=("指标", "当月实际同比（%）", "累计实际同比（%）", "季调环比（%）"),
             rows=(("规模以上工业增加值", 5.1, 6.4, 0.42),),
-        ),
+        )
+    parsed = parse_official_context_document(
+        content,
         family="nbs_industrial_value_added",
         source_url="https://www.stats.gov.cn/sj/zxfbhjd/202607/t20260715_1.html",
         expected_period="2026-06",
@@ -741,6 +792,18 @@ def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures() ->
         ("ytd_real_yoy", 6.4, "2026-01-01"),
         ("mom_seasonally_adjusted", 0.42, "2026-06-01"),
     }
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    ingested = ingest_official_context_document(
+        paths,
+        content,
+        family="nbs_industrial_value_added",
+        source_url="https://www.stats.gov.cn/sj/zxfbhjd/202607/t20260715_1.html",
+        expected_period="2026-06",
+        fetched_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
+        definition_version="metric-catalog-v0003",
+    )
+    assert ingested.observation_count == 3
     with pytest.raises(ValueError, match="official_context_january_monthly_value_not_reported"):
         parse_official_context_document(
             official_table_document(
@@ -838,7 +901,7 @@ def test_nbs_industrial_finance_contract_accepts_live_tables_and_prose() -> None
       <p>2026/08/27 09:30</p>
       <p>7 月末，规模以上工业企业应收账款 28.88 万亿元，同比增长 8.5% ；
       产成品存货 7.27 万亿元，增长 10.8% 。</p>
-      <p>产成品存货周转天数为 21.3 天，同比增加 0.6 天。</p>
+      <p>产成品存货周转天数为 21.3 天，比上年末增加 0.6 天。</p>
       <table>
         <tr><th>分 组</th><th>营业收入</th><th>营业成本</th><th>利润总额</th></tr>
         <tr><th>金额（亿元）</th><th>同比增长（ % ）</th>

@@ -75,6 +75,7 @@ def test_runtime_init_bootstraps_the_candidate_model_without_activating_it(tmp_p
     assert [item["model_version_id"] for item in response] == [
         "model-v0001",
         "model-v0002",
+        "model-v0003",
     ]
     assert {item["status"] for item in response} == {"candidate"}
     assert {item["certified_replay_start"] for item in response} == {"2018-06-01"}
@@ -124,6 +125,26 @@ def test_deferred_dashboard_shell_is_meaningful_before_interactive_assets_load(
     assert "运行状态" in document
 
 
+def test_dashboard_deep_links_return_the_interactive_index(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    application = create_web_application(paths, 8050)
+    index_endpoint = next(
+        route.endpoint for route in application.routes if getattr(route, "path", None) == "/"
+    )
+
+    for route_name in (
+        "dashboard_core_assets",
+        "dashboard_macro",
+        "dashboard_inventory",
+        "dashboard_stage_history",
+        "dashboard_release_calendar",
+        "dashboard_reports",
+        "dashboard_runs",
+    ):
+        assert _route(application, route_name).endpoint is index_endpoint
+
+
 def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projection(
     tmp_path: Path,
 ) -> None:
@@ -141,7 +162,7 @@ def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projecti
             }[name],
             state=state,
             reason=reason,
-            observation_count=160 if state is not None else 0,
+            observation_count=120 if state is not None else 0,
             latest_business_date="2026-08-28" if state is not None else None,
         )
 
@@ -242,7 +263,7 @@ def test_report_command_is_bound_to_the_current_projection_at_acceptance(
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
         )
         for asset, metric_id, state in (

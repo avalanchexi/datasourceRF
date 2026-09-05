@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import replace
 from datetime import UTC, datetime
 from math import nan
@@ -7,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+import pring_cycle.evidence as evidence_module
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -22,6 +24,8 @@ def claim(
     system_at: str,
     provider: str = "official",
     value_state: EvidenceValueState = EvidenceValueState.REPORTED_VALUE,
+    certification_status: str = "awaiting_source_certification",
+    quality_status: str = "validated",
 ) -> SourceClaimInput:
     return SourceClaimInput(
         metric_id="CN_CPI_HEADLINE",
@@ -40,13 +44,167 @@ def claim(
         public_available_at=datetime.fromisoformat(public_at),
         fetched_at=datetime.fromisoformat(system_at),
         available_at=datetime.fromisoformat(system_at),
-        certification_status="awaiting_source_certification",
-        quality_status="validated",
+        certification_status=certification_status,
+        quality_status=quality_status,
     )
 
 
 def repository(tmp_path: Path) -> EvidenceRepository:
     return EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+
+
+def _certify_cpi(monkeypatch: pytest.MonkeyPatch) -> None:
+    original = evidence_module.metric_definition
+
+    def certified_definition(metric_id: str, *, definition_version: str):  # type: ignore[no-untyped-def]
+        definition = original(metric_id, definition_version=definition_version)
+        return replace(definition, certification_status="certified")
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+
+
+def test_provider_identity_lookup_has_a_covering_index(tmp_path: Path) -> None:
+    database = tmp_path / "evidence.sqlite3"
+    EvidenceRepository.create(database)
+
+    with sqlite3.connect(database) as connection:
+        columns = tuple(
+            str(row[2])
+            for row in connection.execute(
+                "PRAGMA index_info(ix_source_claim_provider_identity)"
+            ).fetchall()
+        )
+        query_plan = connection.execute(
+            """
+            EXPLAIN QUERY PLAN
+            SELECT claim_id FROM source_claim
+            WHERE metric_id=? AND period_kind=? AND period_start=? AND period_end=?
+              AND dimensions_json=? AND provider=? AND definition_version=?
+              AND source_reference=?
+            ORDER BY julianday(available_at) DESC, rowid DESC LIMIT 1
+            """,
+            (
+                "CN_FUTURES_WARRANTS",
+                "business_day",
+                "2026-08-28",
+                "2026-08-28",
+                "{}",
+                "tushare",
+                "metric-catalog-v0003",
+                "fixture",
+            ),
+        ).fetchall()
+
+    assert columns == (
+        "metric_id",
+        "period_kind",
+        "period_start",
+        "period_end",
+        "dimensions_json",
+        "provider",
+        "definition_version",
+        "source_reference",
+        "available_at",
+    )
+    assert any(
+        "ix_source_claim_provider_identity" in str(row[3]) for row in query_plan
+    )
+
+
+def test_preloaded_metric_series_only_reselects_changed_observations(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    evidence = repository(tmp_path)
+    first = claim(
+        value=1.1,
+        public_at="2026-07-15T02:00:00+00:00",
+        system_at="2026-07-15T02:05:00+00:00",
+    )
+    second = replace(
+        claim(
+            value=1.2,
+            public_at="2026-07-16T02:00:00+00:00",
+            system_at="2026-07-16T02:05:00+00:00",
+        ),
+        period_start="2026-07-01",
+        period_end="2026-07-31",
+    )
+    evidence.append_source_claims((first, second))
+    evidence.preload_metric_series({("CN_CPI_HEADLINE", "metric-catalog-v0001")})
+
+    selection_calls = 0
+    original = evidence_module._select_claim_rows
+
+    def counting_select(*args: object, **kwargs: object) -> object:
+        nonlocal selection_calls
+        selection_calls += 1
+        return original(*args, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(evidence_module, "_select_claim_rows", counting_select)
+
+    earlier = evidence.metric_series(
+        "CN_CPI_HEADLINE",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 7, 15, 2, 30, tzinfo=UTC),
+        definition_version="metric-catalog-v0001",
+    )
+    later = evidence.metric_series(
+        "CN_CPI_HEADLINE",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 7, 16, 2, 30, tzinfo=UTC),
+        definition_version="metric-catalog-v0001",
+    )
+
+    assert len(earlier) == 1
+    assert len(later) == 2
+    assert selection_calls == 2
+
+
+def test_preloaded_metric_series_reselects_when_tolerance_changes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _certify_cpi(monkeypatch)
+    evidence = repository(tmp_path)
+    public_at = "2026-07-15T02:00:00+00:00"
+    evidence.append_source_claims(
+        (
+            claim(
+                value=1.2,
+                public_at=public_at,
+                system_at="2026-07-15T02:05:00+00:00",
+                certification_status="certified",
+            ),
+            claim(
+                value=2.2,
+                public_at=public_at,
+                system_at="2026-07-15T02:06:00+00:00",
+                provider="certified_backup",
+                certification_status="certified",
+            ),
+        )
+    )
+    evidence.preload_metric_series({("CN_CPI_HEADLINE", "metric-catalog-v0001")})
+    cutoff = datetime(2026, 7, 16, tzinfo=UTC)
+
+    tolerant = evidence.metric_series(
+        "CN_CPI_HEADLINE",
+        mode=AsOfMode.PUBLIC,
+        as_of=cutoff,
+        tolerance=1.1,
+        definition_version="metric-catalog-v0001",
+    )
+    strict = evidence.metric_series(
+        "CN_CPI_HEADLINE",
+        mode=AsOfMode.PUBLIC,
+        as_of=cutoff,
+        tolerance=0.1,
+        definition_version="metric-catalog-v0001",
+    )
+
+    assert tolerant[0].selection_status == "selected"
+    assert strict[0].selection_status == "conflicted"
 
 
 def test_public_and_system_as_of_are_explicit_and_distinct(tmp_path: Path) -> None:
@@ -170,6 +328,37 @@ def test_revision_is_append_only_and_does_not_rewrite_old_as_of(tmp_path: Path) 
     assert evidence.claim_count(first.observation_id) == 2
 
 
+def test_system_series_can_reselect_same_provider_revision_at_public_cutoff(
+    tmp_path: Path,
+) -> None:
+    evidence = repository(tmp_path)
+    first = evidence.append_source_claim(
+        claim(
+            value=1.2,
+            public_at="2026-07-31T02:00:00+00:00",
+            system_at="2026-07-31T02:05:00+00:00",
+        )
+    )
+    evidence.append_source_claim(
+        claim(
+            value=1.4,
+            public_at="2026-08-20T02:00:00+00:00",
+            system_at="2026-08-20T02:05:00+00:00",
+        )
+    )
+
+    series = evidence.metric_series(
+        "CN_CPI_HEADLINE",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        public_as_of=datetime(2026, 8, 3, 15, 59, 59, tzinfo=UTC),
+        definition_version="metric-catalog-v0001",
+    )
+
+    assert series[0].selected_claim_id == first.claim_id
+    assert series[0].selected_value == 1.2
+
+
 def test_preloaded_metric_series_preserves_point_in_time_revision_selection(
     tmp_path: Path,
 ) -> None:
@@ -218,13 +407,18 @@ def test_preloaded_metric_series_preserves_point_in_time_revision_selection(
     assert cached == uncached
 
 
-def test_conflicting_sources_are_preserved_and_never_averaged(tmp_path: Path) -> None:
+def test_conflicting_certified_sources_are_preserved_and_never_averaged(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _certify_cpi(monkeypatch)
     evidence = repository(tmp_path)
     first = evidence.append_source_claim(
         claim(
             value=1.2,
             public_at="2026-07-15T02:00:00+00:00",
             system_at="2026-07-15T02:05:00+00:00",
+            certification_status="certified",
         )
     )
     evidence.append_source_claim(
@@ -233,6 +427,7 @@ def test_conflicting_sources_are_preserved_and_never_averaged(tmp_path: Path) ->
             public_at="2026-07-15T02:00:00+00:00",
             system_at="2026-07-15T02:06:00+00:00",
             provider="certified_backup",
+            certification_status="certified",
         )
     )
 
@@ -247,6 +442,37 @@ def test_conflicting_sources_are_preserved_and_never_averaged(tmp_path: Path) ->
     assert {item.value for item in result.claims} == {1.2, 2.2}
     assert result.selected_value in {1.2, 2.2}
     assert result.selected_value != 1.7
+
+
+def test_uncertified_or_invalid_claims_do_not_create_a_formal_source_conflict(
+    tmp_path: Path,
+) -> None:
+    evidence = repository(tmp_path)
+    first = evidence.append_source_claim(
+        claim(
+            value=1.2,
+            public_at="2026-07-15T02:00:00+00:00",
+            system_at="2026-07-15T02:05:00+00:00",
+        )
+    )
+    evidence.append_source_claim(
+        claim(
+            value=9.9,
+            public_at="2026-07-15T02:00:00+00:00",
+            system_at="2026-07-15T02:06:00+00:00",
+            provider="unverified-backup",
+            quality_status="invalid",
+        )
+    )
+
+    result = evidence.query(
+        first.observation_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 7, 16, tzinfo=UTC),
+        tolerance=0.1,
+    )
+
+    assert result.selection_status == "selected"
 
 
 def test_legal_non_numeric_value_states_are_not_zero(tmp_path: Path) -> None:
@@ -270,12 +496,17 @@ def test_legal_non_numeric_value_states_are_not_zero(tmp_path: Path) -> None:
     assert result.value_state is EvidenceValueState.NOT_DISCLOSED
 
 
-def test_metric_series_preserves_period_order_and_conflict_status(tmp_path: Path) -> None:
+def test_metric_series_preserves_period_order_and_conflict_status(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _certify_cpi(monkeypatch)
     evidence = repository(tmp_path)
     first = claim(
         value=100.0,
         public_at="2026-07-01T01:00:00+00:00",
         system_at="2026-07-01T01:05:00+00:00",
+        certification_status="certified",
     )
     second = replace(
         first,

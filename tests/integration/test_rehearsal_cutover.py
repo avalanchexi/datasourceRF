@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,6 +27,7 @@ from pring_cycle.rehearsals import (
     _certified_p1_schema_samples,
     _dashboard_projection_visible,
     _smoke_scope_matches,
+    _tushare_market_smoke_shape_valid,
     required_real_smoke_kinds,
     run_fixture_recovery_rehearsal,
     store_source_smoke_result,
@@ -57,7 +59,7 @@ def _source_smoke_artifacts(
     hashes = []
     for kind in sorted(required_real_smoke_kinds()):
         result = _source_smoke_result(kind, target_business_date)
-        if kind in {"core", "tushare-context"}:
+        if kind in {"core", "tushare-context", "tushare-market"}:
             scope = {"target_business_date": target_business_date}
         elif kind == "eia":
             scope = {"start": target_business_date, "end": target_business_date}
@@ -148,6 +150,56 @@ def _source_smoke_result(kind: str, target: str) -> dict[str, object]:
             "status": "validated_candidate",
             "target_business_date": target,
         }
+    if kind == "tushare-market":
+        metrics = {
+            "market_indices": [
+                "CN_EQ_CSI300",
+                "CN_EQ_CSI500",
+                "CN_EQ_CSI1000",
+                "CN_BOND_FULL_PRICE_CNY030",
+                "CN_BOND_10Y_930916",
+                "CN_COMMODITY_BROAD_NHCI",
+            ],
+            "market_breadth": [
+                "CN_EQ_ADV_DEC",
+                "CN_EQ_AD_RATIO",
+                "CN_EQ_NEW_HIGH_LOW_120",
+                "CN_EQ_ABOVE_MA120",
+                "CN_EQ_ADV_AMOUNT_SHARE",
+            ],
+            "margin_financing": ["CN_MARGIN_BALANCE"],
+            "index_valuation": ["CN_INDEX_VALUATION"],
+            "commodity_basket": [
+                "CN_COMMODITY_EX_HOG_BASKET",
+                "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+            ],
+        }
+        counts = {
+            "market_indices": 720,
+            "market_breadth": 1080,
+            "margin_financing": 240,
+            "index_valuation": 720,
+            "commodity_basket": 960,
+        }
+        return {
+            "families": [
+                {
+                    "api_names": [f"fixture_{family}"],
+                    "family": family,
+                    "first_period": "2026-03-09",
+                    "last_period": target,
+                    "metric_ids": metric_ids,
+                    "network_requests": 1,
+                    "normalized_hash": digest,
+                    "observation_count": counts[family],
+                    "status": "validated_candidate",
+                }
+                for family, metric_ids in metrics.items()
+            ],
+            "network_requests": len(metrics),
+            "status": "validated_candidate",
+            "target_business_date": target,
+        }
     family = kind.removeprefix("official-context:")
     descriptor = OFFICIAL_CONTEXT_FAMILIES[family]
     period = (
@@ -177,9 +229,24 @@ def _source_smoke_result(kind: str, target: str) -> dict[str, object]:
     }
 
 
+def test_market_smoke_rejects_single_observation_families() -> None:
+    target = "2026-08-28"
+    document = _source_smoke_result("tushare-market", target)
+    assert _tushare_market_smoke_shape_valid(document, target) is True
+    families = document["families"]
+    assert isinstance(families, list)
+    sparse = {
+        **document,
+        "families": [{**family, "observation_count": 1} for family in families],
+    }
+
+    assert _tushare_market_smoke_shape_valid(sparse, target) is False
+
+
 def _real_rehearsal_artifact(
     paths: RuntimePaths,
     *,
+    model_version_id: str,
     projection_set_id: str,
     source_smoke_hashes: tuple[str, ...],
 ) -> str:
@@ -207,7 +274,7 @@ def _real_rehearsal_artifact(
             "status": "ok",
             "target_business_date": "2026-08-28",
             "normalized_result_hash": normalized_hash,
-            **execution_fingerprint(paths, model_version_id="model-v0002"),
+            **execution_fingerprint(paths, model_version_id=model_version_id),
         },
         f"rehearsal:real-projection:{normalized_hash}",
     )
@@ -322,11 +389,13 @@ def test_real_rehearsal_requires_each_certified_p1_schema_family_in_projection(
         projection_evidence_ids=set(),
     )
 
-    assert len(samples) == 16
+    assert len(samples) == 20
     assert set(samples.values()) == {False}
     assert {
         "pbc_omo_notice",
         "nbs_industrial_finance",
+        "nbs_pmi",
+        "pbc_money",
         "tushare_pmi",
         "tushare_transmission",
     } <= set(samples)
@@ -384,7 +453,10 @@ def test_real_rehearsal_rejects_conflicted_or_unselected_certified_claims(
     assert samples["pbc_rrr_notice"] is False
 
 
-def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path: Path) -> None:
+@pytest.mark.parametrize("catalog_version", ("metric-catalog-v0002", "metric-catalog-v0003"))
+def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
+    tmp_path: Path, catalog_version: str
+) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
@@ -396,7 +468,7 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
         )
         for asset, metric_id, state in (
@@ -412,6 +484,19 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
         assets=assets,  # type: ignore[arg-type]
         last_confirmed_stage=None,
     )
+    from dataclasses import asdict
+
+    from pring_cycle.catalog import metric_catalog_v0003
+    from pring_cycle.models import analytical_model_v0003_manifest
+
+    candidate_id = "fixture-cutover-catalog"
+    candidate = analytical_model_v0003_manifest()
+    candidate["model_version_id"] = candidate_id
+    if catalog_version == "metric-catalog-v0003":
+        candidate["metric_catalog_version"] = catalog_version
+        candidate["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+    models.create_candidate(candidate)
+
     acceptance_hash = _artifact(
         paths,
         {
@@ -447,9 +532,9 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
     assert v1_manifest["checks"]["real_rehearsal"] is False
     assert v1_manifest["metric_catalog_version"] == "metric-catalog-v0001"
 
-    models.record_acceptance("model-v0002", CALIBRATION_BASELINE)
+    models.record_acceptance(candidate_id, CALIBRATION_BASELINE)
     models.record_replay(
-        "model-v0002",
+        candidate_id,
         compared_with="model-v0001",
         requested_start="2018-06-01",
         requested_end="2026-08-28",
@@ -460,22 +545,56 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
         core_state_differences=0,
         gaps=(),
     )
-    models.activate("model-v0002", explicitly_approved=True)
-    v2_projection = projections.publish(
-        target_business_date="2026-08-28",
-        system_as_of=datetime(2026, 8, 28, 13, 1, tzinfo=UTC),
-        assets=assets,  # type: ignore[arg-type]
-        last_confirmed_stage=None,
-        model_version_id="model-v0002",
-    )
-    assert v2_projection.projection_set_id is not None
+    if catalog_version == "metric-catalog-v0003":
+        with pytest.raises(ValueError, match="source_certification_contract_unresolved"):
+            models.activate(candidate_id, explicitly_approved=True)
+        # Import a historical pre-audit database state to test the cutover guard
+        # independently of the activation/publication guards.
+        historical = ProjectionSetRepository(paths.database).current()
+        projection_id = "historical-v3-cutover-projection"
+        document = asdict(historical.envelope)
+        for key in ("system_as_of", "generated_at"):
+            document[key] = document[key].isoformat()
+        document.update(projection_set_id=projection_id, model_version_id=candidate_id)
+        with sqlite3.connect(paths.database) as connection:
+            connection.execute("UPDATE active_model SET model_version_id=?", (candidate_id,))
+            connection.execute(
+                "INSERT INTO projection_set(projection_set_id, envelope_json) VALUES (?, ?)",
+                (projection_id, json.dumps(document)),
+            )
+            for name, dataset in historical.datasets.items():
+                connection.execute(
+                    "INSERT INTO analytical_dataset("
+                    "projection_set_id, dataset_name, document_json) "
+                    "VALUES (?, ?, ?)",
+                    (
+                        projection_id,
+                        name,
+                        json.dumps({**dataset, "projection_set_id": projection_id}),
+                    ),
+                )
+            connection.execute(
+                "UPDATE current_projection SET projection_set_id=?", (projection_id,)
+            )
+    else:
+        models.activate(candidate_id, explicitly_approved=True)
+        published = projections.publish(
+            target_business_date="2026-08-28",
+            system_as_of=datetime(2026, 8, 28, 13, 1, tzinfo=UTC),
+            assets=assets,  # type: ignore[arg-type]
+            last_confirmed_stage=None,
+            model_version_id=candidate_id,
+        )
+        assert published.projection_set_id is not None
+        projection_id = published.projection_set_id
     smoke_hashes = _source_smoke_artifacts(
         paths,
         target_business_date="2026-08-28",
     )
     real_hash = _real_rehearsal_artifact(
         paths,
-        projection_set_id=v2_projection.projection_set_id,
+        model_version_id=candidate_id,
+        projection_set_id=projection_id,
         source_smoke_hashes=smoke_hashes,
     )
     manifest = build_cutover_manifest(
@@ -485,9 +604,23 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(tmp_path:
         real_rehearsal_hash=real_hash,
         legacy_system_read_only_stopped=True,
     )
-    assert manifest["status"] == "ready"
     assert manifest["checks"]["model_catalog_current"] is True
-    assert manifest["metric_catalog_version"] == "metric-catalog-v0002"
+    assert manifest["metric_catalog_version"] == catalog_version
+    if catalog_version == "metric-catalog-v0003":
+        assert manifest["status"] == "blocked"
+        assert manifest["checks"]["model_source_contract_review"] is False
+        assert (
+            manifest["source_contract_review"]["code"] == "source_certification_contract_unresolved"
+        )
+        with pytest.raises(ValueError, match="cutover_manifest_blocked"):
+            record_direct_cutover(
+                paths,
+                manifest_hash=str(manifest["artifact"]["hash"]),
+                confirmation=CUTOVER_CONFIRMATION,
+            )
+        assert cutover_status(paths) is None
+        return
+    assert manifest["status"] == "ready"
     assert manifest["database_revision"] == SCHEMA_HEAD
 
     stale_acceptance_hash = _artifact(
@@ -536,9 +669,7 @@ def test_real_rehearsal_dashboard_probe_reads_shell_and_exact_projection(
     projection_set_id = "projection-visible-fixture"
     responses = {
         "http://127.0.0.1:8877/": (
-            b"<main data-pring-meaningful-content='true'>"
-            + projection_set_id.encode()
-            + b"</main>"
+            b"<main data-pring-meaningful-content='true'>" + projection_set_id.encode() + b"</main>"
         ),
         "http://127.0.0.1:8877/api/v1/projections/current": json.dumps(
             {"envelope": {"projection_set_id": projection_set_id}}

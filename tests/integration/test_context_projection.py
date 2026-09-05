@@ -9,7 +9,8 @@ import pytest
 
 import pring_cycle.evidence as evidence_module
 from pring_cycle.catalog import metric_definition
-from pring_cycle.context_projection import build_context_projection
+from pring_cycle.context_projection import _role_direction, build_context_projection
+from pring_cycle.domain.macro import EvidenceSignal
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -26,6 +27,26 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 OFFICIAL_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
 
 
+def test_role_direction_distinguishes_conflict_from_missing_data() -> None:
+    common = {
+        "role": "production",
+        "freshness": "current",
+        "conflict": False,
+    }
+    signals = [
+        EvidenceSignal("observation-up", "CN_INDUSTRIAL_VA", "up", **common),
+        EvidenceSignal(
+            "observation-down",
+            "CN_CAPACITY_UTILIZATION",
+            "down",
+            **common,
+        ),
+    ]
+
+    assert _role_direction(signals, "production") == "conflict"
+    assert _role_direction(signals, "demand") is None
+
+
 def _v2_manifest(*certified_metric_ids: str) -> dict[str, object]:
     manifest = analytical_model_v0002_manifest()
     certified = set(certified_metric_ids)
@@ -40,6 +61,14 @@ def _v2_manifest(*certified_metric_ids: str) -> dict[str, object]:
         }
         for definition in manifest["metric_definitions"]
     ]
+    return manifest
+
+
+def _repo_maturity_manifest(*certified_metric_ids: str) -> dict[str, object]:
+    manifest = _v2_manifest(*certified_metric_ids)
+    formulas = dict(manifest["derived_formula_versions"])  # type: ignore[arg-type]
+    formulas["omo_net_injection"] = "repo-net-injection-trading-calendar-v0002"
+    manifest["derived_formula_versions"] = formulas
     return manifest
 
 
@@ -94,13 +123,294 @@ def test_context_formula_dispatch_is_bound_to_the_model_manifest(
 
     v1_policy = v1.macro["policy_action"]["evidence"]  # type: ignore[index]
     v2_policy = v2.macro["policy_action"]["evidence"]  # type: ignore[index]
-    assert not any(
-        row.get("formula_version") == "repo-net-injection-v0001"
-        for row in v1_policy
+    assert not any(row.get("formula_version") == "repo-net-injection-v0001" for row in v1_policy)
+    assert any(row.get("formula_version") == "repo-net-injection-v0001" for row in v2_policy)
+
+
+def test_repo_net_injection_derives_maturity_from_certified_operation_ledger(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    certified_ids = {"CN_OMO_7D_AMOUNT"}
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(
+            metric_id,
+            definition_version=definition_version,
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if metric_id in certified_ids
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    operation_ids: dict[str, str] = {}
+    calendar_ids: dict[str, str] = {}
+    for period_end, value in (("2026-08-21", 2500.0), ("2026-08-28", 3000.0)):
+        operation_ids[period_end] = repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_OMO_7D_AMOUNT",
+                period_start=period_end,
+                period_end=period_end,
+                dimensions={"measure": "injection"},
+                value=value,
+                unit="hundred_million_cny",
+            )
+        ).claim_id
+        calendar_ids[period_end] = repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_EQUITY_CORE_000985",
+                period_start=period_end,
+                period_end=period_end,
+                dimensions={},
+                value=100.0,
+                unit="index_points",
+            )
+        ).claim_id
+
+    cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+    context = build_context_projection(
+        repository,
+        as_of=cutoff,
+        model_manifest=_repo_maturity_manifest(*certified_ids),
     )
-    assert any(
-        row.get("formula_version") == "repo-net-injection-v0001"
-        for row in v2_policy
+    net = next(
+        row
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if row["dimensions"].get("measure") == "net_injection"
+    )
+
+    assert net["value"] == 500.0
+    assert net["maturity_basis"] == "derived_7d_trading_calendar"
+    expected_inputs = {*operation_ids.values(), calendar_ids["2026-08-28"]}
+    assert set(net["input_observation_version_ids"]) == expected_inputs
+    trace = repository.derived_trace(
+        str(net["derived_observation_id"]),
+        mode=AsOfMode.SYSTEM,
+        as_of=cutoff,
+    )
+    assert set(trace.input_observation_version_ids) == expected_inputs
+
+
+def test_repo_net_injection_v1_keeps_frozen_same_day_semantics(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    monkeypatch.setattr(
+        evidence_module,
+        "metric_definition",
+        lambda metric_id, *, definition_version="metric-catalog-v0002": replace(
+            metric_definition(metric_id, definition_version=definition_version),
+            certification_status=(
+                "certified"
+                if metric_id == "CN_OMO_7D_AMOUNT"
+                else metric_definition(
+                    metric_id,
+                    definition_version=definition_version,
+                ).certification_status
+            ),
+        ),
+    )
+    for metric_id, period_end, dimensions, value, unit in (
+        (
+            "CN_OMO_7D_AMOUNT",
+            "2026-08-21",
+            {"measure": "injection"},
+            2500.0,
+            "hundred_million_cny",
+        ),
+        ("CN_EQUITY_CORE_000985", "2026-08-28", {}, 100.0, "index_points"),
+    ):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id=metric_id,
+                period_start=period_end,
+                period_end=period_end,
+                dimensions=dimensions,
+                value=value,
+                unit=unit,
+            )
+        )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        model_manifest=_v2_manifest("CN_OMO_7D_AMOUNT"),
+    )
+
+    assert not any(
+        row["dimensions"].get("measure") == "net_injection"
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+    )
+
+
+def test_repo_net_injection_emits_withdrawal_when_only_maturity_occurs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(
+            metric_id,
+            definition_version=definition_version,
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if metric_id == "CN_OMO_7D_AMOUNT"
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    operation_id = repository.append_source_claim(
+        _certified_claim(
+            metric_id="CN_OMO_7D_AMOUNT",
+            period_start="2026-08-21",
+            period_end="2026-08-21",
+            dimensions={"measure": "injection"},
+            value=2500.0,
+            unit="hundred_million_cny",
+        )
+    ).claim_id
+    calendar_ids: dict[str, str] = {}
+    for period_end in ("2026-08-21", "2026-08-28"):
+        calendar_ids[period_end] = repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_EQUITY_CORE_000985",
+                period_start=period_end,
+                period_end=period_end,
+                dimensions={},
+                value=100.0,
+                unit="index_points",
+            )
+        ).claim_id
+
+    cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+    context = build_context_projection(
+        repository,
+        as_of=cutoff,
+        model_manifest=_repo_maturity_manifest("CN_OMO_7D_AMOUNT"),
+    )
+    net = next(
+        row
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if row["dimensions"].get("measure") == "net_injection"
+    )
+
+    assert net["period"] == "2026-08-28"
+    assert net["value"] == -2500.0
+    assert net["maturity_basis"] == "derived_7d_trading_calendar"
+    assert set(net["input_observation_version_ids"]) == {
+        operation_id,
+        calendar_ids["2026-08-28"],
+    }
+
+
+def test_reported_repo_net_injection_cannot_bypass_certified_formula(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(
+            metric_id,
+            definition_version=definition_version,
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if metric_id == "CN_OMO_7D_AMOUNT"
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    for measure, value in (
+        ("injection", 3000.0),
+        ("maturity", 2500.0),
+        ("net_injection", 9999.0),
+    ):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_OMO_7D_AMOUNT",
+                period_start="2026-08-28",
+                period_end="2026-08-28",
+                dimensions={"measure": measure},
+                value=value,
+                unit="hundred_million_cny",
+            )
+        )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        model_manifest=_repo_maturity_manifest("CN_OMO_7D_AMOUNT"),
+    )
+    net_rows = [
+        row
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if row["dimensions"].get("measure") == "net_injection"
+    ]
+
+    assert len(net_rows) == 1
+    assert net_rows[0]["value"] == 500.0
+    assert net_rows[0]["formula_version"] == "repo-net-injection-trading-calendar-v0002"
+
+
+def test_reported_repo_net_injection_is_hidden_without_formula_inputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    monkeypatch.setattr(
+        evidence_module,
+        "metric_definition",
+        lambda metric_id, *, definition_version="metric-catalog-v0002": replace(
+            metric_definition(metric_id, definition_version=definition_version),
+            certification_status=(
+                "certified"
+                if metric_id == "CN_OMO_7D_AMOUNT"
+                else metric_definition(
+                    metric_id,
+                    definition_version=definition_version,
+                ).certification_status
+            ),
+        ),
+    )
+    repository.append_source_claim(
+        _certified_claim(
+            metric_id="CN_OMO_7D_AMOUNT",
+            period_start="2026-08-28",
+            period_end="2026-08-28",
+            dimensions={"measure": "net_injection"},
+            value=9999.0,
+            unit="hundred_million_cny",
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        model_manifest=_repo_maturity_manifest("CN_OMO_7D_AMOUNT"),
+    )
+
+    assert not any(
+        row["dimensions"].get("measure") == "net_injection"
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
     )
 
 
@@ -151,6 +461,370 @@ def test_empty_context_is_structured_local_degradation_not_empty_placeholders(
     }
 
 
+def test_historical_context_excludes_observations_after_target_date(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    metric_id = "CN_BOND_FULL_PRICE_CNY030"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(
+            requested_metric_id,
+            definition_version=definition_version,
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    for period_end, value in (("2026-08-03", 100.0), ("2026-08-28", 200.0)):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id=metric_id,
+                period_start=period_end,
+                period_end=period_end,
+                dimensions={},
+                value=value,
+                unit="scalar",
+            )
+        )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        target_business_date="2026-08-03",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    rows = context.macro["transmission"]["evidence"]  # type: ignore[index]
+    selected = next(row for row in rows if row["metric_id"] == metric_id)
+
+    assert selected["period"] == "2026-08-03"
+    assert selected["value"] == 100.0
+
+
+def test_historical_context_excludes_period_ended_but_not_yet_public_claim(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    metric_id = "CN_BOND_FULL_PRICE_CNY030"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    earlier = _certified_claim(
+        metric_id=metric_id,
+        period_start="2026-06-30",
+        period_end="2026-06-30",
+        dimensions={},
+        value=100.0,
+        unit="scalar",
+    )
+    late_public = replace(
+        _certified_claim(
+            metric_id=metric_id,
+            period_start="2026-07-31",
+            period_end="2026-07-31",
+            dimensions={},
+            value=200.0,
+            unit="scalar",
+        ),
+        release_at=datetime(2026, 8, 20, tzinfo=UTC),
+        public_available_at=datetime(2026, 8, 20, tzinfo=UTC),
+    )
+    repository.append_source_claims((earlier, late_public))
+
+    before_release = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        target_business_date="2026-08-03",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    after_release = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        target_business_date="2026-08-21",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    before = next(
+        row
+        for row in before_release.macro["transmission"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == metric_id
+    )
+    after = next(
+        row
+        for row in after_release.macro["transmission"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == metric_id
+    )
+    assert before["period"] == "2026-06-30"
+    assert before["value"] == 100.0
+    assert after["period"] == "2026-07-31"
+    assert after["value"] == 200.0
+
+
+def test_historical_context_reselects_same_provider_revision_visible_at_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    metric_id = "CN_BOND_FULL_PRICE_CNY030"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    base = _certified_claim(
+        metric_id=metric_id,
+        period_start="2026-07-31",
+        period_end="2026-07-31",
+        dimensions={},
+        value=100.0,
+        unit="scalar",
+    )
+    fetched_at = datetime(2026, 8, 31, tzinfo=UTC)
+    repository.append_source_claims(
+        (
+            replace(
+                base,
+                provider="official-publisher",
+                source_reference="fixture:official-publisher",
+                release_event_id="release:official-publisher:revision",
+                release_at=datetime(2026, 8, 20, tzinfo=UTC),
+                public_available_at=datetime(2026, 8, 20, tzinfo=UTC),
+                fetched_at=fetched_at,
+                available_at=fetched_at,
+                value=101.0,
+            ),
+            replace(
+                base,
+                provider="official-publisher",
+                source_reference="fixture:official-publisher",
+                release_event_id="release:official-publisher",
+                release_at=datetime(2026, 7, 31, tzinfo=UTC),
+                public_available_at=datetime(2026, 7, 31, tzinfo=UTC),
+                fetched_at=datetime(2026, 7, 31, 1, tzinfo=UTC),
+                available_at=datetime(2026, 7, 31, 1, tzinfo=UTC),
+            ),
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, 1, tzinfo=UTC),
+        target_business_date="2026-08-03",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    selected = next(
+        row
+        for row in context.macro["transmission"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == metric_id
+    )
+
+    assert selected["value"] == 100.0
+    assert selected["source_reference"] == "fixture:official-publisher"
+
+
+@pytest.mark.parametrize("public_available", (True, False))
+def test_target_bound_context_rejects_future_month_or_unknown_public_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    public_available: bool,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    metric_id = "CN_INDUSTRIAL_VA"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    public_at = datetime(2026, 8, 20, tzinfo=UTC)
+    repository.append_source_claim(
+        replace(
+            _certified_claim(
+                metric_id=metric_id,
+                period_start="2026-09-01" if public_available else "2026-07-01",
+                period_end="2026-09-30" if public_available else "2026-07-31",
+                dimensions={"measure": "yoy"},
+                value=5.0,
+                unit="scalar",
+            ),
+            release_at=public_at,
+            public_available_at=public_at if public_available else None,
+            fetched_at=datetime(2026, 8, 31, tzinfo=UTC),
+            available_at=datetime(2026, 8, 31, tzinfo=UTC),
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, 1, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    row = next(
+        item
+        for item in context.macro["overheat"]["gaps"]  # type: ignore[index]
+        if item["metric_id"] == metric_id
+    )
+
+    assert row["value"] is None
+    assert row["freshness"] != "current"
+
+
+def test_target_bound_lpr_status_uses_the_target_period_not_the_run_month(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    ingest_lpr_document(
+        paths,
+        content,
+        source_url=OFFICIAL_URL,
+        fetched_at=datetime(2026, 8, 31, 16, tzinfo=UTC),
+        expected_period="2026-08",
+    )
+
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=datetime(2026, 8, 31, 16, 30, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        visible_evidence_start="2026-03-09",
+        model_manifest=_v2_manifest("CN_LPR_1Y_5Y"),
+    )
+    rows = context.macro["credit"]["evidence"][:2]  # type: ignore[index]
+
+    assert {row["period"] for row in rows} == {"2026-08-31"}
+    assert {row["status"] for row in rows} == {"current"}
+
+
+def test_event_history_outside_the_visible_window_is_not_a_missing_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    metric_id = "CN_RRR_EVENT"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+    ):
+        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    repository.append_source_claim(
+        _certified_claim(
+            metric_id=metric_id,
+            period_start="2025-05-15",
+            period_end="2025-05-15",
+            dimensions={"measure": "rrr_change", "scope": "financial_institutions"},
+            value=-0.5,
+            unit="percentage_points",
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        visible_evidence_start="2026-03-09",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    row = next(
+        item
+        for item in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if item["metric_id"] == metric_id
+    )
+
+    assert row["status"] == "no_event_in_visible_window"
+
+
+def test_uncertified_event_history_cannot_prove_no_event_in_visible_window(
+    tmp_path: Path,
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    metric_id = "CN_RRR_EVENT"
+    candidate = _certified_claim(
+        metric_id=metric_id,
+        period_start="2025-05-15",
+        period_end="2025-05-15",
+        dimensions={"measure": "rrr_change", "scope": "financial_institutions"},
+        value=-0.5,
+        unit="percentage_points",
+    )
+    repository.append_source_claim(
+        replace(
+            candidate,
+            certification_status="awaiting_source_certification",
+            quality_status="unverified",
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        visible_evidence_start="2026-03-09",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    row = next(
+        item
+        for item in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if item["metric_id"] == metric_id
+    )
+
+    assert row["status"] != "no_event_in_visible_window"
+
+
 def test_v1_credit_formula_identity_is_not_rewritten_to_v2(tmp_path: Path) -> None:
     manifest = certified_model_v0001_manifest()
     context = build_context_projection(
@@ -169,9 +843,7 @@ def test_certified_lpr_enters_credit_evidence_with_point_in_time_source_fields(
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
-    content = (
-        Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
-    ).read_bytes()
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
     ingested = ingest_lpr_document(
         paths,
         content,
@@ -189,9 +861,7 @@ def test_certified_lpr_enters_credit_evidence_with_point_in_time_source_fields(
 
     assert {row["dimensions"]["tenor"] for row in lpr_rows} == {"1y", "5y_plus"}
     assert {row["status"] for row in lpr_rows} == {"current"}
-    assert {row["source_reference"].split("#", maxsplit=1)[0] for row in lpr_rows} == {
-        OFFICIAL_URL
-    }
+    assert {row["source_reference"].split("#", maxsplit=1)[0] for row in lpr_rows} == {OFFICIAL_URL}
     assert {row["available_at"] for row in lpr_rows} == {"2026-08-20T01:02:00+00:00"}
     assert set(ingested.claim_ids) <= set(context.observation_version_ids)
     assert context.macro["credit_response"] == "insufficient_data"
@@ -203,9 +873,7 @@ def test_lpr_carries_the_previous_period_as_awaiting_release_not_source_failure(
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
-    content = (
-        Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
-    ).read_bytes()
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
     ingest_lpr_document(
         paths,
         content,
@@ -301,9 +969,7 @@ def test_conflicted_certified_sources_keep_every_claim_and_do_not_drive_state(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     repository = EvidenceRepository(paths.database)
-    content = (
-        Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
-    ).read_bytes()
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
     ingested = ingest_lpr_document(
         paths,
         content,
@@ -347,9 +1013,7 @@ def test_conflicted_certified_sources_keep_every_claim_and_do_not_drive_state(
 
     assert lpr_1y["status"] == "conflicted"
     assert {claim["value"] for claim in lpr_1y["claims"]} == {3.0, 3.1}
-    assert set(ingested.claim_ids) | {conflicting.claim_id} <= set(
-        context.observation_version_ids
-    )
+    assert set(ingested.claim_ids) | {conflicting.claim_id} <= set(context.observation_version_ids)
     assert context.macro["credit_response"] == "insufficient_data"
 
 
@@ -438,6 +1102,8 @@ def test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages(
     assert formula["formula_version"] == "credit-impulse-rolling-share-v0001"
     assert impulse["value"] == pytest.approx(6.0)
     assert impulse["direction"] == "up"
+    assert impulse["period_start"] == "2025-12-01"
+    assert impulse["period"] == "2025-12-31"
     assert set(impulse["input_observation_version_ids"]) == set(input_claim_ids)
     derived_id = str(impulse["derived_observation_id"])
     assert derived_id in context.observation_version_ids
@@ -536,14 +1202,14 @@ def test_policy_and_treasury_spreads_are_derived_with_exact_input_vintages(
             mode=AsOfMode.SYSTEM,
             as_of=cutoff,
         )
-        assert set(trace.input_observation_version_ids) == set(
-            row["input_observation_version_ids"]
-        )
+        assert set(trace.input_observation_version_ids) == set(row["input_observation_version_ids"])
 
 
+@pytest.mark.parametrize("social_measure", ("monthly_increment", "ytd_increment", "ytd_gap"))
 def test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    social_measure: str,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -567,22 +1233,31 @@ def test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp(
 
     monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
     input_claim_ids: list[str] = []
-    for index in range(24):
-        year = 2024 + index // 12
+    for index in range(24 if social_measure == "monthly_increment" else 36):
+        year = (2024 if social_measure == "monthly_increment" else 2023) + index // 12
         month = index % 12 + 1
+        if social_measure == "ytd_gap" and (year, month) == (2025, 2):
+            continue
         end_day = calendar.monthrange(year, month)[1]
-        input_claim_ids.append(
-            repository.append_source_claim(
-                _certified_claim(
-                    metric_id="CN_SF_TOTAL",
-                    period_start=f"{year:04d}-{month:02d}-01",
-                    period_end=f"{year:04d}-{month:02d}-{end_day:02d}",
-                    dimensions={"measure": "monthly_increment"},
-                    value=2.0 if year == 2024 else 3.0,
-                    unit="hundred_million_cny",
-                )
-            ).claim_id
+        claim = repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_SF_TOTAL",
+                period_start=f"{year:04d}-{month:02d}-01",
+                period_end=f"{year:04d}-{month:02d}-{end_day:02d}",
+                dimensions={
+                    "measure": (
+                        "monthly_increment"
+                        if social_measure == "monthly_increment"
+                        else "ytd_increment"
+                    )
+                },
+                value=(2.0 if year <= 2024 else 3.0)
+                * (1 if social_measure == "monthly_increment" else month),
+                unit="hundred_million_cny",
+            )
         )
+        if year >= 2024:
+            input_claim_ids.append(claim.claim_id)
     for year, cumulative_values in (
         (2024, (20.0, 45.0, 70.0, 100.0)),
         (2025, (25.0, 55.0, 90.0, 130.0)),
@@ -606,12 +1281,23 @@ def test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp(
             )
 
     cutoff = datetime(2026, 1, 31, tzinfo=UTC)
+    manifest = _v2_manifest(*certified_ids)
+    if social_measure != "monthly_increment":
+        manifest["derived_formula_versions"]["credit_impulse"] = "credit-impulse-ytd-flow-v0002"  # type: ignore[index]
     context = build_context_projection(
         repository,
         as_of=cutoff,
-        model_manifest=_v2_manifest(*certified_ids),
+        model_manifest=manifest,
     )
     formula = context.macro["credit"]["formula"]  # type: ignore[index]
+    if social_measure == "ytd_gap":
+        assert formula["status"] == "nonconsecutive_social_financing_inputs"
+        assert all(
+            row["value"] is None
+            for row in context.macro["credit"]["evidence"]  # type: ignore[index]
+            if row["metric_id"] == "CN_CREDIT_IMPULSE"
+        )
+        return
     impulse = next(
         row
         for row in context.macro["credit"]["evidence"]  # type: ignore[index]

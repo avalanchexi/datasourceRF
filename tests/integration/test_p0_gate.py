@@ -29,7 +29,7 @@ def readiness(
         }[asset],
         state=state,
         reason=reason,
-        observation_count=160 if state is not None else 0,
+        observation_count=120 if state is not None else 0,
         latest_business_date="2026-08-28" if state is not None else None,
     )
 
@@ -100,10 +100,62 @@ def test_complete_projection_validator_enforces_cross_dataset_domain_invariants(
         validate_analytical_projection(current.envelope, invalid_score)
 
 
-def test_noncanonical_valid_combination_publishes_an_explained_history_gap(
+def test_context_window_accepts_a_published_month_that_overlaps_the_target_window(
     tmp_path: Path,
 ) -> None:
     projections = ProjectionSetRepository.create(tmp_path / "projection.sqlite3")
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 10, tzinfo=UTC),
+        assets=(
+            readiness("bond", CoreAssetState.BULL),
+            readiness("stock", CoreAssetState.BULL),
+            readiness("commodity", CoreAssetState.BEAR),
+        ),
+        last_confirmed_stage=None,
+    )
+    current = projections.current()
+    monthly = deepcopy(current.datasets)
+    monthly["macro"]["credit"]["evidence"] = [  # type: ignore[index]
+        {
+            "metric_id": "CN_LPR_1Y_5Y",
+            "period_start": "2026-08-01",
+            "period": "2026-08-31",
+        }
+    ]
+
+    validate_analytical_projection(current.envelope, monthly)
+
+    future_daily = deepcopy(current.datasets)
+    future_daily["macro"]["credit"]["evidence"] = [  # type: ignore[index]
+        {
+            "metric_id": "CN_DR007",
+            "period_start": "2026-08-31",
+            "period": "2026-08-31",
+        }
+    ]
+    with pytest.raises(
+        ValueError,
+        match="projection_context_evidence_outside_visible_window",
+    ):
+        validate_analytical_projection(current.envelope, future_daily)
+
+
+def test_noncanonical_valid_combination_publishes_current_states_and_preserves_history(
+    tmp_path: Path,
+) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projection.sqlite3")
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-27",
+        system_as_of=datetime(2026, 8, 27, 10, tzinfo=UTC),
+        assets=(
+            readiness("bond", CoreAssetState.BULL),
+            readiness("stock", CoreAssetState.BULL),
+            readiness("commodity", CoreAssetState.BEAR),
+        ),
+        last_confirmed_stage=None,
+    )
+    previous_projection_id = projections.current().envelope.projection_set_id
     result = P0ProjectionService(projections).publish(
         target_business_date="2026-08-28",
         system_as_of=datetime(2026, 8, 28, 10, tzinfo=UTC),
@@ -112,19 +164,42 @@ def test_noncanonical_valid_combination_publishes_an_explained_history_gap(
             readiness("stock", CoreAssetState.BEAR),
             readiness("commodity", CoreAssetState.BULL),
         ),
-        last_confirmed_stage=FormalStage.STAGE_I,
+        last_confirmed_stage=FormalStage.STAGE_II,
     )
 
     assert result.status == "published"
+    assert result.projection_set_id != previous_projection_id
     assert result.current_stage is None
-    assert result.last_confirmed_stage is FormalStage.STAGE_I
+    assert result.last_confirmed_stage is FormalStage.STAGE_II
     assert result.stage_reason == "noncanonical_combination"
-    history = projections.current().datasets["stage_history"]
-    assert history["events"][0]["business_date"] == "2026-08-28"
-    assert history["events"][0]["current_stage"] is None
-    assert history["events"][0]["last_confirmed_stage"] == "stage_i"
-    assert history["events"][0]["event_kind"] == "gap"
-    assert history["events"][0]["stage_reason"] == "noncanonical_combination"
+    current = projections.current()
+    assert current.envelope.projection_set_id == result.projection_set_id
+    assert current.envelope.target_business_date == "2026-08-28"
+    assert current.datasets["cycle_overview"]["current_stage"] is None
+    assert current.datasets["cycle_overview"]["last_confirmed_stage"] == "stage_ii"
+    assert (
+        projections.get(previous_projection_id).datasets["cycle_overview"]["current_stage"]
+        == "stage_ii"
+    )
+    history = projections.stage_history()
+    gap = next(item for item in history if item["business_date"] == "2026-08-28")
+    assert gap["current_stage"] is None
+    assert gap["last_confirmed_stage"] == "stage_ii"
+    assert gap["event_kind"] == "gap"
+    assert gap["stage_reason"] == "noncanonical_combination"
+
+    blocked = P0ProjectionService(projections).publish(
+        target_business_date="2026-08-31",
+        system_as_of=datetime(2026, 8, 31, 10, tzinfo=UTC),
+        assets=(
+            readiness("bond", CoreAssetState.BULL),
+            readiness("stock", CoreAssetState.BEAR),
+            readiness("commodity", None, "source_conflict"),
+        ),
+        last_confirmed_stage=FormalStage.STAGE_II,
+    )
+    assert blocked.status == "action_required"
+    assert projections.current().envelope.projection_set_id == result.projection_set_id
 
 
 def test_macro_and_inventory_documents_change_context_but_never_formal_stage(

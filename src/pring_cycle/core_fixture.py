@@ -59,11 +59,13 @@ def project_core_fixture(
     evidence_snapshot_id = "fixture-snapshot-" + hashlib.sha256(
         normalized.encode()
     ).hexdigest()[:20]
-    previous_stage = _last_confirmed_stage(paths)
+    previous_stage = _last_confirmed_stage(paths, parsed["target_business_date"])
     context = build_context_projection(
         EvidenceRepository(paths.database),
         as_of=parsed["system_as_of"],
         model_manifest=manifest,
+        target_business_date=parsed["target_business_date"],
+        visible_evidence_start=(calendar[-120] if len(calendar) >= 120 else calendar[0]),
     )
     service = P0ProjectionService(ProjectionSetRepository(paths.database))
     result = service.publish(
@@ -235,13 +237,13 @@ def _trend_rules(manifest: dict[str, object]) -> TrendRules:
         raise ValueError("model_trend_rules_invalid") from error
 
 
-def _last_confirmed_stage(paths: RuntimePaths) -> FormalStage | None:
-    try:
-        current = ProjectionSetRepository(paths.database).current()
-    except LookupError:
-        return None
-    overview = current.datasets["cycle_overview"]
-    value = overview.get("current_stage") or overview.get("last_confirmed_stage")
+def _last_confirmed_stage(
+    paths: RuntimePaths,
+    target_business_date: str,
+) -> FormalStage | None:
+    value = ProjectionSetRepository(paths.database).last_confirmed_stage(
+        on_or_before=target_business_date
+    )
     return FormalStage(str(value)) if value is not None else None
 
 

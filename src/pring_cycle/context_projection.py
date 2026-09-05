@@ -4,8 +4,9 @@ import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.domain.macro import (
@@ -89,10 +90,17 @@ _SUPPORTED_FORMULA_VERSIONS = {
     "credit_impulse": {
         "credit-impulse-v0001",
         "credit-impulse-rolling-share-v0001",
+        "credit-impulse-ytd-flow-v0002",
     },
     "dr007_policy_spread": {"dr007-policy-spread-v0001"},
-    "loan_monthly_change": {"loan-stock-monthly-change-v0001"},
-    "omo_net_injection": {"repo-net-injection-v0001"},
+    "loan_monthly_change": {
+        "loan-stock-monthly-change-v0001",
+        "loan-ytd-monthly-change-v0002",
+    },
+    "omo_net_injection": {
+        "repo-net-injection-v0001",
+        "repo-net-injection-trading-calendar-v0002",
+    },
     "order_inventory_spread": {
         "order-inventory-v0001",
         "pmi-order-inventory-spread-v0001",
@@ -210,6 +218,8 @@ def build_context_projection(
     *,
     as_of: datetime,
     model_manifest: Mapping[str, object],
+    target_business_date: str | None = None,
+    visible_evidence_start: str | None = None,
     as_of_mode: AsOfMode = AsOfMode.SYSTEM,
     persist_derived: bool = True,
 ) -> ContextProjection:
@@ -217,31 +227,68 @@ def build_context_projection(
         raise ValueError("context_projection_as_of_must_be_timezone_aware")
     rules = ContextProjectionRules.from_manifest(model_manifest)
     definitions = {item.metric_id: item for item in rules.metric_definitions}
+    visible_repository: Any = repository
+    if target_business_date is not None:
+        try:
+            target_date = date.fromisoformat(target_business_date)
+        except ValueError as error:
+            raise ValueError("context_projection_target_date_invalid") from error
+        target_repository = _TargetBoundEvidenceRepository(
+            repository,
+            target_date,
+            {metric_id: definition.frequency for metric_id, definition in definitions.items()},
+        )
+        repository = target_repository  # type: ignore[assignment]
+        if visible_evidence_start is not None:
+            try:
+                visible_start = date.fromisoformat(visible_evidence_start)
+            except ValueError as error:
+                raise ValueError("context_projection_visible_start_invalid") from error
+            if visible_start > target_date:
+                raise ValueError("context_projection_visible_window_invalid")
+            visible_repository = _TargetBoundEvidenceRepository(
+                target_repository,
+                target_date,
+                {metric_id: definition.frequency for metric_id, definition in definitions.items()},
+                visible_start=visible_start,
+            )
+        else:
+            visible_repository = target_repository
     relevant = context_metric_ids(rules)
     missing = sorted(relevant - definitions.keys())
     if missing:
         raise ValueError(f"context_model_metric_missing:{','.join(missing)}")
     rows_by_metric = {
         metric_id: _metric_rows(
-            repository,
+            visible_repository,
             definitions[metric_id],
             as_of=as_of,
             as_of_mode=as_of_mode,
         )
         for metric_id in sorted(relevant)
     }
+    rows_by_metric["CN_OMO_7D_AMOUNT"] = tuple(
+        row
+        for row in rows_by_metric["CN_OMO_7D_AMOUNT"]
+        if row.get("dimensions") != {"measure": "net_injection"}
+    )
     market_derived_rows, market_derived_ids = _derived_market_context_rows(
         repository,
         as_of=as_of,
         formula_versions=rules.formula_versions,
         definition_version=rules.metric_catalog_version,
+        trading_calendar_metric_id=_core_stock_metric_id(model_manifest),
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
     )
     for metric_id, rows in market_derived_rows.items():
         existing = rows_by_metric[metric_id]
         rows_by_metric[metric_id] = (
-            tuple(row for row in existing if not str(row["observation_id"]).startswith("gap:"))
+            tuple(
+                row
+                for row in existing
+                if not str(row["observation_id"]).startswith("gap:")
+            )
             + rows
         )
     credit_impulse_row, credit_formula, credit_version_ids = _credit_impulse_proxy(
@@ -347,21 +394,136 @@ def build_context_projection(
             | set(market_derived_ids)
         )
     )
+    inventory_context_state = inventory.quadrant or (
+        "conflict"
+        if "conflict" in {demand, production, inventory_direction}
+        else "insufficient_data"
+    )
     warning_groups = {
         "policy": policy.state,
         "credit": credit.state,
         "overheat": overheat.state,
         "price": price.state,
-        "inventory": inventory.quadrant or "insufficient_data",
+        "inventory": inventory_context_state,
     }
     warnings = tuple(
         f"{name}_context_degraded:{state}"
         for name, state in warning_groups.items()
-        if state in {"insufficient_data", "transmission_conflict"}
+        if state in {"conflict", "insufficient_data", "transmission_conflict"}
     )
     if any(item["status"] != "current" for item in international_context):
         warnings += ("p2_context_degraded",)
     return ContextProjection(macro_document, inventory_document, versions, warnings)
+
+
+class _TargetBoundEvidenceRepository:
+    """Delegate evidence access while enforcing one historical period boundary."""
+
+    def __init__(
+        self,
+        repository: Any,
+        target_date: date,
+        frequencies: Mapping[str, str],
+        *,
+        visible_start: date | None = None,
+    ) -> None:
+        self._repository = repository
+        self._target_date = target_date
+        self._frequencies = frequencies
+        self._visible_start = visible_start
+
+    def metric_series(self, *args: Any, **kwargs: Any) -> tuple[MetricSeriesPoint, ...]:
+        tolerance = float(kwargs.get("tolerance", 0.0))
+        query_kwargs = dict(kwargs)
+        query_kwargs["public_as_of"] = datetime.combine(
+            self._target_date,
+            time.max,
+            tzinfo=ZoneInfo("Asia/Shanghai"),
+        )
+        return tuple(
+            bounded
+            for point in self._repository.metric_series(*args, **query_kwargs)
+            if (
+                bounded := _point_at_target(
+                    point,
+                    self._target_date,
+                    tolerance=tolerance,
+                )
+            )
+            is not None
+            if (
+                self._visible_start is None
+                or date.fromisoformat(bounded.period_end) >= self._visible_start
+            )
+        )
+
+    @property
+    def target_date(self) -> date:
+        return self._target_date
+
+    def has_target_history(self, *args: Any, **kwargs: Any) -> bool:
+        query_kwargs = dict(kwargs)
+        query_kwargs["public_as_of"] = datetime.combine(
+            self._target_date,
+            time.max,
+            tzinfo=ZoneInfo("Asia/Shanghai"),
+        )
+        return any(
+            _certified_point(point)
+            and date.fromisoformat(point.period_start) <= self._target_date
+            for point in self._repository.metric_series(*args, **query_kwargs)
+        )
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._repository, name)
+
+
+def _point_at_target(
+    point: MetricSeriesPoint,
+    target_date: date,
+    *,
+    tolerance: float,
+) -> MetricSeriesPoint | None:
+    if date.fromisoformat(point.period_start) > target_date:
+        return None
+    claims = tuple(
+        claim
+        for claim in point.claims
+        if claim.public_available_at is not None
+        and claim.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+        <= target_date
+    )
+    if not claims:
+        return None
+    selected = sorted(
+        claims,
+        key=lambda claim: (
+            claim.certification_status != "certified",
+            claim.provider,
+        ),
+    )[0]
+    reported_values = [
+        claim.value
+        for claim in claims
+        if claim.certification_status == "certified"
+        and claim.quality_status == "validated"
+        and claim.value_state is EvidenceValueState.REPORTED_VALUE
+        and claim.value is not None
+    ]
+    conflicted = bool(reported_values) and (
+        max(reported_values) - min(reported_values) > tolerance
+    )
+    return MetricSeriesPoint(
+        observation_id=point.observation_id,
+        period_start=point.period_start,
+        period_end=point.period_end,
+        dimensions=point.dimensions,
+        selected_value=selected.value,
+        value_state=selected.value_state,
+        selection_status="conflicted" if conflicted else "selected",
+        selected_claim_id=selected.claim_id,
+        claims=claims,
+    )
 
 
 def _derived_market_context_rows(
@@ -370,6 +532,7 @@ def _derived_market_context_rows(
     as_of: datetime,
     formula_versions: Mapping[str, str],
     definition_version: str,
+    trading_calendar_metric_id: str | None,
     as_of_mode: AsOfMode,
     persist_derived: bool,
 ) -> tuple[dict[str, tuple[dict[str, object], ...]], tuple[str, ...]]:
@@ -390,13 +553,18 @@ def _derived_market_context_rows(
         measure = point.dimensions.get("measure")
         if measure in {"injection", "maturity"}:
             amount_by_period.setdefault(point.period_end, {})[measure] = point
+    omo_formula = formula_versions.get("omo_net_injection")
+    injection_points = [
+        point
+        for point in amount_points
+        if point.dimensions.get("measure") == "injection"
+    ]
     complete_periods = [
         period
         for period, measures in amount_by_period.items()
         if set(measures) == {"injection", "maturity"}
     ]
-    omo_formula = formula_versions.get("omo_net_injection")
-    if complete_periods and omo_formula is not None:
+    if complete_periods and omo_formula == "repo-net-injection-v0001":
         period = max(complete_periods)
         measures = amount_by_period[period]
         derived_row, derived_versions = _difference_row(
@@ -414,6 +582,66 @@ def _derived_market_context_rows(
         )
         rows["CN_OMO_7D_AMOUNT"] = (derived_row,)
         version_ids.extend(derived_versions)
+    elif amount_by_period and omo_formula == "repo-net-injection-trading-calendar-v0002":
+        trading_day_points = (
+            _certified_trading_day_points(
+                repository,
+                trading_calendar_metric_id,
+                as_of=as_of,
+                as_of_mode=as_of_mode,
+                definition_version=definition_version,
+            )
+            if trading_calendar_metric_id is not None
+            else ()
+        )
+        trading_days = tuple(
+            date.fromisoformat(point.period_end) for point in trading_day_points
+        )
+        trading_points_by_day = {
+            date.fromisoformat(point.period_end): point for point in trading_day_points
+        }
+        derived_maturities: dict[date, list[MetricSeriesPoint]] = {}
+        for point in injection_points:
+            maturity_day = _repo_maturity_trading_day(
+                date.fromisoformat(point.period_end),
+                trading_days,
+            )
+            if maturity_day is not None:
+                derived_maturities.setdefault(maturity_day, []).append(point)
+        target_dates = {
+            date.fromisoformat(point.period_end)
+            for point in amount_points
+            if point.dimensions.get("measure") in {"injection", "maturity"}
+        } | set(derived_maturities)
+        target_date = max(target_dates)
+        target_period = target_date.isoformat()
+        injection = amount_by_period.get(target_period, {}).get("injection")
+        explicit_maturity = amount_by_period.get(target_period, {}).get("maturity")
+        maturity_points: tuple[MetricSeriesPoint, ...] = ()
+        calendar_points: tuple[MetricSeriesPoint, ...] = ()
+        maturity_basis: str | None = None
+        if explicit_maturity is not None:
+            maturity_points = (explicit_maturity,)
+            maturity_basis = "reported_source"
+        elif target_date in trading_days:
+            maturity_points = tuple(derived_maturities.get(target_date, ()))
+            calendar_points = (trading_points_by_day[target_date],)
+            maturity_basis = "derived_7d_trading_calendar"
+        if maturity_basis is not None and (injection is not None or maturity_points):
+            derived_row, derived_versions = _repo_net_injection_row(
+                repository,
+                formula_version=omo_formula,
+                injection=injection,
+                maturity_points=maturity_points,
+                calendar_points=calendar_points,
+                maturity_basis=maturity_basis,
+                target_period=target_period,
+                as_of=as_of,
+                as_of_mode=as_of_mode,
+                persist_derived=persist_derived,
+            )
+            rows["CN_OMO_7D_AMOUNT"] = (derived_row,)
+            version_ids.extend(derived_versions)
 
     dr007 = _latest_certified_point(
         repository,
@@ -548,6 +776,12 @@ def _derived_market_context_rows(
         rows["CN_PRODUCTION_ORDER_SPREAD"] = (derived_row,)
         version_ids.extend(derived_versions)
 
+    loan_formula = formula_versions.get("loan_monthly_change")
+    loan_input_measure = (
+        "ytd_increment"
+        if loan_formula == "loan-ytd-monthly-change-v0002"
+        else "stock_end"
+    )
     loan_stock_points = [
         point
         for point in repository.metric_series(
@@ -556,14 +790,14 @@ def _derived_market_context_rows(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if _certified_point(point) and point.dimensions.get("measure") == "stock_end"
+        if _certified_point(point)
+        and point.dimensions.get("measure") == loan_input_measure
     ]
     loan_groups: dict[tuple[str, str], list[MetricSeriesPoint]] = {}
     for point in loan_stock_points:
         key = (point.dimensions.get("borrower", ""), point.dimensions.get("tenor", ""))
         loan_groups.setdefault(key, []).append(point)
     loan_rows: list[dict[str, object]] = []
-    loan_formula = formula_versions.get("loan_monthly_change")
     if loan_formula is not None:
         for (borrower, tenor), points in sorted(loan_groups.items()):
             ordered = sorted(points, key=lambda point: point.period_end)
@@ -591,6 +825,147 @@ def _derived_market_context_rows(
     if loan_rows:
         rows["CN_LOAN_STRUCTURE"] = tuple(loan_rows)
     return rows, tuple(version_ids)
+
+
+def _core_stock_metric_id(model_manifest: Mapping[str, object]) -> str | None:
+    core_metrics = model_manifest.get("core_metrics")
+    if not isinstance(core_metrics, Mapping):
+        return None
+    metric_id = core_metrics.get("stock")
+    return metric_id if isinstance(metric_id, str) and metric_id else None
+
+
+def _certified_trading_day_points(
+    repository: EvidenceRepository,
+    metric_id: str,
+    *,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+    definition_version: str,
+) -> tuple[MetricSeriesPoint, ...]:
+    return tuple(
+        sorted(
+            (
+                point
+                for point in repository.metric_series(
+                    metric_id,
+                    mode=as_of_mode,
+                    as_of=as_of,
+                    definition_version=definition_version,
+                )
+                if _certified_point(point)
+            ),
+            key=lambda point: (point.period_end, point.observation_id),
+        )
+    )
+
+
+def _repo_maturity_trading_day(
+    operation_date: date,
+    trading_days: tuple[date, ...],
+) -> date | None:
+    nominal_maturity = operation_date + timedelta(days=7)
+    return next((day for day in trading_days if day >= nominal_maturity), None)
+
+
+def _repo_net_injection_row(
+    repository: EvidenceRepository,
+    *,
+    formula_version: str,
+    injection: MetricSeriesPoint | None,
+    maturity_points: tuple[MetricSeriesPoint, ...],
+    calendar_points: tuple[MetricSeriesPoint, ...],
+    maturity_basis: str,
+    target_period: str,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+    persist_derived: bool,
+) -> tuple[dict[str, object], tuple[str, ...]]:
+    input_points = (
+        *((injection,) if injection is not None else ()),
+        *maturity_points,
+        *calendar_points,
+    )
+    claims = tuple(_selected_claim(point) for point in input_points)
+    if (
+        (
+            injection is not None
+            and (injection.selected_value is None or injection.selected_claim_id is None)
+        )
+        or any(
+            point.selected_value is None or point.selected_claim_id is None
+            for point in maturity_points
+        )
+        or any(claim is None for claim in claims)
+    ):
+        raise ValueError("repo_net_injection_inputs_invalid")
+    selected_claims = tuple(claim for claim in claims if claim is not None)
+    inputs = tuple(
+        sorted(
+            point.selected_claim_id
+            for point in input_points
+            if point.selected_claim_id is not None
+        )
+    )
+    maturity_amount = sum(
+        float(point.selected_value)
+        for point in maturity_points
+        if point.selected_value is not None
+    )
+    injection_amount = (
+        float(injection.selected_value)
+        if injection is not None and injection.selected_value is not None
+        else 0.0
+    )
+    value = injection_amount - maturity_amount
+    unit = "hundred_million_cny"
+    derived_id = _derived_observation_identity(
+        repository,
+        metric_id="CN_OMO_7D_AMOUNT",
+        formula_version=formula_version,
+        input_observation_version_ids=inputs,
+        as_of_mode=as_of_mode,
+        as_of_cutoff=as_of,
+        value=value,
+        unit=unit,
+        persist=persist_derived,
+    )
+    public_times = tuple(
+        claim.public_available_at
+        for claim in selected_claims
+        if claim.public_available_at is not None
+    )
+    row: dict[str, object] = {
+        "available_at": max(claim.available_at for claim in selected_claims).isoformat(),
+        "certification_status": "derived_from_certified_inputs",
+        "claim_ids": [],
+        "claims": [],
+        "derived_observation_id": derived_id,
+        "dimensions": {"measure": "net_injection"},
+        "direction": "up" if value > 0 else "down" if value < 0 else "flat",
+        "formula_version": formula_version,
+        "input_observation_version_ids": list(inputs),
+        "maturity_amount": maturity_amount,
+        "maturity_basis": maturity_basis,
+        "trading_calendar_observation_version_ids": [
+            point.selected_claim_id
+            for point in calendar_points
+            if point.selected_claim_id is not None
+        ],
+        "metric_id": "CN_OMO_7D_AMOUNT",
+        "observation_id": derived_id,
+        "period": target_period,
+        "public_available_at": max(public_times).isoformat() if public_times else None,
+        "quality_status": "validated",
+        "selected_claim_id": derived_id,
+        "semantic_field": "derived_repo_net_injection",
+        "source_reference": f"formula:{formula_version}",
+        "status": "current",
+        "unit": unit,
+        "value": value,
+        "value_state": EvidenceValueState.REPORTED_VALUE.value,
+    }
+    return row, (*inputs, derived_id)
 
 
 def _difference_row(
@@ -778,6 +1153,18 @@ def _metric_rows(
     for point in series:
         grouped.setdefault(json.dumps(point.dimensions, sort_keys=True), []).append(point)
     if not grouped:
+        history_lookup = getattr(repository, "has_target_history", None)
+        if (
+            definition.frequency == "event"
+            and callable(history_lookup)
+            and history_lookup(
+                definition.metric_id,
+                mode=as_of_mode,
+                as_of=as_of,
+                definition_version=definition.definition_version,
+            )
+        ):
+            release_status = "no_event_in_visible_window"
         return (_gap_row(definition, release_status=release_status),)
     rows: list[dict[str, object]] = []
     for points in grouped.values():
@@ -845,6 +1232,7 @@ def _metric_rows(
                 ),
                 "metric_id": definition.metric_id,
                 "observation_id": current.observation_id,
+                "period_start": current.period_start,
                 "period": current.period_end,
                 "public_available_at": (
                     selected.public_available_at.isoformat()
@@ -879,6 +1267,7 @@ def _gap_row(
         "direction": "unknown",
         "metric_id": definition.metric_id,
         "observation_id": f"gap:{definition.metric_id}",
+        "period_start": None,
         "period": None,
         "public_available_at": None,
         "quality_status": None,
@@ -920,9 +1309,13 @@ def _evidence_status(
         return release_status
     period_date = date.fromisoformat(point.period_end)
     age = (as_of.date() - period_date).days
-    limit = {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
-        definition.frequency,
-        95,
+    limit = (
+        730
+        if definition.metric_id == "CN_RRR_EVENT"
+        else {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
+            definition.frequency,
+            95,
+        )
     )
     return "stale" if age > limit else "current"
 
@@ -938,9 +1331,15 @@ def _release_status(
         return None
     from pring_cycle.release_calendar import current_lpr_period, lpr_release_calendar
 
+    target_date = getattr(repository, "target_date", None)
+    period = (
+        target_date.strftime("%Y-%m")
+        if isinstance(target_date, date)
+        else current_lpr_period(as_of)
+    )
     event = lpr_release_calendar(
         repository,
-        period=current_lpr_period(as_of),
+        period=period,
         as_of=as_of,
         as_of_mode=as_of_mode,
         definition_version=definition.definition_version,
@@ -1000,6 +1399,11 @@ def _signals(
                     role=role,
                     freshness=str(row["status"]),
                     conflict=row["status"] == "conflicted",
+                    period_start=(
+                        str(row["period_start"])
+                        if row.get("period_start") is not None
+                        else None
+                    ),
                     period=str(row["period"]) if row["period"] is not None else None,
                     available_at=(
                         str(row["available_at"]) if row["available_at"] is not None else None
@@ -1081,7 +1485,9 @@ def _role_direction(signals: list[EvidenceSignal], role: str) -> str | None:
         for item in signals
         if item.role == role and item.freshness == "current" and not item.conflict
     } - {"unknown", "flat"}
-    return next(iter(directions)) if len(directions) == 1 else None
+    if len(directions) == 1:
+        return next(iter(directions))
+    return "conflict" if directions else None
 
 
 def _inventory_direction(signals: list[EvidenceSignal]) -> str | None:
@@ -1247,7 +1653,7 @@ def _credit_impulse_proxy(
     }
     if formula_version is None:
         return None, formula, ()
-    social_financing = [
+    reported_monthly_social_financing = [
         point
         for point in repository.metric_series(
             "CN_SF_TOTAL",
@@ -1256,6 +1662,17 @@ def _credit_impulse_proxy(
             definition_version=definition_version,
         )
         if point.dimensions == {"measure": "monthly_increment"}
+        and _certified_point(point)
+    ]
+    reported_ytd_social_financing = [
+        point
+        for point in repository.metric_series(
+            "CN_SF_TOTAL",
+            mode=as_of_mode,
+            as_of=as_of,
+            definition_version=definition_version,
+        )
+        if point.dimensions == {"measure": "ytd_increment"}
         and _certified_point(point)
     ]
     reported_quarterly_gdp = [
@@ -1270,7 +1687,10 @@ def _credit_impulse_proxy(
         == {"aggregate": "total", "measure": "nominal_quarterly_level"}
         and _certified_point(point)
     ]
-    allow_ytd_gdp = configured_formula_version == "credit-impulse-rolling-share-v0001"
+    allow_ytd_gdp = configured_formula_version in {
+        "credit-impulse-rolling-share-v0001",
+        "credit-impulse-ytd-flow-v0002",
+    }
     reported_ytd_gdp = (
         [
             point
@@ -1318,16 +1738,42 @@ def _credit_impulse_proxy(
             if point.selected_claim_id in selected_input_ids
         ]
         gdp_input_measure = "nominal_ytd_level"
-    if len(social_financing) < 24 or len(gdp_period_points) < 8:
+    social_input_points: list[MetricSeriesPoint]
+    social_numbers: list[float]
+    social_period_points: list[MetricSeriesPoint]
+    if len(reported_monthly_social_financing) >= 24:
+        social_period_points = reported_monthly_social_financing[-24:]
+        if not _periods_are_consecutive(social_period_points, periods_per_year=12):
+            return None, {**formula, "status": "nonconsecutive_social_financing_inputs"}, ()
+        values = [point.selected_value for point in social_period_points]
+        social_numbers = [value for value in values if value is not None]
+        social_input_points = social_period_points
+    elif configured_formula_version == "credit-impulse-ytd-flow-v0002":
+        monthly_flows = _monthly_flows_from_ytd(reported_ytd_social_financing)
+        if len(monthly_flows) < 24:
+            return None, formula, ()
+        selected_flows = monthly_flows[-24:]
+        social_period_points = [point for point, _value, _inputs in selected_flows]
+        social_numbers = [value for _point, value, _inputs in selected_flows]
+        selected_ids = {
+            input_point.selected_claim_id
+            for _point, _value, inputs in selected_flows
+            for input_point in inputs
+        }
+        social_input_points = [
+            point
+            for point in reported_ytd_social_financing
+            if point.selected_claim_id in selected_ids
+        ]
+    else:
         return None, formula, ()
-    social_financing = social_financing[-24:]
-    if not _periods_are_consecutive(social_financing, periods_per_year=12):
+    if len(social_period_points) < 24 or len(gdp_period_points) < 8:
+        return None, formula, ()
+    if not _periods_are_consecutive(social_period_points, periods_per_year=12):
         return None, {**formula, "status": "nonconsecutive_social_financing_inputs"}, ()
     if not _periods_are_consecutive(gdp_period_points, periods_per_year=4):
         return None, {**formula, "status": "nonconsecutive_gdp_inputs"}, ()
-    social_values = [point.selected_value for point in social_financing]
-    social_numbers = [value for value in social_values if value is not None]
-    if len(social_numbers) != len(social_values) or len(gdp_numbers) != 8:
+    if len(social_numbers) != 24 or len(gdp_numbers) != 8:
         return None, formula, ()
     current_social_financing = sum(social_numbers[-12:])
     previous_social_financing = sum(social_numbers[:12])
@@ -1344,7 +1790,7 @@ def _credit_impulse_proxy(
         return None, {**formula, "status": "invalid_gdp_denominator"}, ()
     input_claim_ids = tuple(
         point.selected_claim_id
-        for point in (*social_financing, *gdp_input_points)
+        for point in (*social_input_points, *gdp_input_points)
         if point.selected_claim_id is not None
     )
     derived_id = _derived_observation_identity(
@@ -1360,7 +1806,7 @@ def _credit_impulse_proxy(
     )
     selected_claims = [
         selected
-        for point in (*social_financing, *gdp_input_points)
+        for point in (*social_input_points, *gdp_input_points)
         if (selected := _selected_claim(point)) is not None
     ]
     available_at = max(claim.available_at for claim in selected_claims)
@@ -1379,7 +1825,8 @@ def _credit_impulse_proxy(
         "input_observation_version_ids": list(input_claim_ids),
         "metric_id": "CN_CREDIT_IMPULSE",
         "observation_id": derived_id,
-        "period": social_financing[-1].period_end,
+        "period_start": social_period_points[-1].period_start,
+        "period": social_period_points[-1].period_end,
         "public_available_at": (
             public_available_at.isoformat() if public_available_at is not None else None
         ),
@@ -1402,8 +1849,8 @@ def _credit_impulse_proxy(
             ],
             "input_observation_version_ids": list(input_claim_ids),
             "social_financing_window": [
-                social_financing[0].period_start,
-                social_financing[-1].period_end,
+                social_period_points[0].period_start,
+                social_period_points[-1].period_end,
             ],
             "status": "available",
         }
@@ -1482,6 +1929,33 @@ def _quarter_levels_from_ytd(
         if quarter_value <= 0:
             continue
         derived.append((point, quarter_value, (previous, point)))
+    return derived
+
+
+def _monthly_flows_from_ytd(
+    points: list[MetricSeriesPoint],
+) -> list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]]:
+    derived: list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]] = []
+    for index, point in enumerate(points):
+        value = point.selected_value
+        if value is None:
+            continue
+        period = date.fromisoformat(point.period_end)
+        if period.month == 1:
+            derived.append((point, float(value), (point,)))
+            continue
+        if index == 0:
+            continue
+        previous = points[index - 1]
+        previous_period = date.fromisoformat(previous.period_end)
+        previous_value = previous.selected_value
+        if (
+            previous_period.year != period.year
+            or previous_period.month != period.month - 1
+            or previous_value is None
+        ):
+            continue
+        derived.append((point, float(value) - float(previous_value), (previous, point)))
     return derived
 
 

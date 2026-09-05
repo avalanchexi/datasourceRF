@@ -21,6 +21,7 @@ def test_unified_offline_acceptance_covers_all_35_regressions_and_hard_gates(
     assert len(result["regressions"]) == 35
     assert all(item["passed"] for item in result["regressions"].values())
     assert all(item["passed"] for item in result["performance_gates"].values())
+    assert not (paths.cache / "acceptance-command.sqlite3").exists()
     artifact_path = Path(str(result["artifact"]["path"]))
     assert artifact_path.is_file()
     assert result["artifact"]["hash"] in str(artifact_path)

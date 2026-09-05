@@ -13,7 +13,20 @@ class OfficialContextFamily:
 
 OFFICIAL_CONTEXT_FAMILIES = {
     "nbs_core_cpi": OfficialContextFamily(
-        "国家统计局", "www.stats.gov.cn", ("CN_CORE_CPI",)
+        "国家统计局",
+        "www.stats.gov.cn",
+        ("CN_CPI_HEADLINE", "CN_CORE_CPI"),
+    ),
+    "nbs_pmi": OfficialContextFamily(
+        "国家统计局",
+        "www.stats.gov.cn",
+        ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
+    ),
+    "nbs_ppi": OfficialContextFamily(
+        "国家统计局", "www.stats.gov.cn", ("CN_PPI",)
+    ),
+    "nbs_gdp": OfficialContextFamily(
+        "国家统计局", "www.stats.gov.cn", ("CN_GDP",)
     ),
     "nbs_industrial_value_added": OfficialContextFamily(
         "国家统计局", "www.stats.gov.cn", ("CN_INDUSTRIAL_VA",)
@@ -48,6 +61,9 @@ OFFICIAL_CONTEXT_FAMILIES = {
     ),
     "pbc_loan_structure": OfficialContextFamily(
         "中国人民银行", "www.pbc.gov.cn", ("CN_LOAN_STRUCTURE",)
+    ),
+    "pbc_money": OfficialContextFamily(
+        "中国人民银行", "www.pbc.gov.cn", ("CN_M1_M2",)
     ),
     "pbc_usdcny_central_parity": OfficialContextFamily(
         "中国人民银行",

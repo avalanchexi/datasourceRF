@@ -493,6 +493,12 @@ def _parse_family(
 ) -> tuple[ContextScalar, ...]:
     if family == "nbs_core_cpi":
         return _parse_core_cpi(tables, period, release_at)
+    if family == "nbs_pmi":
+        return _parse_pmi(tables, period, release_at)
+    if family == "nbs_ppi":
+        return _parse_ppi(tables, period, release_at)
+    if family == "nbs_gdp":
+        return _parse_gdp(tables, period, release_at)
     if family == "nbs_industrial_value_added":
         return _parse_industrial_value_added(tables, period, release_at)
     if family == "nbs_industrial_finance":
@@ -509,6 +515,8 @@ def _parse_family(
         return _parse_social_financing(tables, text, period, release_at)
     if family == "pbc_loan_structure":
         return _parse_loan_structure(tables, text, period, release_at)
+    if family == "pbc_money":
+        return _parse_money(text, period, release_at)
     if family == "pbc_usdcny_central_parity":
         return _parse_usdcny_central_parity(text, period, release_at)
     raise ValueError("official_context_family_unsupported")
@@ -527,8 +535,9 @@ def _parse_core_cpi(
             table
             for table in tables
             if table
-            and tuple(_compact_text(cell) for cell in table[0])
-            == ("", "环比涨跌幅（%）", "同比涨跌幅（%）", "1—7月同比涨跌幅（%）")
+            and len(table[0]) in {3, 4}
+            and tuple(_compact_text(cell) for cell in table[0][:3])
+            == ("", "环比涨跌幅（%）", "同比涨跌幅（%）")
         )
         if len(live_tables) != 1:
             raise error
@@ -538,29 +547,169 @@ def _parse_core_cpi(
         for row in rows[1:]
         if row and row[0].removeprefix("其中：") == "不包括食品和能源"
     ]
-    if len(matching) != 1 or len(matching[0]) != len(header):
+    column_count = len(rows[0])
+    if len(matching) != 1 or len(matching[0]) != column_count:
+        raise ValueError("official_context_row_identity_mismatch")
+    headline = [row for row in rows[1:] if row and row[0] == "居民消费价格"]
+    if len(headline) > 1 or (headline and len(headline[0]) != column_count):
         raise ValueError("official_context_row_identity_mismatch")
     period_start, period_end = month_bounds(period)
-    values = tuple(_percent(cell) for cell in matching[0][1:])
+    groups = [("CN_CORE_CPI", "ex_food_energy", matching[0], "core_cpi")]
+    if headline:
+        groups.insert(0, ("CN_CPI_HEADLINE", "headline", headline[0], "headline_cpi"))
+    measure_columns = [
+        ("mom_pct", "mom", 1),
+        ("yoy_pct", "yoy", 2),
+    ]
+    if column_count == 4:
+        measure_columns.append(("ytd_avg_yoy_pct", "cumulative_average_yoy", 3))
     return tuple(
         ContextScalar(
-            metric_id="CN_CORE_CPI",
+            metric_id=metric_id,
             api_name="nbs_core_cpi",
-            source_field=source_field,
+            source_field=f"{prefix}_{source_field}",
             period_kind="month",
             period_start=period_start,
             period_end=period_end,
-            dimensions={"measure": measure, "category": "ex_food_energy"},
-            value=value,
+            dimensions={"measure": measure, "category": category},
+            value=_percent(values[index]),
             unit="percent",
             release_at=release_at,
             public_available_at=release_at,
         )
-        for source_field, measure, value in zip(
-            ("core_cpi_mom_pct", "core_cpi_yoy_pct", "core_cpi_ytd_avg_yoy_pct"),
-            ("mom", "yoy", "cumulative_average_yoy"),
-            values,
-            strict=True,
+        for metric_id, category, values, prefix in groups
+        for source_field, measure, index in measure_columns
+    )
+
+
+def _parse_pmi(
+    tables: list[list[tuple[str, ...]]],
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    period_start, period_end = month_bounds(period)
+    year, month = (int(item) for item in period.split("-"))
+    target = f"{year}年{month}月"
+    primary = _pmi_period_row(
+        tables,
+        target,
+        required_headers=("生产", "新订单", "原材料库存"),
+    )
+    secondary = _pmi_period_row(
+        tables,
+        target,
+        required_headers=("采购量", "主要原材料购进价格", "产成品库存"),
+    )
+    fields = (
+        ("CN_PMI_ACTIVITY", "manufacturing_pmi", "manufacturing", primary, 1),
+        ("CN_PMI_ACTIVITY", "production", "production", primary, 2),
+        ("CN_PMI_ACTIVITY", "new_orders", "new_orders", primary, 3),
+        ("CN_PMI_INVENTORY", "raw_materials", "raw_materials", primary, 4),
+        ("CN_PMI_ACTIVITY", "purchase_volume", "purchase_volume", secondary, 3),
+        ("CN_PMI_PRICES", "purchase_prices", "purchase_prices", secondary, 4),
+        ("CN_PMI_PRICES", "output_prices", "output_prices", secondary, 5),
+        ("CN_PMI_INVENTORY", "finished_goods", "finished_goods", secondary, 6),
+    )
+    return tuple(
+        _official_scalar(
+            metric_id,
+            "nbs_pmi",
+            source_field,
+            "month",
+            period_start,
+            period_end,
+            {"series": series, "measure": "level"},
+            _bounded_number(row[index], minimum=0, maximum=100),
+            "diffusion_index_points",
+            release_at,
+        )
+        for metric_id, source_field, series, row, index in fields
+    )
+
+
+def _parse_ppi(
+    tables: list[list[tuple[str, ...]]],
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    labels = ("一、工业生产者出厂价格", "生产资料", "生活资料")
+    selected_rows = _consistent_first_column_rows(tables, labels)
+    period_start, period_end = month_bounds(period)
+    measure_columns = [("mom", "mom", 1), ("yoy", "yoy", 2)]
+    if all(len(row) >= 4 for row in selected_rows.values()):
+        measure_columns.append(("accu", "cumulative_average_yoy", 3))
+    return tuple(
+        _official_scalar(
+            "CN_PPI",
+            "nbs_ppi",
+            f"{prefix}_{source_suffix}",
+            "month",
+            period_start,
+            period_end,
+            {"measure": measure, "category": category},
+            _percent(row[index]),
+            "percent",
+            release_at,
+        )
+        for label, category, prefix in (
+            ("一、工业生产者出厂价格", "headline", "ppi"),
+            ("生产资料", "means_of_production", "ppi_mp"),
+            ("生活资料", "consumer_goods", "ppi_cg"),
+        )
+        for row in (selected_rows[label],)
+        for source_suffix, measure, index in measure_columns
+    )
+
+
+def _parse_gdp(
+    tables: list[list[tuple[str, ...]]],
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    year, quarter_text = period.split("-Q")
+    quarter = int(quarter_text)
+    quarter_start = f"{year}-{(quarter - 1) * 3 + 1:02d}-01"
+    quarter_end = month_bounds(f"{year}-{quarter * 3:02d}")[1]
+    level_index = 1 if quarter == 1 else 2
+    yoy_index = 2 if quarter == 1 else 3
+    rows = _table_with_first_column_members(
+        tables,
+        {"GDP", "第一产业", "第二产业", "第三产业"},
+    )
+    return tuple(
+        scalar
+        for label, aggregate, prefix in (
+            ("GDP", "total", "gdp"),
+            ("第一产业", "primary", "pi"),
+            ("第二产业", "secondary", "si"),
+            ("第三产业", "tertiary", "ti"),
+        )
+        for row in (_unique_first_cell_row(rows, label),)
+        for scalar in (
+            _official_scalar(
+                "CN_GDP",
+                "nbs_gdp",
+                prefix,
+                "year_to_quarter",
+                f"{year}-01-01",
+                quarter_end,
+                {"aggregate": aggregate, "measure": "nominal_ytd_level"},
+                _bounded_number(row[level_index], minimum=0),
+                "hundred_million_cny",
+                release_at,
+            ),
+            _official_scalar(
+                "CN_GDP",
+                "nbs_gdp",
+                f"{prefix}_yoy",
+                "quarter",
+                quarter_start,
+                quarter_end,
+                {"aggregate": aggregate, "measure": "real_quarter_yoy"},
+                _percent(row[yoy_index]),
+                "percent",
+                release_at,
+            ),
         )
     )
 
@@ -574,6 +723,7 @@ def _parse_industrial_value_added(
     if period.endswith("-01"):
         raise ValueError("official_context_january_monthly_value_not_reported")
     header = ("指标", "当月实际同比（%）", "累计实际同比（%）", "季调环比（%）")
+    current_yoy: str | None
     try:
         rows = _table_with_header(tables, header)
         matching = [row for row in rows[1:] if row and row[0] == "规模以上工业增加值"]
@@ -593,6 +743,16 @@ def _parse_industrial_value_added(
             and tuple(_compact_text(cell) for cell in table[1])
             == ("绝对量", "同比增长（%）", "绝对量", "同比增长（%）")
         )
+        if month == 2:
+            main_tables = _unique_tables(
+                table
+                for table in tables
+                if len(table) >= 3
+                and tuple(_compact_text(cell) for cell in table[0])
+                == ("指标", "1—2月")
+                and tuple(_compact_text(cell) for cell in table[1])
+                == ("绝对量", "同比增长（%）")
+            )
         sa_tables = _unique_tables(
             table
             for table in tables
@@ -602,10 +762,13 @@ def _parse_industrial_value_added(
         )
         if len(main_tables) != 1 or len(sa_tables) != 1:
             raise error
+        expected_columns = 3 if month == 2 else 5
         main_rows = [
             row
             for row in main_tables[0][2:]
-            if row and row[0] == "规模以上工业增加值" and len(row) == 5
+            if row
+            and row[0] == "规模以上工业增加值"
+            and len(row) == expected_columns
         ]
         if len(main_rows) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
@@ -626,8 +789,37 @@ def _parse_industrial_value_added(
                 mom_values.append(value_cell)
         if len(mom_values) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
-        current_yoy, ytd_yoy, mom_sa = main_rows[0][2], main_rows[0][4], mom_values[0]
+        current_yoy = None if month == 2 else main_rows[0][2]
+        ytd_yoy = main_rows[0][2] if month == 2 else main_rows[0][4]
+        mom_sa = mom_values[0]
     year_start = f"{period[:4]}-01-01"
+    values = [
+        (
+            "industrial_va_ytd_yoy_real_pct",
+            "ytd_real_yoy",
+            ytd_yoy,
+            "year_to_month",
+            year_start,
+        ),
+        (
+            "industrial_va_mom_sa_pct",
+            "mom_seasonally_adjusted",
+            mom_sa,
+            "month",
+            period_start,
+        ),
+    ]
+    if current_yoy is not None:
+        values.insert(
+            0,
+            (
+                "industrial_va_yoy_real_pct",
+                "current_month_real_yoy",
+                current_yoy,
+                "month",
+                period_start,
+            ),
+        )
     return tuple(
         _official_scalar(
             "CN_INDUSTRIAL_VA",
@@ -641,29 +833,7 @@ def _parse_industrial_value_added(
             "percent",
             release_at,
         )
-        for source_field, measure, raw_value, period_kind, start in (
-            (
-                "industrial_va_yoy_real_pct",
-                "current_month_real_yoy",
-                current_yoy,
-                "month",
-                period_start,
-            ),
-            (
-                "industrial_va_ytd_yoy_real_pct",
-                "ytd_real_yoy",
-                ytd_yoy,
-                "year_to_month",
-                year_start,
-            ),
-            (
-                "industrial_va_mom_sa_pct",
-                "mom_seasonally_adjusted",
-                mom_sa,
-                "month",
-                period_start,
-            ),
-        )
+        for source_field, measure, raw_value, period_kind, start in values
     )
 
 
@@ -784,7 +954,10 @@ def _parse_industrial_finance_live(
         if len(table) >= 3
         and tuple(_compact_text(cell) for cell in table[0])
         == ("分组", "营业收入", "营业成本", "利润总额")
-        and tuple(_compact_text(cell) for cell in table[1])
+        and tuple(
+            _compact_text(cell).replace("(", "（").replace(")", "）")
+            for cell in table[1]
+        )
         == (
             "金额（亿元）",
             "同比增长（%）",
@@ -819,7 +992,7 @@ def _parse_industrial_finance_live(
     )
     turnover_match = re.search(
         r"产成品存货周转天数为(?P<level>\d+(?:\.\d+)?)天[，,]"
-        r"同比(?P<direction>增加|减少)(?P<change>\d+(?:\.\d+)?)天",
+        r"(?:同比|比上年末)(?P<direction>增加|减少)(?P<change>\d+(?:\.\d+)?)天",
         compact,
     )
     if inventory_match is None or turnover_match is None:
@@ -943,16 +1116,27 @@ def _parse_capacity_utilization(
                 "比上年同期增减（百分点）",
             )
         )
+        if len(live_tables) != 1 and quarter == 1:
+            live_tables = _unique_tables(
+                table
+                for table in tables
+                if len(table) >= 3
+                and tuple(_compact_text(cell) for cell in table[0])
+                == ("行业", "一季度")
+                and tuple(_compact_text(cell) for cell in table[1])
+                == ("产能利用率（%）", "比上年同期增减（百分点）")
+            )
         if len(live_tables) != 1:
             raise error
         matching = [
             row
             for row in live_tables[0][2:]
-            if row and row[0] == "工业" and len(row) == 5
+            if row and row[0] == "工业" and len(row) in {3, 5}
         ]
         if len(matching) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
-        quarter_rate, yoy_change, ytd_rate = matching[0][1:4]
+        quarter_rate, yoy_change = matching[0][1:3]
+        ytd_rate = matching[0][3] if len(matching[0]) == 5 else quarter_rate
     return tuple(
         _official_scalar(
             "CN_CAPACITY_UTILIZATION",
@@ -1016,35 +1200,23 @@ def _parse_omo_notice(
             table
             for table in tables
             if table
-            and len(table[0]) == 4
+            and len(table[0]) in {3, 4}
             and "逆回购操作情况期限" in _compact_text(table[0][0])
-            and tuple(_compact_text(cell) for cell in table[0][1:])
-            == ("操作利率", "投标量", "中标量")
+            and tuple(_compact_text(cell) for cell in table[0][-2:])
+            == ("投标量", "中标量")
         )
         if len(live_tables) != 1:
             raise error
         live_rows = [
             row
             for row in live_tables[0][1:]
-            if len(row) == 4 and _compact_text(row[0]) == "7天"
+            if len(row) == len(live_tables[0][0])
+            and _compact_text(row[0]) == "7天"
         ]
         if len(live_rows) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
-        rate = _percent(_compact_text(live_rows[0][1]))
-        injection = _pbc_amount(live_rows[0][3])
-        return (
-            _official_scalar(
-                "CN_OMO_7D_RATE",
-                "pbc_omo_notice",
-                "operation_rate_pct",
-                "business_day",
-                period,
-                period,
-                {},
-                rate,
-                "percent",
-                release_at,
-            ),
+        injection = _pbc_amount(live_rows[0][-1])
+        scalars = [
             _official_scalar(
                 "CN_OMO_7D_AMOUNT",
                 "pbc_omo_notice",
@@ -1056,8 +1228,25 @@ def _parse_omo_notice(
                 injection,
                 "hundred_million_cny",
                 release_at,
-            ),
-        )
+            )
+        ]
+        if len(live_rows[0]) == 4:
+            scalars.insert(
+                0,
+                _official_scalar(
+                    "CN_OMO_7D_RATE",
+                    "pbc_omo_notice",
+                    "operation_rate_pct",
+                    "business_day",
+                    period,
+                    period,
+                    {},
+                    _percent(_compact_text(live_rows[0][1])),
+                    "percent",
+                    release_at,
+                ),
+            )
+        return tuple(scalars)
     matching = [
         row
         for row in rows[1:]
@@ -1328,63 +1517,104 @@ def _parse_social_financing_live(
     period_start, period_end = month_bounds(period)
     year_start = f"{period[:4]}-01-01"
     compact = _compact_text(text)
-    total_stock, total_yoy = _stock_level_and_yoy(compact, "社会融资规模存量为")
-    total_increment = _signed_amount_after_label(compact, "社会融资规模增量累计为")
-    scalars = [
-        _official_scalar(
-            "CN_SF_TOTAL",
-            "pbc_social_financing",
-            source_field,
-            period_kind,
-            start,
-            period_end,
-            {"measure": measure},
-            value,
-            unit,
-            release_at,
+    has_stock = "社会融资规模存量为" in compact
+    has_increment = any(
+        label in compact
+        for label in ("社会融资规模增量累计为", "社会融资规模增量为")
+    )
+    if not has_stock and not has_increment:
+        raise ValueError("official_context_social_financing_components_mismatch")
+    scalars: list[ContextScalar] = []
+    if has_stock:
+        total_stock, total_yoy = _stock_level_and_yoy(
+            compact,
+            "社会融资规模存量为",
         )
-        for source_field, period_kind, start, measure, value, unit in (
+        scalars.extend(
             (
-                "stock_end_trillion",
-                "month",
-                period_start,
-                "stock_end",
-                total_stock,
-                "hundred_million_cny",
-            ),
-            ("stock_yoy_pct", "month", period_start, "stock_yoy", total_yoy, "percent"),
-            (
+                _official_scalar(
+                    "CN_SF_TOTAL",
+                    "pbc_social_financing",
+                    "stock_end_trillion",
+                    "month",
+                    period_start,
+                    period_end,
+                    {"measure": "stock_end"},
+                    total_stock,
+                    "hundred_million_cny",
+                    release_at,
+                ),
+                _official_scalar(
+                    "CN_SF_TOTAL",
+                    "pbc_social_financing",
+                    "stock_yoy_pct",
+                    "month",
+                    period_start,
+                    period_end,
+                    {"measure": "stock_yoy"},
+                    total_yoy,
+                    "percent",
+                    release_at,
+                ),
+            )
+        )
+    if has_increment:
+        total_increment = _signed_amount_after_first_label(
+            compact,
+            ("社会融资规模增量累计为", "社会融资规模增量为"),
+        )
+        scalars.append(
+            _official_scalar(
+                "CN_SF_TOTAL",
+                "pbc_social_financing",
                 "ytd_increment_100m",
                 "year_to_month",
                 year_start,
-                "ytd_increment",
+                period_end,
+                {"measure": "ytd_increment"},
                 total_increment,
                 "hundred_million_cny",
-            ),
+                release_at,
+            )
         )
-    ]
-    for component, (stock_label, increment_label) in _LIVE_SOCIAL_FINANCING_COMPONENTS.items():
-        stock, yoy = _stock_level_and_yoy(compact, stock_label)
-        increment = _signed_amount_after_label(compact, increment_label)
-        for source_field, period_kind, start, measure, value, unit in (
-            (
-                "stock_end_trillion",
-                "month",
-                period_start,
-                "stock_end",
-                stock,
-                "hundred_million_cny",
-            ),
-            ("stock_yoy_pct", "month", period_start, "stock_yoy", yoy, "percent"),
-            (
-                "ytd_increment_100m",
-                "year_to_month",
-                year_start,
-                "ytd_increment",
-                increment,
-                "hundred_million_cny",
-            ),
-        ):
+    for component, (stock_label, increment_label) in (
+        _LIVE_SOCIAL_FINANCING_COMPONENTS.items()
+    ):
+        component_values: list[tuple[str, str, str, str, float, str]] = []
+        if has_stock:
+            stock, yoy = _stock_level_and_yoy(compact, stock_label)
+            component_values.extend(
+                (
+                    (
+                        "stock_end_trillion",
+                        "month",
+                        period_start,
+                        "stock_end",
+                        stock,
+                        "hundred_million_cny",
+                    ),
+                    (
+                        "stock_yoy_pct",
+                        "month",
+                        period_start,
+                        "stock_yoy",
+                        yoy,
+                        "percent",
+                    ),
+                )
+            )
+        if has_increment:
+            component_values.append(
+                (
+                    "ytd_increment_100m",
+                    "year_to_month",
+                    year_start,
+                    "ytd_increment",
+                    _signed_amount_after_label(compact, increment_label),
+                    "hundred_million_cny",
+                )
+            )
+        for source_field, period_kind, start, measure, value, unit in component_values:
             scalars.append(
                 _official_scalar(
                     "CN_SF_COMPONENTS",
@@ -1484,7 +1714,7 @@ def _parse_loan_structure_live(
             nonbank, "非银行业金融机构贷款"
         ),
         ("all_rmb_loans", "total"): _signed_amount_after_label(
-            compact, "前七个月人民币贷款"
+            compact, _year_to_date_label(period, "人民币贷款")
         ),
     }
     return tuple(
@@ -1502,6 +1732,73 @@ def _parse_loan_structure_live(
         )
         for (borrower, tenor), value in values.items()
     )
+
+
+def _parse_money(
+    text: str,
+    period: str,
+    release_at: datetime,
+) -> tuple[ContextScalar, ...]:
+    period_start, period_end = month_bounds(period)
+    compact = _compact_text(text)
+    values: list[tuple[str, float, float]] = []
+    for aggregate, chinese in (("m1", "狭义货币"), ("m2", "广义货币")):
+        match = re.search(
+            rf"{re.escape(chinese)}[（(]{aggregate.upper()}[）)]余额"
+            rf"(?P<balance>\d+(?:\.\d+)?)万亿元[，,]"
+            rf"同比(?P<direction>增长|下降)(?P<yoy>\d+(?:\.\d+)?)%",
+            compact,
+        )
+        if match is None:
+            raise ValueError("official_context_money_values_missing")
+        yoy = _bounded_number(match.group("yoy"), minimum=0)
+        if match.group("direction") == "下降":
+            yoy = -yoy
+        values.append(
+            (
+                aggregate,
+                _bounded_number(match.group("balance"), minimum=0),
+                yoy,
+            )
+        )
+    return tuple(
+        _official_scalar(
+            "CN_M1_M2",
+            "pbc_money",
+            source_field,
+            "month",
+            period_start,
+            period_end,
+            {"aggregate": aggregate, "measure": measure},
+            value,
+            unit,
+            release_at,
+        )
+        for aggregate, balance, yoy in values
+        for source_field, measure, value, unit in (
+            (aggregate, "balance", balance * 10_000, "hundred_million_cny"),
+            (f"{aggregate}_yoy", "yoy", yoy, "percent"),
+        )
+    )
+
+
+def _year_to_date_label(period: str, subject: str) -> str:
+    month = int(period[5:])
+    names = {
+        1: "1月份",
+        2: "前两个月",
+        3: "一季度",
+        4: "前四个月",
+        5: "前五个月",
+        6: "上半年",
+        7: "前七个月",
+        8: "前八个月",
+        9: "前三季度",
+        10: "前十个月",
+        11: "前十一个月",
+        12: "全年",
+    }
+    return f"{names[month]}{subject}"
 
 
 def _parse_usdcny_central_parity(
@@ -1543,6 +1840,65 @@ def _table_with_header(
     if len(matching) != 1:
         raise ValueError("official_context_table_schema_mismatch")
     return matching[0]
+
+
+def _pmi_period_row(
+    tables: list[list[tuple[str, ...]]],
+    target_period: str,
+    *,
+    required_headers: tuple[str, ...],
+) -> tuple[str, ...]:
+    normalized_target = _compact_text(target_period)
+    matching: set[tuple[str, ...]] = set()
+    for table in tables:
+        header_text = "".join(_compact_text(cell) for row in table[:3] for cell in row)
+        if not all(_compact_text(header) in header_text for header in required_headers):
+            continue
+        matching.update(
+            row for row in table if row and _compact_text(row[0]) == normalized_target
+        )
+    if len(matching) != 1:
+        raise ValueError("official_context_row_identity_mismatch")
+    return next(iter(matching))
+
+
+def _table_with_first_column_members(
+    tables: list[list[tuple[str, ...]]],
+    required: set[str],
+) -> list[tuple[str, ...]]:
+    matching = _unique_tables(
+        table
+        for table in tables
+        if required <= {row[0] for row in table if row}
+    )
+    if len(matching) != 1:
+        raise ValueError("official_context_table_schema_mismatch")
+    return matching[0]
+
+
+def _unique_first_cell_row(
+    table: list[tuple[str, ...]],
+    label: str,
+) -> tuple[str, ...]:
+    matching = [row for row in table if row and row[0] == label]
+    if len(matching) != 1:
+        raise ValueError("official_context_row_identity_mismatch")
+    return matching[0]
+
+
+def _consistent_first_column_rows(
+    tables: list[list[tuple[str, ...]]],
+    labels: tuple[str, ...],
+) -> dict[str, tuple[str, ...]]:
+    candidates: list[tuple[tuple[str, ...], ...]] = []
+    for table in tables:
+        observed = {row[0]: row for row in table if row and row[0] in labels}
+        if set(observed) == set(labels):
+            candidates.append(tuple(observed[label] for label in labels))
+    unique = set(candidates)
+    if len(unique) != 1:
+        raise ValueError("official_context_table_schema_mismatch")
+    return dict(zip(labels, next(iter(unique)), strict=True))
 
 
 def _rows_by_first_cell(table: list[tuple[str, ...]]) -> dict[str, tuple[str, ...]]:
@@ -1626,9 +1982,25 @@ def _period_is_identified(text: str, period: str) -> bool:
         return period in text
     if re.fullmatch(r"\d{4}-\d{2}", period):
         year, month = period.split("-")
+        month_number = int(month)
+        aggregate_label = {
+            3: "一季度",
+            6: "上半年",
+            9: "前三季度",
+            12: "全年",
+        }.get(month_number)
         return (
-            re.search(rf"{year}年(?:1[—-])?0?{int(month)}月份?", text) is not None
-            or re.search(rf"{year}年.*?0?{int(month)}月", text) is not None
+            re.search(rf"{year}年(?:1[—-])?0?{month_number}月份?", text) is not None
+            or re.search(rf"{year}年.*?0?{month_number}月", text) is not None
+            or (
+                aggregate_label is not None
+                and re.search(rf"{year}年{aggregate_label}", text) is not None
+            )
+            or (
+                month_number == 12
+                and re.search(rf"{year}年(?:社会融资规模|金融统计)", text)
+                is not None
+            )
         )
     if re.fullmatch(r"\d{4}-Q[1-4]", period):
         year, quarter = period.split("-Q")
@@ -1677,13 +2049,17 @@ def _pbc_amount(value: str) -> float:
 def _stock_level_and_yoy(text: str, label: str) -> tuple[float, float]:
     match = re.search(
         re.escape(label)
-        + r"(?P<level>\d+(?:\.\d+)?)万亿元[，,]同比(?P<direction>增长|下降)"
-        r"(?P<yoy>\d+(?:\.\d+)?)%",
+        + r"为?(?P<level>\d+(?:\.\d+)?)万亿元[，,]同比"
+        r"(?:(?P<direction>增长|下降)(?P<yoy>\d+(?:\.\d+)?)%|(?P<flat>持平))",
         text,
     )
     if match is None:
         raise ValueError("official_context_social_financing_components_mismatch")
-    yoy = _bounded_number(match.group("yoy"))
+    yoy = (
+        0.0
+        if match.group("flat") is not None
+        else _bounded_number(match.group("yoy"))
+    )
     if match.group("direction") == "下降":
         yoy = -yoy
     return round(_bounded_number(match.group("level"), minimum=0) * 10_000, 6), yoy
@@ -1702,6 +2078,13 @@ def _signed_amount_after_label(text: str, label: str) -> float:
     if match.group("unit") == "万亿元":
         value = round(value * 10_000, 6)
     return -value if match.group("direction") == "减少" else value
+
+
+def _signed_amount_after_first_label(text: str, labels: tuple[str, ...]) -> float:
+    for label in labels:
+        if label in text:
+            return _signed_amount_after_label(text, label)
+    raise ValueError("official_context_numeric_value_invalid")
 
 
 def _compact_text(value: str) -> str:

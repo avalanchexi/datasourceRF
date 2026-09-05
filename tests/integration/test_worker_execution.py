@@ -1,18 +1,25 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import pring_cycle.worker as worker_module
+from pring_cycle.catalog import metric_definition
 from pring_cycle.context_projection import (
     build_context_projection as actual_build_context_projection,
 )
 from pring_cycle.domain import CoreAssetState
+from pring_cycle.domain.trend import TrendRules
 from pring_cycle.eia_context import EiaSpotPrice
-from pring_cycle.evidence import AsOfMode, EvidenceRepository
+from pring_cycle.evidence import (
+    AsOfMode,
+    EvidenceRepository,
+    EvidenceValueState,
+    SourceClaimInput,
+)
 from pring_cycle.maintenance import MaintenanceRepository
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
@@ -24,6 +31,7 @@ from pring_cycle.reports import ReportRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.tushare_context import ContextScalar
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
 
@@ -35,6 +43,190 @@ def runtime(tmp_path: Path) -> RuntimePaths:
     models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     return paths
+
+
+@pytest.mark.parametrize(
+    "public_available_at",
+    (datetime(2026, 8, 31, tzinfo=UTC), None),
+)
+def test_target_completeness_requires_a_reliable_public_time_by_target(
+    public_available_at: datetime | None,
+) -> None:
+    claim = SimpleNamespace(public_available_at=public_available_at)
+    point = SimpleNamespace(
+        period_start="2026-08-28",
+        period_end="2026-08-28",
+        selected_claim_id="claim-late",
+        claims=(SimpleNamespace(claim_id="claim-late", **vars(claim)),),
+    )
+
+    assert not worker_module._point_known_by_target(point, "2026-08-28")
+
+
+def test_runtime_p1_completeness_requires_all_current_valuation_members() -> None:
+    target = date(2026, 8, 28)
+    trading_days: list[str] = []
+    current = target
+    while len(trading_days) < 120:
+        if current.weekday() < 5:
+            trading_days.append(current.isoformat())
+        current -= timedelta(days=1)
+    trading_days.reverse()
+    required = tuple(
+        (index, measure)
+        for index in ("000300.SH", "000905.SH")
+        for measure in ("price_earnings", "price_book", "turnover_rate")
+    )
+    points = []
+    for period in trading_days:
+        for index, measure in required:
+            claim_id = f"claim:{period}:{index}:{measure}"
+            points.append(
+                SimpleNamespace(
+                    period_start=period,
+                    period_end=period,
+                    dimensions={"index": index, "measure": measure},
+                    selection_status="selected",
+                    selected_claim_id=claim_id,
+                    selected_value=10.0,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    claims=(
+                        SimpleNamespace(
+                            claim_id=claim_id,
+                            certification_status="certified",
+                            quality_status="validated",
+                        ),
+                    ),
+                )
+            )
+    definition = metric_definition(
+        "CN_INDEX_VALUATION",
+        definition_version="metric-catalog-v0003",
+    )
+
+    assert worker_module._direct_metric_is_ready(
+        tuple(points),  # type: ignore[arg-type]
+        definition,
+        target_business_date=target.isoformat(),
+        target_trading_days=tuple(trading_days),
+    )
+    incomplete = tuple(
+        point
+        for point in points
+        if not (
+            point.period_end == target.isoformat()
+            and point.dimensions == {"index": "000905.SH", "measure": "turnover_rate"}
+        )
+    )
+
+    assert not worker_module._direct_metric_is_ready(
+        incomplete,  # type: ignore[arg-type]
+        definition,
+        target_business_date=target.isoformat(),
+        target_trading_days=tuple(trading_days),
+    )
+
+
+def test_runtime_p1_completeness_cannot_bypass_awaiting_release_status() -> None:
+    definition = metric_definition(
+        "CN_LPR_1Y_5Y",
+        definition_version="metric-catalog-v0003",
+    )
+
+    assert not worker_module._context_status_allows_direct_metric(
+        definition,
+        {"awaiting_release"},
+    )
+    assert worker_module._context_status_allows_direct_metric(
+        definition,
+        {"current"},
+    )
+
+
+def test_runtime_policy_rate_does_not_require_duplicate_daily_claims() -> None:
+    target = date(2026, 8, 28)
+    claim_id = "claim-policy-rate"
+    point = SimpleNamespace(
+        period_start=target.isoformat(),
+        period_end=target.isoformat(),
+        dimensions={},
+        selection_status="selected",
+        selected_claim_id=claim_id,
+        selected_value=1.4,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        claims=(
+            SimpleNamespace(
+                claim_id=claim_id,
+                certification_status="certified",
+                quality_status="validated",
+            ),
+        ),
+    )
+    definition = metric_definition(
+        "CN_OMO_7D_RATE",
+        definition_version="metric-catalog-v0003",
+    )
+
+    assert worker_module._direct_metric_is_ready(
+        (point,),  # type: ignore[arg-type]
+        definition,
+        target_business_date=target.isoformat(),
+        target_trading_days=(),
+    )
+
+
+def test_core_readiness_ignores_observations_after_historical_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = runtime(tmp_path)
+    target = date(2026, 8, 3)
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date=target.isoformat(),
+        client_request_id="historical-target-cutoff",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 31, 3, tzinfo=UTC),
+    )
+    series = tuple(
+        SimpleNamespace(
+            period_end=(target - timedelta(days=159 - index)).isoformat(),
+            selection_status="selected",
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            selected_value=100.0 + index,
+            selected_claim_id=f"claim-{index}",
+            claims=(),
+        )
+        for index in range(160)
+    ) + (
+        SimpleNamespace(
+            period_end="2026-08-28",
+            selection_status="selected",
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            selected_value=300.0,
+            selected_claim_id="future-claim",
+            claims=(),
+        ),
+    )
+    monkeypatch.setattr(EvidenceRepository, "metric_series", lambda *_args, **_kwargs: series)
+    monkeypatch.setattr(worker_module, "_selected_core_claim_is_valid", lambda *_args: True)
+
+    readiness = worker_module._core_readiness(
+        paths,
+        run,
+        rules=TrendRules(),
+        definition_version="metric-catalog-v0001",
+    )
+
+    assert {item.reason for item in readiness} == {"validated"}
+    assert {item.latest_business_date for item in readiness} == {target.isoformat()}
+    assert {item.observation_count for item in readiness} == {120}
+    assert {item.evidence_window_start for item in readiness} == {
+        (target - timedelta(days=119)).isoformat()
+    }
+    assert all(
+        item.observation_version_ids == tuple(f"claim-{index}" for index in range(40, 160))
+        for item in readiness
+    )
 
 
 def test_context_refresh_ingests_eia_independently_of_tushare(
@@ -52,7 +244,7 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
             start_date: date,
             end_date: date,
         ) -> tuple[EiaSpotPrice, ...]:
-            assert start_date == date(2026, 7, 14)
+            assert start_date == date(2026, 1, 20)
             assert end_date == date(2026, 8, 28)
             return (
                 EiaSpotPrice(
@@ -102,12 +294,61 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
     assert brent[-1].claims[0].certification_status == "awaiting_source_certification"
 
 
+@pytest.mark.parametrize(
+    ("failure", "expected_outcome"),
+    (
+        (OSError("fixture network failure"), "source_failed"),
+        (TypeError("fixture adapter failure"), "adapter_failed"),
+        (ValueError("fixture validation failure"), "validation_failed"),
+    ),
+)
+def test_worker_classifies_optional_eia_failures(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+    expected_outcome: str,
+) -> None:
+    paths = runtime(tmp_path)
+    paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")
+    paths.secrets.chmod(0o600)
+
+    class FailingEiaAdapter:
+        def spot_prices(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[EiaSpotPrice, ...]:
+            raise failure
+
+    monkeypatch.setattr(
+        worker_module,
+        "_eia_context_adapter",
+        lambda _api_key: FailingEiaAdapter(),
+    )
+
+    worker_module._refresh_context_sources(
+        paths,
+        "2026-08-28",
+        definition_version="metric-catalog-v0002",
+    )
+
+    attempt = EvidenceRepository(paths.database).latest_retrieval_attempt(
+        "EIA_BRENT_RBRTE",
+        period="2026-08-28",
+        as_of=datetime.now(UTC),
+    )
+    assert attempt is not None
+    assert attempt.outcome == expected_outcome
+
+
 def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     paths = runtime(tmp_path)
     captured_manifest: dict[str, object] = {}
+
     def model_bound_context(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
         manifest = kwargs.get("model_manifest")
         assert isinstance(manifest, dict)
@@ -136,7 +377,73 @@ def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(
     assert "omo_net_injection" not in formulas
 
 
-def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failures(
+def test_worker_completes_a_valid_noncanonical_projection_and_report(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    evidence = EvidenceRepository(paths.database)
+    days = []
+    day = date(2026, 8, 28)
+    while len(days) < 180:
+        if day.weekday() < 5:
+            days.append(day)
+        day -= timedelta(days=1)
+    for index, observed in enumerate(reversed(days)):
+        cutoff = datetime.combine(observed, datetime.min.time(), tzinfo=UTC)
+        for metric_id, value in (
+            ("CN_BOND_CORE_000012", 100.0 + index),
+            ("CN_EQUITY_CORE_000985", 1000.0 - index),
+            ("CN_COMMODITY_CORE_NHII", 100.0 + index),
+        ):
+            api_name, source_code = CORE_API_IDENTITIES[metric_id]
+            evidence.append_source_claim(
+                SourceClaimInput(
+                    metric_id=metric_id,
+                    definition_version="metric-catalog-v0001",
+                    period_kind="business_day",
+                    period_start=observed.isoformat(),
+                    period_end=observed.isoformat(),
+                    dimensions={},
+                    value=value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="index_points",
+                    provider="tushare",
+                    source_reference=f"tushare:{api_name}:{source_code}:{observed}",
+                    release_event_id=f"fixture:{metric_id}:{observed}",
+                    release_at=cutoff,
+                    public_available_at=cutoff,
+                    fetched_at=cutoff,
+                    available_at=cutoff,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="worker-p0-noncanonical",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+    )
+
+    processed = process_pending_run(paths, report_adapters=())
+
+    assert processed == submitted.run_id
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "completed", stored.error_classification
+    assert stored.error_classification is None
+    current = ProjectionSetRepository(paths.database).current()
+    assert current.envelope.target_business_date == "2026-08-28"
+    assert current.datasets["cycle_overview"]["current_stage"] is None
+    assert current.datasets["cycle_overview"]["stage_reason"] == "noncanonical_combination"
+    report = ReportRepository(paths.database).history()[0]
+    assert report.projection_set_id == current.envelope.projection_set_id
+    assert report.current_stage is None
+    assert report.status == "completed_degraded"
+    assert runs.next_queued() is None
+
+
+def test_worker_fails_closed_and_classifies_context_validation_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -145,6 +452,46 @@ def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failur
     paths.secrets.chmod(0o600)
 
     class FixtureContextAdapter:
+        def market_indices(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_market_indices_source_failed")
+
+        def market_breadth(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_market_breadth_source_failed")
+
+        def margin_financing(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_margin_source_failed")
+
+        def index_valuation(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_valuation_source_failed")
+
+        def commodity_basket(
+            self,
+            *,
+            start_date: date,
+            end_date: date,
+        ) -> tuple[ContextScalar, ...]:
+            raise ValueError("fixture_commodity_basket_source_failed")
+
         def pmi(
             self,
             *,
@@ -245,7 +592,7 @@ def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failur
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
         )
         for asset, metric_id, state in (
@@ -276,44 +623,17 @@ def test_worker_publishes_with_redacted_candidate_context_and_isolates_p1_failur
     process_pending_run(paths, report_adapters=())
 
     stored = runs.get(submitted.run_id)
-    projection = ProjectionSetRepository(paths.database).current()
-    pmi = next(
-        row
-        for row in projection.datasets["macro"]["overheat"]["gaps"]
-        if row["metric_id"] == "CN_PMI_ACTIVITY"
-    )
-    social_financing = next(
-        row
-        for row in projection.datasets["macro"]["credit"]["evidence"]
-        if row["metric_id"] == "CN_SF_TOTAL"
-    )
-    gdp = next(
-        row
-        for row in projection.datasets["macro"]["international_context"]
-        if row["metric_id"] == "CN_GDP"
-    )
-    assert stored.status == "completed"
-    assert projection.envelope.refresh_status == "completed"
-    assert projection.envelope.completeness == "degraded"
-    assert pmi["freshness"] == "awaiting_source_certification"
-    assert pmi["value"] is None
-    assert social_financing["status"] == "awaiting_source_certification"
-    assert social_financing["value"] is None
-    assert gdp["status"] == "awaiting_source_certification"
-    assert gdp["value"] is None
     evidence = EvidenceRepository(paths.database)
-    visible_at = datetime.now(UTC)
-    assert evidence.metric_series(
-        "CN_SF_TOTAL",
-        mode=AsOfMode.SYSTEM,
-        as_of=visible_at,
-    )[0].selected_value == 5000.0
-    assert evidence.metric_series(
-        "CN_GDP",
-        mode=AsOfMode.SYSTEM,
-        as_of=visible_at,
-    )[0].selected_value == 1000000.0
-    assert "p1_evidence_incomplete" in " ".join(projection.envelope.warnings)
+    assert stored.status == "action_required"
+    with pytest.raises(LookupError, match="current_projection_unavailable"):
+        ProjectionSetRepository(paths.database).current()
+    attempt = evidence.latest_retrieval_attempt(
+        "CN_EQ_CSI300",
+        period="2026-08-28",
+        as_of=datetime.now(UTC),
+    )
+    assert attempt is not None
+    assert attempt.outcome == "validation_failed"
 
 
 def test_worker_rejects_a_formal_run_for_a_candidate_model(tmp_path: Path) -> None:
@@ -363,7 +683,7 @@ def test_report_command_reads_the_published_projection_and_never_rewrites_it(
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
         )
         for asset, metric_id, state in (
@@ -408,7 +728,7 @@ def test_resumed_run_reuses_its_published_projection_without_external_refresh(
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
         )
         for asset, metric_id, state in (
@@ -467,7 +787,7 @@ def test_report_run_reads_its_bound_projection_when_current_pointer_advances(
                 metric_id=metric_id,
                 state=state,
                 reason="validated",
-                observation_count=160,
+                observation_count=120,
                 latest_business_date=target,
             )
             for asset, metric_id, state in (

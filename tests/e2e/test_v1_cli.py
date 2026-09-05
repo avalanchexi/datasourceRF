@@ -146,7 +146,7 @@ def test_evidence_query_and_deterministic_report_are_public_cli_operations(
             metric_id=metric_id,
             state=state,
             reason="validated",
-            observation_count=160,
+            observation_count=120,
             latest_business_date="2026-08-28",
         )
         for asset, metric_id, state in (

@@ -43,6 +43,7 @@ class RuntimeHealthDocument(TypedDict):
     database: DatabaseHealth
     services: ServicesHealth
     startup_actions: StartupActions
+    source_contract_review: dict[str, object] | None
     status: Literal["ok", "degraded"]
 
 

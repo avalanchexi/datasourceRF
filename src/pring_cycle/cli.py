@@ -23,6 +23,8 @@ _MUTATING_COMMANDS = {
     "model-accept",
     "model-activate",
     "model-replay",
+    "model-source-certify",
+    "model-source-refresh",
     "model-rollback",
     "fixture-project",
     "gap-notice",
@@ -37,6 +39,7 @@ _MUTATING_COMMANDS = {
     "cutover-record",
     "source-smoke",
     "context-source-smoke",
+    "market-source-smoke",
     "official-context-smoke",
     "eia-smoke",
     "lpr-smoke",
@@ -172,6 +175,21 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             kind=f"official-context:{namespace.family}",
             result=result,
             target_scope={"period": namespace.period},
+        )
+    if namespace.command == "source-history-smoke":
+        from pring_cycle.rehearsals import store_source_smoke_result
+        from pring_cycle.source_history import smoke_source_history
+
+        result = smoke_source_history(
+            paths,
+            target_business_date=namespace.target_date,
+            browser_capture_root=namespace.browser_capture_root,
+        )
+        return store_source_smoke_result(
+            paths,
+            kind="source-history",
+            result=result,
+            target_scope={"target_business_date": namespace.target_date},
         )
     if namespace.command == "eia-contract":
         from pring_cycle.eia_context import EiaPetroleumAdapter
@@ -325,8 +343,8 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         replay = ModelRepository(paths.database).record_replay(
             namespace.model,
             compared_with=namespace.compared_with,
-            requested_start=namespace.start,
-            requested_end=namespace.end,
+            requested_start=evaluation.evaluated_range_start,
+            requested_end=evaluation.evaluated_range_end,
             quality_passed=evaluation.quality_passed,
             regression_passed=evaluation.regression_passed,
             performance_passed=evaluation.performance_passed,
@@ -334,8 +352,27 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             core_state_differences=evaluation.core_state_differences,
             context_output_differences=evaluation.context_output_differences,
             gaps=evaluation.gaps,
+            evaluated_trading_days=evaluation.evaluated_trading_days,
+            calendar_hash=evaluation.calendar_hash,
         )
         return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
+    if namespace.command == "model-source-certify":
+        from pring_cycle.source_certification import create_source_certified_candidate
+
+        return create_source_certified_candidate(
+            paths,
+            target_business_date=namespace.target_date,
+            source_smoke_hashes=tuple(namespace.source_smoke_hash),
+            personal_noncommercial_use_approved=namespace.confirm_personal_noncommercial,
+        )
+    if namespace.command == "model-source-refresh":
+        from pring_cycle.source_certification import refresh_source_certified_candidate
+
+        return refresh_source_certified_candidate(
+            paths,
+            model_version_id=namespace.model,
+            target_business_date=namespace.target_date,
+        )
     if namespace.command == "model-rollback":
         trading_calendar = tuple(
             line.strip()
@@ -532,6 +569,29 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             result=result,
             target_scope={"target_business_date": namespace.target_date},
         )
+    if namespace.command == "market-source-smoke":
+        from pring_cycle.rehearsals import store_source_smoke_result
+        from pring_cycle.secrets import parse_data_source_secrets
+        from pring_cycle.tushare_context import (
+            TushareContextAdapter,
+            smoke_market_sources,
+        )
+
+        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
+        if token is None:
+            raise ValueError("tushare_not_configured")
+        result = asdict(
+            smoke_market_sources(
+                TushareContextAdapter(token),
+                target_business_date=date.fromisoformat(namespace.target_date),
+            )
+        )
+        return store_source_smoke_result(
+            paths,
+            kind="tushare-market",
+            result=result,
+            target_scope={"target_business_date": namespace.target_date},
+        )
     raise ValueError("unsupported_command")
 
 
@@ -598,6 +658,20 @@ def _parser() -> argparse.ArgumentParser:
     model_replay.add_argument("--compared-with", required=True)
     model_replay.add_argument("--start", required=True)
     model_replay.add_argument("--end", required=True)
+    model_source_certify = _runtime_parser(subparsers, "model-source-certify")
+    model_source_certify.add_argument("--target-date", required=True)
+    model_source_certify.add_argument(
+        "--source-smoke-hash",
+        action="append",
+        required=True,
+    )
+    model_source_certify.add_argument(
+        "--confirm-personal-noncommercial",
+        action="store_true",
+    )
+    model_source_refresh = _runtime_parser(subparsers, "model-source-refresh")
+    model_source_refresh.add_argument("--model", required=True)
+    model_source_refresh.add_argument("--target-date", required=True)
     model_rollback = _runtime_parser(subparsers, "model-rollback")
     model_rollback.add_argument("--model", required=True)
     model_rollback.add_argument("--as-of-date", required=True)
@@ -651,6 +725,9 @@ def _parser() -> argparse.ArgumentParser:
     official_context_smoke.add_argument("--family", required=True)
     official_context_smoke.add_argument("--url", required=True)
     official_context_smoke.add_argument("--period", required=True)
+    source_history_smoke = _runtime_parser(subparsers, "source-history-smoke")
+    source_history_smoke.add_argument("--target-date", required=True)
+    source_history_smoke.add_argument("--browser-capture-root", type=Path)
     eia_contract = _runtime_parser(subparsers, "eia-contract")
     eia_contract.add_argument("--input", type=Path, required=True)
     eia_contract.add_argument("--start", required=True)
@@ -705,6 +782,8 @@ def _parser() -> argparse.ArgumentParser:
     source_smoke.add_argument("--target-date", required=True)
     context_source_smoke = _runtime_parser(subparsers, "context-source-smoke")
     context_source_smoke.add_argument("--target-date", required=True)
+    market_source_smoke = _runtime_parser(subparsers, "market-source-smoke")
+    market_source_smoke.add_argument("--target-date", required=True)
     return parser
 
 

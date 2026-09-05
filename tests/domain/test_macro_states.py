@@ -121,6 +121,51 @@ def test_inventory_cards_do_not_duplicate_unrelated_evidence() -> None:
     assert all(card.evidence_ids == () for card in result.cards[1:])
 
 
+def test_inventory_card_with_current_evidence_is_not_marked_missing_when_quadrant_is_unresolved(
+) -> None:
+    result = derive_inventory_cycle(
+        demand="up",
+        production="down",
+        inventory="up",
+        observations=[signal("CN_ORDER_INVENTORY_SPREAD", "up", "orders_inventory_gap")],
+    )
+
+    assert result.quadrant is None
+    assert result.cards[0].status == "support"
+
+
+@pytest.mark.parametrize(
+    "freshness",
+    (
+        "awaiting_source_certification",
+        "missing",
+        "source_failed",
+        "validation_failed",
+        "invalid",
+    ),
+)
+def test_inventory_card_never_labels_unusable_evidence_as_support(
+    freshness: str,
+) -> None:
+    unusable = EvidenceSignal(
+        observation_id=f"obs:{freshness}",
+        metric_id="CN_ORDER_INVENTORY_SPREAD",
+        direction="unknown",
+        role="orders_inventory_gap",
+        freshness=freshness,
+        conflict=False,
+    )
+
+    result = derive_inventory_cycle(
+        demand=None,
+        production=None,
+        inventory=None,
+        observations=[unusable],
+    )
+
+    assert result.cards[0].status == "missing"
+
+
 @pytest.mark.parametrize(
     ("demand", "production", "inventory", "expected"),
     (

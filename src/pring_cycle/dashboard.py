@@ -226,7 +226,7 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                         ],
                         className="section-heading",
                     ),
-                    _definition_rows(macro),
+                    _macro_summary(macro),
                 ],
                 className="content-section",
             ),
@@ -537,6 +537,27 @@ def _domain_panel(title: str, kicker: str, value: str) -> html.Article:
             html.P(value, className="body-copy domain-value"),
         ],
         className="domain-panel",
+    )
+
+
+def _macro_summary(document: dict[str, object]) -> html.Div:
+    if not document:
+        return _empty_state(
+            "宏观证据尚未发布",
+            "P1/P2 缺口不影响三核心资产和正式阶段的读取。",
+        )
+    summaries = (
+        ("政策方向", "POLICY", document.get("policy_direction")),
+        ("信用响应", "CREDIT", document.get("credit_response")),
+        ("过热程度", "OVERHEAT", document.get("overheat_state")),
+        ("物价压力", "PRICE", document.get("price_pressure")),
+    )
+    return html.Div(
+        [
+            _domain_panel(title, kicker, _state_label(value))
+            for title, kicker, value in summaries
+        ],
+        className="evidence-card-grid macro-summary-grid",
     )
 
 
@@ -1294,6 +1315,21 @@ def _state_label(value: object) -> str:
         "conflict": "矛盾",
         "conflicted": "矛盾",
         "insufficient_data": "数据不足",
+        "upstream_pressure": "上游压力",
+        "producer_diffusion": "向生产端扩散",
+        "consumer_diffusion": "向消费端扩散",
+        "easing": "宽松",
+        "tightening": "收紧",
+        "neutral": "中性",
+        "transmission_conflict": "传导冲突",
+        "warming": "升温",
+        "overheating": "过热",
+        "cooling": "降温",
+        "current": "当前有效",
+        "stale": "陈旧",
+        "awaiting_source_certification": "等待来源认证",
+        "awaiting_release": "等待发布",
+        "source_failed": "来源失败",
     }.get(str(value).lower(), str(value))
 
 

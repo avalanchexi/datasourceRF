@@ -1,11 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import hashlib
+import json
+from dataclasses import asdict, dataclass, replace
 
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILY_BY_METRIC
 
 METRIC_CATALOG_V0001 = "metric-catalog-v0001"
 METRIC_CATALOG_VERSION = "metric-catalog-v0002"
+METRIC_CATALOG_V0003 = "metric-catalog-v0003"
+_METRIC_CATALOG_V0003_SHA256 = (
+    "594524ea647db3ab3824e4ea8ca4e1c7ce04fd53e9f29226b4a22364d10525fa"
+)
 
 
 @dataclass(frozen=True)
@@ -181,6 +187,84 @@ _CERTIFIED_SOURCES = {
     "CN_LPR_1Y_5Y",
 }
 
+_V0002_OFFICIAL_FAMILY_BY_METRIC = {
+    metric_id: family
+    for metric_id, family in OFFICIAL_CONTEXT_FAMILY_BY_METRIC.items()
+    if family
+    not in {
+        "nbs_gdp",
+        "nbs_pmi",
+        "nbs_ppi",
+        "pbc_money",
+    }
+    and not (family == "nbs_core_cpi" and metric_id == "CN_CPI_HEADLINE")
+}
+
+_DERIVED_P1_V0003 = {
+    "CN_DR007_POLICY_SPREAD",
+    "CN_ORDER_INVENTORY_SPREAD",
+    "CN_PRODUCTION_ORDER_SPREAD",
+    "CN_CREDIT_IMPULSE",
+}
+_CERTIFIED_P2_V0003 = {
+    "CN_GDP",
+    "UST10Y_NOMINAL_YIELD",
+    "UST2Y_NOMINAL_YIELD",
+    "UST_2S10S_SPREAD",
+}
+_V0003_SOURCE_CODES = {
+    "CN_EQ_CSI300": ("000300.SH",),
+    "CN_EQ_CSI500": ("000905.SH",),
+    "CN_EQ_CSI1000": ("000852.SH",),
+    "CN_EQ_ADV_DEC": ("tushare:daily:breadth-v0001",),
+    "CN_EQ_AD_RATIO": ("tushare:daily:breadth-v0001",),
+    "CN_EQ_NEW_HIGH_LOW_120": ("tushare:daily:breadth-v0001",),
+    "CN_EQ_ABOVE_MA120": ("tushare:daily:breadth-v0001",),
+    "CN_EQ_ADV_AMOUNT_SHARE": ("tushare:daily:breadth-v0001",),
+    "CN_MARGIN_BALANCE": ("tushare:margin",),
+    "CN_INDEX_VALUATION": ("tushare:index_dailybasic",),
+    "CN_BOND_FULL_PRICE_CNY030": ("000012CNY030.CSI",),
+    "CN_BOND_10Y_930916": ("930916.CSI",),
+    "CN_COMMODITY_EX_HOG_BASKET": ("tushare:fut_daily:ex-hog-basket-v0001",),
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": (
+        "tushare:fut_daily:ex-hog-basket-v0001",
+    ),
+}
+_V0003_UNITS = {
+    "CN_EQ_CSI300": ("index_points",),
+    "CN_EQ_CSI500": ("index_points",),
+    "CN_EQ_CSI1000": ("index_points",),
+    "CN_EQ_ADV_DEC": ("count",),
+    "CN_EQ_AD_RATIO": ("ratio",),
+    "CN_EQ_NEW_HIGH_LOW_120": ("count",),
+    "CN_EQ_ABOVE_MA120": ("percent",),
+    "CN_EQ_ADV_AMOUNT_SHARE": ("percent",),
+    "CN_MARGIN_BALANCE": ("hundred_million_cny",),
+    "CN_INDEX_VALUATION": ("multiple", "percent"),
+    "CN_BOND_FULL_PRICE_CNY030": ("index_points",),
+    "CN_BOND_10Y_930916": ("index_points",),
+    "CN_COMMODITY_EX_HOG_BASKET": ("index_points",),
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": ("percentage_points",),
+    "CN_INDUSTRIAL_VA": ("percent",),
+}
+_V0003_DIMENSIONS = {
+    "CN_EQ_CSI300": ("source_code",),
+    "CN_EQ_CSI500": ("source_code",),
+    "CN_EQ_CSI1000": ("source_code",),
+    "CN_EQ_ADV_DEC": ("measure", "universe"),
+    "CN_EQ_AD_RATIO": ("measure", "universe"),
+    "CN_EQ_NEW_HIGH_LOW_120": ("measure", "universe"),
+    "CN_EQ_ABOVE_MA120": ("measure", "universe"),
+    "CN_EQ_ADV_AMOUNT_SHARE": ("measure", "universe"),
+    "CN_MARGIN_BALANCE": ("measure", "scope"),
+    "CN_INDEX_VALUATION": ("index", "measure"),
+    "CN_BOND_FULL_PRICE_CNY030": ("source_code",),
+    "CN_BOND_10Y_930916": ("source_code",),
+    "CN_COMMODITY_BROAD_NHCI": ("source_code",),
+    "CN_COMMODITY_EX_HOG_BASKET": ("formula_version",),
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": ("formula_version", "sleeve"),
+}
+
 
 def metric_catalog() -> tuple[MetricDefinition, ...]:
     definitions: list[MetricDefinition] = []
@@ -252,6 +336,62 @@ def metric_catalog_v0001() -> tuple[MetricDefinition, ...]:
     return tuple(definitions)
 
 
+def metric_catalog_v0003() -> tuple[MetricDefinition, ...]:
+    """Return the catalog produced by the accepted 120-day source certification."""
+    definitions = []
+    for definition in metric_catalog():
+        certified = (
+            definition.certification_status == "certified"
+            or definition.priority == "P1"
+            or definition.metric_id in _CERTIFIED_P2_V0003
+        )
+        allowed_units = _V0003_UNITS.get(definition.metric_id, definition.allowed_units)
+        definitions.append(
+            replace(
+                definition,
+                unit=allowed_units[0],
+                dimensions=_V0003_DIMENSIONS.get(
+                    definition.metric_id,
+                    definition.dimensions,
+                ),
+                source_codes=_V0003_SOURCE_CODES.get(
+                    definition.metric_id,
+                    definition.source_codes,
+                ),
+                source_candidates=_V0003_SOURCE_CODES.get(
+                    definition.metric_id,
+                    definition.source_candidates,
+                ),
+                release_event_family=OFFICIAL_CONTEXT_FAMILY_BY_METRIC.get(
+                    definition.metric_id,
+                    definition.release_event_family,
+                ),
+                certification_status=(
+                    "derived_from_certified_inputs"
+                    if definition.metric_id in _DERIVED_P1_V0003
+                    or definition.metric_id == "UST_2S10S_SPREAD"
+                    else "certified"
+                    if certified
+                    else "awaiting_source_certification"
+                ),
+                definition_version=METRIC_CATALOG_V0003,
+                allowed_units=allowed_units,
+            )
+        )
+    catalog = tuple(definitions)
+    digest = hashlib.sha256(
+        json.dumps(
+            [asdict(item) for item in catalog],
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode()
+    ).hexdigest()
+    if digest != _METRIC_CATALOG_V0003_SHA256:
+        raise ValueError("metric_catalog_v0003_canonical_hash_mismatch")
+    return catalog
+
+
 def metric_definition(
     metric_id: str,
     *,
@@ -260,6 +400,7 @@ def metric_definition(
     catalog = {
         METRIC_CATALOG_V0001: _BY_ID_V0001,
         METRIC_CATALOG_VERSION: _BY_ID,
+        METRIC_CATALOG_V0003: _BY_ID_V0003,
     }.get(definition_version)
     if catalog is None:
         raise KeyError("unknown_metric_definition_version")
@@ -510,8 +651,8 @@ def _dimensions_v0001(metric_id: str) -> tuple[str, ...]:
 
 
 def _release_event_family(metric_id: str) -> str:
-    if metric_id in OFFICIAL_CONTEXT_FAMILY_BY_METRIC:
-        return OFFICIAL_CONTEXT_FAMILY_BY_METRIC[metric_id]
+    if metric_id in _V0002_OFFICIAL_FAMILY_BY_METRIC:
+        return _V0002_OFFICIAL_FAMILY_BY_METRIC[metric_id]
     if metric_id in {"EIA_BRENT_RBRTE", "EIA_WTI_RWTC"}:
         return "eia_petroleum_spot_prices"
     if metric_id == "CN_LPR_1Y_5Y":
@@ -546,3 +687,4 @@ _NAME_OVERRIDES = {
 
 _BY_ID = {item.metric_id: item for item in metric_catalog()}
 _BY_ID_V0001 = {item.metric_id: item for item in metric_catalog_v0001()}
+_BY_ID_V0003 = {item.metric_id: item for item in metric_catalog_v0003()}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import calendar
 import hashlib
 import json
+from collections import defaultdict, deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -24,6 +25,35 @@ from pring_cycle.source_adapters import TUSHARE_ENDPOINT
 Transport = Callable[[dict[str, Any]], dict[str, Any]]
 
 WARRANT_SYMBOLS = frozenset({"CU", "RB", "PP", "CF", "TA", "RU", "SP", "SC"})
+_FUTURES_WARRANT_CHUNK_DAYS = 31
+_FUTURES_WARRANT_RESPONSE_LIMIT = 1_200
+MARKET_INDEX_IDENTITIES = {
+    "CN_EQ_CSI300": ("index_daily", "000300.SH"),
+    "CN_EQ_CSI500": ("index_daily", "000905.SH"),
+    "CN_EQ_CSI1000": ("index_daily", "000852.SH"),
+    "CN_BOND_FULL_PRICE_CNY030": ("index_daily", "000012CNY030.CSI"),
+    "CN_BOND_10Y_930916": ("index_daily", "930916.CSI"),
+    "CN_COMMODITY_BROAD_NHCI": ("fut_index_daily", "NHCI.NH"),
+}
+VALUATION_INDEX_CODES = ("000300.SH", "000905.SH", "000852.SH")
+FUTURES_SLEEVE_CODES = {
+    "copper": ("CU.SHF",),
+    "rebar": ("RB.SHF",),
+    "polypropylene": ("PP.DCE",),
+    "textiles": ("CF.ZCE", "TA.ZCE"),
+    "rubber": ("RU.SHF",),
+    "pulp": ("SP.SHF",),
+    "crude_oil": ("SC.INE",),
+}
+FUTURES_SLEEVE_WEIGHTS = {
+    "copper": 2.0 / 15.0,
+    "rebar": 2.0 / 15.0,
+    "polypropylene": 2.0 / 15.0,
+    "textiles": 2.0 / 15.0,
+    "rubber": 2.0 / 15.0,
+    "pulp": 2.0 / 15.0,
+    "crude_oil": 1.0 / 5.0,
+}
 _WARRANT_UNITS = {
     "吨": "tonne",
     "千克": "kilogram",
@@ -94,6 +124,11 @@ class TushareContextAdapter:
             raise ValueError("tushare_token_required")
         self._token = token
         self._transport = transport or self._post
+        self._network_requests = 0
+
+    @property
+    def network_requests(self) -> int:
+        return self._network_requests
 
     def pmi(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
         fields = (
@@ -274,21 +309,27 @@ class TushareContextAdapter:
             ("vol", "registered_receipts"),
             ("vol_chg", "registered_receipts_change"),
         )
-        rows = self._call(
-            "fut_wsr",
-            {
-                "start_date": start_date.strftime("%Y%m%d"),
-                "end_date": end_date.strftime("%Y%m%d"),
-                "symbol": source_symbol,
-            },
-            (
-                "trade_date",
-                "symbol",
-                "warehouse",
-                *(source_field for source_field, _measure in fields),
-                "unit",
-                "exchange",
-            ),
+        requested_fields = (
+            "trade_date",
+            "symbol",
+            "warehouse",
+            *(source_field for source_field, _measure in fields),
+            "unit",
+            "exchange",
+        )
+        rows = tuple(
+            row
+            for chunk_start, chunk_end in _inclusive_date_chunks(
+                start_date,
+                end_date,
+                chunk_days=_FUTURES_WARRANT_CHUNK_DAYS,
+            )
+            for row in self._complete_futures_warrant_range(
+                chunk_start,
+                chunk_end,
+                source_symbol=source_symbol,
+                requested_fields=requested_fields,
+            )
         )
         scalars: list[ContextScalar] = []
         for row in rows:
@@ -325,9 +366,48 @@ class TushareContextAdapter:
                             "measure": measure,
                         },
                         unit=unit,
+                        release_time=time(0),
+                        release_day_offset=1,
                     )
                 )
         return tuple(scalars)
+
+    def _complete_futures_warrant_range(
+        self,
+        start_date: date,
+        end_date: date,
+        *,
+        source_symbol: str,
+        requested_fields: tuple[str, ...],
+    ) -> tuple[dict[str, object], ...]:
+        rows = self._call(
+            "fut_wsr",
+            {
+                "start_date": start_date.strftime("%Y%m%d"),
+                "end_date": end_date.strftime("%Y%m%d"),
+                "symbol": source_symbol,
+            },
+            requested_fields,
+        )
+        if len(rows) < _FUTURES_WARRANT_RESPONSE_LIMIT:
+            return rows
+        if start_date == end_date:
+            raise ValueError("tushare_warrant_response_truncated")
+        midpoint = start_date + (end_date - start_date) // 2
+        return (
+            *self._complete_futures_warrant_range(
+                start_date,
+                midpoint,
+                source_symbol=source_symbol,
+                requested_fields=requested_fields,
+            ),
+            *self._complete_futures_warrant_range(
+                midpoint + timedelta(days=1),
+                end_date,
+                source_symbol=source_symbol,
+                requested_fields=requested_fields,
+            ),
+        )
 
     def gdp(
         self,
@@ -355,9 +435,7 @@ class TushareContextAdapter:
         )
         scalars: list[ContextScalar] = []
         for row in rows:
-            year_start, quarter_start, quarter_end = _quarter_bounds(
-                str(row.get("quarter"))
-            )
+            year_start, quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
             for aggregate, level_field, yoy_field in fields:
                 level = _number(row.get(level_field))
                 if level is not None:
@@ -422,6 +500,8 @@ class TushareContextAdapter:
                 date_field="date",
                 dimensions={},
                 unit="percent",
+                release_time=time(6),
+                release_day_offset=1,
             )
             for row in rows
             for metric_id, source_field in (
@@ -462,6 +542,7 @@ class TushareContextAdapter:
                 date_field="trade_date",
                 dimensions={},
                 unit="percent",
+                release_time=time(11),
             )
             for row in repo_rows
             if str(row.get("ts_code")) == "DR007.IB" and str(row.get("repo_maturity")) == "DR007"
@@ -482,12 +563,335 @@ class TushareContextAdapter:
                 )
         return tuple(scalars)
 
+    def market_indices(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> tuple[ContextScalar, ...]:
+        if end_date < start_date:
+            raise ValueError("tushare_date_range_invalid")
+        scalars: list[ContextScalar] = []
+        for metric_id, (api_name, source_code) in MARKET_INDEX_IDENTITIES.items():
+            rows = self._call(
+                api_name,
+                {
+                    "ts_code": source_code,
+                    "start_date": start_date.strftime("%Y%m%d"),
+                    "end_date": end_date.strftime("%Y%m%d"),
+                },
+                ("ts_code", "trade_date", "close"),
+            )
+            for row in rows:
+                if str(row.get("ts_code")) != source_code:
+                    raise ValueError("tushare_market_index_identity_mismatch")
+                scalars.append(
+                    _daily_scalar(
+                        metric_id,
+                        api_name,
+                        "close",
+                        row,
+                        date_field="trade_date",
+                        dimensions={"source_code": source_code},
+                        unit="index_points",
+                        release_time=time(15, 30),
+                    )
+                )
+        return tuple(scalars)
+
+    def margin_financing(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> tuple[ContextScalar, ...]:
+        if end_date < start_date:
+            raise ValueError("tushare_date_range_invalid")
+        rows = self._call(
+            "margin",
+            {
+                "start_date": start_date.strftime("%Y%m%d"),
+                "end_date": end_date.strftime("%Y%m%d"),
+            },
+            ("trade_date", "exchange_id", "rzye", "rzmre"),
+        )
+        totals: dict[str, dict[str, float]] = defaultdict(
+            lambda: {"financing_balance": 0.0, "financing_buy_amount": 0.0}
+        )
+        exchanges: dict[str, set[str]] = defaultdict(set)
+        for row in rows:
+            trade_date = _compact_date(row.get("trade_date")).isoformat()
+            exchange = _required_text(
+                row.get("exchange_id"),
+                "tushare_margin_exchange_missing",
+            )
+            balance = _number(row.get("rzye"))
+            buy_amount = _number(row.get("rzmre"))
+            if balance is None or buy_amount is None:
+                raise ValueError("tushare_margin_value_missing")
+            totals[trade_date]["financing_balance"] += balance
+            totals[trade_date]["financing_buy_amount"] += buy_amount
+            exchanges[trade_date].add(exchange)
+        scalars: list[ContextScalar] = []
+        for trade_date, measures in sorted(totals.items()):
+            if not exchanges[trade_date].issubset({"SSE", "SZSE", "BSE"}):
+                raise ValueError("tushare_margin_exchange_invalid")
+            for measure, value in measures.items():
+                scalars.append(
+                    _business_day_scalar(
+                        metric_id="CN_MARGIN_BALANCE",
+                        api_name="margin",
+                        source_field=measure,
+                        business_date=date.fromisoformat(trade_date),
+                        dimensions={"measure": measure, "scope": "all_exchanges"},
+                        value=value / 100_000_000.0,
+                        unit="hundred_million_cny",
+                        release_time=time(0),
+                        release_day_offset=1,
+                    )
+                )
+        return tuple(scalars)
+
+    def index_valuation(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> tuple[ContextScalar, ...]:
+        if end_date < start_date:
+            raise ValueError("tushare_date_range_invalid")
+        fields = (
+            ("pe", "price_earnings", "multiple"),
+            ("pb", "price_book", "multiple"),
+            ("turnover_rate", "turnover_rate", "percent"),
+        )
+        scalars: list[ContextScalar] = []
+        for source_code in VALUATION_INDEX_CODES:
+            rows = self._call(
+                "index_dailybasic",
+                {
+                    "ts_code": source_code,
+                    "start_date": start_date.strftime("%Y%m%d"),
+                    "end_date": end_date.strftime("%Y%m%d"),
+                },
+                ("ts_code", "trade_date", *(field for field, _measure, _unit in fields)),
+            )
+            for row in rows:
+                if str(row.get("ts_code")) != source_code:
+                    raise ValueError("tushare_index_valuation_identity_mismatch")
+                for source_field, measure, unit in fields:
+                    if _number(row.get(source_field)) is None:
+                        continue
+                    scalars.append(
+                        _daily_scalar(
+                            "CN_INDEX_VALUATION",
+                            "index_dailybasic",
+                            source_field,
+                            row,
+                            date_field="trade_date",
+                            dimensions={"index": source_code, "measure": measure},
+                            unit=unit,
+                            release_time=time(15, 30),
+                        )
+                    )
+        return tuple(scalars)
+
+    def market_breadth(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        window_days: int = 120,
+        output_days: int = 120,
+    ) -> tuple[ContextScalar, ...]:
+        if end_date < start_date:
+            raise ValueError("tushare_date_range_invalid")
+        if window_days < 2 or output_days < 1:
+            raise ValueError("tushare_breadth_window_invalid")
+        calendar_rows = self._call(
+            "trade_cal",
+            {
+                "exchange": "SSE",
+                "start_date": start_date.strftime("%Y%m%d"),
+                "end_date": end_date.strftime("%Y%m%d"),
+                "is_open": "1",
+            },
+            ("cal_date", "is_open"),
+        )
+        trading_days = sorted(
+            _compact_date(row.get("cal_date"))
+            for row in calendar_rows
+            if str(row.get("is_open")) == "1"
+        )
+        required_days = window_days + output_days - 1
+        if len(trading_days) < required_days:
+            raise ValueError("tushare_breadth_history_incomplete")
+        trading_days = trading_days[-required_days:]
+        normalized_prices: dict[str, float] = {}
+        price_windows: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=window_days))
+        outputs: list[ContextScalar] = []
+        output_dates = set(trading_days[-output_days:])
+        for trading_day in trading_days:
+            rows = self._call(
+                "daily",
+                {"trade_date": trading_day.strftime("%Y%m%d")},
+                ("ts_code", "trade_date", "pct_chg", "amount"),
+            )
+            advances = declines = flats = 0
+            advancing_amount = total_amount = 0.0
+            new_highs = new_lows = above_ma = eligible_ma = 0
+            for row in rows:
+                if _compact_date(row.get("trade_date")) != trading_day:
+                    raise ValueError("tushare_breadth_trade_date_mismatch")
+                ts_code = _required_text(row.get("ts_code"), "tushare_breadth_code_missing")
+                pct_change = _number(row.get("pct_chg"))
+                amount = _number(row.get("amount"))
+                if pct_change is None or amount is None or amount < 0:
+                    continue
+                if pct_change > 0:
+                    advances += 1
+                    advancing_amount += amount
+                elif pct_change < 0:
+                    declines += 1
+                else:
+                    flats += 1
+                total_amount += amount
+                previous = normalized_prices.get(ts_code, 1.0)
+                normalized = previous * (1.0 + pct_change / 100.0)
+                normalized_prices[ts_code] = normalized
+                window = price_windows[ts_code]
+                window.append(normalized)
+                if len(window) == window_days:
+                    eligible_ma += 1
+                    tolerance = max(abs(normalized) * 1e-12, 1e-12)
+                    if normalized >= max(window) - tolerance:
+                        new_highs += 1
+                    if normalized <= min(window) + tolerance:
+                        new_lows += 1
+                    if normalized > sum(window) / window_days:
+                        above_ma += 1
+            if trading_day not in output_dates:
+                continue
+            if advances + declines + flats == 0 or eligible_ma == 0 or total_amount <= 0:
+                raise ValueError("tushare_breadth_observations_incomplete")
+            measures = (
+                ("CN_EQ_ADV_DEC", "advances", float(advances), "count"),
+                ("CN_EQ_ADV_DEC", "declines", float(declines), "count"),
+                ("CN_EQ_ADV_DEC", "flats", float(flats), "count"),
+                ("CN_EQ_ADV_DEC", "net", float(advances - declines), "count"),
+                ("CN_EQ_AD_RATIO", "advance_decline_ratio", advances / max(declines, 1), "ratio"),
+                ("CN_EQ_NEW_HIGH_LOW_120", "new_highs", float(new_highs), "count"),
+                ("CN_EQ_NEW_HIGH_LOW_120", "new_lows", float(new_lows), "count"),
+                ("CN_EQ_ABOVE_MA120", "above_ma_share", 100.0 * above_ma / eligible_ma, "percent"),
+                (
+                    "CN_EQ_ADV_AMOUNT_SHARE",
+                    "advancing_amount_share",
+                    100.0 * advancing_amount / total_amount,
+                    "percent",
+                ),
+            )
+            for metric_id, measure, value, unit in measures:
+                outputs.append(
+                    _business_day_scalar(
+                        metric_id=metric_id,
+                        api_name="daily_breadth",
+                        source_field=measure,
+                        business_date=trading_day,
+                        dimensions={
+                            "measure": measure,
+                            "universe": "point_in_time_traded_a_shares",
+                        },
+                        value=value,
+                        unit=unit,
+                    )
+                )
+        return tuple(outputs)
+
+    def commodity_basket(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+        output_days: int = 120,
+    ) -> tuple[ContextScalar, ...]:
+        if end_date < start_date or output_days < 1:
+            raise ValueError("tushare_date_range_invalid")
+        returns_by_code: dict[str, dict[date, float]] = {}
+        for source_code in sorted(
+            code for codes in FUTURES_SLEEVE_CODES.values() for code in codes
+        ):
+            rows = self._call(
+                "fut_daily",
+                {
+                    "ts_code": source_code,
+                    "start_date": start_date.strftime("%Y%m%d"),
+                    "end_date": end_date.strftime("%Y%m%d"),
+                },
+                ("ts_code", "trade_date", "close", "pre_close"),
+            )
+            code_returns: dict[date, float] = {}
+            for row in rows:
+                if str(row.get("ts_code")) != source_code:
+                    raise ValueError("tushare_futures_basket_identity_mismatch")
+                close = _number(row.get("close"))
+                previous = _number(row.get("pre_close"))
+                if close is None or previous is None or previous <= 0:
+                    continue
+                code_returns[_compact_date(row.get("trade_date"))] = close / previous - 1.0
+            returns_by_code[source_code] = code_returns
+        common_dates = sorted(
+            set.intersection(*(set(values) for values in returns_by_code.values()))
+        )
+        if len(common_dates) < output_days:
+            raise ValueError("tushare_futures_basket_history_incomplete")
+        index_level = 1000.0
+        scalars: list[ContextScalar] = []
+        for trading_day in common_dates:
+            sleeve_returns = {
+                sleeve: sum(returns_by_code[code][trading_day] for code in codes) / len(codes)
+                for sleeve, codes in FUTURES_SLEEVE_CODES.items()
+            }
+            basket_return = sum(
+                FUTURES_SLEEVE_WEIGHTS[sleeve] * value for sleeve, value in sleeve_returns.items()
+            )
+            index_level *= 1.0 + basket_return
+            if trading_day not in set(common_dates[-output_days:]):
+                continue
+            scalars.append(
+                _business_day_scalar(
+                    metric_id="CN_COMMODITY_EX_HOG_BASKET",
+                    api_name="fut_daily_basket",
+                    source_field="weighted_return_index",
+                    business_date=trading_day,
+                    dimensions={"formula_version": "ex-hog-basket-v0001"},
+                    value=index_level,
+                    unit="index_points",
+                )
+            )
+            for sleeve, sleeve_return in sleeve_returns.items():
+                scalars.append(
+                    _business_day_scalar(
+                        metric_id="CN_COMMODITY_SLEEVE_CONTRIBUTION",
+                        api_name="fut_daily_basket",
+                        source_field="weighted_daily_contribution",
+                        business_date=trading_day,
+                        dimensions={
+                            "formula_version": "ex-hog-basket-v0001",
+                            "sleeve": sleeve,
+                        },
+                        value=100.0 * FUTURES_SLEEVE_WEIGHTS[sleeve] * sleeve_return,
+                        unit="percentage_points",
+                    )
+                )
+        return tuple(scalars)
+
     def _call(
         self,
         api_name: str,
         params: dict[str, str],
         fields: tuple[str, ...],
     ) -> tuple[dict[str, object], ...]:
+        self._network_requests += 1
         response = self._transport(
             {
                 "api_name": api_name,
@@ -536,9 +940,7 @@ def ingest_context_scalars(
             scalar.metric_id,
             definition_version=definition_version,
         )
-        source_reference = (
-            f"tushare:{scalar.api_name}:{scalar.source_field}:{scalar.period_end}"
-        )
+        source_reference = f"tushare:{scalar.api_name}:{scalar.source_field}:{scalar.period_end}"
         base_event_id = f"tushare:{scalar.api_name}:{scalar.period_end}"
         existing = repository.latest_source_claim(
             metric_id=scalar.metric_id,
@@ -559,12 +961,24 @@ def ingest_context_scalars(
             provider="tushare",
             source_reference=source_reference,
         )
-        if (
+        same_in_definition = bool(
             existing is not None
             and existing.value_state is EvidenceValueState.REPORTED_VALUE
             and existing.value == scalar.value
             and existing.unit == scalar.unit
-        ):
+        )
+        explicit_schedule_matches = (
+            bool(
+                (scalar.release_at is None or scalar.release_at == existing.release_at)
+                and (
+                    scalar.public_available_at is None
+                    or scalar.public_available_at == existing.public_available_at
+                )
+            )
+            if existing is not None
+            else True
+        )
+        if existing is not None and same_in_definition and explicit_schedule_matches:
             stored_by_input.append(
                 StoredSourceClaim(
                     existing.claim_id,
@@ -579,7 +993,17 @@ def ingest_context_scalars(
             and physical_existing.value == scalar.value
             and physical_existing.unit == scalar.unit
         )
-        if existing is None and physical_same and physical_existing is not None:
+        release_at: datetime | None
+        public_available_at: datetime | None
+        if scalar.public_available_at is not None and (physical_existing is None or physical_same):
+            release_at = scalar.release_at
+            public_available_at = scalar.public_available_at
+            release_event_id = _schedule_event_id(
+                base_event_id,
+                release_at=release_at,
+                public_available_at=public_available_at,
+            )
+        elif existing is None and physical_same and physical_existing is not None:
             release_event_id = physical_existing.release_event_id
             release_at = physical_existing.release_at
             public_available_at = physical_existing.public_available_at
@@ -597,25 +1021,25 @@ def ingest_context_scalars(
             )
         claims.append(
             SourceClaimInput(
-            metric_id=scalar.metric_id,
-            definition_version=definition.definition_version,
-            period_kind=scalar.period_kind,
-            period_start=scalar.period_start,
-            period_end=scalar.period_end,
-            dimensions=scalar.dimensions,
-            value=scalar.value,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit=scalar.unit,
-            provider="tushare",
-            source_reference=source_reference,
-            release_event_id=release_event_id,
-            release_at=release_at,
-            public_available_at=public_available_at,
-            fetched_at=fetched_at,
-            available_at=fetched_at,
-            certification_status=definition.certification_status,
-            quality_status="validated",
-        )
+                metric_id=scalar.metric_id,
+                definition_version=definition.definition_version,
+                period_kind=scalar.period_kind,
+                period_start=scalar.period_start,
+                period_end=scalar.period_end,
+                dimensions=scalar.dimensions,
+                value=scalar.value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=scalar.unit,
+                provider="tushare",
+                source_reference=source_reference,
+                release_event_id=release_event_id,
+                release_at=release_at,
+                public_available_at=public_available_at,
+                fetched_at=fetched_at,
+                available_at=fetched_at,
+                certification_status=definition.certification_status,
+                quality_status="validated",
+            )
         )
         stored_by_input.append(None)
     newly_stored = iter(repository.append_source_claims(tuple(claims)) if claims else ())
@@ -645,6 +1069,22 @@ def ingest_context_scalars(
 def _revision_event_id(base_event_id: str, fetched_at: datetime) -> str:
     suffix = hashlib.sha256(fetched_at.isoformat().encode()).hexdigest()[:16]
     return f"{base_event_id}:revision:{suffix}"
+
+
+def _schedule_event_id(
+    base_event_id: str,
+    *,
+    release_at: datetime | None,
+    public_available_at: datetime,
+) -> str:
+    identity = "|".join(
+        (
+            release_at.isoformat() if release_at is not None else "",
+            public_available_at.isoformat(),
+        )
+    )
+    suffix = hashlib.sha256(identity.encode()).hexdigest()[:16]
+    return f"{base_event_id}:schedule:{suffix}"
 
 
 def summarize_context_source_smoke(
@@ -715,7 +1155,8 @@ def smoke_context_sources(
     quarter = (target_business_date.month - 1) // 3 + 1
     start_quarter = f"{target_business_date.year - 2}Q{quarter}"
     end_quarter = f"{target_business_date.year}Q{quarter}"
-    start_date = target_business_date - timedelta(days=45)
+    start_date = target_business_date - timedelta(days=220)
+    warrant_request_start = adapter.network_requests
     warrant_scalars = tuple(
         scalar
         for symbol in sorted(WARRANT_SYMBOLS)
@@ -725,9 +1166,7 @@ def smoke_context_sources(
             symbol=symbol,
         )
     )
-    observed_warrant_symbols = {
-        scalar.dimensions.get("symbol") for scalar in warrant_scalars
-    }
+    observed_warrant_symbols = {scalar.dimensions.get("symbol") for scalar in warrant_scalars}
     if observed_warrant_symbols != set(WARRANT_SYMBOLS):
         raise ValueError("tushare_context_smoke_warrant_symbols_incomplete")
     families = (
@@ -754,7 +1193,7 @@ def smoke_context_sources(
         summarize_context_source_smoke(
             "futures_warrants",
             warrant_scalars,
-            network_requests=len(WARRANT_SYMBOLS),
+            network_requests=adapter.network_requests - warrant_request_start,
         ),
         summarize_context_source_smoke(
             "gdp",
@@ -776,6 +1215,63 @@ def smoke_context_sources(
                 end_date=target_business_date,
             ),
             network_requests=2,
+        ),
+    )
+    return ContextSourceSmokeResult(
+        status="validated_candidate",
+        target_business_date=target_business_date.isoformat(),
+        families=families,
+        network_requests=sum(family.network_requests for family in families),
+    )
+
+
+def smoke_market_sources(
+    adapter: TushareContextAdapter,
+    *,
+    target_business_date: date,
+) -> ContextSourceSmokeResult:
+    daily_start = target_business_date - timedelta(days=220)
+    breadth_start = target_business_date - timedelta(days=420)
+    families = (
+        summarize_context_source_smoke(
+            "market_indices",
+            adapter.market_indices(
+                start_date=daily_start,
+                end_date=target_business_date,
+            ),
+            network_requests=len(MARKET_INDEX_IDENTITIES),
+        ),
+        summarize_context_source_smoke(
+            "market_breadth",
+            adapter.market_breadth(
+                start_date=breadth_start,
+                end_date=target_business_date,
+            ),
+            network_requests=240,
+        ),
+        summarize_context_source_smoke(
+            "margin_financing",
+            adapter.margin_financing(
+                start_date=daily_start,
+                end_date=target_business_date,
+            ),
+            network_requests=1,
+        ),
+        summarize_context_source_smoke(
+            "index_valuation",
+            adapter.index_valuation(
+                start_date=daily_start,
+                end_date=target_business_date,
+            ),
+            network_requests=len(VALUATION_INDEX_CODES),
+        ),
+        summarize_context_source_smoke(
+            "commodity_basket",
+            adapter.commodity_basket(
+                start_date=daily_start,
+                end_date=target_business_date,
+            ),
+            network_requests=sum(len(codes) for codes in FUTURES_SLEEVE_CODES.values()),
         ),
     )
     return ContextSourceSmokeResult(
@@ -824,6 +1320,7 @@ def _daily_scalar(
     dimensions: dict[str, str],
     unit: str,
     release_time: time | None = None,
+    release_day_offset: int = 0,
 ) -> ContextScalar:
     business_date = _compact_date(row.get(date_field))
     value = _number(row.get(source_field))
@@ -831,12 +1328,46 @@ def _daily_scalar(
         raise ValueError("tushare_context_value_missing")
     released_at = (
         datetime.combine(
-            business_date,
+            business_date + timedelta(days=release_day_offset),
             release_time,
             ZoneInfo("Asia/Shanghai"),
         )
         if release_time is not None
         else None
+    )
+    return ContextScalar(
+        metric_id=metric_id,
+        api_name=api_name,
+        source_field=source_field,
+        period_kind="business_day",
+        period_start=business_date.isoformat(),
+        period_end=business_date.isoformat(),
+        dimensions=dimensions,
+        value=value,
+        unit=unit,
+        release_at=released_at,
+        public_available_at=released_at,
+    )
+
+
+def _business_day_scalar(
+    *,
+    metric_id: str,
+    api_name: str,
+    source_field: str,
+    business_date: date,
+    dimensions: dict[str, str],
+    value: float,
+    unit: str,
+    release_time: time = time(15, 30),
+    release_day_offset: int = 0,
+) -> ContextScalar:
+    if not isfinite(value):
+        raise ValueError("tushare_context_value_invalid")
+    released_at = datetime.combine(
+        business_date + timedelta(days=release_day_offset),
+        release_time,
+        ZoneInfo("Asia/Shanghai"),
     )
     return ContextScalar(
         metric_id=metric_id,
@@ -874,6 +1405,27 @@ def _response_rows(
             raise ValueError("tushare_response_row_invalid")
         rows.append(dict(zip(names, item, strict=True)))
     return tuple(rows)
+
+
+def _inclusive_date_chunks(
+    start_date: date,
+    end_date: date,
+    *,
+    chunk_days: int,
+) -> tuple[tuple[date, date], ...]:
+    if chunk_days < 1:
+        raise ValueError("tushare_date_chunk_days_invalid")
+    chunks: list[tuple[date, date]] = []
+    chunk_start = start_date
+    while chunk_start <= end_date:
+        chunk_end = min(chunk_start + timedelta(days=chunk_days - 1), end_date)
+        chunks.append((chunk_start, chunk_end))
+        chunk_start = chunk_end + timedelta(days=1)
+    return tuple(chunks)
+
+
+def _date_chunk_count(start_date: date, end_date: date, *, chunk_days: int) -> int:
+    return len(_inclusive_date_chunks(start_date, end_date, chunk_days=chunk_days))
 
 
 def _month_value(value: str) -> str:

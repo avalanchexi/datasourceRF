@@ -354,6 +354,23 @@ def _load_dashboard(
             _reports(paths),
         )
 
+        dashboard_index_endpoint = next(
+            cast(Any, route).endpoint
+            for route in server.routes
+            if getattr(route, "path", None) == "/"
+        )
+        for path, _label in DASHBOARD_NAVIGATION:
+            if path == "/":
+                continue
+            route_name = "dashboard_" + path.strip("/").replace("-", "_")
+            server.add_api_route(
+                path,
+                dashboard_index_endpoint,
+                methods=["GET"],
+                name=route_name,
+                include_in_schema=False,
+            )
+
         @dashboard.callback(
             Output("page-content", "children"),
             Output("runtime-poll", "interval"),

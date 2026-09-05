@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.catalog import metric_definition
+from pring_cycle.source_contract_review import require_source_contract
 
 
 class AsOfMode(StrEnum):
@@ -191,9 +192,18 @@ class SourceClaimVintage:
     claim_id: str
     period_start: str
     period_end: str
+    dimensions: dict[str, str]
     public_available_at: datetime | None
     certification_status: str
     quality_status: str
+
+
+@dataclass
+class _PreloadedSeriesState:
+    visible_count: int
+    rows_by_observation: dict[str, list[sqlite3.Row]]
+    points_by_observation: dict[str, MetricSeriesPoint]
+    tolerance: float | None = None
 
 
 class EvidenceRepository:
@@ -202,6 +212,10 @@ class EvidenceRepository:
         self._preloaded_series_rows: dict[
             tuple[str, str, AsOfMode],
             tuple[tuple[float, ...], tuple[sqlite3.Row, ...]],
+        ] = {}
+        self._preloaded_series_states: dict[
+            tuple[str, str, AsOfMode],
+            _PreloadedSeriesState,
         ] = {}
 
     @classmethod
@@ -222,11 +236,14 @@ class EvidenceRepository:
             raise ValueError("evidence_claim_batch_required")
         for claim in claims:
             _validate_claim(claim)
+            if claim.certification_status == "certified":
+                require_source_contract(claim.definition_version, metric_id=claim.metric_id)
         stored: list[StoredSourceClaim] = []
         with self._connect() as connection:
             for claim in claims:
                 stored.append(_append_source_claim(connection, claim))
         self._preloaded_series_rows.clear()
+        self._preloaded_series_states.clear()
         return tuple(stored)
 
     def preload_metric_series(
@@ -268,6 +285,11 @@ class EvidenceRepository:
                 self._preloaded_series_rows[(*pair, mode)] = (
                     timestamps,
                     tuple(visible_rows),
+                )
+                self._preloaded_series_states[(*pair, mode)] = _PreloadedSeriesState(
+                    visible_count=0,
+                    rows_by_observation={},
+                    points_by_observation={},
                 )
 
     def release_events(self, *, metric_id: str | None = None) -> tuple[ReleaseEventView, ...]:
@@ -438,7 +460,8 @@ class EvidenceRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT claim_id, period_start, period_end, public_available_at,
+                SELECT claim_id, period_start, period_end, dimensions_json,
+                       public_available_at,
                        certification_status, quality_status
                 FROM source_claim
                 WHERE metric_id=? AND definition_version=?
@@ -451,6 +474,10 @@ class EvidenceRepository:
                 claim_id=str(row["claim_id"]),
                 period_start=str(row["period_start"]),
                 period_end=str(row["period_end"]),
+                dimensions={
+                    str(key): str(value)
+                    for key, value in json.loads(str(row["dimensions_json"])).items()
+                },
                 public_available_at=_datetime(row["public_available_at"]),
                 certification_status=str(row["certification_status"]),
                 quality_status=str(row["quality_status"]),
@@ -578,11 +605,14 @@ class EvidenceRepository:
         *,
         mode: AsOfMode,
         as_of: datetime,
+        public_as_of: datetime | None = None,
         tolerance: float = 0.0,
         definition_version: str | None = None,
     ) -> tuple[MetricSeriesPoint, ...]:
         if as_of.tzinfo is None:
             raise ValueError("as_of_must_be_timezone_aware")
+        if public_as_of is not None and public_as_of.tzinfo is None:
+            raise ValueError("public_as_of_must_be_timezone_aware")
         definition_clause = (
             " AND definition_version=?" if definition_version is not None else ""
         )
@@ -590,14 +620,22 @@ class EvidenceRepository:
             AsOfMode.PUBLIC: "public_available_at",
             AsOfMode.SYSTEM: "available_at",
         }[mode]
-        parameters = (
+        public_clause = (
+            " AND public_available_at IS NOT NULL"
+            " AND julianday(public_available_at) <= julianday(?)"
+            if public_as_of is not None
+            else ""
+        )
+        parameters: tuple[object, ...] = (
             (metric_id, definition_version, _iso(as_of))
             if definition_version is not None
             else (metric_id, _iso(as_of))
         )
+        if public_as_of is not None:
+            parameters += (_iso(public_as_of),)
         cache_key = (
             (metric_id, definition_version, mode)
-            if definition_version is not None
+            if definition_version is not None and public_as_of is None
             else None
         )
         preloaded = (
@@ -606,8 +644,51 @@ class EvidenceRepository:
             else None
         )
         if preloaded is not None:
+            assert cache_key is not None
             timestamps, cached_rows = preloaded
-            rows = list(cached_rows[: bisect_right(timestamps, as_of.timestamp())])
+            visible_count = bisect_right(timestamps, as_of.timestamp())
+            state = self._preloaded_series_states[cache_key]
+            if visible_count < state.visible_count:
+                state.visible_count = 0
+                state.rows_by_observation.clear()
+                state.points_by_observation.clear()
+                state.tolerance = None
+            changed_observations: set[str] = (
+                set(state.rows_by_observation)
+                if state.tolerance != tolerance
+                else set()
+            )
+            for row in cached_rows[state.visible_count : visible_count]:
+                observation_id = str(row["observation_id"])
+                state.rows_by_observation.setdefault(observation_id, []).append(row)
+                changed_observations.add(observation_id)
+            for observation_id in changed_observations:
+                observation_rows = state.rows_by_observation[observation_id]
+                result = _select_claim_rows(
+                    observation_id,
+                    observation_rows,
+                    mode=mode,
+                    as_of=as_of,
+                    tolerance=tolerance,
+                )
+                row = observation_rows[0]
+                state.points_by_observation[observation_id] = MetricSeriesPoint(
+                    observation_id=result.observation_id,
+                    period_start=str(row["period_start"]),
+                    period_end=str(row["period_end"]),
+                    dimensions={
+                        str(key): str(value)
+                        for key, value in json.loads(str(row["dimensions_json"])).items()
+                    },
+                    selected_value=result.selected_value,
+                    value_state=result.value_state,
+                    selection_status=result.selection_status,
+                    selected_claim_id=result.selected_claim_id,
+                    claims=result.claims,
+                )
+            state.visible_count = visible_count
+            state.tolerance = tolerance
+            points = list(state.points_by_observation.values())
         else:
             with self._connect() as connection:
                 rows = connection.execute(
@@ -616,42 +697,43 @@ class EvidenceRepository:
                     WHERE metric_id=?{definition_clause}
                       AND {time_column} IS NOT NULL
                       AND julianday({time_column}) <= julianday(?)
+                      {public_clause}
                     ORDER BY period_end, observation_id, julianday({time_column}),
                              julianday(available_at), claim_id
                     """,
                     parameters,
                 ).fetchall()
-        rows_by_observation: dict[str, list[sqlite3.Row]] = {}
-        for row in rows:
-            rows_by_observation.setdefault(str(row["observation_id"]), []).append(row)
-        points = []
-        for observation_id, observation_rows in rows_by_observation.items():
-            result = _select_claim_rows(
-                observation_id,
-                observation_rows,
-                mode=mode,
-                as_of=as_of,
-                tolerance=tolerance,
-            )
-            row = observation_rows[0]
-            points.append(
-                MetricSeriesPoint(
-                    observation_id=result.observation_id,
-                    period_start=str(row["period_start"]),
-                    period_end=str(row["period_end"]),
-                    dimensions={
-                        str(key): str(value)
-                        for key, value in json.loads(
-                            str(row["dimensions_json"])
-                        ).items()
-                    },
-                    selected_value=result.selected_value,
-                    value_state=result.value_state,
-                    selection_status=result.selection_status,
-                    selected_claim_id=result.selected_claim_id,
-                    claims=result.claims,
+            rows_by_observation: dict[str, list[sqlite3.Row]] = {}
+            for row in rows:
+                rows_by_observation.setdefault(str(row["observation_id"]), []).append(row)
+            points = []
+            for observation_id, observation_rows in rows_by_observation.items():
+                result = _select_claim_rows(
+                    observation_id,
+                    observation_rows,
+                    mode=mode,
+                    as_of=as_of,
+                    tolerance=tolerance,
                 )
-            )
+                row = observation_rows[0]
+                points.append(
+                    MetricSeriesPoint(
+                        observation_id=result.observation_id,
+                        period_start=str(row["period_start"]),
+                        period_end=str(row["period_end"]),
+                        dimensions={
+                            str(key): str(value)
+                            for key, value in json.loads(
+                                str(row["dimensions_json"])
+                            ).items()
+                        },
+                        selected_value=result.selected_value,
+                        value_state=result.value_state,
+                        selection_status=result.selection_status,
+                        selected_claim_id=result.selected_claim_id,
+                        claims=result.claims,
+                    )
+                )
         points.sort(key=lambda point: (point.period_end, point.observation_id))
         return tuple(points)
     def trace(
@@ -852,6 +934,7 @@ class EvidenceRepository:
         with self._connect() as connection:
             connection.executescript(_EVIDENCE_SCHEMA)
             connection.executescript(_RELEASE_EVENT_EXTENSIONS_SCHEMA)
+            connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
@@ -891,7 +974,10 @@ def _select_claim_rows(
     reported_values = [
         item.value
         for item in claims
-        if item.value_state is EvidenceValueState.REPORTED_VALUE and item.value is not None
+        if item.certification_status == "certified"
+        and item.quality_status == "validated"
+        and item.value_state is EvidenceValueState.REPORTED_VALUE
+        and item.value is not None
     ]
     conflicted = bool(reported_values) and (
         max(reported_values) - min(reported_values) > tolerance
@@ -1169,6 +1255,14 @@ CREATE TRIGGER IF NOT EXISTS evidence_snapshot_no_delete
 BEFORE DELETE ON evidence_snapshot BEGIN
     SELECT RAISE(ABORT, 'evidence_snapshot_is_immutable');
 END;
+"""
+
+_EVIDENCE_INDEX_EXTENSIONS_SCHEMA = """
+CREATE INDEX IF NOT EXISTS ix_source_claim_provider_identity
+ON source_claim(
+    metric_id, period_kind, period_start, period_end, dimensions_json, provider,
+    definition_version, source_reference, available_at
+);
 """
 
 _RELEASE_EVENT_EXTENSIONS_SCHEMA = """

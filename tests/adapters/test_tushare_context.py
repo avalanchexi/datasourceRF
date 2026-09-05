@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -166,8 +166,7 @@ def test_social_financing_contract_preserves_flow_and_normalizes_stock_unit() ->
     scalars = adapter.social_financing(start_month="202607", end_month="202607")
 
     assert {
-        (item.source_field, item.dimensions["measure"], item.value, item.unit)
-        for item in scalars
+        (item.source_field, item.dimensions["measure"], item.value, item.unit) for item in scalars
     } == {
         ("inc_month", "monthly_increment", 5282.0, "hundred_million_cny"),
         ("inc_cumval", "ytd_increment", 220800.0, "hundred_million_cny"),
@@ -205,10 +204,7 @@ def test_futures_warrant_contract_preserves_three_measures_and_rejects_hog() -> 
         symbol="CU",
     )
 
-    assert {
-        (item.source_field, item.dimensions["measure"], item.value)
-        for item in scalars
-    } == {
+    assert {(item.source_field, item.dimensions["measure"], item.value) for item in scalars} == {
         ("pre_vol", "previous_registered_receipts", 5000.0),
         ("vol", "registered_receipts", 4800.0),
         ("vol_chg", "registered_receipts_change", -200.0),
@@ -282,6 +278,97 @@ def test_futures_warrant_contract_accepts_live_exchange_shape_variants() -> None
     assert {item.source_field for item in pta} == {"vol", "vol_chg"}
 
 
+def test_futures_warrant_long_range_is_requested_in_non_overlapping_chunks() -> None:
+    requested_ranges: list[tuple[date, date]] = []
+
+    def chunk_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        params = payload["params"]
+        chunk_start = datetime.strptime(str(params["start_date"]), "%Y%m%d").date()
+        chunk_end = datetime.strptime(str(params["end_date"]), "%Y%m%d").date()
+        requested_ranges.append((chunk_start, chunk_end))
+        return response(
+            [
+                {
+                    "trade_date": chunk_end.strftime("%Y%m%d"),
+                    "symbol": "CU",
+                    "warehouse": "上海期货交易所",
+                    "pre_vol": 5000,
+                    "vol": 4800,
+                    "vol_chg": -200,
+                    "unit": "吨",
+                    "exchange": "SHFE",
+                }
+            ]
+        )
+
+    adapter = TushareContextAdapter("fixture-token", transport=chunk_transport)
+    scalars = adapter.futures_warrants(
+        start_date=date(2026, 1, 20),
+        end_date=date(2026, 8, 28),
+        symbol="CU",
+    )
+
+    assert requested_ranges[0][0] == date(2026, 1, 20)
+    assert requested_ranges[-1][1] == date(2026, 8, 28)
+    assert all((end - start).days <= 30 for start, end in requested_ranges)
+    assert all(
+        current_start == previous_end + timedelta(days=1)
+        for (_previous_start, previous_end), (current_start, _current_end) in zip(
+            requested_ranges,
+            requested_ranges[1:],
+            strict=False,
+        )
+    )
+    assert len(scalars) == len(requested_ranges) * 3
+
+
+def test_futures_warrant_saturated_range_is_split_until_every_date_is_visible() -> None:
+    def capped_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        params = payload["params"]
+        start = str(params["start_date"])
+        end = str(params["end_date"])
+        if start != end:
+            row = {
+                "trade_date": start,
+                "symbol": "PTA",
+                "warehouse": "郑州商品交易所",
+                "pre_vol": None,
+                "vol": 800,
+                "vol_chg": None,
+                "unit": "张",
+                "exchange": "CZCE",
+            }
+            return response([row] * 1_200)
+        return response(
+            [
+                {
+                    "trade_date": start,
+                    "symbol": "PTA",
+                    "warehouse": "郑州商品交易所",
+                    "pre_vol": None,
+                    "vol": 800,
+                    "vol_chg": None,
+                    "unit": "张",
+                    "exchange": "CZCE",
+                }
+            ]
+        )
+
+    adapter = TushareContextAdapter("fixture-token", transport=capped_transport)
+
+    scalars = adapter.futures_warrants(
+        start_date=date(2026, 8, 27),
+        end_date=date(2026, 8, 28),
+        symbol="TA",
+    )
+
+    assert {(item.period_end, item.source_field) for item in scalars} == {
+        ("2026-08-27", "vol"),
+        ("2026-08-28", "vol"),
+    }
+    assert adapter.network_requests == 3
+
+
 def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy() -> None:
     adapter = TushareContextAdapter(
         "fixture-token",
@@ -315,13 +402,19 @@ def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy
         for measure in ("nominal_ytd_level", "real_quarter_yoy")
     }
     total_level = next(
-        item for item in scalars if item.dimensions == {
+        item
+        for item in scalars
+        if item.dimensions
+        == {
             "aggregate": "total",
             "measure": "nominal_ytd_level",
         }
     )
     total_yoy = next(
-        item for item in scalars if item.dimensions == {
+        item
+        for item in scalars
+        if item.dimensions
+        == {
             "aggregate": "total",
             "measure": "real_quarter_yoy",
         }
@@ -341,13 +434,7 @@ def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy
 def test_treasury_contract_uses_nominal_two_and_ten_year_yields() -> None:
     adapter = TushareContextAdapter(
         "fixture-token",
-        transport=transport(
-            {
-                "us_tycr": response(
-                    [{"date": "20260828", "y2": 3.62, "y10": 4.23}]
-                )
-            }
-        ),
+        transport=transport({"us_tycr": response([{"date": "20260828", "y2": 3.62, "y10": 4.23}])}),
     )
 
     scalars = adapter.treasury_yields(
@@ -363,6 +450,184 @@ def test_treasury_contract_uses_nominal_two_and_ten_year_yields() -> None:
         ("UST10Y_NOMINAL_YIELD", "us_tycr", "y10", 4.23, "percent"),
     }
     assert {item.period_kind for item in scalars} == {"business_day"}
+
+
+def test_market_index_margin_and_valuation_contracts_preserve_identity_and_units(
+    tmp_path: Path,
+) -> None:
+    def market_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        api_name = str(payload["api_name"])
+        params = payload["params"]
+        if api_name in {"index_daily", "fut_index_daily"}:
+            source_code = str(params["ts_code"])
+            return response(
+                [
+                    {
+                        "ts_code": source_code,
+                        "trade_date": "20260828",
+                        "close": 1234.5,
+                    }
+                ]
+            )
+        if api_name == "margin":
+            return response(
+                [
+                    {
+                        "trade_date": "20260828",
+                        "exchange_id": exchange,
+                        "rzye": balance,
+                        "rzmre": buy_amount,
+                    }
+                    for exchange, balance, buy_amount in (
+                        ("SSE", 100_000_000.0, 10_000_000.0),
+                        ("SZSE", 200_000_000.0, 20_000_000.0),
+                        ("BSE", 50_000_000.0, 5_000_000.0),
+                    )
+                ]
+            )
+        assert api_name == "index_dailybasic"
+        return response(
+            [
+                {
+                    "ts_code": str(params["ts_code"]),
+                    "trade_date": "20260828",
+                    "turnover_rate": 0.5,
+                    "pe": 15.0,
+                    "pb": 1.5,
+                }
+            ]
+        )
+
+    adapter = TushareContextAdapter("fixture-token", transport=market_transport)
+    target = date(2026, 8, 28)
+
+    indices = adapter.market_indices(start_date=target, end_date=target)
+    margin = adapter.margin_financing(start_date=target, end_date=target)
+    valuation = adapter.index_valuation(start_date=target, end_date=target)
+
+    assert {item.metric_id for item in indices} == {
+        "CN_EQ_CSI300",
+        "CN_EQ_CSI500",
+        "CN_EQ_CSI1000",
+        "CN_BOND_FULL_PRICE_CNY030",
+        "CN_BOND_10Y_930916",
+        "CN_COMMODITY_BROAD_NHCI",
+    }
+    assert {item.unit for item in indices} == {"index_points"}
+    assert {(item.dimensions["measure"], item.value, item.unit) for item in margin} == {
+        ("financing_balance", 3.5, "hundred_million_cny"),
+        ("financing_buy_amount", 0.35, "hundred_million_cny"),
+    }
+    assert len(valuation) == 9
+    assert {item.unit for item in valuation} == {"multiple", "percent"}
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    with pytest.raises(ValueError, match="source_certification_contract_unresolved"):
+        ingest_context_scalars(
+            paths,
+            indices,
+            fetched_at=datetime(2026, 8, 28, 8, tzinfo=UTC),
+            definition_version="metric-catalog-v0003",
+        )
+
+
+def test_market_breadth_uses_hidden_preheat_and_emits_only_requested_output_days() -> None:
+    trading_days = ["20260825", "20260826", "20260827", "20260828"]
+
+    def breadth_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        api_name = str(payload["api_name"])
+        if api_name == "trade_cal":
+            return response(
+                [{"cal_date": trading_day, "is_open": 1} for trading_day in trading_days]
+            )
+        assert api_name == "daily"
+        trading_day = str(payload["params"]["trade_date"])
+        index = trading_days.index(trading_day)
+        first_change = (1.0, 1.0, 1.0, -1.0)[index]
+        return response(
+            [
+                {
+                    "ts_code": "000001.SZ",
+                    "trade_date": trading_day,
+                    "pct_chg": first_change,
+                    "amount": 200.0,
+                },
+                {
+                    "ts_code": "600000.SH",
+                    "trade_date": trading_day,
+                    "pct_chg": -first_change,
+                    "amount": 100.0,
+                },
+            ]
+        )
+
+    adapter = TushareContextAdapter("fixture-token", transport=breadth_transport)
+    scalars = adapter.market_breadth(
+        start_date=date(2026, 8, 25),
+        end_date=date(2026, 8, 28),
+        window_days=3,
+        output_days=2,
+    )
+
+    assert len(scalars) == 18
+    assert {item.period_end for item in scalars} == {"2026-08-27", "2026-08-28"}
+    day_three = [item for item in scalars if item.period_end == "2026-08-27"]
+    assert (
+        next(
+            item.value
+            for item in day_three
+            if item.metric_id == "CN_EQ_NEW_HIGH_LOW_120"
+            and item.dimensions["measure"] == "new_highs"
+        )
+        == 1.0
+    )
+    assert next(item.value for item in day_three if item.metric_id == "CN_EQ_ABOVE_MA120") == 50.0
+
+
+def test_commodity_basket_freezes_sleeves_weights_and_output_window() -> None:
+    def futures_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        assert payload["api_name"] == "fut_daily"
+        source_code = str(payload["params"]["ts_code"])
+        return response(
+            [
+                {
+                    "ts_code": source_code,
+                    "trade_date": "20260827",
+                    "close": 101.0,
+                    "pre_close": 100.0,
+                },
+                {
+                    "ts_code": source_code,
+                    "trade_date": "20260828",
+                    "close": 102.0,
+                    "pre_close": 100.0,
+                },
+            ]
+        )
+
+    adapter = TushareContextAdapter("fixture-token", transport=futures_transport)
+    scalars = adapter.commodity_basket(
+        start_date=date(2026, 8, 27),
+        end_date=date(2026, 8, 28),
+        output_days=2,
+    )
+
+    assert len(scalars) == 16
+    basket = [item for item in scalars if item.metric_id == "CN_COMMODITY_EX_HOG_BASKET"]
+    assert [round(item.value, 6) for item in basket] == [1010.0, 1030.2]
+    contributions = [
+        item for item in scalars if item.metric_id == "CN_COMMODITY_SLEEVE_CONTRIBUTION"
+    ]
+    assert {item.dimensions["sleeve"] for item in contributions} == {
+        "copper",
+        "rebar",
+        "polypropylene",
+        "textiles",
+        "rubber",
+        "pulp",
+        "crude_oil",
+    }
 
 
 def test_candidate_context_uses_first_valid_fetch_as_conservative_public_availability(
@@ -420,11 +685,9 @@ def test_candidate_context_uses_first_valid_fetch_as_conservative_public_availab
     assert result.observation_count == 8
     assert len(system_series) == 4
     assert len(public_series) == 4
-    assert {
-        claim.public_available_at
-        for point in public_series
-        for claim in point.claims
-    } == {fetched_at}
+    assert {claim.public_available_at for point in public_series for claim in point.claims} == {
+        fetched_at
+    }
     assert {row["freshness"] for row in pmi_rows if row["metric_id"] == "CN_PMI_ACTIVITY"} == {
         "awaiting_source_certification"
     }
@@ -459,6 +722,105 @@ def test_candidate_context_repeat_ingest_preserves_first_public_bound(
     )
 
     assert trace.claims[0].public_available_at == first_fetch
+
+
+def test_candidate_context_same_value_repairs_explicit_source_schedule(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    scalar = ContextScalar(
+        metric_id="CN_EQUITY_CORE_000985",
+        api_name="index_daily",
+        source_field="close",
+        period_kind="day",
+        period_start="2026-08-28",
+        period_end="2026-08-28",
+        dimensions={},
+        value=4450.1,
+        unit="index_points",
+    )
+    first_fetch = datetime(2026, 8, 31, 4, tzinfo=UTC)
+    scheduled_publication = datetime(2026, 8, 28, 7, 30, tzinfo=UTC)
+
+    first = ingest_context_scalars(
+        paths,
+        (scalar,),
+        fetched_at=first_fetch,
+        definition_version="metric-catalog-v0003",
+    )
+    repaired = ingest_context_scalars(
+        paths,
+        (
+            replace(
+                scalar,
+                release_at=scheduled_publication,
+                public_available_at=scheduled_publication,
+            ),
+        ),
+        fetched_at=first_fetch + timedelta(minutes=1),
+        definition_version="metric-catalog-v0003",
+    )
+    repository = EvidenceRepository(paths.database)
+    repaired_trace = repository.trace(
+        repaired.observation_ids[0],
+        mode=AsOfMode.PUBLIC,
+        as_of=scheduled_publication,
+    )
+
+    assert repaired.observation_ids == first.observation_ids
+    assert repository.claim_count(first.observation_ids[0]) == 2
+    assert repaired_trace.selected_value == 4450.1
+    assert repaired_trace.claims[-1].public_available_at == scheduled_publication
+    assert repaired_trace.claims[-1].supersedes_claim_id == first.claim_ids[0]
+
+
+def test_explicit_source_schedule_does_not_reuse_conflicting_period_event(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    first_fetch = datetime(2026, 8, 31, 4, tzinfo=UTC)
+    period = "2026-03-31"
+    unscheduled = ContextScalar(
+        metric_id="CN_FUTURES_WARRANTS",
+        api_name="fut_wsr",
+        source_field="vol",
+        period_kind="business_day",
+        period_start=period,
+        period_end=period,
+        dimensions={
+            "symbol": "CU",
+            "warehouse": "warehouse-a",
+            "exchange": "SHFE",
+            "measure": "registered_receipts",
+        },
+        value=100.0,
+        unit="tonne",
+    )
+    scheduled_publication = datetime(2026, 4, 1, 0, tzinfo=UTC)
+    scheduled = replace(
+        unscheduled,
+        dimensions={**unscheduled.dimensions, "warehouse": "warehouse-b"},
+        value=200.0,
+        release_at=scheduled_publication,
+        public_available_at=scheduled_publication,
+    )
+    ingest_context_scalars(paths, (unscheduled,), fetched_at=first_fetch)
+
+    result = ingest_context_scalars(
+        paths,
+        (scheduled,),
+        fetched_at=first_fetch + timedelta(minutes=1),
+    )
+    trace = EvidenceRepository(paths.database).trace(
+        result.observation_ids[0],
+        mode=AsOfMode.PUBLIC,
+        as_of=scheduled_publication,
+    )
+
+    assert result.observation_count == 1
+    assert trace.claims[0].public_available_at == scheduled_publication
 
 
 def test_candidate_context_same_value_can_move_to_a_new_definition_version(

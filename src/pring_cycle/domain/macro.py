@@ -12,6 +12,7 @@ class EvidenceSignal:
     role: str
     freshness: str
     conflict: bool
+    period_start: str | None = None
     period: str | None = None
     available_at: str | None = None
     selected_claim_id: str | None = None
@@ -189,10 +190,10 @@ def _signature_card(
         status = "conflict"
     elif any(item.freshness == "awaiting_release" for item in matching):
         status = "awaiting_release"
+    elif any(item.freshness == "current" for item in matching):
+        status = "support"
     elif any(item.freshness == "stale" for item in matching):
         status = "stale"
-    elif quadrant is not None and matching:
-        status = "support"
     else:
         status = "missing"
     return SignatureCard(name, status, evidence_ids)

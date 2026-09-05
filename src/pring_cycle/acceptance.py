@@ -137,6 +137,7 @@ def run_v1_acceptance(
         performance = _performance_gates(
             paths,
             projection,
+            scratch_root=root,
             suite_started=started,
             daily_projection_seconds=daily_projection_seconds,
             include_process_probe=include_process_probe,
@@ -264,6 +265,7 @@ def _performance_gates(
     paths: RuntimePaths,
     projection: ProjectionSet,
     *,
+    scratch_root: Path,
     suite_started: float,
     daily_projection_seconds: float,
     include_process_probe: bool,
@@ -307,7 +309,7 @@ def _performance_gates(
         cold_start_seconds = application_boot_ms / 1000
         idle_rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
 
-    command_database = paths.cache / "acceptance-command.sqlite3"
+    command_database = scratch_root / "acceptance-command.sqlite3"
     command_repository = RunRepository.create(command_database)
     command_started = time.perf_counter()
     command_repository.submit_manual_full(
@@ -738,6 +740,7 @@ def _bundle() -> EvidenceBundle:
         model_version_id="model-v0001",
         trend_rule_version="trend-v0001",
         current_stage="stage_ii",
+        stage_reason="canonical_combination",
         core_states={"bond": "bull", "stock": "bull", "commodity": "bear"},
         allowed_evidence_ids=("obs-core",),
         allowed_governance_refs=("ADR-0003",),

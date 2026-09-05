@@ -4,9 +4,11 @@ import pytest
 
 from pring_cycle.catalog import (
     METRIC_CATALOG_V0001,
+    METRIC_CATALOG_V0003,
     METRIC_CATALOG_VERSION,
     metric_catalog,
     metric_catalog_v0001,
+    metric_catalog_v0003,
     metric_definition,
 )
 
@@ -102,3 +104,44 @@ def test_contract_and_derived_metric_identities_preserve_required_semantics() ->
 def test_unknown_or_synonym_metric_ids_are_rejected() -> None:
     with pytest.raises(KeyError, match="unknown_metric_id"):
         metric_definition("CPI")
+
+
+def test_v3_catalog_certifies_all_p1_and_freezes_market_delivery_semantics() -> None:
+    catalog = metric_catalog_v0003()
+    p1 = [item for item in catalog if item.priority == "P1"]
+
+    assert METRIC_CATALOG_V0003 == "metric-catalog-v0003"
+    assert len(p1) == 42
+    assert {item.certification_status for item in p1} == {
+        "certified",
+        "derived_from_certified_inputs",
+    }
+    assert {
+        metric_definition(metric_id, definition_version=METRIC_CATALOG_V0003)
+        .certification_status
+        for metric_id in (
+            "CN_EQUITY_CORE_000985",
+            "CN_BOND_CORE_000012",
+            "CN_COMMODITY_CORE_NHII",
+        )
+    } == {"certified"}
+    assert metric_definition(
+        "CN_MARGIN_BALANCE",
+        definition_version=METRIC_CATALOG_V0003,
+    ).allowed_units == ("hundred_million_cny",)
+    assert metric_definition(
+        "CN_INDEX_VALUATION",
+        definition_version=METRIC_CATALOG_V0003,
+    ).dimensions == ("index", "measure")
+    assert metric_definition(
+        "CN_EQ_NEW_HIGH_LOW_120",
+        definition_version=METRIC_CATALOG_V0003,
+    ).source_codes == ("tushare:daily:breadth-v0001",)
+    assert metric_definition(
+        "CN_INDUSTRIAL_VA",
+        definition_version=METRIC_CATALOG_V0003,
+    ).allowed_units == ("percent",)
+    assert metric_definition(
+        "CN_COMMODITY_BROAD_NHCI",
+        definition_version=METRIC_CATALOG_V0003,
+    ).dimensions == ("source_code",)

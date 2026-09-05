@@ -9,7 +9,11 @@ from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition, metric_definition
-from pring_cycle.context_projection import ContextProjectionRules, build_context_projection
+from pring_cycle.context_projection import (
+    ContextProjection,
+    ContextProjectionRules,
+    build_context_projection,
+)
 from pring_cycle.domain import FormalStage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
 from pring_cycle.eia_context import (
@@ -25,6 +29,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
+from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS, evidence_frequency
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -45,6 +50,7 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
+from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, record_worker_heartbeat
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
@@ -209,6 +215,7 @@ def _execute_run(
             runs.mark_action_required(run.run_id, "model_version_not_active")
             return
     model_manifest = ModelRepository(paths.database).manifest(run.model_version_id)
+    require_model_source_contract(model_manifest)
     model_rules = ContextProjectionRules.from_manifest(model_manifest)
     definition_version = model_rules.metric_catalog_version
     runs.advance(run.run_id, "preflight")
@@ -294,6 +301,15 @@ def _execute_run(
         EvidenceRepository(paths.database),
         as_of=run.system_as_of,
         model_manifest=model_manifest,
+        target_business_date=run.target_business_date,
+        visible_evidence_start=max(
+            (
+                item.evidence_window_start
+                for item in readiness
+                if item.evidence_window_start is not None
+            ),
+            default=None,
+        ),
     )
     release_calendar_events = _release_calendar_documents(
         paths,
@@ -302,7 +318,7 @@ def _execute_run(
     )
     runs.advance(run.run_id, "building_projection")
     runs.advance(run.run_id, "publishing_projection")
-    last_stage = _last_confirmed_stage(paths)
+    last_stage = _last_confirmed_stage(paths, run.target_business_date)
     observation_versions = tuple(
         version_id
         for item in readiness
@@ -336,6 +352,7 @@ def _execute_run(
                     paths,
                     run,
                     definitions=model_rules.metric_definitions,
+                    context=context,
                 )
                 + context.warnings
             )
@@ -353,7 +370,7 @@ def _execute_run(
             verified=True,
         )
     if result.status != "published" or result.projection_set_id is None:
-        runs.mark_action_required(run.run_id, "p0_unavailable")
+        runs.mark_action_required(run.run_id, result.stage_reason)
         return
     runs.link_projection(run.run_id, result.projection_set_id)
     run = runs.get(run.run_id)
@@ -702,7 +719,14 @@ def _release_calendar_documents(
     events = lpr_release_calendar(
         EvidenceRepository(paths.database),
         period=run.target_business_date[:7],
-        as_of=run.system_as_of,
+        as_of=min(
+            run.system_as_of,
+            datetime.combine(
+                date.fromisoformat(run.target_business_date),
+                time.max,
+                tzinfo=run.system_as_of.tzinfo,
+            ),
+        ),
         definition_version=definition_version,
     )
     return tuple(
@@ -724,11 +748,15 @@ def _core_readiness(
     evidence = EvidenceRepository(paths.database)
     results = []
     for asset, metric_id in CORE_METRICS.items():
-        series = evidence.metric_series(
-            metric_id,
-            mode=AsOfMode.SYSTEM,
-            as_of=run.system_as_of,
-            definition_version=definition_version,
+        series = tuple(
+            point
+            for point in evidence.metric_series(
+                metric_id,
+                mode=AsOfMode.SYSTEM,
+                as_of=run.system_as_of,
+                definition_version=definition_version,
+            )
+            if point.period_end <= run.target_business_date
         )
         reason = "validated"
         state = None
@@ -771,16 +799,18 @@ def _core_readiness(
             if state is None:
                 reason = trend.reason
         results.append(
+            # The full preheat series remains an internal trend input. Only the
+            # latest 120 observations may enter the page/report projection.
             CoreAssetReadiness(
                 asset=asset,
                 metric_id=metric_id,
                 state=state,
                 reason=reason,
-                observation_count=len(series),
+                observation_count=len(series[-120:]),
                 latest_business_date=series[-1].period_end if series else None,
                 observation_version_ids=tuple(
                     item.selected_claim_id
-                    for item in series
+                    for item in series[-120:]
                     if item.selected_claim_id is not None
                 ),
                 evidence_window_start=series[-120].period_end if len(series) >= 120 else None,
@@ -839,40 +869,274 @@ def _explanatory_evidence_warnings(
     run: RunRecord,
     *,
     definitions: tuple[MetricDefinition, ...],
+    context: ContextProjection,
 ) -> tuple[str, ...]:
     evidence = EvidenceRepository(paths.database)
+    context_statuses = _context_metric_statuses(context)
+    target_trading_days = _target_trading_days(
+        evidence,
+        run,
+        definition_version=(definitions[0].definition_version if definitions else ""),
+    )
     warnings: list[str] = []
     for priority in ("P1", "P2"):
         priority_definitions = [item for item in definitions if item.priority == priority]
         available = 0
         for definition in priority_definitions:
+            statuses = context_statuses.get(definition.metric_id)
+            if definition.certification_status == "derived_from_certified_inputs":
+                if statuses is not None and "current" in statuses:
+                    available += 1
+                continue
+            if definition.certification_status != "certified":
+                continue
+            if (
+                definition.frequency == "event"
+                and statuses == {"no_event_in_visible_window"}
+            ):
+                available += 1
+                continue
+            if not _context_status_allows_direct_metric(definition, statuses):
+                continue
             series = evidence.metric_series(
                 definition.metric_id,
                 mode=AsOfMode.SYSTEM,
                 as_of=run.system_as_of,
+                public_as_of=datetime.combine(
+                    date.fromisoformat(run.target_business_date),
+                    time.max,
+                    tzinfo=ZoneInfo("Asia/Shanghai"),
+                ),
                 definition_version=definition.definition_version,
             )
-            if series and series[-1].selection_status == "selected":
-                selected = next(
-                    (
-                        claim
-                        for claim in series[-1].claims
-                        if claim.claim_id == series[-1].selected_claim_id
-                    ),
-                    None,
-                )
-                if (
-                    selected is not None
-                    and selected.certification_status == "certified"
-                    and selected.quality_status == "validated"
-                ):
-                    available += 1
+            series = tuple(
+                point
+                for point in series
+                if _point_known_by_target(point, run.target_business_date)
+            )
+            if _direct_metric_is_ready(
+                series,
+                definition,
+                target_business_date=run.target_business_date,
+                target_trading_days=target_trading_days,
+            ):
+                available += 1
         if available != len(priority_definitions):
             warnings.append(
                 f"{priority.lower()}_evidence_incomplete:"
                 f"{available}/{len(priority_definitions)}"
             )
     return tuple(warnings)
+
+
+def _context_status_allows_direct_metric(
+    definition: MetricDefinition,
+    statuses: set[str] | None,
+) -> bool:
+    if statuses is None:
+        return True
+    if statuses == {"current"}:
+        return True
+    return bool(
+        definition.metric_id == "CN_FUTURES_WARRANTS"
+        and "current" in statuses
+        and statuses <= {"current", "stale"}
+    )
+
+
+def _target_trading_days(
+    evidence: EvidenceRepository,
+    run: RunRecord,
+    *,
+    definition_version: str,
+) -> tuple[str, ...]:
+    if not definition_version:
+        return ()
+    points = evidence.metric_series(
+        CORE_METRICS["stock"],
+        mode=AsOfMode.SYSTEM,
+        as_of=run.system_as_of,
+        public_as_of=datetime.combine(
+            date.fromisoformat(run.target_business_date),
+            time.max,
+            tzinfo=ZoneInfo("Asia/Shanghai"),
+        ),
+        definition_version=definition_version,
+    )
+    days = sorted(
+        {
+            point.period_end
+            for point in points
+            if point.period_end <= run.target_business_date
+            and _point_has_certified_value(point)
+        }
+    )
+    if len(days) < 120 or days[-1] != run.target_business_date:
+        return ()
+    return tuple(days[-120:])
+
+
+def _direct_metric_is_ready(
+    series: tuple[MetricSeriesPoint, ...],
+    definition: MetricDefinition,
+    *,
+    target_business_date: str,
+    target_trading_days: tuple[str, ...],
+) -> bool:
+    effective_frequency = evidence_frequency(definition.metric_id, definition.frequency)
+    if not series:
+        return False
+    latest_by_dimensions: dict[tuple[tuple[str, str], ...], MetricSeriesPoint] = {}
+    for point in series:
+        key = tuple(sorted(point.dimensions.items()))
+        previous = latest_by_dimensions.get(key)
+        if previous is None or point.period_end > previous.period_end:
+            latest_by_dimensions[key] = point
+    current_points = tuple(latest_by_dimensions.values())
+    required_members = REQUIRED_DIMENSION_MEMBERS.get(definition.metric_id, ())
+    validation_points: list[MetricSeriesPoint] = []
+    if required_members and definition.metric_id == "CN_FUTURES_WARRANTS":
+        for required in required_members:
+            matching = [
+                point
+                for point in current_points
+                if _dimensions_include(point.dimensions, required)
+            ]
+            if not matching:
+                return False
+            latest_period = max(point.period_end for point in matching)
+            validation_points.extend(
+                point for point in matching if point.period_end == latest_period
+            )
+    else:
+        latest_period = max(point.period_end for point in current_points)
+        validation_points = [
+            point for point in current_points if point.period_end == latest_period
+        ]
+        if any(
+            not any(_dimensions_include(point.dimensions, required) for point in validation_points)
+            for required in required_members
+        ):
+            return False
+        if required_members:
+            validation_points = [
+                point
+                for point in validation_points
+                if any(
+                    _dimensions_include(point.dimensions, required)
+                    for required in required_members
+                )
+            ]
+    if not validation_points or any(
+        not _point_has_certified_value(point)
+        or not _point_is_current_for_target(
+            point,
+            definition,
+            target_business_date=target_business_date,
+        )
+        for point in validation_points
+    ):
+        return False
+    if definition.priority != "P1" or effective_frequency != "daily":
+        return True
+    if len(target_trading_days) != 120:
+        return False
+    required_dates = set(target_trading_days)
+    minimum_observations = (len(required_dates) * 95 + 99) // 100
+    density_members = required_members or ({},)
+    for required in density_members:
+        observed = {
+            point.period_end
+            for point in series
+            if point.period_end in required_dates
+            and _dimensions_include(point.dimensions, required)
+            and _point_has_certified_value(point)
+        }
+        if len(observed) < minimum_observations:
+            return False
+    return True
+
+
+def _dimensions_include(dimensions: dict[str, str], required: dict[str, str]) -> bool:
+    return all(dimensions.get(key) == value for key, value in required.items())
+
+
+def _point_has_certified_value(point: MetricSeriesPoint) -> bool:
+    if (
+        point.selection_status != "selected"
+        or point.selected_claim_id is None
+        or point.value_state is not EvidenceValueState.REPORTED_VALUE
+        or point.selected_value is None
+    ):
+        return False
+    selected = next(
+        (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
+        None,
+    )
+    return bool(
+        selected is not None
+        and selected.certification_status == "certified"
+        and selected.quality_status == "validated"
+    )
+
+
+def _context_metric_statuses(context: ContextProjection) -> dict[str, set[str]]:
+    statuses: dict[str, set[str]] = {}
+
+    def visit(value: object) -> None:
+        if isinstance(value, dict):
+            metric_id = value.get("metric_id")
+            status = value.get("status") or value.get("freshness")
+            if isinstance(metric_id, str) and isinstance(status, str):
+                statuses.setdefault(metric_id, set()).add(status)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, (list, tuple)):
+            for child in value:
+                visit(child)
+
+    visit(context.macro)
+    visit(context.inventory)
+    return statuses
+
+
+def _point_is_current_for_target(
+    point: MetricSeriesPoint,
+    definition: MetricDefinition,
+    *,
+    target_business_date: str,
+) -> bool:
+    effective_frequency = evidence_frequency(definition.metric_id, definition.frequency)
+    target = date.fromisoformat(target_business_date)
+    period = date.fromisoformat(point.period_end)
+    if period > target:
+        if effective_frequency == "daily":
+            return False
+        if not _point_known_by_target(point, target_business_date):
+            return False
+    max_age = {
+        "daily": 10,
+        "monthly": 95,
+        "quarterly": 190,
+        "event": 730 if definition.metric_id == "CN_RRR_EVENT" else 370,
+    }.get(effective_frequency, 95)
+    return (target - min(target, period)).days <= max_age
+
+
+def _point_known_by_target(point: MetricSeriesPoint, target_business_date: str) -> bool:
+    target = date.fromisoformat(target_business_date)
+    if date.fromisoformat(point.period_start) > target:
+        return False
+    selected = next(
+        (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
+        None,
+    )
+    return (
+        selected is not None
+        and selected.public_available_at is not None
+        and selected.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+        <= target
+    )
 
 
 def _context_adapter(token: str) -> TushareContextAdapter:
@@ -897,7 +1161,7 @@ def _refresh_context_sources(
         repository = EvidenceRepository(paths.database)
         try:
             prices = _eia_context_adapter(eia_key).spot_prices(
-                start_date=target - timedelta(days=45),
+                start_date=target - timedelta(days=220),
                 end_date=target,
             )
             ingest_eia_spot_prices(
@@ -907,15 +1171,22 @@ def _refresh_context_sources(
                 definition_version=definition_version,
             )
         except (OSError, TypeError, ValueError) as error:
+            if isinstance(error, OSError):
+                outcome = "source_failed"
+            elif isinstance(error, TypeError):
+                outcome = "adapter_failed"
+            else:
+                outcome = "validation_failed"
             for metric_id in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
                 repository.record_retrieval_attempt(
                     metric_id=metric_id,
                     channel="eia_official_candidate",
-                    outcome="source_failed",
+                    outcome=outcome,
                     fetched_at=fetched_at,
                     safe_metadata={
                         "error_type": type(error).__name__,
                         "family": "spot_prices",
+                        "period": target_business_date,
                         "target_business_date": target_business_date,
                     },
                 )
@@ -927,6 +1198,8 @@ def _refresh_context_sources(
     end_month = target.strftime("%Y%m")
     target_quarter = f"{target.year}Q{(target.month - 1) // 3 + 1}"
     start_quarter = f"{target.year - 2}Q{(target.month - 1) // 3 + 1}"
+    daily_start = target - timedelta(days=220)
+    breadth_start = target - timedelta(days=420)
     adapter = _context_adapter(token)
     families: tuple[
         tuple[
@@ -936,6 +1209,50 @@ def _refresh_context_sources(
         ],
         ...,
     ] = (
+        (
+            "market_indices",
+            (
+                "CN_EQ_CSI300",
+                "CN_EQ_CSI500",
+                "CN_EQ_CSI1000",
+                "CN_BOND_FULL_PRICE_CNY030",
+                "CN_BOND_10Y_930916",
+                "CN_COMMODITY_BROAD_NHCI",
+            ),
+            lambda: adapter.market_indices(start_date=daily_start, end_date=target),
+        ),
+        (
+            "market_breadth",
+            (
+                "CN_EQ_ADV_DEC",
+                "CN_EQ_AD_RATIO",
+                "CN_EQ_NEW_HIGH_LOW_120",
+                "CN_EQ_ABOVE_MA120",
+                "CN_EQ_ADV_AMOUNT_SHARE",
+            ),
+            lambda: adapter.market_breadth(
+                start_date=breadth_start,
+                end_date=target,
+            ),
+        ),
+        (
+            "margin_financing",
+            ("CN_MARGIN_BALANCE",),
+            lambda: adapter.margin_financing(start_date=daily_start, end_date=target),
+        ),
+        (
+            "index_valuation",
+            ("CN_INDEX_VALUATION",),
+            lambda: adapter.index_valuation(start_date=daily_start, end_date=target),
+        ),
+        (
+            "commodity_basket",
+            (
+                "CN_COMMODITY_EX_HOG_BASKET",
+                "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+            ),
+            lambda: adapter.commodity_basket(start_date=daily_start, end_date=target),
+        ),
         (
             "pmi",
             ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
@@ -966,7 +1283,7 @@ def _refresh_context_sources(
                 scalar
                 for symbol in sorted(WARRANT_SYMBOLS)
                 for scalar in adapter.futures_warrants(
-                    start_date=target,
+                    start_date=daily_start,
                     end_date=target,
                     symbol=symbol,
                 )
@@ -984,7 +1301,7 @@ def _refresh_context_sources(
             "treasury_yields",
             ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
             lambda: adapter.treasury_yields(
-                start_date=target - timedelta(days=45),
+                start_date=daily_start,
                 end_date=target,
             ),
         ),
@@ -992,7 +1309,7 @@ def _refresh_context_sources(
             "transmission",
             ("CN_DR007", "CN_SHIBOR_ON_1W_3M"),
             lambda: adapter.transmission(
-                start_date=target - timedelta(days=45),
+                start_date=daily_start,
                 end_date=target,
             ),
         ),
@@ -1007,7 +1324,7 @@ def _refresh_context_sources(
                 fetched_at=fetched_at,
                 definition_version=definition_version,
             )
-        except (OSError, TypeError, ValueError) as error:
+        except OSError as error:
             for metric_id in metric_ids:
                 repository.record_retrieval_attempt(
                     metric_id=metric_id,
@@ -1017,9 +1334,26 @@ def _refresh_context_sources(
                     safe_metadata={
                         "error_type": type(error).__name__,
                         "family": family,
+                        "period": target_business_date,
                         "target_business_date": target_business_date,
                     },
                 )
+        except (TypeError, ValueError) as error:
+            outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
+            for metric_id in metric_ids:
+                repository.record_retrieval_attempt(
+                    metric_id=metric_id,
+                    channel="tushare",
+                    outcome=outcome,
+                    fetched_at=fetched_at,
+                    safe_metadata={
+                        "error_type": type(error).__name__,
+                        "family": family,
+                        "period": target_business_date,
+                        "target_business_date": target_business_date,
+                    },
+                )
+            raise
 
 
 def _scheduled_p0_deadline_elapsed(
@@ -1128,12 +1462,13 @@ def _refresh_core_sources(
         )
 
 
-def _last_confirmed_stage(paths: RuntimePaths) -> FormalStage | None:
-    try:
-        overview = ProjectionSetRepository(paths.database).current().datasets["cycle_overview"]
-    except LookupError:
-        return None
-    value = overview.get("current_stage") or overview.get("last_confirmed_stage")
+def _last_confirmed_stage(
+    paths: RuntimePaths,
+    target_business_date: str,
+) -> FormalStage | None:
+    value = ProjectionSetRepository(paths.database).last_confirmed_stage(
+        on_or_before=target_business_date
+    )
     return FormalStage(str(value)) if value is not None else None
 
 
