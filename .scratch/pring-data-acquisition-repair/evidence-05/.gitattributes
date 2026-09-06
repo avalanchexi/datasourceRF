@@ -1,3 +1,4 @@
 # Preserve actual source bytes and imported CAS fingerprints.
 * -text
 *.html -diff
+*.json -diff
