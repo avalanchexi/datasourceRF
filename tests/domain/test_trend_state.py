@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+import pytest
+
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.trend import (
     PricePoint,
@@ -48,6 +50,54 @@ def test_30_day_candidate_and_12_month_proxy_do_not_vote_in_formal_state() -> No
     assert result.candidate_30d is CoreAssetState.BULL
     assert result.proxy_12m is None
     assert result.stable_state is CoreAssetState.BULL
+
+
+def test_pending_candidate_reports_seven_days_without_confirming_a_switch() -> None:
+    # MA2/slope1 with no noise: 102..109 confirm bull; 100..94 are
+    # exactly seven consecutive bear signals after that confirmed state.
+    values = [*range(100, 111), *range(100, 93, -1)]
+    points = [
+        PricePoint(date(2026, 1, 1) + timedelta(days=index), float(value))
+        for index, value in enumerate(values)
+    ]
+    result = evaluate_trend(
+        points,
+        TrendRules(window_days=2, slope_days=1, volatility_days=1, noise_multiplier=0),
+    )
+
+    assert result.stable_state is CoreAssetState.BULL
+    assert result.candidate_state is CoreAssetState.BEAR
+    assert result.candidate_days == 7
+
+
+@pytest.mark.parametrize(
+    ("tail", "stable", "candidate", "days"),
+    [
+        ([], CoreAssetState.BULL, None, 0),
+        ([100, 99, 98, 97, 96, 95, 94, 93], CoreAssetState.BEAR, None, 0),
+        # 100 after 99 makes MA2 flat; 98 starts a new bear candidate.
+        ([100, 99, 100, 98], CoreAssetState.BULL, CoreAssetState.BEAR, 1),
+        ([100, 99, 100, 101], CoreAssetState.BULL, None, 0),
+        # After confirmation at 93, 94 is flat and 95 starts a bull candidate.
+        ([100, 99, 98, 97, 96, 95, 94, 93, 94, 95], CoreAssetState.BEAR, CoreAssetState.BULL, 1),
+    ],
+)
+def test_candidate_confirmation_interruption_and_reversal_use_actual_days(
+    tail: list[int], stable: CoreAssetState, candidate: CoreAssetState | None, days: int
+) -> None:
+    values = [*range(100, 111), *tail]
+    points = [
+        PricePoint(date(2026, 1, 1) + timedelta(days=index), float(value))
+        for index, value in enumerate(values)
+    ]
+    result = evaluate_trend(
+        points,
+        TrendRules(window_days=2, slope_days=1, volatility_days=1, noise_multiplier=0),
+    )
+
+    assert result.stable_state is stable
+    assert result.candidate_state is candidate
+    assert result.candidate_days == days
 
 
 def test_linear_trend_history_matches_every_prefix_evaluation() -> None:

@@ -1,0 +1,106 @@
+{
+  "implementation_base": "aeb6b412fcc16d2c94fbe7bd442966b16b8bf588",
+  "test_environment": "WSL Ubuntu-22.04, installed package, PYTHONPATH unset",
+  "runtime_isolation": "WSL native verification cache; no live runtime writes",
+  "checks": [
+    {
+      "command": [
+        "/home/tywin/.local/bin/uv",
+        "sync",
+        "--locked",
+        "--offline",
+        "--extra",
+        "dev",
+        "--no-editable",
+        "--reinstall-package",
+        "pring-cycle"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 3.2,
+      "stdout": "",
+      "stderr": "Resolved 55 packages in 62ms\n   Building pring-cycle @ file:///mnt/d/cursor/datasourceRF\n      Built pring-cycle @ file:///mnt/d/cursor/datasourceRF\nPrepared 1 package in 2.45s\nUninstalled 1 package in 12ms\nInstalled 1 package in 4ms\n ~ pring-cycle==0.1.0 (from file:///mnt/d/cursor/datasourceRF)\n"
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "src",
+        "tests",
+        ".scratch/pring-data-acquisition-repair/verification-01/reproduce_actual_duration.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.46,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.39,
+      "stdout": "Success: no issues found in 68 source files\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--basetemp=/home/tywin/.cache/pring-cycle/verification/repair-01-full"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 129.99,
+      "stdout": "........................................................................ [ 17%]\n........................................................................ [ 34%]\n........................................................................ [ 51%]\n........................................................................ [ 68%]\n........................................................................ [ 86%]\n..........................................................               [100%]\n418 passed in 128.39s (0:02:08)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        ".scratch/pring-data-acquisition-repair/verification-01/reproduce_actual_duration.py"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.67,
+      "stdout": "{\"passed\": true, \"receipt\": \"/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/verification-01/actual-duration.json\", \"assets_checked\": 3}\n",
+      "stderr": ""
+    }
+  ],
+  "post_suite_verification": {
+    "reason": "Added explicit REST route assertion to the already passing integration test; no application source changes",
+    "test_command": "python -m pytest tests/integration/test_candidate_duration.py -q --basetemp=/home/tywin/.cache/pring-cycle/verification/repair-01-api-final",
+    "test_result": "2 passed in 3.32s",
+    "lint_command": "python -m ruff check tests/integration/test_candidate_duration.py",
+    "lint_result": "All checks passed!",
+    "exit_codes": [
+      0,
+      0
+    ],
+    "recorded_from": "execution tool results"
+  },
+  "source_sha256": {
+    "src/pring_cycle/domain/trend.py": "6b89112ca198fc7952d389d1b6f7a08677a666d0a9b373374296a66ed5d4f134",
+    "src/pring_cycle/worker.py": "f937ca1755bd4f65070495d52008603cf1d341415bbee65ec429f6d0be423d16",
+    "src/pring_cycle/core_fixture.py": "753866e32817a3b4237d4610f5f81bb20aa9e544caf57820f6fcf90853786f83",
+    "tests/domain/test_trend_state.py": "5f4e9a41ad4e3713bdf44b3345ed7ac0647085142ab9141a43b63f08830a94d7",
+    "tests/integration/test_candidate_duration.py": "5ff95fade3383a594b3bc6860d8a7d75f5ca63777d7ee704a8d22ce5f474b46d"
+  },
+  "installed_source_identity": {
+    "pring_cycle.domain.trend": {
+      "installed_path": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/domain/trend.py",
+      "sha256": "6b89112ca198fc7952d389d1b6f7a08677a666d0a9b373374296a66ed5d4f134"
+    },
+    "pring_cycle.worker": {
+      "installed_path": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/worker.py",
+      "sha256": "f937ca1755bd4f65070495d52008603cf1d341415bbee65ec429f6d0be423d16"
+    },
+    "pring_cycle.core_fixture": {
+      "installed_path": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/core_fixture.py",
+      "sha256": "753866e32817a3b4237d4610f5f81bb20aa9e544caf57820f6fcf90853786f83"
+    }
+  }
+}

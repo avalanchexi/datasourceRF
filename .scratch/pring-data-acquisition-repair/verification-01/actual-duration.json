@@ -1,0 +1,93 @@
+{
+  "schema_version": "candidate-duration-forensic-check-v1",
+  "target_business_date": "2026-08-03",
+  "artifact_sha256": "0605b3d9a8f2a9eb196fd220a03f90cf31d0acb464430569ead89287702ab61b",
+  "evidence_kind": "retained_normalized_history_not_http_original_or_official_confirmation",
+  "network_requests": 0,
+  "production_writes": 0,
+  "old_rules": {
+    "window_days": 120,
+    "slope_days": 20,
+    "volatility_days": 20,
+    "noise_multiplier": 1.5,
+    "persistence_days": 8,
+    "candidate_window_days": 30,
+    "rule_version": "trend-v0001",
+    "candidate_duration_rule_version": "candidate-duration-v0001"
+  },
+  "new_rules": {
+    "window_days": 120,
+    "slope_days": 20,
+    "volatility_days": 20,
+    "noise_multiplier": 1.5,
+    "persistence_days": 8,
+    "candidate_window_days": 30,
+    "rule_version": "trend-v0001",
+    "candidate_duration_rule_version": "candidate-duration-v0002"
+  },
+  "results": {
+    "CN_BOND_CORE_000012": {
+      "input_rows": 2326,
+      "last_close": 229.5275,
+      "result": {
+        "stable_state": "bull",
+        "candidate_state": null,
+        "candidate_30d": "bull",
+        "proxy_12m": "bull",
+        "reason": "stable",
+        "persistence_days": 8,
+        "distance_pct": 1.046776410715844,
+        "slope_pct": 0.28711587546608186,
+        "noise_band_pct": 0.03713550086054726,
+        "rule_version": "trend-v0001",
+        "network_requests": 0,
+        "candidate_days": 0
+      },
+      "legacy_output_candidate_days": 8,
+      "new_output_candidate_days": 0,
+      "algorithm_result_unchanged": true
+    },
+    "CN_EQUITY_CORE_000985": {
+      "input_rows": 2326,
+      "last_close": 5652.5702,
+      "result": {
+        "stable_state": "bull",
+        "candidate_state": "bear",
+        "candidate_30d": "bear",
+        "proxy_12m": "bear",
+        "reason": "stable",
+        "persistence_days": 8,
+        "distance_pct": -9.02002174936083,
+        "slope_pct": -0.9870019445860301,
+        "noise_band_pct": 3.126391036505065,
+        "rule_version": "trend-v0001",
+        "network_requests": 0,
+        "candidate_days": 7
+      },
+      "legacy_output_candidate_days": 8,
+      "new_output_candidate_days": 7,
+      "algorithm_result_unchanged": true
+    },
+    "CN_COMMODITY_CORE_NHII": {
+      "input_rows": 2326,
+      "last_close": 3733.13,
+      "result": {
+        "stable_state": "bull",
+        "candidate_state": null,
+        "candidate_30d": "bear",
+        "proxy_12m": "bear",
+        "reason": "stable",
+        "persistence_days": 8,
+        "distance_pct": -5.795461344016594,
+        "slope_pct": 0.5801258252408736,
+        "noise_band_pct": 1.6381814691047087,
+        "rule_version": "trend-v0001",
+        "network_requests": 0,
+        "candidate_days": 0
+      },
+      "legacy_output_candidate_days": 8,
+      "new_output_candidate_days": 0,
+      "algorithm_result_unchanged": true
+    }
+  }
+}

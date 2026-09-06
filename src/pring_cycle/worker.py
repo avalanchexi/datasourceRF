@@ -790,7 +790,7 @@ def _core_readiness(
             trend = evaluate_trend(points, rules)
             state = trend.stable_state
             candidate_state = trend.candidate_state
-            candidate_days = trend.persistence_days
+            candidate_days = rules.candidate_days_for_output(trend)
             candidate_30d = trend.candidate_30d
             proxy_12m = trend.proxy_12m
             distance_pct = trend.distance_pct
@@ -839,6 +839,9 @@ def _trend_rules_for_model(paths: RuntimePaths, model_version_id: str) -> TrendR
             noise_multiplier=float(document["noise_multiplier"]),
             persistence_days=int(document["persistence_days"]),
             candidate_window_days=int(document["candidate_window_days"]),
+            candidate_duration_rule_version=str(
+                document.get("candidate_duration_rule_version", "candidate-duration-v0001")
+            ),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("model_trend_rules_invalid") from error

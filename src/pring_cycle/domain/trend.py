@@ -22,6 +22,15 @@ class TrendRules:
     persistence_days: int = 8
     candidate_window_days: int = 30
     rule_version: str = "trend-v0001"
+    candidate_duration_rule_version: str = "candidate-duration-v0001"
+
+    def candidate_days_for_output(self, result: TrendResult) -> int:
+        # Historical manifests retain their published duration semantics.
+        if self.candidate_duration_rule_version == "candidate-duration-v0001":
+            return result.persistence_days
+        if self.candidate_duration_rule_version == "candidate-duration-v0002":
+            return result.candidate_days
+        raise ValueError("candidate_duration_rule_version_unsupported")
 
 
 @dataclass(frozen=True)
@@ -37,6 +46,7 @@ class TrendResult:
     noise_band_pct: float | None
     rule_version: str
     network_requests: int = 0
+    candidate_days: int = 0
 
 
 @dataclass(frozen=True)
@@ -115,6 +125,7 @@ def evaluate_trend(points: list[PricePoint], rules: TrendRules) -> TrendResult:
         slope_pct=slope_pct,
         noise_band_pct=noise_band_pct,
         rule_version=rules.rule_version,
+        candidate_days=candidate_days,
     )
 
 

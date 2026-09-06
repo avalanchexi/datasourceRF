@@ -12,13 +12,15 @@
       "id": 1,
       "title": "正确显示资产候选持续天数",
       "blocked_by": [],
-      "path": "issues/01-candidate-duration.md"
+      "path": "issues/01-candidate-duration.md",
+      "execution_status": "completed"
     },
     {
       "id": 2,
       "title": "核心采集原件与双点时可追溯",
       "blocked_by": [],
-      "path": "issues/02-core-acquisition-receipts.md"
+      "path": "issues/02-core-acquisition-receipts.md",
+      "execution_status": "pending"
     },
     {
       "id": 3,
@@ -26,7 +28,8 @@
       "blocked_by": [
         2
       ],
-      "path": "issues/03-context-acquisition-receipts.md"
+      "path": "issues/03-context-acquisition-receipts.md",
+      "execution_status": "pending"
     },
     {
       "id": 4,
@@ -34,7 +37,8 @@
       "blocked_by": [
         2
       ],
-      "path": "issues/04-core-public-time-certification.md"
+      "path": "issues/04-core-public-time-certification.md",
+      "execution_status": "pending"
     },
     {
       "id": 5,
@@ -42,7 +46,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/05-margin-certification.md"
+      "path": "issues/05-margin-certification.md",
+      "execution_status": "pending"
     },
     {
       "id": 6,
@@ -50,7 +55,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/06-market-index-certification.md"
+      "path": "issues/06-market-index-certification.md",
+      "execution_status": "pending"
     },
     {
       "id": 7,
@@ -58,7 +64,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/07-valuation-certification.md"
+      "path": "issues/07-valuation-certification.md",
+      "execution_status": "pending"
     },
     {
       "id": 8,
@@ -66,7 +73,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/08-breadth-daily-universe.md"
+      "path": "issues/08-breadth-daily-universe.md",
+      "execution_status": "pending"
     },
     {
       "id": 9,
@@ -74,7 +82,8 @@
       "blocked_by": [
         8
       ],
-      "path": "issues/09-breadth-window-metrics.md"
+      "path": "issues/09-breadth-window-metrics.md",
+      "execution_status": "pending"
     },
     {
       "id": 10,
@@ -82,7 +91,8 @@
       "blocked_by": [
         8
       ],
-      "path": "issues/10-breadth-amount-share.md"
+      "path": "issues/10-breadth-amount-share.md",
+      "execution_status": "pending"
     },
     {
       "id": 11,
@@ -90,7 +100,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/11-futures-contract-evidence.md"
+      "path": "issues/11-futures-contract-evidence.md",
+      "execution_status": "pending"
     },
     {
       "id": 12,
@@ -98,7 +109,8 @@
       "blocked_by": [
         11
       ],
-      "path": "issues/12-commodity-basket.md"
+      "path": "issues/12-commodity-basket.md",
+      "execution_status": "pending"
     },
     {
       "id": 13,
@@ -106,7 +118,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/13-remaining-p1-evidence.md"
+      "path": "issues/13-remaining-p1-evidence.md",
+      "execution_status": "pending"
     },
     {
       "id": 14,
@@ -114,7 +127,8 @@
       "blocked_by": [
         3
       ],
-      "path": "issues/14-p2-availability.md"
+      "path": "issues/14-p2-availability.md",
+      "execution_status": "pending"
     },
     {
       "id": 15,
@@ -122,7 +136,8 @@
       "blocked_by": [
         2
       ],
-      "path": "issues/15-retrieval-ledger-budgets.md"
+      "path": "issues/15-retrieval-ledger-budgets.md",
+      "execution_status": "pending"
     },
     {
       "id": 16,
@@ -131,7 +146,8 @@
         3,
         15
       ],
-      "path": "issues/16-search-verified-evidence.md"
+      "path": "issues/16-search-verified-evidence.md",
+      "execution_status": "pending"
     },
     {
       "id": 17,
@@ -139,13 +155,15 @@
       "blocked_by": [
         16
       ],
-      "path": "issues/17-full-run-gap-retrieval.md"
+      "path": "issues/17-full-run-gap-retrieval.md",
+      "execution_status": "pending"
     },
     {
       "id": 18,
       "title": "CLI报告运行修复与解释证据验收",
       "blocked_by": [],
-      "path": "issues/18-report-cli-evidence.md"
+      "path": "issues/18-report-cli-evidence.md",
+      "execution_status": "pending"
     },
     {
       "id": 19,
@@ -162,7 +180,8 @@
         13,
         14
       ],
-      "path": "issues/19-immutable-candidate-catalog.md"
+      "path": "issues/19-immutable-candidate-catalog.md",
+      "execution_status": "pending"
     },
     {
       "id": 20,
@@ -171,7 +190,8 @@
         17,
         19
       ],
-      "path": "issues/20-retrieval-paired-benchmark.md"
+      "path": "issues/20-retrieval-paired-benchmark.md",
+      "execution_status": "pending"
     },
     {
       "id": 21,
@@ -179,7 +199,8 @@
       "blocked_by": [
         19
       ],
-      "path": "issues/21-public-replay-120d.md"
+      "path": "issues/21-public-replay-120d.md",
+      "execution_status": "pending"
     },
     {
       "id": 22,
@@ -189,8 +210,13 @@
         20,
         21
       ],
-      "path": "issues/22-live-acceptance-cutover.md"
+      "path": "issues/22-live-acceptance-cutover.md",
+      "execution_status": "pending"
     }
   ],
-  "approval": "2026-09-06: user instructed 下一步 after the concrete seam and 22-ticket review."
+  "approval": "2026-09-06: user instructed 下一步 after the concrete seam and 22-ticket review.",
+  "current_frontier": [
+    2,
+    18
+  ]
 }
