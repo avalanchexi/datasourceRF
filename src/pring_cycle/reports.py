@@ -10,15 +10,16 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+from contextlib import suppress
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 from pring_cycle.projections import ProjectionSet
 
-REPORT_SCHEMA_VERSION = "report-schema-v0002"
-PROMPT_CONTRACT_VERSION = "report-prompt-v0002"
+REPORT_SCHEMA_VERSION = "report-schema-v0003"
+PROMPT_CONTRACT_VERSION = "report-prompt-v0003"
 
 
 @dataclass(frozen=True)
@@ -150,9 +151,7 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
             raise ValueError("core_asset_projection_required_for_report")
         observation_count = item.get("observation_count")
         observation_ids = item.get("observation_version_ids")
-        exact_120_required = envelope.model_version_id.startswith(
-            ("model-v0010-", "model-v0011-")
-        )
+        exact_120_required = envelope.model_version_id.startswith(("model-v0010-", "model-v0011-"))
         if (
             not isinstance(observation_count, int)
             or (observation_count != 120 if exact_120_required else observation_count > 120)
@@ -192,15 +191,10 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
         else None
     )
     current_documents = {
-        name: document
-        for name, document in projection.datasets.items()
-        if name != "stage_history"
+        name: document for name, document in projection.datasets.items() if name != "stage_history"
     }
     evidence_ids = tuple(
-        sorted(
-            _collect_evidence_ids(current_documents)
-            | _collect_evidence_ids(latest_history)
-        )
+        sorted(_collect_evidence_ids(current_documents) | _collect_evidence_ids(latest_history))
     )
     return EvidenceBundle.create(
         projection_set_id=envelope.projection_set_id,
@@ -230,9 +224,7 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
                 "quadrant": inventory.get("quadrant"),
                 "directions": inventory.get("directions"),
                 "cards": inventory.get("cards"),
-                "real_inventory_approximation": inventory.get(
-                    "real_inventory_approximation"
-                ),
+                "real_inventory_approximation": inventory.get("real_inventory_approximation"),
             },
             "price_context": macro.get("price_chain"),
             "change_reasons": latest_history,
@@ -264,6 +256,7 @@ class AdapterResponse:
     document: dict[str, Any] | None
     error_classification: str | None
     tool_events: int
+    process_audit: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def succeeded(cls, document: dict[str, Any], *, tool_events: int = 0) -> AdapterResponse:
@@ -309,6 +302,9 @@ class ReportSnapshot:
     duration_ms: int
     body_retained: bool
     body: dict[str, Any]
+    explanation_verification: dict[str, Any] = field(default_factory=dict)
+    input_schema_version: str = "not_recorded"
+    input_prompt_version: str = "not_recorded"
 
 
 @dataclass(frozen=True)
@@ -321,6 +317,7 @@ class ReportAttempt:
     duration_ms: int
     tool_events: int
     output_hash: str | None
+    process_audit: dict[str, Any] = field(default_factory=dict)
 
 
 class ReportRepository:
@@ -334,6 +331,7 @@ class ReportRepository:
         with repository._connect() as connection:
             connection.executescript(_REPORT_SCHEMA)
             upgrade_report_snapshot_nullable_stage(connection)
+            upgrade_report_process_audit(connection)
         return repository
 
     def by_client_request(self, client_request_id: str) -> ReportSnapshot | None:
@@ -389,6 +387,7 @@ class ReportRepository:
         completed_at: datetime,
         tool_events: int,
         output_hash: str | None,
+        process_audit: dict[str, Any] | None = None,
     ) -> None:
         if started_at.tzinfo is None or completed_at.tzinfo is None:
             raise ValueError("report_attempt_times_must_be_timezone_aware")
@@ -399,8 +398,8 @@ class ReportRepository:
                 """
                 INSERT INTO report_attempt(
                     report_snapshot_id, adapter, adapter_version, started_at,
-                    completed_at, outcome, tool_events, output_hash
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    completed_at, outcome, tool_events, output_hash, process_audit_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     report_snapshot_id,
@@ -411,6 +410,7 @@ class ReportRepository:
                     outcome,
                     tool_events,
                     output_hash,
+                    _canonical_json(process_audit or {}),
                 ),
             )
 
@@ -452,8 +452,8 @@ class ReportRepository:
                     bundle.bundle_id,
                     bundle_hash,
                     bundle.model_version_id,
-                    bundle.schema_version,
-                    bundle.prompt_version,
+                    REPORT_SCHEMA_VERSION,
+                    PROMPT_CONTRACT_VERSION,
                     body_json,
                     datetime.now(UTC).isoformat(),
                 ),
@@ -463,13 +463,12 @@ class ReportRepository:
     def get(self, report_snapshot_id: str) -> ReportSnapshot:
         with self._connect() as connection:
             row = connection.execute(
-                _REPORT_SNAPSHOT_SELECT
-                + " WHERE report_snapshot.report_snapshot_id=?",
+                _REPORT_SNAPSHOT_SELECT + " WHERE report_snapshot.report_snapshot_id=?",
                 (report_snapshot_id,),
             ).fetchone()
         if row is None:
             raise LookupError("report_snapshot_not_found")
-        return _report_snapshot(row)
+        return self._with_explanation_review(_report_snapshot(row))
 
     def history(self) -> tuple[ReportSnapshot, ...]:
         with self._connect() as connection:
@@ -479,7 +478,7 @@ class ReportRepository:
                 ORDER BY target_business_date DESC, version DESC
                 """
             ).fetchall()
-        return tuple(_report_snapshot(row) for row in rows)
+        return tuple(self._with_explanation_review(_report_snapshot(row)) for row in rows)
 
     def attempts(self, report_snapshot_id: str) -> tuple[ReportAttempt, ...]:
         with self._connect() as connection:
@@ -490,10 +489,63 @@ class ReportRepository:
                 """,
                 (report_snapshot_id,),
             ).fetchall()
-        return tuple(
-            _report_attempt(row)
-            for row in rows
+        return tuple(_report_attempt(row) for row in rows)
+
+    def attempts_for_bundle(self, bundle_id: str) -> tuple[ReportAttempt, ...]:
+        with self._connect() as connection:
+            if "process_audit_json" not in {
+                str(row[1]) for row in connection.execute("PRAGMA table_info(report_attempt)")
+            }:
+                return ()
+            rows = connection.execute(
+                "SELECT * FROM report_attempt "
+                "WHERE json_extract(process_audit_json, '$.bundle_id')=? "
+                "ORDER BY attempt_id",
+                (bundle_id,),
+            ).fetchall()
+        return tuple(_report_attempt(row) for row in rows)
+
+    def record_explanation_review(
+        self,
+        report_snapshot_id: str,
+        *,
+        output_hash: str,
+        reviewer: str,
+        sections: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        from pring_cycle.report_review import record_explanation_review
+
+        with self._connect() as connection:
+            return record_explanation_review(
+                connection,
+                report_snapshot_id,
+                output_hash=output_hash,
+                reviewer=reviewer,
+                sections=sections,
+            )
+
+    def explanation_reviews(self, report_snapshot_id: str) -> tuple[dict[str, Any], ...]:
+        from pring_cycle.report_review import explanation_reviews
+
+        with self._connect() as connection:
+            return explanation_reviews(connection, report_snapshot_id)
+
+    def _with_explanation_review(self, snapshot: ReportSnapshot) -> ReportSnapshot:
+        reviews = self.explanation_reviews(snapshot.report_snapshot_id)
+        status = (
+            reviews[-1]
+            if reviews
+            else snapshot.body.get(
+                "explanation_verification",
+                {
+                    "status": "not_recorded"
+                    if snapshot.adapter != "deterministic"
+                    else "unavailable",
+                    "semantic_support": "not_reviewed",
+                },
+            )
         )
+        return replace(snapshot, explanation_verification=status)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)
@@ -539,14 +591,17 @@ class ReportService:
             started_at = datetime.now(UTC)
             response = adapter.generate(bundle)
             completed_at = datetime.now(UTC)
-            if cancel_requested is not None and cancel_requested():
-                raise ValueError("report_generation_cancelled")
+            cancelled_after = response.error_classification == "cancelled" or (
+                cancel_requested is not None and cancel_requested()
+            )
             outcome = response.error_classification or response.status
             output_hash = (
                 _hash_document(response.document) if response.document is not None else None
             )
             if response.status == "succeeded" and response.document is not None:
                 outcome = _validate_ai_document(bundle, response)
+            if cancelled_after:
+                outcome = "cancelled"
             self._repository.record_attempt(
                 report_snapshot_id,
                 adapter=adapter.name,
@@ -556,10 +611,19 @@ class ReportService:
                 completed_at=completed_at,
                 tool_events=response.tool_events,
                 output_hash=output_hash,
+                process_audit={**response.process_audit, "bundle_id": bundle.bundle_id},
             )
+            if cancelled_after:
+                raise ValueError("report_generation_cancelled")
             if outcome == "succeeded" and response.document is not None:
                 body = bundle.deterministic_skeleton()
                 body["ai_explanation"] = response.document["sections"]
+                body["explanation_verification"] = {
+                    "status": "pending_evidence_review",
+                    "identity_and_references": "passed",
+                    "semantic_support": "not_reviewed",
+                    "output_hash": output_hash,
+                }
                 snapshot = self._repository.save_snapshot(
                     report_snapshot_id=report_snapshot_id,
                     client_request_id=request_id,
@@ -610,8 +674,19 @@ class CliReportAdapter:
         self._cancel_requested = cancel_requested
 
     def generate(self, bundle: EvidenceBundle) -> AdapterResponse:
+        deadline = time.monotonic() + self._timeout_seconds
         executable = "codex" if self.name == "codex_cli" else "claude"
         resolved = shutil.which(executable)
+        if resolved is None:
+            resolved = next(
+                (
+                    str(candidate)
+                    for directory in (Path.home() / ".local/bin", Path.home() / ".npm-global/bin")
+                    if (candidate := directory / executable).is_file()
+                    and os.access(candidate, os.X_OK)
+                ),
+                None,
+            )
         if resolved is None:
             return AdapterResponse.unavailable("cli_not_installed")
         environment = {
@@ -625,12 +700,32 @@ class CliReportAdapter:
                 "LC_ALL",
                 "TERM",
                 "COLORTERM",
+                "HTTP_PROXY",
+                "HTTPS_PROXY",
+                "ALL_PROXY",
+                "NO_PROXY",
+                "http_proxy",
+                "https_proxy",
+                "all_proxy",
+                "no_proxy",
+                "SSL_CERT_FILE",
+                "NODE_EXTRA_CA_CERTS",
             }
         }
+        self.version = "unavailable"
         prompt = _canonical_json(
             {
-                "instruction": "仅解释证据包，输出共同报告 JSON；不得调用工具或给出交易建议。",
+                "instruction": (
+                    "仅解释证据包，输出共同报告 JSON；不得调用工具或给出交易建议。"
+                    "每个section的explanation必须是非空的单段文字，不含换行或段落分隔符；"
+                    "多段解释须拆为多个section，每段分别列出证据和治理引用，供逐段核查。"
+                ),
                 "evidence_bundle": bundle.document(),
+                "execution_contract": {
+                    "schema_version": REPORT_SCHEMA_VERSION,
+                    "prompt_version": PROMPT_CONTRACT_VERSION,
+                    "input_bundle_versions_are_historical": True,
+                },
             }
         )
         with tempfile.TemporaryDirectory(prefix="pring-report-") as work_directory:
@@ -639,6 +734,65 @@ class CliReportAdapter:
             output_path = work_path / "report.output.json"
             schema = _report_output_schema(bundle)
             schema_path.write_text(_canonical_json(schema), encoding="utf-8")
+            audit: dict[str, Any] = {
+                "executable": resolved,
+                "cli_version": self.version,
+                "model_id": None,
+                "model_reporting": "not_reported",
+                "schema_version": REPORT_SCHEMA_VERSION,
+                "prompt_version": PROMPT_CONTRACT_VERSION,
+                "input_schema_version": bundle.schema_version,
+                "input_prompt_version": bundle.prompt_version,
+                "schema_sha256": _hash_document(schema),
+                "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
+                "prompt_bytes": len(prompt.encode()),
+                "bundle_id": bundle.bundle_id,
+                "exit_code": None,
+                "process_phase": "version",
+            }
+
+            def failed(classification: str) -> AdapterResponse:
+                return replace(
+                    AdapterResponse.unavailable(classification),
+                    tool_events=int(audit.get("tool_events", 0)),
+                    process_audit=audit,
+                )
+
+            try:
+                version_process = subprocess.Popen(
+                    [resolved, "--version"],
+                    cwd=work_directory,
+                    env=environment,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    start_new_session=True,
+                    text=True,
+                )
+            except OSError:
+                return failed("process_start_failed")
+            version_stdout, version_stderr, version_outcome = _communicate_with_limits(
+                version_process,
+                "",
+                deadline=min(deadline, time.monotonic() + 5),
+                cancel_requested=self._cancel_requested,
+            )
+            audit["version_probe"] = {
+                **_process_output_fingerprint(version_process, version_stdout, version_stderr),
+                "outcome": version_outcome
+                or ("succeeded" if version_process.returncode == 0 else "nonzero_exit"),
+            }
+            if version_outcome is not None:
+                audit["exit_code"] = version_process.returncode
+                return failed(version_outcome)
+            if version_process.returncode == 0 and version_stdout.strip():
+                self.version = version_stdout.strip()[:200]
+            audit["cli_version"] = self.version
+            if self._cancel_requested is not None and self._cancel_requested():
+                return failed("cancelled")
+            if time.monotonic() >= deadline:
+                return failed("timed_out")
+            audit["process_phase"] = "generation"
             command = (
                 [
                     resolved,
@@ -668,7 +822,8 @@ class CliReportAdapter:
                     "dontAsk",
                     "--no-session-persistence",
                     "--output-format",
-                    "json",
+                    "stream-json",
+                    "--verbose",
                     "--json-schema",
                     _canonical_json(schema),
                 ]
@@ -685,64 +840,145 @@ class CliReportAdapter:
                     text=True,
                 )
             except OSError:
-                return AdapterResponse.unavailable("process_start_failed")
-            stdout, outcome = _communicate_with_limits(
+                return failed("process_start_failed")
+            stdout, stderr, outcome = _communicate_with_limits(
                 process,
                 prompt,
-                timeout_seconds=self._timeout_seconds,
+                deadline=deadline,
                 cancel_requested=self._cancel_requested,
             )
+            audit.update(_process_output_fingerprint(process, stdout, stderr))
+            models = _reported_cli_models(stdout)
+            if models:
+                audit["model_ids"] = models
+                audit["model_id"] = models[0] if len(models) == 1 else None
+                audit["model_reporting"] = "cli_output"
+            audit.update(_cli_event_audit(self.name, stdout))
+            if self.name == "codex_cli":
+                try:
+                    output_bytes = output_path.read_bytes()
+                except OSError:
+                    audit["output_file_status"] = "unavailable"
+                else:
+                    audit.update(
+                        output_file_status="captured",
+                        output_file_sha256=hashlib.sha256(output_bytes).hexdigest(),
+                        output_file_bytes=len(output_bytes),
+                    )
             if outcome is not None:
-                return AdapterResponse.unavailable(outcome)
+                return failed(outcome)
             if process.returncode != 0:
-                return AdapterResponse.unavailable("nonzero_exit")
+                return failed(_cli_failure_classification(stdout, stderr))
             try:
-                document, tool_events = (
+                document = (
                     _codex_output(stdout, output_path)
                     if self.name == "codex_cli"
                     else _claude_output(stdout)
                 )
             except (json.JSONDecodeError, OSError, ValueError):
-                return AdapterResponse.unavailable("invalid_json_output")
+                return failed("invalid_json_output")
         if not isinstance(document, dict):
-            return AdapterResponse.unavailable("invalid_json_schema")
-        return AdapterResponse.succeeded(document, tool_events=tool_events)
+            return failed("invalid_json_schema")
+        return replace(
+            AdapterResponse.succeeded(document, tool_events=int(audit["tool_events"])),
+            process_audit=audit,
+        )
+
+
+def _process_output_fingerprint(
+    process: subprocess.Popen[str], stdout: str, stderr: str
+) -> dict[str, Any]:
+    return {
+        "exit_code": process.returncode,
+        "stdout_sha256": hashlib.sha256(stdout.encode()).hexdigest(),
+        "stderr_sha256": hashlib.sha256(stderr.encode()).hexdigest(),
+        "stdout_bytes": len(stdout.encode()),
+        "stderr_bytes": len(stderr.encode()),
+    }
 
 
 def _communicate_with_limits(
     process: subprocess.Popen[str],
     prompt: str,
     *,
-    timeout_seconds: int,
+    deadline: float,
     cancel_requested: Callable[[], bool] | None,
-) -> tuple[str, str | None]:
-    deadline = time.monotonic() + timeout_seconds
+) -> tuple[str, str, str | None]:
     first = True
     while True:
         if cancel_requested is not None and cancel_requested():
-            _terminate_process_group(process)
-            return "", "cancelled"
+            stdout, stderr = _terminate_process_group(process)
+            return stdout, stderr, "cancelled"
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            _terminate_process_group(process)
-            return "", "timed_out"
+            stdout, stderr = _terminate_process_group(process)
+            return stdout, stderr, "timed_out"
         try:
-            stdout, _stderr = process.communicate(
+            stdout, stderr = process.communicate(
                 prompt if first else None,
                 timeout=min(0.5, remaining),
             )
-            return stdout, None
+            return stdout, stderr, None
         except subprocess.TimeoutExpired:
             first = False
 
 
-def _terminate_process_group(process: subprocess.Popen[str]) -> None:
-    os.killpg(process.pid, signal.SIGTERM)
+def _terminate_process_group(process: subprocess.Popen[str]) -> tuple[str, str]:
+    with suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGTERM)
     try:
-        process.communicate(timeout=5)
+        return process.communicate(timeout=5)
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
-        process.communicate()
+        with suppress(ProcessLookupError):
+            os.killpg(process.pid, signal.SIGKILL)
+        return process.communicate()
+
+
+def _reported_cli_models(stdout: str) -> list[str]:
+    models: set[str] = set()
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if isinstance(event.get("model"), str):
+            models.add(event["model"])
+        if isinstance(event.get("modelUsage"), dict):
+            models.update(str(model) for model in event["modelUsage"])
+    return sorted(models)
+
+
+def _cli_failure_classification(stdout: str, stderr: str) -> str:
+    error = (stderr + "\n" + stdout).lower()
+    if any(
+        term in error
+        for term in (
+            "not logged in",
+            "please log in",
+            "authentication required",
+            "unauthorized",
+            "invalid authentication",
+        )
+    ):
+        return "authentication_required"
+    if any(
+        term in error
+        for term in ("rate limit", "quota exceeded", "usage limit", "insufficient credits")
+    ):
+        return "quota_or_rate_limited"
+    if any(
+        term in error
+        for term in (
+            "unexpected argument",
+            "unknown option",
+            "invalid json schema",
+            "invalid schema",
+        )
+    ):
+        return "cli_protocol_incompatible"
+    return "nonzero_exit"
 
 
 def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
@@ -751,7 +987,7 @@ def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
         "additionalProperties": False,
         "properties": {
             "title": {"type": "string"},
-            "explanation": {"type": "string"},
+            "explanation": {"type": "string", "minLength": 1, "pattern": r"^[^\r\n\u2028\u2029]+$"},
             "evidence_ids": {
                 "type": "array",
                 "items": {"type": "string", "enum": list(bundle.allowed_evidence_ids)},
@@ -789,35 +1025,72 @@ def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
     }
 
 
-def _codex_output(stdout: str, output_path: Path) -> tuple[dict[str, Any], int]:
-    events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
-    tool_types = {
-        "command_execution",
-        "file_change",
-        "mcp_tool_call",
-        "web_search",
-    }
-    tool_events = sum(
-        1
-        for event in events
-        if isinstance(event, dict)
-        and isinstance(event.get("item"), dict)
-        and event["item"].get("type") in tool_types
-    )
+def _cli_event_audit(adapter: str, stdout: str) -> dict[str, Any]:
+    """Count observable complete events independently of process/output acceptance."""
+    tools, invalid_lines = 0, 0
+    for line in stdout.splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            invalid_lines += 1
+            continue
+        if not isinstance(event, dict):
+            invalid_lines += 1
+            continue
+        if adapter == "codex_cli":
+            item = event.get("item")
+            tools += int(
+                isinstance(item, dict) and item.get("type") not in {"reasoning", "agent_message"}
+            )
+        elif event.get("type") == "assistant":
+            message = event.get("message")
+            if not isinstance(message, dict) or not isinstance(message.get("content"), list):
+                invalid_lines += 1
+                continue
+            tools += sum(
+                1
+                for block in message["content"]
+                if isinstance(block, dict)
+                and block.get("type") == "tool_use"
+                and block.get("name") != "StructuredOutput"
+            )
+    return {"tool_events": tools, "unparsed_event_lines": invalid_lines}
+
+
+def _codex_output(stdout: str, output_path: Path) -> dict[str, Any]:
+    for line in stdout.splitlines():
+        if line.strip() and not isinstance(json.loads(line), dict):
+            raise ValueError("codex_event_not_object")
     document = json.loads(output_path.read_text(encoding="utf-8"))
     if not isinstance(document, dict):
         raise ValueError("codex_output_not_object")
-    return document, tool_events
+    return document
 
 
-def _claude_output(stdout: str) -> tuple[dict[str, Any], int]:
-    wrapper = json.loads(stdout)
-    if not isinstance(wrapper, dict):
+def _claude_output(stdout: str) -> dict[str, Any]:
+    events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+    if not events or any(not isinstance(event, dict) for event in events):
         raise ValueError("claude_output_not_object")
+    results = [
+        event for event in events if event.get("type") == "result" or "structured_output" in event
+    ]
+    if len(results) != 1:
+        raise ValueError("claude_result_missing_or_ambiguous")
+    wrapper = results[0]
+    if wrapper.get("is_error") is True or wrapper.get("subtype", "success") != "success":
+        raise ValueError("claude_result_failed")
     document = wrapper.get("structured_output")
     if not isinstance(document, dict):
         raise ValueError("claude_structured_output_missing")
-    return document, 0
+    for event in events:
+        if event.get("type") != "assistant":
+            continue
+        message = event.get("message")
+        if not isinstance(message, dict) or not isinstance(message.get("content"), list):
+            raise ValueError("claude_assistant_event_invalid")
+    return document
 
 
 def _preflight_bundle(bundle: EvidenceBundle) -> None:
@@ -836,7 +1109,8 @@ def _preflight_bundle(bundle: EvidenceBundle) -> None:
             bundle.core_states.get("bond"),
             bundle.core_states.get("stock"),
             bundle.core_states.get("commodity"),
-        ) in {("bull", "bear", "bull"), ("bear", "bull", "bear")}
+        )
+        in {("bull", "bear", "bull"), ("bear", "bull", "bear")}
     )
     if bundle.current_stage not in formal_stages and not noncanonical:
         raise ValueError("report_preflight_stage_invalid")
@@ -884,10 +1158,20 @@ def _validate_ai_document(bundle: EvidenceBundle, response: AdapterResponse) -> 
             "governance_refs",
         }:
             return "schema_validation_failed"
-        if not isinstance(section["explanation"], str) or any(
-            term in section["explanation"] for term in forbidden_terms
+        if any(not isinstance(section[field], str) for field in ("title", "explanation")):
+            return "schema_validation_failed"
+        if any(
+            not isinstance(section[field], list)
+            or any(not isinstance(reference, str) for reference in section[field])
+            for field in ("evidence_ids", "governance_refs")
         ):
+            return "schema_validation_failed"
+        if any(term in section["explanation"] for term in forbidden_terms):
             return "forbidden_content_rejected"
+        if not section["explanation"].strip() or any(
+            separator in section["explanation"] for separator in "\r\n\u2028\u2029"
+        ):
+            return "paragraph_structure_invalid"
         if not set(section["evidence_ids"]).issubset(allowed_evidence):
             return "evidence_reference_rejected"
         if not set(section["governance_refs"]).issubset(allowed_governance):
@@ -917,14 +1201,14 @@ def _report_snapshot(row: sqlite3.Row) -> ReportSnapshot:
         version=int(row["version"]),
         status=str(row["status"]),
         adapter=str(row["adapter"]),
-        current_stage=(
-            str(row["current_stage"]) if row["current_stage"] is not None else None
-        ),
+        current_stage=(str(row["current_stage"]) if row["current_stage"] is not None else None),
         bundle_id=str(row["bundle_id"]),
         bundle_hash=str(row["bundle_hash"]),
         model_version_id=str(row["model_version_id"]),
         schema_version=str(row["schema_version"]),
         prompt_version=str(row["prompt_version"]),
+        input_schema_version=str(bundle["schema_version"]),
+        input_prompt_version=str(bundle["prompt_version"]),
         report_cutoff=datetime.fromisoformat(str(bundle["report_cutoff"])),
         system_as_of=datetime.fromisoformat(str(bundle["system_as_of"])),
         created_at=datetime.fromisoformat(str(row["created_at"])),
@@ -946,6 +1230,9 @@ def _report_attempt(row: sqlite3.Row) -> ReportAttempt:
         duration_ms=max(0, int((completed_at - started_at).total_seconds() * 1000)),
         tool_events=int(row["tool_events"]),
         output_hash=(str(row["output_hash"]) if row["output_hash"] is not None else None),
+        process_audit=json.loads(row["process_audit_json"])
+        if "process_audit_json" in set(row.keys())
+        else {},
     )
 
 
@@ -1037,6 +1324,18 @@ BEFORE DELETE ON report_snapshot BEGIN SELECT RAISE(ABORT, 'report_snapshot_is_i
 """
 
 
+def upgrade_report_process_audit(connection: sqlite3.Connection) -> None:
+    from pring_cycle.report_review import REPORT_EXPLANATION_REVIEW_SCHEMA
+
+    if "process_audit_json" not in {
+        str(row[1]) for row in connection.execute("PRAGMA table_info(report_attempt)")
+    }:
+        connection.execute(
+            "ALTER TABLE report_attempt ADD COLUMN process_audit_json TEXT NOT NULL DEFAULT '{}'"
+        )
+    connection.executescript(REPORT_EXPLANATION_REVIEW_SCHEMA)
+
+
 def upgrade_report_snapshot_nullable_stage(connection: sqlite3.Connection) -> None:
     columns = connection.execute("PRAGMA table_info(report_snapshot)").fetchall()
     stage_column = next((row for row in columns if str(row[1]) == "current_stage"), None)
@@ -1081,6 +1380,7 @@ def rebuild_report_snapshot_stage_column(
     )
     connection.execute("DROP TABLE report_snapshot_legacy")
     connection.executescript(_REPORT_SNAPSHOT_IMMUTABILITY_TRIGGERS)
+
 
 _REPORT_SNAPSHOT_SELECT = """
 SELECT report_snapshot.*, evidence_bundle.document_json AS bundle_document_json,

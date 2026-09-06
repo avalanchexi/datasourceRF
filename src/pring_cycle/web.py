@@ -140,10 +140,12 @@ def create_web_application(
 
     @server.get("/api/v1/acquisitions", name="acquisition_index")
     def acquisition_index() -> dict[str, object]:
-        return {"acquisitions": [
-            asdict(receipt)
-            for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
-        ]}
+        return {
+            "acquisitions": [
+                asdict(receipt)
+                for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+            ]
+        }
 
     @server.get(
         "/api/v1/acquisitions/{acquisition_id}/artifacts/{kind}",
@@ -190,6 +192,12 @@ def create_web_application(
     def report_index() -> list[dict[str, object]]:
         return [asdict(item) for item in _reports(paths)]
 
+    @server.get("/api/v1/report-attempts", name="report_attempt_index")
+    def report_attempt_index(bundle_id: str) -> list[dict[str, object]]:
+        return [
+            asdict(item) for item in ReportRepository(paths.database).attempts_for_bundle(bundle_id)
+        ]
+
     @server.get("/api/v1/reports/{report_snapshot_id}", name="report_detail")
     def report_detail(report_snapshot_id: str) -> JSONResponse:
         repository = ReportRepository(paths.database)
@@ -204,6 +212,7 @@ def create_web_application(
             content=jsonable_encoder(
                 {
                     "attempts": [asdict(item) for item in repository.attempts(report_snapshot_id)],
+                    "explanation_reviews": repository.explanation_reviews(report_snapshot_id),
                     "snapshot": asdict(snapshot),
                 }
             )

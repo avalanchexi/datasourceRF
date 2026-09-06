@@ -189,9 +189,7 @@ def test_noncanonical_projection_generates_a_report_without_inventing_a_stage(
     assert stored.current_stage is None
     assert stored.body["formal_stage_basis"]["current_stage"] is None
     assert stored.body["formal_stage_basis"]["stage_reason"] == "noncanonical_combination"
-    assert stored.body["core_states"] == {
-        "bond": "bull", "stock": "bear", "commodity": "bull"
-    }
+    assert stored.body["core_states"] == {"bond": "bull", "stock": "bear", "commodity": "bull"}
 
 
 def test_cli_process_start_failure_is_classified_as_unavailable(
@@ -206,7 +204,9 @@ def test_cli_process_start_failure_is_classified_as_unavailable(
 
     response = CliReportAdapter("codex_cli").generate(bundle())
 
-    assert response == AdapterResponse.unavailable("process_start_failed")
+    assert response.status == "unavailable"
+    assert response.error_classification == "process_start_failed"
+    assert response.process_audit["exit_code"] is None
 
 
 def test_same_day_regeneration_creates_versions_without_overwriting(tmp_path: Path) -> None:
@@ -321,9 +321,7 @@ def test_report_rejects_projection_that_exposes_preheat_history(tmp_path: Path) 
             reason="validated",
             observation_count=121,
             latest_business_date="2026-08-28",
-            observation_version_ids=tuple(
-                f"version-{asset}-{index}" for index in range(121)
-            ),
+            observation_version_ids=tuple(f"version-{asset}-{index}" for index in range(121)),
         )
         for asset, metric_id, state in (
             ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),

@@ -1,0 +1,135 @@
+{
+  "scope": "historical_core_explanation_only",
+  "full_bundle_explanation_passed": false,
+  "production_writes": 0,
+  "formal_publication": false,
+  "result": {
+    "report_snapshot_id": "report-0831fc96606bbf9fba9b",
+    "status": "completed_degraded",
+    "adapter": "deterministic",
+    "version": 1
+  },
+  "snapshot": {
+    "report_snapshot_id": "report-0831fc96606bbf9fba9b",
+    "projection_set_id": "projection-7a12ff2f7ab7175a31b2",
+    "target_business_date": "2026-08-03",
+    "version": 1,
+    "status": "completed_degraded",
+    "adapter": "deterministic",
+    "current_stage": "stage_iii",
+    "bundle_id": "bundle-ac848e8566b7cbe632ea",
+    "bundle_hash": "021e6dffffb1f259fb55177282dc1c5fdf1c2f47342c302eaf5d30a9fcc4e6d3",
+    "model_version_id": "model-v0011-a734bb6e7dcf415f",
+    "schema_version": "report-schema-v0002",
+    "prompt_version": "report-prompt-v0002",
+    "report_cutoff": "2026-08-31 20:51:41.285300+00:00",
+    "system_as_of": "2026-08-31 20:51:41.285300+00:00",
+    "created_at": "2026-09-06 18:04:53.668848+00:00",
+    "duration_ms": 3952,
+    "body_retained": true,
+    "body": {
+      "core_asset_facts": [
+        {
+          "asset": "bond",
+          "evidence_id": "03abcc16e4160073180632d2bc6b38e44db4fa6a7f851fcf10eed0a8e956e49a",
+          "latest_business_date": "2026-08-03",
+          "metric_id": "CN_BOND_CORE_000012",
+          "state": "bull"
+        },
+        {
+          "asset": "stock",
+          "evidence_id": "9218cd3ae25b48361d906f40e1c6b02702778d6d52b9435224e1d364a5053f52",
+          "latest_business_date": "2026-08-03",
+          "metric_id": "CN_EQUITY_CORE_000985",
+          "state": "bull"
+        },
+        {
+          "asset": "commodity",
+          "evidence_id": "3d17c1f1bf1cde5a622d9ef0d55f1081df71cf4a802547c6bc0d9ce29319f8cd",
+          "latest_business_date": "2026-08-03",
+          "metric_id": "CN_COMMODITY_CORE_NHII",
+          "state": "bull"
+        }
+      ],
+      "core_states": {
+        "bond": "bull",
+        "commodity": "bull",
+        "stock": "bull"
+      },
+      "counterevidence": [
+        "p1_evidence_incomplete:34/42",
+        "p2_evidence_incomplete:2/13",
+        "policy_context_degraded:transmission_conflict",
+        "inventory_context_degraded:conflict",
+        "p2_context_degraded",
+        "历史目录已被来源审查隔离；本段仅解释旧记录，不证明当前市场或新来源认证。"
+      ],
+      "evidence_references": [
+        "03abcc16e4160073180632d2bc6b38e44db4fa6a7f851fcf10eed0a8e956e49a",
+        "9218cd3ae25b48361d906f40e1c6b02702778d6d52b9435224e1d364a5053f52",
+        "3d17c1f1bf1cde5a622d9ef0d55f1081df71cf4a802547c6bc0d9ce29319f8cd"
+      ],
+      "explanation_scope": "仅历史三核心状态和治理限制；不解释被省略的宏观、库存或派生值。",
+      "formal_stage_basis": {
+        "classification_source": "three_core_price_states_only",
+        "current_stage": "stage_iii",
+        "stage_reason": "canonical_combination"
+      },
+      "governance_gaps": [
+        "p1_evidence_incomplete:34/42",
+        "p2_evidence_incomplete:2/13",
+        "policy_context_degraded:transmission_conflict",
+        "inventory_context_degraded:conflict",
+        "p2_context_degraded"
+      ],
+      "report_identity": {
+        "bundle_id": "bundle-ac848e8566b7cbe632ea",
+        "model_version_id": "model-v0011-a734bb6e7dcf415f",
+        "projection_set_id": "projection-7a12ff2f7ab7175a31b2",
+        "report_cutoff": "2026-08-31T20:51:41.285300+00:00",
+        "target_business_date": "2026-08-03",
+        "trend_rule_version": "trend-v0001"
+      },
+      "source_frozen_bundle_id": "bundle-b8d0d3b7d18b284cf3f9",
+      "support": [
+        "三核心资产价格状态通过 P0 门禁。"
+      ]
+    },
+    "explanation_verification": {
+      "status": "unavailable",
+      "semantic_support": "not_reviewed"
+    }
+  },
+  "attempts": [
+    {
+      "adapter": "claude_code_cli",
+      "adapter_version": "2.1.191 (Claude Code)",
+      "outcome": "nonzero_exit",
+      "started_at": "2026-09-06 18:04:49.705294+00:00",
+      "completed_at": "2026-09-06 18:04:53.657935+00:00",
+      "duration_ms": 3952,
+      "tool_events": 0,
+      "output_hash": null,
+      "process_audit": {
+        "bundle_id": "bundle-ac848e8566b7cbe632ea",
+        "cli_version": "2.1.191 (Claude Code)",
+        "executable": "/home/tywin/.npm-global/bin/claude",
+        "exit_code": 1,
+        "model_id": "claude-opus-4-8",
+        "model_ids": [
+          "claude-opus-4-8"
+        ],
+        "model_reporting": "cli_output",
+        "prompt_bytes": 2287,
+        "prompt_sha256": "08e977477ae5f04ac5884eada01a9fd7f0fbb231ba45edd38225c4d4251b6d9a",
+        "prompt_version": "report-prompt-v0002",
+        "schema_sha256": "2965d12bdbf1826abbd10e37a6380a6d0fb81a2939c85e5ad8afeae7fc813564",
+        "schema_version": "report-schema-v0002",
+        "stderr_bytes": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_bytes": 2213,
+        "stdout_sha256": "b6d9963abf7bde9b7f57950a13a9f94524ee2806d525a235a0d33cec28bf34c2"
+      }
+    }
+  ]
+}

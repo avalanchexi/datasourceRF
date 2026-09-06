@@ -1,0 +1,18 @@
+{
+  "checked_at": "2026-09-06T17:51:30.515229+00:00",
+  "credentials_read_by_application": false,
+  "codex_cli": {
+    "exit_code": 0,
+    "status_output_retained": false,
+    "classification": "logged_in_chatgpt"
+  },
+  "claude_code_cli": {
+    "exit_code": 0,
+    "status_output_retained": false,
+    "status": {
+      "loggedIn": true,
+      "authMethod": "claude.ai",
+      "apiProvider": "firstParty"
+    }
+  }
+}

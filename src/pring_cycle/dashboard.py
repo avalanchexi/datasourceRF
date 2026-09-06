@@ -1043,6 +1043,17 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             _compact_fact("投影身份", report.projection_set_id),
             _compact_fact("正式阶段", _stage_label(report.current_stage)),
             _compact_fact("截止点", report.report_cutoff.isoformat()),
+            _compact_fact("确定性输出", "已生成"),
+            _compact_fact("AI解释", "不可用" if report.adapter == "deterministic" else "已生成"),
+            _compact_fact(
+                "解释证据核查",
+                {
+                    "passed": "已核查支持与反证",
+                    "needs_attention": "存在无支持或矛盾叙述",
+                    "pending_evidence_review": "结构与引用已校验，语义待核查",
+                    "unavailable": "无AI解释",
+                }.get(str(report.explanation_verification.get("status")), "未记录核查"),
+            ),
         ],
         className="compact-facts",
     )

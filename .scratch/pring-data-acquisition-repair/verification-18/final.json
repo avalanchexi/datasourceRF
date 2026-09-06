@@ -1,0 +1,25 @@
+{
+  "base_commit": "3cc9e8a6fb508de3b1a221679713508290490cf9",
+  "ticket": 18,
+  "execution_status": "code_verified_real_output_pending",
+  "full_suite": {
+    "passed": 537, "failed": 0, "duration_seconds": 221.13,
+    "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-18-full-reviewed"
+  },
+  "first_full_suite": {"passed": 523, "failed": 0, "duration_seconds": 232.79},
+  "reports_and_web": {"passed": 57, "failed": 0, "duration_seconds": 24.74},
+  "mypy": {"source_files": 78, "status": "passed"},
+  "ruff": "passed",
+  "spec_review_remaining": 0,
+  "standards_review_remaining": 0,
+  "schema_version": "report-schema-v0003",
+  "prompt_version": "report-prompt-v0003",
+  "tests_replace": ["external CLI executable", "environment configuration"],
+  "real_qualified_cli_outputs": 0,
+  "semantic_acceptance_completed": false,
+  "external_condition": "WSL ChatGPT route unavailable; existing Windows loopback proxy inaccessible",
+  "production_writes": 0,
+  "real_search_benchmark_completed": false,
+  "public_replay_completed": false,
+  "model_cutover_completed": false
+}

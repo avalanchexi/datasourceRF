@@ -1,0 +1,50 @@
+{
+  "adapter": "codex_cli",
+  "environment": {
+    "read_at": "2026-09-06T17:42:17.282571+00:00",
+    "bundle_id": "bundle-b8d0d3b7d18b284cf3f9",
+    "bundle_hash": "44e6f39226dada99b01a1b7fceb68f61a9be715404b50d27da3110bd2e6ab7ba",
+    "bundle_bytes": 835604,
+    "model_version_id": "model-v0011-a734bb6e7dcf415f",
+    "target_business_date": "2026-08-03",
+    "production_writes": 0,
+    "formal_publication": false,
+    "native_diagnostic_path": "/home/tywin/.cache/pring-cycle/verification/repair-18-initial-cli",
+    "cli": {
+      "codex_cli": {
+        "version": "codex-cli 0.144.4",
+        "version_exit_code": 0
+      },
+      "claude_code_cli": {
+        "version": "2.1.191 (Claude Code)",
+        "version_exit_code": 0
+      }
+    }
+  },
+  "started_at": "2026-09-06T17:42:18.969437+00:00",
+  "completed_at": "2026-09-06T17:46:56.622204+00:00",
+  "response": {
+    "status": "unavailable",
+    "document": null,
+    "error_classification": "timed_out",
+    "tool_events": 0
+  },
+  "physical_processes": [
+    {
+      "started_at": "2026-09-06T17:42:18.999219+00:00",
+      "completed_at": "2026-09-06T17:46:56.614346+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "/home/tywin/.cache/pring-cycle/verification/repair-18-initial-cli/codex_cli.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/home/tywin/.cache/pring-cycle/verification/repair-18-initial-cli/codex_cli.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "new_certifications": 0
+}

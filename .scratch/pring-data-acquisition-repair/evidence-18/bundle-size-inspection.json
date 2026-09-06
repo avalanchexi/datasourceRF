@@ -1,0 +1,32 @@
+{
+  "bundle_fields": {
+    "allowed_evidence_ids": 64450,
+    "allowed_governance_refs": 54,
+    "bundle_id": 29,
+    "core_states": 49,
+    "counterevidence": 170,
+    "current_stage": 11,
+    "governance_gaps": 170,
+    "model_version_id": 30,
+    "projection_set_id": 33,
+    "prompt_version": 21,
+    "report_cutoff": 34,
+    "schema_version": 21,
+    "stage_reason": 23,
+    "structured_context": 770060,
+    "support": 50,
+    "system_as_of": 34,
+    "target_business_date": 12,
+    "trend_rule_version": 13
+  },
+  "structured_context_fields": {
+    "change_reasons": 26133,
+    "inventory_context": 610112,
+    "macro_confirmation": 215,
+    "policy_context": 120446,
+    "price_context": 13035,
+    "transition_watch": 2
+  },
+  "allowed_evidence_id_count": 968,
+  "instruction": "Size measurements only; no input pruning or certification."
+}

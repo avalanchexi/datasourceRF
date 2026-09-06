@@ -1,0 +1,19 @@
+[
+  {
+    "url": "https://chatgpt.com/",
+    "method": "HEAD",
+    "credentials_sent": false,
+    "started_at": "2026-09-06T18:03:30.084217+00:00",
+    "error_type": "URLError",
+    "reason": "<urlopen error [Errno 101] Network is unreachable>",
+    "duration_seconds": 8.034
+  },
+  {
+    "url": "https://api.anthropic.com/",
+    "method": "HEAD",
+    "credentials_sent": false,
+    "started_at": "2026-09-06T18:03:30.086240+00:00",
+    "http_status": 403,
+    "duration_seconds": 0.722
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "read_at": "2026-09-06T17:41:47.201602+00:00",
+  "bundle_id": "bundle-b8d0d3b7d18b284cf3f9",
+  "bundle_hash": "44e6f39226dada99b01a1b7fceb68f61a9be715404b50d27da3110bd2e6ab7ba",
+  "bundle_bytes": 835604,
+  "model_version_id": "model-v0011-a734bb6e7dcf415f",
+  "target_business_date": "2026-08-03",
+  "production_writes": 0,
+  "formal_publication": false,
+  "native_diagnostic_path": "/home/tywin/.cache/pring-cycle/verification/repair-18-initial-cli",
+  "cli": {
+    "codex_cli": {
+      "version": "codex-cli 0.144.4",
+      "version_exit_code": 0
+    },
+    "claude_code_cli": {
+      "version": "2.1.191 (Claude Code)",
+      "version_exit_code": 0
+    }
+  }
+}
