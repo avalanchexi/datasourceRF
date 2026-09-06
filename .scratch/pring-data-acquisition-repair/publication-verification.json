@@ -1,0 +1,199 @@
+{
+  "kind": "published_spec_and_ticket_consistency",
+  "observed_at_utc": "2026-09-06T12:01:02.328856+00:00",
+  "workspace_head": "074dea6f725e2aa2f992c2906f7d6cce62e7d43f",
+  "required_sections": 7,
+  "user_stories": 52,
+  "published_ticket_count": 22,
+  "acceptance_criteria": 121,
+  "dependency_edges": 32,
+  "topologically_ordered_acyclic": true,
+  "completed_tickets": [
+    1
+  ],
+  "current_frontier": [
+    2,
+    18
+  ],
+  "relative_local_links_checked": 28,
+  "six_workstream_coverage": {
+    "known_defects": [
+      1,
+      2,
+      3
+    ],
+    "time_trust": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      21
+    ],
+    "source_and_rules": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      19
+    ],
+    "search_evidence_chain": [
+      15,
+      16,
+      17
+    ],
+    "retrieval_measurement": [
+      20
+    ],
+    "model_and_report_acceptance": [
+      18,
+      19,
+      21,
+      22
+    ]
+  },
+  "application_tests_run": false,
+  "production_actions_run": false,
+  "errors": [],
+  "artifacts": [
+    {
+      "path": "spec.md",
+      "bytes": 27508,
+      "sha256": "68c674d58abf3eeaa5097e6ac504f3cd7b9c1cb66124530410e261f5162264dc"
+    },
+    {
+      "path": "review.md",
+      "bytes": 12995,
+      "sha256": "d1e32398d3b5598025ab1f59e4356124bf293ecd1c61c3aeb3dd286fc7d42634"
+    },
+    {
+      "path": "issues/01-candidate-duration.md",
+      "bytes": 2655,
+      "sha256": "7ea531f36a605eeadc9f7cfee3915badb5f2da2231a70d66608fe841c368ba29"
+    },
+    {
+      "path": "issues/02-core-acquisition-receipts.md",
+      "bytes": 2551,
+      "sha256": "98b87a07b48582f856e2fd79255734740da55a723d70eaeb8eb4567561049eaf"
+    },
+    {
+      "path": "issues/03-context-acquisition-receipts.md",
+      "bytes": 2487,
+      "sha256": "9fa4d39c7a549b82dc68a7d382b5b6ba3807b7aeb9de8b869f6aae00323f6654"
+    },
+    {
+      "path": "issues/04-core-public-time-certification.md",
+      "bytes": 2455,
+      "sha256": "7e2bb0b313214afeaf7595df916710143b72074b5883c4cae01b038390b3a72e"
+    },
+    {
+      "path": "issues/05-margin-certification.md",
+      "bytes": 2305,
+      "sha256": "324b32dd1c32737ed9326556efca144b45d6c0eb214966a82e25077ae871ba74"
+    },
+    {
+      "path": "issues/06-market-index-certification.md",
+      "bytes": 2259,
+      "sha256": "137c8fb79e02ee0c3604e8217c17927cd1f784d045ce9aa7a935c7112f00da26"
+    },
+    {
+      "path": "issues/07-valuation-certification.md",
+      "bytes": 2404,
+      "sha256": "d8905faed56d88a8fd3f827e0b4612659939943e252b53ba94eb0be3a999c21f"
+    },
+    {
+      "path": "issues/08-breadth-daily-universe.md",
+      "bytes": 2454,
+      "sha256": "9a7fd63e13d68cc9a284816356dcf97d9f3d69737d189ac726c68815dc96bab5"
+    },
+    {
+      "path": "issues/09-breadth-window-metrics.md",
+      "bytes": 2379,
+      "sha256": "d7b550e5050883dff7e218796f65bb9bd3c123b944a5b9bd4bfa8405751a3122"
+    },
+    {
+      "path": "issues/10-breadth-amount-share.md",
+      "bytes": 2293,
+      "sha256": "d4a5357f1606e75b4066a04e950a4f502d0c06ff7c4599900315d4d481f88596"
+    },
+    {
+      "path": "issues/11-futures-contract-evidence.md",
+      "bytes": 2339,
+      "sha256": "b23d94103947661b0e8f47142b54777bbf9eae1031ffc31710008f53bf1731fb"
+    },
+    {
+      "path": "issues/12-commodity-basket.md",
+      "bytes": 2290,
+      "sha256": "9da2e3818ae589d7929f87813a82edf0a2b3a8a43f2eedae3f1d61496bcba114"
+    },
+    {
+      "path": "issues/13-remaining-p1-evidence.md",
+      "bytes": 2415,
+      "sha256": "a02c6401eefeb8032cb827769a63ff7ae7a8b059395cdf889daf9703f9156872"
+    },
+    {
+      "path": "issues/14-p2-availability.md",
+      "bytes": 2365,
+      "sha256": "9fe5eb1e428b5a5e7ed457b3ed0fcb1c692944f57e50cda429faf8f61be0e79d"
+    },
+    {
+      "path": "issues/15-retrieval-ledger-budgets.md",
+      "bytes": 2615,
+      "sha256": "cef9677217c17266a48f3945f0362e78f79af4ccb56ec571162a655ba40ce4b7"
+    },
+    {
+      "path": "issues/16-search-verified-evidence.md",
+      "bytes": 2721,
+      "sha256": "89878ab853224e5161b43e603f68ae43abc7cc2df4d2866d7a4486b597785844"
+    },
+    {
+      "path": "issues/17-full-run-gap-retrieval.md",
+      "bytes": 2753,
+      "sha256": "c6afb5f80879f26b0002389211edce1cea4094dada2a4afc56879c205b17f79d"
+    },
+    {
+      "path": "issues/18-report-cli-evidence.md",
+      "bytes": 2721,
+      "sha256": "dc74a0857d44348f8042b60d6cea72ecd1ca8931534a261d4bc6b9b50445fcfc"
+    },
+    {
+      "path": "issues/19-immutable-candidate-catalog.md",
+      "bytes": 3443,
+      "sha256": "5a873d6493b2b7d716944ca641cc2eb75f9093f249ef1db1f9b996c5a1cb4b57"
+    },
+    {
+      "path": "issues/20-retrieval-paired-benchmark.md",
+      "bytes": 2707,
+      "sha256": "871e15c9ff7b5988f398de6b188d5cf4db159953bcca3c44dae4377aef99d32c"
+    },
+    {
+      "path": "issues/21-public-replay-120d.md",
+      "bytes": 2686,
+      "sha256": "3b94b271a185afcef046fd507e5f756dac751c067b50e1f96c935b59d3a20448"
+    },
+    {
+      "path": "issues/22-live-acceptance-cutover.md",
+      "bytes": 3143,
+      "sha256": "b8f39172d0676517d68be1f2cab81e79125517ce2bbbed3177d73f288694bd73"
+    },
+    {
+      "path": "ticket-graph.json",
+      "bytes": 5282,
+      "sha256": "e552ad9e9e3e95be1184143217e590e47e6beea34b855f0cbaf097faa0436dd5"
+    }
+  ]
+}
