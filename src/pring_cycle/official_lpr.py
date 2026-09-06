@@ -3,23 +3,23 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import asdict, dataclass
+from datetime import date, datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
-from pring_cycle.artifacts import store_artifact
+from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
 from pring_cycle.catalog import METRIC_CATALOG_VERSION
-from pring_cycle.evidence import (
-    EvidenceRepository,
-    EvidenceValueState,
-    SourceClaimInput,
-    StoredSourceClaim,
+from pring_cycle.evidence import EvidenceRepository, publication_times
+from pring_cycle.official_context import (
+    ParsedOfficialContextRelease,
+    ingest_acquired_official_release,
 )
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.tushare_context import ContextScalar
 
 CHINAMONEY_PROVIDER = "中国货币网"
 CHINAMONEY_METRIC_ID = "CN_LPR_1Y_5Y"
@@ -38,8 +38,8 @@ class LprObservation:
 class ParsedLprRelease:
     release_event_id: str
     period: str
-    release_at: datetime
-    public_available_at: datetime
+    release_at: datetime | None
+    public_available_at: datetime | None
     source_url: str
     observations: tuple[LprObservation, ...]
 
@@ -69,7 +69,7 @@ class LprSmokeResult:
     source_identity: str
     final_url: str
     period: str
-    release_at: datetime
+    release_at: datetime | None
     observation_count: int
     tenors: tuple[str, ...]
     content_hash: str
@@ -82,9 +82,25 @@ class _TextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.parts: list[str] = []
+        self.publication_parts: list[str] = []
+        self._inside_time = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "time":
+            self._inside_time = True
+        if tag == "meta":
+            values = dict(attrs)
+            if (values.get("name") or "").lower() == "pubdate":
+                self.publication_parts.append(values.get("content") or "")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "time":
+            self._inside_time = False
 
     def handle_data(self, data: str) -> None:
         self.parts.append(data)
+        if self._inside_time:
+            self.publication_parts.append(data)
 
 
 def parse_lpr_announcement(
@@ -122,20 +138,19 @@ def parse_lpr_announcement(
         raise ValueError("lpr_release_date_mismatch")
     if release_date[:7] != expected_period:
         raise ValueError("lpr_release_period_mismatch")
-    timestamp_match = re.search(
-        r"(?P<date>\d{4}-\d{2}-\d{2})(?P<hour>\d{2}):(?P<minute>\d{2})",
-        text,
-    )
-    if timestamp_match is None:
-        raise ValueError("lpr_release_timestamp_missing")
-    if timestamp_match.group("date") != release_date:
-        raise ValueError("lpr_release_date_mismatch")
-    release_at = datetime.fromisoformat(
-        f"{release_date}T{timestamp_match.group('hour')}:{timestamp_match.group('minute')}:00"
-    ).replace(tzinfo=ZoneInfo("Asia/Shanghai"))
-    if (release_at.hour, release_at.minute) != (9, 0):
-        raise ValueError("lpr_release_time_mismatch")
-    if fetched_at < release_at:
+    published = _publication_metadata(extractor)
+    source_timezone = ZoneInfo("Asia/Shanghai")
+    release_at, public_at = publication_times(published, source_timezone)
+    if release_at is not None:
+        release_at = release_at.astimezone(source_timezone)
+        public_at = release_at
+    if release_at is not None and fetched_at < release_at:
+        raise ValueError("lpr_fetched_before_public_release")
+    if (
+        published is not None
+        and not isinstance(published, datetime)
+        and fetched_at.astimezone(source_timezone).date() < published
+    ):
         raise ValueError("lpr_fetched_before_public_release")
     one_year = _extract_rate(text, r"1年期LPR为(?P<value>\d+(?:\.\d+)?)%", "lpr_1y_value_missing")
     five_year = _extract_rate(
@@ -144,13 +159,49 @@ def parse_lpr_announcement(
         "lpr_5y_plus_value_missing",
     )
     return ParsedLprRelease(
-        release_event_id=f"chinamoney-lpr:{release_date}",
+        release_event_id=f"chinamoney-lpr:{release_date}:{hashlib.sha256(content).hexdigest()}",
         period=expected_period,
         release_at=release_at,
-        public_available_at=release_at,
+        public_available_at=public_at,
         source_url=source_url,
         observations=(LprObservation("1y", one_year), LprObservation("5y_plus", five_year)),
     )
+
+
+def _publication_metadata(extractor: _TextExtractor) -> datetime | date | None:
+    metadata = list(extractor.publication_parts)
+    # Existing official pages have a standalone timestamp; a bare date is
+    # accepted only from explicit publication metadata, never the title or URL.
+    for part in extractor.parts:
+        normalized = part.strip()
+        if re.fullmatch(r"\d{4}[-/]\d{2}[-/]\d{2}\s+\d{2}:\d{2}(?::\d{2})?", normalized):
+            metadata.append(normalized)
+        metadata.extend(
+            re.findall(
+                r"(?:发布时间|发布日期)[：:]\s*(\d{4}[-/]\d{2}[-/]\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?)",
+                part,
+            )
+        )
+    values = {
+        re.sub(r"\s+", " ", value.strip()).replace("/", "-") for value in metadata if value.strip()
+    }
+    timestamps = set()
+    for value in values:
+        if " " in value or "T" in value:
+            timestamp = datetime.fromisoformat(value)
+            timestamps.add(
+                timestamp.replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+                if timestamp.tzinfo is None
+                else timestamp.astimezone(ZoneInfo("Asia/Shanghai"))
+            )
+    dates = {date.fromisoformat(value) for value in values if " " not in value and "T" not in value}
+    if (
+        len(timestamps) > 1
+        or len(dates) > 1
+        or (timestamps and dates and {value.date() for value in timestamps} != dates)
+    ):
+        raise ValueError("lpr_publication_metadata_conflict")
+    return next(iter(timestamps)) if timestamps else next(iter(dates)) if dates else None
 
 
 def ingest_lpr_document(
@@ -162,156 +213,81 @@ def ingest_lpr_document(
     expected_period: str,
     media_type: str = "text/html",
     definition_version: str = METRIC_CATALOG_VERSION,
+    clock: Callable[[], datetime] = utc_now,
 ) -> LprIngestionResult:
-    parsed = parse_lpr_announcement(
-        content,
-        source_url=source_url,
-        fetched_at=fetched_at,
-        expected_period=expected_period,
+    def parse(raw: bytes) -> ParsedLprRelease:
+        if media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
+            raise ValueError("lpr_response_media_type_invalid")
+        return parse_lpr_announcement(
+            raw,
+            source_url=source_url,
+            fetched_at=fetched_at,
+            expected_period=expected_period,
+        )
+
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=CHINAMONEY_PROVIDER,
+        api_name="document_import",
+        parameters={"source_url": source_url, "period": expected_period},
+        fields="1y,5y_plus",
+        parser_version="chinamoney-lpr-parser-v0002",
+        fetch=lambda: content,
+        parse=parse,
+        normalize=asdict,
+        clock=clock,
     )
-    if media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
-        raise ValueError("lpr_response_media_type_invalid")
-    artifact = store_artifact(
-        paths.database,
-        paths.artifacts,
-        content,
-        "text/html",
-        source_url,
+    return _ingest_lpr_acquisition(
+        paths, acquired, definition_version=definition_version, clock=clock
     )
+
+
+def _ingest_lpr_acquisition(
+    paths: RuntimePaths,
+    acquired: Acquired[ParsedLprRelease],
+    *,
+    definition_version: str,
+    clock: Callable[[], datetime] = utc_now,
+) -> LprIngestionResult:
+    parsed = acquired.value
     period_start, period_end = month_bounds(parsed.period)
-    source_reference = f"{source_url}#sha256={artifact.content_hash}"
-    repository = EvidenceRepository(paths.database)
-    existing = repository.claims_for_release_source(
-        parsed.release_event_id,
-        source_reference,
-        definition_version=definition_version,
+    release = ParsedOfficialContextRelease(
+        family="chinamoney_lpr",
+        provider=CHINAMONEY_PROVIDER,
+        release_event_id=parsed.release_event_id,
+        period=parsed.period,
+        release_at=parsed.release_at,
+        public_available_at=parsed.public_available_at,
+        source_url=parsed.source_url,
+        scalars=tuple(
+            ContextScalar(
+                metric_id=CHINAMONEY_METRIC_ID,
+                api_name="chinamoney_lpr",
+                source_field=observation.tenor,
+                period_kind="month",
+                period_start=period_start,
+                period_end=period_end,
+                dimensions={"tenor": observation.tenor},
+                value=observation.value,
+                unit="percent",
+            )
+            for observation in parsed.observations
+        ),
     )
-    if existing and len(existing) != len(parsed.observations):
-        raise ValueError("lpr_release_claim_set_incomplete")
-    release_event_id = parsed.release_event_id
-    if existing:
-        stored = existing
-    else:
-        exact_previous = tuple(
-            repository.latest_provider_claim(
-                metric_id=CHINAMONEY_METRIC_ID,
-                definition_version=definition_version,
-                period_kind="month",
-                period_start=period_start,
-                period_end=period_end,
-                dimensions={"tenor": observation.tenor},
-                provider=CHINAMONEY_PROVIDER,
-            )
-            for observation in parsed.observations
-        )
-        physical_previous = tuple(
-            repository.latest_provider_claim(
-                metric_id=CHINAMONEY_METRIC_ID,
-                period_kind="month",
-                period_start=period_start,
-                period_end=period_end,
-                dimensions={"tenor": observation.tenor},
-                provider=CHINAMONEY_PROVIDER,
-            )
-            for observation in parsed.observations
-        )
-        exact_same = all(
-            previous is not None
-            and previous.value_state is EvidenceValueState.REPORTED_VALUE
-            and previous.value == observation.value
-            and previous.unit == "percent"
-            for previous, observation in zip(
-                exact_previous,
-                parsed.observations,
-                strict=True,
-            )
-        )
-        cross_version_same = all(previous is None for previous in exact_previous) and all(
-            previous is not None
-            and previous.value_state is EvidenceValueState.REPORTED_VALUE
-            and previous.value == observation.value
-            and previous.unit == "percent"
-            for previous, observation in zip(
-                physical_previous,
-                parsed.observations,
-                strict=True,
-            )
-        )
-        if exact_same:
-            stored = tuple(
-                StoredSourceClaim(
-                    previous.claim_id,
-                    previous.observation_id,
-                    previous.supersedes_claim_id,
-                )
-                for previous in exact_previous
-                if previous is not None
-            )
-            release_event_id = exact_previous[0].release_event_id  # type: ignore[union-attr]
-        else:
-            if cross_version_same:
-                prior = physical_previous[0]
-                assert prior is not None
-                release_event_id = prior.release_event_id
-                release_at = prior.release_at
-                public_available_at = prior.public_available_at
-            elif any(previous is not None for previous in physical_previous):
-                release_event_id = _revision_event_id(parsed.release_event_id, fetched_at)
-                release_at = parsed.release_at
-                public_available_at = fetched_at
-            else:
-                release_at = parsed.release_at
-                public_available_at = parsed.public_available_at
-            claims = tuple(
-                SourceClaimInput(
-                    metric_id=CHINAMONEY_METRIC_ID,
-                    definition_version=definition_version,
-                    period_kind="month",
-                    period_start=period_start,
-                    period_end=period_end,
-                    dimensions={"tenor": observation.tenor},
-                    value=observation.value,
-                    value_state=EvidenceValueState.REPORTED_VALUE,
-                    unit="percent",
-                    provider=CHINAMONEY_PROVIDER,
-                    source_reference=source_reference,
-                    release_event_id=release_event_id,
-                    release_at=release_at,
-                    public_available_at=public_available_at,
-                    fetched_at=fetched_at,
-                    available_at=fetched_at,
-                    certification_status="certified",
-                    quality_status="validated",
-                )
-                for observation in parsed.observations
-            )
-            stored = repository.append_source_claims(claims)
-    repository.record_retrieval_attempt(
-        metric_id=CHINAMONEY_METRIC_ID,
-        channel="certified_official_direct",
-        outcome="verified",
-        fetched_at=fetched_at,
-        safe_metadata={
-            "artifact_hash": artifact.content_hash,
-            "http_status": "200",
-            "period": parsed.period,
-            "provider": CHINAMONEY_PROVIDER,
-        },
+    result = ingest_acquired_official_release(
+        paths,
+        Acquired(release, acquired.receipt),
+        definition_version=definition_version,
+        clock=clock,
     )
     return LprIngestionResult(
         status="stored",
-        release_event_id=release_event_id,
-        period=parsed.period,
-        artifact_hash=artifact.content_hash,
-        observation_ids=tuple(item.observation_id for item in stored),
-        claim_ids=tuple(item.claim_id for item in stored),
-        observation_count=len(stored),
+        release_event_id=result.release_event_id,
+        period=result.period,
+        artifact_hash=result.artifact_hash,
+        observation_ids=result.observation_ids,
+        claim_ids=result.claim_ids,
+        observation_count=result.observation_count,
     )
-
-
-def _revision_event_id(base_event_id: str, fetched_at: datetime) -> str:
-    suffix = hashlib.sha256(fetched_at.isoformat().encode()).hexdigest()[:16]
-    return f"{base_event_id}:revision:{suffix}"
 
 
 def refresh_lpr_release(
@@ -326,26 +302,45 @@ def refresh_lpr_release(
     _validate_official_url(source_url)
     fetch = fetcher or fetch_official_document
     try:
-        response = fetch(source_url)
-        _validate_official_url(response.final_url)
-        if response.final_url != source_url:
-            raise ValueError("lpr_source_redirect_identity_changed")
-        if response.http_status != 200:
-            raise ValueError("lpr_source_http_status_invalid")
-        return ingest_lpr_document(
-            paths,
-            response.content,
-            source_url=response.final_url,
-            fetched_at=fetched_at,
-            expected_period=expected_period,
-            media_type=response.media_type,
-            definition_version=definition_version,
+        responses: list[FetchedOfficialDocument] = []
+
+        def fetch_bytes() -> bytes:
+            response = fetch(source_url)
+            responses.append(response)
+            return response.content
+
+        def parse(raw: bytes) -> ParsedLprRelease:
+            response = responses[0]
+            _validate_official_url(response.final_url)
+            if response.final_url != source_url:
+                raise ValueError("lpr_source_redirect_identity_changed")
+            if response.http_status != 200:
+                raise ValueError("lpr_source_http_status_invalid")
+            if response.media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
+                raise ValueError("lpr_response_media_type_invalid")
+            return parse_lpr_announcement(
+                raw,
+                source_url=source_url,
+                fetched_at=utc_now(),
+                expected_period=expected_period,
+            )
+
+        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+            provider=CHINAMONEY_PROVIDER,
+            api_name="official_http_get",
+            parameters={"source_url": source_url, "period": expected_period},
+            fields="1y,5y_plus",
+            parser_version="chinamoney-lpr-parser-v0002",
+            fetch=fetch_bytes,
+            parse=parse,
+            normalize=asdict,
         )
-    except (OSError, ValueError):
+        return _ingest_lpr_acquisition(paths, acquired, definition_version=definition_version)
+    except (OSError, ValueError) as error:
         EvidenceRepository(paths.database).record_retrieval_attempt(
             metric_id=CHINAMONEY_METRIC_ID,
             channel="certified_official_direct",
-            outcome="source_failed",
+            outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
             fetched_at=fetched_at,
             safe_metadata={"period": expected_period, "provider": CHINAMONEY_PROVIDER},
         )
@@ -401,8 +396,6 @@ def fetch_official_document(source_url: str) -> FetchedOfficialDocument:
         final_url = response.geturl()
         status = int(response.status)
         media_type = str(response.headers.get("Content-Type", ""))
-    if len(content) > MAX_ANNOUNCEMENT_BYTES:
-        raise ValueError("lpr_announcement_size_invalid")
     return FetchedOfficialDocument(content, media_type, final_url, status)
 
 

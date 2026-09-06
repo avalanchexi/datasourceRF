@@ -724,6 +724,7 @@ def test_target_bound_lpr_status_uses_the_target_period_not_the_run_month(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 31, 16, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 31, 16, tzinfo=UTC),
     )
 
     context = build_context_projection(
@@ -850,6 +851,7 @@ def test_certified_lpr_enters_credit_evidence_with_point_in_time_source_fields(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
     )
 
     context = build_context_projection(
@@ -880,6 +882,7 @@ def test_lpr_carries_the_previous_period_as_awaiting_release_not_source_failure(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
     )
 
     context = build_context_projection(
@@ -976,6 +979,7 @@ def test_conflicted_certified_sources_keep_every_claim_and_do_not_drive_state(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
     )
     conflicting = repository.append_source_claim(
         SourceClaimInput(

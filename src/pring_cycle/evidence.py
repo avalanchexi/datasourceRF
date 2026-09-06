@@ -67,6 +67,7 @@ class SourceClaimInput:
     certification_status: str
     quality_status: str
     acquisition_id: str | None = None
+    acquisition_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -208,6 +209,7 @@ class SourceClaimRevision:
     release_event_id: str
     release_at: datetime | None
     public_available_at: datetime | None
+    fetched_at: datetime
 
 
 @dataclass(frozen=True)
@@ -266,7 +268,8 @@ class EvidenceRepository:
         if availability_clock is not None:
             available_at = availability_clock()
             if available_at.tzinfo is None or any(
-                claim.acquisition_id is None or available_at < claim.available_at
+                not (claim.acquisition_id or claim.acquisition_ids)
+                or available_at < claim.available_at
                 for claim in claims
             ):
                 raise ValueError("acquisition_availability_time_invalid")
@@ -275,20 +278,33 @@ class EvidenceRepository:
         with self._connect() as connection:
             for claim in claims:
                 item = _append_source_claim(connection, claim)
-                if claim.acquisition_id is not None:
-                    receipt = connection.execute(
+                acquisition_ids = tuple(
+                    dict.fromkeys(
+                        (
+                            *claim.acquisition_ids,
+                            *((claim.acquisition_id,) if claim.acquisition_id else ()),
+                        )
+                    )
+                )
+                receipts = [
+                    connection.execute(
                         "SELECT * FROM acquisition_request WHERE acquisition_id=?",
-                        (claim.acquisition_id,),
+                        (acquisition_id,),
                     ).fetchone()
-                    if (
-                        receipt is None or receipt["state"] != "validated"
-                        or claim.available_at < _required_datetime(receipt["validated_at"])
-                        or claim.fetched_at != _required_datetime(receipt["received_at"])
-                    ):
-                        raise ValueError("claim_acquisition_not_validated")
+                    for acquisition_id in acquisition_ids
+                ]
+                if receipts and (
+                    any(receipt is None or receipt["state"] != "validated" for receipt in receipts)
+                    or claim.available_at
+                    < max(_required_datetime(r["validated_at"]) for r in receipts)
+                    or claim.fetched_at
+                    != max(_required_datetime(r["received_at"]) for r in receipts)
+                ):
+                    raise ValueError("claim_acquisition_not_validated")
+                for acquisition_id in acquisition_ids:
                     connection.execute(
                         "INSERT OR IGNORE INTO source_claim_acquisition VALUES (?, ?)",
-                        (item.claim_id, claim.acquisition_id),
+                        (item.claim_id, acquisition_id),
                     )
                 stored.append(item)
         self._preloaded_series_rows.clear()
@@ -475,7 +491,7 @@ class EvidenceRepository:
                 f"""
                 SELECT claim_id, observation_id, supersedes_claim_id, value,
                        value_state, unit, release_event_id, release_at,
-                       public_available_at
+                       public_available_at, fetched_at
                 FROM source_claim
                 WHERE {' AND '.join(clauses)}
                 ORDER BY julianday(available_at) DESC, rowid DESC LIMIT 1
@@ -498,6 +514,7 @@ class EvidenceRepository:
             release_event_id=str(row["release_event_id"]),
             release_at=_datetime(row["release_at"]),
             public_available_at=_datetime(row["public_available_at"]),
+            fetched_at=datetime.fromisoformat(row["fetched_at"]),
         )
 
     def source_claim_vintages(
@@ -754,6 +771,11 @@ class EvidenceRepository:
                 ).fetchall()
             rows_by_observation: dict[str, list[sqlite3.Row]] = {}
             for row in rows:
+                if public_as_of is not None and (
+                    row["public_available_at"] is None
+                    or _required_datetime(row["public_available_at"]) > public_as_of
+                ):
+                    continue
                 rows_by_observation.setdefault(str(row["observation_id"]), []).append(row)
             points = []
             for observation_id, observation_rows in rows_by_observation.items():
@@ -1033,6 +1055,17 @@ def _select_claim_rows(
     as_of: datetime,
     tolerance: float,
 ) -> EvidenceQueryResult:
+    time_column = "public_available_at" if mode == AsOfMode.PUBLIC else "available_at"
+    # SQLite julianday is only a coarse index filter: it rounds sub-millisecond
+    # timestamps. Preserve the exact cutoff and revision order here.
+    rows = sorted(
+        (row for row in rows if _required_datetime(row[time_column]) <= as_of),
+        key=lambda row: (
+            _required_datetime(row[time_column]),
+            _required_datetime(row["available_at"]),
+            str(row["claim_id"]),
+        ),
+    )
     newest_by_provider: dict[str, sqlite3.Row] = {}
     for row in rows:
         newest_by_provider[str(row["provider"])] = row

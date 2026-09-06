@@ -29,7 +29,7 @@
         2
       ],
       "path": "issues/03-context-acquisition-receipts.md",
-      "execution_status": "pending"
+      "execution_status": "completed"
     },
     {
       "id": 4,
@@ -216,8 +216,14 @@
   ],
   "approval": "2026-09-06: user instructed 下一步 after the concrete seam and 22-ticket review.",
   "current_frontier": [
-    3,
     4,
+    5,
+    6,
+    7,
+    8,
+    11,
+    13,
+    14,
     15,
     18
   ]

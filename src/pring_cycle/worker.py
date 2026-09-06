@@ -18,7 +18,6 @@ from pring_cycle.domain import FormalStage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
 from pring_cycle.eia_context import (
     EiaPetroleumAdapter,
-    ingest_eia_spot_prices,
 )
 from pring_cycle.evidence import (
     AsOfMode,
@@ -55,7 +54,6 @@ from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
     ContextScalar,
     TushareContextAdapter,
-    ingest_context_scalars,
 )
 
 CORE_METRICS = {
@@ -1162,14 +1160,8 @@ def _refresh_context_sources(
         fetched_at = datetime.now(UTC)
         repository = EvidenceRepository(paths.database)
         try:
-            prices = _eia_context_adapter(eia_key).spot_prices(
-                start_date=target - timedelta(days=220),
-                end_date=target,
-            )
-            ingest_eia_spot_prices(
-                paths,
-                prices,
-                fetched_at=fetched_at,
+            _eia_context_adapter(eia_key).acquire_spot_prices(
+                paths, start_date=target - timedelta(days=220), end_date=target,
                 definition_version=definition_version,
             )
         except (OSError, TypeError, ValueError) as error:
@@ -1320,10 +1312,8 @@ def _refresh_context_sources(
     for family, metric_ids, retrieve in families:
         fetched_at = datetime.now(UTC)
         try:
-            ingest_context_scalars(
-                paths,
-                retrieve(),
-                fetched_at=fetched_at,
+            adapter.acquire_scalars(
+                paths, retrieve,
                 definition_version=definition_version,
             )
         except OSError as error:

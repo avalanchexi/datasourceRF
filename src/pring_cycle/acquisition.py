@@ -58,6 +58,7 @@ class AcquisitionRepository:
         parse: Callable[[bytes], T],
         normalize: Callable[[T], object],
         clock: Callable[[], datetime] = utc_now,
+        defer_validation: bool = False,
     ) -> Acquired[T]:
         acquisition_id = "acquisition-" + uuid4().hex
         started_at = clock()
@@ -87,38 +88,58 @@ class AcquisitionRepository:
             received_at = clock()
             self._receive(acquisition_id, raw, received_at, started_at)
             value = parse(raw)
-            normalized = json.dumps(
-                normalize(value),
-                default=str,
-                ensure_ascii=False,
-                sort_keys=True,
-                separators=(",", ":"),
-                allow_nan=False,
-            ).encode()
-            artifact = store_artifact(
-                self.database,
-                self.artifacts,
-                normalized,
-                "application/json",
-                f"{acquisition_id}:normalized",
+            receipt = (
+                self.get(acquisition_id)
+                if defer_validation
+                else self.complete_validation(acquisition_id, normalize(value), clock=clock)
             )
-            validated_at = clock()
-            _check_time(validated_at, received_at)
-            with self._connect() as connection:
-                connection.execute(
-                    """UPDATE acquisition_request SET state='validated', normalized_hash=?,
-                       validated_at=? WHERE acquisition_id=? AND state='received'""",
-                    (artifact.content_hash, validated_at.isoformat(), acquisition_id),
-                )
-            return Acquired(value, self.get(acquisition_id))
+            return Acquired(value, receipt)
         except Exception as error:
-            with self._connect() as connection:
-                connection.execute(
-                    """UPDATE acquisition_request SET state='failed', error_type=?
-                       WHERE acquisition_id=? AND state IN ('started', 'received')""",
-                    (type(error).__name__, acquisition_id),
-                )
+            self.fail_validation(acquisition_id, error)
             raise
+
+    def complete_validation(
+        self,
+        acquisition_id: str,
+        normalized_value: object,
+        *,
+        clock: Callable[[], datetime] = utc_now,
+    ) -> AcquisitionReceipt:
+        receipt = self.get(acquisition_id)
+        if receipt.state != "received" or receipt.received_at is None:
+            raise ValueError("acquisition_not_awaiting_validation")
+        normalized = json.dumps(
+            normalized_value,
+            default=str,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode()
+        artifact = store_artifact(
+            self.database,
+            self.artifacts,
+            normalized,
+            "application/json",
+            f"{acquisition_id}:normalized",
+        )
+        validated_at = clock()
+        _check_time(validated_at, receipt.received_at)
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE acquisition_request SET state='validated', normalized_hash=?,
+                   validated_at=? WHERE acquisition_id=? AND state='received'""",
+                (artifact.content_hash, validated_at.isoformat(), acquisition_id),
+            )
+        return self.get(acquisition_id)
+
+    def fail_validation(self, acquisition_id: str, error: Exception) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE acquisition_request SET state='failed', error_type=?
+                   WHERE acquisition_id=? AND state IN ('started', 'received')""",
+                (type(error).__name__, acquisition_id),
+            )
 
     def _receive(
         self, acquisition_id: str, raw: bytes, received_at: datetime, started_at: datetime

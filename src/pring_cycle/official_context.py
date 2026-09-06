@@ -4,20 +4,21 @@ import calendar
 import hashlib
 import re
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     SourceClaimInput,
-    StoredSourceClaim,
+    publication_times,
 )
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
@@ -92,8 +93,8 @@ class ParsedOfficialContextRelease:
     provider: str
     release_event_id: str
     period: str
-    release_at: datetime
-    public_available_at: datetime
+    release_at: datetime | None
+    public_available_at: datetime | None
     source_url: str
     scalars: tuple[ContextScalar, ...]
 
@@ -126,7 +127,7 @@ class OfficialContextSmokeResult:
     provider: str
     final_url: str
     period: str
-    release_at: datetime
+    release_at: datetime | None
     metric_ids: tuple[str, ...]
     first_period: str
     last_period: str
@@ -191,8 +192,19 @@ def parse_official_context_document(
     parser = _OfficialHtmlParser()
     parser.feed(document)
     text = _normalized_text(" ".join(parser.parts))
-    release_at = _release_timestamp(text)
-    if fetched_at < release_at:
+    source_timezone = ZoneInfo("Asia/Shanghai")
+    published = _release_timestamp(text)
+    release_at, public_at = publication_times(published, source_timezone)
+    if release_at is not None:
+        release_at = release_at.astimezone(ZoneInfo("Asia/Shanghai"))
+        public_at = release_at
+    if release_at is not None and fetched_at < release_at:
+        raise ValueError("official_context_fetched_before_release")
+    if (
+        published is not None
+        and not isinstance(published, datetime)
+        and fetched_at.astimezone(source_timezone).date() < published
+    ):
         raise ValueError("official_context_fetched_before_release")
     if not _period_is_identified(text, expected_period):
         raise ValueError("official_context_period_identity_mismatch")
@@ -200,10 +212,10 @@ def parse_official_context_document(
     return ParsedOfficialContextRelease(
         family=family,
         provider=provider,
-        release_event_id=f"official:{family}:{expected_period}:{release_at.isoformat()}",
+        release_event_id=f"official:{family}:{expected_period}:{hashlib.sha256(content).hexdigest()}",
         period=expected_period,
         release_at=release_at,
-        public_available_at=release_at,
+        public_available_at=public_at,
         source_url=source_url,
         scalars=scalars,
     )
@@ -229,134 +241,134 @@ def ingest_official_context_document(
     fetched_at: datetime,
     media_type: str = "text/html",
     definition_version: str = METRIC_CATALOG_VERSION,
+    clock: Callable[[], datetime] = utc_now,
 ) -> OfficialContextIngestionResult:
-    _validate_html_media_type(media_type)
-    parsed = parse_official_context_document(
-        content,
-        family=family,
-        source_url=source_url,
-        expected_period=expected_period,
-        fetched_at=fetched_at,
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+
+    def parse(raw: bytes) -> ParsedOfficialContextRelease:
+        _validate_html_media_type(media_type)
+        return parse_official_context_document(
+            raw,
+            family=family,
+            source_url=source_url,
+            expected_period=expected_period,
+            fetched_at=fetched_at,
+        )
+
+    acquired = acquisitions.capture(
+        provider=_validate_source_identity(family, source_url),
+        api_name="document_import",
+        parameters={"source_url": source_url, "period": expected_period, "family": family},
+        fields="",
+        parser_version="official-context-parser-v0002",
+        fetch=lambda: content,
+        parse=parse,
+        normalize=asdict,
+        clock=clock,
+    )
+    return ingest_acquired_official_release(
+        paths, acquired, definition_version=definition_version, clock=clock
+    )
+
+
+def ingest_acquired_official_release(
+    paths: RuntimePaths,
+    acquired: Acquired[ParsedOfficialContextRelease],
+    *,
+    definition_version: str,
+    clock: Callable[[], datetime] = utc_now,
+) -> OfficialContextIngestionResult:
+    parsed, receipt = acquired.value, acquired.receipt
+    if receipt.received_at is None or receipt.validated_at is None or receipt.raw_hash is None:
+        raise ValueError("official_acquisition_incomplete")
+    content = AcquisitionRepository(paths.database, paths.artifacts).read_content(
+        receipt.acquisition_id, "raw"
     )
     artifact = store_artifact(
-        paths.database,
-        paths.artifacts,
-        content,
-        "text/html",
-        source_url,
+        paths.database, paths.artifacts, content, "text/html", parsed.source_url
     )
-    source_reference = f"{source_url}#sha256={artifact.content_hash}"
-    definitions = {
-        scalar.metric_id: metric_definition(
-            scalar.metric_id,
-            definition_version=definition_version,
+    source_reference = f"{parsed.source_url}#sha256={artifact.content_hash}"
+    repository = EvidenceRepository(paths.database)
+    previous = [
+        repository.latest_provider_claim(
+            metric_id=scalar.metric_id,
+            period_kind=scalar.period_kind,
+            period_start=scalar.period_start,
+            period_end=scalar.period_end,
+            dimensions=scalar.dimensions,
+            provider=parsed.provider,
         )
         for scalar in parsed.scalars
-    }
-    repository = EvidenceRepository(paths.database)
-    existing = repository.claims_for_release_source(
-        parsed.release_event_id,
-        source_reference,
-        definition_version=definition_version,
+    ]
+    same_document_previous = [
+        repository.latest_provider_claim(
+            metric_id=scalar.metric_id,
+            period_kind=scalar.period_kind,
+            period_start=scalar.period_start,
+            period_end=scalar.period_end,
+            dimensions=scalar.dimensions,
+            provider=parsed.provider,
+            source_reference=source_reference,
+        )
+        for scalar in parsed.scalars
+    ]
+    revision_without_new_time = any(
+        prior is not None and prior.public_available_at is None for prior in same_document_previous
+    ) or any(
+        prior is not None
+        and (
+            prior.public_available_at is None
+            or prior.value != scalar.value
+            or prior.unit != scalar.unit
+        )
+        and (
+            parsed.public_available_at is None
+            or (
+                prior.public_available_at is None
+                and parsed.public_available_at <= prior.fetched_at
+            )
+            or (
+                prior.public_available_at is not None
+                and parsed.public_available_at <= prior.public_available_at
+            )
+        )
+        for prior, scalar in zip(previous, parsed.scalars, strict=True)
     )
-    if existing and len(existing) != len(parsed.scalars):
-        raise ValueError("official_context_release_claim_set_incomplete")
+    public_at = None if revision_without_new_time else parsed.public_available_at
+    release_at = None if revision_without_new_time else parsed.release_at
     release_event_id = parsed.release_event_id
-    if existing:
-        stored = existing
-    else:
-        exact_previous = tuple(
-            repository.latest_provider_claim(
-                metric_id=scalar.metric_id,
-                definition_version=definitions[scalar.metric_id].definition_version,
-                period_kind=scalar.period_kind,
-                period_start=scalar.period_start,
-                period_end=scalar.period_end,
-                dimensions=scalar.dimensions,
-                provider=parsed.provider,
-            )
-            for scalar in parsed.scalars
+    if public_at is None:
+        release_event_id = f"unresolved-publication:{receipt.acquisition_id}"
+    claims = tuple(
+        SourceClaimInput(
+            metric_id=scalar.metric_id,
+            definition_version=definition_version,
+            period_kind=scalar.period_kind,
+            period_start=scalar.period_start,
+            period_end=scalar.period_end,
+            dimensions=scalar.dimensions,
+            value=scalar.value,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit=scalar.unit,
+            provider=parsed.provider,
+            source_reference=source_reference,
+            release_event_id=release_event_id,
+            release_at=release_at,
+            public_available_at=public_at,
+            fetched_at=receipt.received_at,
+            available_at=receipt.validated_at,
+            certification_status=metric_definition(
+                scalar.metric_id, definition_version=definition_version
+            ).certification_status,
+            quality_status="validated",
+            acquisition_id=receipt.acquisition_id,
         )
-        physical_previous = tuple(
-            repository.latest_provider_claim(
-                metric_id=scalar.metric_id,
-                period_kind=scalar.period_kind,
-                period_start=scalar.period_start,
-                period_end=scalar.period_end,
-                dimensions=scalar.dimensions,
-                provider=parsed.provider,
-            )
-            for scalar in parsed.scalars
-        )
-        exact_same = all(
-            previous is not None
-            and previous.value_state is EvidenceValueState.REPORTED_VALUE
-            and previous.value == scalar.value
-            and previous.unit == scalar.unit
-            for previous, scalar in zip(exact_previous, parsed.scalars, strict=True)
-        )
-        cross_version_same = all(previous is None for previous in exact_previous) and all(
-            previous is not None
-            and previous.value_state is EvidenceValueState.REPORTED_VALUE
-            and previous.value == scalar.value
-            and previous.unit == scalar.unit
-            for previous, scalar in zip(
-                physical_previous,
-                parsed.scalars,
-                strict=True,
-            )
-        )
-        if exact_same:
-            stored = tuple(
-                StoredSourceClaim(
-                    previous.claim_id,
-                    previous.observation_id,
-                    previous.supersedes_claim_id,
-                )
-                for previous in exact_previous
-                if previous is not None
-            )
-            release_event_id = exact_previous[0].release_event_id  # type: ignore[union-attr]
-        else:
-            if cross_version_same:
-                prior = physical_previous[0]
-                assert prior is not None
-                release_event_id = prior.release_event_id
-                release_at = prior.release_at
-                public_available_at = prior.public_available_at
-            elif any(previous is not None for previous in physical_previous):
-                release_event_id = _revision_event_id(parsed.release_event_id, fetched_at)
-                release_at = parsed.release_at
-                public_available_at = fetched_at
-            else:
-                release_at = parsed.release_at
-                public_available_at = parsed.public_available_at
-            claims = tuple(
-                SourceClaimInput(
-                    metric_id=scalar.metric_id,
-                    definition_version=definitions[scalar.metric_id].definition_version,
-                    period_kind=scalar.period_kind,
-                    period_start=scalar.period_start,
-                    period_end=scalar.period_end,
-                    dimensions=scalar.dimensions,
-                    value=scalar.value,
-                    value_state=EvidenceValueState.REPORTED_VALUE,
-                    unit=scalar.unit,
-                    provider=parsed.provider,
-                    source_reference=source_reference,
-                    release_event_id=release_event_id,
-                    release_at=release_at,
-                    public_available_at=public_available_at,
-                    fetched_at=fetched_at,
-                    available_at=fetched_at,
-                    certification_status=(
-                        definitions[scalar.metric_id].certification_status
-                    ),
-                    quality_status="validated",
-                )
-                for scalar in parsed.scalars
-            )
-            stored = repository.append_source_claims(claims)
+        for scalar in parsed.scalars
+    )
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+    fetched_at = receipt.received_at
+    family = parsed.family
+    expected_period = parsed.period
     metric_ids = tuple(sorted({scalar.metric_id for scalar in parsed.scalars}))
     for metric_id in metric_ids:
         repository.record_retrieval_attempt(
@@ -384,11 +396,6 @@ def ingest_official_context_document(
     )
 
 
-def _revision_event_id(base_event_id: str, fetched_at: datetime) -> str:
-    suffix = hashlib.sha256(fetched_at.isoformat().encode()).hexdigest()[:16]
-    return f"{base_event_id}:revision:{suffix}"
-
-
 def refresh_official_context_document(
     paths: RuntimePaths,
     *,
@@ -403,17 +410,28 @@ def refresh_official_context_document(
     if fetched_at.tzinfo is None:
         raise ValueError("official_context_fetched_at_must_be_timezone_aware")
     try:
-        response = (fetcher or _fetch_official_context_document)(source_url)
-        _validate_fetched_document(family, source_url, response)
-        return ingest_official_context_document(
-            paths,
-            response.content,
-            family=family,
-            source_url=source_url,
-            expected_period=expected_period,
-            fetched_at=fetched_at,
-            media_type=response.media_type,
-            definition_version=definition_version,
+        response_holder: list[FetchedOfficialContextDocument] = []
+
+        def fetch() -> bytes:
+            response = (fetcher or _fetch_official_context_document)(source_url)
+            response_holder.append(response)
+            return response.content
+
+        def parse(raw: bytes) -> ParsedOfficialContextRelease:
+            _validate_fetched_document(family, source_url, response_holder[0])
+            return parse_official_context_document(
+                raw, family=family, source_url=source_url, expected_period=expected_period,
+                fetched_at=utc_now(),
+            )
+
+        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+            provider=_validate_source_identity(family, source_url), api_name="official_http_get",
+            parameters={"source_url": source_url, "period": expected_period, "family": family},
+            fields="", parser_version="official-context-parser-v0002",
+            fetch=fetch, parse=parse, normalize=asdict,
+        )
+        return ingest_acquired_official_release(
+            paths, acquired, definition_version=definition_version
         )
     except (OSError, TypeError, ValueError) as error:
         repository = EvidenceRepository(paths.database)
@@ -421,7 +439,7 @@ def refresh_official_context_document(
             repository.record_retrieval_attempt(
                 metric_id=metric_id,
                 channel="official_direct_candidate",
-                outcome="source_failed",
+                outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
                 fetched_at=fetched_at,
                 safe_metadata={
                     "error_type": type(error).__name__,
@@ -479,8 +497,6 @@ def _fetch_official_context_document(source_url: str) -> FetchedOfficialContextD
         final_url = response.geturl()
         status = int(response.status)
         media_type = str(response.headers.get("Content-Type", ""))
-    if len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
-        raise ValueError("official_context_document_size_invalid")
     return FetchedOfficialContextDocument(content, media_type, final_url, status)
 
 
@@ -489,7 +505,7 @@ def _parse_family(
     tables: list[list[tuple[str, ...]]],
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     if family == "nbs_core_cpi":
         return _parse_core_cpi(tables, period, release_at)
@@ -525,7 +541,7 @@ def _parse_family(
 def _parse_core_cpi(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     header = ("指标", "环比（%）", "同比（%）", "累计平均同比（%）")
     try:
@@ -585,7 +601,7 @@ def _parse_core_cpi(
 def _parse_pmi(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     year, month = (int(item) for item in period.split("-"))
@@ -630,7 +646,7 @@ def _parse_pmi(
 def _parse_ppi(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     labels = ("一、工业生产者出厂价格", "生产资料", "生活资料")
     selected_rows = _consistent_first_column_rows(tables, labels)
@@ -664,7 +680,7 @@ def _parse_ppi(
 def _parse_gdp(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     year, quarter_text = period.split("-Q")
     quarter = int(quarter_text)
@@ -717,7 +733,7 @@ def _parse_gdp(
 def _parse_industrial_value_added(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     if period.endswith("-01"):
@@ -841,7 +857,7 @@ def _parse_industrial_finance(
     tables: list[list[tuple[str, ...]]],
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     year_start = f"{period[:4]}-01-01"
@@ -944,7 +960,7 @@ def _parse_industrial_finance_live(
     tables: list[list[tuple[str, ...]]],
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     year_start = f"{period[:4]}-01-01"
@@ -1088,7 +1104,7 @@ def _parse_industrial_finance_live(
 def _parse_capacity_utilization(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     year_start, quarter_start, quarter_end = _quarter_bounds(period)
     header = ("行业", "当季（%）", "同比变化（百分点）", "累计（%）")
@@ -1182,7 +1198,7 @@ def _parse_capacity_utilization(
 def _parse_omo_notice(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     _required_iso_date(period, "official_context_period_invalid")
     header = (
@@ -1302,7 +1318,7 @@ def _parse_rrr_notice(
     tables: list[list[tuple[str, ...]]],
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     header = (
@@ -1383,7 +1399,7 @@ def _parse_rrr_notice(
 def _parse_tool_liquidity(
     tables: list[list[tuple[str, ...]]],
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     header = ("工具", "投放（亿元）", "回笼（亿元）", "净投放（亿元）")
@@ -1454,7 +1470,7 @@ def _parse_social_financing(
     tables: list[list[tuple[str, ...]]],
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     try:
@@ -1512,7 +1528,7 @@ def _parse_social_financing(
 def _parse_social_financing_live(
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     year_start = f"{period[:4]}-01-01"
@@ -1636,7 +1652,7 @@ def _parse_loan_structure(
     tables: list[list[tuple[str, ...]]],
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     try:
@@ -1673,7 +1689,7 @@ def _parse_loan_structure(
 def _parse_loan_structure_live(
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     _, period_end = month_bounds(period)
     year_start = f"{period[:4]}-01-01"
@@ -1737,7 +1753,7 @@ def _parse_loan_structure_live(
 def _parse_money(
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     period_start, period_end = month_bounds(period)
     compact = _compact_text(text)
@@ -1804,7 +1820,7 @@ def _year_to_date_label(period: str, subject: str) -> str:
 def _parse_usdcny_central_parity(
     text: str,
     period: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> tuple[ContextScalar, ...]:
     business_date = _required_iso_date(period, "official_context_period_invalid")
     year, month, day = (int(part) for part in business_date.split("-"))
@@ -1951,7 +1967,7 @@ def _validate_source_identity(family: str, source_url: str) -> str:
     return provider
 
 
-def _release_timestamp(text: str) -> datetime:
+def _release_timestamp(text: str) -> datetime | date | None:
     matches = re.findall(
         r"(?:发布时间|文章来源)[：:]\s*(\d{4}-\d{2}-\d{2})\s+"
         r"(\d{2}:\d{2}(?::\d{2})?)",
@@ -1967,8 +1983,15 @@ def _release_timestamp(text: str) -> datetime:
             )
         }
         matches = sorted(slash_matches)
-    if len(matches) != 1:
-        raise ValueError("official_context_release_timestamp_missing")
+    if not matches:
+        dates = set(
+            re.findall(r"(?:发布时间|发布日期|文章来源)[：:]\s*(\d{4}-\d{2}-\d{2})(?![\d-])", text)
+        )
+        if len(dates) > 1:
+            raise ValueError("official_context_release_timestamp_conflict")
+        return date.fromisoformat(next(iter(dates))) if dates else None
+    if len(set(matches)) != 1:
+        raise ValueError("official_context_release_timestamp_conflict")
     timestamp = matches[0][1]
     if timestamp.count(":") == 1:
         timestamp += ":00"
@@ -2135,7 +2158,7 @@ def _official_scalar(
     dimensions: dict[str, str],
     value: float,
     unit: str,
-    release_at: datetime,
+    release_at: datetime | None,
 ) -> ContextScalar:
     return ContextScalar(
         metric_id=metric_id,

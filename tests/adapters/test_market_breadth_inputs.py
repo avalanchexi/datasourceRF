@@ -126,7 +126,7 @@ def test_breadth_inputs_reject_duplicate_and_wrong_date_rows(api: str) -> None:
         adapter(rows).market_breadth_inputs(trading_days=(date(2026, 8, 19),))
     rows[api].pop()
     rows[api][0]["trade_date"] = "20260818"
-    with pytest.raises(ValueError, match="trade_date_mismatch"):
+    with pytest.raises(ValueError, match="tushare_response_period_mismatch"):
         adapter(rows).market_breadth_inputs(trading_days=(date(2026, 8, 19),))
 
 

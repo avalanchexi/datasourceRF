@@ -43,8 +43,7 @@ def official_table_document(
 ) -> bytes:
     header_html = "".join(f"<th>{item}</th>" for item in header)
     rows_html = "".join(
-        "<tr>" + "".join(f"<td>{item}</td>" for item in row) + "</tr>"
-        for row in rows
+        "<tr>" + "".join(f"<td>{item}</td>" for item in row) + "</tr>" for row in rows
     )
     return (
         f"<html><body><h1>{title}</h1><p>发布时间：{release_at}</p>"
@@ -62,13 +61,11 @@ def official_multi_table_document(
     for header, rows in tables:
         table_html += "<table><tr>" + "".join(f"<th>{item}</th>" for item in header) + "</tr>"
         table_html += "".join(
-            "<tr>" + "".join(f"<td>{item}</td>" for item in row) + "</tr>"
-            for row in rows
+            "<tr>" + "".join(f"<td>{item}</td>" for item in row) + "</tr>" for row in rows
         )
         table_html += "</table>"
     return (
-        f"<html><body><h1>{title}</h1><p>发布时间：{release_at}</p>"
-        f"{table_html}</body></html>"
+        f"<html><body><h1>{title}</h1><p>发布时间：{release_at}</p>{table_html}</body></html>"
     ).encode()
 
 
@@ -125,10 +122,7 @@ def test_core_cpi_offline_contract_accepts_two_schema_years(
     assert parsed.release_at.isoformat() == (
         f"{release_year:04d}-{release_month:02d}-09T09:30:00+08:00"
     )
-    assert {
-        (item.dimensions["measure"], item.value, item.unit)
-        for item in parsed.scalars
-    } == {
+    assert {(item.dimensions["measure"], item.value, item.unit) for item in parsed.scalars} == {
         ("mom", values[0], "percent"),
         ("yoy", values[1], "percent"),
         ("cumulative_average_yoy", values[2], "percent"),
@@ -191,6 +185,7 @@ def test_official_context_ingest_is_traceable_but_redacted_until_certified(
         source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html",
         expected_period="2026-06",
         fetched_at=fetched_at,
+        clock=lambda: fetched_at,
     )
 
     evidence = EvidenceRepository(paths.database)
@@ -218,7 +213,7 @@ def test_official_context_ingest_is_traceable_but_redacted_until_certified(
     assert {row["value"] for row in core_rows} == {None}
 
 
-def test_official_context_revision_is_public_only_from_the_revision_fetch(
+def test_official_context_revision_without_new_time_remains_system_only(
     tmp_path: Path,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -233,6 +228,7 @@ def test_official_context_revision_is_public_only_from_the_revision_fetch(
         source_url=source_url,
         expected_period="2026-06",
         fetched_at=first_fetch,
+        clock=lambda: first_fetch,
     )
 
     ingest_official_context_document(
@@ -242,6 +238,7 @@ def test_official_context_revision_is_public_only_from_the_revision_fetch(
         source_url=source_url,
         expected_period="2026-06",
         fetched_at=revision_fetch,
+        clock=lambda: revision_fetch,
     )
     repository = EvidenceRepository(paths.database)
     yoy_observation_id = next(
@@ -266,7 +263,13 @@ def test_official_context_revision_is_public_only_from_the_revision_fetch(
     )
 
     assert before_revision.selected_value == 1.0
-    assert after_revision.selected_value == 1.1
+    assert after_revision.selected_value == 1.0
+    assert (
+        repository.query(
+            yoy_observation_id, mode=AsOfMode.SYSTEM, as_of=revision_fetch
+        ).selected_value
+        == 1.1
+    )
 
 
 def test_official_context_smoke_returns_sanitized_contract_evidence() -> None:
@@ -308,9 +311,7 @@ def test_official_context_refresh_records_family_failure_without_storing_values(
             source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html",
             expected_period="2026-06",
             fetched_at=fetched_at,
-            fetcher=lambda _url: (_ for _ in ()).throw(
-                OSError("fixture_official_unavailable")
-            ),
+            fetcher=lambda _url: (_ for _ in ()).throw(OSError("fixture_official_unavailable")),
         )
 
     repository = EvidenceRepository(paths.database)
@@ -322,11 +323,14 @@ def test_official_context_refresh_records_family_failure_without_storing_values(
     assert attempt is not None
     assert attempt.channel == "official_direct_candidate"
     assert attempt.outcome == "source_failed"
-    assert repository.metric_series(
-        "CN_CORE_CPI",
-        mode=AsOfMode.SYSTEM,
-        as_of=fetched_at,
-    ) == ()
+    assert (
+        repository.metric_series(
+            "CN_CORE_CPI",
+            mode=AsOfMode.SYSTEM,
+            as_of=fetched_at,
+        )
+        == ()
+    )
 
 
 def test_pbc_omo_contract_separates_rate_injection_and_maturity() -> None:
@@ -386,8 +390,7 @@ def test_pbc_omo_contract_accepts_live_notice_without_inventing_maturity() -> No
     )
 
     assert {
-        (item.metric_id, item.dimensions.get("measure"), item.value)
-        for item in parsed.scalars
+        (item.metric_id, item.dimensions.get("measure"), item.value) for item in parsed.scalars
     } == {
         ("CN_OMO_7D_RATE", None, 1.4),
         ("CN_OMO_7D_AMOUNT", "injection", 200.0),
@@ -416,10 +419,7 @@ def test_pbc_rrr_contract_separates_announcement_and_effective_date() -> None:
 
     assert parsed.release_at.isoformat() == "2026-08-20T17:00:00+08:00"
     assert {item.period_end for item in parsed.scalars} == {"2026-08-25"}
-    assert {
-        (item.dimensions["measure"], item.value, item.unit)
-        for item in parsed.scalars
-    } == {
+    assert {(item.dimensions["measure"], item.value, item.unit) for item in parsed.scalars} == {
         ("rrr_change", -0.5, "percentage_points"),
         ("post_change_rrr", 6.2, "percent"),
         ("released_funds", 10000.0, "hundred_million_cny"),
@@ -467,10 +467,11 @@ def test_pbc_monthly_liquidity_contract_checks_official_net_identity() -> None:
         fetched_at=datetime(2026, 8, 5, 10, tzinfo=UTC),
     )
 
-    assert {
-        (item.dimensions["measure"], item.value)
-        for item in parsed.scalars
-    } == {("injection", 12000.0), ("withdrawal", 9500.0), ("net_injection", 2500.0)}
+    assert {(item.dimensions["measure"], item.value) for item in parsed.scalars} == {
+        ("injection", 12000.0),
+        ("withdrawal", 9500.0),
+        ("net_injection", 2500.0),
+    }
     with pytest.raises(ValueError, match="official_context_liquidity_identity_mismatch"):
         parse_official_context_document(
             content.replace(b"2500", b"2600"),
@@ -573,8 +574,7 @@ def test_pbc_social_financing_contract_accepts_live_combined_report_prose() -> N
         live_pbc_financial_report_document(),
         family="pbc_social_financing",
         source_url=(
-            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
-            "2026081416320925645/index.html"
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html"
         ),
         expected_period="2026-07",
         fetched_at=datetime(2026, 8, 14, 9, tzinfo=UTC),
@@ -588,9 +588,7 @@ def test_pbc_social_financing_contract_accepts_live_combined_report_prose() -> N
         ("ytd_increment", 222_500.0),
     }
     government = [
-        item
-        for item in parsed.scalars
-        if item.dimensions.get("component") == "government_bonds"
+        item for item in parsed.scalars if item.dimensions.get("component") == "government_bonds"
     ]
     assert {(item.dimensions["measure"], item.value) for item in government} == {
         ("stock_end", 1_026_800.0),
@@ -630,14 +628,11 @@ def test_pbc_social_financing_accepts_separate_official_releases(
     parsed = parse_official_context_document(
         (
             "<html><body><h1>2024年1月社会融资规模统计数据报告</h1>"
-            "<p>文章来源： 2024-02-09 17:00:00</p><p>"
-            + section
-            + "</p></body></html>"
+            "<p>文章来源： 2024-02-09 17:00:00</p><p>" + section + "</p></body></html>"
         ).encode(),
         family="pbc_social_financing",
         source_url=(
-            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
-            "official-release/index.html"
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/official-release/index.html"
         ),
         expected_period="2024-01",
         fetched_at=datetime(2024, 2, 9, 10, tzinfo=UTC),
@@ -687,8 +682,7 @@ def test_pbc_loan_structure_contract_accepts_live_ytd_report_prose() -> None:
         live_pbc_financial_report_document(),
         family="pbc_loan_structure",
         source_url=(
-            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/"
-            "2026081416320925645/index.html"
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html"
         ),
         expected_period="2026-07",
         fetched_at=datetime(2026, 8, 14, 9, tzinfo=UTC),
@@ -726,8 +720,7 @@ def test_pbc_usdcny_central_parity_contract_preserves_quote_direction() -> None:
         content,
         family="pbc_usdcny_central_parity",
         source_url=(
-            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/"
-            "5699853/index.html"
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/5699853/index.html"
         ),
         expected_period="2025-05-07",
         fetched_at=datetime(2025, 5, 7, 2, tzinfo=UTC),
@@ -759,8 +752,7 @@ def test_pbc_usdcny_central_parity_rejects_reverse_or_ambiguous_quotes() -> None
             content,
             family="pbc_usdcny_central_parity",
             source_url=(
-                "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/"
-                "5699853/index.html"
+                "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/5699853/index.html"
             ),
             expected_period="2025-05-07",
             fetched_at=datetime(2025, 5, 7, 2, tzinfo=UTC),
@@ -771,11 +763,11 @@ def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures(
     tmp_path: Path,
 ) -> None:
     content = official_table_document(
-            title="2026年6月份规模以上工业增加值",
-            release_at="2026-07-15 10:00",
-            header=("指标", "当月实际同比（%）", "累计实际同比（%）", "季调环比（%）"),
-            rows=(("规模以上工业增加值", 5.1, 6.4, 0.42),),
-        )
+        title="2026年6月份规模以上工业增加值",
+        release_at="2026-07-15 10:00",
+        header=("指标", "当月实际同比（%）", "累计实际同比（%）", "季调环比（%）"),
+        rows=(("规模以上工业增加值", 5.1, 6.4, 0.42),),
+    )
     parsed = parse_official_context_document(
         content,
         family="nbs_industrial_value_added",
@@ -785,8 +777,7 @@ def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures(
     )
 
     assert {
-        (item.dimensions["measure"], item.value, item.period_start)
-        for item in parsed.scalars
+        (item.dimensions["measure"], item.value, item.period_start) for item in parsed.scalars
     } == {
         ("current_month_real_yoy", 5.1, "2026-06-01"),
         ("ytd_real_yoy", 6.4, "2026-01-01"),
@@ -802,6 +793,7 @@ def test_nbs_industrial_value_added_contract_preserves_real_and_sa_measures(
         expected_period="2026-06",
         fetched_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
         definition_version="metric-catalog-v0003",
+        clock=lambda: datetime(2026, 7, 15, 3, tzinfo=UTC),
     )
     assert ingested.observation_count == 3
     with pytest.raises(ValueError, match="official_context_january_monthly_value_not_reported"):
@@ -845,10 +837,7 @@ def test_nbs_industrial_value_added_contract_accepts_live_multilevel_tables() ->
         fetched_at=datetime(2026, 8, 17, 8, tzinfo=UTC),
     )
 
-    assert {
-        (item.dimensions["measure"], item.value)
-        for item in parsed.scalars
-    } == {
+    assert {(item.dimensions["measure"], item.value) for item in parsed.scalars} == {
         ("current_month_real_yoy", 4.5),
         ("ytd_real_yoy", 5.3),
         ("mom_seasonally_adjusted", 0.11),
@@ -880,9 +869,7 @@ def test_nbs_industrial_finance_contract_keeps_nominal_inventory_and_turnover() 
         "CN_FINISHED_GOODS_INVENTORY",
         "CN_INVENTORY_TURNOVER",
     }
-    inventory = [
-        item for item in parsed.scalars if item.metric_id == "CN_FINISHED_GOODS_INVENTORY"
-    ]
+    inventory = [item for item in parsed.scalars if item.metric_id == "CN_FINISHED_GOODS_INVENTORY"]
     assert {(item.dimensions["measure"], item.value, item.unit) for item in inventory} == {
         ("nominal_end_level", 67000.0, "hundred_million_cny"),
         ("official_yoy", 2.1, "percent"),
@@ -931,9 +918,7 @@ def test_nbs_industrial_finance_contract_accepts_live_tables_and_prose() -> None
     )
 
     assert len(parsed.scalars) == 10
-    inventory = [
-        item for item in parsed.scalars if item.metric_id == "CN_FINISHED_GOODS_INVENTORY"
-    ]
+    inventory = [item for item in parsed.scalars if item.metric_id == "CN_FINISHED_GOODS_INVENTORY"]
     assert {(item.dimensions["measure"], item.value) for item in inventory} == {
         ("nominal_end_level", 72700.0),
         ("official_yoy", 10.8),
@@ -959,10 +944,7 @@ def test_nbs_capacity_contract_preserves_quarter_ytd_and_yoy_change() -> None:
         fetched_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
     )
 
-    assert {
-        (item.dimensions["measure"], item.value, item.unit)
-        for item in parsed.scalars
-    } == {
+    assert {(item.dimensions["measure"], item.value, item.unit) for item in parsed.scalars} == {
         ("quarter_rate", 74.0, "percent"),
         ("yoy_change", -0.2, "percentage_points"),
         ("ytd_rate", 74.3, "percent"),
@@ -992,7 +974,8 @@ def test_nbs_capacity_contract_accepts_live_multilevel_table() -> None:
         fetched_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
     )
 
-    assert {
-        (item.dimensions["measure"], item.value)
-        for item in parsed.scalars
-    } == {("quarter_rate", 73.0), ("yoy_change", -1.0), ("ytd_rate", 73.3)}
+    assert {(item.dimensions["measure"], item.value) for item in parsed.scalars} == {
+        ("quarter_rate", 73.0),
+        ("yoy_change", -1.0),
+        ("ytd_rate", 73.3),
+    }

@@ -1,0 +1,39 @@
+{
+  "verified_at": "2026-09-06T14:18:24.358365+00:00",
+  "status": "passed",
+  "full_suite": "456 passed in 180.48s; see checks.json",
+  "source_changed_after_full_suite": false,
+  "test_only_followup": {
+    "path": "tests/adapters/test_source_history.py",
+    "reason": "use agreed public ingestion and query boundary",
+    "result": "1 passed in 2.24s",
+    "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-03-public-seam"
+  },
+  "final_ruff": "All checks passed!\n",
+  "final_file_sha256": {
+    "src/pring_cycle/acquisition.py": "e7da967be5c8625382f2ff74bdd23732c02669213935dd2be6635a962dff50fd",
+    "src/pring_cycle/eia_context.py": "951bd7a60da29047d707c41e116fb469094bc3a1331a325fb789f2199f110abd",
+    "src/pring_cycle/evidence.py": "b84d20a291091b522af821ef0d4ff72e3bb970f85ff8ad176481e2d07507bfa6",
+    "src/pring_cycle/official_context.py": "ebb852306061101a3b9972287ebcfa8775b1eb9d17a6578aab43e09497442a39",
+    "src/pring_cycle/official_lpr.py": "51df1d840307c2fda3065d48192566649080fd80204cf8db80a4d55194391e9f",
+    "src/pring_cycle/source_history.py": "393420b63609d8dc12e63da21c3373fdd430c2d07304d4dfd34787d559577f2e",
+    "src/pring_cycle/tushare_context.py": "e5aca60475b3b51510bd8b16aebb51bbe93d3f640154a85f618ad052edee4f3e",
+    "src/pring_cycle/worker.py": "a0ca9b6578836cba864e2efb4fda9501ce70c67bc61ce405733a0f39e60f96e9",
+    "tests/adapters/test_chinamoney_lpr.py": "d242469191e1908af601c13216da20635f185b4105d106ebd1438813d0119d66",
+    "tests/adapters/test_eia_context.py": "4845a8e86f0ac1c073b0fa6fcacccd3e66c9625bcf540135465b25b10eb3295f",
+    "tests/adapters/test_margin_candidate.py": "bbd601b49fe85be4daeeddb1ae9089b3dfecb1281efce53b5752628e37beda7e",
+    "tests/adapters/test_market_breadth_inputs.py": "e2688d02f9f7feac759cb4c007c75c34017da5a163cc82da622921a74937d230",
+    "tests/adapters/test_official_context.py": "1c6d362bd91fb2ffb9a469e458d027d1e5b4c705985215ec993c88d359c7dea9",
+    "tests/adapters/test_source_history.py": "e2e3140226107c924be63fe15f0f3d5c89048c7f46b445ab9b2788791fe9d0cc",
+    "tests/adapters/test_tushare_context.py": "c738f975b6668f3a3a4989bd8ddd09b34ce24d53f8f9cc30284556ea750fc029",
+    "tests/integration/test_context_acquisition_receipts.py": "4b8b5b49f5916e6789d149de24fc8eb033a31994d742c4bf2b3896bdbbc13e66",
+    "tests/integration/test_context_projection.py": "0dd2a4c055372743c42f0929891f58edfc8fd36c79c865d86951c4803d5eb0b5",
+    "tests/integration/test_worker_execution.py": "448a5a4aad65884fe4a28d59d052a0257d5e8eb89c0efb996b1d47b9d9e47332",
+    "tests/web/test_projection_api.py": "7f8db6fe3c9d6dd0235236979487853ec88058b9cd315ed7fbb7e30b464938a4"
+  },
+  "review": {
+    "Standards": 0,
+    "Spec": 0
+  },
+  "production_writes": 0
+}

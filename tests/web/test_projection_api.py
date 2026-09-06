@@ -97,6 +97,7 @@ def test_release_calendar_api_reads_only_the_active_models_definition_version(
             fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
             expected_period="2026-08",
             definition_version=definition_version,
+            clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         )
     application = create_web_application(paths, 8050)
 
@@ -200,15 +201,14 @@ def test_release_calendar_rest_reads_certified_release_event_and_observation_cou
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
-    content = (
-        Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html"
-    ).read_bytes()
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
     ingest_lpr_document(
         paths,
         content,
         source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
         fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
     )
     application = create_web_application(paths, 8050)
 

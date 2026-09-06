@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, timedelta
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
@@ -13,7 +17,6 @@ from pring_cycle.context_projection import (
 )
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.trend import TrendRules
-from pring_cycle.eia_context import EiaSpotPrice
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -32,7 +35,6 @@ from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
-from pring_cycle.tushare_context import ContextScalar
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
 
 
@@ -237,39 +239,42 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
     paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")
     paths.secrets.chmod(0o600)
 
-    class FixtureEiaAdapter:
-        def spot_prices(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[EiaSpotPrice, ...]:
-            assert start_date == date(2026, 1, 20)
-            assert end_date == date(2026, 8, 28)
-            return (
-                EiaSpotPrice(
-                    metric_id="EIA_BRENT_RBRTE",
-                    series_id="RBRTE",
-                    series_description="Europe Brent Spot Price FOB",
-                    business_date=date(2026, 8, 27),
-                    value=71.25,
-                    unit="usd_per_barrel",
-                ),
-                EiaSpotPrice(
-                    metric_id="EIA_WTI_RWTC",
-                    series_id="RWTC",
-                    series_description="Cushing, OK WTI Spot Price FOB",
-                    business_date=date(2026, 8, 27),
-                    value=66.5,
-                    unit="usd_per_barrel",
-                ),
+    class EiaResponse(BytesIO):
+        status = 200
+        headers = {"Content-Type": "application/json"}
+
+        def geturl(self) -> str:
+            return "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+
+    class Opener:
+        def open(self, request: Any, *, timeout: int) -> EiaResponse:
+            parameters = parse_qs(urlsplit(request.full_url).query)
+            assert parameters["start"] == ["2026-01-20"]
+            assert parameters["end"] == ["2026-08-28"]
+            return EiaResponse(
+                json.dumps(
+                    {
+                        "response": {
+                            "frequency": "daily",
+                            "data": [
+                                {
+                                    "period": "2026-08-27",
+                                    "series": series,
+                                    "series-description": description,
+                                    "value": value,
+                                    "units": "Dollars per Barrel",
+                                }
+                                for series, description, value in (
+                                    ("RBRTE", "Europe Brent Spot Price FOB", "71.25"),
+                                    ("RWTC", "Cushing, OK WTI Spot Price FOB", "66.50"),
+                                )
+                            ],
+                        }
+                    }
+                ).encode()
             )
 
-    monkeypatch.setattr(
-        worker_module,
-        "_eia_context_adapter",
-        lambda api_key: FixtureEiaAdapter() if api_key == "fixture-eia-key" else None,
-    )
+    monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
 
     worker_module._refresh_context_sources(
         paths,
@@ -312,20 +317,11 @@ def test_worker_classifies_optional_eia_failures(
     paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")
     paths.secrets.chmod(0o600)
 
-    class FailingEiaAdapter:
-        def spot_prices(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[EiaSpotPrice, ...]:
+    class Opener:
+        def open(self, request: Any, *, timeout: int) -> BytesIO:
             raise failure
 
-    monkeypatch.setattr(
-        worker_module,
-        "_eia_context_adapter",
-        lambda _api_key: FailingEiaAdapter(),
-    )
+    monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
 
     worker_module._refresh_context_sources(
         paths,
@@ -451,140 +447,11 @@ def test_worker_fails_closed_and_classifies_context_validation_failures(
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-token\n", encoding="utf-8")
     paths.secrets.chmod(0o600)
 
-    class FixtureContextAdapter:
-        def market_indices(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_market_indices_source_failed")
+    class Opener:
+        def open(self, request: Any, *, timeout: int) -> BytesIO:
+            return BytesIO(b'{"code":-1,"msg":"fixture_source_schema_failed"}')
 
-        def market_breadth(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_market_breadth_source_failed")
-
-        def margin_financing(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_margin_source_failed")
-
-        def index_valuation(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_valuation_source_failed")
-
-        def commodity_basket(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_commodity_basket_source_failed")
-
-        def pmi(
-            self,
-            *,
-            start_month: str,
-            end_month: str,
-        ) -> tuple[ContextScalar, ...]:
-            assert start_month < end_month == "202608"
-            return (
-                ContextScalar(
-                    metric_id="CN_PMI_ACTIVITY",
-                    api_name="cn_pmi",
-                    source_field="pmi010000",
-                    period_kind="month",
-                    period_start="2026-08-01",
-                    period_end="2026-08-31",
-                    dimensions={"series": "manufacturing", "measure": "level"},
-                    value=49.3,
-                    unit="diffusion_index_points",
-                ),
-            )
-
-        def prices(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_price_source_failed")
-
-        def money(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_money_source_failed")
-
-        def social_financing(
-            self,
-            *,
-            start_month: str,
-            end_month: str,
-        ) -> tuple[ContextScalar, ...]:
-            assert start_month < end_month == "202608"
-            return (
-                ContextScalar(
-                    metric_id="CN_SF_TOTAL",
-                    api_name="sf_month",
-                    source_field="inc_month",
-                    period_kind="month",
-                    period_start="2026-08-01",
-                    period_end="2026-08-31",
-                    dimensions={"measure": "monthly_increment"},
-                    value=5000.0,
-                    unit="hundred_million_cny",
-                ),
-            )
-
-        def futures_warrants(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-            symbol: str,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError(f"fixture_warrant_source_failed:{symbol}")
-
-        def gdp(
-            self,
-            *,
-            start_quarter: str,
-            end_quarter: str,
-        ) -> tuple[ContextScalar, ...]:
-            assert start_quarter < end_quarter == "2026Q3"
-            return (
-                ContextScalar(
-                    metric_id="CN_GDP",
-                    api_name="cn_gdp",
-                    source_field="gdp",
-                    period_kind="year_to_quarter",
-                    period_start="2026-01-01",
-                    period_end="2026-09-30",
-                    dimensions={"aggregate": "total", "measure": "nominal_ytd_level"},
-                    value=1000000.0,
-                    unit="hundred_million_cny",
-                ),
-            )
-
-        def treasury_yields(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_treasury_source_failed")
-
-        def transmission(
-            self,
-            *,
-            start_date: date,
-            end_date: date,
-        ) -> tuple[ContextScalar, ...]:
-            raise ValueError("fixture_transmission_source_failed")
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", Opener)
 
     readiness = tuple(
         CoreAssetReadiness(
@@ -607,11 +474,6 @@ def test_worker_fails_closed_and_classifies_context_validation_failures(
         lambda *_args, **_kwargs: None,
     )
     monkeypatch.setattr(worker_module, "_core_readiness", lambda *_args, **_kwargs: readiness)
-    monkeypatch.setattr(
-        worker_module,
-        "_context_adapter",
-        lambda _token: FixtureContextAdapter(),
-    )
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date="2026-08-28",

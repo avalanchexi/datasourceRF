@@ -127,7 +127,7 @@ def test_margin_candidate_keeps_verified_fetch_separate_from_unknown_publication
         (
             [["20260827", "SSE", 100, 10]],
             (date(2026, 8, 28),),
-            "tushare_margin_unexpected_trading_day",
+            "tushare_response_period_mismatch",
         ),
         (
             [["20260828", "UNKNOWN", 100, 10]],

@@ -1,7 +1,7 @@
 {
   "kind": "published_spec_and_ticket_consistency",
-  "observed_at_utc": "2026-09-06T13:01:18.208749+00:00",
-  "workspace_head": "f5c88befe1a8ea4056ebc8aba54b735c2ccd6e59",
+  "observed_at_utc": "2026-09-06T14:18:27.735425+00:00",
+  "workspace_head": "ff5e34781ccc91f65c4c279f16b6a6d98b7714df",
   "required_sections": 7,
   "user_stories": 52,
   "published_ticket_count": 22,
@@ -10,15 +10,22 @@
   "topologically_ordered_acyclic": true,
   "completed_tickets": [
     1,
-    2
+    2,
+    3
   ],
   "current_frontier": [
-    3,
     4,
+    5,
+    6,
+    7,
+    8,
+    11,
+    13,
+    14,
     15,
     18
   ],
-  "relative_local_links_checked": 32,
+  "relative_local_links_checked": 34,
   "six_workstream_coverage": {
     "known_defects": [
       1,
@@ -95,8 +102,8 @@
     },
     {
       "path": "issues/03-context-acquisition-receipts.md",
-      "bytes": 2487,
-      "sha256": "9fa4d39c7a549b82dc68a7d382b5b6ba3807b7aeb9de8b869f6aae00323f6654"
+      "bytes": 2792,
+      "sha256": "5903d8bf460fd53a694cf5929c9a819fc8373134eb6891829ed20fb4fd3fe755"
     },
     {
       "path": "issues/04-core-public-time-certification.md",
@@ -195,8 +202,8 @@
     },
     {
       "path": "ticket-graph.json",
-      "bytes": 5299,
-      "sha256": "e006f53c85463ecac729fd580e4a5e946128f814d104c23c36dddd85c8276b5f"
+      "bytes": 5346,
+      "sha256": "20a2a26938bd15761948361cf495d39d7e97b371ef95b52e234e20cd6f16daeb"
     }
   ]
 }

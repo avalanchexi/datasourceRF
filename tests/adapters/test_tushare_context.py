@@ -630,7 +630,7 @@ def test_commodity_basket_freezes_sleeves_weights_and_output_window() -> None:
     }
 
 
-def test_candidate_context_uses_first_valid_fetch_as_conservative_public_availability(
+def test_candidate_context_keeps_public_time_unknown_after_valid_fetch(
     tmp_path: Path,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -684,9 +684,9 @@ def test_candidate_context_uses_first_valid_fetch_as_conservative_public_availab
 
     assert result.observation_count == 8
     assert len(system_series) == 4
-    assert len(public_series) == 4
-    assert {claim.public_available_at for point in public_series for claim in point.claims} == {
-        fetched_at
+    assert public_series == ()
+    assert {claim.public_available_at for point in system_series for claim in point.claims} == {
+        None
     }
     assert {row["freshness"] for row in pmi_rows if row["metric_id"] == "CN_PMI_ACTIVITY"} == {
         "awaiting_source_certification"
@@ -694,7 +694,7 @@ def test_candidate_context_uses_first_valid_fetch_as_conservative_public_availab
     assert {row["value"] for row in pmi_rows if row["metric_id"] == "CN_PMI_ACTIVITY"} == {None}
 
 
-def test_candidate_context_repeat_ingest_preserves_first_public_bound(
+def test_candidate_context_repeat_ingest_preserves_unknown_public_time(
     tmp_path: Path,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -721,7 +721,7 @@ def test_candidate_context_repeat_ingest_preserves_first_public_bound(
         as_of=second_fetch,
     )
 
-    assert trace.claims[0].public_available_at == first_fetch
+    assert trace.claims[0].public_available_at is None
 
 
 def test_candidate_context_same_value_repairs_explicit_source_schedule(
@@ -861,10 +861,10 @@ def test_candidate_context_same_value_can_move_to_a_new_definition_version(
     )
 
     assert trace.definition_version == "metric-catalog-v0002"
-    assert trace.claims[0].public_available_at == first_fetch
+    assert trace.claims[0].public_available_at is None
 
 
-def test_candidate_context_revision_is_public_only_from_revision_fetch(
+def test_candidate_context_revision_without_new_time_remains_system_only(
     tmp_path: Path,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -903,7 +903,13 @@ def test_candidate_context_revision_is_public_only_from_revision_fetch(
     )
 
     assert before_revision.selected_value == 49.3
-    assert after_revision.selected_value == 50.1
+    assert after_revision.selected_value == 49.3
+    assert (
+        repository.query(
+            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=revision_fetch
+        ).selected_value
+        == 50.1
+    )
 
 
 def test_context_source_smoke_summary_is_sanitized_and_content_addressed() -> None:

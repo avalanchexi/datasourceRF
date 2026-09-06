@@ -67,10 +67,7 @@ def test_eia_v2_contract_freezes_route_series_units_and_daily_identity() -> None
             "start": "2026-08-27",
         }
     ]
-    assert {
-        (item.metric_id, item.series_id, item.value, item.unit)
-        for item in prices
-    } == {
+    assert {(item.metric_id, item.series_id, item.value, item.unit) for item in prices} == {
         ("EIA_BRENT_RBRTE", "RBRTE", 71.25, "usd_per_barrel"),
         ("EIA_WTI_RWTC", "RWTC", 66.5, "usd_per_barrel"),
     }
@@ -148,12 +145,13 @@ def test_eia_ingest_is_traceable_but_redacted_until_source_certification(
 
     assert trace.claims[0].provider == "U.S. Energy Information Administration"
     assert trace.claims[0].source_reference.startswith("eia:v2:petroleum/pri/spt:")
-    assert public_trace.claims[0].public_available_at == fetched_at
+    assert public_trace.claims == ()
+    assert trace.claims[0].public_available_at is None
     assert {item["status"] for item in oil_rows} == {"awaiting_source_certification"}
     assert {item["value"] for item in oil_rows} == {None}
 
 
-def test_eia_repeat_ingest_reuses_first_observed_public_availability(
+def test_eia_repeat_ingest_keeps_public_availability_unknown(
     tmp_path: Path,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -176,7 +174,7 @@ def test_eia_repeat_ingest_reuses_first_observed_public_availability(
         as_of=second_fetch,
     )
 
-    assert trace.claims[0].public_available_at == first_fetch
+    assert trace.claims[0].public_available_at is None
 
 
 def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
@@ -213,7 +211,9 @@ def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
     )
 
     assert trace.definition_version == "metric-catalog-v0002"
-    assert trace.claims[0].public_available_at == first_fetch
+    assert trace.claims[0].public_available_at is None
+
+
 def test_eia_revision_is_not_backdated_to_first_observation(
     tmp_path: Path,
 ) -> None:
@@ -230,9 +230,7 @@ def test_eia_revision_is_not_backdated_to_first_observation(
     revision_fetch = datetime(2026, 8, 29, tzinfo=UTC)
     first = ingest_eia_spot_prices(paths, prices, fetched_at=first_fetch)
     revised_prices = tuple(
-        replace(price, value=72.0)
-        if price.metric_id == "EIA_BRENT_RBRTE"
-        else price
+        replace(price, value=72.0) if price.metric_id == "EIA_BRENT_RBRTE" else price
         for price in prices
     )
 
@@ -249,8 +247,20 @@ def test_eia_revision_is_not_backdated_to_first_observation(
         as_of=revision_fetch,
     )
 
-    assert before_revision.selected_value == 71.25
-    assert after_revision.selected_value == 72.0
+    assert before_revision.selected_value is None
+    assert after_revision.selected_value is None
+    assert (
+        repository.query(
+            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=first_fetch
+        ).selected_value
+        == 71.25
+    )
+    assert (
+        repository.query(
+            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=revision_fetch
+        ).selected_value
+        == 72.0
+    )
 
 
 def test_eia_smoke_is_sanitized_and_never_exposes_the_api_key() -> None:

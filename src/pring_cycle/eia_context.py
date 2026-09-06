@@ -3,12 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime
 from math import isfinite
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, build_opener
 
+from pring_cycle.acquisition import AcquisitionRepository, utc_now
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import (
     EvidenceRepository,
@@ -30,7 +31,7 @@ _SERIES_DESCRIPTIONS = {
     "RWTC": "Cushing, OK WTI Spot Price FOB",
 }
 
-Transport = Callable[[dict[str, object]], dict[str, object]]
+Transport = Callable[[dict[str, object]], dict[str, object] | bytes]
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,7 @@ class EiaSpotPrice:
     business_date: date
     value: float
     unit: str
+    acquisition_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -69,6 +71,30 @@ class EiaPetroleumAdapter:
             raise ValueError("eia_api_key_required")
         self._api_key = api_key
         self._transport = transport or self._get
+        self._acquisitions: AcquisitionRepository | None = None
+        self._http_metadata: tuple[str, int, str] | None = None
+
+    def acquire_spot_prices(
+        self,
+        paths: RuntimePaths,
+        *,
+        start_date: date,
+        end_date: date,
+        definition_version: str = METRIC_CATALOG_VERSION,
+    ) -> EiaIngestionResult:
+        if self._acquisitions is not None:
+            raise ValueError("eia_acquisition_already_running")
+        self._acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        try:
+            prices = self.spot_prices(start_date=start_date, end_date=end_date)
+            return ingest_eia_spot_prices(
+                paths,
+                prices,
+                fetched_at=utc_now(),
+                definition_version=definition_version,
+            )
+        finally:
+            self._acquisitions = None
 
     def spot_prices(
         self,
@@ -90,10 +116,37 @@ class EiaPetroleumAdapter:
             "sort[0][direction]": "asc",
             "start": start_date.isoformat(),
         }
-        return _parse_spot_prices(
-            self._transport(parameters),
-            start_date=start_date,
-            end_date=end_date,
+        self._http_metadata = None
+
+        def parse(response: bytes | dict[str, object]) -> tuple[EiaSpotPrice, ...]:
+            return _parse_spot_prices(
+                self._decode_response(response),
+                start_date=start_date,
+                end_date=end_date,
+            )
+
+        if self._acquisitions is None:
+            return parse(self._transport(parameters))
+
+        def fetch() -> bytes:
+            response = self._transport(parameters)
+            if not isinstance(response, bytes):
+                raise ValueError("acquisition_raw_response_bytes_required")
+            return response
+
+        acquired = self._acquisitions.capture(
+            provider="U.S. Energy Information Administration",
+            api_name="eia_spot_prices",
+            parameters={k: str(v) for k, v in parameters.items() if k != "api_key"},
+            fields="period,series,series-description,value,units",
+            parser_version="eia-spot-parser-v0002",
+            fetch=fetch,
+            parse=parse,
+            normalize=lambda prices: [asdict(p) for p in prices],
+        )
+        return tuple(
+            replace(price, acquisition_id=acquired.receipt.acquisition_id)
+            for price in acquired.value
         )
 
     def smoke(self, *, start_date: date, end_date: date) -> EiaSmokeResult:
@@ -121,7 +174,7 @@ class EiaPetroleumAdapter:
             network_requests=1,
         )
 
-    def _get(self, parameters: dict[str, object]) -> dict[str, object]:
+    def _get(self, parameters: dict[str, object]) -> bytes:
         query_items: list[tuple[str, object]] = []
         for key, value in parameters.items():
             if isinstance(value, tuple):
@@ -142,19 +195,27 @@ class EiaPetroleumAdapter:
             final_url = response.geturl()
             status = int(response.status)
             media_type = str(response.headers.get("Content-Type", ""))
+        self._http_metadata = (final_url, status, media_type)
+        return bytes(content)
+
+    def _decode_response(self, content: bytes | dict[str, object]) -> dict[str, object]:
+        if isinstance(content, dict):
+            return content
         if len(content) > MAX_EIA_RESPONSE_BYTES:
             raise ValueError("eia_response_size_invalid")
-        parsed_url = urlsplit(final_url)
-        if (
-            parsed_url.scheme != "https"
-            or parsed_url.hostname != "api.eia.gov"
-            or parsed_url.path != "/v2/petroleum/pri/spt/data/"
-        ):
-            raise ValueError("eia_response_source_identity_invalid")
-        if status != 200:
-            raise ValueError("eia_response_http_status_invalid")
-        if media_type.split(";", maxsplit=1)[0].strip().lower() != "application/json":
-            raise ValueError("eia_response_media_type_invalid")
+        if self._http_metadata is not None:
+            final_url, status, media_type = self._http_metadata
+            parsed_url = urlsplit(final_url)
+            if (
+                parsed_url.scheme != "https"
+                or parsed_url.hostname != "api.eia.gov"
+                or parsed_url.path != "/v2/petroleum/pri/spt/data/"
+            ):
+                raise ValueError("eia_response_source_identity_invalid")
+            if status != 200:
+                raise ValueError("eia_response_http_status_invalid")
+            if media_type.split(";", maxsplit=1)[0].strip().lower() != "application/json":
+                raise ValueError("eia_response_media_type_invalid")
         try:
             document = json.loads(content)
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
@@ -184,8 +245,7 @@ def ingest_eia_spot_prices(
             definition_version=definition_version,
         )
         source_reference = (
-            "eia:v2:petroleum/pri/spt:"
-            f"{price.series_id}:{price.business_date.isoformat()}"
+            f"eia:v2:petroleum/pri/spt:{price.series_id}:{price.business_date.isoformat()}"
         )
         base_event_id = f"eia:{price.series_id}:{price.business_date.isoformat()}"
         existing = repository.latest_source_claim(
@@ -198,20 +258,13 @@ def ingest_eia_spot_prices(
             provider="U.S. Energy Information Administration",
             source_reference=source_reference,
         )
-        physical_existing = repository.latest_provider_claim(
-            metric_id=price.metric_id,
-            period_kind="business_day",
-            period_start=price.business_date.isoformat(),
-            period_end=price.business_date.isoformat(),
-            dimensions={},
-            provider="U.S. Energy Information Administration",
-            source_reference=source_reference,
-        )
         if (
             existing is not None
             and existing.value_state is EvidenceValueState.REPORTED_VALUE
             and existing.value == price.value
             and existing.unit == price.unit
+            and existing.public_available_at is None
+            and price.acquisition_id is None
         ):
             stored_by_input.append(
                 StoredSourceClaim(
@@ -221,50 +274,51 @@ def ingest_eia_spot_prices(
                 )
             )
             continue
-        physical_same = bool(
-            physical_existing is not None
-            and physical_existing.value_state is EvidenceValueState.REPORTED_VALUE
-            and physical_existing.value == price.value
-            and physical_existing.unit == price.unit
+        release_event_id = _revision_event_id(f"unresolved-publication:{base_event_id}", fetched_at)
+        release_at = None
+        public_available_at = None
+        receipt = (
+            AcquisitionRepository(paths.database, paths.artifacts).get(price.acquisition_id)
+            if price.acquisition_id
+            else None
         )
-        if existing is None and physical_same and physical_existing is not None:
-            release_event_id = physical_existing.release_event_id
-            release_at = physical_existing.release_at
-            public_available_at = physical_existing.public_available_at
-        else:
-            release_event_id = (
-                base_event_id
-                if physical_existing is None
-                else _revision_event_id(base_event_id, fetched_at)
-            )
-            release_at = None
-            public_available_at = fetched_at
+        if receipt is not None and (receipt.received_at is None or receipt.validated_at is None):
+            raise ValueError("eia_acquisition_incomplete")
         claims.append(
             SourceClaimInput(
-            metric_id=price.metric_id,
-            definition_version=definition.definition_version,
-            period_kind="business_day",
-            period_start=price.business_date.isoformat(),
-            period_end=price.business_date.isoformat(),
-            dimensions={},
-            value=price.value,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit=price.unit,
-            provider="U.S. Energy Information Administration",
-            source_reference=source_reference,
-            release_event_id=release_event_id,
-            release_at=release_at,
-            # The v2 response has no release timestamp. A validated retrieval is
-            # the conservative public availability bound and is never backdated.
-            public_available_at=public_available_at,
-            fetched_at=fetched_at,
-            available_at=fetched_at,
-            certification_status=definition.certification_status,
-            quality_status="validated",
-        )
+                metric_id=price.metric_id,
+                definition_version=definition.definition_version,
+                period_kind="business_day",
+                period_start=price.business_date.isoformat(),
+                period_end=price.business_date.isoformat(),
+                dimensions={},
+                value=price.value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=price.unit,
+                provider="U.S. Energy Information Administration",
+                source_reference=source_reference,
+                release_event_id=release_event_id,
+                release_at=release_at,
+                # The v2 response has no reliable publication timestamp.
+                public_available_at=public_available_at,
+                fetched_at=receipt.received_at if receipt and receipt.received_at else fetched_at,
+                available_at=receipt.validated_at
+                if receipt and receipt.validated_at
+                else fetched_at,
+                certification_status=definition.certification_status,
+                quality_status="validated",
+                acquisition_id=price.acquisition_id,
+            )
         )
         stored_by_input.append(None)
-    newly_stored = iter(repository.append_source_claims(tuple(claims)) if claims else ())
+    newly_stored = iter(
+        repository.append_source_claims(
+            tuple(claims),
+            availability_clock=utc_now if all(c.acquisition_id for c in claims) else None,
+        )
+        if claims
+        else ()
+    )
     stored = tuple(item if item is not None else next(newly_stored) for item in stored_by_input)
     metric_ids = tuple(sorted({price.metric_id for price in prices}))
     for metric_id in metric_ids:

@@ -5,13 +5,14 @@ import hashlib
 import json
 from collections import defaultdict, deque
 from collections.abc import Callable
-from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from dataclasses import asdict, dataclass, replace
+from datetime import date, datetime, timedelta
 from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
-from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import MARGIN_FINANCING_V0002, METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import (
     EvidenceRepository,
@@ -28,7 +29,7 @@ from pring_cycle.market_breadth import (
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
 
-Transport = Callable[[dict[str, Any]], dict[str, Any]]
+Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
 WARRANT_SYMBOLS = frozenset({"CU", "RB", "PP", "CF", "TA", "RU", "SP", "SC"})
 _FUTURES_WARRANT_CHUNK_DAYS = 31
@@ -85,6 +86,7 @@ class ContextScalar:
     release_at: datetime | None = None
     public_available_at: datetime | None = None
     definition_version: str | None = None
+    acquisition_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -132,6 +134,58 @@ class TushareContextAdapter:
         self._token = token
         self._transport = transport or self._post
         self._network_requests = 0
+        self._acquisitions: AcquisitionRepository | None = None
+        self._receipts: list[AcquisitionReceipt] = []
+
+    def acquire_scalars(
+        self,
+        paths: RuntimePaths,
+        retrieve: Callable[[], tuple[ContextScalar, ...]],
+        *,
+        definition_version: str = METRIC_CATALOG_VERSION,
+    ) -> ContextIngestionResult:
+        if self._acquisitions is not None:
+            raise ValueError("context_acquisition_already_running")
+        self._acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        self._receipts = []
+        try:
+            scalars = retrieve()
+            if not self._receipts:
+                raise ValueError("context_acquisition_receipts_missing")
+            linked = []
+            for scalar in scalars:
+                matching = [r for r in self._receipts if r.api_name == scalar.api_name]
+                # A derived family uses its complete captured input batch,
+                # including calendar and hidden warmup requests.
+                inputs = matching or self._receipts
+                linked.append(
+                    replace(scalar, acquisition_ids=tuple(r.acquisition_id for r in inputs))
+                )
+            store_artifact(
+                paths.database,
+                paths.artifacts,
+                _canonical_json([asdict(s) for s in linked]).encode(),
+                "application/json",
+                f"context-acquisition:{self._receipts[0].acquisition_id}",
+            )
+            for receipt in self._receipts:
+                self._acquisitions.complete_validation(
+                    receipt.acquisition_id,
+                    [asdict(s) for s in linked if receipt.acquisition_id in s.acquisition_ids],
+                )
+            return ingest_context_scalars(
+                paths,
+                tuple(linked),
+                fetched_at=utc_now(),
+                definition_version=definition_version,
+            )
+        except Exception as error:
+            for receipt in self._receipts:
+                self._acquisitions.fail_validation(receipt.acquisition_id, error)
+            raise
+        finally:
+            self._acquisitions = None
+            self._receipts = []
 
     @property
     def network_requests(self) -> int:
@@ -373,8 +427,7 @@ class TushareContextAdapter:
                             "measure": measure,
                         },
                         unit=unit,
-                        release_time=time(0),
-                        release_day_offset=1,
+
                     )
                 )
         return tuple(scalars)
@@ -507,8 +560,7 @@ class TushareContextAdapter:
                 date_field="date",
                 dimensions={},
                 unit="percent",
-                release_time=time(6),
-                release_day_offset=1,
+
             )
             for row in rows
             for metric_id, source_field in (
@@ -549,7 +601,7 @@ class TushareContextAdapter:
                 date_field="trade_date",
                 dimensions={},
                 unit="percent",
-                release_time=time(11),
+
             )
             for row in repo_rows
             if str(row.get("ts_code")) == "DR007.IB" and str(row.get("repo_maturity")) == "DR007"
@@ -565,7 +617,7 @@ class TushareContextAdapter:
                         date_field="date",
                         dimensions={"tenor": tenor},
                         unit="percent",
-                        release_time=time(11),
+
                     )
                 )
         return tuple(scalars)
@@ -601,7 +653,7 @@ class TushareContextAdapter:
                         date_field="trade_date",
                         dimensions={"source_code": source_code},
                         unit="index_points",
-                        release_time=time(15, 30),
+
                     )
                 )
         return tuple(scalars)
@@ -653,8 +705,7 @@ class TushareContextAdapter:
                         dimensions={"measure": measure, "scope": "all_exchanges"},
                         value=value / 100_000_000.0,
                         unit="hundred_million_cny",
-                        release_time=time(0),
-                        release_day_offset=1,
+
                     )
                 )
         return tuple(scalars)
@@ -760,7 +811,7 @@ class TushareContextAdapter:
                             date_field="trade_date",
                             dimensions={"index": source_code, "measure": measure},
                             unit=unit,
-                            release_time=time(15, 30),
+
                         )
                     )
         return tuple(scalars)
@@ -1024,19 +1075,39 @@ class TushareContextAdapter:
         fields: tuple[str, ...],
     ) -> tuple[dict[str, object], ...]:
         self._network_requests += 1
-        response = self._transport(
-            {
+        payload = {
                 "api_name": api_name,
                 "fields": ",".join(fields),
                 "params": params,
                 "token": self._token,
             }
-        )
-        if int(response.get("code", -1)) != 0:
-            raise ValueError("tushare_source_failed")
-        return _response_rows(response, required_fields=fields)
 
-    def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
+        def parse(response: bytes | dict[str, Any]) -> tuple[dict[str, object], ...]:
+            document = json.loads(response) if isinstance(response, bytes) else response
+            if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
+                raise ValueError("tushare_source_failed")
+            rows = _response_rows(document, required_fields=fields)
+            _validate_response_periods(rows, params)
+            return rows
+
+        if self._acquisitions is None:
+            return parse(self._transport(payload))
+
+        def fetch() -> bytes:
+            response = self._transport(payload)
+            if not isinstance(response, bytes):
+                raise ValueError("acquisition_raw_response_bytes_required")
+            return response
+
+        acquired = self._acquisitions.capture(
+            provider="tushare", api_name=api_name, parameters=params, fields=",".join(fields),
+            parser_version="tushare-context-parser-v0002", fetch=fetch, parse=parse,
+            normalize=lambda rows: rows, defer_validation=True,
+        )
+        self._receipts.append(acquired.receipt)
+        return acquired.value
+
+    def _post(self, payload: dict[str, Any]) -> bytes:
         request = Request(
             TUSHARE_ENDPOINT,
             data=_canonical_json(payload).encode(),
@@ -1044,10 +1115,7 @@ class TushareContextAdapter:
             method="POST",
         )
         with build_opener().open(request, timeout=30) as response:
-            document = json.load(response)
-        if not isinstance(document, dict):
-            raise ValueError("tushare_response_invalid")
-        return {str(key): value for key, value in document.items()}
+            return bytes(response.read())
 
 
 def ingest_context_scalars(
@@ -1061,10 +1129,14 @@ def ingest_context_scalars(
         raise ValueError("tushare_context_fetched_at_must_be_timezone_aware")
     if not scalars:
         raise ValueError("tushare_context_observations_missing")
-    # TuShare's macro tables do not expose an announcement timestamp. The first
-    # schema-valid retrieval is therefore the conservative public availability
-    # bound; it must never be backdated to the statistical period.
+    # Missing publication evidence stays unknown. A fetch time cannot establish
+    # when the market first had access to the observation or its revision.
     repository = EvidenceRepository(paths.database)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipt_by_id = {
+        identity: acquisitions.get(identity)
+        for identity in {identity for scalar in scalars for identity in scalar.acquisition_ids}
+    }
     claims: list[SourceClaimInput] = []
     stored_by_input: list[StoredSourceClaim | None] = []
     for scalar in scalars:
@@ -1116,16 +1188,16 @@ def ingest_context_scalars(
         )
         explicit_schedule_matches = (
             bool(
-                (scalar.release_at is None or scalar.release_at == existing.release_at)
-                and (
-                    scalar.public_available_at is None
-                    or scalar.public_available_at == existing.public_available_at
-                )
+                scalar.release_at == existing.release_at
+                and scalar.public_available_at == existing.public_available_at
             )
             if existing is not None
             else True
         )
-        if existing is not None and same_in_definition and explicit_schedule_matches:
+        if (
+            existing is not None and same_in_definition and explicit_schedule_matches
+            and not scalar.acquisition_ids
+        ):
             stored_by_input.append(
                 StoredSourceClaim(
                     existing.claim_id,
@@ -1160,22 +1232,23 @@ def ingest_context_scalars(
                 release_at=release_at,
                 public_available_at=public_available_at,
             )
-        elif existing is None and physical_same and physical_existing is not None:
+        elif (
+            existing is None and physical_same and physical_existing is not None
+            and scalar.release_at == physical_existing.release_at
+            and scalar.public_available_at == physical_existing.public_available_at
+        ):
             release_event_id = physical_existing.release_event_id
             release_at = physical_existing.release_at
             public_available_at = physical_existing.public_available_at
         else:
-            release_event_id = (
-                base_event_id
-                if physical_existing is None
-                else _revision_event_id(base_event_id, fetched_at)
+            release_event_id = _revision_event_id(
+                f"unresolved-publication:{base_event_id}", fetched_at
             )
-            release_at = scalar.release_at
-            public_available_at = (
-                scalar.public_available_at or fetched_at
-                if physical_existing is None
-                else fetched_at
-            )
+            release_at = None
+            public_available_at = None
+        receipts = [receipt_by_id[identity] for identity in scalar.acquisition_ids]
+        received_at = max((r.received_at for r in receipts if r.received_at), default=fetched_at)
+        validated_at = max((r.validated_at for r in receipts if r.validated_at), default=fetched_at)
         claims.append(
             SourceClaimInput(
                 metric_id=scalar.metric_id,
@@ -1192,14 +1265,22 @@ def ingest_context_scalars(
                 release_event_id=release_event_id,
                 release_at=release_at,
                 public_available_at=public_available_at,
-                fetched_at=fetched_at,
-                available_at=fetched_at,
+                fetched_at=received_at,
+                available_at=validated_at,
                 certification_status=definition.certification_status,
                 quality_status="validated",
+                acquisition_ids=scalar.acquisition_ids,
             )
         )
         stored_by_input.append(None)
-    newly_stored = iter(repository.append_source_claims(tuple(claims)) if claims else ())
+    newly_stored = iter(
+        repository.append_source_claims(
+            tuple(claims),
+            availability_clock=utc_now if all(c.acquisition_ids for c in claims) else None,
+        )
+        if claims
+        else ()
+    )
     stored = tuple(item if item is not None else next(newly_stored) for item in stored_by_input)
     metric_ids = tuple(sorted({scalar.metric_id for scalar in scalars}))
     for metric_id in metric_ids:
@@ -1476,22 +1557,11 @@ def _daily_scalar(
     date_field: str,
     dimensions: dict[str, str],
     unit: str,
-    release_time: time | None = None,
-    release_day_offset: int = 0,
 ) -> ContextScalar:
     business_date = _compact_date(row.get(date_field))
     value = _number(row.get(source_field))
     if value is None:
         raise ValueError("tushare_context_value_missing")
-    released_at = (
-        datetime.combine(
-            business_date + timedelta(days=release_day_offset),
-            release_time,
-            ZoneInfo("Asia/Shanghai"),
-        )
-        if release_time is not None
-        else None
-    )
     return ContextScalar(
         metric_id=metric_id,
         api_name=api_name,
@@ -1502,8 +1572,6 @@ def _daily_scalar(
         dimensions=dimensions,
         value=value,
         unit=unit,
-        release_at=released_at,
-        public_available_at=released_at,
     )
 
 
@@ -1516,16 +1584,9 @@ def _business_day_scalar(
     dimensions: dict[str, str],
     value: float,
     unit: str,
-    release_time: time = time(15, 30),
-    release_day_offset: int = 0,
 ) -> ContextScalar:
     if not isfinite(value):
         raise ValueError("tushare_context_value_invalid")
-    released_at = datetime.combine(
-        business_date + timedelta(days=release_day_offset),
-        release_time,
-        ZoneInfo("Asia/Shanghai"),
-    )
     return ContextScalar(
         metric_id=metric_id,
         api_name=api_name,
@@ -1536,8 +1597,6 @@ def _business_day_scalar(
         dimensions=dimensions,
         value=value,
         unit=unit,
-        release_at=released_at,
-        public_available_at=released_at,
     )
 
 
@@ -1566,6 +1625,30 @@ def _response_rows(
             raise ValueError("tushare_response_row_invalid")
         rows.append(dict(zip(names, item, strict=True)))
     return tuple(rows)
+
+
+def _validate_response_periods(
+    rows: tuple[dict[str, object], ...], parameters: dict[str, str]
+) -> None:
+    if "start_m" in parameters:
+        periods = [_month_value(str(row.get("month"))) for row in rows]
+        if len(periods) != len(set(periods)) or any(
+            period < parameters["start_m"] or period > parameters["end_m"] for period in periods
+        ):
+            raise ValueError("tushare_response_period_mismatch")
+    elif "start_q" in parameters:
+        periods = [_quarter_value(str(row.get("quarter"))) for row in rows]
+        if len(periods) != len(set(periods)) or any(
+            period < parameters["start_q"] or period > parameters["end_q"] for period in periods
+        ):
+            raise ValueError("tushare_response_period_mismatch")
+    elif "start_date" in parameters or "trade_date" in parameters:
+        start = _compact_date(parameters.get("start_date", parameters.get("trade_date")))
+        end = _compact_date(parameters.get("end_date", parameters.get("trade_date")))
+        for row in rows:
+            for field in ("trade_date", "cal_date", "date"):
+                if field in row and not start <= _compact_date(row[field]) <= end:
+                    raise ValueError("tushare_response_period_mismatch")
 
 
 def _inclusive_date_chunks(
@@ -1676,4 +1759,4 @@ def _required_text(value: object, error_code: str) -> str:
 
 
 def _canonical_json(value: object) -> str:
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return json.dumps(value, default=str, ensure_ascii=False, separators=(",", ":"), sort_keys=True)

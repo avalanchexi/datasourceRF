@@ -1,0 +1,2 @@
+# Preserve the exact captured response bytes and its SHA-256 across checkouts.
+nbs-cpi-202607.html -text -diff

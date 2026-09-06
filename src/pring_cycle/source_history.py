@@ -10,6 +10,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.official_context import (
@@ -150,6 +151,8 @@ def _smoke_document_from_fetched(
         "text/html",
         item.record.source_url,
     )
+    release_at: datetime | None
+    public_at: datetime | None
     if item.record.lpr:
         parsed = parse_lpr_announcement(
             item.content,
@@ -159,6 +162,7 @@ def _smoke_document_from_fetched(
         )
         metric_ids: tuple[str, ...] = ("CN_LPR_1Y_5Y",)
         release_at = parsed.release_at
+        public_at = parsed.public_available_at
     else:
         parsed_families = tuple(
             parse_official_context_document(
@@ -183,7 +187,13 @@ def _smoke_document_from_fetched(
         if len(release_times) != 1:
             raise ValueError("source_history_release_identity_mismatch")
         release_at = next(iter(release_times))
-    if release_at.date() > target:
+        public_times = {parsed_family.public_available_at for parsed_family in parsed_families}
+        if len(public_times) != 1:
+            raise ValueError("source_history_release_identity_mismatch")
+        public_at = next(iter(public_times))
+    if public_at is None:
+        raise ValueError("source_history_publication_time_unknown")
+    if public_at.astimezone(ZoneInfo("Asia/Shanghai")).date() > target:
         raise ValueError("source_history_release_after_target")
     return {
         "artifact_hash": artifact.content_hash,
@@ -191,7 +201,8 @@ def _smoke_document_from_fetched(
         "lpr": item.record.lpr,
         "metric_ids": list(metric_ids),
         "period": item.record.period,
-        "release_at": release_at.isoformat(),
+        "release_at": release_at.isoformat() if release_at is not None else None,
+        "public_available_at": public_at.isoformat(),
         "source_url": item.record.source_url,
     }
 

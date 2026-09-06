@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -27,7 +28,10 @@ def test_offline_contract_extracts_exact_release_identity_and_two_tenors() -> No
         expected_period="2026-08",
     )
 
-    assert parsed.release_event_id == "chinamoney-lpr:2026-08-20"
+    assert (
+        parsed.release_event_id
+        == "chinamoney-lpr:2026-08-20:" + hashlib.sha256(ANNOUNCEMENT).hexdigest()
+    )
     assert parsed.period == "2026-08"
     assert parsed.release_at.isoformat() == "2026-08-20T09:00:00+08:00"
     assert [(item.tenor, item.value) for item in parsed.observations] == [
@@ -50,12 +54,12 @@ def test_offline_contract_extracts_exact_release_identity_and_two_tenors() -> No
         (
             ANNOUNCEMENT.replace(b"2026-08-20 09:00", b"2026-08-21 09:00"),
             OFFICIAL_URL,
-            "lpr_release_date_mismatch",
+            "lpr_fetched_before_public_release",
         ),
         (
             ANNOUNCEMENT.replace(b"2026-08-20 09:00", b"2026-08-20 10:00"),
             OFFICIAL_URL,
-            "lpr_release_time_mismatch",
+            "lpr_fetched_before_public_release",
         ),
     ],
 )
@@ -85,6 +89,7 @@ def test_certified_ingest_persists_artifact_claims_trace_and_release_read_model(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
     )
     evidence = EvidenceRepository(paths.database)
     trace = evidence.trace(
@@ -140,6 +145,7 @@ def test_calendar_before_window_carries_previous_release_without_retrieval(
         source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260720/3377000.html",
         fetched_at=datetime(2026, 7, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-07",
+        clock=lambda: datetime(2026, 7, 20, 1, 2, tzinfo=UTC),
     )
 
     event = lpr_release_calendar(
@@ -154,7 +160,7 @@ def test_calendar_before_window_carries_previous_release_without_retrieval(
     assert event.next_check_at is not None
 
 
-def test_repeating_same_official_artifact_reuses_first_system_availability(
+def test_repeated_import_appends_receipt_and_preserves_earlier_availability(
     tmp_path: Path,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -165,6 +171,7 @@ def test_repeating_same_official_artifact_reuses_first_system_availability(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
     )
     repeated = ingest_lpr_document(
         paths,
@@ -172,6 +179,7 @@ def test_repeating_same_official_artifact_reuses_first_system_availability(
         source_url=OFFICIAL_URL,
         fetched_at=datetime(2026, 8, 20, 2, tzinfo=UTC),
         expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 2, tzinfo=UTC),
     )
     trace = EvidenceRepository(paths.database).trace(
         first.observation_ids[0],
@@ -179,12 +187,20 @@ def test_repeating_same_official_artifact_reuses_first_system_availability(
         as_of=datetime(2026, 8, 20, 3, tzinfo=UTC),
     )
 
-    assert repeated.claim_ids == first.claim_ids
+    assert repeated.observation_ids == first.observation_ids
+    assert repeated.claim_ids != first.claim_ids
     assert len(trace.claims) == 1
-    assert trace.claims[0].available_at == datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
+    assert trace.claims[0].available_at == datetime(2026, 8, 20, 2, tzinfo=UTC)
+    earlier = EvidenceRepository(paths.database).trace(
+        first.observation_ids[0],
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
+    )
+    assert earlier.claims[0].claim_id == first.claim_ids[0]
+    assert earlier.claims[0].available_at == datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
 
 
-def test_lpr_revision_is_public_only_from_the_revision_fetch(tmp_path: Path) -> None:
+def test_lpr_revision_without_new_publication_time_is_system_only(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     first_fetch = datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
@@ -195,6 +211,7 @@ def test_lpr_revision_is_public_only_from_the_revision_fetch(tmp_path: Path) -> 
         source_url=OFFICIAL_URL,
         fetched_at=first_fetch,
         expected_period="2026-08",
+        clock=lambda: first_fetch,
     )
 
     ingest_lpr_document(
@@ -203,6 +220,7 @@ def test_lpr_revision_is_public_only_from_the_revision_fetch(tmp_path: Path) -> 
         source_url=OFFICIAL_URL,
         fetched_at=revision_fetch,
         expected_period="2026-08",
+        clock=lambda: revision_fetch,
     )
     repository = EvidenceRepository(paths.database)
     before_revision = repository.query(
@@ -217,4 +235,10 @@ def test_lpr_revision_is_public_only_from_the_revision_fetch(tmp_path: Path) -> 
     )
 
     assert before_revision.selected_value == 3.0
-    assert after_revision.selected_value == 3.1
+    assert after_revision.selected_value == 3.0
+    assert (
+        repository.query(
+            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=revision_fetch
+        ).selected_value
+        == 3.1
+    )
