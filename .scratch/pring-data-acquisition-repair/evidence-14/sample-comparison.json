@@ -1,0 +1,721 @@
+{
+  "network_requests": 0,
+  "production_mutations": 0,
+  "treasury": {
+    "sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+    "column_count": 26,
+    "columns_index_zero_based": {
+      "date": 0,
+      "2 Yr": 19,
+      "10 Yr": 23
+    },
+    "coverage": {
+      "row_count": 171,
+      "first_period": "2026-01-02",
+      "latest_period": "2026-09-04",
+      "window_20260309_to_20260904_rows": 127,
+      "window_first": "2026-03-09",
+      "window_last": "2026-09-04",
+      "note": "Source-local business-date rows; this is not a certified Chinese 120-day replay or proof of original historical publication."
+    },
+    "samples": {
+      "2026-08-28": {
+        "2 Yr": "4.34",
+        "10 Yr": "4.73",
+        "spread_bp": "39.00"
+      },
+      "2026-09-04": {
+        "2 Yr": "4.37",
+        "10 Yr": "4.78",
+        "spread_bp": "41.00"
+      }
+    },
+    "source_vs_repository": [
+      {
+        "metric_id": "UST2Y_NOMINAL_YIELD",
+        "period": "2026-08-28",
+        "local": 4.34,
+        "official": "4.34",
+        "matches": true
+      },
+      {
+        "metric_id": "UST10Y_NOMINAL_YIELD",
+        "period": "2026-08-28",
+        "local": 4.73,
+        "official": "4.73",
+        "matches": true
+      }
+    ]
+  },
+  "vix": {
+    "sha256": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+    "fieldnames": [
+      "DATE",
+      "OPEN",
+      "HIGH",
+      "LOW",
+      "CLOSE"
+    ],
+    "coverage": {
+      "row_count": 9266,
+      "first_period": "1990-01-02",
+      "latest_period": "2026-09-04",
+      "window_20260309_to_20260904_rows": 129,
+      "window_first": "2026-03-09",
+      "window_last": "2026-09-04",
+      "note": "Source-local business-date rows; this is not a certified Chinese 120-day replay or proof of original historical publication."
+    },
+    "samples": {
+      "2026-08-28": {
+        "DATE": "08/28/2026",
+        "OPEN": "14.570000",
+        "HIGH": "14.840000",
+        "LOW": "14.130000",
+        "CLOSE": "14.430000"
+      },
+      "2026-09-04": {
+        "DATE": "09/04/2026",
+        "OPEN": "14.150000",
+        "HIGH": "14.580000",
+        "LOW": "13.800000",
+        "CLOSE": "14.530000"
+      }
+    }
+  },
+  "eia": {
+    "RBRTE": {
+      "sha256": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+      "coverage": {
+        "row_count": 9967,
+        "first_period": "1987-05-20",
+        "latest_period": "2026-09-01",
+        "window_20260309_to_20260904_rows": 122,
+        "window_first": "2026-03-09",
+        "window_last": "2026-09-01",
+        "note": "Source-local business-date rows; this is not a certified Chinese 120-day replay or proof of original historical publication."
+      },
+      "samples": {
+        "2026-08-28": "89.75",
+        "2026-09-01": "96.02"
+      },
+      "release_date": "9/2/2026",
+      "next_release_date": "9/10/2026"
+    },
+    "RWTC": {
+      "sha256": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+      "coverage": {
+        "row_count": 10236,
+        "first_period": "1986-01-02",
+        "latest_period": "2026-09-01",
+        "window_20260309_to_20260904_rows": 123,
+        "window_first": "2026-03-09",
+        "window_last": "2026-09-01",
+        "note": "Source-local business-date rows; this is not a certified Chinese 120-day replay or proof of original historical publication."
+      },
+      "samples": {
+        "2026-08-28": "84.57",
+        "2026-09-01": "91.48"
+      },
+      "release_date": "9/2/2026",
+      "next_release_date": "9/10/2026"
+    }
+  },
+  "gdp": {
+    "sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+    "official_row_columns": [
+      "nominal_quarter_level",
+      "nominal_ytd_level",
+      "real_quarter_yoy",
+      "real_ytd_yoy"
+    ],
+    "comparisons": [
+      {
+        "dimensions": {
+          "aggregate": "total",
+          "measure": "real_quarter_yoy"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 4.7,
+        "official_selected_field_value": 4.3,
+        "local_selection_status": "conflicted",
+        "official_row": [
+          "361511",
+          "695704",
+          "4.3",
+          "4.7"
+        ],
+        "source_reference": "tushare:cn_gdp:gdp_yoy:2026-06-30",
+        "official_quarter_yoy": "4.3",
+        "official_ytd_yoy": "4.7",
+        "matches_official_quarter": false,
+        "matches_official_ytd": true
+      },
+      {
+        "dimensions": {
+          "aggregate": "total",
+          "measure": "nominal_ytd_level"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 695704.0,
+        "official_selected_field_value": 695704.0,
+        "local_selection_status": "selected",
+        "official_row": [
+          "361511",
+          "695704",
+          "4.3",
+          "4.7"
+        ],
+        "source_reference": "tushare:cn_gdp:gdp:2026-06-30",
+        "difference_hundred_million_cny": "0.0"
+      },
+      {
+        "dimensions": {
+          "aggregate": "primary",
+          "measure": "nominal_ytd_level"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 31521.8,
+        "official_selected_field_value": 31522.0,
+        "local_selection_status": "conflicted",
+        "official_row": [
+          "19581",
+          "31522",
+          "3.7",
+          "3.7"
+        ],
+        "source_reference": "tushare:cn_gdp:pi:2026-06-30",
+        "difference_hundred_million_cny": "-0.2"
+      },
+      {
+        "dimensions": {
+          "aggregate": "primary",
+          "measure": "real_quarter_yoy"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 3.7,
+        "official_selected_field_value": 3.7,
+        "local_selection_status": "selected",
+        "official_row": [
+          "19581",
+          "31522",
+          "3.7",
+          "3.7"
+        ],
+        "source_reference": "tushare:cn_gdp:pi_yoy:2026-06-30",
+        "official_quarter_yoy": "3.7",
+        "official_ytd_yoy": "3.7",
+        "matches_official_quarter": true,
+        "matches_official_ytd": true
+      },
+      {
+        "dimensions": {
+          "aggregate": "secondary",
+          "measure": "nominal_ytd_level"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 250472.9,
+        "official_selected_field_value": 250473.0,
+        "local_selection_status": "conflicted",
+        "official_row": [
+          "134338",
+          "250473",
+          "3.0",
+          "3.9"
+        ],
+        "source_reference": "tushare:cn_gdp:si:2026-06-30",
+        "difference_hundred_million_cny": "-0.1"
+      },
+      {
+        "dimensions": {
+          "aggregate": "tertiary",
+          "measure": "nominal_ytd_level"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 413709.2,
+        "official_selected_field_value": 413709.0,
+        "local_selection_status": "conflicted",
+        "official_row": [
+          "207592",
+          "413709",
+          "5.1",
+          "5.2"
+        ],
+        "source_reference": "tushare:cn_gdp:ti:2026-06-30",
+        "difference_hundred_million_cny": "0.2"
+      },
+      {
+        "dimensions": {
+          "aggregate": "tertiary",
+          "measure": "real_quarter_yoy"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 5.2,
+        "official_selected_field_value": 5.1,
+        "local_selection_status": "conflicted",
+        "official_row": [
+          "207592",
+          "413709",
+          "5.1",
+          "5.2"
+        ],
+        "source_reference": "tushare:cn_gdp:ti_yoy:2026-06-30",
+        "official_quarter_yoy": "5.1",
+        "official_ytd_yoy": "5.2",
+        "matches_official_quarter": false,
+        "matches_official_ytd": true
+      },
+      {
+        "dimensions": {
+          "aggregate": "secondary",
+          "measure": "real_quarter_yoy"
+        },
+        "period": "2026-06-30",
+        "tushare_value": 3.9,
+        "official_selected_field_value": 3.0,
+        "local_selection_status": "conflicted",
+        "official_row": [
+          "134338",
+          "250473",
+          "3.0",
+          "3.9"
+        ],
+        "source_reference": "tushare:cn_gdp:si_yoy:2026-06-30",
+        "official_quarter_yoy": "3.0",
+        "official_ytd_yoy": "3.9",
+        "matches_official_quarter": false,
+        "matches_official_ytd": true
+      }
+    ]
+  },
+  "repository_metrics": [
+    {
+      "metric_id": "CN_GDP",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 88,
+          "period_count": 11,
+          "first_period": "2023-12-31",
+          "last_period": "2026-06-30",
+          "selection_status_counts": {
+            "selected": 88
+          }
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 88,
+          "period_count": 11,
+          "first_period": "2023-12-31",
+          "last_period": "2026-06-30",
+          "selection_status_counts": {
+            "selected": 36,
+            "conflicted": 52
+          }
+        }
+      }
+    },
+    {
+      "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "CN_USDCNH_FXCM",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "CN_USDCNY_CLOSE_1630",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "EIA_BRENT_RBRTE",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "EIA_WTI_RWTC",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "UST10Y_NOMINAL_YIELD",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 169,
+          "period_count": 169,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-27",
+          "selection_status_counts": {
+            "selected": 169
+          }
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 170,
+          "period_count": 170,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-28",
+          "selection_status_counts": {
+            "selected": 170
+          }
+        }
+      }
+    },
+    {
+      "metric_id": "UST2Y_NOMINAL_YIELD",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 169,
+          "period_count": 169,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-27",
+          "selection_status_counts": {
+            "selected": 169
+          }
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 170,
+          "period_count": 170,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-28",
+          "selection_status_counts": {
+            "selected": 170
+          }
+        }
+      }
+    },
+    {
+      "metric_id": "UST_2S10S_SPREAD",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "CBOE_VIX_INDEX",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    },
+    {
+      "metric_id": "NASDAQ_SOX_INDEX",
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {}
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+{
+  "network_requests": 0,
+  "production_mutations": 0,
+  "cases": [
+    {
+      "family": "pbc_usdcny_central_parity",
+      "period": "2026-09-04",
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html",
+      "sha256": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+      "parsed": {
+        "family": "pbc_usdcny_central_parity",
+        "provider": "中国人民银行",
+        "release_event_id": "official:pbc_usdcny_central_parity:2026-09-04:a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+        "period": "2026-09-04",
+        "release_at": "2026-09-04 09:25:17+08:00",
+        "public_available_at": "2026-09-04 09:25:17+08:00",
+        "source_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html",
+        "scalars": [
+          {
+            "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+            "api_name": "pbc_usdcny_central_parity",
+            "source_field": "usd_cny_central_parity",
+            "period_kind": "business_day",
+            "period_start": "2026-09-04",
+            "period_end": "2026-09-04",
+            "dimensions": {
+              "currency_pair": "USD/CNY",
+              "quote_direction": "CNY per USD"
+            },
+            "value": 6.7787,
+            "unit": "cny_per_usd",
+            "release_at": "2026-09-04 09:25:17+08:00",
+            "public_available_at": "2026-09-04 09:25:17+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      },
+      "new_certification": false
+    },
+    {
+      "family": "nbs_gdp",
+      "period": "2026Q2",
+      "url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+      "sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "parsed": {
+        "error_type": "ValueError",
+        "error": "official_context_period_invalid"
+      },
+      "new_certification": false
+    },
+    {
+      "family": "nbs_gdp",
+      "period": "2026-Q2",
+      "url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+      "sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "parsed": {
+        "family": "nbs_gdp",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_gdp:2026-Q2:60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+        "period": "2026-Q2",
+        "release_at": "2026-07-16 09:30:00+08:00",
+        "public_available_at": "2026-07-16 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+        "scalars": [
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "gdp",
+            "period_kind": "year_to_quarter",
+            "period_start": "2026-01-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "total",
+              "measure": "nominal_ytd_level"
+            },
+            "value": 695704.0,
+            "unit": "hundred_million_cny",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "gdp_yoy",
+            "period_kind": "quarter",
+            "period_start": "2026-04-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "total",
+              "measure": "real_quarter_yoy"
+            },
+            "value": 4.3,
+            "unit": "percent",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "pi",
+            "period_kind": "year_to_quarter",
+            "period_start": "2026-01-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "primary",
+              "measure": "nominal_ytd_level"
+            },
+            "value": 31522.0,
+            "unit": "hundred_million_cny",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "pi_yoy",
+            "period_kind": "quarter",
+            "period_start": "2026-04-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "primary",
+              "measure": "real_quarter_yoy"
+            },
+            "value": 3.7,
+            "unit": "percent",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "si",
+            "period_kind": "year_to_quarter",
+            "period_start": "2026-01-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "secondary",
+              "measure": "nominal_ytd_level"
+            },
+            "value": 250473.0,
+            "unit": "hundred_million_cny",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "si_yoy",
+            "period_kind": "quarter",
+            "period_start": "2026-04-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "secondary",
+              "measure": "real_quarter_yoy"
+            },
+            "value": 3.0,
+            "unit": "percent",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "ti",
+            "period_kind": "year_to_quarter",
+            "period_start": "2026-01-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "tertiary",
+              "measure": "nominal_ytd_level"
+            },
+            "value": 413709.0,
+            "unit": "hundred_million_cny",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_GDP",
+            "api_name": "nbs_gdp",
+            "source_field": "ti_yoy",
+            "period_kind": "quarter",
+            "period_start": "2026-04-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "aggregate": "tertiary",
+              "measure": "real_quarter_yoy"
+            },
+            "value": 5.1,
+            "unit": "percent",
+            "release_at": "2026-07-16 09:30:00+08:00",
+            "public_available_at": "2026-07-16 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      },
+      "new_certification": false
+    }
+  ]
+}

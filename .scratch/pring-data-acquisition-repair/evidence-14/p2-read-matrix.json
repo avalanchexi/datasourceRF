@@ -1,0 +1,4137 @@
+{
+  "read_at": "2026-09-06T16:58:33.561611+00:00",
+  "network_requests": 0,
+  "database_mutation_requested": false,
+  "persist_derived": false,
+  "active_model": {
+    "model_version_id": "model-v0011-a734bb6e7dcf415f",
+    "manifest_hash": "cee65e356c3a0e2b37b686e29c3319f68485f0c787a5d79196f8f0dfffc3c5ea",
+    "status": "active",
+    "certified_replay_start": "2026-03-09"
+  },
+  "manifest": {
+    "calibration_range_start": "2018-06-01",
+    "certified_replay_start": "2026-03-09",
+    "core_metrics": {
+      "bond": "CN_BOND_CORE_000012",
+      "commodity": "CN_COMMODITY_CORE_NHII",
+      "stock": "CN_EQUITY_CORE_000985"
+    },
+    "derived_formula_versions": {
+      "credit_impulse": "credit-impulse-ytd-flow-v0002",
+      "dr007_policy_spread": "dr007-policy-spread-v0001",
+      "loan_monthly_change": "loan-ytd-monthly-change-v0002",
+      "omo_net_injection": "repo-net-injection-trading-calendar-v0002",
+      "order_inventory_spread": "pmi-order-inventory-spread-v0001",
+      "production_order_spread": "pmi-production-order-spread-v0001",
+      "real_inventory_approximation": "inventory-ppi-v0001",
+      "ust_2s10s_spread": "ust-2s10s-spread-v0001"
+    },
+    "hidden_preheat_policy": "minimum_formula_inputs_only",
+    "history_input_start": "2017-01-01",
+    "metric_catalog_version": "metric-catalog-v0003",
+    "metric_definitions": [
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_TRADE_CALENDAR",
+        "name_cn": "CN_TRADE_CALENDAR",
+        "priority": "P0",
+        "release_event_family": "cn_trade_calendar",
+        "release_rule": "china_exchange_calendar",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_TRADE_CALENDAR"
+        ],
+        "source_codes": [
+          "CN_TRADE_CALENDAR"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "event",
+        "metric_id": "CN_RELEASE_SCHEDULE",
+        "name_cn": "CN_RELEASE_SCHEDULE",
+        "priority": "P0",
+        "release_event_family": "cn_release_schedule",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_RELEASE_SCHEDULE"
+        ],
+        "source_codes": [
+          "CN_RELEASE_SCHEDULE"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "SOURCE_OBSERVED_AVAILABILITY",
+        "name_cn": "SOURCE_OBSERVED_AVAILABILITY",
+        "priority": "P0",
+        "release_event_family": "source_observed_availability",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "SOURCE_OBSERVED_AVAILABILITY"
+        ],
+        "source_codes": [
+          "SOURCE_OBSERVED_AVAILABILITY"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQUITY_CORE_000985",
+        "name_cn": "中证全指",
+        "priority": "P0",
+        "release_event_family": "cn_equity_core_000985",
+        "release_rule": "china_trading_day_source_schedule",
+        "release_timezone": "Asia/Shanghai",
+        "role": "core_barometer",
+        "source_candidates": [
+          "000985.CSI"
+        ],
+        "source_codes": [
+          "000985.CSI"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_BOND_CORE_000012",
+        "name_cn": "上证国债指数",
+        "priority": "P0",
+        "release_event_family": "cn_bond_core_000012",
+        "release_rule": "china_trading_day_source_schedule",
+        "release_timezone": "Asia/Shanghai",
+        "role": "core_barometer",
+        "source_candidates": [
+          "000012.SH"
+        ],
+        "source_codes": [
+          "000012.SH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_CORE_NHII",
+        "name_cn": "南华工业品指数",
+        "priority": "P0",
+        "release_event_family": "cn_commodity_core_nhii",
+        "release_rule": "china_trading_day_source_schedule",
+        "release_timezone": "Asia/Shanghai",
+        "role": "core_barometer",
+        "source_candidates": [
+          "NHII.NH"
+        ],
+        "source_codes": [
+          "NHII.NH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "source_code"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_CSI300",
+        "name_cn": "CN_EQ_CSI300",
+        "priority": "P1",
+        "release_event_family": "cn_eq_csi300",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "000300.SH"
+        ],
+        "source_codes": [
+          "000300.SH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "source_code"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_CSI500",
+        "name_cn": "CN_EQ_CSI500",
+        "priority": "P1",
+        "release_event_family": "cn_eq_csi500",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "000905.SH"
+        ],
+        "source_codes": [
+          "000905.SH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "source_code"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_CSI1000",
+        "name_cn": "CN_EQ_CSI1000",
+        "priority": "P1",
+        "release_event_family": "cn_eq_csi1000",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "000852.SH"
+        ],
+        "source_codes": [
+          "000852.SH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "count"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "universe"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_ADV_DEC",
+        "name_cn": "CN_EQ_ADV_DEC",
+        "priority": "P1",
+        "release_event_family": "cn_eq_adv_dec",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "source_codes": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "unit": "count"
+      },
+      {
+        "allowed_units": [
+          "ratio"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "universe"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_AD_RATIO",
+        "name_cn": "CN_EQ_AD_RATIO",
+        "priority": "P1",
+        "release_event_family": "cn_eq_ad_ratio",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "source_codes": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "unit": "ratio"
+      },
+      {
+        "allowed_units": [
+          "count"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "universe"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_NEW_HIGH_LOW_120",
+        "name_cn": "CN_EQ_NEW_HIGH_LOW_120",
+        "priority": "P1",
+        "release_event_family": "cn_eq_new_high_low_120",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "source_codes": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "unit": "count"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "universe"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_ABOVE_MA120",
+        "name_cn": "CN_EQ_ABOVE_MA120",
+        "priority": "P1",
+        "release_event_family": "cn_eq_above_ma120",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "source_codes": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "universe"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_ADV_AMOUNT_SHARE",
+        "name_cn": "CN_EQ_ADV_AMOUNT_SHARE",
+        "priority": "P1",
+        "release_event_family": "cn_eq_adv_amount_share",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "source_codes": [
+          "tushare:daily:breadth-v0001"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "scope"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_MARGIN_BALANCE",
+        "name_cn": "CN_MARGIN_BALANCE",
+        "priority": "P1",
+        "release_event_family": "cn_margin_balance",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:margin"
+        ],
+        "source_codes": [
+          "tushare:margin"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "multiple",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "index",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_INDEX_VALUATION",
+        "name_cn": "CN_INDEX_VALUATION",
+        "priority": "P1",
+        "release_event_family": "cn_index_valuation",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:index_dailybasic"
+        ],
+        "source_codes": [
+          "tushare:index_dailybasic"
+        ],
+        "unit": "multiple"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "source_code"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+        "name_cn": "CN_BOND_FULL_PRICE_CNY030",
+        "priority": "P1",
+        "release_event_family": "cn_bond_full_price_cny030",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "000012CNY030.CSI"
+        ],
+        "source_codes": [
+          "000012CNY030.CSI"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "source_code"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_BOND_10Y_930916",
+        "name_cn": "CN_BOND_10Y_930916",
+        "priority": "P1",
+        "release_event_family": "cn_bond_10y_930916",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "930916.CSI"
+        ],
+        "source_codes": [
+          "930916.CSI"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_DR007",
+        "name_cn": "CN_DR007",
+        "priority": "P1",
+        "release_event_family": "cn_dr007",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_DR007"
+        ],
+        "source_codes": [
+          "CN_DR007"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_OMO_7D_RATE",
+        "name_cn": "CN_OMO_7D_RATE",
+        "priority": "P1",
+        "release_event_family": "pbc_omo_notice",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
+        ],
+        "source_codes": [
+          "PBC_OMO_NOTICE_HTML_V1"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_OMO_7D_AMOUNT",
+        "name_cn": "CN_OMO_7D_AMOUNT",
+        "priority": "P1",
+        "release_event_family": "pbc_omo_notice",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
+        ],
+        "source_codes": [
+          "PBC_OMO_NOTICE_HTML_V1"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "basis_points"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_DR007_POLICY_SPREAD",
+        "name_cn": "CN_DR007_POLICY_SPREAD",
+        "priority": "P1",
+        "release_event_family": "cn_dr007_policy_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_DR007_POLICY_SPREAD"
+        ],
+        "source_codes": [
+          "CN_DR007_POLICY_SPREAD"
+        ],
+        "unit": "basis_points"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "tenor"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_SHIBOR_ON_1W_3M",
+        "name_cn": "CN_SHIBOR_ON_1W_3M",
+        "priority": "P1",
+        "release_event_family": "cn_shibor_on_1w_3m",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_SHIBOR_ON_1W_3M"
+        ],
+        "source_codes": [
+          "CN_SHIBOR_ON_1W_3M"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "tenor"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_LPR_1Y_5Y",
+        "name_cn": "CN_LPR_1Y_5Y",
+        "priority": "P1",
+        "release_event_family": "chinamoney_lpr",
+        "release_rule": "monthly_day_20_holiday_roll_0900_asia_shanghai",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.chinamoney.com.cn/chinese/bklpr/"
+        ],
+        "source_codes": [
+          "CHINAMONEY_LPR"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percentage_points",
+          "percent",
+          "hundred_million_cny"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "scope",
+          "measure"
+        ],
+        "frequency": "event",
+        "metric_id": "CN_RRR_EVENT",
+        "name_cn": "CN_RRR_EVENT",
+        "priority": "P1",
+        "release_event_family": "pbc_rrr_notice",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/"
+        ],
+        "source_codes": [
+          "PBC_RRR_NOTICE_HTML_V1"
+        ],
+        "unit": "percentage_points"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "tool",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_TOOL_LIQUIDITY_MONTHLY",
+        "name_cn": "CN_TOOL_LIQUIDITY_MONTHLY",
+        "priority": "P1",
+        "release_event_family": "pbc_tool_liquidity_monthly",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+        ],
+        "source_codes": [
+          "PBC_TOOL_LIQUIDITY_HTML_V1"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "source_code"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_BROAD_NHCI",
+        "name_cn": "CN_COMMODITY_BROAD_NHCI",
+        "priority": "P1",
+        "release_event_family": "cn_commodity_broad_nhci",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "NHCI.NH"
+        ],
+        "source_codes": [
+          "NHCI.NH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "formula_version"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_EX_HOG_BASKET",
+        "name_cn": "CN_COMMODITY_EX_HOG_BASKET",
+        "priority": "P1",
+        "release_event_family": "cn_commodity_ex_hog_basket",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:fut_daily:ex-hog-basket-v0001"
+        ],
+        "source_codes": [
+          "tushare:fut_daily:ex-hog-basket-v0001"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "percentage_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "formula_version",
+          "sleeve"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        "name_cn": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        "priority": "P1",
+        "release_event_family": "cn_commodity_sleeve_contribution",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "tushare:fut_daily:ex-hog-basket-v0001"
+        ],
+        "source_codes": [
+          "tushare:fut_daily:ex-hog-basket-v0001"
+        ],
+        "unit": "percentage_points"
+      },
+      {
+        "allowed_units": [
+          "tonne",
+          "kilogram",
+          "sheet",
+          "lot",
+          "barrel"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "symbol",
+          "warehouse",
+          "exchange",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_FUTURES_WARRANTS",
+        "name_cn": "CN_FUTURES_WARRANTS",
+        "priority": "P1",
+        "release_event_family": "cn_futures_warrants",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_FUTURES_WARRANTS"
+        ],
+        "source_codes": [
+          "CN_FUTURES_WARRANTS"
+        ],
+        "unit": "tonne"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "series",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PMI_ACTIVITY",
+        "name_cn": "CN_PMI_ACTIVITY",
+        "priority": "P1",
+        "release_event_family": "nbs_pmi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PMI_ACTIVITY"
+        ],
+        "source_codes": [
+          "CN_PMI_ACTIVITY"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "series",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PMI_INVENTORY",
+        "name_cn": "CN_PMI_INVENTORY",
+        "priority": "P1",
+        "release_event_family": "nbs_pmi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_PMI_INVENTORY"
+        ],
+        "source_codes": [
+          "CN_PMI_INVENTORY"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "series",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PMI_PRICES",
+        "name_cn": "CN_PMI_PRICES",
+        "priority": "P1",
+        "release_event_family": "nbs_pmi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PMI_PRICES"
+        ],
+        "source_codes": [
+          "CN_PMI_PRICES"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_ORDER_INVENTORY_SPREAD",
+        "name_cn": "CN_ORDER_INVENTORY_SPREAD",
+        "priority": "P1",
+        "release_event_family": "cn_order_inventory_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_ORDER_INVENTORY_SPREAD"
+        ],
+        "source_codes": [
+          "CN_ORDER_INVENTORY_SPREAD"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_PRODUCTION_ORDER_SPREAD",
+        "name_cn": "CN_PRODUCTION_ORDER_SPREAD",
+        "priority": "P1",
+        "release_event_family": "cn_production_order_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PRODUCTION_ORDER_SPREAD"
+        ],
+        "source_codes": [
+          "CN_PRODUCTION_ORDER_SPREAD"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "category"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_CPI_HEADLINE",
+        "name_cn": "居民消费价格",
+        "priority": "P1",
+        "release_event_family": "nbs_core_cpi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_CPI_HEADLINE"
+        ],
+        "source_codes": [
+          "CN_CPI_HEADLINE"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "category"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_CORE_CPI",
+        "name_cn": "核心 CPI",
+        "priority": "P1",
+        "release_event_family": "nbs_core_cpi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.stats.gov.cn/sj/zxfb/"
+        ],
+        "source_codes": [
+          "NBS_CORE_CPI_HTML_V1"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure",
+          "category"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PPI",
+        "name_cn": "工业生产者价格",
+        "priority": "P1",
+        "release_event_family": "nbs_ppi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PPI"
+        ],
+        "source_codes": [
+          "CN_PPI"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_INDUSTRIAL_VA",
+        "name_cn": "CN_INDUSTRIAL_VA",
+        "priority": "P1",
+        "release_event_family": "nbs_industrial_value_added",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.stats.gov.cn/sj/zxfbhjd/"
+        ],
+        "source_codes": [
+          "NBS_INDUSTRIAL_VA_HTML_V1"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "item",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_INDUSTRIAL_FINANCE",
+        "name_cn": "CN_INDUSTRIAL_FINANCE",
+        "priority": "P1",
+        "release_event_family": "nbs_industrial_finance",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.stats.gov.cn/sj/zxfbhjd/"
+        ],
+        "source_codes": [
+          "NBS_INDUSTRIAL_FINANCE_HTML_V1"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+        "name_cn": "CN_FINISHED_GOODS_INVENTORY",
+        "priority": "P1",
+        "release_event_family": "nbs_industrial_finance",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "https://www.stats.gov.cn/sj/zxfbhjd/"
+        ],
+        "source_codes": [
+          "NBS_INDUSTRIAL_FINANCE_HTML_V1"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "days",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_INVENTORY_TURNOVER",
+        "name_cn": "CN_INVENTORY_TURNOVER",
+        "priority": "P1",
+        "release_event_family": "nbs_industrial_finance",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "https://www.stats.gov.cn/sj/zxfbhjd/"
+        ],
+        "source_codes": [
+          "NBS_INDUSTRIAL_FINANCE_HTML_V1"
+        ],
+        "unit": "days"
+      },
+      {
+        "allowed_units": [
+          "percent",
+          "percentage_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "industry",
+          "measure"
+        ],
+        "frequency": "quarterly",
+        "metric_id": "CN_CAPACITY_UTILIZATION",
+        "name_cn": "CN_CAPACITY_UTILIZATION",
+        "priority": "P1",
+        "release_event_family": "nbs_capacity_utilization",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.stats.gov.cn/sj/zxfbhjd/"
+        ],
+        "source_codes": [
+          "NBS_CAPACITY_UTILIZATION_HTML_V1"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "aggregate",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_M1_M2",
+        "name_cn": "CN_M1_M2",
+        "priority": "P1",
+        "release_event_family": "pbc_money",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_M1_M2"
+        ],
+        "source_codes": [
+          "CN_M1_M2"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_SF_TOTAL",
+        "name_cn": "CN_SF_TOTAL",
+        "priority": "P1",
+        "release_event_family": "pbc_social_financing",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "sf_month",
+          "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+        ],
+        "source_codes": [
+          "CN_SF_TOTAL"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "component",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_SF_COMPONENTS",
+        "name_cn": "CN_SF_COMPONENTS",
+        "priority": "P1",
+        "release_event_family": "pbc_social_financing",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+        ],
+        "source_codes": [
+          "PBC_SOCIAL_FINANCING_HTML_V1"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "borrower",
+          "tenor",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_LOAN_STRUCTURE",
+        "name_cn": "CN_LOAN_STRUCTURE",
+        "priority": "P1",
+        "release_event_family": "pbc_loan_structure",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html"
+        ],
+        "source_codes": [
+          "PBC_LOAN_STRUCTURE_HTML_V1"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "percentage_points"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "monthly",
+        "metric_id": "CN_CREDIT_IMPULSE",
+        "name_cn": "CN_CREDIT_IMPULSE",
+        "priority": "P1",
+        "release_event_family": "cn_credit_impulse",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_CREDIT_IMPULSE"
+        ],
+        "source_codes": [
+          "CN_CREDIT_IMPULSE"
+        ],
+        "unit": "percentage_points"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "aggregate",
+          "measure"
+        ],
+        "frequency": "quarterly",
+        "metric_id": "CN_GDP",
+        "name_cn": "CN_GDP",
+        "priority": "P2",
+        "release_event_family": "nbs_gdp",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_GDP"
+        ],
+        "source_codes": [
+          "CN_GDP"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "cny_per_usd"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "currency_pair",
+          "quote_direction"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+        "name_cn": "CN_USDCNY_CENTRAL_PARITY",
+        "priority": "P2",
+        "release_event_family": "pbc_usdcny_central_parity",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/index.html"
+        ],
+        "source_codes": [
+          "PBC_CFETS_USDCNY_CENTRAL_PARITY"
+        ],
+        "unit": "cny_per_usd"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_USDCNH_FXCM",
+        "name_cn": "CN_USDCNH_FXCM",
+        "priority": "P2",
+        "release_event_family": "cn_usdcnh_fxcm",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_USDCNH_FXCM"
+        ],
+        "source_codes": [
+          "CN_USDCNH_FXCM"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_USDCNY_CLOSE_1630",
+        "name_cn": "CN_USDCNY_CLOSE_1630",
+        "priority": "P2",
+        "release_event_family": "cn_usdcny_close_1630",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "source_codes": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "contract_month",
+          "measure",
+          "roll_chain_version"
+        ],
+        "frequency": "daily",
+        "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "name_cn": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "priority": "P2",
+        "release_event_family": "comex_gc_active_month_settlement_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "source_codes": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "unit": "usd_per_troy_ounce"
+      },
+      {
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [
+          "fixing",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "name_cn": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "priority": "P2",
+        "release_event_family": "lbma_gold_price_pm_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "source_codes": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "unit": "usd_per_troy_ounce"
+      },
+      {
+        "allowed_units": [
+          "usd_per_barrel"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "EIA_BRENT_RBRTE",
+        "name_cn": "EIA_BRENT_RBRTE",
+        "priority": "P2",
+        "release_event_family": "eia_petroleum_spot_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+        ],
+        "source_codes": [
+          "RBRTE"
+        ],
+        "unit": "usd_per_barrel"
+      },
+      {
+        "allowed_units": [
+          "usd_per_barrel"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "EIA_WTI_RWTC",
+        "name_cn": "EIA_WTI_RWTC",
+        "priority": "P2",
+        "release_event_family": "eia_petroleum_spot_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+        ],
+        "source_codes": [
+          "RWTC"
+        ],
+        "unit": "usd_per_barrel"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "UST10Y_NOMINAL_YIELD",
+        "name_cn": "UST10Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "release_event_family": "ust10y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "us_tycr.y10"
+        ],
+        "source_codes": [
+          "us_tycr.y10"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "UST2Y_NOMINAL_YIELD",
+        "name_cn": "UST2Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "release_event_family": "ust2y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "us_tycr.y2"
+        ],
+        "source_codes": [
+          "us_tycr.y2"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "basis_points"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "UST_2S10S_SPREAD",
+        "name_cn": "UST_2S10S_SPREAD",
+        "priority": "P2",
+        "release_event_family": "ust_2s10s_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "UST_2S10S_SPREAD"
+        ],
+        "source_codes": [
+          "UST_2S10S_SPREAD"
+        ],
+        "unit": "basis_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CBOE_VIX_INDEX",
+        "name_cn": "CBOE_VIX_INDEX",
+        "priority": "P2",
+        "release_event_family": "cboe_vix_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "CBOE_VIX_INDEX"
+        ],
+        "source_codes": [
+          "CBOE_VIX_INDEX"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0003",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "NASDAQ_SOX_INDEX",
+        "name_cn": "NASDAQ_SOX_INDEX",
+        "priority": "P2",
+        "release_event_family": "nasdaq_sox_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "source_codes": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "unit": "index_points"
+      }
+    ],
+    "model_version_id": "model-v0011-a734bb6e7dcf415f",
+    "point_in_time_rule_version": "public-cutoff-v0002",
+    "replay_acceptance_rule_version": "active-baseline-exact-120-v0001",
+    "selection_rule_version": "selection-v0001",
+    "source_certification_packages": [
+      {
+        "metrics": [
+          "CN_GDP",
+          "UST10Y_NOMINAL_YIELD",
+          "UST2Y_NOMINAL_YIELD"
+        ],
+        "name": "tushare-public-p2-delivery-v0001",
+        "official_direct_smoke_hashes": [
+          "1d406061105a0b03620e206cc4d7ee826b57c20daa8dde0c3e1b49f39977f550",
+          "1f7bfd73e7715152ba52c94a73724046994c6dc322cf66f44706a73a730b6ff4",
+          "2831f6f61a7249505d4200c0d289cdbb33932707b991fff14a54e1278c917a41",
+          "58ac5d5824fff8f9411eb3c5c254069f26ae7a3a8e23e0a3f150ca273f84c06d",
+          "5a38ce694ecca69f34a5591bd250e7cf039ec3009b57d7560ee96796c6103166",
+          "81b0edba39eac8a4dbcfdbf0679646cb49aff8608d193625573735cbbe1c1c3b",
+          "94e87323732cecf7f39b3c92a62b1fdd861ad13fb90621b54179e2730783d77f",
+          "ac7f32e77b98e32c91e48cd2e610f9b6beaa07b06b501e2fd9ccde56d6237e95",
+          "bbf81f871943e6930bc139d6281b5cce8f15b5dbdb3967c7785dae9d7c607471",
+          "bf365de6bae1a094cde738bb8379fffa74e8207cbf4eaf1139bbfe294dc532fb",
+          "d70eff044155a62fa563e690daaf501e037a22d89e51cad03c7be96e22ddafce",
+          "d82213c8ae1008eb4c1c52bc886716a2b491e36d029c52abf2b20fe43fc78313",
+          "e9f5199eba193deec688e49f73ef9dd29b4b66f679acfc83a2fd7a1b7914bf2b",
+          "fefc2016378c3705d4ca6bef19aeeea4bc0922fd5ed07bd73e3e26829e51bf2b"
+        ],
+        "package_id": "source-certification-0c2cb85705cb105c6d9ace9187cd00bf3dba6f0031d1ed2cd466346786919649",
+        "review_evidence": [
+          {
+            "document": "docs/research/tushare-indicator-capability-audit.md",
+            "sha256": "a1d8c8400b70e9a22444581645128dc245743968e69258e550315d2736631864"
+          }
+        ],
+        "schema_version": "source-certification-package-v0001",
+        "smoke_hashes": [
+          "e2e19ec9e13d3d67fde49cc5072ad154780bad739e79278d199faa905a45b35e"
+        ],
+        "terms": {
+          "agreement": "https://tushare.pro/document/1?doc_id=405",
+          "redistribution": "prohibited_without_separate_permission",
+          "scope": "local_personal_noncommercial_nontransferable"
+        }
+      },
+      {
+        "metrics": [
+          "CN_CAPACITY_UTILIZATION",
+          "CN_CORE_CPI",
+          "CN_CPI_HEADLINE",
+          "CN_FINISHED_GOODS_INVENTORY",
+          "CN_INDUSTRIAL_FINANCE",
+          "CN_INDUSTRIAL_VA",
+          "CN_INVENTORY_TURNOVER",
+          "CN_LOAN_STRUCTURE",
+          "CN_LPR_1Y_5Y",
+          "CN_M1_M2",
+          "CN_OMO_7D_AMOUNT",
+          "CN_OMO_7D_RATE",
+          "CN_PMI_ACTIVITY",
+          "CN_PMI_INVENTORY",
+          "CN_PMI_PRICES",
+          "CN_PPI",
+          "CN_RRR_EVENT",
+          "CN_SF_COMPONENTS",
+          "CN_SF_TOTAL",
+          "CN_TOOL_LIQUIDITY_MONTHLY"
+        ],
+        "name": "official-direct-delivery-v0001",
+        "official_direct_smoke_hashes": [
+          "1d406061105a0b03620e206cc4d7ee826b57c20daa8dde0c3e1b49f39977f550",
+          "1f7bfd73e7715152ba52c94a73724046994c6dc322cf66f44706a73a730b6ff4",
+          "2831f6f61a7249505d4200c0d289cdbb33932707b991fff14a54e1278c917a41",
+          "58ac5d5824fff8f9411eb3c5c254069f26ae7a3a8e23e0a3f150ca273f84c06d",
+          "5a38ce694ecca69f34a5591bd250e7cf039ec3009b57d7560ee96796c6103166",
+          "81b0edba39eac8a4dbcfdbf0679646cb49aff8608d193625573735cbbe1c1c3b",
+          "94e87323732cecf7f39b3c92a62b1fdd861ad13fb90621b54179e2730783d77f",
+          "ac7f32e77b98e32c91e48cd2e610f9b6beaa07b06b501e2fd9ccde56d6237e95",
+          "bbf81f871943e6930bc139d6281b5cce8f15b5dbdb3967c7785dae9d7c607471",
+          "bf365de6bae1a094cde738bb8379fffa74e8207cbf4eaf1139bbfe294dc532fb",
+          "d70eff044155a62fa563e690daaf501e037a22d89e51cad03c7be96e22ddafce",
+          "d82213c8ae1008eb4c1c52bc886716a2b491e36d029c52abf2b20fe43fc78313",
+          "e9f5199eba193deec688e49f73ef9dd29b4b66f679acfc83a2fd7a1b7914bf2b",
+          "fefc2016378c3705d4ca6bef19aeeea4bc0922fd5ed07bd73e3e26829e51bf2b"
+        ],
+        "package_id": "source-certification-23d0cd6bafce81e4fbd692282a6c01dafe6bd57cb0b186df77d99f0900aa4078",
+        "review_evidence": [
+          {
+            "document": "docs/research/official-gap-source-audit.md",
+            "sha256": "17e7f9c5bf94bbaf14c33a481064b868a7b51be22b90eef556fcb3d7bfe95a24"
+          }
+        ],
+        "schema_version": "source-certification-package-v0001",
+        "smoke_hashes": [
+          "1d406061105a0b03620e206cc4d7ee826b57c20daa8dde0c3e1b49f39977f550",
+          "1f7bfd73e7715152ba52c94a73724046994c6dc322cf66f44706a73a730b6ff4",
+          "2831f6f61a7249505d4200c0d289cdbb33932707b991fff14a54e1278c917a41",
+          "58ac5d5824fff8f9411eb3c5c254069f26ae7a3a8e23e0a3f150ca273f84c06d",
+          "5a38ce694ecca69f34a5591bd250e7cf039ec3009b57d7560ee96796c6103166",
+          "69f29104d4152da5082013214ae6817634a9a268dd9f9859aa85cda985417eec",
+          "81b0edba39eac8a4dbcfdbf0679646cb49aff8608d193625573735cbbe1c1c3b",
+          "94e87323732cecf7f39b3c92a62b1fdd861ad13fb90621b54179e2730783d77f",
+          "ac7f32e77b98e32c91e48cd2e610f9b6beaa07b06b501e2fd9ccde56d6237e95",
+          "bbf81f871943e6930bc139d6281b5cce8f15b5dbdb3967c7785dae9d7c607471",
+          "bf365de6bae1a094cde738bb8379fffa74e8207cbf4eaf1139bbfe294dc532fb",
+          "d70eff044155a62fa563e690daaf501e037a22d89e51cad03c7be96e22ddafce",
+          "d82213c8ae1008eb4c1c52bc886716a2b491e36d029c52abf2b20fe43fc78313",
+          "e9f5199eba193deec688e49f73ef9dd29b4b66f679acfc83a2fd7a1b7914bf2b",
+          "fefc2016378c3705d4ca6bef19aeeea4bc0922fd5ed07bd73e3e26829e51bf2b"
+        ],
+        "terms": {
+          "scope": "local_analysis_with_source_attribution",
+          "source_identity": "publisher_official_https"
+        }
+      },
+      {
+        "metrics": [
+          "CN_CPI_HEADLINE",
+          "CN_DR007",
+          "CN_FUTURES_WARRANTS",
+          "CN_M1_M2",
+          "CN_PMI_ACTIVITY",
+          "CN_PMI_INVENTORY",
+          "CN_PMI_PRICES",
+          "CN_PPI",
+          "CN_SF_TOTAL",
+          "CN_SHIBOR_ON_1W_3M"
+        ],
+        "name": "tushare-context-structured-delivery-v0001",
+        "official_direct_smoke_hashes": [
+          "1d406061105a0b03620e206cc4d7ee826b57c20daa8dde0c3e1b49f39977f550",
+          "1f7bfd73e7715152ba52c94a73724046994c6dc322cf66f44706a73a730b6ff4",
+          "2831f6f61a7249505d4200c0d289cdbb33932707b991fff14a54e1278c917a41",
+          "58ac5d5824fff8f9411eb3c5c254069f26ae7a3a8e23e0a3f150ca273f84c06d",
+          "5a38ce694ecca69f34a5591bd250e7cf039ec3009b57d7560ee96796c6103166",
+          "81b0edba39eac8a4dbcfdbf0679646cb49aff8608d193625573735cbbe1c1c3b",
+          "94e87323732cecf7f39b3c92a62b1fdd861ad13fb90621b54179e2730783d77f",
+          "ac7f32e77b98e32c91e48cd2e610f9b6beaa07b06b501e2fd9ccde56d6237e95",
+          "bbf81f871943e6930bc139d6281b5cce8f15b5dbdb3967c7785dae9d7c607471",
+          "bf365de6bae1a094cde738bb8379fffa74e8207cbf4eaf1139bbfe294dc532fb",
+          "d70eff044155a62fa563e690daaf501e037a22d89e51cad03c7be96e22ddafce",
+          "d82213c8ae1008eb4c1c52bc886716a2b491e36d029c52abf2b20fe43fc78313",
+          "e9f5199eba193deec688e49f73ef9dd29b4b66f679acfc83a2fd7a1b7914bf2b",
+          "fefc2016378c3705d4ca6bef19aeeea4bc0922fd5ed07bd73e3e26829e51bf2b"
+        ],
+        "package_id": "source-certification-5c90f57c414f606991d8ee3035d43c111781e450d5efe5e086e5a44707805991",
+        "review_evidence": [
+          {
+            "document": "docs/research/tushare-indicator-capability-audit.md",
+            "sha256": "a1d8c8400b70e9a22444581645128dc245743968e69258e550315d2736631864"
+          }
+        ],
+        "schema_version": "source-certification-package-v0001",
+        "smoke_hashes": [
+          "e2e19ec9e13d3d67fde49cc5072ad154780bad739e79278d199faa905a45b35e"
+        ],
+        "terms": {
+          "agreement": "https://tushare.pro/document/1?doc_id=405",
+          "redistribution": "prohibited_without_separate_permission",
+          "scope": "local_personal_noncommercial_nontransferable"
+        }
+      },
+      {
+        "metrics": [
+          "UST_2S10S_SPREAD"
+        ],
+        "name": "derived-public-p2-v0001",
+        "official_direct_smoke_hashes": [],
+        "package_id": "source-certification-65d4b8b1f5c7c61140ff7c75a24f20b4c662478f44fe40ddeba51c32e2facc9f",
+        "review_evidence": [],
+        "schema_version": "source-certification-package-v0001",
+        "smoke_hashes": [],
+        "terms": {
+          "scope": "formula_outputs_only",
+          "source_claims": "not_applicable"
+        }
+      },
+      {
+        "metrics": [
+          "CN_CREDIT_IMPULSE",
+          "CN_DR007_POLICY_SPREAD",
+          "CN_ORDER_INVENTORY_SPREAD",
+          "CN_PRODUCTION_ORDER_SPREAD"
+        ],
+        "name": "derived-from-certified-inputs-v0001",
+        "official_direct_smoke_hashes": [],
+        "package_id": "source-certification-81b3f1933e6e60bb97c66e149dc3b22d5887f77ef485b394378614e5d0edd4d3",
+        "review_evidence": [],
+        "schema_version": "source-certification-package-v0001",
+        "smoke_hashes": [],
+        "terms": {
+          "scope": "formula_outputs_only",
+          "source_claims": "not_applicable"
+        }
+      },
+      {
+        "metrics": [
+          "CN_BOND_10Y_930916",
+          "CN_BOND_FULL_PRICE_CNY030",
+          "CN_COMMODITY_BROAD_NHCI",
+          "CN_COMMODITY_EX_HOG_BASKET",
+          "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+          "CN_EQ_ABOVE_MA120",
+          "CN_EQ_ADV_AMOUNT_SHARE",
+          "CN_EQ_ADV_DEC",
+          "CN_EQ_AD_RATIO",
+          "CN_EQ_CSI1000",
+          "CN_EQ_CSI300",
+          "CN_EQ_CSI500",
+          "CN_EQ_NEW_HIGH_LOW_120",
+          "CN_INDEX_VALUATION",
+          "CN_MARGIN_BALANCE"
+        ],
+        "name": "tushare-market-structured-delivery-v0001",
+        "official_direct_smoke_hashes": [],
+        "package_id": "source-certification-f529e5d3bd0788862555a5a177ab14f188d8afa2a0eb566e38c7d24f73758ae1",
+        "review_evidence": [
+          {
+            "document": "docs/research/china-equity-core-proxy.md",
+            "sha256": "9e23afc84a7688c33020fe87b2322b5998d04f2711558e60e29975e1adf77317"
+          },
+          {
+            "document": "docs/research/nhii-historical-constituents-and-methods.md",
+            "sha256": "920ed9d6ab42b9c2a102f78fd6b78ba1abbc95b15b090effea7da2222d97fdf2"
+          }
+        ],
+        "schema_version": "source-certification-package-v0001",
+        "smoke_hashes": [
+          "864180a1a7380458a796cf065d4226ca7132f64583eea2a9986d4d0c324cca4e",
+          "fd006ace8ca9777ae6f1c43a41f5e2844efa782b548f8b5e0d70ef9e0231beb9"
+        ],
+        "terms": {
+          "agreement": "https://tushare.pro/document/1?doc_id=405",
+          "redistribution": "prohibited_without_separate_permission",
+          "scope": "local_personal_noncommercial_nontransferable"
+        }
+      }
+    ],
+    "source_certifications": {
+      "000012.SH": "certified",
+      "000985.CSI": "certified",
+      "NHII.NH": "certified_from_2018-06-01"
+    },
+    "stage_mapping": {
+      "bear,bear,bear": "stage_vi",
+      "bear,bear,bull": "stage_v",
+      "bear,bull,bull": "stage_iv",
+      "bull,bear,bear": "stage_i",
+      "bull,bull,bear": "stage_ii",
+      "bull,bull,bull": "stage_iii"
+    },
+    "trend_rules": {
+      "candidate_window_days": 30,
+      "noise_multiplier": 1.5,
+      "persistence_days": 8,
+      "rule_version": "trend-v0001",
+      "slope_days": 20,
+      "volatility_days": 20,
+      "window_days": 120
+    },
+    "visible_context_window_rule_version": "exact-core-calendar-120-v0001",
+    "visible_evidence_window_trading_days": 120
+  },
+  "metric_count": 13,
+  "metrics": [
+    {
+      "metric_id": "CN_GDP",
+      "audit_definition": {
+        "metric_id": "CN_GDP",
+        "name_cn": "CN_GDP",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "hundred_million_cny",
+        "frequency": "quarterly",
+        "dimensions": [
+          "aggregate",
+          "measure"
+        ],
+        "source_codes": [
+          "CN_GDP"
+        ],
+        "source_candidates": [
+          "CN_GDP"
+        ],
+        "certification_status": "certified",
+        "release_event_family": "nbs_gdp",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ]
+      },
+      "historical_source_claim_count": 216,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [
+        "source-certification-0c2cb85705cb105c6d9ace9187cd00bf3dba6f0031d1ed2cd466346786919649"
+      ],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 88,
+          "period_count": 11,
+          "first_period": "2023-12-31",
+          "last_period": "2026-06-30",
+          "selection_status_counts": {
+            "selected": 88
+          },
+          "latest_rows": [
+            {
+              "observation_id": "05fd7a9847278a2e6310e5ed57e950cc80b7f7eed82dbe8fe02aec84dce05c3f",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "total",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 4.3,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "9d3ccd44a0086e3329e0dfa6ce7c4c7cac28a8ef5d6b9e58e44facbba3e8d8d5",
+              "claims": [
+                {
+                  "claim_id": "9d3ccd44a0086e3329e0dfa6ce7c4c7cac28a8ef5d6b9e58e44facbba3e8d8d5",
+                  "provider": "国家统计局",
+                  "value": 4.3,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "6eabc826bb480aae9bb816b2d09989370dbfcb373d9603913d612893bab50711",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "total",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 695704.0,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "92a2053dfd6f3d602c68fd35f783eb9c62f644adb4ead37172453b2d41c6dd16",
+              "claims": [
+                {
+                  "claim_id": "92a2053dfd6f3d602c68fd35f783eb9c62f644adb4ead37172453b2d41c6dd16",
+                  "provider": "国家统计局",
+                  "value": 695704.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "734b59e4174467d4ce80eeb70767eb880fc5f8257e3ca4dea4645b370a0080ea",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "primary",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 31522.0,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "dd5c4e8b29f871b1e7f9d31ad0b5a8db5b32b28a7490f67552e7ebfee6f388c8",
+              "claims": [
+                {
+                  "claim_id": "dd5c4e8b29f871b1e7f9d31ad0b5a8db5b32b28a7490f67552e7ebfee6f388c8",
+                  "provider": "国家统计局",
+                  "value": 31522.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "92938073c93a189209e199b9739d94903a6181a626a62853f412b431e1b506e6",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "primary",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 3.7,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "88bf884369a28d1245cff053d888bd096c9e6bc0fc80dad0a6250fc3d56254cb",
+              "claims": [
+                {
+                  "claim_id": "88bf884369a28d1245cff053d888bd096c9e6bc0fc80dad0a6250fc3d56254cb",
+                  "provider": "国家统计局",
+                  "value": 3.7,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "938ff67b3ee21f261c2d1723fd1e02d7c28035c2377e0b923cfe09c269f3e634",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "secondary",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 250473.0,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "aaf7115a95bc91374ad4e56bf20d80be0772ad5a42e2608748ab6d5573b9d491",
+              "claims": [
+                {
+                  "claim_id": "aaf7115a95bc91374ad4e56bf20d80be0772ad5a42e2608748ab6d5573b9d491",
+                  "provider": "国家统计局",
+                  "value": 250473.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "a2ca39d36fdbbbec5857dfaccc30591a5ee6af353db9dc0e4547bb83124442cd",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "tertiary",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 413709.0,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "d146fbffabf3bd9172e1a7da9009e89b724a0852fe1f769a0e172783c11a38cd",
+              "claims": [
+                {
+                  "claim_id": "d146fbffabf3bd9172e1a7da9009e89b724a0852fe1f769a0e172783c11a38cd",
+                  "provider": "国家统计局",
+                  "value": 413709.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "ee2a4c64e602a40627ff83c642672e178cf7bdfc09ad3f9279f75c6c3c4d409d",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "tertiary",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 5.1,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "1db537ea0bb03357a2291a37801a872f6ef19e9dff8e8b1470dcd5f2565a842c",
+              "claims": [
+                {
+                  "claim_id": "1db537ea0bb03357a2291a37801a872f6ef19e9dff8e8b1470dcd5f2565a842c",
+                  "provider": "国家统计局",
+                  "value": 5.1,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "f7baa92dad17d7e30c2c279cb806933a193a70175fc8ae8987e62dd3e6e2a6a4",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "secondary",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 3.0,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "96c66963f25ee913cbd67f16b2014ef11ec8e65394f7832f9efc2057ac18fdf8",
+              "claims": [
+                {
+                  "claim_id": "96c66963f25ee913cbd67f16b2014ef11ec8e65394f7832f9efc2057ac18fdf8",
+                  "provider": "国家统计局",
+                  "value": 3.0,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            }
+          ]
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 88,
+          "period_count": 11,
+          "first_period": "2023-12-31",
+          "last_period": "2026-06-30",
+          "selection_status_counts": {
+            "selected": 36,
+            "conflicted": 52
+          },
+          "latest_rows": [
+            {
+              "observation_id": "05fd7a9847278a2e6310e5ed57e950cc80b7f7eed82dbe8fe02aec84dce05c3f",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "total",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 4.7,
+              "value_state": "reported_value",
+              "selection_status": "conflicted",
+              "selected_claim_id": "624ed22b573dec7b07e452596325f9a7504436e508dee9da9b1203d41b577cc1",
+              "claims": [
+                {
+                  "claim_id": "624ed22b573dec7b07e452596325f9a7504436e508dee9da9b1203d41b577cc1",
+                  "provider": "tushare",
+                  "value": 4.7,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:cn_gdp:gdp_yoy:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "9d3ccd44a0086e3329e0dfa6ce7c4c7cac28a8ef5d6b9e58e44facbba3e8d8d5",
+                  "provider": "国家统计局",
+                  "value": 4.3,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "6eabc826bb480aae9bb816b2d09989370dbfcb373d9603913d612893bab50711",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "total",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 695704.0,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "ca82fceb8b972384f53a18a5cf2dacda2db213ad06964ae23609cf6bf2f90f54",
+              "claims": [
+                {
+                  "claim_id": "ca82fceb8b972384f53a18a5cf2dacda2db213ad06964ae23609cf6bf2f90f54",
+                  "provider": "tushare",
+                  "value": 695704.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "tushare:cn_gdp:gdp:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "92a2053dfd6f3d602c68fd35f783eb9c62f644adb4ead37172453b2d41c6dd16",
+                  "provider": "国家统计局",
+                  "value": 695704.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "734b59e4174467d4ce80eeb70767eb880fc5f8257e3ca4dea4645b370a0080ea",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "primary",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 31521.8,
+              "value_state": "reported_value",
+              "selection_status": "conflicted",
+              "selected_claim_id": "0c8fd57ac0500ce3c8405e29b23d59d94988d6325f14f37e9b96d554bcfc3e66",
+              "claims": [
+                {
+                  "claim_id": "0c8fd57ac0500ce3c8405e29b23d59d94988d6325f14f37e9b96d554bcfc3e66",
+                  "provider": "tushare",
+                  "value": 31521.8,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "tushare:cn_gdp:pi:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "dd5c4e8b29f871b1e7f9d31ad0b5a8db5b32b28a7490f67552e7ebfee6f388c8",
+                  "provider": "国家统计局",
+                  "value": 31522.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "92938073c93a189209e199b9739d94903a6181a626a62853f412b431e1b506e6",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "primary",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 3.7,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "a6a36dc5d123492d4a309260f39f6ce652bf39b76cca60009e4612ff5f63437d",
+              "claims": [
+                {
+                  "claim_id": "a6a36dc5d123492d4a309260f39f6ce652bf39b76cca60009e4612ff5f63437d",
+                  "provider": "tushare",
+                  "value": 3.7,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:cn_gdp:pi_yoy:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "88bf884369a28d1245cff053d888bd096c9e6bc0fc80dad0a6250fc3d56254cb",
+                  "provider": "国家统计局",
+                  "value": 3.7,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "938ff67b3ee21f261c2d1723fd1e02d7c28035c2377e0b923cfe09c269f3e634",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "secondary",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 250472.9,
+              "value_state": "reported_value",
+              "selection_status": "conflicted",
+              "selected_claim_id": "2aecd115df70ea334261e7079aecbe226c9b3fa86422e18b2826139211809485",
+              "claims": [
+                {
+                  "claim_id": "2aecd115df70ea334261e7079aecbe226c9b3fa86422e18b2826139211809485",
+                  "provider": "tushare",
+                  "value": 250472.9,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "tushare:cn_gdp:si:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "aaf7115a95bc91374ad4e56bf20d80be0772ad5a42e2608748ab6d5573b9d491",
+                  "provider": "国家统计局",
+                  "value": 250473.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "a2ca39d36fdbbbec5857dfaccc30591a5ee6af353db9dc0e4547bb83124442cd",
+              "period_start": "2026-01-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "tertiary",
+                "measure": "nominal_ytd_level"
+              },
+              "selected_value": 413709.2,
+              "value_state": "reported_value",
+              "selection_status": "conflicted",
+              "selected_claim_id": "2e93d338bcbbcf6451dac63a6895827805d401b9b0fef6df852a4db2334373e7",
+              "claims": [
+                {
+                  "claim_id": "2e93d338bcbbcf6451dac63a6895827805d401b9b0fef6df852a4db2334373e7",
+                  "provider": "tushare",
+                  "value": 413709.2,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "tushare:cn_gdp:ti:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "d146fbffabf3bd9172e1a7da9009e89b724a0852fe1f769a0e172783c11a38cd",
+                  "provider": "国家统计局",
+                  "value": 413709.0,
+                  "value_state": "reported_value",
+                  "unit": "hundred_million_cny",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "ee2a4c64e602a40627ff83c642672e178cf7bdfc09ad3f9279f75c6c3c4d409d",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "tertiary",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 5.2,
+              "value_state": "reported_value",
+              "selection_status": "conflicted",
+              "selected_claim_id": "d93daa647d13398b2ab4646d7561ee732332abd0d59770136a61ce71cef47bcb",
+              "claims": [
+                {
+                  "claim_id": "d93daa647d13398b2ab4646d7561ee732332abd0d59770136a61ce71cef47bcb",
+                  "provider": "tushare",
+                  "value": 5.2,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:cn_gdp:ti_yoy:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "1db537ea0bb03357a2291a37801a872f6ef19e9dff8e8b1470dcd5f2565a842c",
+                  "provider": "国家统计局",
+                  "value": 5.1,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            },
+            {
+              "observation_id": "f7baa92dad17d7e30c2c279cb806933a193a70175fc8ae8987e62dd3e6e2a6a4",
+              "period_start": "2026-04-01",
+              "period_end": "2026-06-30",
+              "dimensions": {
+                "aggregate": "secondary",
+                "measure": "real_quarter_yoy"
+              },
+              "selected_value": 3.9,
+              "value_state": "reported_value",
+              "selection_status": "conflicted",
+              "selected_claim_id": "5c34f414ebd4d07041d39b8d973eb74ac2cac1127f0bc6dcc47ddbf3dd07b8c9",
+              "claims": [
+                {
+                  "claim_id": "5c34f414ebd4d07041d39b8d973eb74ac2cac1127f0bc6dcc47ddbf3dd07b8c9",
+                  "provider": "tushare",
+                  "value": 3.9,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:cn_gdp:si_yoy:2026-06-30",
+                  "release_at": null,
+                  "public_available_at": "2026-08-31 03:14:52.006312+00:00",
+                  "fetched_at": "2026-08-31 05:25:52.828939+00:00",
+                  "available_at": "2026-08-31 05:25:52.828939+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                },
+                {
+                  "claim_id": "96c66963f25ee913cbd67f16b2014ef11ec8e65394f7832f9efc2057ac18fdf8",
+                  "provider": "国家统计局",
+                  "value": 3.0,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+                  "release_at": "2026-07-16 01:30:00+00:00",
+                  "public_available_at": "2026-07-16 01:30:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:55.848496+00:00",
+                  "available_at": "2026-08-31 07:34:55.848496+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": null
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+      "audit_definition": {
+        "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+        "name_cn": "CN_USDCNY_CENTRAL_PARITY",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "cny_per_usd",
+        "frequency": "daily",
+        "dimensions": [
+          "currency_pair",
+          "quote_direction"
+        ],
+        "source_codes": [
+          "PBC_CFETS_USDCNY_CENTRAL_PARITY"
+        ],
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/index.html"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "pbc_usdcny_central_parity",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "cny_per_usd"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "CN_USDCNH_FXCM",
+      "audit_definition": {
+        "metric_id": "CN_USDCNH_FXCM",
+        "name_cn": "CN_USDCNH_FXCM",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "index_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "CN_USDCNH_FXCM"
+        ],
+        "source_candidates": [
+          "CN_USDCNH_FXCM"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "cn_usdcnh_fxcm",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "index_points"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "CN_USDCNY_CLOSE_1630",
+      "audit_definition": {
+        "metric_id": "CN_USDCNY_CLOSE_1630",
+        "name_cn": "CN_USDCNY_CLOSE_1630",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "scalar",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "source_candidates": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "cn_usdcny_close_1630",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "scalar"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "audit_definition": {
+        "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "name_cn": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_troy_ounce",
+        "frequency": "daily",
+        "dimensions": [
+          "contract_month",
+          "measure",
+          "roll_chain_version"
+        ],
+        "source_codes": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "source_candidates": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "comex_gc_active_month_settlement_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+      "audit_definition": {
+        "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "name_cn": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_troy_ounce",
+        "frequency": "daily",
+        "dimensions": [
+          "fixing",
+          "measure"
+        ],
+        "source_codes": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "source_candidates": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "lbma_gold_price_pm_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "EIA_BRENT_RBRTE",
+      "audit_definition": {
+        "metric_id": "EIA_BRENT_RBRTE",
+        "name_cn": "EIA_BRENT_RBRTE",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_barrel",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "RBRTE"
+        ],
+        "source_candidates": [
+          "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "eia_petroleum_spot_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_barrel"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "EIA_WTI_RWTC",
+      "audit_definition": {
+        "metric_id": "EIA_WTI_RWTC",
+        "name_cn": "EIA_WTI_RWTC",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_barrel",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "RWTC"
+        ],
+        "source_candidates": [
+          "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "eia_petroleum_spot_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_barrel"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "UST10Y_NOMINAL_YIELD",
+      "audit_definition": {
+        "metric_id": "UST10Y_NOMINAL_YIELD",
+        "name_cn": "UST10Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "percent",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "us_tycr.y10"
+        ],
+        "source_candidates": [
+          "us_tycr.y10"
+        ],
+        "certification_status": "certified",
+        "release_event_family": "ust10y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "percent"
+        ]
+      },
+      "historical_source_claim_count": 374,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [
+        "source-certification-0c2cb85705cb105c6d9ace9187cd00bf3dba6f0031d1ed2cd466346786919649"
+      ],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 169,
+          "period_count": 169,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-27",
+          "selection_status_counts": {
+            "selected": 169
+          },
+          "latest_rows": [
+            {
+              "observation_id": "e4e7ddd4a0ead4a91228ab5cc3a9a0ed9c81c21443fa91467f36f534b71da367",
+              "period_start": "2026-08-27",
+              "period_end": "2026-08-27",
+              "dimensions": {},
+              "selected_value": 4.67,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "0bfba2fcfb88131116870641527cb8552c20c4bc5cd7d80b2f63b7073338ef64",
+              "claims": [
+                {
+                  "claim_id": "0bfba2fcfb88131116870641527cb8552c20c4bc5cd7d80b2f63b7073338ef64",
+                  "provider": "tushare",
+                  "value": 4.67,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:us_tycr:y10:2026-08-27",
+                  "release_at": "2026-08-27 22:00:00+00:00",
+                  "public_available_at": "2026-08-27 22:00:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:50.502408+00:00",
+                  "available_at": "2026-08-31 07:34:50.502408+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": "d78c7ac21fca744dd33926752d81d437a5122dca04f8c85d28ac7c15ce3a972a"
+                }
+              ]
+            }
+          ]
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 170,
+          "period_count": 170,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-28",
+          "selection_status_counts": {
+            "selected": 170
+          },
+          "latest_rows": [
+            {
+              "observation_id": "e6d67c75ac55080429ce55a30364571a89c4e44e9de79e00c14affac5c85588f",
+              "period_start": "2026-08-28",
+              "period_end": "2026-08-28",
+              "dimensions": {},
+              "selected_value": 4.73,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "92f73aa477505dceac0c7091a64a34eb2ec78901cf3ad7d126580918e7e6f4b9",
+              "claims": [
+                {
+                  "claim_id": "92f73aa477505dceac0c7091a64a34eb2ec78901cf3ad7d126580918e7e6f4b9",
+                  "provider": "tushare",
+                  "value": 4.73,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:us_tycr:y10:2026-08-28",
+                  "release_at": "2026-08-28 22:00:00+00:00",
+                  "public_available_at": "2026-08-28 22:00:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:50.502408+00:00",
+                  "available_at": "2026-08-31 07:34:50.502408+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": "0808e80f330633434ca0d8d66ee0de2a4865e71fa173632e7da69277674d7c94"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "UST2Y_NOMINAL_YIELD",
+      "audit_definition": {
+        "metric_id": "UST2Y_NOMINAL_YIELD",
+        "name_cn": "UST2Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "percent",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "us_tycr.y2"
+        ],
+        "source_candidates": [
+          "us_tycr.y2"
+        ],
+        "certification_status": "certified",
+        "release_event_family": "ust2y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "percent"
+        ]
+      },
+      "historical_source_claim_count": 374,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [
+        "source-certification-0c2cb85705cb105c6d9ace9187cd00bf3dba6f0031d1ed2cd466346786919649"
+      ],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 169,
+          "period_count": 169,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-27",
+          "selection_status_counts": {
+            "selected": 169
+          },
+          "latest_rows": [
+            {
+              "observation_id": "9555f8b2b71a4da9d718855ef11d57c9814cf6ec40c216efd7c63c6d0ea2cfd4",
+              "period_start": "2026-08-27",
+              "period_end": "2026-08-27",
+              "dimensions": {},
+              "selected_value": 4.2,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "06153eb9a9600c6f031732fb679bec9654bb2a29e7acc4672faf70f616c28dea",
+              "claims": [
+                {
+                  "claim_id": "06153eb9a9600c6f031732fb679bec9654bb2a29e7acc4672faf70f616c28dea",
+                  "provider": "tushare",
+                  "value": 4.2,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:us_tycr:y2:2026-08-27",
+                  "release_at": "2026-08-27 22:00:00+00:00",
+                  "public_available_at": "2026-08-27 22:00:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:50.502408+00:00",
+                  "available_at": "2026-08-31 07:34:50.502408+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": "09e9a68b75b521c47856a88087cc8ec5ac2a409882730d7c6e95518f57ae420e"
+                }
+              ]
+            }
+          ]
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 170,
+          "period_count": 170,
+          "first_period": "2025-12-26",
+          "last_period": "2026-08-28",
+          "selection_status_counts": {
+            "selected": 170
+          },
+          "latest_rows": [
+            {
+              "observation_id": "8e2515c78727488477f91c72e1158f091eb36e5d300d7fdbe904048d2b40664b",
+              "period_start": "2026-08-28",
+              "period_end": "2026-08-28",
+              "dimensions": {},
+              "selected_value": 4.34,
+              "value_state": "reported_value",
+              "selection_status": "selected",
+              "selected_claim_id": "867174a90535e928a8a05a18064fa57113f477beb87d4b1ef02b4d77111c4da4",
+              "claims": [
+                {
+                  "claim_id": "867174a90535e928a8a05a18064fa57113f477beb87d4b1ef02b4d77111c4da4",
+                  "provider": "tushare",
+                  "value": 4.34,
+                  "value_state": "reported_value",
+                  "unit": "percent",
+                  "source_reference": "tushare:us_tycr:y2:2026-08-28",
+                  "release_at": "2026-08-28 22:00:00+00:00",
+                  "public_available_at": "2026-08-28 22:00:00+00:00",
+                  "fetched_at": "2026-08-31 07:34:50.502408+00:00",
+                  "available_at": "2026-08-31 07:34:50.502408+00:00",
+                  "certification_status": "certified",
+                  "quality_status": "validated",
+                  "supersedes_claim_id": "6d76bf7a67922e6c91e39018f15b2bc358044ba7d41e8d31cd62f26c51e24f62"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "UST_2S10S_SPREAD",
+      "audit_definition": {
+        "metric_id": "UST_2S10S_SPREAD",
+        "name_cn": "UST_2S10S_SPREAD",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "basis_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "UST_2S10S_SPREAD"
+        ],
+        "source_candidates": [
+          "UST_2S10S_SPREAD"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "release_event_family": "ust_2s10s_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "basis_points"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 6,
+      "historical_certification_packages": [
+        "source-certification-65d4b8b1f5c7c61140ff7c75a24f20b4c662478f44fe40ddeba51c32e2facc9f"
+      ],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "CBOE_VIX_INDEX",
+      "audit_definition": {
+        "metric_id": "CBOE_VIX_INDEX",
+        "name_cn": "CBOE_VIX_INDEX",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "index_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "CBOE_VIX_INDEX"
+        ],
+        "source_candidates": [
+          "CBOE_VIX_INDEX"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "cboe_vix_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "index_points"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    },
+    {
+      "metric_id": "NASDAQ_SOX_INDEX",
+      "audit_definition": {
+        "metric_id": "NASDAQ_SOX_INDEX",
+        "name_cn": "NASDAQ_SOX_INDEX",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "index_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "source_candidates": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "nasdaq_sox_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "index_points"
+        ]
+      },
+      "historical_source_claim_count": 0,
+      "historical_derived_count": 0,
+      "historical_certification_packages": [],
+      "queries": {
+        "public_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_0828": {
+          "as_of": "2026-08-28T23:59:59+08:00",
+          "target_business_date": "2026-08-28",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        },
+        "system_at_research": {
+          "as_of": "2026-09-06T16:58:33.561611+00:00",
+          "target_business_date": "2026-09-04",
+          "point_count": 0,
+          "period_count": 0,
+          "first_period": null,
+          "last_period": null,
+          "selection_status_counts": {},
+          "latest_rows": []
+        }
+      },
+      "new_certification": false
+    }
+  ],
+  "p2_projection": [
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "0c8fd57ac0500ce3c8405e29b23d59d94988d6325f14f37e9b96d554bcfc3e66",
+        "dd5c4e8b29f871b1e7f9d31ad0b5a8db5b32b28a7490f67552e7ebfee6f388c8"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "0c8fd57ac0500ce3c8405e29b23d59d94988d6325f14f37e9b96d554bcfc3e66",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:pi:2026-06-30",
+          "unit": "hundred_million_cny",
+          "value": 31521.8,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "dd5c4e8b29f871b1e7f9d31ad0b5a8db5b32b28a7490f67552e7ebfee6f388c8",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "hundred_million_cny",
+          "value": 31522.0,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "primary",
+        "measure": "nominal_ytd_level"
+      },
+      "direction": "up",
+      "metric_id": "CN_GDP",
+      "observation_id": "734b59e4174467d4ce80eeb70767eb880fc5f8257e3ca4dea4645b370a0080ea",
+      "period_start": "2026-01-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "0c8fd57ac0500ce3c8405e29b23d59d94988d6325f14f37e9b96d554bcfc3e66",
+      "source_reference": "tushare:cn_gdp:pi:2026-06-30",
+      "status": "conflicted",
+      "unit": "hundred_million_cny",
+      "value": 31521.8,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "d93daa647d13398b2ab4646d7561ee732332abd0d59770136a61ce71cef47bcb",
+        "1db537ea0bb03357a2291a37801a872f6ef19e9dff8e8b1470dcd5f2565a842c"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "d93daa647d13398b2ab4646d7561ee732332abd0d59770136a61ce71cef47bcb",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:ti_yoy:2026-06-30",
+          "unit": "percent",
+          "value": 5.2,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "1db537ea0bb03357a2291a37801a872f6ef19e9dff8e8b1470dcd5f2565a842c",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "percent",
+          "value": 5.1,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "tertiary",
+        "measure": "real_quarter_yoy"
+      },
+      "direction": "flat",
+      "metric_id": "CN_GDP",
+      "observation_id": "ee2a4c64e602a40627ff83c642672e178cf7bdfc09ad3f9279f75c6c3c4d409d",
+      "period_start": "2026-04-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "d93daa647d13398b2ab4646d7561ee732332abd0d59770136a61ce71cef47bcb",
+      "source_reference": "tushare:cn_gdp:ti_yoy:2026-06-30",
+      "status": "conflicted",
+      "unit": "percent",
+      "value": 5.2,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "624ed22b573dec7b07e452596325f9a7504436e508dee9da9b1203d41b577cc1",
+        "9d3ccd44a0086e3329e0dfa6ce7c4c7cac28a8ef5d6b9e58e44facbba3e8d8d5"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "624ed22b573dec7b07e452596325f9a7504436e508dee9da9b1203d41b577cc1",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:gdp_yoy:2026-06-30",
+          "unit": "percent",
+          "value": 4.7,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "9d3ccd44a0086e3329e0dfa6ce7c4c7cac28a8ef5d6b9e58e44facbba3e8d8d5",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "percent",
+          "value": 4.3,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "total",
+        "measure": "real_quarter_yoy"
+      },
+      "direction": "down",
+      "metric_id": "CN_GDP",
+      "observation_id": "05fd7a9847278a2e6310e5ed57e950cc80b7f7eed82dbe8fe02aec84dce05c3f",
+      "period_start": "2026-04-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "624ed22b573dec7b07e452596325f9a7504436e508dee9da9b1203d41b577cc1",
+      "source_reference": "tushare:cn_gdp:gdp_yoy:2026-06-30",
+      "status": "conflicted",
+      "unit": "percent",
+      "value": 4.7,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "ca82fceb8b972384f53a18a5cf2dacda2db213ad06964ae23609cf6bf2f90f54",
+        "92a2053dfd6f3d602c68fd35f783eb9c62f644adb4ead37172453b2d41c6dd16"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "ca82fceb8b972384f53a18a5cf2dacda2db213ad06964ae23609cf6bf2f90f54",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:gdp:2026-06-30",
+          "unit": "hundred_million_cny",
+          "value": 695704.0,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "92a2053dfd6f3d602c68fd35f783eb9c62f644adb4ead37172453b2d41c6dd16",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "hundred_million_cny",
+          "value": 695704.0,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "total",
+        "measure": "nominal_ytd_level"
+      },
+      "direction": "up",
+      "metric_id": "CN_GDP",
+      "observation_id": "6eabc826bb480aae9bb816b2d09989370dbfcb373d9603913d612893bab50711",
+      "period_start": "2026-01-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "ca82fceb8b972384f53a18a5cf2dacda2db213ad06964ae23609cf6bf2f90f54",
+      "source_reference": "tushare:cn_gdp:gdp:2026-06-30",
+      "status": "current",
+      "unit": "hundred_million_cny",
+      "value": 695704.0,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "5c34f414ebd4d07041d39b8d973eb74ac2cac1127f0bc6dcc47ddbf3dd07b8c9",
+        "96c66963f25ee913cbd67f16b2014ef11ec8e65394f7832f9efc2057ac18fdf8"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "5c34f414ebd4d07041d39b8d973eb74ac2cac1127f0bc6dcc47ddbf3dd07b8c9",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:si_yoy:2026-06-30",
+          "unit": "percent",
+          "value": 3.9,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "96c66963f25ee913cbd67f16b2014ef11ec8e65394f7832f9efc2057ac18fdf8",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "percent",
+          "value": 3.0,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "secondary",
+        "measure": "real_quarter_yoy"
+      },
+      "direction": "down",
+      "metric_id": "CN_GDP",
+      "observation_id": "f7baa92dad17d7e30c2c279cb806933a193a70175fc8ae8987e62dd3e6e2a6a4",
+      "period_start": "2026-04-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "5c34f414ebd4d07041d39b8d973eb74ac2cac1127f0bc6dcc47ddbf3dd07b8c9",
+      "source_reference": "tushare:cn_gdp:si_yoy:2026-06-30",
+      "status": "conflicted",
+      "unit": "percent",
+      "value": 3.9,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "2aecd115df70ea334261e7079aecbe226c9b3fa86422e18b2826139211809485",
+        "aaf7115a95bc91374ad4e56bf20d80be0772ad5a42e2608748ab6d5573b9d491"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "2aecd115df70ea334261e7079aecbe226c9b3fa86422e18b2826139211809485",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:si:2026-06-30",
+          "unit": "hundred_million_cny",
+          "value": 250472.9,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "aaf7115a95bc91374ad4e56bf20d80be0772ad5a42e2608748ab6d5573b9d491",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "hundred_million_cny",
+          "value": 250473.0,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "secondary",
+        "measure": "nominal_ytd_level"
+      },
+      "direction": "up",
+      "metric_id": "CN_GDP",
+      "observation_id": "938ff67b3ee21f261c2d1723fd1e02d7c28035c2377e0b923cfe09c269f3e634",
+      "period_start": "2026-01-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "2aecd115df70ea334261e7079aecbe226c9b3fa86422e18b2826139211809485",
+      "source_reference": "tushare:cn_gdp:si:2026-06-30",
+      "status": "conflicted",
+      "unit": "hundred_million_cny",
+      "value": 250472.9,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "2e93d338bcbbcf6451dac63a6895827805d401b9b0fef6df852a4db2334373e7",
+        "d146fbffabf3bd9172e1a7da9009e89b724a0852fe1f769a0e172783c11a38cd"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "2e93d338bcbbcf6451dac63a6895827805d401b9b0fef6df852a4db2334373e7",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:ti:2026-06-30",
+          "unit": "hundred_million_cny",
+          "value": 413709.2,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "d146fbffabf3bd9172e1a7da9009e89b724a0852fe1f769a0e172783c11a38cd",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "hundred_million_cny",
+          "value": 413709.0,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "tertiary",
+        "measure": "nominal_ytd_level"
+      },
+      "direction": "up",
+      "metric_id": "CN_GDP",
+      "observation_id": "a2ca39d36fdbbbec5857dfaccc30591a5ee6af353db9dc0e4547bb83124442cd",
+      "period_start": "2026-01-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "2e93d338bcbbcf6451dac63a6895827805d401b9b0fef6df852a4db2334373e7",
+      "source_reference": "tushare:cn_gdp:ti:2026-06-30",
+      "status": "conflicted",
+      "unit": "hundred_million_cny",
+      "value": 413709.2,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T05:25:52.828939+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "a6a36dc5d123492d4a309260f39f6ce652bf39b76cca60009e4612ff5f63437d",
+        "88bf884369a28d1245cff053d888bd096c9e6bc0fc80dad0a6250fc3d56254cb"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T05:25:52.828939+00:00",
+          "certification_status": "certified",
+          "claim_id": "a6a36dc5d123492d4a309260f39f6ce652bf39b76cca60009e4612ff5f63437d",
+          "provider": "tushare",
+          "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:cn_gdp:pi_yoy:2026-06-30",
+          "unit": "percent",
+          "value": 3.7,
+          "value_state": "reported_value"
+        },
+        {
+          "available_at": "2026-08-31T07:34:55.848496+00:00",
+          "certification_status": "certified",
+          "claim_id": "88bf884369a28d1245cff053d888bd096c9e6bc0fc80dad0a6250fc3d56254cb",
+          "provider": "国家统计局",
+          "public_available_at": "2026-07-16T01:30:00+00:00",
+          "quality_status": "validated",
+          "selected": false,
+          "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "unit": "percent",
+          "value": 3.7,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {
+        "aggregate": "primary",
+        "measure": "real_quarter_yoy"
+      },
+      "direction": "down",
+      "metric_id": "CN_GDP",
+      "observation_id": "92938073c93a189209e199b9739d94903a6181a626a62853f412b431e1b506e6",
+      "period_start": "2026-04-01",
+      "period": "2026-06-30",
+      "public_available_at": "2026-08-31T03:14:52.006312+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "a6a36dc5d123492d4a309260f39f6ce652bf39b76cca60009e4612ff5f63437d",
+      "source_reference": "tushare:cn_gdp:pi_yoy:2026-06-30",
+      "status": "current",
+      "unit": "percent",
+      "value": 3.7,
+      "value_state": "reported_value",
+      "name_cn": "CN_GDP",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+      "observation_id": "gap:CN_USDCNY_CENTRAL_PARITY",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "cny_per_usd",
+      "value": null,
+      "value_state": null,
+      "name_cn": "CN_USDCNY_CENTRAL_PARITY",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "CN_USDCNH_FXCM",
+      "observation_id": "gap:CN_USDCNH_FXCM",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "index_points",
+      "value": null,
+      "value_state": null,
+      "name_cn": "CN_USDCNH_FXCM",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "CN_USDCNY_CLOSE_1630",
+      "observation_id": "gap:CN_USDCNY_CLOSE_1630",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "scalar",
+      "value": null,
+      "value_state": null,
+      "name_cn": "CN_USDCNY_CLOSE_1630",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "observation_id": "gap:COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "usd_per_troy_ounce",
+      "value": null,
+      "value_state": null,
+      "name_cn": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+      "observation_id": "gap:LBMA_GOLD_PRICE_PM_USD_OZT",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "usd_per_troy_ounce",
+      "value": null,
+      "value_state": null,
+      "name_cn": "LBMA_GOLD_PRICE_PM_USD_OZT",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "EIA_BRENT_RBRTE",
+      "observation_id": "gap:EIA_BRENT_RBRTE",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "usd_per_barrel",
+      "value": null,
+      "value_state": null,
+      "name_cn": "EIA_BRENT_RBRTE",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "EIA_WTI_RWTC",
+      "observation_id": "gap:EIA_WTI_RWTC",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "usd_per_barrel",
+      "value": null,
+      "value_state": null,
+      "name_cn": "EIA_WTI_RWTC",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T07:34:50.502408+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "92f73aa477505dceac0c7091a64a34eb2ec78901cf3ad7d126580918e7e6f4b9"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T07:34:50.502408+00:00",
+          "certification_status": "certified",
+          "claim_id": "92f73aa477505dceac0c7091a64a34eb2ec78901cf3ad7d126580918e7e6f4b9",
+          "provider": "tushare",
+          "public_available_at": "2026-08-28T22:00:00+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:us_tycr:y10:2026-08-28",
+          "unit": "percent",
+          "value": 4.73,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {},
+      "direction": "up",
+      "metric_id": "UST10Y_NOMINAL_YIELD",
+      "observation_id": "e6d67c75ac55080429ce55a30364571a89c4e44e9de79e00c14affac5c85588f",
+      "period_start": "2026-08-28",
+      "period": "2026-08-28",
+      "public_available_at": "2026-08-28T22:00:00+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "92f73aa477505dceac0c7091a64a34eb2ec78901cf3ad7d126580918e7e6f4b9",
+      "source_reference": "tushare:us_tycr:y10:2026-08-28",
+      "status": "current",
+      "unit": "percent",
+      "value": 4.73,
+      "value_state": "reported_value",
+      "name_cn": "UST10Y_NOMINAL_YIELD",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T07:34:50.502408+00:00",
+      "certification_status": "certified",
+      "claim_ids": [
+        "867174a90535e928a8a05a18064fa57113f477beb87d4b1ef02b4d77111c4da4"
+      ],
+      "claims": [
+        {
+          "available_at": "2026-08-31T07:34:50.502408+00:00",
+          "certification_status": "certified",
+          "claim_id": "867174a90535e928a8a05a18064fa57113f477beb87d4b1ef02b4d77111c4da4",
+          "provider": "tushare",
+          "public_available_at": "2026-08-28T22:00:00+00:00",
+          "quality_status": "validated",
+          "selected": true,
+          "source_reference": "tushare:us_tycr:y2:2026-08-28",
+          "unit": "percent",
+          "value": 4.34,
+          "value_state": "reported_value"
+        }
+      ],
+      "dimensions": {},
+      "direction": "up",
+      "metric_id": "UST2Y_NOMINAL_YIELD",
+      "observation_id": "8e2515c78727488477f91c72e1158f091eb36e5d300d7fdbe904048d2b40664b",
+      "period_start": "2026-08-28",
+      "period": "2026-08-28",
+      "public_available_at": "2026-08-28T22:00:00+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "867174a90535e928a8a05a18064fa57113f477beb87d4b1ef02b4d77111c4da4",
+      "source_reference": "tushare:us_tycr:y2:2026-08-28",
+      "status": "current",
+      "unit": "percent",
+      "value": 4.34,
+      "value_state": "reported_value",
+      "name_cn": "UST2Y_NOMINAL_YIELD",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": "2026-08-31T07:34:50.502408+00:00",
+      "certification_status": "derived_from_certified_inputs",
+      "claim_ids": [],
+      "claims": [],
+      "derived_observation_id": "34bd7adca8fc8046eae2a576820e89782ec27c0b3e4f85024c8e62309d215e17",
+      "dimensions": {},
+      "direction": "up",
+      "formula_version": "ust-2s10s-spread-v0001",
+      "input_observation_version_ids": [
+        "867174a90535e928a8a05a18064fa57113f477beb87d4b1ef02b4d77111c4da4",
+        "92f73aa477505dceac0c7091a64a34eb2ec78901cf3ad7d126580918e7e6f4b9"
+      ],
+      "metric_id": "UST_2S10S_SPREAD",
+      "observation_id": "34bd7adca8fc8046eae2a576820e89782ec27c0b3e4f85024c8e62309d215e17",
+      "period": "2026-08-28",
+      "public_available_at": "2026-08-28T22:00:00+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "34bd7adca8fc8046eae2a576820e89782ec27c0b3e4f85024c8e62309d215e17",
+      "source_reference": "formula:ust-2s10s-spread-v0001",
+      "status": "current",
+      "unit": "basis_points",
+      "value": 39.00000000000006,
+      "value_state": "reported_value",
+      "name_cn": "UST_2S10S_SPREAD",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "CBOE_VIX_INDEX",
+      "observation_id": "gap:CBOE_VIX_INDEX",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "index_points",
+      "value": null,
+      "value_state": null,
+      "name_cn": "CBOE_VIX_INDEX",
+      "role": "context_only_never_formal_stage"
+    },
+    {
+      "available_at": null,
+      "certification_status": "awaiting_source_certification",
+      "claim_ids": [],
+      "claims": [],
+      "dimensions": {},
+      "direction": "unknown",
+      "metric_id": "NASDAQ_SOX_INDEX",
+      "observation_id": "gap:NASDAQ_SOX_INDEX",
+      "period_start": null,
+      "period": null,
+      "public_available_at": null,
+      "quality_status": null,
+      "selected_claim_id": null,
+      "source_reference": null,
+      "status": "awaiting_source_certification",
+      "unit": "index_points",
+      "value": null,
+      "value_state": null,
+      "name_cn": "NASDAQ_SOX_INDEX",
+      "role": "context_only_never_formal_stage"
+    }
+  ],
+  "projection_warnings": [
+    "policy_context_degraded:transmission_conflict",
+    "overheat_context_degraded:insufficient_data",
+    "inventory_context_degraded:conflict",
+    "p2_context_degraded"
+  ],
+  "source_audit_sha256": "6bcae5fcf3631d626f9f94efb01cd05fea69c3901e8fd61243b5abef0b87a2e7",
+  "scope": "Legacy catalog observations and read-only candidate diagnostics only, not new source certification or formal publication."
+}

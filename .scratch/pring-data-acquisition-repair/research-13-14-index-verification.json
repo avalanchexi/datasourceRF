@@ -1,0 +1,22 @@
+{
+  "verified_at": "2026-09-06T17:40:24.883999+00:00",
+  "results": [
+    {
+      "ticket": 13,
+      "report_sha256": "dcbdf9a07095e5bfb2110ff2f3a51e9049dc1bece87b3859207df1ece0f973e1",
+      "exact_staged_original_files": 27,
+      "original_bytes": 4629289,
+      "delivery_files": 71
+    },
+    {
+      "ticket": 14,
+      "report_sha256": "1bad5c100b8996dfa1286da712c723211b9640d8cc98a1e24cdec8647bedf82b",
+      "exact_staged_original_files": 20,
+      "original_bytes": 7831396,
+      "delivery_files": 61
+    }
+  ],
+  "production_writes": 0,
+  "network_requests": 0,
+  "new_certifications": 0
+}

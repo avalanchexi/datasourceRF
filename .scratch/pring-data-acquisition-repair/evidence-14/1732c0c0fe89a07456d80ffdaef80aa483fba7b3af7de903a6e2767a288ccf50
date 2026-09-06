@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+ <meta name="viewport" content="width=device-width, initial-scale=1"> 
+<!--上面3个meta必须在最顶部-->
+<meta name="renderer" content="webkit">
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no,maximum-scale=1.0,user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<meta name="format-detection" content="email=no">
+<meta name="renderer" content="webkit">
+<title>中国货币网--中国外汇交易中心主办</title>
+<meta name="keywords" content="外汇,本币,人民币,债券">
+<meta name="description" content="银行间市场提供交易所需信息、中小金融机构备案报价和银行结售汇备案的基本平台；外汇、本币、人民币、债券">
+<link rel="canonical" href="http://www.chinamoney.com.cn/english/dssjfwgl/"/><link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-basic.4.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/jquery-ui-1.10.4.custom.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/jquery.mCustomScrollbar.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-layout.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-scope.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-webeditor.css">
+
+
+<!-- script -->
+<!-- 下列script必须按序加载，勿使用异步加载 -->
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery-1.12.2.min.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery-ui-1.10.4.custom.min.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/cm-jquery-ui-default.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery.flexslider-min.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery.mousewheel.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery.mCustomScrollbar.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/grayscale.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/cm-basic.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/cm-gray.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/echarts.min.js"></script>
+
+
+<!-- 初始化栏目常量 -->
+
+
+
+
+</head>
+<body>
+<div id="main-page">
+    <div id="main-page-head" data-for="block" data-role="header" data-url="/chinese/mainhead/"></div>
+    
+	<div id="main-page-body">
+			<div class="main-page-body-inner" style="background-image: url('/u/cms/chinese/202005/012151537nh2.png');">
+            <div class="main-body">
+                <input type="hidden" id="rel-channel-path-id" value="dssjfwgl"><!--对应菜单data-channel-->
+                <div class="main-body-l">
+<input type="hidden" value="0" id= "hasPhoneTitle"></input>
+<div id="main-side-menu">
+		<div class="side-menu-title" id="phone-title">
+	      <span class="title-xl" data-mid="5" data-channel="sczn">
+        			服务
+	      </span>
+	  </div>
+	  <ul class="side-menu-list">
+			      <li class="has-drop" data-mid="5-1" data-index="0" id="li-5-1">
+								<a class="lv lv-2" href="/chinese/mgwhcphjy/" target="_self" data-channel="whsczn">
+				        			外汇市场服务
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="5-1-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/mgwhcphjy/" target="_self" data-channel="mgwhcphjy">
+						                  
+											        			产品和交易
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-1-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/rszn/" target="_self" data-channel="rszn">
+						                  
+											        			入市指南
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-1-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/whywgz/" target="_self" data-channel="whywgz">
+						                  
+											        			业务规则
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-1-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/sfbf/" target="_self" data-channel="sfbf">
+						                  
+											        			收费办法
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-1-5" data-index="4">
+																<a class="lv lv-3" href="/chinese/whsc/" target="_self" data-channel="whsc">
+						                  
+											        			表单下载
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-1-6" data-index="5">
+																<a class="lv lv-3" href="/chinese/mgwhjjr/" target="_self" data-channel="mgwhjjr">
+						                  
+											        			节假日
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-2" data-index="1" id="li-5-2">
+								<a class="lv lv-2" href="/chinese/mgbbcphjy/" target="_self" data-channel="bbsczn">
+				        			本币市场服务
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="5-2-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/mgbbcphjy/" target="_self" data-channel="mgbbcphjy">
+						                  
+											        			产品和交易
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-2-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/rszn2/" target="_self" data-channel="rszn2">
+						                  
+											        			入市指南
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-2-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/bbywgz/" target="_self" data-channel="bbywgz">
+						                  
+											        			业务规则
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-2-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/sfbf2/" target="_self" data-channel="sfbf2">
+						                  
+											        			收费办法
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-2-5" data-index="4">
+																<a class="lv lv-3" href="/chinese/bbsc/" target="_self" data-channel="bbsc">
+						                  
+											        			表单下载
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-2-6" data-index="5">
+																<a class="lv lv-3" href="/chinese/mgbbjjr/" target="_self" data-channel="mgbbjjr">
+						                  
+											        			节假日
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-3" data-index="2" id="li-5-3">
+								<a class="lv lv-2" href="/chinese/jyhfwhbz/" target="_self" data-channel="jyhfw">
+				        			交易后服务
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="5-3-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/jyhfwhbz/" target="_self" data-channel="jyhfwhbz">
+						                  
+											        			服务和标准
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-3-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/jyhfwrszn/" target="_self" data-channel="jyhfwrszn">
+						                  
+											        			入市指南
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-3-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/jyhfwywgz/" target="_self" data-channel="jyhfwywgz">
+						                  
+											        			业务规则
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-3-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/jyhfwbdxz/" target="_self" data-channel="jyhfwbdxz">
+						                  
+											        			表单下载
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-4" data-index="3" id="li-5-4">
+								<a class="lv lv-2" href="/chinese/bbpxynjn/" target="_self" data-channel="pxyfwzc">
+				        			培训服务
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="5-4-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/bbpxynjn/" target="_self" data-channel="bbpxynjn">
+						                  
+											        			本币业务培训
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-4-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/whywpxn/" target="_self" data-channel="whywpxn">
+						                  
+											        			外汇业务培训
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-5" data-index="4" id="li-5-5">
+								<a class="lv lv-2" href="/chinese/dssjfwgl/" target="_self" data-channel="sjfwzy">
+				        			信息服务
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="5-5-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/dssjfwgl/" target="_self" data-channel="dssjfwgl">
+						                  
+											        			信息产品服务
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              			$("#hasPhoneTitle").val("1");
+						              			$('#phone-title').append('<span class="title-s" data-mid="5-5-1" data-channel="dssjfwgl">信息产品服务</span>');
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-5-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/dataInterfaceService/" target="_self" data-channel="dataInterfaceService">
+						                  
+											        			数据接口服务
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-5-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/xxssjfw/" target="_self" data-channel="xxssjfw">
+						                  
+											        			信息商数据服务
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-5-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/xsjgsjfw/" target="_self" data-channel="xsjgsjfw">
+						                  
+											        			学术机构数据服务
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-5-5" data-index="4">
+																<a class="lv lv-3" href="/chinese/mtsjfu/" target="_self" data-channel="mtsjfu">
+						                  
+											        			媒体数据服务
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-5-6" data-index="5">
+																<a class="lv lv-3" href="/chinese/hjcxfw/" target="_self" data-channel="hjcxfw">
+						                  
+											        			汇价查询服务
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-6" data-index="5" id="li-5-6">
+								<a class="lv lv-2" href="/chinese/zcfg/" target="_self" data-channel="zcfg">
+				        			政策法规
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+														$('#li-5-6').attr('class','');
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-7" data-index="6" id="li-5-7">
+								<a class="lv lv-2" href="/chinese/system/" target="_self" data-channel="system">
+				        			系统接入开发机构
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+														$('#li-5-7').attr('class','');
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="5-8" data-index="7" id="li-5-8">
+								<a class="lv lv-2" href="/chinese/jszc/" target="_self" data-channel="yhfwyzc">
+				        			用户服务与支持
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="5-8-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/jszc/" target="_self" data-channel="jszc">
+						                  
+											        			技术支持
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-8-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/cjwt/" target="_self" data-channel="cjwt">
+						                  
+											        		常见问题                        
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-8-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/wjdc/" target="_self" data-channel="wjdc">
+						                  
+											        			问卷调查
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="5-8-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/fwrx/" target="_self" data-channel="fwrx">
+						                  
+											        			服务热线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+
+	  </ul>
+	<div id="whsczlwxtp"></div>  
+</div>
+
+<script>
+	$(function(){
+		if($("#hasPhoneTitle").val()=="0"){
+			$('#phone-title').append('<span class="title-s" data-mid="" data-channel="">&nbsp;</span>');
+		}
+		var initReady11 = setInterval(function(){
+	    if (DOTABS) {
+	    	clearInterval(initReady11);
+	        var currentTab = $('.side-menu-list').children('.current').children('a').html().trim();
+	        if(currentTab == '外汇市场自律'){
+	        	$('#whsczlwxtp').html('<img src="/r/cms/chinese/chinamoney/assets/old/images/erweima.jpg" style="max-width: 100%; max-height: 100%"/>	');
+	        if(MEDIA_CASE=='XS' || MEDIA_CASE =="S"){
+			$('#whsczlwxtp').attr('style','display:none;');
+		}else{
+			$('#whsczlwxtp').attr('style','');
+		}
+}
+	    }
+	}, 10);
+$(window).on('resize.leftmenu', function(e, duration) {
+		if(MEDIA_CASE=='XS' || MEDIA_CASE =="S"){
+			$('#whsczlwxtp').attr('style','display:none;');
+		}else{
+			$('#whsczlwxtp').attr('style','');
+		}
+	});
+	});
+</script>                </div>
+
+                <div class="main-body-m">
+                    <div class="subpage">
+                        <div class="section-a section-a-default">
+                            <div class="section-a-body">
+                                <ul class="san-tabs-a" id="tabs-member-fx">
+                                                    <li><a href="javascript:void(0);" ><span>信息产品简介与申请</span></a></li>
+                                                    <li><a href="javascript:void(0);" ><span>数据挖掘产品</span></a></li>
+                                                    <li><a href="javascript:void(0);" ><span>基准曲线估值服务</span></a></li>
+                                                    <li><a href="javascript:void(0);" ><span>债券指数</span></a></li>
+                                </ul>
+
+                                <div class="san-tabs-content">
+                                    <div class="san-tabs-panel" data-show="load"></div>
+                                                        <div class="san-tabs-panel" data-show="toggle">
+                                                            <div class="san-grid">
+                                                                <div class="san-grid-r">
+                                                                </div>	
+                                                                
+                                                                <div class="san-grid-m">
+                                                                    <div data-source="webeditor">
+                                                                        <p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 28% no-repeat;padding-left: 20px;width: 88px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">服务概览</span></font></span></p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 8px no-repeat;padding-left: 20px;padding-right:20px"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">随着银行间市场的不断发展，交易中心积累了大量的市场报价、成交、基准、估值等数据。为满足市场会员/成员、监管部门、社会公众、信息商、加工类机构等对银行间市场数据的多样化需求，交易中心以专业的数据处理、持续的技术投入为基础，不断推动数据信息服务创新，陆续推出了行情数据、基准数据、数据挖掘产品等多种类型的数据信息增值服务。
+</span></font></span></p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 8px no-repeat;padding-left: 20px;padding-right:20px"><span style="font-size: 10.5pt;">服务详情请点击链接：<a style="text-decoration: none;" href="http://www.chinamoney.com.cn/dqs/cm-s-notice-query/fileDownLoad.do?mode=open&contentId=1716546&priority=0">《中国外汇交易中心数据信息服务简介》</a></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;"><br>
+</span></font></span></p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 28% no-repeat;padding-left: 20px;width: 130px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">商务及申请流程</span></font></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 20% no-repeat;padding-left: 20px;">市场会员/成员：</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp;（</span></font><span style="font-size: 10.5pt;">1</span><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">）申请机构填写
+<a style="text-decoration: none;" target="_blank" href="https://www.chinamoney.com.cn/dqs/fileDownLoad.do?mode=save&contentId=2282129&priority=0">《中国外汇交易中心信息产品许可表》</a>
+，并根据交易中心要求签字盖章后提交至交易中心。</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp;（</span></font><span style="font-size: 10.5pt;">2</span><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">）交易中心对申请机构的材料审核通过后，在许可表上盖章并寄回申请机构。</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp;（</span></font><span style="font-size: 10.5pt;">3</span><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">）联系方式</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp; liujia_zh@chinamoney.com.cn&ensp;</span></font><span style="font-size: 10.5pt;">021-38585533</span></span></p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 8px no-repeat;padding-left: 20px;padding-right:20px"><span style="font-size: 10.5pt;">信息商、加工类机构</span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;padding-left: 20px;">信息商、加工类机构具体收费标准由双方协商确定，依数据内容、数据用途、发布频率等要素确定，并可根据市场环境制定相应产品推广期优惠方案。收费标准以双方正式签约内容为准。</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp;（</span></font><span style="font-size: 10.5pt;">1</span><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">）申请机构根据交易中心要求准备对应申请材料。</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp;（</span></font><span style="font-size: 10.5pt;">2</span><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">）申请审核通过的机构，双方推进合作协议签署相关流程。</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp;（</span></font><span style="font-size: 10.5pt;">3</span><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">）联系方式</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp; </span></font></span><span style="font-size: 10.5pt;">信息商：yanghongyang_zh@chinamoney.com.cn&nbsp;021-38585572</span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">&nbsp; &nbsp; 加工类机构：liujia_zh@chinamoney.com.cn 021-38585533</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p><span style="font-size: 10.5pt;"><br>
+</span></o:p></span></p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 28% no-repeat;padding-left: 20px;width: 88px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">免责声明</span></font></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span></p>
+<p class="MsoNormal"><style><span style="font-size: 10.5pt;">
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+p.MsoNormal{
+mso-style-name:正文;
+mso-style-parent:"";
+margin:0pt;
+margin-bottom:.0001pt;
+mso-pagination:none;
+text-align:justify;
+text-justify:inter-ideograph;
+font-family:Microsoft Yahei;
+mso-fareast-font-family:Microsoft Yahei;
+mso-bidi-font-family:'Microsoft Yahei';
+font-size:10.5000pt;
+mso-font-kerning:1.0000pt;
+}
+
+span.msoIns{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:underline;
+text-underline:single;
+color:blue;
+}
+
+span.msoDel{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:line-through;
+color:red;
+}
+@page{mso-page-border-surround-header:no;
+	mso-page-border-surround-footer:no;}@page Section0{
+}
+div.Section0{page:Section0;}</span></style><!--StartFragment--><!--EndFragment--></p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 8px no-repeat;padding-left: 20px;padding-right:20px"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">中国外汇交易中心市场数据是指交易中心各市场交易活动中产生的与交易有关的所有信息或数据，包括但不限于交易中心交易或信息平台上产生的所有相关市场及产品的行情数据、基础数据、统计数据、历史数据、基准数据、公告、通知、主管机构授权或要求披露的各类相关信息等。</span></font><span style="font-size: 10.5pt;">&nbsp;</span></span></p>
+<p class="MsoNormal" style="padding-left: 20px;padding-right:20px"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">交易中心市场数据归交易中心所有。未经交易中心书面许可，任何机构或个人不得对交易中心市场数据进行任何形式的复制、传输、存储、使用、发布、出售、许可他人使用、加工、开发或产生演绎作品。</span></font></span></p>
+<p class="MsoNormal" style="padding-left: 20px;padding-right:20px"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">信息商、加工类机构、媒体或其他机构如需发布、经营、传播或对外提供交易中心市场数据，应向交易中心提出申请，经交易中心书面许可或授权。</span></font></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">市场成员或其他最终用户应通过正规途径获取并使用交易中心市场数据，包括直接向交易中心提出申请，从交易中心公共信息发布渠道或经交易中心正式授权的信息服务机构处获得（授权信息商名单详见本栏目</span></font><span style="font-size: 10.5pt;">“信息商数据服务—授权信息商名单”）。</span></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">交易中心保留追究任何非法使用交易中心市场数据的机构或个人法律责任的权利。</span></font></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p><span style="font-size: 10.5pt;">&nbsp;</span></o:p></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;"><br>
+</span></font></span></p>
+<p class="MsoNormal" style="text-align: right;padding-right:20px"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">中国外汇交易中心</span></font></span></p>
+<style><span style="font-size: 10.5pt;">
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+p.MsoNormal{
+mso-style-name:正文;
+mso-style-parent:"";
+margin:0pt;
+margin-bottom:.0001pt;
+mso-pagination:none;
+text-align:justify;
+text-justify:inter-ideograph;
+font-family:Microsoft Yahei;
+mso-fareast-font-family:Microsoft Yahei;
+mso-bidi-font-family:'Microsoft Yahei';
+font-size:10.5000pt;
+mso-font-kerning:1.0000pt;
+}
+
+span.msoIns{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:underline;
+text-underline:single;
+color:blue;
+}
+
+span.msoDel{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:line-through;
+color:red;
+}
+@page{mso-page-border-surround-header:no;
+	mso-page-border-surround-footer:no;}@page Section0{
+}
+div.Section0{page:Section0;}</span></style><style><span style="font-size: 10.5pt;">
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+p.MsoNormal{
+mso-style-name:正文;
+mso-style-parent:"";
+margin:0pt;
+margin-bottom:.0001pt;
+mso-pagination:none;
+text-align:justify;
+text-justify:inter-ideograph;
+font-family:Microsoft Yahei;
+mso-fareast-font-family:Microsoft Yahei;
+mso-bidi-font-family:'Microsoft Yahei';
+font-size:10.5000pt;
+mso-font-kerning:1.0000pt;
+}
+
+span.msoIns{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:underline;
+text-underline:single;
+color:blue;
+}
+
+span.msoDel{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:line-through;
+color:red;
+}
+@page{mso-page-border-surround-header:no;
+	mso-page-border-surround-footer:no;}@page Section0{
+}
+div.Section0{page:Section0;}</span></style>
+                                                                    </div>
+                                                                </div> 
+                                                            </div>
+                                                        </div>
+                                                        <div class="san-tabs-panel" data-show="toggle">
+                                                            <div class="san-grid">
+                                                                <div class="san-grid-r">
+                                                                </div>	
+                                                                
+                                                                <div class="san-grid-m">
+                                                                    <div data-source="webeditor">
+                                                                        <p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">产品概览</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">数据挖掘产品覆盖了债券、货币、外汇三大市场的现券买卖、质押式回购、买断式回购、信用拆借、同业存单、外汇掉期、外汇期权以及外币拆借等八个交易品种。该产品凭借准确、及时的银行间市场数据资源，借助先进的技术手段，以不同机构类型的交易表现、市场价格走势、个债市场表现、产品生命周期动态等为主要分析角度，深入挖掘数据价值，形成明晰、准确的市场信息，辅助机构制定交易策略，分析预判市场走势、洞察市场机会。</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">数据挖掘基础产品</span></b><b><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif';color:#333333">&nbsp;&nbsp;</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">现券市场</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">交易日收盘后，现券分机构成交情况（利率债<span>/</span>信用债）为用户提供各机构类型按债券类型、待偿期两个维度交叉统计的利率债<span>/</span>信用债买卖交易分类数据，包括机构买入<span>/</span>卖出<span>/</span>净买入债券成交金额，各机构类型的交易方向和买卖力量对比一目了然。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 15.75pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="554" height="355" id="图片 18" src="/ewebeditor/uploadfile/20210922155032541001.png" alt="图表
+中度可信度描述已自动生成" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:center;
+line-height:22.5pt;background:white" align="center"><span style="font-size:10.5pt;
+font-family:'Arial','sans-serif'">&nbsp;</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">货币市场</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">货币市场基础产品于每日收盘后提供分机构类型的信用拆借市场、质押式回购市场、买断式回购市场的交易数据分析报告，并同时按月度、季度、年度提供汇总数据报告，为市场机构了解同业机构每日资金供需情况、获取市场比较基准、预判市场未来走势提供数据参考。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 22.5pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="554" height="384" id="图片 19" src="/ewebeditor/uploadfile/20210922155032805002.png" alt="图形用户界面
+低可信度描述已自动生成" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">数据挖掘深度产品</span></b><b><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif';color:#333333">&nbsp;&nbsp;</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">现券市场</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">为便于交易机构快速获得直接可用的债券交易信息和分析数据，现券市场深度产品不仅提供盘中实时统计的价量信息，还提供以活跃个债作为研究对象的债券活跃分析功能、现券市场与利率互换和债券借贷的跨市场联动分析功能，以及针对非活跃债的现券市场异动提醒功能，为机构投资研究现券市场提供了多角度的有效精准的数据参考。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 15.75pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="554" height="380" id="图片 23" src="/ewebeditor/uploadfile/20210922155032312003.png" alt="图形用户界面, 应用程序
+描述已自动生成" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'">&nbsp;</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 15.75pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="554" height="391" id="图片 20" src="/ewebeditor/uploadfile/20210922155033162004.png" alt="图形用户界面, 应用程序
+描述已自动生成" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">货币市场</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">货币市场深度产品涵盖质押式回购市场、买断式回购市场、信用拆借市场和同业存单市场。</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">质押式回购<span>/</span>买断式回购<span>/</span>信用拆借市场深度产品着重通过可视化图表呈现每家机构的盘中交易和历史交易分析，不仅为机构交易时动态了解市场资金变化提供实时数据参考，也为机构回溯历史交易表现提供精准的衡量工具，有助于用户定位交易问题并优化交易策略。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 22.5pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="553" height="366" id="图片 3" src="/ewebeditor/uploadfile/20210922155033713005.png" alt="货币市场盘中" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white">
+</p>
+<div style="text-align: center;"><img width="552" height="400" id="图片 4" src="/ewebeditor/uploadfile/20210922155033967006.png" alt="货币市场本方" align="center" style="font-family: 微软雅黑, sans-serif; font-size: 16pt;"></div>
+<span style="font-size:16.0pt;font-family:'微软雅黑','sans-serif'">
+<br>
+</span>
+<p></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">同业存单市场深度产品重点对每日同业存单市场的发行和成交情况进行深入剖析，通过各期限一级发行和二级成交数据让用户了解各类投资人的信用偏好和久期偏好，一方面辅助发行人优化存单发行策略，成为同业存单发行定价的重要参考；另一方面用于判断二级市场的价量变化分析各机构类型买卖力量对市场的影响。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 22.5pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="554" height="384" id="图片 21" src="/ewebeditor/uploadfile/20210922155033901007.png" alt="图形用户界面, 应用程序
+描述已自动生成" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">外汇市场</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">外汇市场深度产品，覆盖外汇掉期、外汇期权和外币拆借市场。该产品基于市场实时报价和交易数据，分析加工后形成多类指标，以可视化形式展示，为市场成员评估优化交易策略、及时发现交易机会、了解交易对手、改善交易行为提供了重要的数据支持。</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">外汇掉期市场深度产品主要通过可视化图表精准呈现量价实时变化，并为回溯交易表现提供比较基准。具体功能包括：分机构类型成交分析、成交价格档位分析、<span>C-Swap</span>市场深度指标、交易对手量价统计以及本方历史交易量价分析等。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 22.5pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="554" height="388" id="图片 22" src="/ewebeditor/uploadfile/20210922155033977008.png" alt="图表
+描述已自动生成" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;line-height:22.5pt;background:white"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'">&nbsp;</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">外汇期权市场深度产品主要包含存量合约分析和波动率锥量两个功能。存量合约分析功能支持按到期日、执行价、权利类型查看未到期期权合约的行权价、到期日、到期量等，可帮助用户了解行权价集中度、交易情绪，从而预判即期市场走势。</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:15.75pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">波动率锥功能展示不同期限下波动率值的分布情况，通过选择多个分位值进行比较，判断某日波动率所处位置，从而辅助判断是否存在做多或做空波动率的机会。该功能提供了三种波动率的分析，分别是日频波动率、高频波动率和<span>ATM</span>隐含波动率。</span></p>
+<p style="text-align: center; font-size: 12pt; font-family: 宋体; margin: 0cm 0cm 0.0001pt; line-height: 22.5pt; background: white;"><span style="font-size:10.5pt;font-family:'Arial','sans-serif'"><img width="553" height="382" id="图片 5" src="/ewebeditor/uploadfile/20210922155033746009.png" alt="外汇期权" align="center"></span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;line-height:22.5pt;background:white"><b><span style="font-size:
+10.5pt;font-family:'微软雅黑','sans-serif';color:#3270BB;background:#EAF2FB">获取渠道</span></b></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:28.0pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">CFETS</span><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">即时通讯工具（<span>iDeal</span>）</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:28.0pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">交易终端</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:
+inter-ideograph;text-indent:21.0pt;line-height:28.0pt;background:white"><span style="font-size:10.5pt;font-family:'微软雅黑','sans-serif'">文件下载系统（<span>iFTP</span>）</span></p>
+<p style="margin-right:0cm;margin-left:0cm;font-size:12.0pt;font-family:宋体;margin:0cm;margin-bottom:.0001pt;text-align:justify;text-justify:inter-ideograph;font-size:10.5pt;font-family:等线"><span>&nbsp;</span></p>
+                                                                    </div>
+                                                                </div> 
+                                                            </div>
+                                                        </div>
+                                                        <div class="san-tabs-panel" data-show="toggle">
+                                                            <div class="san-grid">
+                                                                <div class="san-grid-r">
+                                                                </div>	
+                                                                
+                                                                <div class="san-grid-m">
+                                                                    <div data-source="webeditor">
+                                                                        <p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 37% no-repeat;padding-left: 20px;width: 88px;"><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">基准曲线</span></font></span></b><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span></b></p>
+<div style="padding-left: 10px;">
+<p class="MsoNormal"><b style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangtou.png) 0 102% no-repeat;background-color: #eaf2fb;padding-left: 7px;padding-right: 7px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:#3270bb;font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">债券收益率曲线</span></font></span></b><b><span style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangwei.png) 0 0 no-repeat;"><o:p></o:p>&nbsp;&nbsp;</span></b></p>
+</div>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;padding-left: 16px;">交易中心对国债、政策性金融债、同业存单等银行间债券的收益率曲线进行计算，为机构中后台估值提供曲线依据。</span></font></span></p>
+<br>
+<p class="MsoNormal" style="background-color: #eaf2fb;text-align: center;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<o:p>
+<span style="font-size: 10.5pt;">
+<img src="/r/cms/chinese/chinamoney/assets/images/xinxichanpin (11).png" border="0" style="padding-left: 150px;"><br>
+</span>
+</o:p>
+</span>
+</p>
+<p class="MsoNormal" style="background-color: rgb(234, 242, 251); text-align: center;">
+<span style="font-family: Microsoft Yahei; font-size: 10.5pt;">详情点击 </span>
+<a href="http://www.chinamoney.com.cn/chinese/bkcurvclosedy/" target="_blank" style="text-decoration:none;font-family: 'Microsoft Yahei',serif;font-size: 14px;">
+http://www.chinamoney.com.cn/chinese/bkcurvclosedy/
+</a>
+</p>
+<br>
+<div style="padding-left: 10px;">
+<p class="MsoNormal"><b style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangtou.png) 0 102% no-repeat;background-color: #eaf2fb;padding-left: 7px;padding-right: 7px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:#3270bb;font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">利率互换曲线</span></font></span></b><b><span style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangwei.png) 0 0 no-repeat;"><o:p></o:p>&nbsp;&nbsp;</span></b> </p>
+</div>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;padding-left: 16px;">分为利率互换定盘/收盘曲线和利率互换行情曲线，包括Shibor3M、FR007、FDR001、FDR007、Shiobor O/N、LPR1Y（季付）、LPR5Y（季付）曲线。</span></font></span></p>
+<br>
+<p class="MsoNormal" style="background-color: #eaf2fb;text-align: center;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<o:p>
+<span style="font-size: 10.5pt;">
+<img src="/r/cms/chinese/chinamoney/assets/images/xinxichanpin (12).png" border="0" style="padding-left: 150px;"><br>
+</span>
+</o:p>
+</span>
+</p>
+<p class="MsoNormal" style="background-color: rgb(234, 242, 251); text-align: center;">
+<span style="font-family: Microsoft Yahei; font-size: 10.5pt;">详情点击 </span>
+<a href="http://www.chinamoney.com.cn/chinese/bkcurvfx/" target="_blank" style="text-decoration:none;font-family: 'Microsoft Yahei',serif;font-size: 14px;">
+http://www.chinamoney.com.cn/chinese/bkcurvfx/
+</a>
+</p>
+<br>
+<div style="padding-left: 10px;">
+<p class="MsoNormal"><b style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangtou.png) 0 102% no-repeat;background-color: #eaf2fb;padding-left: 7px;padding-right: 7px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:#3270bb;font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">外汇掉期曲线</span></font></span></b><b><span style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangwei.png) 0 0 no-repeat;"><o:p></o:p>&nbsp;&nbsp;</span></b> </p>
+</div>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;padding-left: 16px;">外汇掉期曲线是由外汇掉期各期限代表性价格（掉期点）构成的行情曲线。选用了外汇交易系统行情和货币经纪报价为数据样本，利用报</span></font></span></p>
+<p class="MsoNormal"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;padding-left: 16px;">价数据过滤异常价格，可作为机构中后台外汇掉期等产品定价参考基准。</span></font></span></p>
+<br>
+<p class="MsoNormal" style="background-color: #eaf2fb;text-align: center;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<o:p>
+<span style="font-size: 10.5pt;">
+<img src="/r/cms/chinese/chinamoney/assets/images/xinxichanpin (13).png" border="0" style="padding-left: 150px;"><br>
+</span>
+</o:p>
+</span>
+</p>
+<p class="MsoNormal" style="background-color: rgb(234, 242, 251); text-align: center;">
+<span style="font-family: Microsoft Yahei; font-size: 10.5pt;">详情点击 </span>
+<a href="http://www.chinamoney.com.cn/chinese/bkcurvfsw/" target="_blank" style="text-decoration:none;font-family: 'Microsoft Yahei',serif;font-size: 14px;">
+http://www.chinamoney.com.cn/chinese/bkcurvfsw/
+</a>
+</p>
+<br>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 37% no-repeat;padding-left: 20px;width: 88px;"><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">估值服务</span></font></span></b><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span></b></p>
+<div style="padding-left: 10px;">
+<p class="MsoNormal"><b style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangtou.png) 0 102% no-repeat;background-color: #eaf2fb;padding-left: 7px;padding-right: 7px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:#3270bb;font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">交易中心为银行间市场外汇、债券及衍生品提供准确及时的估值服务</span></font></span></b><b><span style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangwei.png) 0 0 no-repeat;"><o:p></o:p>&nbsp;&nbsp;</span></b></p>
+</div>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+估值日期
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+债券种类
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+信用评级
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+债券名称
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+债券代码
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+估值全价
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+估值净价
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 24px;">
+估值全价折人民币
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 24px;">
+估值净价折人民币
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; ">
+估值收益率(%)
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+息票类型
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 52px;">
+估值修正久期
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+估值凸性
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 52px;">
+估值基点价值
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+估值利差久期
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 52px;">
+估值利差凸性
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 52px;">
+估值利率久期
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 52px;">
+估值利率凸性
+</span>
+</font>
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px;">
+币种
+</span>
+</font>
+</span>
+</p>
+<div style="padding-left: 10px;">
+<p class="MsoNormal"><b style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangtou.png) 0 102% no-repeat;background-color: #eaf2fb;padding-left: 7px;padding-right: 7px;"><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:#3270bb;font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;">估值服务覆盖品种</span></font></span></b><b><span style="background: url(/r/cms/chinese/chinamoney/assets/images/kuangwei.png) 0 0 no-repeat;"><o:p></o:p>&nbsp;&nbsp;</span></b></p>
+</div>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+现券买卖市场 ( 国债、政策性金融债、短期融资券、中期票据、企业债、超短期融资券、同业存单、地方政府债等 )
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+利率互换市场
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 80px;">
+外汇掉期市场
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 37% no-repeat;padding-left: 20px;width: 88px;"><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">产品用途</span></font></span></b><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span></b></p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 230px;">
+金融资产定价
+</span>
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 140px;">
+资产内部转移定价基准参考
+</span>
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 10px;">
+市场风险计量
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 59px;">
+对全市场债券进行估值
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO2.png) 0 37% no-repeat;padding-left: 20px;width: 88px;"><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><font face="Microsoft Yahei"><span style="font-size: 10.5pt;color: white;">获取渠道</span></font></span></b><b><span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-weight:bold;font-size:10.5000pt;mso-font-kerning:1.0000pt;"><o:p></o:p></span></b></p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 272px;">
+CMDS
+</span>
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 271px;">
+iFTP
+</span>
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px;">
+中国货币网
+</span>
+</font>
+</span>
+</p>
+<p class="MsoNormal" style="padding-left: 10px;">
+<span style="mso-spacerun:'yes';font-family:Microsoft Yahei;mso-ascii-font-family:Microsoft Yahei;mso-hansi-font-family:Microsoft Yahei;mso-bidi-font-family:'Microsoft Yahei';color:rgb(0,0,0);font-size:10.5000pt;mso-font-kerning:1.0000pt;">
+<font face="Microsoft Yahei">
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; padding-right: 262px;">
+交易终端</span>
+<span style="font-size: 10.5pt;background: url(/r/cms/chinese/chinamoney/assets/images/judian.png) 0 43% no-repeat;padding-left: 20px; ">授权信息商终端/接口</span></font></span></p>
+<p style="border-width: 0px; margin: 0px; padding: 8px 10px 0px; text-align: left; color: rgb(0, 0, 0); text-transform: none; line-height: 180%; text-indent: 2em; letter-spacing: normal; font-family: Microsoft Yahei; font-size: 10.5pt; font-style: normal; font-weight: 400; word-spacing: 0px; white-space: normal; orphans: 2; widows: 2; background-color: rgb(255, 255, 255); font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial;" class="MsoNormalCxSpFirst">
+<style><span style="font-size: 10.5pt;">
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+p.MsoNormal{
+mso-style-name:正文;
+mso-style-parent:"";
+margin:0pt;
+margin-bottom:.0001pt;
+mso-pagination:none;
+text-align:justify;
+text-justify:inter-ideograph;
+font-family:Microsoft Yahei;
+mso-fareast-font-family:Microsoft Yahei;
+mso-bidi-font-family:'Microsoft Yahei';
+font-size:13.5pt;
+mso-font-kerning:1.0000pt;
+}
+
+span.msoIns{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:underline;
+text-underline:single;
+color:blue;
+}
+
+span.msoDel{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:line-through;
+color:red;
+}
+@page{mso-page-border-surround-header:no;
+	mso-page-border-surround-footer:no;}@page Section0{
+}
+div.Section0{page:Section0;}</span></style></p>
+                                                                    </div>
+                                                                </div> 
+                                                            </div>
+                                                        </div>
+                                                        <div class="san-tabs-panel" data-show="toggle">
+                                                            <div class="san-grid">
+                                                                <div class="san-grid-r">
+                                                                </div>	
+                                                                
+                                                                <div class="san-grid-m">
+                                                                    <div data-source="webeditor">
+                                                                        <p class="MsoNormal" style="background: url(/r/cms/chinese/chinamoney/assets/images/LOGO3.png) 0 37% no-repeat;padding-left: 20px;width: 210px;"></p>
+<img src="/ewebeditor/uploadfile/20200929094047721.jpg" border="0">
+<p style="border-width: 0px; margin: 0px; padding: 8px 10px 0px; text-align: left; color: rgb(0, 0, 0); text-transform: none; line-height: 180%; text-indent: 2em; letter-spacing: normal; font-family: Microsoft Yahei; font-size: 10.5pt; font-style: normal; font-weight: 400; word-spacing: 0px; white-space: normal; orphans: 2; widows: 2; background-color: rgb(255, 255, 255); font-variant-ligatures: normal; font-variant-caps: normal; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial;" class="MsoNormalCxSpFirst">
+<style><span style="font-size: 10.5pt;">
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+@font-face{
+font-family:"Microsoft Yahei";
+}
+
+p.MsoNormal{
+mso-style-name:正文;
+mso-style-parent:"";
+margin:0pt;
+margin-bottom:.0001pt;
+mso-pagination:none;
+text-align:justify;
+text-justify:inter-ideograph;
+font-family:Microsoft Yahei;
+mso-fareast-font-family:Microsoft Yahei;
+mso-bidi-font-family:'Microsoft Yahei';
+font-size:13.5pt;
+mso-font-kerning:1.0000pt;
+}
+
+span.msoIns{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:underline;
+text-underline:single;
+color:blue;
+}
+
+span.msoDel{
+mso-style-type:export-only;
+mso-style-name:"";
+text-decoration:line-through;
+color:red;
+}
+@page{mso-page-border-surround-header:no;
+	mso-page-border-surround-footer:no;}@page Section0{
+}
+div.Section0{page:Section0;}</span></style></p>
+                                                                    </div>
+                                                                </div> 
+                                                            </div>
+                                                        </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                </div>
+        </div>
+	</div>
+
+    <div id="main-page-foot" data-for="block" data-role="footer" data-url="/chinese/mainfoot/"></div>
+    <div id="fixed-navi" data-for="block" data-url="/chinese/fixednavi/"></div>
+</div>
+</body>
+<script>
+$(function(){
+    var initReady = setInterval(function(){
+        if ('san' in window) {
+            clearInterval(initReady);
+            doJumptoByDatafor();
+        }
+    }, 10);
+
+    var readyInterval = setInterval(function(){
+        if(DOTABS){
+            clearInterval(readyInterval);
+            //指定默认tab页，如/chinese/home/index.html?tab=2
+            var tab = getQueryStr('tab');
+            if(!tab){
+                tab = 1;
+            }
+
+            $('#tabs-member-fx').sanTabs({
+                layout: 'table',
+                defaultItem: tab,
+                equalWidth: false,
+                inject:true,
+                type:"mix",
+                mediaListening: true,
+                onDone:function($li){
+                    var index=$li.attr('data-tabs-index');
+                    $(this).find('div[data-url]:not(.san-datasheet)').each(function(){
+                        $(this).sanJumpto();
+                        // $(this).parent().siblings('div[data-show="toggle"]').children('div[data-url]').children().remove();
+                        // $(this).parent().siblings('div[data-show="toggle"]').children('div[data-url]').siblings().remove();
+                    })
+                }
+            });
+        }
+    },10);
+})
+</script>
+</html>

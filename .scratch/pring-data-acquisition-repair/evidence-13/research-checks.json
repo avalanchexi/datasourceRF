@@ -1,0 +1,2567 @@
+{
+  "meaning": "Human-review research aids, not candidate acceptance; source records were independently byte-verified but these arithmetic checks also depend on their existing parser field extraction. Hand expectations below are stated independently for future tests.",
+  "shibor": [
+    {
+      "name": "official_shibor_vs_legacy_overnight",
+      "expected_official": "1.3390",
+      "legacy_value": 1.339,
+      "matches": true,
+      "official_raw": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "legacy_claim_id": "a20aa96227016742a7b30595a9450b5c3bebe3251ff26bd64b37f176e782ab42",
+      "historical_release_time_proved": false
+    },
+    {
+      "name": "official_shibor_vs_legacy_1w",
+      "expected_official": "1.3870",
+      "legacy_value": 1.387,
+      "matches": true,
+      "official_raw": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "legacy_claim_id": "b49e1d97acb605a9163e6ccab022ebad701cbb7027bb1e91a9750e240ef71a2c",
+      "historical_release_time_proved": false
+    },
+    {
+      "name": "official_shibor_vs_legacy_3m",
+      "expected_official": "1.4300",
+      "legacy_value": 1.43,
+      "matches": true,
+      "official_raw": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "legacy_claim_id": "45781ae4d8864a02f792c8417bd40918edacbad0da1df8a9fefadffb956038df",
+      "historical_release_time_proved": false
+    }
+  ],
+  "warrants": [
+    {
+      "symbol": "CU",
+      "official_tables": [
+        {
+          "name": "铜",
+          "unit": "吨",
+          "totals": [
+            {
+              "labels": [
+                "总计"
+              ],
+              "value": "31462",
+              "change": "-751"
+            }
+          ]
+        }
+      ],
+      "legacy_rows": 42,
+      "comparisons": [
+        {
+          "product": "铜",
+          "labels": [
+            "上海",
+            "国储天威"
+          ],
+          "official_value": "225",
+          "official_unit": "吨",
+          "legacy_value": 225.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "27e763a1e36c75bcd3c61f1b35720ab64f4642b8fbbb92e7bcac164e4a3d35d9"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "国储外高桥"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "aec8418f77d722a85dbb4f123ec58ece360cae8ec004004edd6e9d317decbe9d"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中储吴淞"
+          ],
+          "official_value": "6832",
+          "official_unit": "吨",
+          "legacy_value": 6832.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "8c38a47b4d487d05b1cba113d9d33ffa538a28cffb345a8e8ab3ec1c1ee82b02"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "上海裕强"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "905d27b850694506741c66798fc5741a36bbee1da1d79a9de56ae2f226367019"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "裕强闵行"
+          ],
+          "official_value": "50",
+          "official_unit": "吨",
+          "legacy_value": 50.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "a367db1845c73071344a478558501e0071c481c81ae499a0a91725c425deeef3"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中储大场"
+          ],
+          "official_value": "5487",
+          "official_unit": "吨",
+          "legacy_value": 5487.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "a506df9f680c6004fdd3d600857e90e7a471d639a5dbaf819a769fc105c48a24"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "上港云仓安达"
+          ],
+          "official_value": "3823",
+          "official_unit": "吨",
+          "legacy_value": 3823.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "960367a7d0fdd0001334e96997466544b5d018b36438d87cd49e0e84a18cf27b"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "上港云仓闵行"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "29161dde002ce393bee5c7ad4d4685bc4dc1b9a66f5999aff06b3b34918541e8"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中储沪闵"
+          ],
+          "official_value": "25",
+          "official_unit": "吨",
+          "legacy_value": 25.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "8784fb83393be7dcc0e0f37c00c1b7e975a64a1e40194228bda9a686bc8e3f53"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "四川中远海运宝山"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "231ed42fa92ccfc5ee90d6f0be58df034853075b8df8f5818f8f9426cbeb549b"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "外运华东张华浜"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "f98f2f206a041c7cacc0d98afeec1c4b8ccd6e4147a27bc327f2e8469b3eb443"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中储临港(保税)"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "8c2bb6e47e3bcacf7f11b3cb570f0fdf67f33634632d964ee963bae4df7ddb92"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中储临港保税"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "cf1ef22779d3e79d6e8bc3f2741a2aba2059fd46e39825619af6e373102bbf92"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "世天威外高桥"
+          ],
+          "official_value": "599",
+          "official_unit": "吨",
+          "legacy_value": 599.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d4ec8931a9e21cf4385cfcf4fb773f0d12952d0cd7d7c44107ec77ba24795a24"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "世天威临港"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "b33ed9704b08ecac65be02cff84b9ef1db1c8821b668e1dcd5debb264ef03e13"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "广东",
+            "中储晟世东江"
+          ],
+          "official_value": "372",
+          "official_unit": "吨",
+          "legacy_value": 372.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "4bc62a24cbc5fd77498ff02fbd319bb39b30b6432dc307415f75acf0abf7efc5"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "五矿东莞"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "003d8b01c7ecc7694e2cd938641df5b25bb1fa230ee4969b398526630d63faf3"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中铝中州佛山"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "06c524bba8bd2eaa9ddb15e2735a285d544b513382bbd90490c5c1745900ae49"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "八三O黄埔"
+          ],
+          "official_value": "954",
+          "official_unit": "吨",
+          "legacy_value": 954.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "33f070869820260982fcf2944b290ba484198b8e142fcaee48b6bdf89fe012e4"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "八三O增城"
+          ],
+          "official_value": "199",
+          "official_unit": "吨",
+          "legacy_value": 199.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "a450e08b4dfb43373ae8b61507e49883565daaee2dad977dfbd86d9e75510fd3"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "广东炬申"
+          ],
+          "official_value": "324",
+          "official_unit": "吨",
+          "legacy_value": 324.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "4bd9c3fd39dc8dbbd48e5a4e8b66e5d8db1070b8ee93c65a53cda2f81a8cb044"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "江苏",
+            "中储无锡"
+          ],
+          "official_value": "2875",
+          "official_unit": "吨",
+          "legacy_value": 2875.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "90d80f259fde6f2fdd5a9ed2d416a6c44a0098ddfb4ce292dda3e78b6a21325c"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "中铝中部陆港无锡"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "78b3c463b6ee46ea554dcee7173120a04919451767d67a379106bcaa94455b09"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "无锡国联"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c5f9b7f4144af55184d96ec3f9771ae050da8abccfbdcf6bff3596a987ab5ca6"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "上港云仓常州"
+          ],
+          "official_value": "1825",
+          "official_unit": "吨",
+          "legacy_value": 1825.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "30b6a976c3efb64f32f32b6b001e34af24787b376038459f5615ea86d8cafbf2"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "添马行物流"
+          ],
+          "official_value": "650",
+          "official_unit": "吨",
+          "legacy_value": 650.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "460f3f71277cc378558eeff13aa8d7c3447f2e5724fcce34860e612e2fd9587b"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "常州融达"
+          ],
+          "official_value": "6796",
+          "official_unit": "吨",
+          "legacy_value": 6796.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "7619854e03b13feb61bc820cba0332b7e0864ce7c4d4d9c0ffe7c175e5017ec3"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "五矿无锡"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c477325a966e0f6e4e223a7bddf3507230f2c51014d92d518924f2fbd528f612"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "炬申无锡"
+          ],
+          "official_value": "401",
+          "official_unit": "吨",
+          "legacy_value": 401.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "7e48fa82ea9d77626ca0e195d991706c49c8a24dea734cf639a5f5d56189c565"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "浙江",
+            "国储837处"
+          ],
+          "official_value": "25",
+          "official_unit": "吨",
+          "legacy_value": 25.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "bd41fce28ba8d8da5fdc96c99775a5fca43a8456d3f26e2e8cd8987018fe07ff"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "宁波九龙仓"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "571f3ea17986c4c8288e7d7e6c308b11a17e99d421ac82c59d3e700ee0036a9c"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "浙江南湖"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c5d81c867484a6cbfadc6b3c1516370977e009cf63d97155352681135311727d"
+        },
+        {
+          "product": "铜",
+          "labels": [
+            "江西",
+            "江西国储"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "28c374a3a45ce5b6d724bf79a601cd97c4a05177b7c7385708e3037daeb03fa9"
+        }
+      ],
+      "matched": 33,
+      "mismatched": 0,
+      "scope": "Exact warehouse labels only; no guessed alias or aggregated-unit conversion; not certification."
+    },
+    {
+      "symbol": "RB",
+      "official_tables": [
+        {
+          "name": "螺纹钢(仓库)",
+          "unit": "吨",
+          "totals": [
+            {
+              "labels": [
+                "总计"
+              ],
+              "value": "43940",
+              "change": "0"
+            }
+          ]
+        },
+        {
+          "name": "螺纹钢(厂库)",
+          "unit": "吨",
+          "totals": []
+        }
+      ],
+      "legacy_rows": 25,
+      "comparisons": [
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "上海",
+            "上港物流共青"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "02a6c11c174b0f7c3b66bb668340ac5995df748d5dc13d9721ed4e8dfb81d6e5"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "广东",
+            "五矿东莞"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "8ac2489632ea193357ce485d46decc8dc92c6c1abeef3bf33808bd271b81ab93"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "广物物流"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "dc5ca2b02d8dae023cfd30272d9b91b4c94b742f4845a0d7b0574462fc5e1615"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "广州港物流"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "cf135960ca21a81faec93d04a029560041f5a650e8f18a1532e762d8e556cfeb"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "江苏",
+            "中储无锡"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "55c023105e5d519a61208de09bf59257c3566a962672b3ab3f551be43317edff"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "惠龙港"
+          ],
+          "official_value": "26191",
+          "official_unit": "吨",
+          "legacy_value": 26191.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "89aaff7592124f87b27a82eff4af1cd03a391a4b7f99e06ca7e4938d7a93f09c"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "中储股份南京"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "3060747d47078465f7394a34b700d8ba42ca2d8810367ed69f6b9600b81c73fe"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "中储南京"
+          ],
+          "official_value": "17749",
+          "official_unit": "吨",
+          "legacy_value": 17749.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "8638cb685f3c224928d873f0269f1317182efdda24138b39ed4c450964d86614"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "玖隆物流"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "aac4c990cf06a31257bfc3c8b247cf65b9571a7b7a88983bd73398a39f025a32"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "浙江",
+            "中拓湖州"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "e9b976911812760379936297db0ed757b93c127bd5b595f36a3ed42e89829655"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "天津",
+            "中储股份陆通"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "b95562a7d525e2f2305203f93d03a4d95351d9de1ccdef3d1c883603395ef63a"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "中储塘沽"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "cc53b505ef6ed6443ba3871dd72d0c97e3b74aa6bb939dc6e5425aced653f344"
+        },
+        {
+          "product": "螺纹钢(仓库)",
+          "labels": [
+            "中储陆通"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "5ca62c951cbfb5121f9cf9906484517eaa8034752ce9f45b607c7268f9c939d2"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "厂库提货地",
+            "物产中大金属"
+          ],
+          "official_value": "15000",
+          "official_unit": "吨",
+          "legacy_value": 15000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d982eeb62e057486e3a81621b751de6ba4b83e19684bdd0df6a52909d64ab09a"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "鞍钢股份"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "fa0a10efee7688de63ee7ceb2809180dd30520face5a0e49033e24bf1d94e998"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "沙钢集团"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "1311c6889e4c005dc972b1b1f37bdfaef1d3e4c449a301d1118bca4dc09e5801"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "镔钢集团"
+          ],
+          "official_value": "18000",
+          "official_unit": "吨",
+          "legacy_value": 18000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "af17383fa6a41436ec6838878d71f15c6b59d07c92697c7ff1247e84db9de0f1"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "河钢集团承钢"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "a2ce7191bcbb388fc818a1a5e7986f27b877f842b328f7bda3034a1a05d4dbd1"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "河钢集团邯钢"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "0851168b68dd2c6ae4419ec02dbba046049c935ba0e50e70ed3db20e3cc66be7"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "南钢股份"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c4aae91f22dbfb6abb0a4f5ec986a756f6911c6e1abed9959aa5dad5b2f087e5"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "杭钢国贸"
+          ],
+          "official_value": "21000",
+          "official_unit": "吨",
+          "legacy_value": 21000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d3e6f2d6b6f6034fafcdc294298babd5937a3231495c553e970634849e115f7c"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "欧冶云商"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "96c91eeb048c2ec9b0ec7c9fa7a4546dd4b387420848691e32e7f6ad8d0c4bda"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "柳钢股份"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "45bf89742b6af7fa2fa286cff1e6b833de9e0e848646813bd59463f08ed733af"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "热联集团"
+          ],
+          "official_value": "2400",
+          "official_unit": "吨",
+          "legacy_value": 2400.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d397d1451d899edbac01ddbdc98c7477e86f3affa0fdf0e44e4774310cd5dc16"
+        },
+        {
+          "product": "螺纹钢(厂库)",
+          "labels": [
+            "永安资本(钢材)"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "ba7b79198513ce2814994839ae756e738d4d4dbbef361c56e4a62ef88ec0c4b6"
+        }
+      ],
+      "matched": 25,
+      "mismatched": 0,
+      "scope": "Exact warehouse labels only; no guessed alias or aggregated-unit conversion; not certification."
+    },
+    {
+      "symbol": "RU",
+      "official_tables": [
+        {
+          "name": "天然橡胶",
+          "unit": "吨",
+          "totals": [
+            {
+              "labels": [
+                "总计"
+              ],
+              "value": "144500",
+              "change": "-40"
+            }
+          ]
+        }
+      ],
+      "legacy_rows": 29,
+      "comparisons": [
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "上海",
+            "中储吴淞"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "7c6fc1323efae6196236378efb3af13ee1f4fe1af0435b0614438a49d74c1085"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中储大场"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "667039a71066ca1357ec079306f6b0a5af74cd1a417e34159e2e06fc686592bc"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中储临港"
+          ],
+          "official_value": "3350",
+          "official_unit": "吨",
+          "legacy_value": 3350.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "45cf428125961c94e00d101610c8ccdf829ee52254d31a65950587aabe5bbe5a"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "上海远盛"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "a48eb5cba1c859b4fd6a18efc3d0962b12593f9ec1459807725a0e60e6fcac53"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "外运华东海港"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "063f4b385855e5899e677637480c9fb2ff4690c9596a0acead82e7188855c401"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "外运华东解放岛"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "fc42958ea052b31ac465ca6c3c90f6afbed42c66a564cc9304dfd3c44d7d72f6"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "外运华东张华浜"
+          ],
+          "official_value": "1800",
+          "official_unit": "吨",
+          "legacy_value": 1800.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "dae96565a8040ce52a45b4a8f663131b647b80a66dfbf1cd3bb0f8aef50b403f"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "上港物流浦东"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "b6f69f077bf9c6ab0b535cac9d3c1c5c6c31915e735c73b23a55272b8f1dbdb5"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中农吴泾"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "b2b67186d8bb909271bf8b95948123e752f48ba4e019bb8a92b55ed73d8545da"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "山东",
+            "奥润特"
+          ],
+          "official_value": "22260",
+          "official_unit": "吨",
+          "legacy_value": 22260.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "9e2b5767918d4143dc0aded16b472b04964ab6407e7e24d011051998c86b9b2c"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "青岛832"
+          ],
+          "official_value": "23230",
+          "official_unit": "吨",
+          "legacy_value": 23230.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "18038aedc07529ce7813a60c42d5e6badfc3f2ecd99b160e8e402143e243f232"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中远海运高新"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "93908ae71b2a79e3611b4049b3bf013c5f9b84d4a40e0700dbd789369b952285"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "山港青岛国际物流"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "303bf6018b3313c6a8b5afdc1d267bfe1f8fcefb906e3e3b1abf86c992188958"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中远海运黄岛"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d79bedc22f06791cca35d9a5392c75db9f2e8fddfffff0457ab977b483825685"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "青岛中远海运黄岛"
+          ],
+          "official_value": "1000",
+          "official_unit": "吨",
+          "legacy_value": 1000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "78cc5fdaaf0177f8ed922c3b5da2d0b17457f28bb12c03065016ec7b9c031aa4"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "外运华中"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "20b017fbc68b4adb423387fd650784eaac0430a2527fb56ebb96706628e07277"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "外运华中黄岛"
+          ],
+          "official_value": "2100",
+          "official_unit": "吨",
+          "legacy_value": 2100.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d7a076af332f59faf132a6751f19c7eb8085c0e25ea640f701236107e59f589e"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "外运华中胶州"
+          ],
+          "official_value": "8840",
+          "official_unit": "吨",
+          "legacy_value": 8840.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "ad490f451cf5cc6ff2c8d74dfba61985aa0c75f983f3f8ca7ed04b738cbce858"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "山港青港物流胶州"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "f6ae5f81763b472236b71229bbb6e9a5fa99349d5a5280e5ad16f6befc41ec04"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "青岛宏桥"
+          ],
+          "official_value": "12590",
+          "official_unit": "吨",
+          "legacy_value": 12590.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "508fb896c13734829c6f0c778a1b1c2abe15fcd7d159863733a62286cff6cfda"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中储青岛"
+          ],
+          "official_value": "4900",
+          "official_unit": "吨",
+          "legacy_value": 4900.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "fcffd9c20b11fc1351d69f8208928592e463f1101d721442838d6d4121841f79"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "青岛中远海运高新"
+          ],
+          "official_value": "7550",
+          "official_unit": "吨",
+          "legacy_value": 7550.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "0a0dac00140ce521f23f6e84b9195dc6205f3333d8120c52fc94b0a0b455ad88"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "山港青港物流"
+          ],
+          "official_value": "29440",
+          "official_unit": "吨",
+          "legacy_value": 29440.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "3701c67bf83d0cad8238746f4653e4f76cdb25d52954e04859eb2664c74cc375"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "云南",
+            "云南储运"
+          ],
+          "official_value": "21720",
+          "official_unit": "吨",
+          "legacy_value": 21720.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c91dd846c3957929bd73e5c876f56a84f8014d984e9b716f4d983351ff9f5224"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "云南530"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "387c4ef50d291c8be0259b36cdbc893149e7dd5ccd5b57bfc4cf8c81bbddc666"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "海南",
+            "港航物流"
+          ],
+          "official_value": "4720",
+          "official_unit": "吨",
+          "legacy_value": 4720.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "deeba6f77ffd2d74603b364ff1d0003bcc64a540c749b1575e0a91c8b3410d0a"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "天津",
+            "中储股份陆通"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c7ada6e2f964eea099bd68bf7c36cfcf6666a437ef6c2675d09912222603bed5"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中储陆通"
+          ],
+          "official_value": "1000",
+          "official_unit": "吨",
+          "legacy_value": 1000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "af1b1580249588f8c59b945f55a53bb011b2eab6ef255b0a38826ddd1f490fe9"
+        },
+        {
+          "product": "天然橡胶",
+          "labels": [
+            "中储陆港"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "53e29bcb01d86097041b9a97d7e889d5c7fde9c3bb84649a3ad76f18bc0fec4d"
+        }
+      ],
+      "matched": 29,
+      "mismatched": 0,
+      "scope": "Exact warehouse labels only; no guessed alias or aggregated-unit conversion; not certification."
+    },
+    {
+      "symbol": "SP",
+      "official_tables": [
+        {
+          "name": "纸浆(仓库)",
+          "unit": "吨",
+          "totals": [
+            {
+              "labels": [
+                "总计"
+              ],
+              "value": "385875",
+              "change": "2901"
+            }
+          ]
+        },
+        {
+          "name": "纸浆(厂库)",
+          "unit": "吨",
+          "totals": [
+            {
+              "labels": [
+                "总计"
+              ],
+              "value": "20000",
+              "change": "0"
+            }
+          ]
+        }
+      ],
+      "legacy_rows": 29,
+      "comparisons": [
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "上海",
+            "中储吴淞"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "7bd2e3c831b5ecbfe9311fda7046c099a1e3e71f93821174ae7b64e85603826c"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "中储临港"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "60e4eadc16e80da7a23dbaff4625830260fc2af760d0ddee4f503545cd2bba05"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "上海远盛"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c3444c97c1f5e30501c9c9b416b5cc421b5f14abbb3c675ba36f9400e43e93e2"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "象屿速传上海"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "e0c03da756f124f518423efd0be1bf7152de0b2e807f8f9586cb5105029ee13f"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "上港保税罗泾"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "ea08aae2b2ff31d1373806749cd0cb9d0fb79658c210129668f3efc30412aa9c"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "广东",
+            "中储广州"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "ed60cab38527d48774f8eb3168b8eebcc67573e43da7d904e625871a497e98b4"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "建发仓储东莞"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "930b0a164c0da0965a33ca450d24a3fc320813f122ec2185d9a949bcaecf7878"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "中储晟世南沙"
+          ],
+          "official_value": "1041",
+          "official_unit": "吨",
+          "legacy_value": 1041.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "3e6774c091ae709b5bf52ee0b882c7548bd28b6444bd2f23ce126fa8f9705945"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "江苏",
+            "常熟威特隆"
+          ],
+          "official_value": "29018",
+          "official_unit": "吨",
+          "legacy_value": 29018.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "5238e1b825838b566a7d278239771306e6a4185dd8fa2ff808482cc91678261e"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "浙江",
+            "建发仓储平湖"
+          ],
+          "official_value": "6487",
+          "official_unit": "吨",
+          "legacy_value": 6487.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "b82ff8135876f09003c6482d08793a84e99d08354850d3d1102926729b4a9634"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "山东",
+            "奥润特"
+          ],
+          "official_value": "28505",
+          "official_unit": "吨",
+          "legacy_value": 28505.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "5cba4701c39f0cc10c5f3358c8388e2c396ca52f5c0d01228e7c59ed448e5cc0"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "山港青岛国际物流"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "764a8813b0c1ea385e4caea4f972ebb998d427c830cf6a0d24cdd58a177bf266"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "中远海运黄岛"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "387efd148608a2e9d1a3ab8ae96cb395fcbb0a70c8654f626d2e61a9ef3675e7"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "青岛中远海运黄岛"
+          ],
+          "official_value": "23159",
+          "official_unit": "吨",
+          "legacy_value": 23159.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "ed07681721845bfba782fa15584cd1c3c1479284e82ea5df0735f51606e21ef8"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "外运华中胶州"
+          ],
+          "official_value": "79099",
+          "official_unit": "吨",
+          "legacy_value": 79099.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "677311cffb83d5fe40d11666652a4cd56f6a09042ecae588a47a7575296e2eef"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "山港青港物流胶州"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "1bb988323b1a2b32a639d47f3cdec0fbb8d49f5d35e6ce94e5e5a92776f4a222"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "青岛宏桥"
+          ],
+          "official_value": "27252",
+          "official_unit": "吨",
+          "legacy_value": 27252.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "4ea18b4d710dd02c537aecd2f59225213a2a6bf6d36f65dad617f06b529802aa"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "青岛青银"
+          ],
+          "official_value": "5269",
+          "official_unit": "吨",
+          "legacy_value": 5269.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "c3b20bcd15c66c1807574f85c924f52bc4a03b95b2ce6a356f92b70ab5885ae4"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "建发仓储黄岛"
+          ],
+          "official_value": "68708",
+          "official_unit": "吨",
+          "legacy_value": 68708.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "8edae8fdeae1e00b74a346ced982041a68b4062ca84abef1b23360dc28a65f17"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "象屿速传青岛"
+          ],
+          "official_value": "1980",
+          "official_unit": "吨",
+          "legacy_value": 1980.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "4473a114426082f9c8d2c1b185240ec3e017777cf4ece4667d10aecadb6edbcb"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "山港青港物流"
+          ],
+          "official_value": "115357",
+          "official_unit": "吨",
+          "legacy_value": 115357.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "d8011fdc20f3be7d4d228e6892e3714211f82ade2c5026b1d3faa1a9d0a3970d"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "天津",
+            "中储股份陆通"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "27940f9290e06897080d449c1db0b7bf374d1dc3a8ea16c70d619bdce5dacd02"
+        },
+        {
+          "product": "纸浆(仓库)",
+          "labels": [
+            "中储陆通"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "bb1abbf9bc36cc79d94f5fa168cc81e2e305f353747b85071507309f09e1b2b9"
+        },
+        {
+          "product": "纸浆(厂库)",
+          "labels": [
+            "江苏",
+            "金翌贸易"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "1d21157c520b24e4a5a3e6e45349ec1501f7d532c8a614fa5f3161c0df010924"
+        },
+        {
+          "product": "纸浆(厂库)",
+          "labels": [
+            "山东",
+            "国贸纸业"
+          ],
+          "official_value": "5000",
+          "official_unit": "吨",
+          "legacy_value": 5000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "9aabc561a8584e78aeab35fc30d0bf7aa44b639f639f2f76535d3ada7dbfe465"
+        },
+        {
+          "product": "纸浆(厂库)",
+          "labels": [
+            "建发浆纸集团"
+          ],
+          "official_value": "10000",
+          "official_unit": "吨",
+          "legacy_value": 10000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "ae64581bd23a408fb6f66cdbd71281a5b4512704ab2c72d70879a7f0b7be4d93"
+        },
+        {
+          "product": "纸浆(厂库)",
+          "labels": [
+            "永安资本"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "daf7c1b12c447dfac5d733744aba8d194e23e9e601bce262ccd4c79a12e0aa7d"
+        },
+        {
+          "product": "纸浆(厂库)",
+          "labels": [
+            "景诚实业"
+          ],
+          "official_value": "0",
+          "official_unit": "吨",
+          "legacy_value": 0.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "b8694c3133d391967a04bf1b7e1832e96c4fd92bafe1d1290eb65f9e47656ce8"
+        },
+        {
+          "product": "纸浆(厂库)",
+          "labels": [
+            "物产中大化工"
+          ],
+          "official_value": "5000",
+          "official_unit": "吨",
+          "legacy_value": 5000.0,
+          "legacy_unit": "tonne",
+          "matches_value": true,
+          "claim_id": "df42f228287c6a7f142e3a8297df011dc4c598582c0356218c752e9ad71016f1"
+        }
+      ],
+      "matched": 29,
+      "mismatched": 0,
+      "scope": "Exact warehouse labels only; no guessed alias or aggregated-unit conversion; not certification."
+    },
+    {
+      "symbol": "SC",
+      "official_tables": [
+        {
+          "name": "中质含硫原油",
+          "unit": "桶",
+          "totals": [
+            {
+              "labels": [
+                "总计"
+              ],
+              "value": "2961000",
+              "change": "0"
+            }
+          ]
+        }
+      ],
+      "legacy_rows": 18,
+      "comparisons": [
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "浙江",
+            "中国石化册子岛"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "101a769f8041b64a7b05a362434c04ac324994d174930963e13c56a42832a433"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "中化兴中"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "f71f2679f5f7d545102ef75e42adaf0afe3eeb5313a7e0c261aa904c22112478"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "大鼎石油"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "51d41b4d528e0cf7229421020790c3a181e418ea280d08cc2257847d95037bbb"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "山东",
+            "中国石化日照"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "44964f0d179145011fd143e33b03fcfa2c6301049d4631769fba423503708fe0"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "山港青岛油品"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "6b5bd336ba11be70feaf1fa2a9c473ed3b7de75ee6b456ad84409d659be4b7e1"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "弘润油储"
+          ],
+          "official_value": "1027000",
+          "official_unit": "桶",
+          "legacy_value": 1027000.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "e5e4d2ed91973a12292f251b474406454db6bdbcb56a31b39789284161306b44"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "山港董家口油品"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "6340783ccebc17966ae740d1c2cd180043f4dc33d91f9ec7257ab8129c20b54b"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "山港日照油品"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "ecb53e4753bb4ea3fd0253f4994a301d9b08e9e116c0c3ac5bdd5bf3258e4b4c"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "山港华港石油"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "cbff07ea13d9406651399c4df3c713af2d5f3323b3ea58f89b22e19783bb5057"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "广东",
+            "中油湛江"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "51ed4235eb8e722607e41aa3361923d3684e487e9e66330384ba0981a49c1566"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "中国石化湛江"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "6e6a037b774719d1550cc23f26a6d1c59ddccaa49fe9b368045ab270a1e72483"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "辽宁",
+            "中油大连保税"
+          ],
+          "official_value": "275000",
+          "official_unit": "桶",
+          "legacy_value": 275000.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "f9c66bdbcaab8f833d9508f885a71d0e7e2bb552626cd3b4be44d60f35178be4"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "中油大连国际"
+          ],
+          "official_value": "667000",
+          "official_unit": "桶",
+          "legacy_value": 667000.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "a5cce3f72a3d3c407558ad5eab0638fcba4efcb4a58b5adacb4217fa3c7f78bc"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "北方油品"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "4e69e74b0e6ec16d6de455ff0798b3e8c4744f346c6246751356b4c21e6b2f7c"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "海南",
+            "中国石化海南"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "741e2999758a30cc7ad1caf89b5016170df6afb41ac287d662f8d7660be7d9b4"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "国投洋浦油储"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "8ce1dd7ee63af71ea955e6c74fe2d76b8b37ccd197b89e134d621ba24f3cf165"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "河北",
+            "中国石化曹妃甸"
+          ],
+          "official_value": "0",
+          "official_unit": "桶",
+          "legacy_value": 0.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "299da12eb1e011ef3c6ba1eeeb928109c7829b8431368d911ea12ab1cec56ba7"
+        },
+        {
+          "product": "中质含硫原油",
+          "labels": [
+            "广西",
+            "中油广西国际"
+          ],
+          "official_value": "992000",
+          "official_unit": "桶",
+          "legacy_value": 992000.0,
+          "legacy_unit": "barrel",
+          "matches_value": true,
+          "claim_id": "72c7e6f8746c7df938efd7ad19a24a2ffc5c64a218bd0c69193450d25ee67413"
+        }
+      ],
+      "matched": 18,
+      "mismatched": 0,
+      "scope": "Exact warehouse labels only; no guessed alias or aggregated-unit conversion; not certification."
+    }
+  ],
+  "credit_impulse_from_official_raw_records": {
+    "formula": "100*(current12mSF/current4qGDP - prior12mSF/prior4qGDP)",
+    "monthly_inputs": [
+      {
+        "period": "2024-08",
+        "value": "30300.0",
+        "sources": [
+          {
+            "period": "2024-07",
+            "value": "188700.0",
+            "raw_sha256": "52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b",
+            "release_at": "2024-08-13 17:00:00+08:00"
+          },
+          {
+            "period": "2024-08",
+            "value": "219000.0",
+            "raw_sha256": "7a24c20e66130c21640827fa9706a58b36eb8988a70b7b2309a1f10285d3d1c2",
+            "release_at": "2024-09-13 19:27:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2024-09",
+        "value": "37600.0",
+        "sources": [
+          {
+            "period": "2024-08",
+            "value": "219000.0",
+            "raw_sha256": "7a24c20e66130c21640827fa9706a58b36eb8988a70b7b2309a1f10285d3d1c2",
+            "release_at": "2024-09-13 19:27:00+08:00"
+          },
+          {
+            "period": "2024-09",
+            "value": "256600.0",
+            "raw_sha256": "a0b08ead70f5096c3e33b9ff8c566202402a6c5edf65e00b3be2e2b685637a6e",
+            "release_at": "2024-10-14 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2024-10",
+        "value": "14000.0",
+        "sources": [
+          {
+            "period": "2024-09",
+            "value": "256600.0",
+            "raw_sha256": "a0b08ead70f5096c3e33b9ff8c566202402a6c5edf65e00b3be2e2b685637a6e",
+            "release_at": "2024-10-14 17:00:00+08:00"
+          },
+          {
+            "period": "2024-10",
+            "value": "270600.0",
+            "raw_sha256": "6ad6b1f062b5265472fba83df260cf294a5981679814e0861fc406206dffca70",
+            "release_at": "2024-11-11 16:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2024-11",
+        "value": "23400.0",
+        "sources": [
+          {
+            "period": "2024-10",
+            "value": "270600.0",
+            "raw_sha256": "6ad6b1f062b5265472fba83df260cf294a5981679814e0861fc406206dffca70",
+            "release_at": "2024-11-11 16:30:00+08:00"
+          },
+          {
+            "period": "2024-11",
+            "value": "294000.0",
+            "raw_sha256": "7e1844487f0a3983ec2b1419ed365ed2c345f4ad3c3b7b7886228ad24741b1b2",
+            "release_at": "2024-12-13 19:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2024-12",
+        "value": "28600.0",
+        "sources": [
+          {
+            "period": "2024-11",
+            "value": "294000.0",
+            "raw_sha256": "7e1844487f0a3983ec2b1419ed365ed2c345f4ad3c3b7b7886228ad24741b1b2",
+            "release_at": "2024-12-13 19:00:00+08:00"
+          },
+          {
+            "period": "2024-12",
+            "value": "322600.0",
+            "raw_sha256": "8081e0f66935a2ce9efcfea3504265858c456bbd5acc903e364c267ce9e964b5",
+            "release_at": "2025-01-14 15:07:30+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-01",
+        "value": "70600.0",
+        "sources": [
+          {
+            "period": "2025-01",
+            "value": "70600.0",
+            "raw_sha256": "6329aac34d9a1c717acac7e68bb32e0a2344b3e479aa37276a8cf427c65f23ca",
+            "release_at": "2025-02-14 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-02",
+        "value": "22300.0",
+        "sources": [
+          {
+            "period": "2025-01",
+            "value": "70600.0",
+            "raw_sha256": "6329aac34d9a1c717acac7e68bb32e0a2344b3e479aa37276a8cf427c65f23ca",
+            "release_at": "2025-02-14 17:00:00+08:00"
+          },
+          {
+            "period": "2025-02",
+            "value": "92900.0",
+            "raw_sha256": "c44f44897b31e643dd88ca7f3751d47bdb83ad0e32e0b28943adc84a163479fd",
+            "release_at": "2025-03-14 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-03",
+        "value": "58900.0",
+        "sources": [
+          {
+            "period": "2025-02",
+            "value": "92900.0",
+            "raw_sha256": "c44f44897b31e643dd88ca7f3751d47bdb83ad0e32e0b28943adc84a163479fd",
+            "release_at": "2025-03-14 17:00:00+08:00"
+          },
+          {
+            "period": "2025-03",
+            "value": "151800.0",
+            "raw_sha256": "040b29b2bb7f97ebf35446c0251849f6317ab9489f675c37b8786a394b632a3b",
+            "release_at": "2025-04-13 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-04",
+        "value": "11600.0",
+        "sources": [
+          {
+            "period": "2025-03",
+            "value": "151800.0",
+            "raw_sha256": "040b29b2bb7f97ebf35446c0251849f6317ab9489f675c37b8786a394b632a3b",
+            "release_at": "2025-04-13 17:00:00+08:00"
+          },
+          {
+            "period": "2025-04",
+            "value": "163400.0",
+            "raw_sha256": "f4272816156a6e0282a504b2a242fe2c310f6e61739b50306154945a8755a1ae",
+            "release_at": "2025-05-14 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-05",
+        "value": "22900.0",
+        "sources": [
+          {
+            "period": "2025-04",
+            "value": "163400.0",
+            "raw_sha256": "f4272816156a6e0282a504b2a242fe2c310f6e61739b50306154945a8755a1ae",
+            "release_at": "2025-05-14 17:00:00+08:00"
+          },
+          {
+            "period": "2025-05",
+            "value": "186300.0",
+            "raw_sha256": "3d3053aa2cb4a4b3ad929d39e3d4dcce6947b7f5bfbecc70bf8e840447b24711",
+            "release_at": "2025-06-13 16:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-06",
+        "value": "42000.0",
+        "sources": [
+          {
+            "period": "2025-05",
+            "value": "186300.0",
+            "raw_sha256": "3d3053aa2cb4a4b3ad929d39e3d4dcce6947b7f5bfbecc70bf8e840447b24711",
+            "release_at": "2025-06-13 16:30:00+08:00"
+          },
+          {
+            "period": "2025-06",
+            "value": "228300.0",
+            "raw_sha256": "813ecda471daf222f8d6075543368c0e6414a332a6ef3841b20c9b38518c8181",
+            "release_at": "2025-07-14 15:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-07",
+        "value": "11600.0",
+        "sources": [
+          {
+            "period": "2025-06",
+            "value": "228300.0",
+            "raw_sha256": "813ecda471daf222f8d6075543368c0e6414a332a6ef3841b20c9b38518c8181",
+            "release_at": "2025-07-14 15:00:00+08:00"
+          },
+          {
+            "period": "2025-07",
+            "value": "239900.0",
+            "raw_sha256": "16f76863da7b4ce6fb4c4680fa16b43dce8700260a0b6b872b10890c12f08a83",
+            "release_at": "2025-08-13 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-08",
+        "value": "25700.0",
+        "sources": [
+          {
+            "period": "2025-07",
+            "value": "239900.0",
+            "raw_sha256": "16f76863da7b4ce6fb4c4680fa16b43dce8700260a0b6b872b10890c12f08a83",
+            "release_at": "2025-08-13 17:00:00+08:00"
+          },
+          {
+            "period": "2025-08",
+            "value": "265600.0",
+            "raw_sha256": "3952fda9138d5347905f8c826c73da65823d825b3ae72480624d806dc9d3af42",
+            "release_at": "2025-09-12 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-09",
+        "value": "35300.0",
+        "sources": [
+          {
+            "period": "2025-08",
+            "value": "265600.0",
+            "raw_sha256": "3952fda9138d5347905f8c826c73da65823d825b3ae72480624d806dc9d3af42",
+            "release_at": "2025-09-12 17:00:00+08:00"
+          },
+          {
+            "period": "2025-09",
+            "value": "300900.0",
+            "raw_sha256": "b3c5ecfe4fb6599279e3401b3ce0ef25dc5745a8f77cff7e84c9a14e1a4cd157",
+            "release_at": "2025-10-15 17:00:03+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-10",
+        "value": "8100.0",
+        "sources": [
+          {
+            "period": "2025-09",
+            "value": "300900.0",
+            "raw_sha256": "b3c5ecfe4fb6599279e3401b3ce0ef25dc5745a8f77cff7e84c9a14e1a4cd157",
+            "release_at": "2025-10-15 17:00:03+08:00"
+          },
+          {
+            "period": "2025-10",
+            "value": "309000.0",
+            "raw_sha256": "72d75cc14f8c6e7649d2deaec386b6b8252aeb8232a0e3586cdcffc365b3778a",
+            "release_at": "2025-11-13 17:00:19+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-11",
+        "value": "24900.0",
+        "sources": [
+          {
+            "period": "2025-10",
+            "value": "309000.0",
+            "raw_sha256": "72d75cc14f8c6e7649d2deaec386b6b8252aeb8232a0e3586cdcffc365b3778a",
+            "release_at": "2025-11-13 17:00:19+08:00"
+          },
+          {
+            "period": "2025-11",
+            "value": "333900.0",
+            "raw_sha256": "86dac86009ce1615c6cec1293dbf036603fbd6fdf0f52417e1fb9fcb0902089f",
+            "release_at": "2025-12-12 17:00:01+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-12",
+        "value": "22100.0",
+        "sources": [
+          {
+            "period": "2025-11",
+            "value": "333900.0",
+            "raw_sha256": "86dac86009ce1615c6cec1293dbf036603fbd6fdf0f52417e1fb9fcb0902089f",
+            "release_at": "2025-12-12 17:00:01+08:00"
+          },
+          {
+            "period": "2025-12",
+            "value": "356000.0",
+            "raw_sha256": "47761677bcf626cfe3ab7ab444940e9c0bdcb4326621edfe7e4e54192ee0bb33",
+            "release_at": "2026-01-15 14:59:40+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-01",
+        "value": "72200.0",
+        "sources": [
+          {
+            "period": "2026-01",
+            "value": "72200.0",
+            "raw_sha256": "e5e5bcd61b540d1c7c4e4d68c2a6350bf090bb37c381fec2a9de359487705ad0",
+            "release_at": "2026-02-13 17:00:04+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-02",
+        "value": "23800.0",
+        "sources": [
+          {
+            "period": "2026-01",
+            "value": "72200.0",
+            "raw_sha256": "e5e5bcd61b540d1c7c4e4d68c2a6350bf090bb37c381fec2a9de359487705ad0",
+            "release_at": "2026-02-13 17:00:04+08:00"
+          },
+          {
+            "period": "2026-02",
+            "value": "96000.0",
+            "raw_sha256": "377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc",
+            "release_at": "2026-03-13 17:00:01+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-03",
+        "value": "52300.0",
+        "sources": [
+          {
+            "period": "2026-02",
+            "value": "96000.0",
+            "raw_sha256": "377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc",
+            "release_at": "2026-03-13 17:00:01+08:00"
+          },
+          {
+            "period": "2026-03",
+            "value": "148300.0",
+            "raw_sha256": "0d50495161d327868abe90f1a3d084249145fd63318ce0f7eaaafd00da830abb",
+            "release_at": "2026-04-13 17:00:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-04",
+        "value": "6200.0",
+        "sources": [
+          {
+            "period": "2026-03",
+            "value": "148300.0",
+            "raw_sha256": "0d50495161d327868abe90f1a3d084249145fd63318ce0f7eaaafd00da830abb",
+            "release_at": "2026-04-13 17:00:00+08:00"
+          },
+          {
+            "period": "2026-04",
+            "value": "154500.0",
+            "raw_sha256": "4434210d0447e96bcbeab8f02d6ac0436fb76a28e41a66f4f133ff46d8b1182e",
+            "release_at": "2026-05-14 17:00:02+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-05",
+        "value": "20300.0",
+        "sources": [
+          {
+            "period": "2026-04",
+            "value": "154500.0",
+            "raw_sha256": "4434210d0447e96bcbeab8f02d6ac0436fb76a28e41a66f4f133ff46d8b1182e",
+            "release_at": "2026-05-14 17:00:02+08:00"
+          },
+          {
+            "period": "2026-05",
+            "value": "174800.0",
+            "raw_sha256": "8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+            "release_at": "2026-06-12 17:00:01+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-06",
+        "value": "33600.0",
+        "sources": [
+          {
+            "period": "2026-05",
+            "value": "174800.0",
+            "raw_sha256": "8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+            "release_at": "2026-06-12 17:00:01+08:00"
+          },
+          {
+            "period": "2026-06",
+            "value": "208400.0",
+            "raw_sha256": "9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+            "release_at": "2026-07-15 15:00:09+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-07",
+        "value": "14100.0",
+        "sources": [
+          {
+            "period": "2026-06",
+            "value": "208400.0",
+            "raw_sha256": "9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+            "release_at": "2026-07-15 15:00:09+08:00"
+          },
+          {
+            "period": "2026-07",
+            "value": "222500.0",
+            "raw_sha256": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+            "release_at": "2026-08-14 16:30:05+08:00"
+          }
+        ]
+      }
+    ],
+    "quarterly_inputs": [
+      {
+        "period": "2024-Q3",
+        "value": "332910.0",
+        "sources": [
+          {
+            "period": "2024-Q2",
+            "value": "616836.0",
+            "raw_sha256": "d33f512e347eea7d13cbcac6f1fde4b5d37446150f3c867f4322389f2dbb6a26",
+            "release_at": "2024-07-16 09:30:00+08:00"
+          },
+          {
+            "period": "2024-Q3",
+            "value": "949746.0",
+            "raw_sha256": "0da0c7a1280c81f8cbef568bc70abf1c83e925eb02a28c491af872738dd5f761",
+            "release_at": "2024-10-19 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2024-Q4",
+        "value": "399338.0",
+        "sources": [
+          {
+            "period": "2024-Q3",
+            "value": "949746.0",
+            "raw_sha256": "0da0c7a1280c81f8cbef568bc70abf1c83e925eb02a28c491af872738dd5f761",
+            "release_at": "2024-10-19 09:30:00+08:00"
+          },
+          {
+            "period": "2024-Q4",
+            "value": "1349084.0",
+            "raw_sha256": "278383cce68511b7668d5ec7bd35fe7403ab9741636dbbf2585ca78689a0d716",
+            "release_at": "2025-01-18 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-Q1",
+        "value": "318758.0",
+        "sources": [
+          {
+            "period": "2025-Q1",
+            "value": "318758.0",
+            "raw_sha256": "4d38107d8ac9c1c063aaf016584817fea51c8ad9ca64f8857eb73af2b550875e",
+            "release_at": "2025-04-17 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-Q2",
+        "value": "341778.0",
+        "sources": [
+          {
+            "period": "2025-Q1",
+            "value": "318758.0",
+            "raw_sha256": "4d38107d8ac9c1c063aaf016584817fea51c8ad9ca64f8857eb73af2b550875e",
+            "release_at": "2025-04-17 09:30:00+08:00"
+          },
+          {
+            "period": "2025-Q2",
+            "value": "660536.0",
+            "raw_sha256": "9a770677d59a781751b4d7c0070c250a4fa53210afccdda5efac0a12ce156f64",
+            "release_at": "2025-07-16 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-Q3",
+        "value": "354500.0",
+        "sources": [
+          {
+            "period": "2025-Q2",
+            "value": "660536.0",
+            "raw_sha256": "9a770677d59a781751b4d7c0070c250a4fa53210afccdda5efac0a12ce156f64",
+            "release_at": "2025-07-16 09:30:00+08:00"
+          },
+          {
+            "period": "2025-Q3",
+            "value": "1015036.0",
+            "raw_sha256": "0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c",
+            "release_at": "2025-10-21 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2025-Q4",
+        "value": "386843.0",
+        "sources": [
+          {
+            "period": "2025-Q3",
+            "value": "1015036.0",
+            "raw_sha256": "0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c",
+            "release_at": "2025-10-21 09:30:00+08:00"
+          },
+          {
+            "period": "2025-Q4",
+            "value": "1401879.0",
+            "raw_sha256": "9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765",
+            "release_at": "2026-01-20 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-Q1",
+        "value": "334193.0",
+        "sources": [
+          {
+            "period": "2026-Q1",
+            "value": "334193.0",
+            "raw_sha256": "61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18",
+            "release_at": "2026-04-17 09:30:00+08:00"
+          }
+        ]
+      },
+      {
+        "period": "2026-Q2",
+        "value": "361511.0",
+        "sources": [
+          {
+            "period": "2026-Q1",
+            "value": "334193.0",
+            "raw_sha256": "61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18",
+            "release_at": "2026-04-17 09:30:00+08:00"
+          },
+          {
+            "period": "2026-Q2",
+            "value": "695704.0",
+            "raw_sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+            "release_at": "2026-07-16 09:30:00+08:00"
+          }
+        ]
+      }
+    ],
+    "current_sf": "338600.0",
+    "previous_sf": "373800.0",
+    "current_gdp": "1437047.0",
+    "previous_gdp": "1392784.0",
+    "expected_percentage_points": "-3.276124655980011793722369680",
+    "legacy_projection_value": -3.276124655980012
+  },
+  "legacy_projection_derived_rows": {
+    "CN_DR007_POLICY_SPREAD": {
+      "available_at": "2026-08-31T07:34:51.368551+00:00",
+      "certification_status": "derived_from_certified_inputs",
+      "claim_ids": [],
+      "claims": [],
+      "derived_observation_id": "03b53538dd2af3ba5d96ef06d9eae9b9caf3ab7bf71c9f605c1d7b786701ce49",
+      "dimensions": {},
+      "direction": "down",
+      "formula_version": "dr007-policy-spread-v0001",
+      "input_observation_version_ids": [
+        "4100461ce76a9defaaa25ad6a4f8206753496212e2ba3717cd6676b9df8f43be",
+        "fa2e4b24a0af33db53c740f34699f98b98b53c1e3fc846eca69d38cc0c615b3f"
+      ],
+      "metric_id": "CN_DR007_POLICY_SPREAD",
+      "observation_id": "03b53538dd2af3ba5d96ef06d9eae9b9caf3ab7bf71c9f605c1d7b786701ce49",
+      "period": "2026-08-28",
+      "public_available_at": "2026-08-28T03:00:00+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "03b53538dd2af3ba5d96ef06d9eae9b9caf3ab7bf71c9f605c1d7b786701ce49",
+      "source_reference": "formula:dr007-policy-spread-v0001",
+      "status": "current",
+      "unit": "basis_points",
+      "value": -1.4100000000000001,
+      "value_state": "reported_value"
+    },
+    "CN_CREDIT_IMPULSE": {
+      "available_at": "2026-08-31T07:36:43.057747+00:00",
+      "certification_status": "derived_from_certified_inputs",
+      "derived_observation_id": "fc2dc2c998cb32e87bb48a82761af7afa7428e3e69701e93feb2b71305f36200",
+      "dimensions": {},
+      "direction": "down",
+      "input_observation_version_ids": [
+        "d29561203456760e470c52659b970cead903c15e7673b2b19628daaa7b8b9436",
+        "25ebf580860e78980a2775a57f052764630c49165ea4daf86717e23b92da3aea",
+        "45bc68c3eede405637cf1999f145d391d9171be4b08559b53d75fcf041b6ddfa",
+        "0ff2dbb07150cce58e8b3ed2a5b98f570b0fba0b97d2a64d0ee5cf8afdd5f95a",
+        "37b576be8abc2a86861e9ae5e4f4b735d3baca05787631de690fff5857c4ab92",
+        "6e66ff4d290992c95acee7a1253761e828bc9c748e43dc8794b8df70139fb38e",
+        "6dfb3914e521b2a8760b24d20a5aa21b7a4fe695e87b803c99ec17da4c5eceed",
+        "127c52b96dca03cd566ee67a0467ea1ae6bdb6b7d57ff80a441024cee97a53e6",
+        "a5f6099cb882a6919dbfbd85fe6197f42cdde143b0f1f027b11afc0e50b3d290",
+        "dad219eb1b9b1f4058d49aa712919e63b50baf58f99badc9d4d37b7cfc3d01d2",
+        "f3e765755f45ef0d0eda0e05e134f64e0eddf8e89eb604d38126abc3ee28b251",
+        "86ad0f6a24071a91d7491621b4103f83eb4921b34d4f4a2dc73a69304aaa0da5",
+        "a691bd19c1bc32bf3a1a8a9a5190409cfed23ac2716dd4a748f7824cefda6277",
+        "e5f4fc3260ea05f1dd7038c092187e72a93ff352cf013954aebfe92d105f19ca",
+        "df4cf811698ac3ff9bbe466452588a60aaf81c69d59f5cdde27f1f13f914f72f",
+        "c9251931f510131e786b7b1e0e96fba2716773f6d29ff7d12909f3ca6ef02f2c",
+        "8b38b803e7c5dc17e1583730af94dcd23b63e9d24bf940b4ce7b663bd6f5794b",
+        "9c43edeb381d5fef0996f4430fb6e9ea698ec72568f348a86ec12a025ca24047",
+        "f01be13177527b42727b77c4a72b16e27150ab6f03e65e22990e07428a14ab7c",
+        "111194601ecf8bcdfd728aae5c3861bbc7d81e2cd2cbaa7d37f7cbf733138bb4",
+        "f80110f87bf24c4ad342d5a7a0fbaedaeb5984062285d2db6b9c19ee652e7c66",
+        "c08f719a978c34cfbd7d1782ea4b1f8d0148f6b2bbdc88158ad7a0a7593aae4c",
+        "595b997bff7fa834a0218c30e1a3981530839c21e541f9cbb909f26ba45985f8",
+        "e66b66f9e26e6b3d9de8985a72288437957a3d5423ecc1844a4040c49debf206",
+        "1a477b39e8a54ca57c4fe42fbbd48a46501b5fa5564eb4dbc6c254522d3756bb",
+        "fd4021a5323338dba8d82d09e434208e28fb99a944487135f8282b38924b86d6",
+        "76f1b398d5b6467eca28cc028811e460fdb05a941740a08be3993bcfac679fe0",
+        "bd2d57e602bd50c3bef229908d66bf9127c4952e5995d808509261e4618664c6",
+        "5da6d41c46e385b29f690df87300aabfd65cc65ef479b40f93260068ff5b27d0",
+        "894684ce4d6aef812feae40c7145d5f767536beaf644fdc1cb07b140809e499a",
+        "cb4fce51e6e422fc49ac20e8d96e0801846efcd366a8a9612e5cbd79fc74f502",
+        "07e50d567c369dc9a9ea05107b2aa187af13dbf17261e65c4de697027ce6af58",
+        "6f6ef4a5948a7a88411b74443fa1746717da49c797e2e5e3ece5fc771771e4ac",
+        "92a2053dfd6f3d602c68fd35f783eb9c62f644adb4ead37172453b2d41c6dd16"
+      ],
+      "metric_id": "CN_CREDIT_IMPULSE",
+      "observation_id": "fc2dc2c998cb32e87bb48a82761af7afa7428e3e69701e93feb2b71305f36200",
+      "period_start": "2026-01-01",
+      "period": "2026-07-31",
+      "public_available_at": "2026-08-14T08:30:05+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "fc2dc2c998cb32e87bb48a82761af7afa7428e3e69701e93feb2b71305f36200",
+      "source_reference": "formula:credit-impulse-ytd-flow-v0002",
+      "status": "current",
+      "unit": "percentage_points",
+      "value": -3.276124655980012,
+      "value_state": "reported_value"
+    },
+    "CN_ORDER_INVENTORY_SPREAD": {
+      "available_at": "2026-08-31T07:34:59.521515+00:00",
+      "certification_status": "derived_from_certified_inputs",
+      "claim_ids": [],
+      "claims": [],
+      "derived_observation_id": "15adbcd9c090a66c001e957cb6dbb84ea3b4726505caa26e8328fc0203fa1544",
+      "dimensions": {},
+      "direction": "down",
+      "formula_version": "pmi-order-inventory-spread-v0001",
+      "input_observation_version_ids": [
+        "31f20c1a57a29f7229f1a6070b13ac06d6a104d06e41cfb2608bb03d5ff05107",
+        "f83d02791175c90e995a1c3199c21ce51db1b6942434b71c0fec1409e253bed9"
+      ],
+      "metric_id": "CN_ORDER_INVENTORY_SPREAD",
+      "observation_id": "15adbcd9c090a66c001e957cb6dbb84ea3b4726505caa26e8328fc0203fa1544",
+      "period": "2026-07-31",
+      "public_available_at": "2026-07-31T01:30:00+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "15adbcd9c090a66c001e957cb6dbb84ea3b4726505caa26e8328fc0203fa1544",
+      "source_reference": "formula:pmi-order-inventory-spread-v0001",
+      "status": "current",
+      "unit": "diffusion_index_points",
+      "value": -0.10000000000000142,
+      "value_state": "reported_value"
+    },
+    "CN_PRODUCTION_ORDER_SPREAD": {
+      "available_at": "2026-08-31T07:34:59.521515+00:00",
+      "certification_status": "derived_from_certified_inputs",
+      "claim_ids": [],
+      "claims": [],
+      "derived_observation_id": "281b2dcc7f43e989cfe3b8f69df7bd2a9130d83dc201c4618fcd0be1f0ee82fd",
+      "dimensions": {},
+      "direction": "up",
+      "formula_version": "pmi-production-order-spread-v0001",
+      "input_observation_version_ids": [
+        "2b73e464af89f9092920ffd224aa5cec31f562426c5056a48e6c19b48563631b",
+        "f83d02791175c90e995a1c3199c21ce51db1b6942434b71c0fec1409e253bed9"
+      ],
+      "metric_id": "CN_PRODUCTION_ORDER_SPREAD",
+      "observation_id": "281b2dcc7f43e989cfe3b8f69df7bd2a9130d83dc201c4618fcd0be1f0ee82fd",
+      "period": "2026-07-31",
+      "public_available_at": "2026-07-31T01:30:00+00:00",
+      "quality_status": "validated",
+      "selected_claim_id": "281b2dcc7f43e989cfe3b8f69df7bd2a9130d83dc201c4618fcd0be1f0ee82fd",
+      "source_reference": "formula:pmi-production-order-spread-v0001",
+      "status": "current",
+      "unit": "diffusion_index_points",
+      "value": 1.3999999999999986,
+      "value_state": "reported_value"
+    }
+  },
+  "independent_hand_expectations": [
+    {
+      "case": "2026-07 PMI order minus finished goods inventory",
+      "inputs": [
+        48.5,
+        48.6
+      ],
+      "expected": -0.1,
+      "unit": "diffusion_index_points"
+    },
+    {
+      "case": "2026-07 PMI production minus new orders",
+      "inputs": [
+        49.9,
+        48.5
+      ],
+      "expected": 1.4,
+      "unit": "diffusion_index_points"
+    },
+    {
+      "case": "2026-08-28 legacy DR007 minus official OMO7d rate; conditional on later DR certification",
+      "inputs_percent": [
+        1.3859,
+        1.4
+      ],
+      "expected": -1.41,
+      "unit": "basis_points"
+    },
+    {
+      "case": "2026-07 official 7d reverse repo monthly inflow minus outflow",
+      "inputs_hundred_million_cny": [
+        47395,
+        49890
+      ],
+      "expected": -2495,
+      "unit": "hundred_million_cny"
+    },
+    {
+      "case": "2026-07 M1 trillion to hundred million CNY",
+      "inputs": [
+        115.46,
+        10000
+      ],
+      "expected": 1154600,
+      "unit": "hundred_million_cny"
+    },
+    {
+      "case": "Synthetic annual ratio difference with equal GDP units",
+      "inputs": {
+        "current12mSF": 240,
+        "previous12mSF": 120,
+        "current4qGDP": 1200,
+        "previous4qGDP": 1000
+      },
+      "expected": 8,
+      "unit": "percentage_points",
+      "fixture_kind": "synthetic_not_live_evidence"
+    }
+  ]
+}

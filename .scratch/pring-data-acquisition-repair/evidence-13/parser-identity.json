@@ -1,0 +1,18 @@
+[
+  {
+    "installed_file": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py",
+    "workspace_file": "src/pring_cycle/official_context.py",
+    "installed_sha256": "f99fbae4014fc42c4cef45cf82168b5d0796d656c491255710bbf60f07483474",
+    "workspace_sha256": "f99fbae4014fc42c4cef45cf82168b5d0796d656c491255710bbf60f07483474",
+    "normalized_text_equal": true,
+    "normalized_sha256": "f99fbae4014fc42c4cef45cf82168b5d0796d656c491255710bbf60f07483474"
+  },
+  {
+    "installed_file": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_lpr.py",
+    "workspace_file": "src/pring_cycle/official_lpr.py",
+    "installed_sha256": "2173c4ea5d3c16acd26fb58c9a9a04ae79e5519403be93bf8b46a94f22f290d1",
+    "workspace_sha256": "2173c4ea5d3c16acd26fb58c9a9a04ae79e5519403be93bf8b46a94f22f290d1",
+    "normalized_text_equal": true,
+    "normalized_sha256": "2173c4ea5d3c16acd26fb58c9a9a04ae79e5519403be93bf8b46a94f22f290d1"
+  }
+]

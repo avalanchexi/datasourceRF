@@ -1,0 +1,395 @@
+[
+  {
+    "url": "https://www.cboe.com/tradable_products/vix/vix_historical_data",
+    "method": "GET",
+    "started_at": "2026-09-06T16:57:27.422143+00:00",
+    "status": 200,
+    "final_url": "https://www.cboe.com/tradable_products/vix/vix_historical_data",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 16:57:26 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "Last-Modified": "Sun, 06 Sep 2026 16:57:26 GMT"
+    },
+    "sha256": "f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+    "bytes": 621023,
+    "local_file": "f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+    "truncated": false,
+    "received_at": "2026-09-06T16:57:29.654589+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://indexes.nasdaq.com/Index/Overview/sox",
+    "method": "GET",
+    "started_at": "2026-09-06T16:57:29.656289+00:00",
+    "status": 200,
+    "final_url": "https://indexes.nasdaq.com/Index/Overview/sox",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Sun, 06 Sep 2026 16:57:28 GMT"
+    },
+    "sha256": "ce5798e3deb430dc6b750836d7e68b39c8b8bc958372657c3be8e3578352e2f0",
+    "bytes": 93846,
+    "local_file": "ce5798e3deb430dc6b750836d7e68b39c8b8bc958372657c3be8e3578352e2f0",
+    "truncated": false,
+    "received_at": "2026-09-06T16:57:31.612644+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=RBRTE&f=D",
+    "method": "GET",
+    "started_at": "2026-09-06T16:57:31.614148+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+    "headers": {
+      "Content-Type": "text/html",
+      "Last-Modified": "Wed, 02 Sep 2026 13:11:32 GMT",
+      "ETag": "\"01abc92dc3add1:0\"",
+      "Content-Length": "457442",
+      "Date": "Sun, 06 Sep 2026 16:57:48 GMT"
+    },
+    "sha256": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+    "bytes": 457442,
+    "local_file": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+    "truncated": false,
+    "received_at": "2026-09-06T16:57:52.179897+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=RWTC&f=D",
+    "method": "GET",
+    "started_at": "2026-09-06T16:57:52.181552+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+    "headers": {
+      "Content-Type": "text/html",
+      "Last-Modified": "Wed, 02 Sep 2026 13:11:39 GMT",
+      "ETag": "\"8037e896dc3add1:0\"",
+      "Content-Length": "472300",
+      "Date": "Sun, 06 Sep 2026 16:58:07 GMT"
+    },
+    "sha256": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+    "bytes": 472300,
+    "local_file": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+    "truncated": false,
+    "received_at": "2026-09-06T16:58:10.886446+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://home.treasury.gov/resource-center-data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2026",
+    "method": "GET",
+    "started_at": "2026-09-06T16:58:10.887894+00:00",
+    "status": 404,
+    "final_url": "https://home.treasury.gov/resource-center-data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2026",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "96026",
+      "Date": "Sun, 06 Sep 2026 16:58:09 GMT"
+    },
+    "sha256": "85920db3a7c34522978b99eb021015dbaf109803465b53b67be2fc432cd50754",
+    "bytes": 96026,
+    "local_file": "85920db3a7c34522978b99eb021015dbaf109803465b53b67be2fc432cd50754",
+    "truncated": false,
+    "received_at": "2026-09-06T16:58:12.830209+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.cmegroup.com/articles/faqs/access-to-cme-group-settlement-data-faq.html",
+    "method": "GET",
+    "started_at": "2026-09-06T16:59:09.527962+00:00",
+    "status": 403,
+    "final_url": "https://www.cmegroup.com/articles/faqs/access-to-cme-group-settlement-data-faq.html",
+    "headers": {
+      "Content-Length": "602",
+      "Content-Type": "application/json",
+      "Date": "Sun, 06 Sep 2026 16:59:07 GMT"
+    },
+    "sha256": "eecde3fafbde4090c30e610a7ed4b8d877f8351c0490e4189574890e8a5a4f7e",
+    "bytes": 602,
+    "local_file": "eecde3fafbde4090c30e610a7ed4b8d877f8351c0490e4189574890e8a5a4f7e",
+    "truncated": false,
+    "received_at": "2026-09-06T16:59:10.401529+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.cmegroup.com/content/dam/cmegroup/notices/ser/2026/06/ser-9637r.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T16:59:10.402971+00:00",
+    "status": 403,
+    "final_url": "https://www.cmegroup.com/content/dam/cmegroup/notices/ser/2026/06/ser-9637r.pdf",
+    "headers": {
+      "Content-Length": "602",
+      "Content-Type": "application/json",
+      "Date": "Sun, 06 Sep 2026 16:59:08 GMT"
+    },
+    "sha256": "eecde3fafbde4090c30e610a7ed4b8d877f8351c0490e4189574890e8a5a4f7e",
+    "bytes": 602,
+    "local_file": "eecde3fafbde4090c30e610a7ed4b8d877f8351c0490e4189574890e8a5a4f7e",
+    "truncated": false,
+    "received_at": "2026-09-06T16:59:11.149829+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.lbma.org.uk/prices-and-data/lbma-precious-metal-prices",
+    "method": "GET",
+    "started_at": "2026-09-06T16:59:11.151266+00:00",
+    "status": 200,
+    "final_url": "https://www.lbma.org.uk/prices-and-data/lbma-precious-metal-prices",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 16:59:10 GMT",
+      "Content-Type": "text/html; charset=UTF-8"
+    },
+    "sha256": "35da9618a31149a9e05ad50feaa274cbbf19542d7266de2984de1c02b0f9bbf9",
+    "bytes": 281671,
+    "local_file": "35da9618a31149a9e05ad50feaa274cbbf19542d7266de2984de1c02b0f9bbf9",
+    "truncated": false,
+    "received_at": "2026-09-06T16:59:13.320417+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://tushare.pro/document/2?doc_id=179",
+    "method": "GET",
+    "started_at": "2026-09-06T16:59:13.321887+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=179",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 16:59:12 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "35725",
+      "Etag": "\"6c34462b66b48968fcea14c249377e8768f0724b\""
+    },
+    "sha256": "bb547353aa36385e5b5d68a60eff43ad014e4b9f3260073642c4279db511b085",
+    "bytes": 35725,
+    "local_file": "bb547353aa36385e5b5d68a60eff43ad014e4b9f3260073642c4279db511b085",
+    "truncated": false,
+    "received_at": "2026-09-06T16:59:15.514394+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/index.html",
+    "method": "GET",
+    "started_at": "2026-09-06T16:59:15.516092+00:00",
+    "status": 200,
+    "final_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/index.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 16:59:13 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "42979",
+      "Last-Modified": "Fri, 04 Sep 2026 01:25:27 GMT",
+      "ETag": "\"6a9a1e07-a7e3\""
+    },
+    "sha256": "5bd84440f5556af257c9d19d80deae6928da27622f25156267dee43fcaa3322c",
+    "bytes": 42979,
+    "local_file": "5bd84440f5556af257c9d19d80deae6928da27622f25156267dee43fcaa3322c",
+    "truncated": false,
+    "received_at": "2026-09-06T16:59:15.646917+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?field_tdr_date_value=2026&type=daily_treasury_yield_curve",
+    "method": "GET",
+    "started_at": "2026-09-06T17:04:35.716903+00:00",
+    "status": 200,
+    "final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?field_tdr_date_value=2026&type=daily_treasury_yield_curve",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sun, 06 Sep 2026 17:04:34 GMT"
+    },
+    "sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+    "bytes": 1120481,
+    "local_file": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+    "truncated": false,
+    "received_at": "2026-09-06T17:04:38.396524+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+    "method": "GET",
+    "started_at": "2026-09-06T17:04:38.398755+00:00",
+    "status": 200,
+    "final_url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 17:04:37 GMT",
+      "Content-Type": "text/csv",
+      "Content-Length": "472309",
+      "last-modified": "Sat, 05 Sep 2026 19:00:50 GMT",
+      "etag": "\"77e3616af4a24ce1f0c81267b2c36c93\""
+    },
+    "sha256": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+    "bytes": 472309,
+    "local_file": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+    "truncated": false,
+    "received_at": "2026-09-06T17:04:40.473099+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.eia.gov/about/copyrights_reuse.php",
+    "method": "GET",
+    "started_at": "2026-09-06T17:04:40.476951+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/about/copyrights_reuse.php",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "52295",
+      "Date": "Sun, 06 Sep 2026 17:04:47 GMT"
+    },
+    "sha256": "72b33b17f2f6f645df00181b818636b416a085684e693c6c9c68fe2eb94c101a",
+    "bytes": 52295,
+    "local_file": "72b33b17f2f6f645df00181b818636b416a085684e693c6c9c68fe2eb94c101a",
+    "truncated": false,
+    "received_at": "2026-09-06T17:04:50.790929+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html",
+    "method": "GET",
+    "started_at": "2026-09-06T17:05:27.959752+00:00",
+    "status": 200,
+    "final_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 17:05:25 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "28584",
+      "Last-Modified": "Fri, 04 Sep 2026 01:25:27 GMT",
+      "ETag": "\"6a9a1e07-6fa8\""
+    },
+    "sha256": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+    "bytes": 28584,
+    "local_file": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+    "truncated": false,
+    "received_at": "2026-09-06T17:05:28.116780+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.pbc.gov.cn/chubanwu/114566/114579/4533165/4834545/2023033009003384902.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T17:05:28.118056+00:00",
+    "status": 200,
+    "final_url": "https://www.pbc.gov.cn/chubanwu/114566/114579/4533165/4834545/2023033009003384902.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 17:05:25 GMT",
+      "Content-Type": "application/pdf",
+      "Content-Length": "2992202",
+      "Last-Modified": "Tue, 08 Jul 2025 11:50:20 GMT",
+      "ETag": "\"686d05fc-2da84a\""
+    },
+    "sha256": "3a0eab7fc9d21b0c28449d1b557a5fbb8b615650f8cba8eb3f3bea37cf950581",
+    "bytes": 2992202,
+    "local_file": "3a0eab7fc9d21b0c28449d1b557a5fbb8b615650f8cba8eb3f3bea37cf950581",
+    "truncated": false,
+    "received_at": "2026-09-06T17:05:28.348107+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://indexes.nasdaq.com/docs/methodology_SOX.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T17:05:28.350248+00:00",
+    "status": 200,
+    "final_url": "https://indexes.nasdaq.com/docs/methodology_SOX.pdf",
+    "headers": {
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 31 Jul 2026 13:09:38 GMT",
+      "ETag": "\"a8512dd7ed20dd1:0\"",
+      "Date": "Sun, 06 Sep 2026 17:05:25 GMT",
+      "Content-Length": "218911"
+    },
+    "sha256": "e96818a4b50c948b612a50f2ee593f6f2bc72bcc04171e9708a50cc807804566",
+    "bytes": 218911,
+    "local_file": "e96818a4b50c948b612a50f2ee593f6f2bc72bcc04171e9708a50cc807804566",
+    "truncated": false,
+    "received_at": "2026-09-06T17:05:30.090591+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://tushare.pro/document/2?doc_id=227",
+    "method": "GET",
+    "started_at": "2026-09-06T17:05:30.092479+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=227",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 17:05:29 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "33722",
+      "Etag": "\"576f9de4a63a3d49d6241eb55281ed09f898da09\""
+    },
+    "sha256": "185f30e532952c0d4074035d1d70a1293daad096e70c62afbc2cedcae186f9a9",
+    "bytes": 33722,
+    "local_file": "185f30e532952c0d4074035d1d70a1293daad096e70c62afbc2cedcae186f9a9",
+    "truncated": false,
+    "received_at": "2026-09-06T17:05:32.260303+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.chinamoney.com.cn/chinese/dssjfwgl/",
+    "method": "GET",
+    "started_at": "2026-09-06T17:05:32.261933+00:00",
+    "status": 200,
+    "final_url": "https://www.chinamoney.com.cn/chinese/dssjfwgl/",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 17:05:30 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "89404",
+      "Last-Modified": "Fri, 14 Aug 2026 01:21:40 GMT",
+      "ETag": "\"15d3c-658f7a47bb100\""
+    },
+    "sha256": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+    "bytes": 89404,
+    "local_file": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+    "truncated": false,
+    "received_at": "2026-09-06T17:05:32.967094+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.cboe.com/terms",
+    "method": "GET",
+    "started_at": "2026-09-06T17:07:07.176287+00:00",
+    "status": 200,
+    "final_url": "https://www.cboe.com/terms",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 17:07:05 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "ETag": "\"6wmvkszm778kld\""
+    },
+    "sha256": "43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+    "bytes": 400103,
+    "local_file": "43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+    "truncated": false,
+    "received_at": "2026-09-06T17:07:09.127868+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://indexes.nasdaq.com/Index/Breakdown/SOX",
+    "method": "GET",
+    "started_at": "2026-09-06T17:07:09.129300+00:00",
+    "status": 200,
+    "final_url": "https://indexes.nasdaq.com/Index/Breakdown/SOX",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Sun, 06 Sep 2026 17:07:08 GMT",
+      "Content-Length": "58601"
+    },
+    "sha256": "1b62db05bc17c55e6c683f5e3d91558dbd49130b6c088d62804373d752a19a95",
+    "bytes": 58601,
+    "local_file": "1b62db05bc17c55e6c683f5e3d91558dbd49130b6c088d62804373d752a19a95",
+    "truncated": false,
+    "received_at": "2026-09-06T17:07:11.250024+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.cmegroup.com/trading/about-settlements.html",
+    "method": "GET",
+    "started_at": "2026-09-06T17:07:11.259544+00:00",
+    "status": 403,
+    "final_url": "https://www.cmegroup.com/trading/about-settlements.html",
+    "headers": {
+      "Content-Length": "602",
+      "Content-Type": "application/json",
+      "Date": "Sun, 06 Sep 2026 17:07:09 GMT"
+    },
+    "sha256": "eecde3fafbde4090c30e610a7ed4b8d877f8351c0490e4189574890e8a5a4f7e",
+    "bytes": 602,
+    "local_file": "eecde3fafbde4090c30e610a7ed4b8d877f8351c0490e4189574890e8a5a4f7e",
+    "truncated": false,
+    "received_at": "2026-09-06T17:07:12.147899+00:00",
+    "public_available_at": null
+  }
+]

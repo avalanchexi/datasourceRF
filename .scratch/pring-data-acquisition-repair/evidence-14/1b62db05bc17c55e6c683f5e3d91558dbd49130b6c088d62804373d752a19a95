@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!-- Consider adding a manifest.appcache: h5bp.com/d/Offline -->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="en">
+<!--<![endif]-->
+<head>
+
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="description" />
+    <meta name="keywords" />
+
+    <title>Breakdown for SOX</title>
+
+    <meta name="viewport" content="width=device-width" />
+
+    <link href="/Content/Images/favicon.ico" rel="shortcut icon" />
+    <link href="/Content/nasdaq-giw.css?v=2.0.0.33192" rel="stylesheet" type="text/css" />
+    <link href="/Content/highcharts.css?v=2.0.0.33192" rel="stylesheet" type="text/css" />
+    <!--
+    <link href="/Content/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="/Content/bootstrap-responsive.css" rel="stylesheet" type="text/css">
+    <link href="/Content/Typography.css" rel="stylesheet" type="text/css" />
+    <link href="/Content/Menu.css" rel="stylesheet" type="text/css" />
+    <link href="/Content/Site.css" rel="stylesheet" type="text/css" />
+    <link href="/Content/Mobile.css" rel="stylesheet" type="text/css" />
+    -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/selectize@0.12.6/dist/css/selectize.css">
+    <link href="/Content/themes/CUSTOM-theme/jquery-ui-1.8.23.custom.css" rel="stylesheet" type="text/css" />
+    <link href="/Content/jquery.dataTables.css?v=2.0.0.33192" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css" integrity="sha384-hWVjflwFxL6sNzntih27bfxkr27PmbbK/iSvJ+a4+0owXq79v+lsFkW54bOGbiDQ" crossorigin="anonymous">
+
+
+
+    <!--[if IE 8]><link href="/Content/Ie8.css" rel="stylesheet" type="text/css"> <![endif]-->
+    <!--[if lte IE 7]><link href="/Content/Ie7.css" rel="stylesheet" type="text/css"> <![endif]-->
+    
+    <script src="/Scripts/modernizr-2.8.3.js" type="text/javascript"></script>
+    <script src="/Scripts/nasdaq-giw.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        (function () {
+            var didInit = false;
+            function initMunchkin() {
+                if (didInit === false) {
+                    didInit = true;
+                    Munchkin.init('303-QKM-463');
+                }
+            }
+            var s = document.createElement('script');
+            s.type = 'text/javascript';
+            s.async = true;
+            s.src = '//munchkin.marketo.net/munchkin.js';
+            s.onreadystatechange = function () {
+                if (this.readyState == 'complete' || this.readyState == 'loaded') {
+                    initMunchkin();
+                }
+            };
+            s.onload = initMunchkin;
+            document.getElementsByTagName('head')[0].appendChild(s);
+        })();
+    </script>
+    <script type="text/javascript" src="https://cdn.bizible.com/scripts/bizible.js" async=""></script>
+</head>
+<body>
+    <header class="nasdaq-giw">
+    <!--
+    <div class="w-full flex justify-center">
+        <a href="https://www.nasdaq.com/market-activity" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+            Market Activity
+        </a>
+        <a href="https://www.nasdaq.com/news-and-insights" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+            News + Insights
+        </a>
+        <a href="https://www.nasdaq.com/solutions" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+            Solutions
+        </a>
+        <a href="https://nasdaq.com/about" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+            About
+        </a>
+    </div>
+    -->
+    <nav id="headerWrapper" class="flex items-center justify-between flex-wrap xl:flex-no-wrap shadow px-0 lg:px-4 xl:px-10 py-2">
+        <div id="mobileMenu" class="flex w-auto pl-8 justify-start lg:hidden">
+            <a href="#menu" id="toggle">
+                <span></span>
+            </a>
+        </div>
+        <!-- Logo -->
+        <div class="flex overflow-visible justify-center lg:justify-start items-center w-4/6 lg:w-1/12 mx-auto lg:mx-0 flex-shrink-0 text-white">
+            <a href="/">
+                <img id="headerLogo" src="/Content/Images/logo.svg" alt="Nasdaq GIW" />
+            </a>
+        </div>
+    <div  class="flex w-auto pr-8 justify-end lg:hidden" id="mobileSearch">
+        <a id="mobileSearchToggle" href="#">
+            <img src="/Content/Images/Icons/search-icon.svg" alt="Search"/>
+        </a>
+    </div>
+    
+
+    <!-- Search Menu No other Menu -->
+    <nav class="lg:hidden hidden mt-4 mx-0 lg:mt-0 w-full subnav lg:block lg:relative" id="menuOnlySearch">
+        <ul class="flex flex-wrap w-full lg:flex-no-wrap justify-center items-center desktop-nav">
+            <li class="toggleable relative subnav-item w-full bg-blue-100 bg-white lg:bg-transparent mb-px lg:mb-0 lg:w-auto font-normal hover:text-black">
+                <div id="mobile-search-dropdown" class="container search-dropdown main-menu-dropdown mx-auto w-full mr-0 lg:w-2/5 flex flex-wrap justify-between bg-white bg-white-shadow lg:shadow-xl md:p-2 lg:p-8">
+                    <div class="px-6 w-full pb-6 pt-6 lg:pt-3 relative">
+                        <h3 class="dash-heading block w-full my-2">Search Indexes</h3>
+                        <div class="w-full search-bg p-5 mt-12">
+                            <div class="bg-charcoal -mt-10 py-2 px-2">
+                                <form action="/Search" method="post" id="mobile-menu-search-form" class="w-full">
+                                    <input name="query" type="text" id="siteSearchMobile" class="w-98 p-2 ui-autocomplete-input" placeholder="Search Nasdaq Index Symbols and Names" autocomplete="off">
+                                    <div class="icon-wrapper">
+                                        <i class="fa fa-search fa-lg search-icon">
+                                        </i>
+                                    </div>
+                                </form>                                
+                            </div>
+                        </div>
+                        <i id="searchMobileClose" class="fas fa-times search-close mr-2"></i>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+
+    <!-- GIW Subnav -->
+    <nav class="hidden mt-4 mx-0 lg:mt-0 w-auto subnav lg:block lg:relative" id="menu">
+    <div class="container w-full md:max-w-none mx-auto flex justify-center">
+    <ul class="flex flex-wrap w-full lg:flex-no-wrap justify-center items-center desktop-nav">
+    <!-- Home -->
+    <li class="subnav-item hidden lg:flex flex-shrink-0 md:w-auto mr-2">
+        <a href="/">
+            <img style="max-height: 45px; margin-top: -5px" src="/Content/Images/Icons/home-icon.svg" alt="Home"/>
+        </a>
+    </li>
+
+    <!-- Indexes -->
+    <li class="toggleable relative subnav-item w-full bg-blue-100 bg-white lg:bg-transparent mb-px lg:mb-0 lg:w-auto font-normal hover:text-black">
+        <input type="checkbox" value="selected" id="toggle-one" class="toggle-input menu-toggle">
+        <label for="toggle-one" class="block cursor-pointer text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">Indexes</label>
+        <div role="toggle" class="mega-menu mb-16 sm:mb-0 bg-transparent z-40">
+            <div class="container main-menu-dropdown mx-auto w-full lg:w-2/5 flex flex-wrap justify-between mx-2 bg-white bg-white-shadow lg:shadow-xl md:p-2 lg:p-8">
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/2 border-gray-200 border-b sm:border-r lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <h3 class="text-sm tracking-widest text-gray mb-2 uppercase">Equity</h3>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/us-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">U.S.</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/european-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">Europe</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/global-equity-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">Global</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nasdaq-smart-beta-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">Smart Beta</a>
+                    </li>
+                    <!-- Indented -->
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nasdaq-dividend-income-indexes" class="block py-1 pl-2 text-blue-500 hover:text-black text-sm">- Dividend &amp; Income</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nasdaq-dorsey-wright-indexes" class="block py-1 pl-2 text-blue-500 hover:text-black text-sm">- Dorsey Wright</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nasdaq-alphadex-indexes" class="block py-1 pl-2 text-blue-500 hover:text-black text-sm">- Nasdaq AlphaDEX</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nasdaq-smart-sectors" class="block py-1 pl-2 text-blue-500 hover:text-black text-sm">- Smart Sectors</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/green-equity-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">Green</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/vinx-equity-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">VINX</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/kbw-indexes" class="block py-1 text-blue-500 hover:text-black text-sm">KBW Financial Indexes</a>
+                    </li>
+
+                    <div class="self-end">
+                        <a href="/Index/Directory" class="flex flex-wrap font-semibold text-blue-500 uppercase tracking-widest mt-8">
+                            See All Indexes <br/>
+                            <img src="/Content/Images/Icons/blue-arrow-right.svg" class="inline-block ml-0"/>
+                        </a>
+                    </div>
+
+                </ul>
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/2 border-gray-200 border-b lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <h3 class="text-sm tracking-widest text-gray mb-2 uppercase">Fixed Income</h3>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nordic-fixed-income-market" class="block py-1 text-blue-500 hover:text-black text-sm">Nordic Market</a>
+                    </li>
+                                     
+                </ul>
+            </div>
+        </div>
+    </li>
+
+    <!-- News & Articles -->
+    <li class="subnav-item w-full lg:w-auto flex items-center bg-blue-100 mb-px bg-white lg:bg-transparent text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">
+        <a class="menu-link" href="/Governance">
+            Governance
+        </a>
+    </li>
+
+    <li class="subnav-item w-full lg:w-auto flex items-center bg-blue-100 mb-px bg-white lg:bg-transparent text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">
+        <a class="menu-link" href="https://nasdaq.com/research-insights">
+            Research
+        </a>
+    </li>
+
+    <!-- Research & Resources -->
+    <li class="toggleable relative subnav-item w-full bg-blue-100 bg-white lg:bg-transparent mb-px lg:mb-0 lg:w-auto font-normal hover:text-black">
+        <input type="checkbox" value="selected" id="toggle-two" class="toggle-input menu-toggle">
+        <label for="toggle-two" class="block cursor-pointer text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">Resources</label>
+        <div role="toggle" class="mega-menu mb-16 sm:mb-0 bg-transparent z-40">
+            <div class="container main-menu-dropdown mx-auto w-full lg:w-3/5 flex flex-wrap justify-between mx-2 bg-white bg-white-shadow lg:shadow-xl md:p-2 lg:p-8">
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/2 border-gray-200 border-b sm:border-r lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <h3 class="text-sm tracking-widest text-gray mb-2 uppercase">Resources</h3>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Resource/Index/FactSheet">Fact Sheets</a>
+                    </li>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Resource/Index/Methodology">Methodologies</a>
+                    </li>
+
+                    <div class="self-end">
+                        <a href="/Resource" class="block font-semibold text-blue-500 uppercase tracking-widest mt-8">
+                            See All Resources
+                        </a>
+                    </div>
+                </ul>
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/2 border-gray-200 border-b lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Index/Directory">Global Index Watch (GIW) Directory</a>
+                    </li>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Constituent/Participation">Index Component Search</a>
+                    </li>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Home/GidsDirectory">Global Index Data Service (GIDS) Directory</a>
+                    </li>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Home/IndexDates">Index Dates</a>
+                    </li>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Index/CorpActions">Corporate Actions</a>
+                    </li>
+                    <!--
+                    <li>
+                        <a href="/docs/Index_Rebalance_Schedule.pdf" class="block py-1 text-blue-500 hover:text-black text-sm">Index Rebalance Schedule</a>
+                    </li>
+                    -->
+                </ul>
+            </div>
+        </div>
+    </li>
+
+    <!-- Index Licensing / ETPs -->
+    <li class="toggleable subnav-item w-full bg-blue-100 bg-white lg:bg-transparent mb-px lg:mb-0 lg:w-auto font-normal hover:text-black">
+        <input type="checkbox" value="selected" id="toggle-three" class="toggle-input menu-toggle">
+        <label for="toggle-three" class="block cursor-pointer text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">Investment Products</label>
+        <div role="toggle" class="mega-menu mb-16 sm:mb-0 bg-transparent z-40">
+            <div class="container main-menu-dropdown mx-auto w-full lg:w-3/5 flex flex-wrap justify-between mx-2 bg-white bg-white-shadow lg:shadow-xl md:p-2 lg:p-8">
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/3 border-gray-200 border-b sm:border-r lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <a href="https://nasdaq.com/solutions/index-licensing-and-etps" class="block text-sm tracking-widest text-gray mb-4 uppercase hover:text-blue-500">
+                        Index Licensing <img src="/Content/Images/Icons/right-chevron.svg" class="inline-block ml-2 -mt-1"/>
+                    </a>
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        License Nasdaq’s full range of global equity, commodity or fixed income indexes.
+                    </p>
+
+                    <div class="self-end">
+                        <a href="https://www.nasdaq.com/solutions/index-licensing-and-etps" class="block font-semibold text-blue-500 uppercase tracking-widest mt-8">
+                            See All Index Licensing/ETPs
+                            <img src="/Content/Images/Icons/blue-arrow-right.svg" class="inline-block ml-2 -mt-1"/>
+                        </a>
+                    </div>
+                </ul>
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/3 border-gray-200 border-b sm:border-r lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <a href="https://nasdaq.com/ETF-Advisor-Solutions" class="block text-sm tracking-widest text-gray mb-4 uppercase hover:text-blue-500">
+                        ETF &amp; Advisor Solutions <img src="/Content/Images/Icons/right-chevron.svg" class="inline-block ml-2 -mt-1"/>
+                    </a>
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        Research, news and commentary from our ETP partners and solutions to help Financial Advisors.
+                    </p>
+                </ul>
+                <ul class="pl-6 w-full sm:w-1/2 lg:w-1/3 border-gray-200 border-b sm:border-r-0 lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <a href="/Home/IndexLinkedProducts" class="block text-sm tracking-widest text-gray mb-4 uppercase hover:text-blue-500">
+                        Index Linked Products <img src="/Content/Images/Icons/right-chevron.svg" class="inline-block ml-2 -mt-1"/>
+                    </a>
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        A searchable list of products based on Nasdaq Global Indexes.
+                    </p>
+                </ul>
+            </div>
+        </div>
+    </li>
+
+
+    <!-- Index Data -->
+    <li class="toggleable subnav-item w-full bg-blue-100 bg-white lg:bg-transparent mb-px lg:mb-0 lg:w-auto font-normal hover:text-black">
+        <input type="checkbox" value="selected" id="toggle-four" class="toggle-input menu-toggle">
+        <label for="toggle-four" class="block cursor-pointer text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">Index Data</label>
+        <div role="toggle" class="mega-menu mb-16 sm:mb-0 bg-transparent z-40">
+            <div class="container main-menu-dropdown mx-auto w-full lg:w-3/5 flex flex-wrap justify-between mx-2 bg-white bg-white-shadow lg:shadow-xl md:p-2 lg:p-8">
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/3 border-gray-200 border-b sm:border-r lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        Nasdaq offers reliable and comprehensive data through flexible access options. Learn about proprietary data products, distributors and subscription details.
+                    </p>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/nasdaq-index-data-solution" class="block py-1 text-blue-500 hover:text-black text-sm">Index Data Delivery Options</a>
+                    </li>
+                    <li>
+                        <a href="https://nasdaq.com/solutions/index-data-entitlements" class="block py-1 text-blue-500 hover:text-black text-sm">Data Entitlements</a>
+                    </li>
+                    <li>
+                        <a class="block py-1 text-blue-500 hover:text-black text-sm" href="/Index/MonthEnd">Month End Files</a>
+                    </li>
+                </ul>
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/3 border-gray-200 border-b sm:border-r lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <a href="http://www.NASDAQtrader.com/content/technicalSupport/specifications/dataproducts/GIW_WebService_Spec_current.pdf" class="block text-sm tracking-widest text-gray mb-4 uppercase hover:text-blue-500">
+                        GIW Web Service <br/> Specification <img src="/Content/Images/Icons/right-chevron.svg" class="inline-block ml-2 -mt-1"/>
+                    </a>
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        Global Index Watch (GIW) is the direct web interface for index weights, components and more. To automate the retrieval of this data, view the secure web service specification.
+                    </p>
+
+                    <a href="http://www.nasdaqtrader.com/content/technicalSupport/specifications/dataproducts/Nasdaq-GIFFD-Global-Index-FlexFile-Delivery.pdf" class="block text-sm tracking-widest text-gray mb-4 mt-8 uppercase hover:text-blue-500">
+                        GIFFD - SFTP Technical Specification <img src="/Content/Images/Icons/right-chevron.svg" class="inline-block ml-2 -mt-1"/>
+                    </a>
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        Global Index FlexFile Delivery (GIFFD) offers clients a flexible and efficient delivery service for index weighting, advance corporate actions and extensive additional data for Nasdaq Indexes
+                    </p>
+
+                </ul>
+                <ul class="px-6 w-full sm:w-1/2 lg:w-1/3 border-gray-200 border-b sm:border-r-0 lg:border-b-0 pb-6 pt-6 lg:pt-3">
+                    <a href="http://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/globalindex2-0.pdf" class="block text-sm tracking-widest text-gray mb-4 uppercase hover:text-blue-500">
+                        GIDS 2.0 Specification <img src="/Content/Images/Icons/right-chevron.svg" class="inline-block ml-2 -mt-1"/>
+                    </a>
+                    <p class="tracking-loose text-sm mb-4 text-black">
+                        Global Index Data Service (GIDS) offers a real-time data feed that consolidates all 45,000 Nasdaq indexes, as well as exchange-traded products (ETPs) valuation data and third-party partner data.
+                    </p>
+                </ul>
+            </div>
+        </div>
+    </li>
+
+
+    <!-- Search -->
+    
+
+    <!-- Contact Us -->
+    <li class="toggleable relative subnav-item w-full bg-blue-100 bg-white lg:bg-transparent mb-px lg:mb-0 lg:w-auto font-normal hover:text-black">
+        <a class="menu-link" href="/ContactUs">
+            Contact Us
+        </a>
+        <input type="checkbox" value="selected" id="toggle-five" class="toggle-input menu-toggle">
+        <label id="indexSearch" for="toggle-five" class="hidden block cursor-pointer text-sm lg:text-base font-semibold uppercase lg:font-normal lg:normal-case">Search Indexes</label>
+        <div role="toggle" class="mega-menu mb-16 sm:mb-0 bg-transparent z-40">
+            <div class="container search-dropdown main-menu-dropdown mx-auto w-full mr-0 lg:w-2/5 flex flex-wrap justify-between bg-white bg-white-shadow lg:shadow-xl md:p-2 lg:p-8">
+                <div class="px-6 w-full pb-6 pt-6 lg:pt-3 relative">
+                    <h3 class="dash-heading block w-full my-2">Search Indexes</h3>
+                    <div class="w-full search-bg p-5 mt-12">
+                        <div class="bg-charcoal -mt-10 py-2 px-2">
+                            <form action="/Search" method="post" id="menu-search-form" class="w-full">
+                                <input name="query" type="text" id="siteSearch" class="w-98 p-2 ui-autocomplete-input" placeholder="Search Nasdaq Index Symbols and Names" autocomplete="off">
+                                <div class="icon-wrapper">
+                                    <i class="fa fa-search fa-lg search-icon">
+                                    </i>
+                                </div>
+
+                            </form>
+                        </div>
+                    </div>
+                    <i id="searchClose" class="fas fa-times search-close"></i>
+                </div>
+            </div>
+        </div>
+    </li>
+    <!-- Mobile Login/Register -->
+        <li class="subnav-item block w-full lg:hidden py-2  text-sm font-semibold uppercase border-b-2 mt-2 mb-6">
+            <a href="/Account/LogOn">
+                Login or Register
+            </a>
+        </li>
+    </ul>
+    </div>
+    </nav>
+    <!-- 
+    <div class="md:w-4/6 hidden block flex-grow lg:flex lg:items-center lg:w-auto">
+        <div class="text-sm flex uppercase lg:flex-grow justify-center">
+            <a href="https://www.nasdaq.com/market-activity" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+                Market Activity
+            </a>
+            <a href="https://www.nasdaq.com/news-and-insights" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+                News + Insights
+            </a>
+            <a href="https://www.nasdaq.com/solutions" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+                Solutions
+            </a>
+            <a href="https://nasdaq.com/about" class="block mt-4 md:inline-flex lg:mt-0 top-link mx-2 lg:mx-4 xl:mx-8">
+                About
+            </a>
+        </div>
+    </div>
+    -->
+    <div class="w-1/12 flex xl:order-last flex-shrink-0 justify-center lg:justify-end">
+        <div class="flex flex-shrink-0 items-center">
+            <a href="#" id="LoginLink" class="lg:flex hidden login-panel text-sm md:border-r-2">
+                    <p class="mt-1 hidden lg:inline-block pointer-events-none mr-2 mb-0 text-blue-500 font-semibold uppercase">Login</p>
+                <img class="pointer-events-none pr-2" src="/Content/Images/Icons/user-icon.svg" alt="Login"/>
+            </a>
+            <a id="SearchShortcut" href="#" class="lg:flex hidden text-sm pl-2 h-full lg:mt-0">
+                <img style="pointer-events: none" src="/Content/Images/Icons/search-icon.svg" alt="Search"/>
+            </a>
+        </div>
+    </div>
+    </nav>
+    <div id="LoginPanel" class="mt-12">
+    <!-- Hoverable Login Menu (Replaces old image) -->
+<form action="/Account/LogOn" class="Bizible-Exclude" method="post">    <ul>
+        <li class="hoverable login subnav-item w-full bg-blue-100 bg-white md:bg-transparent mb-px lg:mb-0 md:w-auto font-normal hover:text-black">
+            <div role="toggle" class="login-menu bg-transparent z-40">
+                <div class="container mx-auto w-full flex flex-wrap justify-between mx-2 bg-white shadow-xl p-4 lg:p-6">                   
+
+                        <!-- Mini Login Form -->
+                        <div id="signInForm" class="w-full">
+                            <input name="__RequestVerificationToken" type="hidden" value="ItfBcAp5e_LShLTw_TYKTDCJfdclzzsUpvd20Jhx-yPioGaJSWlGdFrDb3tjupT1sU6TZic0p9K22J6rjHzOQGGaUtFBhjR8UPO2GXNfHGk1" />
+                            <div class="flex flex-wrap mt-1 mb-2">
+                                <div class="w-full mb-4">
+                                    <label class="block uppercase tracking-wide text-gray-500 text-xs font-bold mb-0" for="UserName">Username</label>
+                                    <input class="login-panel appearance-none block w-full bg-gray-200 text-gray-700 py-3 px-4 mb-3 lg:mb-0 leading-tight focus:outline-none focus:border-gray-500" data-val="true" data-val-required="Username is required." id="UserName" name="UserName" type="text" value="" />
+                                    <span class="field-validation-valid" data-valmsg-for="UserName" data-valmsg-replace="true"></span>
+                                </div>
+                                <div class="w-full mb-3">
+                                    <label class="block uppercase tracking-wide text-gray-500 text-xs font-bold mb-0" for="Password">Password</label>
+                                    <input autocomplete="off" class="login-panel appearance-none block w-full bg-gray-200 text-gray-700 py-3 px-4 mb-3 lg:mb-0 leading-tight focus:outline-none focus:border-gray-500" data-val="true" data-val-required="Password is required." id="Password" name="Password" type="password" />
+                                    <span class="field-validation-valid" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                                </div>
+                                <div class="w-full mb-3">
+                                    <label class="block uppercase tracking-wide text-gray-500 text-xs font-bold mb-0" for="TOTP">TOTP</label>
+                                    <input autocomplete="off" class="login-panel appearance-none block w-full bg-gray-200 text-gray-700 py-3 px-4 mb-3 lg:mb-0 leading-tight focus:outline-none focus:border-gray-500" data-val="true" data-val-required="TOTP is required." id="TOTP" maxlength="6" name="TOTP" oninput="this.value = this.value.replace(/[^0-9]/g, &#39;&#39;).slice(0, 6)" onkeypress="return isNumeric(event)" pattern="[0-9]{6}" title="Please enter exactly 6 digits" type="text" value="" />
+                                    <span class="field-validation-valid" data-valmsg-for="TOTP" data-valmsg-replace="true"></span>
+                                </div>
+                                <!-- Checkbox -->
+                                <div class="w-full mb-5">
+                                    <label class="custom-label flex">
+                                        <div class="bg-gray-200 login-panel w-8 h-8 flex justify-center items-center mr-4 -mt-2">
+                                            <input type="checkbox" class="hidden login-panel" checked>
+                                            <svg class="hidden w-8 h-8 p-1 text-white bg-black pointer-events-none" viewBox="0 0 172 172"><g fill="none" stroke-width="none" stroke-miterlimit="10" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode:normal"><path d="M0 172V0h172v172z" /><path d="M145.433 37.933L64.5 118.8658 33.7337 88.0996l-10.134 10.1341L64.5 139.1341l91.067-91.067z" fill="currentColor" stroke-width="1" /></g></svg>
+                                        </div>
+                                        <span class="select-none tracking-wide text-sm font-normal -mt-1">Remember Me</span>
+                                    </label>
+                                </div>
+                                <!-- Action Buttons -->
+                                <button class="w-full text-center font-semibold tracking-wide text-white bg-blue-500 uppercase py-4">
+                                    Log In
+                                </button>
+                                <a href="https://nd.nasdaq.com/GIW-SiteGIG-GIFFD-Subscription-Form.html" class="w-full text-center font-semibold tracking-wide text-blue-500 uppercase mt-4">
+                                    Register
+                                </a>
+                                <a style="text-align: center; width: 100%; margin-top: 10px;" href="mailto:TradingServices@nasdaq.com">Trouble logging in?</a>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </li>
+    </ul>
+</form>
+    </div>
+</header>
+
+
+
+    
+
+
+<!-- Main Hero -->
+<section id="hero" class="index-bg">
+
+    <article class="hero-content block w-11/12 m-auto pt-2 pb-12 pl-0">
+        <!-- Index Overview -->
+        <div class="flex flex-wrap items-center">
+            <div class="w-full flex flex-wrap md:w-3/4">
+                <div class="w-full md:w-1/2">
+                    <h1 class="block text-3xl text-white heading mb-0">
+                        PHLX Semiconductor
+                    </h1>
+                    <a id="symbol" href="#" class="w-full inline-block font-light heading symbol text-2xl text-white uppercase">SOX</a>
+                </div>
+                <div class="w-full md:w-1/2 mt-4 md:mt-0 flex flex-wrap items-center">
+                <time class="block w-full uppercase text-white opacity-50 text-xs tracking-widest">
+                    DATA AS OF 9/4/2026
+                </time>
+                <!-- Current Performance Data -->
+                <data 
+                      class="inline-block mb-2 mr-3 tracking-wide text-white heading trend-data green-arrow"
+                      data-parent="SOX"
+                      data-current-value="11,735.26"
+                      >
+11,735.26                </data>
+                <data 
+                      class="inline-block mr-3 mb-2 tracking-wide text-green heading trend-data"
+                      data-parent=""
+                      data-numerical-change="383.13">
+383.13                </data>
+                    <data data-parent=""
+                          class="inline-block mb-2 tracking-wide text-white heading trend-data green-arrow                          "
+                          id="pctChange"
+                    >
+                        3.37%
+                    </data>
+
+
+                </div>
+            </div>
+            <div class="w-full mt-4 md:mt-0 md:w-1/4 flex flex-wrap items-center">
+                <!-- Key Stat Values -->
+                <div class="block px-0 md:px-2">
+                    <h4 class="block w-full uppercase text-white opacity-50 text-xs tracking-widest">Key Stats</h4>
+                    <data class="block text-white my-1" data-previous-close="">
+                        <span class="mr-3">
+                            Previous Close
+                        </span>
+                        <span>
+11,735.26                        </span>
+                    </data>
+                    <data class="block text-white my-1" data-todays-high="">
+                        <span class="mr-6">
+                            Today’s High
+                        </span>
+                        <span>
+11,750.25                        </span>
+                    </data>
+                    <data class="block text-white my-1" data-todays-low="">
+                        <span class="mr-6">
+                            Today’s Low
+                        </span>
+                        <span class="ml-1">
+11,467.34                        </span>
+                    </data>
+                </div>
+            </div>
+        </div>
+    </article>
+</section>
+
+
+
+
+
+
+<!-- Raised Section -->
+<section class="flex">
+    <!-- Indented Row -->
+    <div class="w-full ml-0 lg:ml-8 mr-0 -mt-10 pt-10 z-20 bg-white lg:pr-8">
+        <nav class="block w-full pb-6 px-5 lg:px-20 lg:ml-8">
+    <ul class="flex flex-wrap justify-center">
+
+        <li id="overview" class="mr-2">
+<a class="inline-block border px-2 uppercase tracking-widest border-white rounded-full hover:border-gray-200 text-blue-500 hover:bg-gray-200 py-1" href="/Index/Overview/SOX">Overview</a>
+        </li>
+        <li id="history" class="mr-2">
+<a class="inline-block border px-2 uppercase tracking-widest border-white rounded-full hover:border-gray-200 text-blue-500 hover:bg-gray-200 py-1" href="/Index/History/SOX">Performance</a>        </li>
+        <li id="weighting" class="mr-2">
+<a class="inline-block border px-2 uppercase tracking-widest border-white rounded-full hover:border-gray-200 text-blue-500 hover:bg-gray-200 py-1" href="/Index/Weighting/SOX">Weighting</a>        </li>
+        <li id="breakdown class="mr-2">
+                    <a class="inline-block border px-2 uppercase tracking-widest border-blue rounded-full py-1 bg-blue-500 text-white" href="#">
+                        Industry Breakdown
+                    </a>
+            </li>
+        <li id="corpactions" class="li_last">
+            
+<a class="inline-block border px-2 uppercase tracking-widest border-white rounded-full hover:border-gray-200 text-blue-500 hover:bg-gray-200 py-1" href="/Index/CorpActions/SOX">Corporate Actions</a>        </li>
+    </ul>
+</nav>
+
+<div class="w-full mb-2 px-5 lg:px-16">
+    <div id="loginCta" class="relative mx-auto py-2 w-full text-center bg-light-blue">
+        <span style="font-weight: bold">Log in for Full Access:</span> <span>There is more data available for this index that you cannot see currently.</span>
+        <span>Please <span id="LoginCta" class="text-blue-500 underline login-panel cursor-pointer">Log in</span> or <a class="text-blue-500 underline" href="https://nd.nasdaq.com/GIW-SiteGIG-GIFFD-Subscription-Form.html">Register</a> for full access.</span>
+    </div>
+</div>
+        <!-- Wrapping Element -->
+        <div class="flex flex-wrap">
+            <article class="w-full lg:w-3/4 lg:pl-8">
+                <!-- Primary Info -->
+                <div class="p-5 border-r-2 border-gray-300 bg-white pt-0">
+
+                    <div class="flex flex-wrap">
+                        <div class="w-full lg:w-1/3">
+                            <div class="flex items-center">
+                                <h4 class="w-auto mr-3 heading text-5xl uppercase">SOX</h4>
+                                <div class="w-2/3 leading-none">
+                                    <p class="w-full inline-block heading text-xs uppercase">
+                                        PHLX Semiconductor
+                                    </p>
+                                    <time class="w-full inline-block heading text-xs uppercase -mt-3">
+                                        9/4/2026
+                                    </time>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap mt-3">
+                        <div class="flex w-full lg:w-1/2 mb-3 lg:mb-0">
+                            <h3 class="dash-heading block w-full my-2">Industry Breakdown</h3>
+                        </div>
+                        <div class="flex w-full lg:justify-end lg:w-1/2 mb-3 lg:mb-0">
+                            <a id="exportLink" href="/Index/ExportBreakdown/SOX" class="tracking-wide uppercase text-blue-500 font-semibold mr-6">
+                                Download
+                                <img src="/Content/Images/Icons/download-icon.svg" alt="Download" class="inline-block ml-2 -mt-1" />
+                            </a>
+                            <a href="#" class="tracking-wide uppercase text-blue-500 font-semibold mr-3">
+                                Reset
+                                <img src="/Content/Images/Icons/reset-icon.svg" alt="Reset" class="inline-block ml-2 -mt-1" />
+                            </a>
+                        </div>
+                    </div>
+
+                    <div id="chartParent" class="flex flex-wrap w-full bg-light-blue p-2 items-center">
+                        <!-- Placeholder -->
+                        <div id="chartcontainer" class="flex w-full lg:w-1/4 lg:-mt-12">
+                        </div>
+                        <div id="customLegend" class="flex flex-wrap w-full lg:w-3/4">
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Aside -->
+            <aside class="w-full lg:w-1/4 px-4 lg:pl-4 lg:pr-16 mt-8">
+
+                <h4 class="uppercase text-sm font-semibold tracking-wide mb-5">
+                    DATE RANGE
+                </h4>
+                <!-- Filters -->
+                <div class="filterContainer flex flex-wrap md:pl-2 lg:pl-4">
+                    <a class="w-full text-blue-500 tracking-widest mb-4">
+                        Set Start and End
+                    </a>
+                    <div class="w-full mb-6 md:mb-3">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="start-date">
+                            Start Date
+                        </label>
+                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 py-3 px-4 mb-3 leading-tight focus:outline-none focus:border-gray-500" id="startDate" type="text" placeholder="MM/DD/YYYY">
+                    </div>
+                    <div class="w-full">
+                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="end-date">
+                            End Date
+                        </label>
+                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 py-3 px-4 leading-tight focus:outline-none focus:border-gray-500" id="endDate" type="text" placeholder="MM/DD/YYYY">
+                    </div>
+
+                    <button id="update" class="w-full bg-blue-500 text-white uppercase font-semibold mt-4 tracking-widest py-4" onclick="updateChart()">
+                        Update
+                    </button>
+                    <div class="w-full mt-2 opacity-50">
+                        <i class="fa fa-info-circle" aria-hidden="true"></i>
+                        <span>Effective Jan 1, 2021, Nasdaq implemented ICB 8-digit methodology on this page.  Information provided here prior to this date uses the 4-digit methodology.</span>
+                    </div>
+                </div>
+
+            </aside>
+        </div>
+    </div>
+</section>
+<!-- Table -->
+<section>
+    <div class="lg:mx-8 w-auto lg:px-16 pt-8">
+        <div class="w-full">
+            <div id="LoadingSpinner"></div>
+        </div>
+        <div id="breakdownData" class="hidden relative block w-full mb-4 lg:mb-12 overflow-x-auto ">
+        </div>
+    </div>
+</section>
+
+
+
+    <footer class="mt-10">
+    
+    <!-- Bottom Links -->
+    <section class="flex flex-wrap bg-dark px-6 lg:px-20 pt-6 lg:pt-16 pb-6">
+        <div class="lg:w-2/3 pr-0 lg:pr-20">
+            <div class="flex flex-wrap">
+                <div class="w-full lg:w-1/3">
+                    <a href="https://new.nasdaq.com/about" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest linkExternal">
+                        About
+                    </a>
+                    <a href="/Home/Disclaimer" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest">
+                        Disclaimer
+                    </a>
+                    <a href="https://ir.nasdaq.com/" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Investor Relations
+                    </a>
+                    <a href="/AccessibilityStatement" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Accessibility
+                    </a>
+                </div>
+                <div class="w-full lg:w-1/3">
+                    <a href="https://new.nasdaq.com/about/press-center" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Press
+                    </a>
+                    <a href="https://new.nasdaq.com/about/careers" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Careers
+                    </a>
+                    <a href="/contactus" class="block mb-3 w-full text-blue-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Contact
+                    </a>
+                </div>
+                <div class="w-full lg:w-1/3">
+                    <a href="https://new.nasdaq.com/cookie-statement" class="block mb-3 w-full text-gray-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Cookie Policy
+                    </a>
+                    <a href="https://new.nasdaq.com/privacy-statement" class="block mb-3 w-full text-gray-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Privacy Policy
+                    </a>
+                    <a href="https://new.nasdaq.com/transparency-statements" class="block mb-3 w-full text-gray-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Transparency Statements
+                    </a>
+                    <a href="https://www.nasdaq.com/legal" class="block mb-3 w-full text-gray-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Legal
+                    </a>
+                    <a href="https://www.nasdaq.com/ccpa" class="block mb-3 w-full text-gray-500 hover:text-white uppercase tracking-widest linkExternal">
+                        Do Not Sell My Personal Information (CA Residents Only)
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Logo Block -->
+        <div class="lg:w-1/3 md:mx-auto pr-0">
+            <a href="#" class="float-left lg:float-right mt-8 lg:mt-0">
+                <img src="/Content/Images/logo-white.svg" alt="Nasdaq" />
+            </a>
+        </div>
+    </section>
+
+    <section class="flex flex-wrap bg-dark px-6 md:px-20 pt-6 pb-12">
+        <div class="w-full justify-start lg:w-2/3">
+            <!-- Icons -->
+            <a href="https://www.facebook.com/Nasdaq/" class="inline-block mr-8">
+                <img src="/Content/Images/Social/facebook.svg" alt="Facebook" />
+            </a>
+            <a href="https://twitter.com/Nasdaq" class="inline-block mr-8">
+                <img src="/Content/Images/Social/twitter.svg" alt="Twitter" />
+            </a>
+            <a href="https://www.linkedin.com/company/nasdaq/" class="inline-block mr-8">
+                <img src="/Content/Images/Social/linkedin.svg" alt="LinkedIn" />
+            </a>
+            <a href="https://www.instagram.com/nasdaq" class="inline-block mr-8">
+                <img src="/Content/Images/Social/instagram.svg" alt="Instagram" />
+            </a>
+            <a href="https://www.pinterest.com/nasdaq/" class="inline-block mr-8">
+                <img src="/Content/Images/Social/pinterest.svg" alt="Pinterest" />
+            </a>
+        </div>
+        <div class="w-full lg:w-1/3">
+            <p class="text-gray-500 text-left lg:text-right text-xs mt-4 lg:mt-0">
+              ©2026, Nasdaq, Inc. All Rights Reserved.
+            </p>
+        </div>
+    </section>
+</footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="/Scripts/bootstrap.js" type="text/javascript"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js" integrity="sha256-lSjKY0/srUM9BE3dPm+c4fBo1dky2v27Gdjm2uoZaL0=" crossorigin="anonymous"></script>
+
+
+    <script src="/Scripts/Site.js?v=2.0.0.33192" type="text/javascript"></script>
+    <script src="/Scripts/SiteSearch.js?v=2.0.0.33192" type="text/javascript"></script>
+    <script src="/Scripts/moment.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/selectize@0.12.6/dist/js/standalone/selectize.min.js"></script>
+    <!--
+        <script src="https://cdn.jsdelivr.net/autocomplete.js/0/autocomplete.jquery.min.js"></script>
+    -->
+    <!-- Google tag (gtag.js) -->
+    <script type="text/javascript">
+        var head = document.getElementsByTagName('head')[0];
+        var js = document.createElement('script');
+
+        js.type = 'text/javascript';
+
+        if (window.location.hostname.indexOf('beta') > -1)
+        {
+            js.src = 'https://www.googletagmanager.com/gtag/js?id=G-NEGG1FEE5E';
+        }
+        else
+        {
+            js.src = 'https://www.googletagmanager.com/gtag/js?id=G-5YP0JZFRFE';
+        }
+
+        head.appendChild(js);
+    </script>
+    <script type="text/javascript">
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        if (window.location.hostname.indexOf('beta') > -1)
+        {
+            gtag('config', 'G-NEGG1FEE5E');
+        }
+        else
+        {
+            gtag('config', 'G-5YP0JZFRFE');
+        }
+    </script>
+    <script type="text/javascript">
+        var _elqQ = _elqQ || [];
+        _elqQ.push(['elqSetSiteId', '1981692173']);
+        _elqQ.push(['elqUseFirstPartyCookie', 'tracking.nasdaq.com']);
+        _elqQ.push(['elqTrackPageView']);
+
+        (function () {
+            function async_load() {
+                var s = document.createElement('script'); s.type = 'text/javascript'; s.async = true;
+                s.src = '//img04.en25.com/i/elqCfg.min.js';
+                var x = document.getElementsByTagName('script')[0]; x.parentNode.insertBefore(s, x);
+            }
+            if (window.addEventListener) window.addEventListener('DOMContentLoaded', async_load, false);
+            else if (window.attachEvent) window.attachEvent('onload', async_load);
+        })();
+    </script>
+    <script type="text/javascript">
+        _bizo_data_partner_id = "100";
+    </script>
+    <script type="text/javascript">
+        (function () {
+            var s = document.getElementsByTagName("script")[0];
+            var b = document.createElement("script");
+            b.type = "text/javascript";
+            b.async = true;
+            b.src = (window.location.protocol === "https:" ? "https://sjs" : "http://js") + ".bizographics.com/insight.min.js";
+            s.parentNode.insertBefore(b, s);
+        })();
+    </script>
+    <script>
+        (function (apiKey) {
+            (function (p, e, n, d, o) {
+                var v, w, x, y, z; o = p[d] = p[d] || {}; o._q = o._q || [];
+                v = ['initialize', 'identify', 'updateOptions', 'pageLoad', 'track']; for (w = 0, x = v.length; w < x; ++w)(function (m) {
+                    o[m] = o[m] || function () { o._q[m === v[0] ? 'unshift' : 'push']([m].concat([].slice.call(arguments, 0))); };
+                })(v[w]);
+                y = e.createElement(n); y.async = !0; y.src = 'https://cdn.pendo.io/agent/static/' + apiKey + '/pendo.js';
+                z = e.getElementsByTagName(n)[0]; z.parentNode.insertBefore(y, z);
+            })(window, document, 'script', 'pendo');
+
+            // This function creates visitors and accounts in Pendo
+            // You will need to replace <visitor-id-goes-here> and <account-id-goes-here> with values you use in your app
+            // Please use Strings, Numbers, or Bools for value types.
+            pendo.initialize({
+                visitor: {
+                    id: '', // Required if user is logged in
+                    email: '',      // Recommended if using Pendo Feedback, or NPS Email
+                    userName: '',
+                    firstName: '',
+                    lastName: ''             
+                },
+
+                account: {
+                    id: '' // Highly recommended, required if using Pendo Feedback
+                   
+                }
+            });
+        })('406da3eb-f533-4643-70fa-a755a4278a44');
+    </script>
+    <noscript>
+        <img height="1" width="1" alt="" style="display:none;" src="//www.bizographics.com/collect/?pid=100&fmt=gif" />
+    </noscript>
+    
+    <script src="https://code.highcharts.com/stock/11.1.0/highstock.js" type="text/javascript"></script> 
+    <script type="text/javascript">
+
+        SetCurrentTab();
+
+        var dateMin = null;
+        var startDate = null;
+        var today = new Date();
+
+            
+            dateMin = 0;
+            startDate = today;
+            
+    </script>
+    <script>
+
+        function addDays(date, days) {
+            var result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+
+        function updateChart() {
+            $("#customLegend").empty(); //clear the legend before updating
+
+            var startDate = $("#startDate").datepicker("getDate"); //use the current day or last business date
+            if (!startDate) {
+                startDate = new Date();
+                startDate.setHours(0, 0, 0, 0);
+            }
+            if (startDate.getDay() == 6) { // Saturday
+                addDays(startDate, -1);
+            }
+            if (startDate.getDay() == 0) { // Sunday
+                addDays(startDate, -2);
+            }
+
+            var endDate = $("#endDate").datepicker("getDate"); //use the current day or last business date
+            if (!endDate) {
+                endDate = new Date();
+                endDate.setHours(0, 0, 0, 0);
+            }
+            if (endDate.getDay() == 6) { // Saturday
+                addDays(endDate, -1);
+            }
+            if (endDate.getDay() == 0) { // Sunday
+                addDays(endDate, -2);
+            }
+
+            var options = {
+                chart: {
+                    plotBackgroundColor: null,
+                    plotBorderWidth: null,
+                    plotShadow: false,
+                    backgroundColor: "#edf2f7",
+                    type: 'pie',
+                    events: {
+                        load: function () {
+                            var legend = $('#customLegend');
+                            var wrapperStart = '<div class="flex flex-wrap w-1/2 lg:w-1/3 p-2">'
+                                + '<div class="inline-flex w-full items-center">'
+                                + '<svg height="8" width="8" class="inline-flex mr-3">';
+                            if (!this.series[0] || !this.series[0].data.length) {
+                                $("#chartParent").hide();
+                            } else {
+                                setTimeout(function () {
+                                    $("#chartParent").show();
+                                }, 100)
+                            }
+                            $.each(this.series[0].data, function (j, data) {
+                                legend.append(wrapperStart
+                                    + '<circle cx="4" cy="4" r="4" stroke="none" stroke-width="0" fill="'
+                                    + data.color
+                                    + '" /></svg><p class="inline-flex font-semibold uppercase" style="font-size: 13px; color: '
+                                    + data.color
+                                    + ';">'
+                                    + data.name
+                                    + '</p></div>' + '<div class="block w-full text-3xl heading">'
+                                    + '<data>' + data.y.toFixed(2) + '%</data>'
+                                    + '</div>'
+                                );
+                            });
+
+                        }
+                    }
+                },
+                credits: {
+                    enabled: false
+                },
+                title: {
+                    text: undefined
+                },
+                tooltip: {
+                    //pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+                    pointFormatter: function () {
+                        var value = Highcharts.numberFormat(this.y, 2);
+                        return 'Holdings: <b>' + value + '%</b>';
+                    }
+                },
+                accessibility: {
+                    point: {
+                        valueSuffix: '%'
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        float: true,
+                        dataLabels: {
+                            enabled: false,
+                            format: '<b>{point.name}</b>: {point.percentage:.1f} %'
+
+                        },
+                        colors: ["#0092bc", "#cc4db3", "#6743D1", "#ffd433", "#ff5b65", "#9c75f2", "#faa04d", "#1ac9bd", "#8d6e63", "#3dcf60", "#3667e4"]
+                    }
+                },
+                series: [{
+                    name: 'Holdings',
+                    colorByPoint: true,
+                    data: function () {
+                        return dataList.toString();
+                    }
+                }],
+
+            };
+
+            var seriesData = [];
+            options.series[0].data = [];
+            $.ajax({
+                url: "/Index/BreakdownData",
+                type: "POST",
+                data: { id: $("#symbol").text(), startDate: startDate.toISONonUtcString(), endDate: endDate.toISONonUtcString() },
+                dataType: "html",
+                success: function (jsonData) {
+                    var dataFromService = JSON.parse(jsonData);
+                    for (i = dataFromService.length - 1; i > 0; i--) {
+                        if (dataFromService[i].length > 0) {
+                            var item = dataFromService[i][dataFromService[i].length - 1].ColumnInfo;
+                            for (var key of Object.keys(item)) {
+                                var obj = {};
+                                obj.name = key;
+                                obj.y = item[key];
+                                seriesData.push(obj);
+                            }
+                            break;
+                        }
+                    }
+                    options.series[0].data = seriesData;
+                    var chart = new Highcharts.Chart('chartcontainer', options);
+                },
+                error: function (jsonData, status, xhr) {
+                    return;
+                }
+            });
+
+
+        }
+
+        $(document).ready(updateChart());
+
+    </script>
+    <script src="/Scripts/jquery.dataTables.min.js" type="text/javascript"></script>
+    <script src="/Scripts/Breakdown.js?v=2.0.0.33192" type="text/javascript"></script>
+
+</body>
+</html>

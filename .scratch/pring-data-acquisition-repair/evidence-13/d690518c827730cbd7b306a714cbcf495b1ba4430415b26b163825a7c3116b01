@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+ <meta name="viewport" content="width=device-width, initial-scale=1"> 
+<!--上面3个meta必须在最顶部-->
+<meta name="renderer" content="webkit">
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no,maximum-scale=1.0,user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<meta name="format-detection" content="email=no">
+<meta name="renderer" content="webkit">
+<title>回购定盘利率_FR007_FDR007_债券正逆回购交易_中国货币网</title>
+<meta name="keywords" content="回购定盘利率,银银间回购定盘利率">
+<meta name="description" content="银行间回购定盘利率是以银行间市场每天上午9:00-11:30间的回购交易利率为基础同时借鉴国际经验编制而成的利率基准参考指标，每天上午11:30起对外发布。">
+<link rel="canonical" href="http://www.chinamoney.com.cn/english/bkfrr/"/><link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-basic.4.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/jquery-ui-1.10.4.custom.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/jquery.mCustomScrollbar.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-layout.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-scope.css">
+<link rel="stylesheet" href="/r/cms/chinese/chinamoney/assets/css/cm-webeditor.css">
+
+
+<!-- script -->
+<!-- 下列script必须按序加载，勿使用异步加载 -->
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery-1.12.2.min.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery-ui-1.10.4.custom.min.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/cm-jquery-ui-default.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery.flexslider-min.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery.mousewheel.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/jquery.mCustomScrollbar.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/grayscale.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/cm-basic.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/cm-gray.js"></script>
+<script type="text/javascript" src="/r/cms/chinese/chinamoney/assets/js/echarts.min.js"></script>
+
+
+<!-- 初始化栏目常量 -->
+
+
+
+
+</head>
+<body>
+<div id="main-page">
+    <div id="main-page-head" data-role="header" data-for="block" data-url="/chinese/mainhead/"></div>
+    <!-- #main-page-head end -->
+
+
+    <div id="main-page-body" data-role="page">
+				<div class="main-page-body-inner" style="background-image: url('/u/cms/chinese/202005/012151362bn0.png');">
+		    <div class="main-body">
+		        <div class="main-body-l">
+<input type="hidden" value="0" id= "hasPhoneTitle"></input>
+<div id="main-side-menu">
+		<div class="side-menu-title" id="phone-title">
+	      <span class="title-xl" data-mid="3" data-channel="jzzb">
+        			基准
+	      </span>
+	  </div>
+	  <ul class="side-menu-list">
+			      <li class="has-drop" data-mid="3-1" data-index="0" id="li-3-1">
+								<a class="lv lv-2" href="/chinese/bkccpr/" target="_self" data-channel="bkwhmarket">
+				        			外汇市场
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="3-1-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/bkccpr/" target="_self" data-channel="bkccpr">
+						                  
+											        			人民币汇率中间价
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/bkcrr/" target="_self" data-channel="bkcrr">
+						                  
+											        			人民币参考汇率
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/bkrmbidx/" target="_self" data-channel="bkrmbidx">
+						                  
+											        			人民币汇率指数
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/bkusd/" target="_self" data-channel="bkusd">
+						                  
+											        			USD CIROR
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-5" data-index="4">
+																<a class="lv lv-3" href="/chinese/bkcurvfsw/" target="_self" data-channel="bkcurvfsw">
+						                  
+											        			外汇掉期曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-6" data-index="5">
+																<a class="lv lv-3" href="/chinese/bkcurvuir/" target="_self" data-channel="bkcurvuir">
+						                  
+											        			外币隐含利率曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-7" data-index="6">
+																<a class="lv lv-3" href="/chinese/bkcurvfqq/" target="_self" data-channel="bkcurvfqq">
+						                  
+											        			外汇期权隐含波动率曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-8" data-index="7">
+																<a class="lv lv-3" href="/chinese/bkcurvdel/" target="_self" data-channel="bkcurvdel">
+						                  
+											        			外汇期权Delta计量参数
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-9" data-index="8">
+																<a class="lv lv-3" href="/chinese/bkcurvcsw/" target="_self" data-channel="bkcurvcsw">
+						                  
+											        			货币掉期曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-2" data-index="1" id="li-3-2">
+								<a class="lv lv-2" href="/chinese/bkshibor/" target="_self" data-channel="bkbbmarket">
+				        			本币市场
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="3-2-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/bkshibor/" target="_self" data-channel="bkshibor">
+						                  
+											        			Shibor
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/bklpr/" target="_self" data-channel="bklpr">
+						                  
+											        			LPR
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-3" data-index="2">
+																<a class="lv lv-3" href="/chinese/bkfrr/" target="_self" data-channel="bkfrr">
+						                  
+											        			回购定盘利率
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              			$("#hasPhoneTitle").val("1");
+						              			$('#phone-title').append('<span class="title-s" data-mid="3-2-3" data-channel="bkfrr">回购定盘利率</span>');
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-4" data-index="3">
+																<a class="lv lv-3" href="/chinese/bkind/" target="_self" data-channel="bkind">
+						                  
+											        			债券指数
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-5" data-index="4">
+																<a class="lv lv-3" href="/chinese/bkcurvrty/" target="_self" data-channel="bkcurvrty">
+						                  
+											        			债券实时收益率曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-6" data-index="5">
+																<a class="lv lv-3" href="/chinese/bkcurvclosedy/" target="_self" data-channel="bkcurvclosedy">
+						                  
+											        			债券收盘收益率曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-7" data-index="6">
+																<a class="lv lv-3" href="/chinese/bkcurvfx/" target="_self" data-channel="bkcurvfx">
+						                  
+											        			利率互换曲线
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-8" data-index="7">
+																<a class="lv lv-3" href="/chinese/bkval/" target="_self" data-channel="bkval">
+						                  
+											        			债券估值
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-9" data-index="8">
+																<a class="lv lv-3" href="/chinese/cdsindx/" target="_self" data-channel="cdsindx">
+						                  
+											        			CDS指数
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-3" data-index="2" id="li-3-3">
+								<a class="lv lv-2" href="/chinese/sddsint/" target="_self" data-channel="sdds">
+				        			利率与汇率（SDDS）
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="3-3-1" data-index="0">
+																<a class="lv lv-3" href="/chinese/sddsint/" target="_self" data-channel="sddsint">
+						                  
+											        			利率数据
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+						              <li data-mid="3-3-2" data-index="1">
+																<a class="lv lv-3" href="/chinese/sddshl/" target="_self" data-channel="sddshl">
+						                  
+											        			汇率数据
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-4" data-index="3" id="li-3-4">
+								<a class="lv lv-2" href="/chinese/fxbglm/" target="_self" data-channel="fxbglm">
+				        			分析报告
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+				              		<script>
+				              			$(function(){
+						              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+														$('#li-3-4').attr('class','');
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-5" data-index="4" id="li-3-5">
+								<a class="lv lv-2" href="/chinese/jzzbjbgz/" target="_self" data-channel="jzzbjbgz">
+				        			基准指标基本原则
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+			              		<script>
+			              			$(function(){
+														$('#li-3-5').attr('class','');
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+
+	  </ul>
+	<div id="whsczlwxtp"></div>  
+</div>
+
+<script>
+	$(function(){
+		if($("#hasPhoneTitle").val()=="0"){
+			$('#phone-title').append('<span class="title-s" data-mid="" data-channel="">&nbsp;</span>');
+		}
+		var initReady11 = setInterval(function(){
+	    if (DOTABS) {
+	    	clearInterval(initReady11);
+	        var currentTab = $('.side-menu-list').children('.current').children('a').html().trim();
+	        if(currentTab == '外汇市场自律'){
+	        	$('#whsczlwxtp').html('<img src="/r/cms/chinese/chinamoney/assets/old/images/erweima.jpg" style="max-width: 100%; max-height: 100%"/>	');
+	        if(MEDIA_CASE=='XS' || MEDIA_CASE =="S"){
+			$('#whsczlwxtp').attr('style','display:none;');
+		}else{
+			$('#whsczlwxtp').attr('style','');
+		}
+}
+	    }
+	}, 10);
+$(window).on('resize.leftmenu', function(e, duration) {
+		if(MEDIA_CASE=='XS' || MEDIA_CASE =="S"){
+			$('#whsczlwxtp').attr('style','display:none;');
+		}else{
+			$('#whsczlwxtp').attr('style','');
+		}
+	});
+	});
+</script>		        </div>
+		        <input type="hidden" id="rel-channel-path-id" value="bkfrr"/>
+		        <div class="main-body-m" data-role="subpage">
+		    	    <div class="subpage">
+		    	    	<div class="section-a section-a-default">
+		    	    		<div class="section-a-body">
+<!-- tab标签 -->
+<ul class="san-tabs-a" id="tp_content_tab_list">
+					<li data-tabs-index="1">
+						<a href="javascript:void(0);" >
+							<span>
+		        			回购定盘利率
+							</span>
+            </a>
+          </li>
+					<li data-tabs-index="2">
+						<a href="javascript:void(0);" >
+							<span>
+		        			银银间回购定盘利率
+							</span>
+            </a>
+          </li>
+					<li data-tabs-index="3">
+						<a href="javascript:void(0);" >
+							<span>
+		        			历史数据
+							</span>
+            </a>
+          </li>
+					<li data-tabs-index="4">
+						<a href="javascript:void(0);" >
+							<span>
+		        			编制方案
+							</span>
+            </a>
+          </li>
+   </ul>
+
+   <div class="san-tabs-content">
+   	<div class="san-tabs-panel" data-show="load"></div>
+					<div class="san-tabs-panel" data-show="toggle">
+
+		
+		<div class="tp-block" data-url="/r/cms/chinese/chinamoney/html/currency/frr-cn.html"></div>
+
+			        </div>
+					<div class="san-tabs-panel" data-show="toggle">
+
+		
+		<div class="tp-block" data-url="/r/cms/chinese/chinamoney/html/currency/fdr-cn.html"></div>
+
+			        </div>
+					<div class="san-tabs-panel" data-show="toggle">
+
+		
+		<div class="tp-block" data-url="/r/cms/chinese/chinamoney/html/currency/frr-fdr-his-cn.html"></div>
+
+			        </div>
+			        <div class="san-tabs-panel san-tabs-panel-170518" data-show="toggle">
+				         	<div class="section-a">
+										<div class="section-a-body">
+											<div class="san-row">
+												<div class="san-col-12 san-col-m-12 san-col-s-12">
+													<div class="section-a">
+														<div class="section-a-body">
+															<div data-source="webeditor">
+																	<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">银行间回购定盘利率是以银行间市场每天上午9:00-11:30间的回购交易利率为基础同时借鉴国际经验编制而成的利率基准参考指标，每天上午11:30起对外发布。回购定盘利率包括FR001、FR007、FR014、FDR001、FDR007、FDR014等品种，其中FDR001、FDR007和FDR014为银银间回购定盘利率品种。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">FR001</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">、FR007和FR014编制方法如下：</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">1.</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">以隔夜回购（R001）、七天回购（R007）、14天回购（R014）交易在每个交易日上午9:00-11:30之间（包括9:00和11:30）的全部成交利率为计算基础。特别地，交易对手相同(交易方向相同或相反)且交易利率相同的交易只作为一笔交易纳入样本。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">2.</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">分别对隔夜回购、七天回购、14天回购利率进行排序，记从小到大排序之后的最大序号为N，则[N/2]（向下取整）+1位置上的那个利率即为当日的定盘利率。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">3.</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">隔夜回购定盘利率、七天回购定盘利率、14天回购定盘利率分别以FR001、FR007、FR014进行标识。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">4.</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">异常情况处理。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">如果当日某个回购品种在9:00-11:30没有成交数据，则选用当日Shibor对应期限利率*365/360作为当日定盘利率。</span></p>
+<br style="margin: 0px; padding: 0px; color: rgb(0, 0, 0); font-family: Microsoft Yahei; font-size: 10.5pt; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 2em; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial;">
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">银银间回购定盘利率FDR001、FDR007和FDR014以银行间市场每天上午9:00-11:30存款类机构以利率债为质押的回购交易为样本，编制方法如下：</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">1</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">、存款类机构包括政策性银行、大型商业银行、股份制银行、城市商业银行、农村商业银行及合作银行、农村信用联社、外资银行、民营银行、村镇银行等存款类机构；利率债包括国债、央行票据和政策性金融债。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">2</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">、以银银间隔夜回购（DR001）、7天回购（DR007）、14天回购（DR014）交易在每个交易日上午9:00-11:30的全部成交利率为计算基础。特别地，交易对手相同（交易方向相同或相反）且交易利率相同的交易只作为一笔交易纳入样本。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">3</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">、分别对银银间隔夜回购、7天回购、14天回购利率进行排序，记从小到大排序之后的最大序号为N，则[N/2]（向下取整）+1位置上的那个利率即为当日的银银间定盘利率。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">4</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">、银银间隔夜回购定盘利率、7天回购定盘利率、14天回购定盘利率分别以FDR001、FDR007、FDR014进行标识。</span></p>
+<p class="MsoNormal" align="left" style="margin: 0cm 0cm 0.0001pt; padding: 5px; border-width: 0px; line-height: 180%; font-family: Microsoft Yahei, sans-serif; text-align: left; font-size: 10.5pt; color: rgb(0, 0, 0); font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; text-decoration-style: initial; text-decoration-color: initial; background: white; text-indent: 2em;"><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">5</span><span style="margin: 0px; padding: 0px; font-size: 10.5pt; color: black; font-family: Microsoft Yahei;">、异常情况处理：如果当日某个银银间回购品种在9:00-11:30没有成交数据，则选用当日Shibor对应期限利率*365/360作为当日银银间回购定盘利率。</span></p>
+																	</div>
+                            </div>
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
+			        </div>
+   </div>
+<!--san-tabs-content end-->
+		    	    		</div>	
+		    	    	</div>
+		    	    </div>
+		    		</div>
+				</div>
+			</div>
+    </div>
+    <!-- #main-page-body end -->
+
+    <div id="main-page-foot" data-role="footer" data-for="block" data-url="/chinese/mainfoot/"></div>
+    <!-- #main-page-foot end -->
+    <div id="fixed-navi" data-for="block" data-url="/chinese/fixednavi/"></div>
+</div>	
+
+<script>
+$(function(){
+	var initReady = setInterval(function(){
+      if ('san' in window) {
+          clearInterval(initReady);
+          doJumptoByDatafor();
+          //指定默认tab页，如/chinese/home/index.html?tab=2
+					var tab = getQueryStr('tab');
+					if(!tab){
+						tab = 1;
+					}
+					var initTabs = setInterval(function(){
+				      if (DOTABS) {
+				        clearInterval(initTabs);
+				      	$("#tp_content_tab_list").sanTabs({
+				            tabs: 'san-tabs-a',
+				            defaultItem: tab,
+				            equalWidth: false,
+				            inject:true,
+				            type:"mix",
+				            once:false,
+				            onDone:function($li){
+				            	var index=$li.attr('data-tabs-index');
+				            	$('.san-tabs-panel[data-tabs-index="'+index+'"]').find('div[data-url]:not(.san-datasheet)').each(function(){
+				            		$(this).sanJumpto();
+				            	})
+				            }
+				        });
+				      }
+				  }, 10);
+        
+      }
+  }, 10);
+
+});
+</script>
+</body>
+</html>

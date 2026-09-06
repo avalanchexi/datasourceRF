@@ -1,0 +1,541 @@
+{
+  "observed_at": "2026-09-06T17:13:04.602885+00:00",
+  "count": 13,
+  "scope": "Research classification, not a runtime status update or certification",
+  "metrics": [
+    {
+      "metric_id": "CN_GDP",
+      "identity": "NBS official GDP: nominal cumulative levels in 100 million CNY; real quarterly YoY in percent, aggregate-specific",
+      "access_condition": "public NBS releases; TuShare account/600 points documented, current account not inspected",
+      "current_credentials_checked": false,
+      "integration": "NBS official parser and TuShare gdp worker exist",
+      "remaining": "GDP dimensions conflict; official cumulative vs quarterly column must be separated; source precision also differs",
+      "publication_boundary": "official sample publication 2026-07-16T09:30:00+08:00",
+      "primary_local_sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "legacy_definition": {
+        "metric_id": "CN_GDP",
+        "name_cn": "CN_GDP",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "hundred_million_cny",
+        "frequency": "quarterly",
+        "dimensions": [
+          "aggregate",
+          "measure"
+        ],
+        "source_codes": [
+          "CN_GDP"
+        ],
+        "source_candidates": [
+          "CN_GDP"
+        ],
+        "certification_status": "certified",
+        "release_event_family": "nbs_gdp",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 88,
+        "system_at_0828": 0,
+        "system_at_research": 88
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+      "identity": "PBC/CFETS USD/CNY central parity, CNY per 1 USD",
+      "access_condition": "public PBC announcement, distinct from CFETS licensed market feed",
+      "current_credentials_checked": false,
+      "integration": "official parser and registered optional source family exist; no observations in inspected legacy catalog",
+      "remaining": "captured and pure-parsed 2026-09-04=6.7787; needs acquisition lineage and candidate certification",
+      "publication_boundary": "page timestamp 2026-09-04T09:25:17+08:00; 09:15 schedule does not override actual page",
+      "primary_local_sha256": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+      "legacy_definition": {
+        "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+        "name_cn": "CN_USDCNY_CENTRAL_PARITY",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "cny_per_usd",
+        "frequency": "daily",
+        "dimensions": [
+          "currency_pair",
+          "quote_direction"
+        ],
+        "source_codes": [
+          "PBC_CFETS_USDCNY_CENTRAL_PARITY"
+        ],
+        "source_candidates": [
+          "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/index.html"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "pbc_usdcny_central_parity",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "cny_per_usd"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "CN_USDCNH_FXCM",
+      "identity": "FXCM USDCNH.FXCM OTC provider quote, CNH per USD; bid/ask must be explicit",
+      "access_condition": "TuShare fx_daily documents account/2000 points; delivery and reuse entitlement not inspected",
+      "current_credentials_checked": false,
+      "integration": "catalog placeholder only, no concrete fx_daily adapter found",
+      "remaining": "unit index_points is wrong; choose bid/ask/mid rule and GMT daily boundary; no live quote acquired",
+      "publication_boundary": "provider business date GMT is not exact publication; no release evidence",
+      "primary_local_sha256": "bb547353aa36385e5b5d68a60eff43ad014e4b9f3260073642c4279db511b085",
+      "legacy_definition": {
+        "metric_id": "CN_USDCNH_FXCM",
+        "name_cn": "CN_USDCNH_FXCM",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "index_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "CN_USDCNH_FXCM"
+        ],
+        "source_candidates": [
+          "CN_USDCNH_FXCM"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "cn_usdcnh_fxcm",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "index_points"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "CN_USDCNY_CLOSE_1630",
+      "identity": "CFETS onshore USD/CNY 16:30 spot closing price, CNY per USD",
+      "access_condition": "market data rights are conditional; no project entitlement verified, no account request",
+      "current_credentials_checked": false,
+      "integration": "catalog placeholder only; no concrete adapter found",
+      "remaining": "scalar unit placeholder; needs licensed/public-permitted delivery and actual quote evidence; cannot substitute parity or FXCM",
+      "publication_boundary": "official schedule 16:30 Asia/Shanghai remains; this is not per-date actual release proof",
+      "primary_local_sha256": "3a0eab7fc9d21b0c28449d1b557a5fbb8b615650f8cba8eb3f3bea37cf950581",
+      "legacy_definition": {
+        "metric_id": "CN_USDCNY_CLOSE_1630",
+        "name_cn": "CN_USDCNY_CLOSE_1630",
+        "priority": "P2",
+        "role": "macro_confirmation",
+        "unit": "scalar",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "source_candidates": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "cn_usdcny_close_1630",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "scalar"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+      "identity": "COMEX GC exchange active-month settlement USD per troy ounce, contract month and roll rule required",
+      "access_condition": "public web viewing is delayed midnight CT; DataMine and streaming delivery account/license conditions; no entitlement inspected",
+      "current_credentials_checked": false,
+      "integration": "catalog identity exists, no concrete quote adapter found",
+      "remaining": "no settlement numeric raw; CME 3 direct GETs returned same 403 body; owner web-tool FAQ/rule supports identity only",
+      "publication_boundary": "13:29-13:30 ET calculation window differs from release channel; midnight CT applies website, not all deliveries",
+      "primary_local_sha256": null,
+      "legacy_definition": {
+        "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "name_cn": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_troy_ounce",
+        "frequency": "daily",
+        "dimensions": [
+          "contract_month",
+          "measure",
+          "roll_chain_version"
+        ],
+        "source_codes": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "source_candidates": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "comex_gc_active_month_settlement_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+      "identity": "LBMA Gold Price PM USD per troy ounce, unallocated loco London, IBA auction benchmark",
+      "access_condition": "historical tables moved to MyLBMA; relevant IBA licence required; no account/license proof",
+      "current_credentials_checked": false,
+      "integration": "catalog identity exists; no concrete quote adapter found",
+      "remaining": "no benchmark numeric raw; preserve explicitly restricted missing state",
+      "publication_boundary": "PM auction starts 15:00 Europe/London; duration variable; no final publication evidence",
+      "primary_local_sha256": "35da9618a31149a9e05ad50feaa274cbbf19542d7266de2984de1c02b0f9bbf9",
+      "legacy_definition": {
+        "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "name_cn": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_troy_ounce",
+        "frequency": "daily",
+        "dimensions": [
+          "fixing",
+          "measure"
+        ],
+        "source_codes": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "source_candidates": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "lbma_gold_price_pm_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "EIA_BRENT_RBRTE",
+      "identity": "EIA Europe Brent Spot Price FOB, RBRTE daily, USD/barrel",
+      "access_condition": "public historical HTML/Excel channel exists; current project API path requires EIA key, not inspected",
+      "current_credentials_checked": false,
+      "integration": "EIA API adapter and worker key-conditional acquisition exist; legacy catalog has zero rows",
+      "remaining": "public file captured and sample parsed; HTML acquisition adapter/certification not completed",
+      "publication_boundary": "snapshot release date 2026-09-02; next 2026-09-10; per-day initial publication unknown",
+      "primary_local_sha256": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+      "legacy_definition": {
+        "metric_id": "EIA_BRENT_RBRTE",
+        "name_cn": "EIA_BRENT_RBRTE",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_barrel",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "RBRTE"
+        ],
+        "source_candidates": [
+          "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "eia_petroleum_spot_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_barrel"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "EIA_WTI_RWTC",
+      "identity": "EIA Cushing OK WTI Spot Price FOB, RWTC daily, USD/barrel",
+      "access_condition": "public historical HTML/Excel channel exists; current project API path requires EIA key, not inspected",
+      "current_credentials_checked": false,
+      "integration": "EIA API adapter and worker key-conditional acquisition exist; legacy catalog has zero rows",
+      "remaining": "public file captured and sample parsed; HTML acquisition adapter/certification not completed",
+      "publication_boundary": "snapshot release date 2026-09-02; next 2026-09-10; per-day initial publication unknown",
+      "primary_local_sha256": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+      "legacy_definition": {
+        "metric_id": "EIA_WTI_RWTC",
+        "name_cn": "EIA_WTI_RWTC",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "usd_per_barrel",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "RWTC"
+        ],
+        "source_candidates": [
+          "https://api.eia.gov/v2/petroleum/pri/spt/data/"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "eia_petroleum_spot_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "usd_per_barrel"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "UST10Y_NOMINAL_YIELD",
+      "identity": "US Treasury daily nominal par constant-maturity 10-year yield, percent",
+      "access_condition": "official Treasury public HTML/CSV/XML; existing TuShare delivery needs account, not inspected",
+      "current_credentials_checked": false,
+      "integration": "TuShare us_tycr adapter/worker exist; old certified points are readable",
+      "remaining": "2026-08-28 local4.73 matches official4.73; latest official09-04=4.78; old current flag stale-by-source question",
+      "publication_boundary": "15:30 ET is bid-quote observation time; HTML date is not initial publication proof",
+      "primary_local_sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+      "legacy_definition": {
+        "metric_id": "UST10Y_NOMINAL_YIELD",
+        "name_cn": "UST10Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "percent",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "us_tycr.y10"
+        ],
+        "source_candidates": [
+          "us_tycr.y10"
+        ],
+        "certification_status": "certified",
+        "release_event_family": "ust10y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "percent"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 169,
+        "system_at_0828": 0,
+        "system_at_research": 170
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "UST2Y_NOMINAL_YIELD",
+      "identity": "US Treasury daily nominal par constant-maturity 2-year yield, percent",
+      "access_condition": "official Treasury public HTML/CSV/XML; existing TuShare delivery needs account, not inspected",
+      "current_credentials_checked": false,
+      "integration": "TuShare us_tycr adapter/worker exist; old certified points are readable",
+      "remaining": "2026-08-28 local4.34 matches official4.34; latest official09-04=4.37; old current flag stale-by-source question",
+      "publication_boundary": "15:30 ET is bid-quote observation time; HTML date is not initial publication proof",
+      "primary_local_sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+      "legacy_definition": {
+        "metric_id": "UST2Y_NOMINAL_YIELD",
+        "name_cn": "UST2Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "percent",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "us_tycr.y2"
+        ],
+        "source_candidates": [
+          "us_tycr.y2"
+        ],
+        "certification_status": "certified",
+        "release_event_family": "ust2y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "percent"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 169,
+        "system_at_0828": 0,
+        "system_at_research": 170
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "UST_2S10S_SPREAD",
+      "identity": "100*(10Y percent - 2Y percent), basis points, same date/mode/vintage",
+      "access_condition": "derived from permitted certified input pair; no separate external source needed",
+      "current_credentials_checked": false,
+      "integration": "context projection derivation exists; persist_derived=False used",
+      "remaining": "08-28=39.00bp; latest official09-04=41.00bp; do not inherit current flag blindly",
+      "publication_boundary": "both parent availability cutoffs must pass; no earlier than either parent",
+      "primary_local_sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+      "legacy_definition": {
+        "metric_id": "UST_2S10S_SPREAD",
+        "name_cn": "UST_2S10S_SPREAD",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "basis_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "UST_2S10S_SPREAD"
+        ],
+        "source_candidates": [
+          "UST_2S10S_SPREAD"
+        ],
+        "certification_status": "derived_from_certified_inputs",
+        "release_event_family": "ust_2s10s_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "basis_points"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "CBOE_VIX_INDEX",
+      "identity": "Cboe VIX index daily closing level, points; CSV CLOSE; not VXO or VIX futures",
+      "access_condition": "official CSV publicly downloadable; Cboe terms impose use/storage/derived-product conditions, project production rights unverified",
+      "current_credentials_checked": false,
+      "integration": "catalog only, no concrete VIX adapter found",
+      "remaining": "9266 public CSV rows;09-04 CLOSE14.53; public download alone does not complete production authorization/certification",
+      "publication_boundary": "DATE is source business date; object Last-Modified only current-file metadata, no daily original release",
+      "primary_local_sha256": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+      "legacy_definition": {
+        "metric_id": "CBOE_VIX_INDEX",
+        "name_cn": "CBOE_VIX_INDEX",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "index_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "CBOE_VIX_INDEX"
+        ],
+        "source_candidates": [
+          "CBOE_VIX_INDEX"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "cboe_vix_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "index_points"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    },
+    {
+      "metric_id": "NASDAQ_SOX_INDEX",
+      "identity": "Nasdaq PHLX Semiconductor SOX index level, points; exact version must be retained",
+      "access_condition": "public overview/methodology; full breakdown access requires login; production history/feed entitlement unverified",
+      "current_credentials_checked": false,
+      "integration": "catalog only, no concrete SOX adapter found",
+      "remaining": "public overview09-04=11735.26; no complete licensed historical series acquired",
+      "publication_boundary": "methodology permits closing correction until17:15 ET and dissemination through17:16; overview date not publication instant",
+      "primary_local_sha256": "ce5798e3deb430dc6b750836d7e68b39c8b8bc958372657c3be8e3578352e2f0",
+      "legacy_definition": {
+        "metric_id": "NASDAQ_SOX_INDEX",
+        "name_cn": "NASDAQ_SOX_INDEX",
+        "priority": "P2",
+        "role": "international_context",
+        "unit": "index_points",
+        "frequency": "daily",
+        "dimensions": [],
+        "source_codes": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "source_candidates": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "release_event_family": "nasdaq_sox_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "definition_version": "metric-catalog-v0003",
+        "allowed_units": [
+          "index_points"
+        ]
+      },
+      "legacy_query_counts": {
+        "public_at_0828": 0,
+        "system_at_0828": 0,
+        "system_at_research": 0
+      },
+      "new_certification": false,
+      "formal_stage_vote": false
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+Shibor - CFETS
+Benchmarks
+FX Market
+CNY Central Parity Rate
+CNY Reference Rate
+RMB Index
+USD CIROR
+FX Swap Curves
+Implied Foreign Currencies Interest Rate Curves
+FX Option Implied Volatility Curves
+FX Option Delta Pricing Parameters
+Currency Swaps Curves
+RMB Market
+Shibor
+Loan Prime Rate
+Fixing Repo Rate
+CFETS Bond Indices
+CFETS Real-time Yield Curves
+CFETS Closing Yield Curves
+IRS Curves
+Bond Valuation
+CDS Indices
+Interest & Exchange Rates(SDDS)
+Interest Rate
+Exchange Rate
+Analysis Reports
+Shibor
+Historical Data
+Shibor Panel Banks
+About Shibor
+Shibor (Shanghai Interbank Offered Rate) is calculated, announced and named on the
+technological platform of the National Interbank Funding Center in Shanghai. It is a simple, no-guarantee, wholesale interest rate calculated by arithmetically averaging all the interbank RMB lending rates offered by the price quotation group of banks with a high credit rating. Currently, the Shibor consists of eight maturities: overnight, 1-week, 2-week, 1-month, 3-month, 6-month, 9-month and 1-year.
+The price quotation group of Shibor consists of 18 commercial banks. These quoting banks are primary dealers of open market operation or market makers in the FX market, with sound information disclosure and active RMB transactions in China's money market. Shibor Working Group of PBC decides and adjusts the panel banks, supervises and administrates the Shibor operation, and regulates the behavior of the quoting banks and the specified publisher in accordance with the Implementation Rules of Shibor.
+National Interbank Funding Center is authorized to calculate and publish Shibor. At 11:00AM (Beijing Time) each business day, Shibor of the eight maturities will be published at www.shibor.sh.cn after arithmetically averaging all the quotations of the 18 banks, with the four highest and four lowest quotations excluded.

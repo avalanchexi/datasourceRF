@@ -1,0 +1,323 @@
+PAGE 1
+1 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+ 
+ 
+ 
+ 
+PHLX SEMICONDUCTOR SECTOR TM  INDEX  
+SOX TM  
+INDEX DESCRIPTION  
+The PHLX Semiconductor Sector Index (the “Index”) is designed to measure the performance of the 30 
+largest US-listed semiconductor companies. 
+SECURITY ELIGIBILITY CRITERIA  
+To qualify for index inclusion, securities must meet the following Security Eligibility Criteria, which are 
+applied as of the Reconstitution Reference Date. 
+Security  Types  
+Security types generally eligible for the Index include common stocks, ordinary shares, American 
+Depositary Receipts (ADRs), shares of beneficial interest and limited partnership interests. 
+Multiple Securities Per Issuer  
+One security per issuer is permitted. If an issuer has multiple securities, the security with the largest 
+market capitalization will be considered for possible inclusion into the Index.  
+Listing E xchanges  
+A security must be listed on a U.S. exchange as defined in the Nasdaq Eligible Exchanges. 
+Geographi es and Countries  
+There are no specific geographic requirements for index inclusion, however: 
+A security of a non-US company represented by an ADR may be included in the Index at less than its full 
+global market capitalization. For index purposes, the market capitalization of an ADR will be determined 
+based on the underlying shares on deposit at, and according to, the US depositary bank, adjusted by the 
+ADR ratio. 
+INDEX METHODOLOGY  
+PAGE 2
+2 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+Industr ies and Sectors  
+The security must be classified under the Semiconductors Subsector or Production Technology 
+Equipment Subsector according to the Industry Classification Benchmark (ICB), a product of FTSE 
+International Limited that is licensed for this use.   
+Market Capitalization 
+A security must have a minimum market capitalization of $100 million.  
+Liquidity  
+A security must have traded at least 1.5 million shares in each of the six calendar months up to and 
+including the month containing the Reconstitution Reference Date.  
+Seasoning  
+A security must have been traded for at least three months prior to the Reconstitution Reference Date.  
+Other Eligibility Criteria  
+The security must have listed options on a registered options market in the U.S. or be eligible for listed 
+options trading on a registered options market in the U.S. 
+The security may not be issued by an issuer currently in bankruptcy proceedings.   
+If, at index reconstitution, Nasdaq becomes aware that an issuer or security will soon undergo a 
+fundamental change that makes it ineligible, Nasdaq will remove the security from consideration. This 
+includes entering into a definitive merger or acquisition agreement or other pending arrangement that 
+would make it ineligible for index inclusion, or a filing of bankruptcy or similar protection from creditors. 
+CONSTITUENT SELECTION  
+Constituent Selection Process  
+An index reconstitution is conducted annually based on the Reconstitution Reference Date.  
+The Index selects the 30 largest eligible securities by market capitalization. 
+ 
+PAGE 3
+3 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+CONSTITUENT WEIGHTING  
+Constituent Weighting Scheme 
+The Index is a modified market capitalization-weighted index.   
+Constituent Weighting Process  
+An index rebalance is conducted quarterly based on the Rebalance Reference Date. 
+Index Securities’ initial weights are determined by dividing each Index Security's market capitalization by 
+the aggregate market capitalization of all Index Securities.  
+These initial weights are then adjusted to meet the following weight constraints, resulting in the final 
+weights: 
+• The weights of the top three (3) Index Securities by market capitalization, may not exceed 12%, 
+10%, 8%, respectively. The weight of a top three (3) Index Security is only adjusted downward if 
+it exceeds its respective constraint. 
+• The individual weights of other Index Securities may not exceed 4%; only the top three (3) may 
+exceed this constraint. 
+Should any Index Security’s weight exceed its respective constraint, the excess weight is proportionally 
+redistributed to the lower weighted Index Securities by market capitalization. This redistribution is done 
+iteratively, following the sequence outlined above, until all Index Securities are at or below their 
+respective constraints. 
+For additional information about index weighting, see Nasdaq Index Weight Calculations guide. 
+INDEX CALENDAR  
+Reconstitution & Rebalancing Schedule  
+ 
+Reconstitution Frequency Annually  
+Rebalance Frequency Quarterly 
+Reconstitution Reference Dates Last trading day of July 
+Reconstitution Announcement Dates After the close on the sixth trading day prior to 
+the Reconstitution Effective Date 
+Reconstitution Effective Dates At market open on the first trading day after the 
+third Friday in September 
+Rebalance Reference Dates Last trading day of February, May, August, and 
+November, respectively 
+PAGE 4
+4 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+ 
+Rebalance Announcement Dates After the close on the sixth trading day prior to 
+the Rebalance Effective Date 
+Rebalance Effective Dates 
+At market open on the first trading day after the 
+third Friday in March, June, September, and 
+December, respectively 
+Holiday Schedule  
+The Index is calculated Monday through Friday, except on days when the US markets are closed.  
+Index Calculation and Dissemination Schedule  
+The Index is calculated during the trading day and is disseminated once per second from 09:30:01 to 
+17:16:00 ET. The closing value of the Index may change up until 17:15:00 ET due to corrections to the 
+Last Sale Price of the Index Securities. 
+INDEX MAINTENANCE  
+Deletion Policy  
+If, at any time other than an index reconstitution, Nasdaq determines that an Index Security has or will 
+undergo a fundamental alteration that would make it ineligible for index inclusion, the Index Security is 
+removed as soon as practicable. Such alterations may include merger, acquisition, or other major 
+corporate event that would otherwise adversely impact the integrity of the Index. 
+Replacement Policy  
+Securities may be added to the Index outside of an index reconstitution when there is a deletion.  The 
+issuer with the largest market capitalization which is not in the Index and meets all security eligibility 
+criteria will replace the deleted security.  
+Corporate Actions  
+In the periods between scheduled index reconstitution and rebalancing events, individual Index 
+Securities may be subject to a variety of corporate actions and events that require maintenance and 
+adjustments to the Index.  Specific treatment of each type of corporate action or event is described in 
+Nasdaq Corporate Actions and Events Manual – Equities, which is incorporated herein by reference. 
+In certain cases, corporate actions and events are handled according to the weighting scheme or other 
+index construction techniques employed.  Wherever alternate methods are described, the Index will 
+follow the “Market Cap Corporate Action Method.” 
+PAGE 5
+5 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+Index Share Adjustments  
+Other than as a direct result of corporate actions, the Index does not normally experience share 
+adjustments between scheduled index reconstitution and rebalancing events. 
+ADDITIONAL INFORMATION  
+Announcements  
+Nasdaq announces Index-related information via the Nasdaq Global Index Watch (GIW) website at 
+https://indexes.nasdaqomx.com/. 
+For more information on the general Index Announcement procedures, please refer to the Nasdaq 
+Index Methodology Guide. 
+Unexpected Market Closures  
+For information on Unexpected Market Closures, please refer to the Nasdaq Index Methodology Guide. 
+Calculation Types  
+For information on the Index calculation types as well as the mathematical approach used to calculate 
+the Index(es), please refer to the Calculation Manual – Equities & Commodities. 
+Recalculation and R estatement Policy  
+For information on the Recalculation and Restatement Policy, please refer to the Nasdaq Index 
+Recalculation Policy. 
+Data Sources  
+For information on data sources, please refer to the Nasdaq Index Methodology Guide. 
+Contact Information  
+For any questions regarding an Index, please contact the Nasdaq Index Client Services team at 
+indexservices@nasdaq.com. 
+Index Dissemination  
+Index values and weightings information are available through Nasdaq Global Index Watch (GIW) 
+website at https://indexes.nasdaqomx.com/ as well as the Nasdaq Global Index FlexFile Delivery Service 
+(GIFFD) and Global Index Dissemination Services (GIDS). Similar to the GIDS offerings, Genium 
+Consolidated Feed (GCF) provides real-time Index values and weightings for the Nordic Indexes. 
+PAGE 6
+6 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+For more detailed information regarding Index Dissemination, refer to the Nasdaq Index Methodology 
+Guide. 
+Website  
+For further information, refer to Nasdaq GIW website at https://indexes.nasdaqomx.com/. 
+FTP and D issemination Service 
+Index values and weightings are available via FTP on the Nasdaq Global Indexes FlexFile Delivery Service 
+(GIFFD). Index values are available via Nasdaq’s Global Index Dissemination Services (GIDS). 
+GOVERNANCE  
+All Nasdaq Indexes are managed by the governance committee structure and have transparent 
+governance, oversight, and accountability procedures for the Index determination process. For further 
+details on the Index Methodology and Governance overlay, refer to the Nasdaq Index Methodology 
+Guide. 
+GLOSSARY OF TERMS AS USED IN THIS DOCUMENT  
+For the glossary of key terms, please refer to the Nasdaq Index Methodology Guide. 
+ 
+PAGE 7
+7 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+APPENDIX A: METHODOLOGY CHANGE LOG 
+Effective 
+Date 
+Methodology 
+Section 
+Previous Updated 
+7/6/2026 Security Eligibility 
+Criteria:  
+Listing Exchanges 
+A security must be listed on the Nasdaq 
+Stock Market, the New York Stock 
+Exchange, NYSE American, or the CBOE 
+Exchange. 
+A security must be listed on a U.S. 
+exchange as defined in the Nasdaq 
+Eligible Exchanges. 
+Note: This update includes the treatment 
+of TXSE as an eligible U.S. exchange. 
+4/22/2024 Constituent 
+Weighting:  
+Constituent 
+Weighting 
+Process 
+SOX employs a two-stage weight 
+adjustment scheme. 
+Index Securities’ initial weights are 
+determined by dividing each Index 
+Security's market capitalization by the 
+aggregate market capitalization of all 
+Index Securities. 
+Stage 1:  
+Initial index weights are adjusted to meet 
+the following Stage 1 constraint, 
+producing the Stage 1 weights: 
+• No Index Security weight may 
+exceed 8%. 
+Stage 2:  
+Stage 1 weights are adjusted to meet the 
+following Stage 2 constraints, producing 
+the final weights: 
+For Index Securities with the five largest 
+market capitalizations, Stage 1 weights are 
+maintained. 
+• For all other Index Securities, no 
+weight may exceed 4%. 
+The final weights meet the following 
+constraints: 
+• No Index Security weight may 
+exceed 8% of the index; five may 
+exceed 4%. 
+For additional information about index 
+weighting, see Nasdaq Index Weight 
+Calculations guide. 
+Index Securities’ initial weights are 
+determined by dividing each Index 
+Security's market capitalization by the 
+aggregate market capitalization of all 
+Index Securities.  
+These initial weights are then adjusted to 
+meet the following weight constraints, 
+resulting in the final weights: 
+• The weights of the top three (3) 
+Index Securities by market 
+capitalization, may not exceed 
+12%, 10%, 8%, respectively. The 
+weight of a top three (3) Index 
+Security is only adjusted 
+downward if it exceeds its 
+respective constraint. 
+• The individual weights of other 
+Index Securities may not exceed 
+4%; only the top three (3) may 
+exceed this constraint. 
+Should any Index Security’s weight exceed 
+its respective constraint, the excess 
+weight is proportionally redistributed to 
+the lower weighted Index Securities by 
+market capitalization. This redistribution is 
+done iteratively, following the sequence 
+outlined above, until all Index Securities 
+are at or below their respective 
+constraints. 
+For additional information about index 
+weighting, see Nasdaq Index Weight 
+Calculations guide. 
+PAGE 8
+8 
+INDEX METHODOLOGY  |  © Copyright 2026, Nasdaq, Inc. All Rights Reserved.  
+ 
+ 
+Effective 
+Date 
+Methodology 
+Section 
+Previous Updated 
+4/22/2024 Index 
+Maintenance:  
+Index Share 
+Adjustments 
+If the change in TSO arising from other 
+corporate events, as defined in Nasdaq 
+Corporate Actions and Events Manual – 
+Equities, is greater than or equal to 10%, 
+the change is made as soon as practicable. 
+If the change in TSO is less than 10%, then 
+all changes are accumulated and made 
+effective at one time on a quarterly basis 
+after the close of trading on the third 
+Friday in each of March, June, September 
+and December. 
+The Index Shares are adjusted by the 
+same percentage amount by which the 
+TSO has changed.
+ 
+Other than as a direct result of corporate 
+actions, the Index does not normally 
+experience share adjustments between 
+scheduled Index Rebalance and 
+Reconstitution events.
+ 
+DISCLAIMER 
+Nasdaq may, from time to time, exercise reasonable discretion as it deems appropriate in order to 
+ensure Index integrity, including but not limited to, quantitative inclusion criteria. Nasdaq may also, due 
+to special circumstances, if deemed essential, apply discretionary adjustments to ensure and maintain 
+the high quality of the index construction and calculation. Nasdaq does not guarantee that any Index 
+accurately reflects future market performance.  
+Neither Nasdaq, Inc., its third-party providers, nor any of their respective affiliates (collectively 
+“Corporations”) make any recommendation to buy or sell any security or any representation about the 
+financial condition of any company. Investors should undertake their own due diligence and carefully 
+evaluate companies before investing. The information contained herein is provided for informational 
+and educational purposes only, and nothing contained herein should be construed as investment advice, 
+either on behalf of a particular security or an overall investment strategy. ADVICE FROM A SECURITIES 
+PROFESSIONAL IS STRONGLY ADVISED. 

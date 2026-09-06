@@ -1,0 +1,753 @@
+{
+  "verified_at": "2026-09-06T16:44:53.091552+00:00",
+  "network_requests_in_verification": 0,
+  "public_get_requests": 15,
+  "http_status_counts": {
+    "URLError": 1,
+    "200": 12,
+    "404": 1,
+    "412": 1
+  },
+  "import_records": 13,
+  "unique_original_files": 27,
+  "original_bytes": 4629289,
+  "original_records": [
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/chinese/bkfrr/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:17:20.094839+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/chinese/bkfrr/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:17:19 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "31994",
+        "Last-Modified": "Sat, 25 Jul 2026 10:53:46 GMT",
+        "ETag": "\"7cfa-6576d4da56280\""
+      },
+      "sha256": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01",
+      "bytes": 31994,
+      "local_file": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01",
+      "truncated": false,
+      "received_at": "2026-09-06T16:17:20.362732+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/chinese/dssjfwgl/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:17:20.394397+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/chinese/dssjfwgl/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:17:20 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "89404",
+        "Last-Modified": "Fri, 14 Aug 2026 01:21:40 GMT",
+        "ETag": "\"15d3c-658f7a47bb100\""
+      },
+      "sha256": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+      "bytes": 89404,
+      "local_file": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+      "truncated": false,
+      "received_at": "2026-09-06T16:17:20.799006+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/english/bmkshb/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:22:44.434527+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/english/bmkshb/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:22:42 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "19845",
+        "Last-Modified": "Sat, 25 Jul 2026 10:52:18 GMT",
+        "ETag": "\"4d85-6576d48669c80\""
+      },
+      "sha256": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399",
+      "bytes": 19845,
+      "local_file": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399",
+      "truncated": false,
+      "received_at": "2026-09-06T16:22:44.747721+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/chinese/bkshibor/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:22:44.750179+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/chinese/bkshibor/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:22:42 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "49650",
+        "Last-Modified": "Sat, 25 Jul 2026 10:53:21 GMT",
+        "ETag": "\"c1f2-6576d4c27ea40\""
+      },
+      "sha256": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9",
+      "bytes": 49650,
+      "local_file": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9",
+      "truncated": false,
+      "received_at": "2026-09-06T16:22:44.926754+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://tushare.pro/document/2?doc_id=140",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:49.120723+00:00",
+      "status": 200,
+      "final_url": "https://tushare.pro/document/2?doc_id=140",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:48 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "34797",
+        "Etag": "\"182689f645562206fca746e7b053cc4a2c8a6dbd\""
+      },
+      "sha256": "1ced6f1c14337be4d14684ab557c495381bc0594d652b6e67580ce746295284b",
+      "bytes": 34797,
+      "local_file": "1ced6f1c14337be4d14684ab557c495381bc0594d652b6e67580ce746295284b",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:52.605076+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://tushare.pro/document/2?doc_id=149",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:52.607042+00:00",
+      "status": 200,
+      "final_url": "https://tushare.pro/document/2?doc_id=149",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:52 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "35167",
+        "Etag": "\"faef9ced48d2a0a5e98a70b70c93bc2c1216f830\""
+      },
+      "sha256": "df10eefd6b46e586e8bb5d8495f793dc2b39c9e4faf594c18b901b9fdb9a7d8b",
+      "bytes": 35167,
+      "local_file": "df10eefd6b46e586e8bb5d8495f793dc2b39c9e4faf594c18b901b9fdb9a7d8b",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:55.191007+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://tushare.pro/document/2?doc_id=256",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:55.192859+00:00",
+      "status": 200,
+      "final_url": "https://tushare.pro/document/2?doc_id=256",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:54 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "36098",
+        "Etag": "\"234dea46ef31d3cefc6dd86146d06e959cbcde96\""
+      },
+      "sha256": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34",
+      "bytes": 36098,
+      "local_file": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.350583+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/20260828dailystock.dat",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:57.352216+00:00",
+      "status": 404,
+      "final_url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/20260828dailystock.dat",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:55 GMT",
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "sha256": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd",
+      "bytes": 4832,
+      "local_file": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.492452+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/html/shibor/shibor-his-cn.html",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:57.494582+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/html/shibor/shibor-his-cn.html",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:55 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "6832",
+        "Last-Modified": "Sat, 14 Aug 2021 14:14:13 GMT",
+        "Etag": "\"1ab0-5c985951b9740\""
+      },
+      "sha256": "42c40867c9f2c1c254f091e605ef7171b4f50f20315961c234775843b56dace3",
+      "bytes": 6832,
+      "local_file": "42c40867c9f2c1c254f091e605ef7171b4f50f20315961c234775843b56dace3",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.798561+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125957/4883187/1f14dbe28ec4408cbf45cee06f86808a/2023112817393565251.pdf",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:57.800155+00:00",
+      "status": 200,
+      "final_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125957/4883187/1f14dbe28ec4408cbf45cee06f86808a/2023112817393565251.pdf",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:55 GMT",
+        "Content-Type": "application/pdf",
+        "Content-Length": "1283558",
+        "Last-Modified": "Tue, 08 Jul 2025 11:52:40 GMT",
+        "ETag": "\"686d0688-1395e6\""
+      },
+      "sha256": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "bytes": 1283558,
+      "local_file": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.940884+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.shfe.com.cn/data/tradedata/future/stockdata/dailystock_20260828/ZH/all.html",
+      "method": "GET",
+      "started_at": "2026-09-06T16:25:33.985366+00:00",
+      "status": 200,
+      "final_url": "https://www.shfe.com.cn/data/tradedata/future/stockdata/dailystock_20260828/ZH/all.html",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:25:31 GMT",
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "sha256": "aa7493a24425f6f95f9743bc8e53725deb0e2cbba10857d97443758eedef4e39",
+      "bytes": 147318,
+      "local_file": "aa7493a24425f6f95f9743bc8e53725deb0e2cbba10857d97443758eedef4e39",
+      "truncated": false,
+      "received_at": "2026-09-06T16:25:34.317866+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/assets/js/cm-basic.js",
+      "method": "GET",
+      "started_at": "2026-09-06T16:25:34.319186+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/assets/js/cm-basic.js",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:25:32 GMT",
+        "Content-Type": "text/javascript",
+        "Content-Length": "423245",
+        "Last-Modified": "Sat, 25 Jul 2026 10:01:25 GMT",
+        "Etag": "\"6754d-6576c926d8740\""
+      },
+      "sha256": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "bytes": 423245,
+      "local_file": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "truncated": false,
+      "received_at": "2026-09-06T16:25:34.428957+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.czce.com.cn/cn/jysj/cdrb/H770319index_1.htm",
+      "method": "GET",
+      "started_at": "2026-09-06T16:25:34.430948+00:00",
+      "status": 412,
+      "final_url": "https://www.czce.com.cn/cn/jysj/cdrb/H770319index_1.htm",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:25:32 GMT",
+        "Content-Type": "text/html; charset=utf-8"
+      },
+      "sha256": "7aae22005b0f3e101c6e05631427c39d35bfc043d4ee5328ad250ff052a48ae5",
+      "bytes": 2841,
+      "local_file": "7aae22005b0f3e101c6e05631427c39d35bfc043d4ee5328ad250ff052a48ae5",
+      "truncated": false,
+      "received_at": "2026-09-06T16:25:34.580452+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "http",
+      "url": "https://www.chinamoney.com.cn/ags/ms/cm-u-bk-shibor/ShiborHis?lang=cn&startDate=2026-08-28&endDate=2026-08-28",
+      "method": "GET",
+      "started_at": "2026-09-06T16:26:28.561782+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/ags/ms/cm-u-bk-shibor/ShiborHis?lang=cn&startDate=2026-08-28&endDate=2026-08-28",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:26:26 GMT",
+        "Content-Type": "application/json;charset=UTF-8"
+      },
+      "sha256": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "bytes": 2112,
+      "local_file": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "truncated": false,
+      "received_at": "2026-09-06T16:26:29.038467+00:00",
+      "public_available_at": null
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:15:06.133565+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/69/69f29104d4152da5082013214ae6817634a9a268dd9f9859aa85cda985417eec",
+      "sha256": "69f29104d4152da5082013214ae6817634a9a268dd9f9859aa85cda985417eec",
+      "bytes": 94304,
+      "local_file": "69f29104d4152da5082013214ae6817634a9a268dd9f9859aa85cda985417eec"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.035780+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/5b/5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+      "sha256": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+      "bytes": 11000,
+      "local_file": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.045373+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/8d/8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+      "sha256": "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+      "bytes": 168665,
+      "local_file": "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.054656+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/a4/a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49",
+      "sha256": "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49",
+      "bytes": 233412,
+      "local_file": "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.066378+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/60/60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "bytes": 263170,
+      "local_file": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.075731+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/28/28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+      "sha256": "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+      "bytes": 494713,
+      "local_file": "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.087933+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/d8/d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+      "sha256": "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+      "bytes": 393331,
+      "local_file": "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.099813+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/ff/fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6",
+      "sha256": "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6",
+      "bytes": 398889,
+      "local_file": "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.109360+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/b3/b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+      "sha256": "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+      "bytes": 251797,
+      "local_file": "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.119276+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/93/933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+      "sha256": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+      "bytes": 44692,
+      "local_file": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.126733+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/ee/ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+      "sha256": "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+      "bytes": 31000,
+      "local_file": "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:16:32.136766+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/10/10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+      "sha256": "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+      "bytes": 44678,
+      "local_file": "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0"
+    },
+    {
+      "kind": "prior_cas",
+      "imported_at": "2026-09-06T16:22:45.280038+00:00",
+      "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/7c/7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+      "sha256": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+      "bytes": 31945,
+      "local_file": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5"
+    }
+  ],
+  "local_links_checked": 44,
+  "report_sha256": "dcbdf9a07095e5bfb2110ff2f3a51e9049dc1bece87b3859207df1ece0f973e1",
+  "file_checks": [
+    {
+      "name": ".gitattributes",
+      "bytes": 73,
+      "sha256": "2453423c5005e402fd2221ff03957b0b27707ece5ec6a286f42830e88662b5de"
+    },
+    {
+      "name": ".gitignore",
+      "bytes": 32,
+      "sha256": "ef2e28422c1ae2d51a414fe7a537d17ac6050d2e4a25f8a4f540d8b7bc459193"
+    },
+    {
+      "name": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9",
+      "bytes": 49650,
+      "sha256": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9"
+    },
+    {
+      "name": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9.txt",
+      "bytes": 7146,
+      "sha256": "b109dfbc898d859eadb0ba6f9fc2a21e25273ab78337497aacad3657b95367a4"
+    },
+    {
+      "name": "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+      "bytes": 44678,
+      "sha256": "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0"
+    },
+    {
+      "name": "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0.txt",
+      "bytes": 1727,
+      "sha256": "b17e8c8f4a540aec23d05537febc629d1b64b143c1625da3c4350868048d3dc7"
+    },
+    {
+      "name": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+      "bytes": 89404,
+      "sha256": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50"
+    },
+    {
+      "name": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50.txt",
+      "bytes": 9557,
+      "sha256": "68bf16ee7cdd7086fce85543fd31d933cadbbfbc520d1ab6fbdf7ec771917c9b"
+    },
+    {
+      "name": "1ced6f1c14337be4d14684ab557c495381bc0594d652b6e67580ce746295284b",
+      "bytes": 34797,
+      "sha256": "1ced6f1c14337be4d14684ab557c495381bc0594d652b6e67580ce746295284b"
+    },
+    {
+      "name": "1ced6f1c14337be4d14684ab557c495381bc0594d652b6e67580ce746295284b.txt",
+      "bytes": 8134,
+      "sha256": "f6222edb1f10b1568d5b24255c594f18e40eb2ac41839aeeaa680afa8dcb7bad"
+    },
+    {
+      "name": "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+      "bytes": 494713,
+      "sha256": "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986"
+    },
+    {
+      "name": "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986.txt",
+      "bytes": 29962,
+      "sha256": "acd290f5ddb6a1212a39b14d44bfe5b1f5dabbb2e8e7db1061e80c2ccf375399"
+    },
+    {
+      "name": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "bytes": 2112,
+      "sha256": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62"
+    },
+    {
+      "name": "42c40867c9f2c1c254f091e605ef7171b4f50f20315961c234775843b56dace3",
+      "bytes": 6832,
+      "sha256": "42c40867c9f2c1c254f091e605ef7171b4f50f20315961c234775843b56dace3"
+    },
+    {
+      "name": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "bytes": 423245,
+      "sha256": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9"
+    },
+    {
+      "name": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+      "bytes": 11000,
+      "sha256": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "name": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5.txt",
+      "bytes": 568,
+      "sha256": "86f1678d6050fca9bb4413a77d566cb617feba22841fe5c0438448f93422f3d1"
+    },
+    {
+      "name": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "bytes": 1283558,
+      "sha256": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455"
+    },
+    {
+      "name": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455.txt",
+      "bytes": 103917,
+      "sha256": "7f741f8b9a84ede4b0987f308d5468ffffa196f4c276701072b1ed6336677aef"
+    },
+    {
+      "name": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "bytes": 263170,
+      "sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+    },
+    {
+      "name": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915.txt",
+      "bytes": 38305,
+      "sha256": "b6ab38267bc762e8ad93a187545356567328bf95e7e21ced41e3da27e9484dd4"
+    },
+    {
+      "name": "69f29104d4152da5082013214ae6817634a9a268dd9f9859aa85cda985417eec",
+      "bytes": 94304,
+      "sha256": "69f29104d4152da5082013214ae6817634a9a268dd9f9859aa85cda985417eec"
+    },
+    {
+      "name": "7aae22005b0f3e101c6e05631427c39d35bfc043d4ee5328ad250ff052a48ae5",
+      "bytes": 2841,
+      "sha256": "7aae22005b0f3e101c6e05631427c39d35bfc043d4ee5328ad250ff052a48ae5"
+    },
+    {
+      "name": "7aae22005b0f3e101c6e05631427c39d35bfc043d4ee5328ad250ff052a48ae5.txt",
+      "bytes": 12,
+      "sha256": "e742bd06565ae6bd755993d7ff6232c507bbc2768abfed91b78f99523c927182"
+    },
+    {
+      "name": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+      "bytes": 31945,
+      "sha256": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5"
+    },
+    {
+      "name": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5.txt",
+      "bytes": 9179,
+      "sha256": "e1b6b3939cee5465218de5684a80efeace09a63c36767428fe583bbbe8428cee"
+    },
+    {
+      "name": "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+      "bytes": 168665,
+      "sha256": "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8"
+    },
+    {
+      "name": "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8.txt",
+      "bytes": 11414,
+      "sha256": "163e8c565e932760d41cfbc38bcf521b56d219c558bb9453f2a3a9570ba02e9e"
+    },
+    {
+      "name": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+      "bytes": 44692,
+      "sha256": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef"
+    },
+    {
+      "name": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef.txt",
+      "bytes": 7296,
+      "sha256": "adb5ac32985668ad626fc600d4943499bf178182be9a84bd4f0b1a61b96f5534"
+    },
+    {
+      "name": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399",
+      "bytes": 19845,
+      "sha256": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399"
+    },
+    {
+      "name": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399.txt",
+      "bytes": 1895,
+      "sha256": "391d68caf1a0ac624b242e807285c1f1162f17cbc38d24bb0d588b7c9ea9a0bd"
+    },
+    {
+      "name": "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49",
+      "bytes": 233412,
+      "sha256": "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49"
+    },
+    {
+      "name": "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49.txt",
+      "bytes": 16133,
+      "sha256": "82b033fab56aab4f3343cb750aa0ca3453e8f96c67c8ccd1b3ad912372da7c92"
+    },
+    {
+      "name": "aa7493a24425f6f95f9743bc8e53725deb0e2cbba10857d97443758eedef4e39",
+      "bytes": 147318,
+      "sha256": "aa7493a24425f6f95f9743bc8e53725deb0e2cbba10857d97443758eedef4e39"
+    },
+    {
+      "name": "aa7493a24425f6f95f9743bc8e53725deb0e2cbba10857d97443758eedef4e39.txt",
+      "bytes": 16526,
+      "sha256": "870403c908b976653d7aafc7678fba0bed6d8c66ca3416b49de86f26404f7bd6"
+    },
+    {
+      "name": "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+      "bytes": 251797,
+      "sha256": "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09"
+    },
+    {
+      "name": "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09.txt",
+      "bytes": 17576,
+      "sha256": "67826272951906ce76ca577a556db50a74e6ca93c12094d4c97aac7c34e315a3"
+    },
+    {
+      "name": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34",
+      "bytes": 36098,
+      "sha256": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34"
+    },
+    {
+      "name": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34.txt",
+      "bytes": 9606,
+      "sha256": "96beba94e7059c32d57aa8f54085212f51d8199c7a049b0636dfa522777f4613"
+    },
+    {
+      "name": "capture.py",
+      "bytes": 2651,
+      "sha256": "d9044f0381f334fd3f49a643bdf9b4d80732a7cd967eb6764f0baa4e96ff7314"
+    },
+    {
+      "name": "check_readonly.py",
+      "bytes": 5437,
+      "sha256": "09be8088cdff00d7b511e6c6de68d37dd00d48687cc9ed3822295f099eab925c"
+    },
+    {
+      "name": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01",
+      "bytes": 31994,
+      "sha256": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01"
+    },
+    {
+      "name": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01.txt",
+      "bytes": 3188,
+      "sha256": "3b6d89e1bd43ee2a98dab9d046b06057dbca09349634e60235457801b13f9914"
+    },
+    {
+      "name": "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+      "bytes": 393331,
+      "sha256": "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609"
+    },
+    {
+      "name": "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609.txt",
+      "bytes": 22148,
+      "sha256": "14744ce5f50ee1a71dd56db107850bec2e41ad0d657de1ca4e541ca608ab0fb5"
+    },
+    {
+      "name": "delivery-files.txt",
+      "bytes": 7423,
+      "sha256": "5b2d33aea369ef305d2354cf5e94056ace7a835495d5a6e84e56196a89ce87db"
+    },
+    {
+      "name": "df10eefd6b46e586e8bb5d8495f793dc2b39c9e4faf594c18b901b9fdb9a7d8b",
+      "bytes": 35167,
+      "sha256": "df10eefd6b46e586e8bb5d8495f793dc2b39c9e4faf594c18b901b9fdb9a7d8b"
+    },
+    {
+      "name": "df10eefd6b46e586e8bb5d8495f793dc2b39c9e4faf594c18b901b9fdb9a7d8b.txt",
+      "bytes": 9381,
+      "sha256": "d1d2efae0694f2422f32670642e7fe777b86138ab26a97e76c30f32fd895679c"
+    },
+    {
+      "name": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd",
+      "bytes": 4832,
+      "sha256": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd"
+    },
+    {
+      "name": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd.txt",
+      "bytes": 78,
+      "sha256": "d60bc3d90bd1b5776dd7df4a19319696378d8f38819623f7f02e8219e784b8e6"
+    },
+    {
+      "name": "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+      "bytes": 31000,
+      "sha256": "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a"
+    },
+    {
+      "name": "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a.txt",
+      "bytes": 1642,
+      "sha256": "581e640d2f1e81baa190189043fd7c07e97ddec361d21567b2fc1ca6244f6cb0"
+    },
+    {
+      "name": "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6",
+      "bytes": 398889,
+      "sha256": "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6"
+    },
+    {
+      "name": "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6.txt",
+      "bytes": 26058,
+      "sha256": "19aa446dd5ce43133c3064af77a115d8c98c35b3f8fb468f634b3ac0cfc4754d"
+    },
+    {
+      "name": "history-verification.json",
+      "bytes": 1622488,
+      "sha256": "65a153a43ee952ff40640f5faa86c83539f832d1075fbb652b5dc539c656d977"
+    },
+    {
+      "name": "imports.json",
+      "bytes": 5145,
+      "sha256": "07da00c64b09c728052b2c2ab5ff7156df6e403714f28653e86d4b9c9855b875"
+    },
+    {
+      "name": "legacy-read-matrix.json",
+      "bytes": 463940,
+      "sha256": "740f094e922ae40ddc21098f86629df8ffcaf416c8dc4595def22f93ba5c8b46"
+    },
+    {
+      "name": "parser-identity.json",
+      "bytes": 1021,
+      "sha256": "9393045f3417e01b67fcda5942d0deaba503b7dd7456ad9e6baac101ca1fa3b5"
+    },
+    {
+      "name": "read_legacy_matrix.py",
+      "bytes": 3444,
+      "sha256": "719ddd19939cb847c421f5250699a1d57c519742044dc82afdc9c30f05fb463c"
+    },
+    {
+      "name": "read_samples.py",
+      "bytes": 2251,
+      "sha256": "56d4353122621eb1b3430310f0b5605494f167dac412d215d3bfe4bce7329932"
+    },
+    {
+      "name": "readonly-checks.json",
+      "bytes": 1868241,
+      "sha256": "8bd95b88c106b8bee6eac44bf1b74d6a12ebcbb827dfab659362c0cefd3090ed"
+    },
+    {
+      "name": "receipts.json",
+      "bytes": 11329,
+      "sha256": "edb8fa76f4254b96867d3c55bcd58b1ba432a5d8f71cedbd5c372773663c37c9"
+    },
+    {
+      "name": "research-checks.json",
+      "bytes": 85434,
+      "sha256": "921c7b9de8e5bb75cdadc5809257f5f0fc9e089265c96af0489047f5055922ed"
+    },
+    {
+      "name": "sample-inspection.json",
+      "bytes": 82254,
+      "sha256": "45507957fb7a7fb1db85e770019013444cabe99d952138ca2e14fe9a373aee1b"
+    },
+    {
+      "name": "summarize_checks.py",
+      "bytes": 6203,
+      "sha256": "1c9c4bd63250031c206733e80a4c7d419b6c54505f1ee91c546f0aa1d9880386"
+    },
+    {
+      "name": "verify_artifacts.py",
+      "bytes": 3172,
+      "sha256": "97352960059fd9e6e30fb516690698150e258862da804a84b077ac2b4cbcaf8f"
+    },
+    {
+      "name": "verify_history.py",
+      "bytes": 3615,
+      "sha256": "bbeaf903ef9dc2e02d20ba5ee06613251654d8d32144685b41a10a576d141048"
+    },
+    {
+      "name": "verify_parser_identity.py",
+      "bytes": 875,
+      "sha256": "decf107d274ff033c35b5a310d0d7943b884a46afc75d3e4f2a8297993ee9bc8"
+    }
+  ],
+  "excluded_temporary_outputs": [
+    "__pycache__/",
+    "inspection-run.txt"
+  ],
+  "claims": "Hash and arithmetic verification only; no source certification, model activation or candidate acceptance."
+}

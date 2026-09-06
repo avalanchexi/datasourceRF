@@ -1,0 +1,200 @@
+<div class="section-pg" id="page-shibor-history">
+
+    <div class="section-a">
+        <div class="section-a-head">
+            <div class="section-a-title">Shibor数据</div>
+        </div>
+    
+        <div class="section-a-body">
+
+            <div class="section-fm">
+
+                <div class="san-form-row">
+                    <div class="san-input-pair san-col-7 san-col-xs-12 p-r-0">
+                        <div class="san-input-pair-l">
+                            <label class="san-input-label label-ch-2">日期</label>
+                        </div>
+                        <div class="san-input-pair-m">
+                            <input type="text" class="san-input-text san-input-text-inline san-input-text-date" id="shibor-his-start-date" name="" value="" readonly>
+                            <label class="san-input-static">至</label>
+                            <input type="text" class="san-input-text san-input-text-inline san-input-text-date" id="shibor-his-end-date" name="" value="" readonly>
+                        </div>
+                    </div>
+
+                    <div class="san-input-pair san-col-5 san-col-xs-12 AR AC-xs">
+                        <a class="san-btn san-btn-primary m-l-10" href="javascript:void(0);" onclick="queryShiborHis()">查询</a>
+                        <a class="san-btn san-btn-primary resp-mark-1" href="javascript:void(0);" onclick="downLoadShiborHis()">导出Excel</a>
+                        <form action="" id="form-shibor-his" method="POST"></form>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="san-datasheet" id="shibor-his-cn">
+                <div class="san-sheet">
+                    <table>
+                        <colgroup>
+                        		<col width="110">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <td class="cell" data-name="showDateCN">日期</td>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    <input type="hidden" id="startDate-hidden"/>
+    <input type="hidden" id="endDate-hidden"/>
+</div>
+
+<script type="text/javascript">
+var pageSize = 6;
+$(function(){
+	//日历控件
+	$('#shibor-his-start-date').datepicker({
+		beforeShow : function(input, inst) {
+			CURRENTINPUT = input;
+			$('#shibor-his-start-date').datepicker('option', 'maxDate', $('#shibor-his-end-date').val()||null);
+		},
+        onClose: function(selectedDate){}
+	});
+
+	$('#shibor-his-end-date').datepicker({
+		beforeShow : function(input, inst) {
+			CURRENTINPUT = input;
+			$('#shibor-his-end-date').datepicker('option', 'minDate', $('#shibor-his-start-date').val()||null);
+		},
+        onClose: function(selectedDate){}
+	});
+	
+	//数据请求
+	$.ajax({
+		//测试用url
+		url: convertURL(BK_URL + 'cm-u-bk-shibor/ShiborHis'),
+        type: "POST",
+        dataType: 'json'
+	}).done(function(data){
+		//日期
+    	$('#shibor-his-start-date').val(data['data']['startDateCN']);
+    	$('#shibor-his-end-date').val(data['data']['endDateCN']);
+    	$('#startDate-hidden').val(data['data']['startDateCN']);
+    	$('#endDate-hidden').val(data['data']['endDateCN']);
+    	//填充表
+    	fillTableShiborHis(data);
+    	
+	});
+	
+})
+
+//填充表
+function fillTableShiborHis(data){
+	// 建列
+	var colWidth = 100;
+    var col = data['data']['baseCurveCfgList'],
+        colLen = col.length;
+        strHead = '',
+        strCol = '<col width="'+colWidth+'" span="' + col.length + '"/>';
+    
+    $.each(col, function(i, v) {
+    	strHead += '<td class="cell AC" data-name="'+(v.cfgItem=='O/N'?'ON':v.cfgItem)+'">' + v['cfgItem'] + '</td>'; 
+    });
+
+    $('#shibor-his-cn').find('thead').find('tr').append(strHead);
+    $('#shibor-his-cn').find('colgroup').append(strCol);
+
+    /* var w0 = $('#shibor-his-cn').width();
+    $('#shibor-his-cn').css('width', w0); */
+    var rw = (colLen>8)?colLen * colWidth + 110:0;
+    /* rh = 168,
+    crh = data['records'].length * 28;
+	if (rh > crh){
+	    rh = crh;
+	    if (rw < w0) {rw = w0;}
+	}else{
+	    if (rw < w0) {rw = w0 - SSZ;}
+	} */
+    
+	// 建表
+		var rh = 40 * pageSize;
+		//if(colLen>8){
+		//	rh = rh + 15;
+		//}
+    $('#shibor-his-cn').sanDatasheet({
+        dataSource: 'local',
+        url: data['records'],
+        fixedLayout : true,
+        fixedLayoutType: 'all',
+        fixedBodyHeight : rh,
+        fixedBodyWidth : rw,
+        fixedColNumber : 1,
+        dataHandler: function(records){
+        	var len=records.length;
+        	if(len<pageSize){
+        		for(var i=0;i<pageSize-len;i++){
+        			var strRecord = '{';
+        			$.each(col, function(i, v) {
+        				if(i+1 == col.length){
+        					strRecord += '"'+(v=='O/N'?'ON':v)+'":""'; 
+        				}else{
+        					strRecord += '"'+(v=='O/N'?'ON':v)+'":"",'; 
+					    	}
+					    });
+					    strRecord += '}';
+        			records.push(JSON.parse(strRecord));
+        		}
+        	}
+        	var $sheet = this;
+        	return _example_dataFormatter($sheet, null, records);
+        }
+    });
+}
+
+//查询
+function queryShiborHis(){
+	var startDate = $('#shibor-his-start-date').val();
+	var endDate = $('#shibor-his-end-date').val();
+	$('#startDate-hidden').val(startDate);
+	$('#endDate-hidden').val(endDate);
+	 $.ajax({
+	     type: "POST",
+	     //测试用url
+		 url: convertURL(BK_URL + 'cm-u-bk-shibor/ShiborHis?lang=cn&startDate='+startDate+'&endDate='+endDate),
+	  	 dataType:'json' 	 
+	 }).done(function(data){
+		 if(data.data.message != ""){
+	 	 	alert(data.data.message);
+	 	 	//return;
+	 	 }
+		 var initHtml = '<div class="san-sheet"><table><colgroup><col width="110" /></colgroup>'
+                    +'<thead><tr><td class="cell p-l-20" data-name="showDateCN">日期</td></tr></thead></table></div>';
+		 $('#shibor-his-cn').children().remove();
+		 $('#shibor-his-cn').html(initHtml);
+		 
+		 fillTableShiborHis(data);
+	 });
+}
+
+//下载
+function downLoadShiborHis(){
+	$.ajax({
+	     type: "POST",
+	     //测试用url
+	     url:BK_URL + 'cm-u-bk-shibor/ShiborHis?startDate='+$('#startDate-hidden').val()+'&endDate='+$('#endDate-hidden').val(),  
+	  	 dataType:'json' 	 
+	 }).done(function(data){
+		 if(data.data.message){
+	 	 	alert(data.data.message);
+	 	 	return;
+	 	 }
+		 var startDate = $('#startDate-hidden').val();
+		 var endDate = $('#endDate-hidden').val();
+		 $("#form-shibor-his").attr("action",DQSURL + 'cm-u-bk-shibor/ShiborHisExcel?lang=cn&startDate='+startDate+'&endDate='+endDate);
+		 $("#form-shibor-his").submit();
+	 });
+}
+
+</script>

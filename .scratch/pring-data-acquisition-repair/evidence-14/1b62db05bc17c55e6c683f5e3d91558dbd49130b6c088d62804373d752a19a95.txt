@@ -1,0 +1,112 @@
+Breakdown for SOX
+Search Indexes
+Indexes
+Equity
+U.S.
+Europe
+Global
+Smart Beta
+- Dividend & Income
+- Dorsey Wright
+- Nasdaq AlphaDEX
+- Smart Sectors
+Green
+VINX
+KBW Financial Indexes
+See All Indexes
+Fixed Income
+Nordic Market
+Governance
+Research
+Resources
+Resources
+Fact Sheets
+Methodologies
+See All Resources
+Global Index Watch (GIW) Directory
+Index Component Search
+Global Index Data Service (GIDS) Directory
+Index Dates
+Corporate Actions
+Investment Products
+Index Licensing
+License Nasdaq’s full range of global equity, commodity or fixed income indexes.
+See All Index Licensing/ETPs
+ETF & Advisor Solutions
+Research, news and commentary from our ETP partners and solutions to help Financial Advisors.
+Index Linked Products
+A searchable list of products based on Nasdaq Global Indexes.
+Index Data
+Nasdaq offers reliable and comprehensive data through flexible access options. Learn about proprietary data products, distributors and subscription details.
+Index Data Delivery Options
+Data Entitlements
+Month End Files
+GIW Web Service
+Specification
+Global Index Watch (GIW) is the direct web interface for index weights, components and more. To automate the retrieval of this data, view the secure web service specification.
+GIFFD - SFTP Technical Specification
+Global Index FlexFile Delivery (GIFFD) offers clients a flexible and efficient delivery service for index weighting, advance corporate actions and extensive additional data for Nasdaq Indexes
+GIDS 2.0 Specification
+Global Index Data Service (GIDS) offers a real-time data feed that consolidates all 45,000 Nasdaq indexes, as well as exchange-traded products (ETPs) valuation data and third-party partner data.
+Contact Us
+Search Indexes
+Search Indexes
+Login or Register
+Login
+Username
+Password
+TOTP
+Remember Me
+Log In
+Register
+Trouble logging in?
+PHLX Semiconductor
+SOX
+DATA AS OF 9/4/2026
+11,735.26
+383.13
+3.37%
+Key Stats
+Previous Close
+11,735.26
+Today’s High
+11,750.25
+Today’s Low
+11,467.34
+Overview
+Performance
+Weighting
+Industry Breakdown
+Corporate Actions
+Log in for Full Access:
+There is more data available for this index that you cannot see currently.
+Please
+Log in
+or
+Register
+for full access.
+SOX
+PHLX Semiconductor
+9/4/2026
+Industry Breakdown
+Download
+Reset
+DATE RANGE
+Set Start and End
+Start Date
+End Date
+Update
+Effective Jan 1, 2021, Nasdaq implemented ICB 8-digit methodology on this page. Information provided here prior to this date uses the 4-digit methodology.
+About
+Disclaimer
+Investor Relations
+Accessibility
+Press
+Careers
+Contact
+Cookie Policy
+Privacy Policy
+Transparency Statements
+Legal
+Do Not Sell My Personal Information (CA Residents Only)
+©2026, Nasdaq, Inc. All Rights Reserved.

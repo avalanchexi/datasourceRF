@@ -1,0 +1,23 @@
+{
+  "recorded_at": "2026-09-06T17:13:04.602885+00:00",
+  "kind": "researcher_paraphrase_of_official_web_tool_views_not_HTTP_raw",
+  "raw_http_sha256": null,
+  "operations": {
+    "open_url_count": 3,
+    "screenshot_attempt_count": 1
+  },
+  "sources": [
+    {
+      "url": "https://www.cmegroup.com/articles/faqs/access-to-cme-group-settlement-data-faq.html",
+      "facts": "Website settlement viewing delayed until midnight CT. Earlier streaming/DataMine channels differ in delivery and account/license terms. Direct local GET returned 403; web-tool reading is not a downloaded settlement value."
+    },
+    {
+      "url": "https://www.cmegroup.com/content/dam/cmegroup/notices/ser/2026/06/ser-9637r.pdf",
+      "facts": "June9 reminder says Jan12 2026 settlement amendment added October to GC active months. Active settlement window13:29-13:30ET; same-day price requires exact contract. PDF is a redline; do not use struck-through earlier text as current. Direct local GET returned403; no valid localPDF."
+    },
+    {
+      "url": "https://indexes.nasdaq.com/Index/History/SOX",
+      "facts": "Public history-page interface and overview value, not a downloaded full historical series. Local Breakdown capture separately proves login is requested for full access."
+    }
+  ]
+}

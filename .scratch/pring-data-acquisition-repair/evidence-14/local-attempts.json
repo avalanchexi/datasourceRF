@@ -1,0 +1,19 @@
+{
+  "cas_imports": [
+    {
+      "input": "6b23dfef891ea221cbdfa716342cf7d107b1efe03405ec15728a201acb23123a",
+      "input_length": 64,
+      "outcome": "FileNotFoundError",
+      "explanation": "Research helper requested this literal basename. This is a research input/path error, not evidence that a valid underlying source object is missing. First NBS import succeeded; later queued UST import did not run."
+    }
+  ],
+  "parser_input_attempts": [
+    {
+      "family": "nbs_gdp",
+      "period": "2026Q2",
+      "outcome": "official_context_period_invalid",
+      "classification": "research input shape error; retained then rerun with correct 2026-Q2"
+    }
+  ],
+  "network_failure_denominator_excludes_local_attempts": true
+}

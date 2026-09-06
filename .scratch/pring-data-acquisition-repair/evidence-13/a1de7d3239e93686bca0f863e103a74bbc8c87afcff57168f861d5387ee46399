@@ -1,0 +1,472 @@
+
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>
+	<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no,maximum-scale=1.0,user-scalable=no">
+<!--以上个meta必须在最顶部-->
+<meta name="format-detection" content="telephone=no" />
+<meta name="format-detection" content="email=no" />
+<meta name="renderer" content="webkit">
+<title>Shibor - CFETS</title>
+<meta name="keywords" content="Shibor">
+<meta name="description" content="The Shibor provides real-time Shibor, Shibor Curve, historical data, Shibor Panel Banks and etc.">
+<link rel="canonical" href="http://www.chinamoney.com.cn/english/bmkshb/"/><link rel="stylesheet" href="/r/cms/www/chinamoney/assets/css/cm-basic.4.css">
+<link rel="stylesheet" href="/r/cms/www/chinamoney/assets/css/jquery-ui-1.10.4.custom.css">
+<link rel="stylesheet" href="/r/cms/www/chinamoney/assets/css/cm-layout.css">
+<link rel="stylesheet" href="/r/cms/www/chinamoney/assets/css/cm-scope.css">
+<link rel="stylesheet" href="/r/cms/www/chinamoney/assets/css/cm-webeditor.css">
+<!--按序加载上列的link-->
+<!-- 下组script文件必须优先加载，禁止异步加载 -->
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/jquery-1.12.2.min.js"></script>
+<!-- 下组script为插件，注意加载顺序 -->
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/jquery-ui-1.10.4.custom.min.js"></script>
+<!-- JQUI日期控件-中文设置-放开后为中文日期 -->
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/cm-jquery-ui-default.js"></script> 
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/jquery.flexslider-min.js"></script>
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/jquery.mousewheel.js"></script>
+<!-- 下组script文件必须最后加载 -->
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/grayscale.js"></script>
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/cm-basic.js"></script>
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/cm-gray.js"></script>
+<script type="text/javascript" src="/r/cms/www/chinamoney/assets/js/echarts.min.js"></script>
+
+<!-- 初始化栏目常量 -->
+
+
+
+
+<!-- 得到当前栏目的最顶级栏目 -->
+</head>
+
+<body>
+	<div id="main-page">
+        <div id="main-page-head" data-for="block" data-role="header" data-url="/english/mainhead/"></div>
+        <!-- #main-page-head end -->
+
+        <div id="main-page-body" data-role="page">
+		   		<div class="main-page-body-inner" style="background-image: url(/u/cms/www/201607/25173826u1af.png);">
+					<div class="main-body">
+						<input type="hidden" id="rel-chanel-id" value="bmkshb"><!--对应菜单data-channel-->
+		                <div class="main-body-l">
+<input type="hidden" value="0" id= "hasPhoneTitle"></input>
+<div id="main-side-menu">
+		<div class="side-menu-title" id="phone-title">
+	      <span class="title-xl" data-mid="3" data-channel="bmk">
+        			Benchmarks
+	      </span>
+	  </div>
+	  <ul class="side-menu-list">
+			      <li class="has-drop" data-mid="3-1" data-index="0" id="li-3-1">
+								<a class="lv lv-2" href="/english/bmkcpr/" target="_self" data-channel="fxmarket">
+				        			FX Market
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="3-1-1" data-index="0">
+											<a class="lv lv-3" href="/english/bmkcpr/" target="_self" data-channel="bmkcpr">
+											        			CNY Central Parity Rate
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-2" data-index="1">
+											<a class="lv lv-3" href="/english/bmkrrtrrt/" target="_self" data-channel="bmkrrt">
+											        			CNY Reference Rate
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-3" data-index="2">
+											<a class="lv lv-3" href="/english/bmkidxrud/" target="_self" data-channel="bmkidx">
+											        			RMB Index
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-4" data-index="3">
+											<a class="lv lv-3" href="/english/bmkusd/" target="_self" data-channel="bmkusd">
+											        			USD CIROR
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-5" data-index="4">
+											<a class="lv lv-3" href="/english/bmkycvfsc/" target="_self" data-channel="bmkycvfsc">
+											        			FX Swap Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-6" data-index="5">
+											<a class="lv lv-3" href="/english/bmkycvirc/" target="_self" data-channel="bmkycvirc">
+											        			Implied Foreign Currencies Interest Rate Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-7" data-index="6">
+											<a class="lv lv-3" href="/english/bmkycvivc/" target="_self" data-channel="bmkycvivc">
+											        			FX Option Implied Volatility Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-8" data-index="7">
+											<a class="lv lv-3" href="/english/bmkycvdpp/" target="_self" data-channel="bmkycvdpp">
+											        			FX Option Delta Pricing Parameters
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-1-9" data-index="8">
+											<a class="lv lv-3" href="/english/bmkycvcsc/" target="_self" data-channel="bmkycvcsc">
+											        			Currency Swaps Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-2" data-index="1" id="li-3-2">
+								<a class="lv lv-2" href="/english/bmkshb/" target="_self" data-channel="rmbmarket">
+				        			RMB Market
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="3-2-1" data-index="0">
+											<a class="lv lv-3" href="/english/bmkshb/" target="_self" data-channel="bmkshb">
+											        			Shibor
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+						              			$("#hasPhoneTitle").val("1");
+						              			$('#phone-title').append('<span class="title-s" data-mid="3-2-1" data-channel="bmkshb">Shibor</span>');
+								              		
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-2" data-index="1">
+											<a class="lv lv-3" href="/english/bmklpr/" target="_self" data-channel="bmklpr">
+											        			Loan Prime Rate
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-3" data-index="2">
+											<a class="lv lv-3" href="/english/bmkfrr/" target="_self" data-channel="bmkfrr">
+											        			Fixing Repo Rate
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-4" data-index="3">
+											<a class="lv lv-3" href="/english/bmkbid2/" target="_self" data-channel="bmkbid2">
+											        			CFETS Bond Indices
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+								              		
+								              		
+								              		
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-5" data-index="4">
+											<a class="lv lv-3" href="/english/bmkycvrty/" target="_self" data-channel="bmkycvrty">
+											        			CFETS Real-time Yield Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-6" data-index="5">
+											<a class="lv lv-3" href="/english/bmkycvcyc/" target="_self" data-channel="bmkycvcyc">
+											        			CFETS Closing Yield Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-7" data-index="6">
+											<a class="lv lv-3" href="/english/bmkycvfcc/" target="_self" data-channel="bmkycvfcc">
+											        			IRS Curves
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+								              		
+								              		
+								              		
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-8" data-index="7">
+											<a class="lv lv-3" href="/english/bmkbvl/" target="_self" data-channel="bmkbvl">
+											        			Bond Valuation
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-2-9" data-index="8">
+											<a class="lv lv-3" href="/english/cdsindices/" target="_self" data-channel="cdsindices">
+											        			CDS Indices
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-3" data-index="2" id="li-3-3">
+								<a class="lv lv-2" href="/english/bmkierirt/" target="_self" data-channel="bmkier">
+				        			Interest & Exchange Rates(SDDS)
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+						              <li data-mid="3-3-1" data-index="0">
+											<a class="lv lv-3" href="/english/bmkierirt/" target="_self" data-channel="bmkierirt">
+											        			Interest Rate
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+					              		});
+				              		</script>
+						              <li data-mid="3-3-2" data-index="1">
+											<a class="lv lv-3" href="/english/bmkierert/" target="_self" data-channel="bmkierert">
+											        			Exchange Rate
+						                  </a>
+						              </li>
+				              		<script>
+				              			$(function(){
+								              		
+					              		});
+				              		</script>
+			              		<script>
+			              			$(function(){
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+			      <li class="has-drop" data-mid="3-4" data-index="3" id="li-3-4">
+								<a class="lv lv-2" href="/english/bmkarp/" target="_self" data-channel="bmkarp">
+				        			Analysis Reports
+			          </a>
+			          <ul class="side-menu-drop-list hide">
+			              		<script>
+			              			$(function(){
+														$('#li-3-4').attr('class','');
+													});
+			              		</script>
+			              	
+			              	
+			          </ul>
+			      </li>
+
+
+	  </ul>
+</div>
+
+<script>
+	$(function(){
+		if($("#hasPhoneTitle").val()=="0"){
+			$('#phone-title').append('<span class="title-s" data-mid="" data-channel="">&nbsp;</span>');
+		}
+	});
+</script>		                </div>
+		                
+		                <div class="main-body-m">
+		                    <div class="subpage">
+<div class="section-a section-a-transparent">
+<div class="section-a-body">
+        <ul class="san-tabs-a" id="tabs-member-fx">
+                        <li><a href="javascript:void(0);" ><span>Shibor</span></a></li>
+                        <li><a href="javascript:void(0);" ><span>Historical Data</span></a></li>
+                    <li class="exclude"><a href="/english/mdtmmbspb/" target="_blank"><span>Shibor Panel Banks</span></a></li>
+                        <li><a href="javascript:void(0);" ><span>About Shibor</span></a></li>
+    </ul>
+
+    <div class="san-tabs-content san-tabs-contentPsheet">
+        <div class="san-tabs-panel" data-show="load"></div>
+                            <div class="san-tabs-panel" data-show="toggle">
+
+		<div class="tp-block" data-url="/r/cms/www/chinamoney/html/shibor/shibor.html"></div>
+		<div class="tp-block" data-url="/r/cms/www/chinamoney/html/shibor/shibor-mn.html"></div>
+                            </div>
+                            <div class="san-tabs-panel" data-show="toggle">
+
+		<div class="tp-block" data-url="/r/cms/www/chinamoney/html/shibor/his-shibor.html"></div>
+		<div class="tp-block" data-url="/r/cms/www/chinamoney/html/shibor/his-shibor-quote.html"></div>
+		<div class="tp-block" data-url="/r/cms/www/chinamoney/html/shibor/his-shibor-mean.html"></div>
+                            </div>
+                            <div class="san-tabs-panel" data-show="toggle">
+							<div class="san-row">
+				                <div class="san-col-9 san-col-m-12 san-col-s-12 san-col-xs-12">
+				                    <div class="webeditor-pd" data-source="webeditor">
+										<p style="line-height: 1.5; margin-bottom: 10px;"><span style="font-family: Arial; font-size: 10.5pt;">Shibor (Shanghai Interbank Offered Rate) is calculated, announced and named on the </span><span style="font-family: Arial;"><span style="font-size: 10.5pt;">technological platform of the National Interbank Funding Center in Shanghai. It is a simple, no-guarantee, &nbsp; wholesale interest rate calculated by arithmetically averaging all the &nbsp; interbank RMB lending rates offered by the price quotation group of banks with a high &nbsp; credit rating. Currently, the Shibor consists of eight maturities: overnight, 1-week, 2-week, 1-month, 3-month, 6-month, 9-month and 1-year.</span><span style="line-height: 1.5; font-size: 10.5pt;">&nbsp; &nbsp; &nbsp; &nbsp;</span></span></p>
+<p style="line-height: 1.5; margin-top: 5px; margin-bottom: 10px;"><span style="font-family: Arial;"><span style="font-size: 10.5pt;">The price quotation group of Shibor consists of 18 commercial banks. These quoting banks are primary dealers of open market operation or market makers in the FX market, with sound information disclosure and active RMB transactions in China's money market. &nbsp; Shibor Working Group of PBC decides and adjusts the panel banks, supervises and administrates the Shibor operation, and regulates the behavior of the quoting banks and &nbsp; the specified publisher in accordance with the Implementation Rules of Shibor.</span><span style="line-height: 1.5; font-size: 10.5pt;">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</span></span></p>
+<p style="line-height: 1.5; margin-top: 5px; margin-bottom: 10px;"><span style="font-family: Arial; font-size: 10.5pt;">National Interbank Funding Center is authorized to calculate and publish Shibor. At 11:00AM (Beijing Time) each business day, Shibor of the eight maturities will be published at www.shibor.sh.cn after arithmetically averaging all the quotations of the 18 banks, with the four highest and four lowest quotations excluded.</span><br>
+</p>
+									</div>
+				                </div>
+				                <div class="san-col-3 hidden-m hidden-s hidden-xs">
+				                    <div class="san-thumbnail"><img src="/u/cms/www/202108/14102406kgb9.jpg"></div>
+				                </div>
+				            </div>
+							</div>
+        </div>
+    </div>
+</div>
+<script>
+$(function(){
+	var readyInterval = setInterval(function(){
+        if(DOTABS){
+            clearInterval(readyInterval);
+            var tab = getQueryStr("tabNum");
+        	if (tab==null||tab==""||tab==0) {
+        		var tab = getQueryStr("tab");
+        	}
+        	if(!tab) tab=1;
+            $('#tabs-member-fx').sanTabs({
+                //layout: 'table',
+                defaultItem: tab,
+                equalWidth: true,
+                rowMax:4,
+                //rowMin:3,
+                inject:true,
+                type:"mix",
+                mediaListening: true,
+                onDone:function($li){
+                    $(this).find('div[data-url]:not(.san-datasheet)').each(function(){
+                        $(this).sanJumpto();
+                    })
+                }
+            });
+        }
+    },10);
+});
+</script>
+		                    </div>
+		                </div>
+					</div>
+		   		</div>
+        </div>
+        <!-- #main-page-body end -->
+
+        <div id="main-page-foot" data-for="block" data-role="footer" data-url="/english/mainfoot/"></div>
+        <!-- #main-page-foot end -->
+		
+		<div id="fixed-navi" data-for="block" data-url="/english/fixednavi/"></div>
+       
+    </div>
+<!-- main-page -->
+
+<!-- script -->
+<script>
+$(function(){
+	var initReady = setInterval(function(){
+        if ('san' in window) {
+            clearInterval(initReady);
+            doJumptoByDatafor();
+        }
+    }, 10);
+});
+</script>
+</body>
+</html>
