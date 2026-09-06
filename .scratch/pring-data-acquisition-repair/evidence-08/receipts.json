@@ -1,0 +1,508 @@
+[
+  {
+    "url": "https://www.bse.cn/service/code_mapping.html",
+    "method": "GET",
+    "started_at": "2026-09-06T15:53:00.879674+00:00",
+    "status": 302,
+    "final_url": "https://www.bse.cn/service/code_mapping.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:53:00 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "138"
+    },
+    "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "bytes": 138,
+    "local_file": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "truncated": false,
+    "received_at": "2026-09-06T15:53:01.408218+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.szse.cn/lawrules/rule/trade/current/t20260424_620190.html",
+    "method": "GET",
+    "started_at": "2026-09-06T15:53:01.419234+00:00",
+    "status": 200,
+    "final_url": "https://www.szse.cn/lawrules/rule/trade/current/t20260424_620190.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:53:00 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "19374",
+      "Last-Modified": "Sat, 30 May 2026 09:09:52 GMT",
+      "ETag": "W/\"6a1aa960-4bae\""
+    },
+    "sha256": "08d05a9d3f9c7dac31e8ac33712bac26b3995585718031e99a953e9128eec2d2",
+    "bytes": 19374,
+    "local_file": "08d05a9d3f9c7dac31e8ac33712bac26b3995585718031e99a953e9128eec2d2",
+    "truncated": false,
+    "received_at": "2026-09-06T15:53:01.737012+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713155663.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:53:01.761836+00:00",
+    "status": 200,
+    "final_url": "https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713155663.pdf",
+    "headers": {
+      "Content-Type": "application/pdf",
+      "Content-Length": "282084",
+      "Date": "Sun, 06 Sep 2026 04:00:34 GMT",
+      "Last-Modified": "Fri, 24 Apr 2026 11:37:16 GMT",
+      "ETag": "\"69eb55ec-44de4\""
+    },
+    "sha256": "9b66f8b0db70f84a25ef1ccb4ee2351001724e408117552d75f6d8993483c586",
+    "bytes": 282084,
+    "local_file": "9b66f8b0db70f84a25ef1ccb4ee2351001724e408117552d75f6d8993483c586",
+    "truncated": false,
+    "received_at": "2026-09-06T15:53:02.045635+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.sse.com.cn/lawandrules/sselawsrules2025/stocks/exchange/c/c_20260424_10816482.shtml",
+    "method": "GET",
+    "started_at": "2026-09-06T15:53:02.065220+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/lawandrules/sselawsrules2025/stocks/exchange/c/c_20260424_10816482.shtml",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:53:00 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "f7637a974779077f53de874c1fbb9408c88e70fba2e0410871e0b1d7c376e699",
+    "bytes": 34826,
+    "local_file": "f7637a974779077f53de874c1fbb9408c88e70fba2e0410871e0b1d7c376e699",
+    "truncated": false,
+    "received_at": "2026-09-06T15:53:02.303273+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823156.shtml",
+    "method": "GET",
+    "started_at": "2026-09-06T15:53:02.323695+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260622_10823156.shtml",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:53:00 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "96047ccb77f8103aea618e60ae15d252233fbfa02d9604882f4eaf563bcf8da6",
+    "bytes": 27611,
+    "local_file": "96047ccb77f8103aea618e60ae15d252233fbfa02d9604882f4eaf563bcf8da6",
+    "truncated": false,
+    "received_at": "2026-09-06T15:53:02.744414+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260420_10815915.shtml",
+    "method": "GET",
+    "started_at": "2026-09-06T15:53:02.763024+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/disclosure/announcement/listing/stock/c/c_20260420_10815915.shtml",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:53:01 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "a0787c00a079e9682e57325cfefff3c9d0fd8e91159da8f64af14ed598aae7c2",
+    "bytes": 28610,
+    "local_file": "a0787c00a079e9682e57325cfefff3c9d0fd8e91159da8f64af14ed598aae7c2",
+    "truncated": false,
+    "received_at": "2026-09-06T15:53:03.195571+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.bse.cn/disclosure/2026/2026-03-16/1773656294_079022.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:54:55.550325+00:00",
+    "status": 302,
+    "final_url": "https://www.bse.cn/disclosure/2026/2026-03-16/1773656294_079022.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:54:55 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "138"
+    },
+    "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "bytes": 138,
+    "local_file": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "truncated": false,
+    "received_at": "2026-09-06T15:54:56.474270+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.bse.cn/disclosure/2026/2026-04-28/61c0e9f00f594b49b7bf93e5fb7680dd.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:54:56.504839+00:00",
+    "status": 302,
+    "final_url": "https://www.bse.cn/disclosure/2026/2026-04-28/61c0e9f00f594b49b7bf93e5fb7680dd.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:54:56 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "138"
+    },
+    "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "bytes": 138,
+    "local_file": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "truncated": false,
+    "received_at": "2026-09-06T15:54:57.122845+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://investor.szse.cn/marketServices/technicalservice/notice/t20260424_620199.html",
+    "method": "GET",
+    "started_at": "2026-09-06T15:54:57.141398+00:00",
+    "status": 200,
+    "final_url": "https://investor.szse.cn/marketServices/technicalservice/notice/t20260424_620199.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:54:56 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "48651",
+      "Last-Modified": "Sat, 30 May 2026 09:11:11 GMT",
+      "ETag": "W/\"6a1aa9af-be0b\""
+    },
+    "sha256": "08805dafc234b8e084fc1ea19e255477baedcacc1f9c711a02aa2fb1017b41ef",
+    "bytes": 48651,
+    "local_file": "08805dafc234b8e084fc1ea19e255477baedcacc1f9c711a02aa2fb1017b41ef",
+    "truncated": false,
+    "received_at": "2026-09-06T15:54:58.162109+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.sse.com.cn/aboutus/mediacenter/hotandd/c/c_20260424_10816474.shtml",
+    "method": "GET",
+    "started_at": "2026-09-06T15:54:58.189420+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/aboutus/mediacenter/hotandd/c/c_20260424_10816474.shtml",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:54:56 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "e5d8c729c79b00150dae16efb61396629fd9dbfdc881bfd389b9c71a9d0cb334",
+    "bytes": 28607,
+    "local_file": "e5d8c729c79b00150dae16efb61396629fd9dbfdc881bfd389b9c71a9d0cb334",
+    "truncated": false,
+    "received_at": "2026-09-06T15:54:58.449751+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://docs.static.szse.cn/www/lawrules/rule/stock/trade/W020230217564423808793.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:19.443031+00:00",
+    "status": 404,
+    "final_url": "https://docs.static.szse.cn/www/lawrules/rule/stock/trade/W020230217564423808793.pdf",
+    "headers": {
+      "Content-Type": "text/html",
+      "Content-Length": "2218",
+      "Date": "Sun, 06 Sep 2026 15:55:19 GMT",
+      "ETag": "\"6465bf24-8aa\""
+    },
+    "sha256": "fc2051278f454ecd0aeafcf4ba1483f1f9bdcc644af901f4b5f464b3bdacaf8f",
+    "bytes": 2218,
+    "local_file": "fc2051278f454ecd0aeafcf4ba1483f1f9bdcc644af901f4b5f464b3bdacaf8f",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:19.971067+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://investor.szse.cn/lawrules/index/rule/t20230217_598773.html",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:19.987814+00:00",
+    "status": 404,
+    "final_url": "https://investor.szse.cn/lawrules/index/rule/t20230217_598773.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:19 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "69284",
+      "Last-Modified": "Sat, 29 Aug 2026 03:59:06 GMT",
+      "ETag": "W/\"6a92590a-10ea4\""
+    },
+    "sha256": "8b186e44d821c2a6ece2cdee9d6e1b582350f0eebdbefd082233df82eee025c4",
+    "bytes": 69284,
+    "local_file": "8b186e44d821c2a6ece2cdee9d6e1b582350f0eebdbefd082233df82eee025c4",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:20.465252+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://tushare.pro/document/2?doc_id=25",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:20.477467+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=25",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:20 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "36886",
+      "Etag": "\"e8a71b6aad1cde1d12f767592f3cc403f5df3bbd\""
+    },
+    "sha256": "44728595a627f48fedc8d5d6a47cbb5327534630c81e1f1e6da436d1b36b5f27",
+    "bytes": 36886,
+    "local_file": "44728595a627f48fedc8d5d6a47cbb5327534630c81e1f1e6da436d1b36b5f27",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:20.667972+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://tushare.pro/document/2?doc_id=40",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:20.683427+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=40",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:20 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "36585",
+      "Etag": "\"8f9340e90e5a7feb0c46ba463590b925c1d59a45\""
+    },
+    "sha256": "17c4d64573a30501bd0cf729cfc962d7fb1ae26b6771affe8ee7ed4eacb7df15",
+    "bytes": 36585,
+    "local_file": "17c4d64573a30501bd0cf729cfc962d7fb1ae26b6771affe8ee7ed4eacb7df15",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:20.830356+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://tushare.pro/document/2?doc_id=214",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:20.846773+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=214",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:20 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "41379",
+      "Etag": "\"ce823b6fcf9ce890dc424be036d7b34e284220df\""
+    },
+    "sha256": "671e2b87150f5c52e0147cb05fa613914400a57f168e56afa3fef0d0bdfde90f",
+    "bytes": 41379,
+    "local_file": "671e2b87150f5c52e0147cb05fa613914400a57f168e56afa3fef0d0bdfde90f",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:21.025591+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://docs.static.szse.cn/www/lawrules/rule/stock/W020230217564423808793.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:48.704270+00:00",
+    "status": 404,
+    "final_url": "https://docs.static.szse.cn/www/lawrules/rule/stock/W020230217564423808793.pdf",
+    "headers": {
+      "Content-Type": "text/html",
+      "Content-Length": "2218",
+      "Date": "Sun, 06 Sep 2026 15:55:48 GMT",
+      "ETag": "\"6465bf24-8aa\""
+    },
+    "sha256": "fc2051278f454ecd0aeafcf4ba1483f1f9bdcc644af901f4b5f464b3bdacaf8f",
+    "bytes": 2218,
+    "local_file": "fc2051278f454ecd0aeafcf4ba1483f1f9bdcc644af901f4b5f464b3bdacaf8f",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:49.034471+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.bse.cn/important_news/200026735.html",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:49.067868+00:00",
+    "status": 302,
+    "final_url": "https://www.bse.cn/important_news/200026735.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:48 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "138"
+    },
+    "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "bytes": 138,
+    "local_file": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:49.438754+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://dataclouds.cninfo.com.cn/sjother/regulatory/2024/20241213/d7cfc96e816541629e69b0e257d98dbe.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:49.464850+00:00",
+    "status": 200,
+    "final_url": "https://dataclouds.cninfo.com.cn/sjother/regulatory/2024/20241213/d7cfc96e816541629e69b0e257d98dbe.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:49 GMT",
+      "Content-Type": "application/pdf",
+      "Content-Length": "104322",
+      "Last-Modified": "Fri, 13 Dec 2024 11:25:04 GMT"
+    },
+    "sha256": "46535d7c7301514e83a7856968b5ee8e60069c5707fb87d79fcfd07a9974cf59",
+    "bytes": 104322,
+    "local_file": "46535d7c7301514e83a7856968b5ee8e60069c5707fb87d79fcfd07a9974cf59",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:49.719384+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.szse.cn/marketServices/technicalservice/index.html",
+    "method": "GET",
+    "started_at": "2026-09-06T15:55:49.739619+00:00",
+    "status": 200,
+    "final_url": "https://www.szse.cn/marketServices/technicalservice/index.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:55:49 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "123457",
+      "Last-Modified": "Fri, 04 Sep 2026 00:59:07 GMT",
+      "ETag": "W/\"6a9a17db-1e241\""
+    },
+    "sha256": "01445f7ca1e325d818fcbc9942ce6897c229c04d414c9fecd7254dd3e35bac84",
+    "bytes": 123457,
+    "local_file": "01445f7ca1e325d818fcbc9942ce6897c229c04d414c9fecd7254dd3e35bac84",
+    "truncated": false,
+    "received_at": "2026-09-06T15:55:50.259738+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.sse.com.cn/disclosure/announcement/listing/ipo/c/c_20260324_10812805.shtml",
+    "method": "GET",
+    "started_at": "2026-09-06T15:56:33.721781+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/disclosure/announcement/listing/ipo/c/c_20260324_10812805.shtml",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:56:33 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "2e4997c9bffbd27a8351a0b43f20cf6f3401657f95132a34d34404f91182973f",
+    "bytes": 27648,
+    "local_file": "2e4997c9bffbd27a8351a0b43f20cf6f3401657f95132a34d34404f91182973f",
+    "truncated": false,
+    "received_at": "2026-09-06T15:56:34.158423+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://big5.sse.com.cn/site/cht/www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-14/603124_20260314_H5XP.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:56:34.176695+00:00",
+    "status": 200,
+    "final_url": "https://big5.sse.com.cn/site/cht/www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-14/603124_20260314_H5XP.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:56:33 GMT",
+      "Content-Type": "application/pdf",
+      "Content-Length": "131377",
+      "Last-Modified": "Fri, 13 Mar 2026 10:08:03 GMT",
+      "ETag": "\"69b3e203-20131\""
+    },
+    "sha256": "63a5d8fac22e222391a5eaa6d671ddd6547bc99407cbc4e57d75d8828b5d3648",
+    "bytes": 131377,
+    "local_file": "63a5d8fac22e222391a5eaa6d671ddd6547bc99407cbc4e57d75d8828b5d3648",
+    "truncated": false,
+    "received_at": "2026-09-06T15:56:34.694342+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://tushare.pro/document/2?doc_id=27",
+    "method": "GET",
+    "started_at": "2026-09-06T15:56:34.706531+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=27",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:56:34 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "35884",
+      "Etag": "\"5e39b736001b7d439b5c9cc3031f2a23d9d5ee3c\""
+    },
+    "sha256": "1ae0c04367235ecd343b1e8b89ba88178020f00ac2a974872e08b5536431068b",
+    "bytes": 35884,
+    "local_file": "1ae0c04367235ecd343b1e8b89ba88178020f00ac2a974872e08b5536431068b",
+    "truncated": false,
+    "received_at": "2026-09-06T15:56:34.866779+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713346617.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:56:34.881255+00:00",
+    "status": 200,
+    "final_url": "https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020260424690713346617.pdf",
+    "headers": {
+      "Content-Type": "application/pdf",
+      "Content-Length": "141508",
+      "Date": "Sun, 06 Sep 2026 15:56:34 GMT",
+      "Last-Modified": "Fri, 24 Apr 2026 11:37:16 GMT",
+      "ETag": "\"69eb55ec-228c4\""
+    },
+    "sha256": "3a309bf5b4f7b2ee170b897084397568c7a1db939b398f4ab8999587501c727a",
+    "bytes": 141508,
+    "local_file": "3a309bf5b4f7b2ee170b897084397568c7a1db939b398f4ab8999587501c727a",
+    "truncated": false,
+    "received_at": "2026-09-06T15:56:35.309206+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.szse.cn/marketServices/technicalservice/doc/P020260306733846760075.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T15:56:54.445203+00:00",
+    "status": 200,
+    "final_url": "https://www.szse.cn/marketServices/technicalservice/doc/P020260306733846760075.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:56:52 GMT",
+      "Content-Type": "application/pdf",
+      "Content-Length": "125348",
+      "Last-Modified": "Fri, 06 Mar 2026 13:13:50 GMT",
+      "ETag": "\"69aad30e-1e9a4\""
+    },
+    "sha256": "1acbb35917105252edd5502377cc8ccfdd566d7cd62f37fc3838cf11483336c4",
+    "bytes": 125348,
+    "local_file": "1acbb35917105252edd5502377cc8ccfdd566d7cd62f37fc3838cf11483336c4",
+    "truncated": false,
+    "received_at": "2026-09-06T15:56:54.946795+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.szse.cn/lawrules/rule/trade/repeal/",
+    "method": "GET",
+    "started_at": "2026-09-06T15:56:54.959880+00:00",
+    "status": 404,
+    "final_url": "https://www.szse.cn/lawrules/rule/trade/repeal/",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:56:53 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "8675",
+      "Last-Modified": "Sat, 29 Aug 2026 03:17:57 GMT",
+      "ETag": "W/\"6a924f65-21e3\""
+    },
+    "sha256": "d5086c31d9a9d3da1e5a28e3c5f516c997b4508b20dee99ccda33b1b75d3976b",
+    "bytes": 8675,
+    "local_file": "d5086c31d9a9d3da1e5a28e3c5f516c997b4508b20dee99ccda33b1b75d3976b",
+    "truncated": false,
+    "received_at": "2026-09-06T15:56:55.209963+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020230217564423808793.pdf",
+    "method": "GET",
+    "started_at": "2026-09-06T16:01:22.712969+00:00",
+    "status": 404,
+    "final_url": "https://docs.static.szse.cn/www/lawrules/rule/trade/current/W020230217564423808793.pdf",
+    "headers": {
+      "Content-Type": "text/html",
+      "Content-Length": "2218",
+      "Date": "Sun, 06 Sep 2026 16:01:22 GMT",
+      "ETag": "\"6465bf24-8aa\""
+    },
+    "sha256": "fc2051278f454ecd0aeafcf4ba1483f1f9bdcc644af901f4b5f464b3bdacaf8f",
+    "bytes": 2218,
+    "local_file": "fc2051278f454ecd0aeafcf4ba1483f1f9bdcc644af901f4b5f464b3bdacaf8f",
+    "truncated": false,
+    "received_at": "2026-09-06T16:01:23.198298+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.sse.com.cn/disclosure/magin/announcement/ssereport/c/c_20260326_10813101.shtml",
+    "method": "GET",
+    "started_at": "2026-09-06T16:01:23.305252+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/disclosure/magin/announcement/ssereport/c/c_20260326_10813101.shtml",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 16:01:22 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "1bf04180bf01a0258351fc409b3edc9bfc3c63512a2851e054623196889c264f",
+    "bytes": 27608,
+    "local_file": "1bf04180bf01a0258351fc409b3edc9bfc3c63512a2851e054623196889c264f",
+    "truncated": false,
+    "received_at": "2026-09-06T16:01:23.618877+00:00",
+    "public_available_at": null
+  }
+]

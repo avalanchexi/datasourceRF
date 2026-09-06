@@ -1,0 +1,520 @@
+[
+  {
+    "name": "dce-home",
+    "url": "https://www.dce.com.cn/",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:08.817091+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "completed_at": "2026-09-06T15:01:18.846233+00:00",
+    "error_type": "ReadTimeout",
+    "error": "HTTPSConnectionPool(host='www.dce.com.cn', port=443): Read timed out. (read timeout=10)"
+  },
+  {
+    "name": "dce-pp-20260828",
+    "url": "https://www.dce.com.cn/dcereport/publicweb/dailystat/dayQuotes",
+    "method": "POST",
+    "json_body": {
+      "contractId": "",
+      "lang": "zh",
+      "optionSeries": "",
+      "statisticsType": "0",
+      "tradeDate": "20260828",
+      "tradeType": "1",
+      "varietyId": "pp"
+    },
+    "request_started_at": "2026-09-06T15:01:08.818107+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "completed_at": "2026-09-06T15:01:18.846529+00:00",
+    "error_type": "ReadTimeout",
+    "error": "HTTPSConnectionPool(host='www.dce.com.cn', port=443): Read timed out. (read timeout=10)"
+  },
+  {
+    "name": "dce-pp-rules-2024",
+    "url": "https://www.dce.com.cn/dalianshangpin/fgfz/6142914/6142926/6146588/%E5%A4%A7%E8%BF%9E%E5%95%86%E5%93%81%E4%BA%A4%E6%98%93%E6%89%80%E8%81%9A%E4%B8%99%E7%83%AF%E6%9C%9F%E8%B4%A7%E4%B8%9A%E5%8A%A1%E7%BB%86%E5%88%99%EF%BC%88%E6%A0%B9%E6%8D%AE2024%E5%B9%B411%E6%9C%881%E6%97%A5%E3%80%942024%E3%80%95102%E5%8F%B7%E6%96%87%E4%BB%B6%E4%BF%AE%E6%94%B9%EF%BC%89.pdf",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:08.818942+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "completed_at": "2026-09-06T15:01:18.845221+00:00",
+    "error_type": "ReadTimeout",
+    "error": "HTTPSConnectionPool(host='www.dce.com.cn', port=443): Read timed out. (read timeout=10)"
+  },
+  {
+    "name": "czce-cf-rules-2026-notice",
+    "url": "https://www.czce.com.cn/cn/gyjys/jysdt/ggytz/webinfo/2026/1/b02d47b1df0043c4a1a59fa86c939ee4.htm",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:18.845256+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:01:18.961410+00:00",
+    "status": 412,
+    "final_url": "https://www.czce.com.cn/cn/gyjys/jysdt/ggytz/webinfo/2026/1/b02d47b1df0043c4a1a59fa86c939ee4.htm",
+    "sha256": "da9c32302a3df4cde44b602a822f071f187276276f1a3c38a477445f5a85a13d",
+    "byte_count": 2879,
+    "local_file": "da9c32302a3df4cde44b602a822f071f187276276f1a3c38a477445f5a85a13d.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:01:16 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    },
+    "prefix": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.or"
+  },
+  {
+    "name": "czce-rules-2026-may-notice",
+    "url": "https://www.czce.com.cn/cn/gyjys/jysdt/ggytz/webinfo/2026/5/e4f303d3856241fbb023093817d38c34.htm",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:18.846267+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:01:18.960061+00:00",
+    "status": 412,
+    "final_url": "https://www.czce.com.cn/cn/gyjys/jysdt/ggytz/webinfo/2026/5/e4f303d3856241fbb023093817d38c34.htm",
+    "sha256": "9e0b3d71ad044c5ae2c7ab246433eff84ae4a6848e649e10f6b9c43da57a74c5",
+    "byte_count": 2843,
+    "local_file": "9e0b3d71ad044c5ae2c7ab246433eff84ae4a6848e649e10f6b9c43da57a74c5.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:01:16 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    },
+    "prefix": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.or"
+  },
+  {
+    "name": "tushare-fut-basic-doc",
+    "url": "https://tushare.pro/document/2?doc_id=135",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:18.846556+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:01:21.993559+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=135",
+    "sha256": "7bad6377bdf34d78f421b2d823233784cbcf4f734f015cd3d6051fdac2a0d222",
+    "byte_count": 34609,
+    "local_file": "7bad6377bdf34d78f421b2d823233784cbcf4f734f015cd3d6051fdac2a0d222.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:01:19 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Etag": "W/\"88de9fdf8d5e8ffcd3a94b1477abae8b88112f5e\""
+    },
+    "prefix": "<!DOCTYPE html>\n<html lang=\"en\" style=\"height:100%\">\n<head>\n<meta charset=\"utf-8"
+  },
+  {
+    "name": "tushare-fut-daily-doc",
+    "url": "https://tushare.pro/document/2?doc_id=138",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:18.960554+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:01:21.204972+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=138",
+    "sha256": "8662dc734be76deb9e64e6cc4e12ad725ffefe29dec53e7702bfa992f8b9f905",
+    "byte_count": 37123,
+    "local_file": "8662dc734be76deb9e64e6cc4e12ad725ffefe29dec53e7702bfa992f8b9f905.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:01:18 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Etag": "W/\"756404a1a37137f042b49f57098a6ba3316ed8e7\""
+    },
+    "prefix": "<!DOCTYPE html>\n<html lang=\"en\" style=\"height:100%\">\n<head>\n<meta charset=\"utf-8"
+  },
+  {
+    "name": "tushare-fut-mapping-doc",
+    "url": "https://tushare.pro/wctapi/documents/189.md",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:18.961830+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:01:20.578992+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/wctapi/documents/189.md",
+    "sha256": "084495ddd4340fb4320c133717382d71ac8a4bc123a051d7799b028be236aed9",
+    "byte_count": 1929,
+    "local_file": "084495ddd4340fb4320c133717382d71ac8a4bc123a051d7799b028be236aed9.md",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:01:18 GMT",
+      "Content-Type": "text/plain; charset=utf-8"
+    },
+    "prefix": "## 期货主力与连续合约\n----\n\n接口：fut_mapping\n描述：获取期货�"
+  },
+  {
+    "name": "tushare-fut-calendar-doc",
+    "url": "https://tushare.pro/document/2?doc_id=467",
+    "method": "GET",
+    "json_body": null,
+    "request_started_at": "2026-09-06T15:01:20.579393+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:01:22.221658+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=467",
+    "sha256": "a57207b67932f04c325b9478c0ef12d3407da42f9e2a784769dad19a461917b3",
+    "byte_count": 35282,
+    "local_file": "a57207b67932f04c325b9478c0ef12d3407da42f9e2a784769dad19a461917b3.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:01:19 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Etag": "W/\"3b285e1dbc6c13a1795db419a39337519c7be97c\""
+    },
+    "prefix": "<!DOCTYPE html>\n<html lang=\"en\" style=\"height:100%\">\n<head>\n<meta charset=\"utf-8"
+  },
+  {
+    "name": "shfe-api-js",
+    "url": "https://www.shfe.com.cn/images/api.js",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:03:14.795028+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:03:14.965033+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/images/api.js",
+    "sha256": "888923e303b7178af9b3bfac83621c60f2f6ae0871894bf1ebe75a3a2708f86b",
+    "byte_count": 16823,
+    "local_file": "888923e303b7178af9b3bfac83621c60f2f6ae0871894bf1ebe75a3a2708f86b.js",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:03:12 GMT",
+      "Content-Type": "application/javascript; charset=utf-8",
+      "Last-Modified": "Tue, 28 Oct 2025 05:16:57 GMT",
+      "ETag": "W/\"690051c9-41b7\""
+    }
+  },
+  {
+    "name": "shfe-contract-20260828-ru",
+    "url": "https://www.shfe.cn/reports/businessdata/contract/?query_date=20260828&query_options=1&query_params=currinstrumentprop_f&query_product_code=ru_f",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:03:14.795914+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:03:14.964159+00:00",
+    "status": 404,
+    "final_url": "https://www.shfe.cn/reports/businessdata/contract/?query_date=20260828&query_options=1&query_params=currinstrumentprop_f&query_product_code=ru_f",
+    "sha256": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd",
+    "byte_count": 4832,
+    "local_file": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:03:12 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    }
+  },
+  {
+    "name": "ine-contract-20260202-sc",
+    "url": "https://www.ine.com.cn/eng/reports/businessdata/contract/?query_date=20260202&query_options=1&query_params=currinstrumentprop_f&query_product_code=sc_f",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:03:14.796929+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:03:14.971227+00:00",
+    "status": 200,
+    "final_url": "https://www.ine.com.cn/eng/reports/businessdata/contract/?query_date=20260202&query_options=1&query_params=currinstrumentprop_f&query_product_code=sc_f",
+    "sha256": "58ea56541e7c198958a092752f982b968fb721a7ef3a92434252c8dfb6523dee",
+    "byte_count": 10648,
+    "local_file": "58ea56541e7c198958a092752f982b968fb721a7ef3a92434252c8dfb6523dee.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:03:12 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "shfe-2026-holiday-calendar",
+    "url": "https://www.shfe.cn/eng/CircularNews/Circular/202512/t20251217_829807.html",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:03:14.964776+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:03:15.133219+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.cn/eng/CircularNews/Circular/202512/t20251217_829807.html",
+    "sha256": "62b1cb96ca859433c6264643655312f8043aecda42d7746947be1292ce0d394a",
+    "byte_count": 117029,
+    "local_file": "62b1cb96ca859433c6264643655312f8043aecda42d7746947be1292ce0d394a.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:03:12 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    }
+  },
+  {
+    "name": "ine-2026-spring-festival-notice",
+    "url": "https://www.shfe.cn/eng/CircularNews/Circular/202602/t20260209_830413.html",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:03:14.965692+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:03:15.118461+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.cn/eng/CircularNews/Circular/202602/t20260209_830413.html",
+    "sha256": "1f9be5c00c7d9e25a49befeb02eb7708906ea7fe82b0635f34d155b68ef88107",
+    "byte_count": 106316,
+    "local_file": "1f9be5c00c7d9e25a49befeb02eb7708906ea7fe82b0635f34d155b68ef88107.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:03:12 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    }
+  },
+  {
+    "name": "shfe-contracts-20260202",
+    "url": "https://www.shfe.com.cn/data/busiparamdata/future/ContractBaseInfo20260202.dat",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:04:06.080962+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:04:06.220744+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/data/busiparamdata/future/ContractBaseInfo20260202.dat",
+    "sha256": "0f069e8fedf1d36922c862ad596289071b0774217c14165f825588c6b9b2352e",
+    "byte_count": 80439,
+    "local_file": "0f069e8fedf1d36922c862ad596289071b0774217c14165f825588c6b9b2352e.dat",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:04:03 GMT",
+      "Content-Type": "application/json",
+      "Last-Modified": "Mon, 02 Feb 2026 08:40:16 GMT",
+      "ETag": "W/\"698062f0-13a37\""
+    },
+    "json_keys": [
+      "ContractBaseInfo",
+      "update_date",
+      "report_date"
+    ]
+  },
+  {
+    "name": "shfe-contracts-20260309",
+    "url": "https://www.shfe.com.cn/data/busiparamdata/future/ContractBaseInfo20260309.dat",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:04:06.081510+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:04:06.208045+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/data/busiparamdata/future/ContractBaseInfo20260309.dat",
+    "sha256": "28beb369dbdd9642006237d378a2e9f4f75a4dff290dcb5c73112e03f8dedb20",
+    "byte_count": 80986,
+    "local_file": "28beb369dbdd9642006237d378a2e9f4f75a4dff290dcb5c73112e03f8dedb20.dat",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:04:03 GMT",
+      "Content-Type": "application/json",
+      "Last-Modified": "Mon, 09 Mar 2026 09:15:07 GMT",
+      "ETag": "W/\"69ae8f9b-13c5a\""
+    },
+    "json_keys": [
+      "ContractBaseInfo",
+      "update_date",
+      "report_date"
+    ]
+  },
+  {
+    "name": "shfe-contracts-20260828",
+    "url": "https://www.shfe.com.cn/data/busiparamdata/future/ContractBaseInfo20260828.dat",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:04:06.081871+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:04:06.237675+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/data/busiparamdata/future/ContractBaseInfo20260828.dat",
+    "sha256": "b46f8fcb29cae52997017aa80c58f274abb7e6028c67b0f9647e45a4ede4d57b",
+    "byte_count": 80997,
+    "local_file": "b46f8fcb29cae52997017aa80c58f274abb7e6028c67b0f9647e45a4ede4d57b.dat",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:04:03 GMT",
+      "Content-Type": "application/json",
+      "Last-Modified": "Fri, 28 Aug 2026 08:05:09 GMT",
+      "ETag": "W/\"6a914135-13c65\""
+    },
+    "json_keys": [
+      "ContractBaseInfo",
+      "update_date",
+      "report_date"
+    ]
+  },
+  {
+    "name": "shfe-daily-20260827",
+    "url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx20260827.dat",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:04:06.210034+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:04:06.364362+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx20260827.dat",
+    "sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+    "byte_count": 123139,
+    "local_file": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926.dat",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:04:03 GMT",
+      "Content-Type": "application/json",
+      "Last-Modified": "Thu, 27 Aug 2026 07:23:04 GMT",
+      "ETag": "W/\"6a8fe5d8-1e103\""
+    },
+    "json_keys": [
+      "o_IMChangeDate",
+      "showlength",
+      "o_day",
+      "o_weekday",
+      "o_curinstrument",
+      "o_year_num",
+      "o_code",
+      "update_date",
+      "o_curmetalindex",
+      "o_year",
+      "o_month",
+      "o_msg",
+      "o_curproduct",
+      "o_total_num",
+      "o_trade_day",
+      "report_date"
+    ]
+  },
+  {
+    "name": "shfe-daily-20260828",
+    "url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx20260828.dat",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:04:06.221653+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:04:06.393619+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx20260828.dat",
+    "sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+    "byte_count": 123009,
+    "local_file": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3.dat",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:04:04 GMT",
+      "Content-Type": "application/json",
+      "Last-Modified": "Fri, 28 Aug 2026 07:34:05 GMT",
+      "ETag": "W/\"6a9139ed-1e081\""
+    },
+    "json_keys": [
+      "o_IMChangeDate",
+      "showlength",
+      "o_day",
+      "o_weekday",
+      "o_curinstrument",
+      "o_year_num",
+      "o_code",
+      "update_date",
+      "o_curmetalindex",
+      "o_year",
+      "o_month",
+      "o_msg",
+      "o_curproduct",
+      "o_total_num",
+      "o_trade_day",
+      "report_date"
+    ]
+  },
+  {
+    "name": "shfe-daily-20260831",
+    "url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx20260831.dat",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:04:06.238665+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T15:04:06.404777+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/data/tradedata/future/dailydata/kx20260831.dat",
+    "sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+    "byte_count": 123352,
+    "local_file": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89.dat",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:04:04 GMT",
+      "Content-Type": "application/json",
+      "Last-Modified": "Mon, 31 Aug 2026 07:30:57 GMT",
+      "ETag": "W/\"6a952db1-1e1d8\""
+    },
+    "json_keys": [
+      "o_IMChangeDate",
+      "showlength",
+      "o_day",
+      "o_weekday",
+      "o_curinstrument",
+      "o_year_num",
+      "o_code",
+      "update_date",
+      "o_curmetalindex",
+      "o_year",
+      "o_month",
+      "o_msg",
+      "o_curproduct",
+      "o_total_num",
+      "o_trade_day",
+      "report_date"
+    ]
+  },
+  {
+    "name": "shfe-daily-official-ui",
+    "url": "https://www.shfe.com.cn/reports/tradedata/dailyandweeklydata/",
+    "method": "GET",
+    "request_started_at": "2026-09-06T15:10:34.463882+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "maximum_response_bytes": 8388608,
+    "received_at": "2026-09-06T15:10:34.689594+00:00",
+    "status": 200,
+    "final_url": "https://www.shfe.com.cn/reports/tradedata/dailyandweeklydata/",
+    "sha256": "27828a95b60eb2a3ad1b5fbadb42367f38fbf83cff01caea54116d8d919b3ba9",
+    "byte_count": 542781,
+    "local_file": "27828a95b60eb2a3ad1b5fbadb42367f38fbf83cff01caea54116d8d919b3ba9.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 15:10:32 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    }
+  }
+]

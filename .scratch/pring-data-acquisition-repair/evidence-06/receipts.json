@@ -1,0 +1,521 @@
+[
+  {
+    "name": "csi-000300-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000300&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.388416+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.576247+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000300&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "1c79fb78cb0ac19a22961386789c87fdde8a37014605ea993a85ab0bc3ee9ae2",
+    "byte_count": 87318,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "1c79fb78cb0ac19a22961386789c87fdde8a37014605ea993a85ab0bc3ee9ae2.json",
+    "business_code": "200",
+    "data_type": "list",
+    "data_count": 259
+  },
+  {
+    "name": "csi-000905-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000905&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.388784+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.560429+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000905&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "2a64c0283769e56e31f3e6f58a4b5f5516ceae368a9a1358d13c0172eeafa022",
+    "byte_count": 91313,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "2a64c0283769e56e31f3e6f58a4b5f5516ceae368a9a1358d13c0172eeafa022.json",
+    "business_code": "200",
+    "data_type": "list",
+    "data_count": 259
+  },
+  {
+    "name": "csi-000852-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000852&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.389073+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.557580+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000852&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "d4ef5f09a621ac4841e7e25b5e6b9c349129f9c221098731c8f63e2eea09769c",
+    "byte_count": 88686,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "d4ef5f09a621ac4841e7e25b5e6b9c349129f9c221098731c8f63e2eea09769c.json",
+    "business_code": "200",
+    "data_type": "list",
+    "data_count": 259
+  },
+  {
+    "name": "csi-930916-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=930916&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.389302+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.551290+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=930916&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "f88364440c26579136fd25a3eabbc1feced1c67fc202bf915f9022daa798f895",
+    "byte_count": 94467,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "f88364440c26579136fd25a3eabbc1feced1c67fc202bf915f9022daa798f895.json",
+    "business_code": "200",
+    "data_type": "list",
+    "data_count": 259
+  },
+  {
+    "name": "csi-000012CNY030-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012CNY030&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.555007+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.672961+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012CNY030&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "8309cff714d5f872cea03bfa413b0270b30b5db6545e99d9dd2b59bc489344eb",
+    "byte_count": 55,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "8309cff714d5f872cea03bfa413b0270b30b5db6545e99d9dd2b59bc489344eb.json",
+    "business_code": "200",
+    "data_type": "list",
+    "data_count": 0
+  },
+  {
+    "name": "cny030-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000012CNY030?lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.560188+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.680345+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000012CNY030?lang=zh_CN",
+    "sha256": "38dbe39b0f3719e98c1e36d24dff52b4140f8cb1b5fd2037af745e4e025da643",
+    "byte_count": 637,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "38dbe39b0f3719e98c1e36d24dff52b4140f8cb1b5fd2037af745e4e025da643.json",
+    "business_code": "200",
+    "data_type": "dict",
+    "data_count": 29
+  },
+  {
+    "name": "cny030-derivative",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/get-derivative-index?indexCode=000012",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:21:39.564533+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:21:39.669491+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/get-derivative-index?indexCode=000012",
+    "sha256": "0182843a2d891af5ab5cbb822ec2347a6742bce8493a04b49283004e88e6ffb8",
+    "byte_count": 358,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:21:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "0182843a2d891af5ab5cbb822ec2347a6742bce8493a04b49283004e88e6ffb8.json",
+    "business_code": "200",
+    "data_type": "list",
+    "data_count": 3
+  },
+  {
+    "name": "csi-000300-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000300?lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.408298+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.527672+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000300?lang=zh_CN",
+    "sha256": "89cbd0812e258757ccca68285181d280b22881f1e95e4fb524ddea64bd159fb6",
+    "byte_count": 1088,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "89cbd0812e258757ccca68285181d280b22881f1e95e4fb524ddea64bd159fb6.json"
+  },
+  {
+    "name": "csi-000300-files",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000300&fileLang=2",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.409289+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.526606+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000300&fileLang=2",
+    "sha256": "5ea86dfaea16e765ce1b6d30e75633a000b53630bd8454bf534e5400727802f3",
+    "byte_count": 7087,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "5ea86dfaea16e765ce1b6d30e75633a000b53630bd8454bf534e5400727802f3.json"
+  },
+  {
+    "name": "csi-000905-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000905?lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.410164+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.534374+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000905?lang=zh_CN",
+    "sha256": "29bbc5ab7081e7c50efbac91062224810b908ead05448316b96e6441c77a2efb",
+    "byte_count": 990,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "29bbc5ab7081e7c50efbac91062224810b908ead05448316b96e6441c77a2efb.json"
+  },
+  {
+    "name": "csi-000905-files",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000905&fileLang=2",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.410741+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.526245+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000905&fileLang=2",
+    "sha256": "05cbf1ed008f9c591ac1c2b68937938f893c8d3e7b1f090420e2ef07ec7ac17f",
+    "byte_count": 3920,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "05cbf1ed008f9c591ac1c2b68937938f893c8d3e7b1f090420e2ef07ec7ac17f.json"
+  },
+  {
+    "name": "csi-000852-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000852?lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.529340+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.639068+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000852?lang=zh_CN",
+    "sha256": "18e1fc5248b260f09d8b06e4ac838bbefdc17ef55907f37413ccd07366eef6a6",
+    "byte_count": 1046,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "18e1fc5248b260f09d8b06e4ac838bbefdc17ef55907f37413ccd07366eef6a6.json"
+  },
+  {
+    "name": "csi-000852-files",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000852&fileLang=2",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.529816+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.634244+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000852&fileLang=2",
+    "sha256": "5433b651df1760a7a5effdc41a8c11512491029d91032df5fd0e8e35b8c36578",
+    "byte_count": 1991,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "5433b651df1760a7a5effdc41a8c11512491029d91032df5fd0e8e35b8c36578.json"
+  },
+  {
+    "name": "csi-930916-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/930916?lang=zh_CN",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.530112+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.637885+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/930916?lang=zh_CN",
+    "sha256": "51b63604e078756fa08dcb3fbfce7a46069660608b838b367f23201762d74716",
+    "byte_count": 1216,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "51b63604e078756fa08dcb3fbfce7a46069660608b838b367f23201762d74716.json"
+  },
+  {
+    "name": "csi-930916-files",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=930916&fileLang=2",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.537212+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.643534+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=930916&fileLang=2",
+    "sha256": "6096f5edfea08fbd89c7ca11846feeb8f836a907f6f425edfb8e4b49ea6e6b82",
+    "byte_count": 1448,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "6096f5edfea08fbd89c7ca11846feeb8f836a907f6f425edfb8e4b49ea6e6b82.json"
+  },
+  {
+    "name": "csi-bond-calculation-v4",
+    "url": "https://www.sse.com.cn/market/sseindex/calculation/c/10803806/files/aa42d3a05d9e4fe19d6b3630b965de48.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:23:06.635724+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:23:06.927529+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/market/sseindex/calculation/c/10803806/files/aa42d3a05d9e4fe19d6b3630b965de48.pdf",
+    "sha256": "ba6a76a42aa63be034e1395484a216800f140a8ee5f2fc4a2b91901e9972e7dc",
+    "byte_count": 275627,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:23:04 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 31 Dec 2025 10:44:03 GMT",
+      "ETag": "\"6954fe73-434ab\""
+    },
+    "local_file": "ba6a76a42aa63be034e1395484a216800f140a8ee5f2fc4a2b91901e9972e7dc.pdf"
+  },
+  {
+    "name": "csi-000300-method",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300_Index_Methodology_cn.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:14.428260+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:16.516429+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300_Index_Methodology_cn.pdf",
+    "sha256": "de6491e03e5d57ecf1aca104b1412543643a59e387a5343c9bd21ecbbdeba5b6",
+    "byte_count": 1184619,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:13 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Sat, 30 Nov 2024 12:36:56 GMT",
+      "ETag": "\"23E0721531C77F9294C45C2057BCF5FD\""
+    },
+    "local_file": "de6491e03e5d57ecf1aca104b1412543643a59e387a5343c9bd21ecbbdeba5b6.pdf"
+  },
+  {
+    "name": "csi-000300-factsheet",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300factsheet.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:14.457010+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:15.540726+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300factsheet.pdf",
+    "sha256": "8653755655ded0148202f0e43a20d36e9beaa1682a09b0c8e6d84f321f13c056",
+    "byte_count": 454479,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:12 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:06:00 GMT",
+      "ETag": "\"F4F2AE411C2395739C1553D17E4DDE72\""
+    },
+    "local_file": "8653755655ded0148202f0e43a20d36e9beaa1682a09b0c8e6d84f321f13c056.pdf"
+  },
+  {
+    "name": "csi-000905-method",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000905_Index_Methodology_cn.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:14.459196+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:14.997831+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000905_Index_Methodology_cn.pdf",
+    "sha256": "6109ad8390fdad70ed807c799309f7d5cabc1cd949d45754704c7a8acf4d1933",
+    "byte_count": 185201,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:12 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Sat, 30 Nov 2024 12:36:58 GMT",
+      "ETag": "\"8D0B82C4E63698196D7412E3BB8D5FFE\""
+    },
+    "local_file": "6109ad8390fdad70ed807c799309f7d5cabc1cd949d45754704c7a8acf4d1933.pdf"
+  },
+  {
+    "name": "csi-000905-factsheet",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000905factsheet.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:14.488180+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:15.100809+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000905factsheet.pdf",
+    "sha256": "ccabf70fa1383861c8b178d727bbacfbc2634ed8a9a16706a8313f4a19c64c06",
+    "byte_count": 446226,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:12 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:10:56 GMT",
+      "ETag": "\"14AB1ED5AD5993D68F9A79ACA1353206\""
+    },
+    "local_file": "ccabf70fa1383861c8b178d727bbacfbc2634ed8a9a16706a8313f4a19c64c06.pdf"
+  },
+  {
+    "name": "csi-000852-method",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175402-000852_Index_Methodology_cn.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:15.002529+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:15.486040+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175402-000852_Index_Methodology_cn.pdf",
+    "sha256": "8ab5ab8073e329a0a6146ffb31b4f73c177ac59cd53ae4df6c9e916739a17758",
+    "byte_count": 377402,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:12 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Sat, 30 Nov 2024 12:38:08 GMT",
+      "ETag": "\"D35D718BAF414EBC77C901D27AE03B72\""
+    },
+    "local_file": "8ab5ab8073e329a0a6146ffb31b4f73c177ac59cd53ae4df6c9e916739a17758.pdf"
+  },
+  {
+    "name": "csi-000852-factsheet",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000852factsheet.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:15.104524+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:15.620351+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000852factsheet.pdf",
+    "sha256": "68a6e3e47a6c357537feffaef58d7cc4b994b36149c6589e661e3d1cb1eda671",
+    "byte_count": 449398,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:13 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:10:55 GMT",
+      "ETag": "\"F5F8EC30BBD04AB0B7447A6BD79FDA20\""
+    },
+    "local_file": "68a6e3e47a6c357537feffaef58d7cc4b994b36149c6589e661e3d1cb1eda671.pdf"
+  },
+  {
+    "name": "csi-930916-method",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/584_930916_Index_Methodology_cn.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:15.488844+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:15.986192+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/584_930916_Index_Methodology_cn.pdf",
+    "sha256": "a3fc990719272467d06574afdd37f007ecef7581fb70fe7f3dbbb8b59065e379",
+    "byte_count": 443579,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:13 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Sat, 30 Nov 2024 12:40:36 GMT",
+      "ETag": "\"F4929080BE5E26325214A7E1ECA1BF89\""
+    },
+    "local_file": "a3fc990719272467d06574afdd37f007ecef7581fb70fe7f3dbbb8b59065e379.pdf"
+  },
+  {
+    "name": "csi-930916-factsheet",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/930916factsheet.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:24:15.544585+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:24:16.794866+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/930916factsheet.pdf",
+    "sha256": "7a17f27cd40d266cc20fa38c57c668fc5433e42a018d4c3789a03f03ab4572a3",
+    "byte_count": 424852,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:14 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:30:57 GMT",
+      "ETag": "\"A362263C38EFDD28D1703D5A985FA3B0\""
+    },
+    "local_file": "7a17f27cd40d266cc20fa38c57c668fc5433e42a018d4c3789a03f03ab4572a3.pdf"
+  }
+]

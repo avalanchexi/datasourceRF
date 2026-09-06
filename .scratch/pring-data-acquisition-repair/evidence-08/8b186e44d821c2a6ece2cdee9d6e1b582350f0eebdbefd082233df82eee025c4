@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="zh-cmn-Hans">
+<head>                      
+    <meta charset="utf-8">
+<!--   <title>深交所主页</title>   -->
+<script>
+    var title = '<a href="./" class="CurrChnlCls">404</a> ';
+    title = title.substring(title.indexOf('>')+1,title.indexOf('</'));
+    document.write('<title>投资者教育-'+ title +'</title>')
+</script>
+<script>
+  if(location.protocol == 'https:'){
+    document.write('<link href="https://res.szse.cn/common/images/favicon.ico" rel="shortcut icon" type="image/x-icon" />');
+  }else{
+    document.write('<link href="http://res.static.szse.cn/common/images/favicon.ico" rel="shortcut icon" type="image/x-icon" />');
+  }
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0" />
+<meta http-equiv="cache-control" content="max-age=0">
+<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="expires" content="0">
+<meta http-equiv="expires" content="Web, 26 Feb 1997 08:21:57 GMT">
+<meta http-equiv="pragma" content="no-cache">
+<meta name="author" content="inverstor.szse.cn">
+<meta name="description" content="投资者教育">
+<meta name="keywords" content="投资者教育,投教,深交所">
+<meta name="renderer" content="webkit">
+<meta name="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="google" value="notranslate">
+<meta name="format-detection" content="telephone=no">
+<meta name="format-detection" content="email=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="screen-orientation" content="portrait">
+<meta name="full-screen" content="yes">
+<meta name="browermode" content="application">
+<meta name="x5-orientation" content="portrait">
+<meta name="HandheldFriendly" content="true">
+<script type="text/javascript">
+	var u = navigator.userAgent;
+	var isAndroid = u.indexOf('Android') > -1 || u.indexOf('Adr') > -1;//android终端
+
+	function addElementMeta(name,  content) {
+		var head = document.getElementsByTagName('head')[0];
+		var meta = document.createElement('meta');
+
+		meta.setAttribute('name', name);
+		meta.setAttribute('content', content);
+		head.appendChild(meta);
+	}
+	if(isAndroid) {
+		addElementMeta('x5-fullscreen', 'true');
+		addElementMeta('x5-page-mode', 'app');
+	}
+</script>
+<script>
+  (function () {
+    var _versionDate = new Date().getTime();
+    if (location.protocol == 'https:') {
+      var _path = 'https://res.szse.cn';
+    } else {
+      var _path = 'http://res.static.szse.cn';
+    }
+    // _path = _path.replace(".static.", ".");
+    //var _path = 'http://res.szse.cn';
+    //document.write( " <script src='" + _path + "/common/js/first.js?random=" + _versionDate + "'> <\/script> ");
+    var _host = 'http://www.szse.cn';
+    if (location.protocol == 'https:') {
+      _host = 'https://www.szse.cn';
+    }
+
+
+    var backDomain = 'http://www.sse.org.cn'
+    var reg = /([a-zA-Z0-9][-a-zA-Z0-9]{0,62})((\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+)\.?(:\d+)?/;
+    if (backDomain && window.location.host.match(reg)[2] === backDomain.match(reg)[2]) {
+      _host = 'http://www.sse.org.cn';
+      _path = 'http://res.static.sse.org.cn';
+      if (location.protocol == 'https:') {
+        _host = 'https://www.sse.org.cn';
+        _path = 'https://res.static.sse.org.cn';
+      }
+
+    }
+
+    _path = _path.replace(".static.", ".");
+
+    document.write(" <script src='" + _host + "/szsePath.js?random=" + _versionDate + "'> <\/script> "
+      + " <script src='" + _path + "/common/js/concatversion.js?random=" + _versionDate + "'> <\/script> ");
+  }());
+</script>
+
+<script>
+
+  function backDomainLinkSwitch(value, type) {
+    var _port = location.port ? (":" + location.port) : "";
+    var reg = /([a-zA-Z0-9][-a-zA-Z0-9]{0,62})((\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+)\.?(:\d+)?/;
+    var urlRegx = /(.*)(http:|https:)(\/\/)(([a-zA-Z0-9][-a-zA-Z0-9]{0,62})((\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+))\.?(:\d+)?(.*)/;
+
+    // html字符串替换
+    if (type == 'str') {
+      var strArr = value.split("=");
+      strArr = strArr.map(function (v) {
+        var host = reg.test(v) ? v.match(reg)[0] : null;
+        if (pathObj.szseHosts.indexOf(host) > -1) {
+          if (window.location.protocol == 'https:' && urlRegx.test(v)) {
+            v = v.replace(urlRegx, '$1https:$3$4' + _port + '$9');
+          };
+          if (pathObj.current_host === pathObj.back_host) {
+            v = v.replace(pathObj.main_host, pathObj.back_host);
+          }
+        }
+        return v
+      });
+      value = strArr.join("=");
+      return value;
+    }
+
+    // a标签地址替换
+    if (type === 'A') {
+      var eleA = document.querySelectorAll(value);
+      for (var i = 0; i < eleA.length; i++) {
+        var href = eleA[i].getAttribute("href");
+        var host = reg.test(href) ? href.match(reg)[0] : null;
+        if (href && pathObj.szseHosts.indexOf(host) > -1) {
+          if (window.location.protocol == 'https:') {
+            href = href.replace(urlRegx, '$1https:$3$4' + _port + '$9');
+          };
+          if (pathObj.current_host === pathObj.back_host) {
+            href = href.replace(pathObj.main_host, pathObj.back_host);
+          }
+          eleA[i].setAttribute('href', href);
+        }
+      }
+    }
+
+    // 单链接替换
+    if (type === "link") {
+      if (window.location.protocol == 'https:' && !!value) {
+        value = value.replace(urlRegx, '$1https:$3$4' + _port + '$9');
+      };
+      if (pathObj.current_host === pathObj.back_host) {
+        var host = reg.test(value) ? value.match(reg)[0] : null;
+        if (value && pathObj.szseHosts.indexOf(host) > -1) {
+          value = value.replace(pathObj.main_host, pathObj.back_host);
+        }
+      }
+      return value;
+    }
+
+    // 背景图地址更换
+    if (type === "background") {
+      var eleBg = document.querySelectorAll(value);
+      for (var i = 0; i < eleBg.length; i++) {
+        var href = eleBg[i].style.backgroundImage;
+        if (window.location.protocol == 'https:' && !!href) {
+          href = href.replace(urlRegx, '$1https:$3$4' + _port + '$9');
+        };
+        var host = reg.test(href) ? href.match(reg)[0] : null;
+        if (href && pathObj.szseHosts.indexOf(host) > -1) {
+          if (pathObj.current_host === pathObj.back_host) {
+            href = href.replace(pathObj.main_host, pathObj.back_host);
+          }
+          eleBg[i].style.backgroundImage = href;
+        }
+      }
+    }
+
+  }
+
+</script>
+
+<script>
+   if(document.cookie.indexOf('ft_language=1')>-1){
+    var style = document.createElement('style');
+    style.textContent='body{visibility:hidden;}';
+    document.head.appendChild(style);
+  }
+</script>
+<script>
+    addComCssFile();
+    changeVertion('/investor/common/css/common.css', 'css');
+</script>
+    <style>
+        @media (max-width: 768px) {
+            .error-pic{width:100%;}
+            .error-info{font-size:20px!important;}
+        }
+    </style>
+</head>
+  <body>
+      <!--[if lt IE 9]>
+	<div class="low_version">
+	 	<div class="g-container inner">
+		    <div class="tip">系统检测到您正在使用IE8以下内核的浏览器，不能实现完美体验，请及时更新浏览器版本！</div>
+		    <span class="low_close">&times;</span>
+		</div>
+	</div>
+<style type="text/css">
+.top-header-container{
+  margin-top:30px;
+}
+</style>
+    <script src="http://res.static.szse.cn/lib/ie8fix/html5shiv/3.7.3/html5shiv.min.js"></script>       
+    <script src="http://res.static.szse.cn/lib/ie8fix/Respond-master/dest/respond.min.js"> </script>
+    <script src="http://res.static.szse.cn/lib/ie8fix/es5-shim/4.2.0/es5-shim.min.js"></script>
+    <script src="http://res.static.szse.cn/lib/ie8fix/JSON/3.3.2/json3.min.js"></script>
+    <script src="http://res.static.szse.cn/lib/ie8fix/iefix/ie8fix.js"></script>
+<![endif]-->
+      <div class="top-header-container clearfix  hidden-xs">
+    <div class="g-container">
+        <div class="pull-right top-menu-list-wrap">
+            <div class="top-menu-list">
+                <div class="item item-home" style="display:block;"><a class="link-home" href="/">深交所官网</a></div>
+                <div class="item item-loginregist">
+                    <a class="link-login" href="javascript:void(0)">个人中心</a>
+                    <!-- <span class="sepline">|</span>
+                    <a class="link-reg" href="/modules/regist/views/index.html">注册</a> -->
+                </div>
+                <div class="item">
+                    <div class="languageswitch">
+                        <a name="StranLink" class="language5 big5OrSimp"></a>
+                    </div>
+                </div>
+                <div class="item item-invest-link">
+                    <a href="http://www.investor.org.cn/" target="_blank"><span class="glyphicon glyphicon-link" style="margin-right:4px; margin-left:16px; font-size:14px;"></span>中国投资者网</a>
+                </div>
+
+                <!-- <div class="item">
+                    <div class="languageswitch">
+                        <a class="btn-goenglish" href="http://www.szse.cn/main/en/" target="_blank">English</a>
+                    </div>
+                </div>-->
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navbar szse-navbar szse-navbar-pc">
+    <div class="g-container clearfix">
+        <div class="navbar-headers ">
+            <a href="/" class="navbar-brand">
+                <img class="nav-logo" src="http://res.static.szse.cn/common/icon/logo.png" alt="深交所" />
+            </a>
+            <h3 class="childsite-logo-tit">
+                <a href="#" class="itemlink-investor">投资者教育</a><br />
+                <a href="#" class="itemlink-investor sub-title">国家级证券期货投资者教育基地</a>
+            </h3>
+        </div>
+        <div class="top-search-el">
+            <form class="search-form" action target="frameFile">
+                <input id="pcSearchInput" type="search" maxlength="100" class="search-input need-repaired-placeholder" autocomplete="off" placeholder="请输入关键字" />
+                <input type="text" style="display: none;" />
+                <span class="clear-keyword">&times;</span>
+                <button class="search-btn" type="button"><span class="glyphicon glyphicon-search"></span></button>
+            </form>
+            <div class="search-hot">
+            </div>
+        </div>
+
+    </div>
+    <nav class="collapse navbar-collapse bs-navbar-collapse  navbar-wrap">
+        <div class="g-container">
+            <div class="nav-box investnav-box">
+                <ul class="nav navbar-nav">
+       <li chnlcode="investIndex">
+         
+            <a href="/index/index.html" datapath="index">首页</a> 
+            
+       </li>
+       <li chnlcode="securitiesInstitute">
+         
+          <a datapath="institute">证券学院</a>
+            
+             
+                       <div class="dropdown-menu">
+                            <div class="g-container">
+                                  <div  class="g-dropdown-submenu">
+                                       <div class="g-submenu-item" chnlcode="rulesOfInterpretation_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="证券学院-规则解读" href="/institute/rules/index.html" chnlcode="rulesOfInterpretation_news">规则解读</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="graphicProducts">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">图文产品</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="证券学院-图文产品-股市三国" href="/institute/products/stockMarket/index.html"><i></i>股市三国</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-图文产品-大小说" href="/institute/products/greatNovel/index.html"><i></i>大小说</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-图文产品-漫话股市" href="/institute/products/comicMarket/index.html"><i></i>漫话股市</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-图文产品-图文解读" href="/institute/products/graphic/index.html"><i></i>图文解读</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-图文产品-投教画中话" href="/institute/products/hzt/index.html"><i></i>投教画中话</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="securitiesVideoClassroom">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">视频课堂</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="证券学院-视频课堂-投教公开课" href="/institute/video/openclass/index.html"><i></i>投教公开课</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-视频课堂-投投是道" href="/institute/video/invest/index.html"><i></i>投投是道</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-视频课堂-创业板学堂" href="/institute/video/gem/index.html"><i></i>创业板学堂</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-视频课堂-内幕交易警示录" href="/institute/video/warning/index.html"><i></i>内幕交易警示录</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-视频课堂-基金" href="/institute/video/lefu/index.html"><i></i>基金</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-视频课堂-创新演播厅" href="/institute/video/studio/index.html"><i></i>创新演播厅</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investBookshelf_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">投教书架</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="证券学院-投教书架-个人投资者状况调查报告" href="/institute/bookshelf/report/index.html"><i></i>个人投资者状况调查报告</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-投教书架-投资者教育文章汇编" href="/institute/bookshelf/assembly/index.html"><i></i>投资者教育文章汇编</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-投教书架-投资者入市手册" href="/institute/bookshelf/manualseriesbook/index.html"><i></i>投资者入市手册</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-投教书架-宣传折页与海报" href="/institute/bookshelf/poster/index.html"><i></i>宣传折页与海报</a>
+                                             
+                                            
+                                                  <a data-level="证券学院-投教书架-其他" href="/institute/bookshelf/other/index.html"><i></i>其他</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="microFilm_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="证券学院-微电影" href="/institute/film/index.html" chnlcode="microFilm_news">微电影</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="publicServiceAd">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="证券学院-公益广告" href="/institute/ad/index.html" chnlcode="publicServiceAd">公益广告</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                  </div>
+                            </div>
+                        </div>
+       </li>
+       <li chnlcode="riskWarning">
+         
+          <a datapath="warning">风险教育</a>
+            
+             
+                       <div class="dropdown-menu">
+                            <div class="g-container">
+                                  <div  class="g-dropdown-submenu">
+                                       <div class="g-submenu-item" chnlcode="RiskEducation_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">风险揭示</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="风险教育-风险揭示-退市风险" href="/warning/education/delistingrisk/index.html"><i></i>退市风险</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-风险揭示-防非警示" href="/warning/education/warm/index.html"><i></i>防非警示</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-风险揭示-相关提示" href="/warning/education/relatedtip/index.html"><i></i>相关提示</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="themeActivities">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">专题宣传</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="风险教育-专题宣传-投资者权益300问" href="/warning/activities/equites/index.html"><i></i>投资者权益300问</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-股市入门300问" href="/warning/activities/stockintroduction/index.html"><i></i>股市入门300问</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-基金入门300问" href="/warning/activities/fundIntroduction/index.html"><i></i>基金入门300问</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-债券入门300问" href="/warning/activities/bondIntroduction/index.html"><i></i>债券入门300问</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-财务知识一点通" href="/warning/activities/financial/index.html"><i></i>财务知识一点通</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-以案说法" href="/warning/activities/caseStatement/index.html"><i></i>以案说法</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-明规则，识风险" href="/warning/activities/risk/index.html"><i></i>明规则，识风险</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-专题宣传-财务视角看行业" href="/warning/activities/fv/index.html"><i></i>财务视角看行业</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investorProtection">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">维权知识</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="风险教育-维权知识-投资者维权" href="/warning/protection/protection/index.html"><i></i>投资者维权</a>
+                                             
+                                            
+                                                  <a data-level="风险教育-维权知识-维权渠道" href="/warning/protection/channel/index.html"><i></i>维权渠道</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                  </div>
+                            </div>
+                        </div>
+       </li>
+       <li chnlcode="knowledge">
+         
+          <a datapath="knowledge">投资者问答</a>
+            
+             
+                       <div class="dropdown-menu">
+                            <div class="g-container">
+                                  <div  class="g-dropdown-submenu">
+                                       <div class="g-submenu-item" chnlcode="investStockTrade">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">证券交易</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="投资者问答-证券交易-证券买卖" href="/knowledge/stock/deal/index.html"><i></i>证券买卖</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-证券交易-创业板交易特别规定" href="/knowledge/stock/chinext/index.html"><i></i>创业板交易特别规定</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-证券交易-融资融券、转融通" href="/knowledge/stock/margin/index.html"><i></i>融资融券、转融通</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-证券交易-股票质押式回购" href="/knowledge/stock/buyback/index.html"><i></i>股票质押式回购</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-证券交易-协议转让" href="/knowledge/stock/agreement/index.html"><i></i>协议转让</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-证券交易-其他" href="/knowledge/stock/other/index.html"><i></i>其他</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investPublishedListed">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">发行上市</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="投资者问答-发行上市-通用" href="/knowledge/listings/currency/index.html"><i></i>通用</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-发行上市-创业板" href="/knowledge/listings/chinext/index.html"><i></i>创业板</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investListedCompany">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">股票</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="投资者问答-股票-信息披露" href="/knowledge/company/disclosure/index.html"><i></i>信息披露</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-权益变动" href="/knowledge/company/dcffv/index.html"><i></i>权益变动</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-公司治理" href="/knowledge/company/govern/index.html"><i></i>公司治理</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-定期报告" href="/knowledge/company/report/index.html"><i></i>定期报告</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-应当披露的交易及其他重大事项" href="/knowledge/company/major/index.html"><i></i>应当披露的交易及其他重大事项</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-ST及退市" href="/knowledge/company/st/index.html"><i></i>ST及退市</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-重新上市" href="/knowledge/company/relisting/index.html"><i></i>重新上市</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-网络投票" href="/knowledge/company/vote/index.html"><i></i>网络投票</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-股票-其他" href="/knowledge/company/other/index.html"><i></i>其他</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investFund">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">基金</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="投资者问答-基金-交易" href="/knowledge/fund/trade/index.html"><i></i>交易</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investBond">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">债券</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="投资者问答-债券-投资者适当性" href="/knowledge/bond/investor/index.html"><i></i>投资者适当性</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-债券-现券交易" href="/knowledge/bond/trade/index.html"><i></i>现券交易</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-债券-回购交易" href="/knowledge/bond/deal/index.html"><i></i>回购交易</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-债券-可转债" href="/knowledge/bond/convert/index.html"><i></i>可转债</a>
+                                             
+                                            
+                                                  <a data-level="投资者问答-债券-其他" href="/knowledge/bond/other/index.html"><i></i>其他</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="rxwd_kjcx">
+                                       <div class="g-submenu-item-in">
+                                       
+                                        <div class="g-navins-tit">跨境创新</div>
+                                        
+                                            <div class="g-navins-con">
+                                            
+                                                  <a data-level="投资者问答-跨境创新-深港通" href="/knowledge/crossinno/szhk/index.html"><i></i>深港通</a>
+                                             
+                                        </div>
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="rxwd_jcssgm_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投资者问答-REITs" href="/knowledge/reits/index.html" chnlcode="rxwd_jcssgm_news">REITs</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="rxwd_gpqq_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投资者问答-股票期权" href="/knowledge/option/index.html" chnlcode="rxwd_gpqq_news">股票期权</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="rxwd_ztwd_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投资者问答-专题问答" href="/knowledge/qa/index.html" chnlcode="rxwd_ztwd_news">专题问答</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investOther_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投资者问答-其他" href="/knowledge/other/index.html" chnlcode="investOther_news">其他</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                  </div>
+                            </div>
+                        </div>
+       </li>
+       <li chnlcode="investmentActivity">
+         
+          <a datapath="activity">投服活动</a>
+            
+             
+                       <div class="dropdown-menu">
+                            <div class="g-container">
+                                  <div  class="g-dropdown-submenu">
+                                       <div class="g-submenu-item" chnlcode="thematicActivities_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-主题活动" href="/activity/activities/index.html" chnlcode="thematicActivities_news">主题活动</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="eduSchool">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-走进校园" href="/activity/school/index.html" chnlcode="eduSchool">走进校园</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="eduPublicCompany_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-走进上市公司" href="/activity/publicCompany/index.html" chnlcode="eduPublicCompany_news">走进上市公司</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="eduFundComany">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-走进基金公司" href="/activity/fundcompany/index.html" chnlcode="eduFundComany">走进基金公司</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="walkIntoSzse_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-走进投教基地" href="/activity/szse/index.html" chnlcode="walkIntoSzse_news">走进投教基地</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="brokerageDepartment_news">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-走进证券公司" href="/activity/department/index.html" chnlcode="brokerageDepartment_news">走进证券公司</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="cartoonLink">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="投服活动-动漫大赛作品展" href="http://investor.szse.cn/activity/cartoon2021/index/" chnlcode="cartoonLink">动漫大赛作品展</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                  </div>
+                            </div>
+                        </div>
+       </li>
+       <li chnlcode="investThematic">
+         
+          <a datapath="thematic">业务专题</a>
+            
+             
+                       <div class="dropdown-menu">
+                            <div class="g-container">
+                                  <div  class="g-dropdown-submenu">
+                                       <div class="g-submenu-item" chnlcode="investMainBoardColumn_link">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="业务专题-全面实行注册制" href="http://investor.szse.cn/column/introduce/index.html" chnlcode="investMainBoardColumn_link">全面实行注册制</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investChinextColumn_link">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="业务专题-创业板注册制" href="http://investor.szse.cn/thematic/chinext/introduce/index.html" chnlcode="investChinextColumn_link">创业板注册制</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="investReitsColumn_link">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="业务专题-REITs专栏" href="http://investor.szse.cn/thematic/reits/introduce/index.html" chnlcode="investReitsColumn_link">REITs专栏</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="szhkColumn_link">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="业务专题-深港通专栏" href="http://www.szse.cn/szhk/szhkinvestor/riskdisclosure/index.html" chnlcode="szhkColumn_link">深港通专栏</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                       <div class="g-submenu-item" chnlcode="szIndex_ywzt">
+                                       <div class="g-submenu-item-in">
+                                       
+                                         <div class="g-navins-tit"><a  data-level="业务专题-指数、基金专栏" href="/thematic/szi/index.html" chnlcode="szIndex_ywzt">指数、基金专栏</a></div>
+                                        
+                                       </div>
+                                       </div>  
+                                  </div>
+                            </div>
+                        </div>
+       </li>
+</ul>                   
+
+
+            </div>
+        </div>
+    </nav>
+</div>
+<div class="navbar-fixed-top navmobile szse-navbar szse-navbar-mobile">
+    <div class="mobile-search">
+        <div class="mobile-search_container">
+            <div class="mobile-search_form">
+                <div class="top-search-el">
+                    <div class="search-form">
+                        <form action target="frameFile" id="searh_form">
+                            <input id="mobileSearchInput" type="search" class="mobile-search_input search-input need-repaired-placeholder" placeholder="请输入关键字" />
+                            <input type="text" style="display: none;" />
+                            <iframe name="frameFile" style="display: none;"></iframe>
+                        </form>
+
+
+                        <!-- <input type="button" class="search-btn" value="搜索" /> -->
+                    </div>
+                </div>
+                <!-- <input class="mobile-search_input" type="text" name="topbarSearch" placeholder="搜索行情/公告/其他信息" /> -->
+                <img class="mobile-search_close" src="http://res.static.szse.cn/common/icon/mobile-search_close.png" alt="search close" />
+            </div>
+        </div>
+    </div>
+    <div id="dl-menu" class="dl-menuwrapper">
+        <a class="navipone_block"><span class="glyphicon glyphicon-search"></span></a>
+        <a class="navbar-brand" href="/"><img src="http://res.static.szse.cn/common/icon/logo.png" alt="深交所" /></a>
+        <button class="dl-trigger dl-phmenu"></button>
+        
+
+
+  <ul class="dl-menu"> 
+
+
+
+	     <li chnlcode="investIndex">
+        
+			<a data-level="首页" href="/index/index.html">首页</a>
+    </li>
+	     <li chnlcode="securitiesInstitute">
+        
+			<a href="/institute/index.html">证券学院</a>
+                <ul class="dl-submenu"> 
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="规则解读" href="/institute/rules/index.html">规则解读</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a href="/institute/products/index.html">图文产品</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="股市三国" href="/institute/products/stockMarket/index.html">股市三国</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="大小说" href="/institute/products/greatNovel/index.html">大小说</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="漫话股市" href="/institute/products/comicMarket/index.html">漫话股市</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="图文解读" href="/institute/products/graphic/index.html">图文解读</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="投教画中话" href="/institute/products/hzt/index.html">投教画中话</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a href="/institute/video/index.html">视频课堂</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="投教公开课" href="/institute/video/openclass/index.html">投教公开课</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="投投是道" href="/institute/video/invest/index.html">投投是道</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="创业板学堂" href="/institute/video/gem/index.html">创业板学堂</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="内幕交易警示录" href="/institute/video/warning/index.html">内幕交易警示录</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="基金" href="/institute/video/lefu/index.html">基金</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="创新演播厅" href="/institute/video/studio/index.html">创新演播厅</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a href="/institute/bookshelf/index.html">投教书架</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="个人投资者状况调查报告" href="/institute/bookshelf/report/index.html">个人投资者状况调查报告</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="投资者教育文章汇编" href="/institute/bookshelf/assembly/index.html">投资者教育文章汇编</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="投资者入市手册" href="/institute/bookshelf/manualseriesbook/index.html">投资者入市手册</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="宣传折页与海报" href="/institute/bookshelf/poster/index.html">宣传折页与海报</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="其他" href="/institute/bookshelf/other/index.html">其他</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="微电影" href="/institute/film/index.html">微电影</a>
+	   </li>
+	     <li chnlcode="securitiesInstitute">
+			<a data-level="公益广告" href="/institute/ad/index.html">公益广告</a>
+	   </li>
+	           </ul>   
+    </li>
+	     <li chnlcode="riskWarning">
+        
+			<a href="/warning/index.html">风险教育</a>
+                <ul class="dl-submenu"> 
+	     <li chnlcode="riskWarning">
+			<a href="/warning/education/index.html">风险揭示</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="riskWarning">
+			<a data-level="退市风险" href="/warning/education/delistingrisk/index.html">退市风险</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="防非警示" href="/warning/education/warm/index.html">防非警示</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="相关提示" href="/warning/education/relatedtip/index.html">相关提示</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a href="/warning/activities/index.html">专题宣传</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="riskWarning">
+			<a data-level="投资者权益300问" href="/warning/activities/equites/index.html">投资者权益300问</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="股市入门300问" href="/warning/activities/stockintroduction/index.html">股市入门300问</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="基金入门300问" href="/warning/activities/fundIntroduction/index.html">基金入门300问</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="债券入门300问" href="/warning/activities/bondIntroduction/index.html">债券入门300问</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="财务知识一点通" href="/warning/activities/financial/index.html">财务知识一点通</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="以案说法" href="/warning/activities/caseStatement/index.html">以案说法</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="明规则，识风险" href="/warning/activities/risk/index.html">明规则，识风险</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="财务视角看行业" href="/warning/activities/fv/index.html">财务视角看行业</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a href="/warning/protection/index.html">维权知识</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="riskWarning">
+			<a data-level="投资者维权" href="/warning/protection/protection/index.html">投资者维权</a>
+	   </li>
+	     <li chnlcode="riskWarning">
+			<a data-level="维权渠道" href="/warning/protection/channel/index.html">维权渠道</a>
+	   </li>
+	        </ul> 
+	   </li>
+	           </ul>   
+    </li>
+	     <li chnlcode="knowledge">
+        
+			<a href="/knowledge/index.html">投资者问答</a>
+                <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a href="/knowledge/stock/index.html">证券交易</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a data-level="证券买卖" href="/knowledge/stock/deal/index.html">证券买卖</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="创业板交易特别规定" href="/knowledge/stock/chinext/index.html">创业板交易特别规定</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="融资融券、转融通" href="/knowledge/stock/margin/index.html">融资融券、转融通</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="股票质押式回购" href="/knowledge/stock/buyback/index.html">股票质押式回购</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="协议转让" href="/knowledge/stock/agreement/index.html">协议转让</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="其他" href="/knowledge/stock/other/index.html">其他</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="knowledge">
+			<a href="/knowledge/listings/index.html">发行上市</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a data-level="通用" href="/knowledge/listings/currency/index.html">通用</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="创业板" href="/knowledge/listings/chinext/index.html">创业板</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="knowledge">
+			<a href="/knowledge/company/index.html">股票</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a data-level="信息披露" href="/knowledge/company/disclosure/index.html">信息披露</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="权益变动" href="/knowledge/company/dcffv/index.html">权益变动</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="公司治理" href="/knowledge/company/govern/index.html">公司治理</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="定期报告" href="/knowledge/company/report/index.html">定期报告</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="应当披露的交易及其他重大事项" href="/knowledge/company/major/index.html">应当披露的交易及其他重大事项</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="ST及退市" href="/knowledge/company/st/index.html">ST及退市</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="重新上市" href="/knowledge/company/relisting/index.html">重新上市</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="网络投票" href="/knowledge/company/vote/index.html">网络投票</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="其他" href="/knowledge/company/other/index.html">其他</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="knowledge">
+			<a href="/knowledge/fund/index.html">基金</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a data-level="交易" href="/knowledge/fund/trade/index.html">交易</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="knowledge">
+			<a href="/knowledge/bond/index.html">债券</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a data-level="投资者适当性" href="/knowledge/bond/investor/index.html">投资者适当性</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="现券交易" href="/knowledge/bond/trade/index.html">现券交易</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="回购交易" href="/knowledge/bond/deal/index.html">回购交易</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="可转债" href="/knowledge/bond/convert/index.html">可转债</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="其他" href="/knowledge/bond/other/index.html">其他</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="knowledge">
+			<a href="/knowledge/crossinno/index.html">跨境创新</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="knowledge">
+			<a data-level="深港通" href="/knowledge/crossinno/szhk/index.html">深港通</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="REITs" href="/knowledge/reits/index.html">REITs</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="股票期权" href="/knowledge/option/index.html">股票期权</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="专题问答" href="/knowledge/qa/index.html">专题问答</a>
+	   </li>
+	     <li chnlcode="knowledge">
+			<a data-level="其他" href="/knowledge/other/index.html">其他</a>
+	   </li>
+	           </ul>   
+    </li>
+	     <li chnlcode="investmentActivity">
+        
+			<a href="/activity/index.html">投服活动</a>
+                <ul class="dl-submenu"> 
+	     <li chnlcode="investmentActivity">
+			<a data-level="主题活动" href="/activity/activities/index.html">主题活动</a>
+	   </li>
+	     <li chnlcode="investmentActivity">
+			<a data-level="走进校园" href="/activity/school/index.html">走进校园</a>
+	   </li>
+	     <li chnlcode="investmentActivity">
+			<a data-level="走进上市公司" href="/activity/publicCompany/index.html">走进上市公司</a>
+	   </li>
+	     <li chnlcode="investmentActivity">
+			<a data-level="走进基金公司" href="/activity/fundcompany/index.html">走进基金公司</a>
+	   </li>
+	     <li chnlcode="investmentActivity">
+			<a data-level="走进投教基地" href="/activity/szse/index.html">走进投教基地</a>
+	   </li>
+	     <li chnlcode="investmentActivity">
+			<a data-level="走进证券公司" href="/activity/department/index.html">走进证券公司</a>
+	   </li>
+	     <li chnlcode="investmentActivity">
+			<a data-level="动漫大赛作品展" href="http://investor.szse.cn/activity/cartoon2021/index/">动漫大赛作品展</a>
+	   </li>
+	           </ul>   
+    </li>
+	     <li chnlcode="memberHome">
+        
+			<a href="/member/index.html">会员之家</a>
+                <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a href="/member/product/index.html">会员优选作品</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="投知微课堂" href="/member/product/class/index.html">投知微课堂</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="memberHome">
+			<a href="/member/product/index.html">会员投教产品</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="投教文章" href="/member/product/article/index.html">投教文章</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="图文解读" href="/member/product/image/index.html">图文解读</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="投教视听" href="/member/product/video/index.html">投教视听</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="会员活动看台" href="/member/activity/index.html">会员活动看台</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a href="/member/achievement/index.html">会员投教知识库</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="首页" href="/member/achievement/foreword/index.html">首页</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a href="/member/achievement/product/index.html">投教产品</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="股票" href="/member/achievement/product/share/index.html">股票</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="基金" href="/member/achievement/product/fund/index.html">基金</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="债券" href="/member/achievement/product/bond/index.html">债券</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="REITs" href="/member/achievement/product/reits/index.html">REITs</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="股票期权" href="/member/achievement/product/stock/index.html">股票期权</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="其他" href="/member/achievement/product/oth/index.html">其他</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="memberHome">
+			<a href="/member/achievement/activity/index.html">投服活动</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="走进上市公司" href="/member/achievement/activity/listed/index.html">走进上市公司</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="走进投教基地" href="/member/achievement/activity/base/index.html">走进投教基地</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="投资者沙龙" href="/member/achievement/activity/salon/index.html">投资者沙龙</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="特色活动" href="/member/achievement/activity/specacti/index.html">特色活动</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="其他类" href="/member/achievement/activity/other/index.html">其他类</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="投教基地" href="/member/achievement/invesbase/index.html">投教基地</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a href="/member/achievement/edu/index.html">投教纳入国民教育</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="投教产品" href="/member/achievement/edu/product/index.html">投教产品</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="投服活动" href="/member/achievement/edu/activity/index.html">投服活动</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="其他类" href="/member/achievement/edu/other/index.html">其他类</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="memberHome">
+			<a href="/member/achievement/share/index.html">经验分享与感悟</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="memberHome">
+			<a data-level="经验分享" href="/member/achievement/share/share/index.html">经验分享</a>
+	   </li>
+	     <li chnlcode="memberHome">
+			<a data-level="工作感悟" href="/member/achievement/share/obtain/index.html">工作感悟</a>
+	   </li>
+	        </ul> 
+	   </li>
+	        </ul> 
+	   </li>
+	           </ul>   
+    </li>
+	     <li chnlcode="investThematic">
+        
+			<a href="/thematic/index.html">业务专题</a>
+                <ul class="dl-submenu"> 
+	     <li chnlcode="investThematic">
+			<a data-level="全面实行注册制" href="http://investor.szse.cn/column/introduce/index.html">全面实行注册制</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a href="/thematic/chinext/index.html">创业板注册制</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="investThematic">
+			<a data-level="创业板改革并试点注册制介绍" href="/thematic/chinext/introduce/index.html">创业板改革并试点注册制介绍</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="业务规则" href="http://www.szse.cn/lawrules/rule/stock/audit/index.html">业务规则</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="投教文章" href="/thematic/chinext/article/index.html">投教文章</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="图文解读" href="/thematic/chinext/graphic/index.html">图文解读</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="投资者问答" href="/thematic/chinext/qa/index.html">投资者问答</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="音视频" href="/thematic/chinext/av/index.html">音视频</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a href="/thematic/chinext/publicity/index.html">宣传折页与海报</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="investThematic">
+			<a data-level="宣传折页" href="/thematic/chinext/publicity/foldout/index.html">宣传折页</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="宣传海报" href="/thematic/chinext/publicity/poster/index.html">宣传海报</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="创业板投资手册" href="/thematic/chinext/manual/index.html">创业板投资手册</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="investThematic">
+			<a href="/thematic/reits/index.html">REITs专栏</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="investThematic">
+			<a data-level="REITs试点工作介绍" href="/thematic/reits/introduce/index.html">REITs试点工作介绍</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="业务规则" href="http://www.szse.cn/lawrules/rule/reits/index.html">业务规则</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="投教文章" href="/thematic/reits/article/index.html">投教文章</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="图文解读" href="/thematic/reits/graphic/index.html">图文解读</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="投资者问答" href="/thematic/reits/qa/index.html">投资者问答</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="音视频" href="/thematic/reits/av/index.html">音视频</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a href="/thematic/reits/publicity/index.html">宣传折页与海报</a>
+	         <ul class="dl-submenu"> 
+	     <li chnlcode="investThematic">
+			<a data-level="宣传折页" href="/thematic/reits/publicity/foldout/index.html">宣传折页</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="宣传海报" href="/thematic/reits/publicity/poster/index.html">宣传海报</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="REITs投资手册" href="/thematic/reits/manual/index.html">REITs投资手册</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="公募REITs信息平台" href="http://reits.szse.cn/">公募REITs信息平台</a>
+	   </li>
+	        </ul> 
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="深港通专栏" href="http://www.szse.cn/szhk/szhkinvestor/riskdisclosure/index.html">深港通专栏</a>
+	   </li>
+	     <li chnlcode="investThematic">
+			<a data-level="指数、基金专栏" href="/thematic/szi/index.html">指数、基金专栏</a>
+	   </li>
+	           </ul>   
+    </li>
+    <li class="otherinfo-li">
+           <div class="otherinfo">
+                <div class="top-menu-list">
+                    <div class="item item-home"><a class="link-home" href="/">官网首页</a></div>
+                    <div class="item item-loginregist">
+                        <a class="link-login" href="/application/userCenter/accountinfo/index.html">个人中心</a>                  
+                    </div>
+                    <div class="item item-english">
+                        <a class="link-english" href="">English</a>
+                    </div>
+                    
+                  	<div class="item languageswitch">
+                    	<a name="StranLink" class="language5 big5OrSimp"></a>
+                	</div>
+                </div>
+           </div>
+   </li>
+   
+   
+</ul>
+
+
+
+    </div>
+</div>
+  
+    <div class="g-container-wrap mt50">
+<div class="g-container">
+<div class="g-conbox">
+<p class="text-center error-wrap"><img class="error-pic" alt="" src="http://res.static.szse.cn/common/images/page_notFound_1.png" /></p>
+<!-- <p class="text-center" style="margin-top:-10px;">    <span class="error-number">404</span><br /> 
+<span class="error-info" style="font-size:24px;color:#999;">抱歉，你所访问的页面不存在！</span><br />
+<span class="error-body" style="color:#bbb;">你所查看的网页可能被删除或者暂时不可用</span><br />
+<span class="error-body" style="color:#bbb;">点击以下链接继续浏览网站</span>
+</p> -->
+<p style="margin-top:95px;">
+<img class="" alt="" src="http://res.static.szse.cn/common/images/home_page.png" />
+<a class="szse_index" style="margin-left: 6px;text-decoration: underline;color: #666666;cursor: pointer;">返回首页</a>
+<!--<img class="" alt="" src="http://res.static.szse.cn/common/images/go_back.png" style="margin-left:44px;" />
+<a class="goBack" style="margin-left: 6px;text-decoration: underline;color: #666666;cursor: pointer;">返回上一页</a> -->
+</p>
+</div>
+</div>
+</div>
+
+    <script>
+  changeVertion('/common/js/toggleBig5.js', 'js');
+  navMenuAJAX('/application/publicindex/footer/index.html', '/application/publicindex/footer/index.html', 'footer', 'investor');
+  addComJsFile();
+  changeVertion('/investor/common/js/common.js', 'js');
+</script>
+  </body>
+<script>
+     $('.szse_index').click(function(){
+            window.location = pathObj.investor_domain_path_http;
+     });
+
+     $('.goBack').click(function(){
+            window.history.go(-1);
+     });
+</script>
+</html>

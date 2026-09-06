@@ -1,0 +1,81 @@
+{
+  "verified_at": "2026-09-06T15:52:36.232497+00:00",
+  "results": [
+    {
+      "ticket": "06",
+      "report_sha256": "955e25954a1a305d2b4aed42ea9de565a48164eb2785d92a9a686c0fd8fe43dc",
+      "hash_named_files_verified": 29,
+      "unique_hashes": 29,
+      "indexes": {
+        "receipts.json": {
+          "records": 24,
+          "verified_originals": 24
+        },
+        "imports.json": {
+          "records": 5,
+          "verified_originals": 5
+        }
+      },
+      "local_links_verified": 65,
+      "data_checks": [
+        {
+          "source": "csi-000300-259d",
+          "unique_dates": 259
+        },
+        {
+          "source": "csi-000905-259d",
+          "unique_dates": 259
+        },
+        {
+          "source": "csi-000852-259d",
+          "unique_dates": 259
+        },
+        {
+          "source": "csi-930916-259d",
+          "unique_dates": 259
+        }
+      ]
+    },
+    {
+      "ticket": "07",
+      "report_sha256": "148f13126e27d2e5dad77965991629981eabd353032beddabac78adbe437206b",
+      "hash_named_files_verified": 20,
+      "unique_hashes": 20,
+      "indexes": {
+        "receipts.json": {
+          "records": 10,
+          "verified_originals": 10
+        },
+        "imports.json": {
+          "records": 16,
+          "verified_originals": 16
+        }
+      },
+      "local_links_verified": 33,
+      "data_checks": []
+    },
+    {
+      "ticket": "11",
+      "report_sha256": "a51e5ba29fbc0083b14d1f7021542d6bc02f7116d5dd38785200482afe26f80e",
+      "hash_named_files_verified": 28,
+      "unique_hashes": 28,
+      "indexes": {
+        "receipts.json": {
+          "records": 21,
+          "verified_originals": 18
+        },
+        "imports.json": {
+          "records": 10,
+          "verified_originals": 10
+        }
+      },
+      "local_links_verified": 37,
+      "data_checks": []
+    }
+  ],
+  "status": "preserved_files_verified",
+  "certification_completed": false,
+  "historical_publication_time_certified": false,
+  "network_requests": 0,
+  "production_writes": 0
+}

@@ -1,0 +1,93 @@
+{
+  "queried_at": "2026-09-06T14:21:35.369601+00:00",
+  "mode": "ro",
+  "sql": "SELECT r.content_hash,r.source_reference,a.byte_count,a.media_type,a.created_at FROM artifact_reference r JOIN artifact a ON a.content_hash=r.content_hash WHERE r.source_reference LIKE '%CNY030%' OR r.source_reference LIKE '%market_indices%' OR r.source_reference LIKE '%930916%' LIMIT 35",
+  "rows": [],
+  "market_prefix_followup": {
+    "queried_at": "2026-09-06T14:25:22.775979+00:00",
+    "mode": "ro",
+    "sql": "SELECT r.content_hash,r.source_reference,a.byte_count,a.created_at FROM artifact_reference r JOIN artifact a ON a.content_hash=r.content_hash WHERE r.source_reference LIKE '%market%' ORDER BY a.created_at DESC LIMIT 12",
+    "rows": [
+      {
+        "content_hash": "864180a1a7380458a796cf065d4226ca7132f64583eea2a9986d4d0c324cca4e",
+        "source_reference": "source-smoke:tushare-market:f4df66b54d5624ba76ece435615f2c71e00f7012171f3c93d75c7450c39ea763",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T20:26:23.788896+00:00"
+      },
+      {
+        "content_hash": "92252235aa8427dc8da21c8ae7c0755c78bf878ce05ca7dd16ce0d75c3b0bab8",
+        "source_reference": "source-smoke:tushare-market:380feac13277d1e4fed82a15136e782016a37e965bce86512cde6eb0de53b59b",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T19:39:06.971929+00:00"
+      },
+      {
+        "content_hash": "2f71210b0d88f2ef4ff09010620e0e7c3350c8a3c5c8e28c40cc8d64d7d69b72",
+        "source_reference": "source-smoke:tushare-market:8bf349a74ad05e22ed7a676e59321ddc071e7792ee8a158ca472136210b58eba",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T19:12:01.990970+00:00"
+      },
+      {
+        "content_hash": "a8fe3c128758dd71653b8e5199b063fb8efd8ffe76988ab60d696a89920a8956",
+        "source_reference": "source-smoke:tushare-market:0665773cdb0d30585e1109c0f9920eeb753830b500301269db45816203001961",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T18:53:02.390813+00:00"
+      },
+      {
+        "content_hash": "24ebb8b0d46b81da0da8f68f490e534a62f8aad95f56cbb8214eabd68ec660c0",
+        "source_reference": "source-smoke:tushare-market:a4c97a7174bf640032f03fea7f51c8306c0ed152b1aea118f2090b2029f01538",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T18:21:28.648902+00:00"
+      },
+      {
+        "content_hash": "6e2c37d9361ab35a7ab5cba6a45ec57ce07962254c14839501c2e795314fa090",
+        "source_reference": "source-smoke:tushare-market:2edc436ea38092213a22a981744996ef9780935fc257adee72208562a115c775",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T17:59:38.358643+00:00"
+      },
+      {
+        "content_hash": "9b0b571e11639ade0c9bdd16658413a87e00a9bf2f00509e3b38b2c04d9fa3be",
+        "source_reference": "source-smoke:tushare-market:c9d3accac875165810433c3405fa93e7b9415fdde707e91f78f8d4f1317749d1",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T15:48:10.429054+00:00"
+      },
+      {
+        "content_hash": "69f591b2452d800f6b299969a6ff19a8b1691b08d6afd229cea530c1e7982a67",
+        "source_reference": "source-smoke:tushare-market:279a40f060d732243e22aa0e478ace5f00c728daf49234571b63634aa025fab0",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T15:22:10.434815+00:00"
+      },
+      {
+        "content_hash": "e3b687db9491941b1309eff17744ce2013c676ccdfb4e8a1e285a755326dca5b",
+        "source_reference": "source-smoke:tushare-market:c055692072ea2b97d657ee471246cdb6e71ae15a3ecfe6e2d2d04238d5583b9b",
+        "byte_count": 2382,
+        "created_at": "2026-08-31T13:19:35.442004+00:00"
+      },
+      {
+        "content_hash": "779a63ba0126390375aa9adab2c5b0bf8aa69a6ed681a883b00f1a9bcd1fe058",
+        "source_reference": "source-smoke:tushare-market:ee83be0751b006ac3949d996074325aa192a3454e25cafdd65aec37e1470c98a",
+        "byte_count": 2373,
+        "created_at": "2026-08-31T12:34:20.315065+00:00"
+      },
+      {
+        "content_hash": "675778c8bcf453d902b719c827d885a60e87083722dd64ea05da2b90e324a0d9",
+        "source_reference": "source-smoke:tushare-market:86f1e65ba691248cfa50474ccbaa00ad43c86a8bb71a9811f069d00a69cd92e1",
+        "byte_count": 2367,
+        "created_at": "2026-08-31T08:40:38.597751+00:00"
+      },
+      {
+        "content_hash": "c903f2f532dc812cde05e17282719f07c1b46fc21a1e1f91fd7eb8b4a1df14a3",
+        "source_reference": "source-smoke:tushare-market:e28a863139add769e9af2a4c6944cc621daf97f92de9e964d2fd1bd9789fb688",
+        "byte_count": 2367,
+        "created_at": "2026-08-31T07:57:01.226270+00:00"
+      }
+    ]
+  },
+  "market_manifest_check": {
+    "checked_at": "2026-09-06T14:33:23.999184+00:00",
+    "manifest_sha256": "864180a1a7380458a796cf065d4226ca7132f64583eea2a9986d4d0c324cca4e",
+    "family": "market_indices",
+    "normalized_summary_digest": "cbe4c4bc152e70c4b813b278784dc4166f477a53d7ff72597d15415a6bbfa244",
+    "digest_file_exists": false,
+    "interpretation": "Current smoke_context_family computes this digest from normalized tuples. This is not an asserted hash of an original HTTP response or guaranteed CAS object; missing digest path does not itself prove CAS corruption."
+  }
+}

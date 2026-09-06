@@ -1,0 +1,86 @@
+[
+  {
+    "imported_at": "2026-09-06T15:52:57.464514+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/df/dfa264f956d2c07def24190b0fda8dc8da6160b6c37000fe165c9cde9b834110",
+    "sha256": "dfa264f956d2c07def24190b0fda8dc8da6160b6c37000fe165c9cde9b834110",
+    "bytes": 142024,
+    "local_file": "dfa264f956d2c07def24190b0fda8dc8da6160b6c37000fe165c9cde9b834110"
+  },
+  {
+    "imported_at": "2026-09-06T15:52:57.480100+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/d0/d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+    "sha256": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+    "bytes": 2759,
+    "local_file": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635"
+  },
+  {
+    "imported_at": "2026-09-06T15:52:57.498757+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/29/29398877a441e7c24ddc18d4301f20661dc9ae75e5c1c9bca88d07e68f4c4787",
+    "sha256": "29398877a441e7c24ddc18d4301f20661dc9ae75e5c1c9bca88d07e68f4c4787",
+    "bytes": 189097,
+    "local_file": "29398877a441e7c24ddc18d4301f20661dc9ae75e5c1c9bca88d07e68f4c4787"
+  },
+  {
+    "imported_at": "2026-09-06T15:52:57.517638+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/4f/4f63ca8ba58609fb71e9a787298eb0761079363869e66ad7f34d9967c63cd643",
+    "sha256": "4f63ca8ba58609fb71e9a787298eb0761079363869e66ad7f34d9967c63cd643",
+    "bytes": 13754,
+    "local_file": "4f63ca8ba58609fb71e9a787298eb0761079363869e66ad7f34d9967c63cd643"
+  },
+  {
+    "imported_at": "2026-09-06T15:52:57.539158+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/76/76bd8b47dc15968eb7e91ff0becb0bbad322488cfa026f53d578c182b5152eaf",
+    "sha256": "76bd8b47dc15968eb7e91ff0becb0bbad322488cfa026f53d578c182b5152eaf",
+    "bytes": 194,
+    "local_file": "76bd8b47dc15968eb7e91ff0becb0bbad322488cfa026f53d578c182b5152eaf"
+  },
+  {
+    "imported_at": "2026-09-06T15:52:57.560459+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/f6/f6103823d476d069330acc1080c1df8e245799625146d23fada44605dac87329",
+    "sha256": "f6103823d476d069330acc1080c1df8e245799625146d23fada44605dac87329",
+    "bytes": 61230,
+    "local_file": "f6103823d476d069330acc1080c1df8e245799625146d23fada44605dac87329"
+  },
+  {
+    "imported_at": "2026-09-06T15:52:57.580625+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/ac/ac25307c061923f16bfc4e5aa63fc06bd995fc25813592ce869b0689aee0106c",
+    "sha256": "ac25307c061923f16bfc4e5aa63fc06bd995fc25813592ce869b0689aee0106c",
+    "bytes": 72746,
+    "local_file": "ac25307c061923f16bfc4e5aa63fc06bd995fc25813592ce869b0689aee0106c"
+  },
+  {
+    "imported_at": "2026-09-06T16:00:06.676736+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/83/832b947338cf2121601151a8a1b09d4e7a5f54be6ed6c1a6954eec3e6d909d2d",
+    "sha256": "832b947338cf2121601151a8a1b09d4e7a5f54be6ed6c1a6954eec3e6d909d2d",
+    "bytes": 283681,
+    "local_file": "832b947338cf2121601151a8a1b09d4e7a5f54be6ed6c1a6954eec3e6d909d2d"
+  },
+  {
+    "imported_at": "2026-09-06T16:00:06.746699+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/ee/eeb823fb844bf0642441ed0d1cddf78def9f968829faf2a63e64027a202edb25",
+    "sha256": "eeb823fb844bf0642441ed0d1cddf78def9f968829faf2a63e64027a202edb25",
+    "bytes": 291171,
+    "local_file": "eeb823fb844bf0642441ed0d1cddf78def9f968829faf2a63e64027a202edb25"
+  },
+  {
+    "imported_at": "2026-09-06T16:00:06.922743+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/10/10d8671d053cea7e8c3d7c0e34b801653212df4f689023d47ffd4952e91b723b",
+    "sha256": "10d8671d053cea7e8c3d7c0e34b801653212df4f689023d47ffd4952e91b723b",
+    "bytes": 1124,
+    "local_file": "10d8671d053cea7e8c3d7c0e34b801653212df4f689023d47ffd4952e91b723b"
+  },
+  {
+    "imported_at": "2026-09-06T16:00:06.998066+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/b8/b883892878fada8e9f9745fb9b9557e8c997cbbc33826cee7de8c3ab11496d93",
+    "sha256": "b883892878fada8e9f9745fb9b9557e8c997cbbc33826cee7de8c3ab11496d93",
+    "bytes": 289948,
+    "local_file": "b883892878fada8e9f9745fb9b9557e8c997cbbc33826cee7de8c3ab11496d93"
+  },
+  {
+    "imported_at": "2026-09-06T16:00:07.070329+00:00",
+    "origin_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/f9/f92f341223b2b133e35da43d4ccbe890072927ee83114920c2522db0a9a677c5",
+    "sha256": "f92f341223b2b133e35da43d4ccbe890072927ee83114920c2522db0a9a677c5",
+    "bytes": 294283,
+    "local_file": "f92f341223b2b133e35da43d4ccbe890072927ee83114920c2522db0a9a677c5"
+  }
+]

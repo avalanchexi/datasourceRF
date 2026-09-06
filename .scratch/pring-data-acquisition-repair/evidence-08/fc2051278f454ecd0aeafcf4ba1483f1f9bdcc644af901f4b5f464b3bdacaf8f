@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link href="/maintain/images/favicon.ico" rel="shortcut icon" type="image/x-icon">
+  <title>深圳证券交易所</title>
+  <title>404</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #fff;
+    }
+
+    #wrap {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      margin: auto;
+    }
+
+    #contImg {
+      max-width: 100%;
+      max-height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <img id="contImg" src="">
+  </div>
+</body>
+<script>
+  (function () {
+    var img = new Image();
+    var src = '/maintain/images/404_s.png';
+    var wrap = document.getElementById('wrap');
+    var contImg = document.getElementById('contImg');
+    var vWidth = window.innerWidth;
+    var vHeight = window.innerHeight;
+
+
+    img.onload = function () {
+      window.cartoonIWidth = img.width;
+      window.cartoonIHeight = img.height;
+
+      cartoonHImgOnloaded(vWidth, vHeight, wrap, contImg);
+    };
+    img.src = src;
+
+    window.cartoonHImgOnloaded = function (vWidth, vHeight, wrap, contImg) {
+      var wrAspectRatio = cartoonIWidth / cartoonIHeight;
+      var wrWidth = cartoonIWidth;
+      var wrHeight = cartoonIHeight;
+
+      if (wrWidth < vWidth && wrHeight < vHeight) {
+        wrap.style.width = wrWidth + 'px';
+        wrap.style.height = wrHeight + 'px';
+        contImg.style.height = cartoonIHeight + 'px';
+      }
+
+      if (wrWidth >= vWidth) {
+        var h = vWidth * .9 / wrAspectRatio;
+
+        if (h <= vHeight) {
+          wrap.style.width = '90%';
+          contImg.style.height = h + 'px';
+          wrap.style.height = h + 'px';
+        }
+      }
+
+      if (wrHeight >= vHeight) {
+        var h = vHeight * .9;
+        var w = h * wrAspectRatio;
+
+        if (w <= vWidth) {
+          wrap.style.height = '90%';
+          contImg.style.height = h + 'px';
+          wrap.style.width = w + 'px';
+        }
+      }
+
+      contImg.src = src;
+    }
+
+  })()
+</script>
+
+
+</html>

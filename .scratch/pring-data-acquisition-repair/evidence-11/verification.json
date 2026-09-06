@@ -1,0 +1,1156 @@
+{
+  "verified_at": "2026-09-06T15:13:46.351737+00:00",
+  "scope": "research samples only; no production certification",
+  "raw_files": [
+    {
+      "name": "czce-cf-rules-2026-notice",
+      "sha256": "da9c32302a3df4cde44b602a822f071f187276276f1a3c38a477445f5a85a13d",
+      "byte_count": 2879
+    },
+    {
+      "name": "czce-rules-2026-may-notice",
+      "sha256": "9e0b3d71ad044c5ae2c7ab246433eff84ae4a6848e649e10f6b9c43da57a74c5",
+      "byte_count": 2843
+    },
+    {
+      "name": "tushare-fut-basic-doc",
+      "sha256": "7bad6377bdf34d78f421b2d823233784cbcf4f734f015cd3d6051fdac2a0d222",
+      "byte_count": 34609
+    },
+    {
+      "name": "tushare-fut-daily-doc",
+      "sha256": "8662dc734be76deb9e64e6cc4e12ad725ffefe29dec53e7702bfa992f8b9f905",
+      "byte_count": 37123
+    },
+    {
+      "name": "tushare-fut-mapping-doc",
+      "sha256": "084495ddd4340fb4320c133717382d71ac8a4bc123a051d7799b028be236aed9",
+      "byte_count": 1929
+    },
+    {
+      "name": "tushare-fut-calendar-doc",
+      "sha256": "a57207b67932f04c325b9478c0ef12d3407da42f9e2a784769dad19a461917b3",
+      "byte_count": 35282
+    },
+    {
+      "name": "shfe-api-js",
+      "sha256": "888923e303b7178af9b3bfac83621c60f2f6ae0871894bf1ebe75a3a2708f86b",
+      "byte_count": 16823
+    },
+    {
+      "name": "shfe-contract-20260828-ru",
+      "sha256": "e55b00b7408417d23bdf96e10dc5e6897052dff79c6da35bcf0619b7a01a39bd",
+      "byte_count": 4832
+    },
+    {
+      "name": "ine-contract-20260202-sc",
+      "sha256": "58ea56541e7c198958a092752f982b968fb721a7ef3a92434252c8dfb6523dee",
+      "byte_count": 10648
+    },
+    {
+      "name": "shfe-2026-holiday-calendar",
+      "sha256": "62b1cb96ca859433c6264643655312f8043aecda42d7746947be1292ce0d394a",
+      "byte_count": 117029
+    },
+    {
+      "name": "ine-2026-spring-festival-notice",
+      "sha256": "1f9be5c00c7d9e25a49befeb02eb7708906ea7fe82b0635f34d155b68ef88107",
+      "byte_count": 106316
+    },
+    {
+      "name": "shfe-contracts-20260202",
+      "sha256": "0f069e8fedf1d36922c862ad596289071b0774217c14165f825588c6b9b2352e",
+      "byte_count": 80439
+    },
+    {
+      "name": "shfe-contracts-20260309",
+      "sha256": "28beb369dbdd9642006237d378a2e9f4f75a4dff290dcb5c73112e03f8dedb20",
+      "byte_count": 80986
+    },
+    {
+      "name": "shfe-contracts-20260828",
+      "sha256": "b46f8fcb29cae52997017aa80c58f274abb7e6028c67b0f9647e45a4ede4d57b",
+      "byte_count": 80997
+    },
+    {
+      "name": "shfe-daily-20260827",
+      "sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "byte_count": 123139
+    },
+    {
+      "name": "shfe-daily-20260828",
+      "sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "byte_count": 123009
+    },
+    {
+      "name": "shfe-daily-20260831",
+      "sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "byte_count": 123352
+    },
+    {
+      "name": "shfe-daily-official-ui",
+      "sha256": "27828a95b60eb2a3ad1b5fbadb42367f38fbf83cff01caea54116d8d919b3ba9",
+      "byte_count": 542781
+    },
+    {
+      "name": "shfe-rb-rule",
+      "sha256": "1623ea4f156653e9e54ba6f2d99c4320616b00565e5d377a1c741aa2a6a4db61",
+      "byte_count": 210411
+    },
+    {
+      "name": "czce-daily-20260828",
+      "sha256": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d",
+      "byte_count": 37607
+    },
+    {
+      "name": "shfe-sp-rule",
+      "sha256": "2ce54ba6d669069b70fe4c08d5caae81686d388aff8ca4de8c3cf067d1a44fcf",
+      "byte_count": 195876
+    },
+    {
+      "name": "shfe-ru-rule",
+      "sha256": "3de7a1887f6b6c528bae6e013825e3add2517ef91685843d3309e0bbaa45748e",
+      "byte_count": 173503
+    },
+    {
+      "name": "shfe-cu-rule",
+      "sha256": "424a28732e0a3fdc1837e2bc32122415b12e61b05fa3a7cc2648d2a8db58a2af",
+      "byte_count": 183707
+    },
+    {
+      "name": "czce-2014-contracts",
+      "sha256": "58c03806b3de89558d75c01ab5e07cff1608b20b34bf918e666c0dd8c0df2776",
+      "byte_count": 218570
+    },
+    {
+      "name": "shfe-trading-hours",
+      "sha256": "6152fe0799f49b2243c3f0e4887d010eaf4d6c1be82516fef42c620803c17ca1",
+      "byte_count": 138645
+    },
+    {
+      "name": "czce-daily-20260831",
+      "sha256": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2",
+      "byte_count": 37607
+    },
+    {
+      "name": "ine-2024-manual",
+      "sha256": "c0467343d9811db50c1b83c4431293142a9c9000ce649cb3abdb30d559e6fb18",
+      "byte_count": 5050022
+    },
+    {
+      "name": "czce-daily-20260827",
+      "sha256": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb",
+      "byte_count": 37607
+    }
+  ],
+  "contract_snapshots": [
+    {
+      "source_sha256": "0f069e8fedf1d36922c862ad596289071b0774217c14165f825588c6b9b2352e",
+      "report_date": "20260202",
+      "update_date": "20260202 16:40:16",
+      "total_rows": 300,
+      "unique_instrument_ids": 300,
+      "selected_products": {
+        "cu": 12,
+        "rb": 12,
+        "ru": 10,
+        "sp": 12,
+        "sc": 20
+      },
+      "sample_rows": [
+        {
+          "INSTRUMENTID": "cu2602",
+          "OPENDATE": "20250218",
+          "STARTDELIVDATE": "20260225",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "铜",
+          "ENDDELIVDATE": "20260226",
+          "BASISPRICE": "78120",
+          "EXPIREDATE": "20260224",
+          "COMMODITYID": "cu"
+        },
+        {
+          "INSTRUMENTID": "cu2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "铜",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "80850",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "cu"
+        },
+        {
+          "INSTRUMENTID": "rb2602",
+          "OPENDATE": "20250218",
+          "STARTDELIVDATE": "20260225",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "螺纹钢",
+          "ENDDELIVDATE": "20260226",
+          "BASISPRICE": "3342",
+          "EXPIREDATE": "20260224",
+          "COMMODITYID": "rb"
+        },
+        {
+          "INSTRUMENTID": "rb2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "螺纹钢",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "3235",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "rb"
+        },
+        {
+          "INSTRUMENTID": "sc2603",
+          "OPENDATE": "20230301",
+          "STARTDELIVDATE": "20260302",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20260306",
+          "BASISPRICE": "532.2",
+          "EXPIREDATE": "20260227",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "sc2609",
+          "OPENDATE": "20230901",
+          "STARTDELIVDATE": "20260901",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20260907",
+          "BASISPRICE": "544.1",
+          "EXPIREDATE": "20260831",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "sc2610",
+          "OPENDATE": "20251009",
+          "STARTDELIVDATE": "20261008",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20261014",
+          "BASISPRICE": "478.3",
+          "EXPIREDATE": "20260930",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "ru2603",
+          "OPENDATE": "20250318",
+          "STARTDELIVDATE": "20260317",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "天然橡胶",
+          "ENDDELIVDATE": "20260318",
+          "BASISPRICE": "18255",
+          "EXPIREDATE": "20260316",
+          "COMMODITYID": "ru"
+        },
+        {
+          "INSTRUMENTID": "ru2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "天然橡胶",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "16065",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "ru"
+        },
+        {
+          "INSTRUMENTID": "sp2602",
+          "OPENDATE": "20250218",
+          "STARTDELIVDATE": "20260225",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "纸浆",
+          "ENDDELIVDATE": "20260226",
+          "BASISPRICE": "6290",
+          "EXPIREDATE": "20260224",
+          "COMMODITYID": "sp"
+        },
+        {
+          "INSTRUMENTID": "sp2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260202",
+          "COMMODITYNAME": "纸浆",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "5330",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "sp"
+        }
+      ]
+    },
+    {
+      "source_sha256": "28beb369dbdd9642006237d378a2e9f4f75a4dff290dcb5c73112e03f8dedb20",
+      "report_date": "20260309",
+      "update_date": "20260309 17:15:07",
+      "total_rows": 302,
+      "unique_instrument_ids": 302,
+      "selected_products": {
+        "cu": 12,
+        "rb": 12,
+        "ru": 10,
+        "sp": 12,
+        "sc": 20
+      },
+      "sample_rows": [
+        {
+          "INSTRUMENTID": "cu2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "铜",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "80850",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "cu"
+        },
+        {
+          "INSTRUMENTID": "rb2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "螺纹钢",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "3235",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "rb"
+        },
+        {
+          "INSTRUMENTID": "sc2609",
+          "OPENDATE": "20230901",
+          "STARTDELIVDATE": "20260901",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20260907",
+          "BASISPRICE": "544.1",
+          "EXPIREDATE": "20260831",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "sc2610",
+          "OPENDATE": "20251009",
+          "STARTDELIVDATE": "20261008",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20261014",
+          "BASISPRICE": "478.3",
+          "EXPIREDATE": "20260930",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "ru2603",
+          "OPENDATE": "20250318",
+          "STARTDELIVDATE": "20260317",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "天然橡胶",
+          "ENDDELIVDATE": "20260318",
+          "BASISPRICE": "18255",
+          "EXPIREDATE": "20260316",
+          "COMMODITYID": "ru"
+        },
+        {
+          "INSTRUMENTID": "ru2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "天然橡胶",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "16065",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "ru"
+        },
+        {
+          "INSTRUMENTID": "sp2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260309",
+          "COMMODITYNAME": "纸浆",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "5330",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "sp"
+        }
+      ]
+    },
+    {
+      "source_sha256": "b46f8fcb29cae52997017aa80c58f274abb7e6028c67b0f9647e45a4ede4d57b",
+      "report_date": "20260828",
+      "update_date": "20260828 16:05:09",
+      "total_rows": 302,
+      "unique_instrument_ids": 302,
+      "selected_products": {
+        "cu": 12,
+        "rb": 12,
+        "ru": 10,
+        "sp": 12,
+        "sc": 20
+      },
+      "sample_rows": [
+        {
+          "INSTRUMENTID": "cu2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260828",
+          "COMMODITYNAME": "铜",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "80850",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "cu"
+        },
+        {
+          "INSTRUMENTID": "rb2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260828",
+          "COMMODITYNAME": "螺纹钢",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "3235",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "rb"
+        },
+        {
+          "INSTRUMENTID": "sc2609",
+          "OPENDATE": "20230901",
+          "STARTDELIVDATE": "20260901",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260828",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20260907",
+          "BASISPRICE": "544.1",
+          "EXPIREDATE": "20260831",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "sc2610",
+          "OPENDATE": "20251009",
+          "STARTDELIVDATE": "20261008",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260828",
+          "COMMODITYNAME": "原油",
+          "ENDDELIVDATE": "20261014",
+          "BASISPRICE": "478.3",
+          "EXPIREDATE": "20260930",
+          "COMMODITYID": "sc"
+        },
+        {
+          "INSTRUMENTID": "ru2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260828",
+          "COMMODITYNAME": "天然橡胶",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "16065",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "ru"
+        },
+        {
+          "INSTRUMENTID": "sp2609",
+          "OPENDATE": "20250916",
+          "STARTDELIVDATE": "20260916",
+          "EXCHANGEID": "SHFE",
+          "SETTLEMENTGROUPID": "00000001",
+          "TRADINGDAY": "20260828",
+          "COMMODITYNAME": "纸浆",
+          "ENDDELIVDATE": "20260917",
+          "BASISPRICE": "5330",
+          "EXPIREDATE": "20260915",
+          "COMMODITYID": "sp"
+        }
+      ]
+    }
+  ],
+  "shfe_rows": [
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "cu_f",
+      "delivery_month": "2609",
+      "settle": "108760",
+      "pre_settle": "109020",
+      "close": "108730",
+      "change2": "-260",
+      "daily_return_research_only": "-0.0023848835076132819666116309"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "cu_f",
+      "delivery_month": "2610",
+      "settle": "108390",
+      "pre_settle": "108800",
+      "close": "108300",
+      "change2": "-410",
+      "daily_return_research_only": "-0.0037683823529411764705882353"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "rb_f",
+      "delivery_month": "2609",
+      "settle": "3042",
+      "pre_settle": "3034",
+      "close": "3045",
+      "change2": "8",
+      "daily_return_research_only": "0.002636783124588002636783125"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "rb_f",
+      "delivery_month": "2610",
+      "settle": "3080",
+      "pre_settle": "3070",
+      "close": "3088",
+      "change2": "10",
+      "daily_return_research_only": "0.003257328990228013029315961"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "sc_f",
+      "delivery_month": "2609",
+      "settle": "640.1",
+      "pre_settle": "655.3",
+      "close": "625",
+      "change2": "-15.2",
+      "daily_return_research_only": "-0.0231954829848924156874713872"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "sc_f",
+      "delivery_month": "2610",
+      "settle": "573.7",
+      "pre_settle": "564.5",
+      "close": "576.5",
+      "change2": "9.2",
+      "daily_return_research_only": "0.016297608503100088573959256"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "ru_f",
+      "delivery_month": "2609",
+      "settle": "17680",
+      "pre_settle": "17510",
+      "close": "17830",
+      "change2": "170",
+      "daily_return_research_only": "0.009708737864077669902912621"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "ru_f",
+      "delivery_month": "2610",
+      "settle": "17755",
+      "pre_settle": "17540",
+      "close": "17840",
+      "change2": "215",
+      "daily_return_research_only": "0.012257696693272519954389966"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "sp_f",
+      "delivery_month": "2609",
+      "settle": "4768",
+      "pre_settle": "4784",
+      "close": "4768",
+      "change2": "-16",
+      "daily_return_research_only": "-0.0033444816053511705685618729"
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "8037f2658b20df41aa118aab25e814400b43225fa1ab67a6b752cc57654d3926",
+      "raw_product_id": "sp_f",
+      "delivery_month": "2610",
+      "settle": "4792",
+      "pre_settle": "4798",
+      "close": "4784",
+      "change2": "-6",
+      "daily_return_research_only": "-0.0012505210504376823676531888"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "cu_f",
+      "delivery_month": "2609",
+      "settle": "109010",
+      "pre_settle": "108760",
+      "close": "109240",
+      "change2": "250",
+      "daily_return_research_only": "0.002298639205590290547995587"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "cu_f",
+      "delivery_month": "2610",
+      "settle": "108620",
+      "pre_settle": "108390",
+      "close": "108900",
+      "change2": "230",
+      "daily_return_research_only": "0.002121966971122797306024541"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "rb_f",
+      "delivery_month": "2609",
+      "settle": "3058",
+      "pre_settle": "3042",
+      "close": "3065",
+      "change2": "16",
+      "daily_return_research_only": "0.005259697567389875082182774"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "rb_f",
+      "delivery_month": "2610",
+      "settle": "3109",
+      "pre_settle": "3080",
+      "close": "3112",
+      "change2": "29",
+      "daily_return_research_only": "0.009415584415584415584415584"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "sc_f",
+      "delivery_month": "2609",
+      "settle": "584.2",
+      "pre_settle": "640.1",
+      "close": "581",
+      "change2": "-55.9",
+      "daily_return_research_only": "-0.0873301046711451335728792376"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "sc_f",
+      "delivery_month": "2610",
+      "settle": "592.3",
+      "pre_settle": "573.7",
+      "close": "596.5",
+      "change2": "18.6",
+      "daily_return_research_only": "0.032421126024054383824298414"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "ru_f",
+      "delivery_month": "2609",
+      "settle": "17830",
+      "pre_settle": "17680",
+      "close": "17950",
+      "change2": "150",
+      "daily_return_research_only": "0.008484162895927601809954751"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "ru_f",
+      "delivery_month": "2610",
+      "settle": "17900",
+      "pre_settle": "17755",
+      "close": "17980",
+      "change2": "145",
+      "daily_return_research_only": "0.008166713601802309208673613"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "sp_f",
+      "delivery_month": "2609",
+      "settle": "4720",
+      "pre_settle": "4768",
+      "close": "4750",
+      "change2": "-48",
+      "daily_return_research_only": "-0.0100671140939597315436241611"
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "09820b4ff6132309da7ac0690519e5108cf4b429bbbd27ee10989524135f3ae3",
+      "raw_product_id": "sp_f",
+      "delivery_month": "2610",
+      "settle": "4738",
+      "pre_settle": "4792",
+      "close": "4768",
+      "change2": "-54",
+      "daily_return_research_only": "-0.0112687813021702838063439065"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "cu_f",
+      "delivery_month": "2609",
+      "settle": "109080",
+      "pre_settle": "109010",
+      "close": "109500",
+      "change2": "70",
+      "daily_return_research_only": "0.000642142922667645170167875"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "cu_f",
+      "delivery_month": "2610",
+      "settle": "108680",
+      "pre_settle": "108620",
+      "close": "109100",
+      "change2": "60",
+      "daily_return_research_only": "0.000552384459583870373780151"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "rb_f",
+      "delivery_month": "2609",
+      "settle": "3087",
+      "pre_settle": "3058",
+      "close": "3065",
+      "change2": "29",
+      "daily_return_research_only": "0.009483322432962720732504905"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "rb_f",
+      "delivery_month": "2610",
+      "settle": "3135",
+      "pre_settle": "3109",
+      "close": "3143",
+      "change2": "26",
+      "daily_return_research_only": "0.008362817626246381473142490"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "sc_f",
+      "delivery_month": "2609",
+      "settle": "605.6",
+      "pre_settle": "584.2",
+      "close": "623.6",
+      "change2": "21.4",
+      "daily_return_research_only": "0.036631290653885655597398151"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "sc_f",
+      "delivery_month": "2610",
+      "settle": "618.3",
+      "pre_settle": "592.3",
+      "close": "635.1",
+      "change2": "26",
+      "daily_return_research_only": "0.043896673982778997129832855"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "ru_f",
+      "delivery_month": "2609",
+      "settle": "17935",
+      "pre_settle": "17830",
+      "close": "18070",
+      "change2": "105",
+      "daily_return_research_only": "0.005888951205832865956253505"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "ru_f",
+      "delivery_month": "2610",
+      "settle": "17960",
+      "pre_settle": "17900",
+      "close": "18065",
+      "change2": "60",
+      "daily_return_research_only": "0.003351955307262569832402235"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "sp_f",
+      "delivery_month": "2609",
+      "settle": "4750",
+      "pre_settle": "4720",
+      "close": "4700",
+      "change2": "30",
+      "daily_return_research_only": "0.006355932203389830508474576"
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "81686cd4f0a5724726e31795acafeb720297a244126736af0e995a81f2a32a89",
+      "raw_product_id": "sp_f",
+      "delivery_month": "2610",
+      "settle": "4784",
+      "pre_settle": "4738",
+      "close": "4740",
+      "change2": "46",
+      "daily_return_research_only": "0.009708737864077669902912621"
+    }
+  ],
+  "czce_rows": [
+    {
+      "date": "20260828",
+      "source_sha256": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d",
+      "raw_contract_id": "CF609",
+      "settle": "16760.00",
+      "pre_settle": "16570.00",
+      "close": "16775.00",
+      "change2": "190.00",
+      "parsed_raw_columns": [
+        "CF609",
+        "16570.00",
+        "16615.00",
+        "16920.00",
+        "16610.00",
+        "16775.00",
+        "16760.00",
+        "205.00",
+        "190.00",
+        "19722",
+        "46600",
+        "-5987",
+        "165284.52",
+        ""
+      ]
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d",
+      "raw_contract_id": "CF701",
+      "settle": "17200.00",
+      "pre_settle": "17020.00",
+      "close": "17180.00",
+      "change2": "180.00",
+      "parsed_raw_columns": [
+        "CF701",
+        "17020.00",
+        "17100.00",
+        "17345.00",
+        "17050.00",
+        "17180.00",
+        "17200.00",
+        "160.00",
+        "180.00",
+        "464467",
+        "604731",
+        "41253",
+        "3994160.53",
+        ""
+      ]
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d",
+      "raw_contract_id": "TA609",
+      "settle": "5822.00",
+      "pre_settle": "5756.00",
+      "close": "5866.00",
+      "change2": "66.00",
+      "parsed_raw_columns": [
+        "TA609",
+        "5756.00",
+        "5776.00",
+        "5876.00",
+        "5768.00",
+        "5866.00",
+        "5822.00",
+        "110.00",
+        "66.00",
+        "67501",
+        "134568",
+        "-40120",
+        "196618.94",
+        ""
+      ]
+    },
+    {
+      "date": "20260828",
+      "source_sha256": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d",
+      "raw_contract_id": "TA701",
+      "settle": "5596.00",
+      "pre_settle": "5528.00",
+      "close": "5630.00",
+      "change2": "68.00",
+      "parsed_raw_columns": [
+        "TA701",
+        "5528.00",
+        "5552.00",
+        "5650.00",
+        "5544.00",
+        "5630.00",
+        "5596.00",
+        "102.00",
+        "68.00",
+        "746791",
+        "868133",
+        "2214",
+        "2088982.42",
+        ""
+      ]
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2",
+      "raw_contract_id": "CF609",
+      "settle": "16655.00",
+      "pre_settle": "16760.00",
+      "close": "16715.00",
+      "change2": "-105.00",
+      "parsed_raw_columns": [
+        "CF609",
+        "16760.00",
+        "16800.00",
+        "16825.00",
+        "16500.00",
+        "16715.00",
+        "16655.00",
+        "-45.00",
+        "-105.00",
+        "14419",
+        "40084",
+        "-6516",
+        "120079.26",
+        ""
+      ]
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2",
+      "raw_contract_id": "CF701",
+      "settle": "17060.00",
+      "pre_settle": "17200.00",
+      "close": "17125.00",
+      "change2": "-140.00",
+      "parsed_raw_columns": [
+        "CF701",
+        "17200.00",
+        "17200.00",
+        "17230.00",
+        "16900.00",
+        "17125.00",
+        "17060.00",
+        "-75.00",
+        "-140.00",
+        "407223",
+        "582070",
+        "-22661",
+        "3473429.36",
+        ""
+      ]
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2",
+      "raw_contract_id": "TA609",
+      "settle": "5976.00",
+      "pre_settle": "5822.00",
+      "close": "6076.00",
+      "change2": "154.00",
+      "parsed_raw_columns": [
+        "TA609",
+        "5822.00",
+        "5854.00",
+        "6102.00",
+        "5844.00",
+        "6076.00",
+        "5976.00",
+        "254.00",
+        "154.00",
+        "69596",
+        "84807",
+        "-49761",
+        "207928.02",
+        ""
+      ]
+    },
+    {
+      "date": "20260831",
+      "source_sha256": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2",
+      "raw_contract_id": "TA701",
+      "settle": "5748.00",
+      "pre_settle": "5596.00",
+      "close": "5836.00",
+      "change2": "152.00",
+      "parsed_raw_columns": [
+        "TA701",
+        "5596.00",
+        "5630.00",
+        "5880.00",
+        "5608.00",
+        "5836.00",
+        "5748.00",
+        "240.00",
+        "152.00",
+        "1152329",
+        "940161",
+        "72028",
+        "3311987.93",
+        ""
+      ]
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb",
+      "raw_contract_id": "CF609",
+      "settle": "16570.00",
+      "pre_settle": "16480.00",
+      "close": "16590.00",
+      "change2": "90.00",
+      "parsed_raw_columns": [
+        "CF609",
+        "16480.00",
+        "16515.00",
+        "16650.00",
+        "16465.00",
+        "16590.00",
+        "16570.00",
+        "110.00",
+        "90.00",
+        "16443",
+        "52587",
+        "-6479",
+        "136242.05",
+        ""
+      ]
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb",
+      "raw_contract_id": "CF701",
+      "settle": "17020.00",
+      "pre_settle": "16910.00",
+      "close": "17030.00",
+      "change2": "110.00",
+      "parsed_raw_columns": [
+        "CF701",
+        "16910.00",
+        "16910.00",
+        "17100.00",
+        "16900.00",
+        "17030.00",
+        "17020.00",
+        "120.00",
+        "110.00",
+        "264840",
+        "563478",
+        "22777",
+        "2253585.79",
+        ""
+      ]
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb",
+      "raw_contract_id": "TA609",
+      "settle": "5756.00",
+      "pre_settle": "5796.00",
+      "close": "5756.00",
+      "change2": "-40.00",
+      "parsed_raw_columns": [
+        "TA609",
+        "5796.00",
+        "5750.00",
+        "5808.00",
+        "5710.00",
+        "5756.00",
+        "5756.00",
+        "-40.00",
+        "-40.00",
+        "68221",
+        "174688",
+        "-31756",
+        "196618.30",
+        ""
+      ]
+    },
+    {
+      "date": "20260827",
+      "source_sha256": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb",
+      "raw_contract_id": "TA701",
+      "settle": "5528.00",
+      "pre_settle": "5566.00",
+      "close": "5522.00",
+      "change2": "-38.00",
+      "parsed_raw_columns": [
+        "TA701",
+        "5566.00",
+        "5490.00",
+        "5584.00",
+        "5474.00",
+        "5522.00",
+        "5528.00",
+        "-44.00",
+        "-38.00",
+        "773284",
+        "865919",
+        "26",
+        "2136948.79",
+        ""
+      ]
+    }
+  ],
+  "unavailable_prior_cas": [
+    {
+      "sha256": "99906f7461e5a4078839e2e14112830e88a3d5c2371cc9ecf86863d0c7f8784c",
+      "reason": "not found at documented runtime CAS path; not used as locally verified unit evidence"
+    }
+  ],
+  "shfe_rows_adjacent_same_contract": {
+    "checked": 20,
+    "failures": []
+  },
+  "czce_rows_adjacent_same_contract": {
+    "checked": 8,
+    "failures": []
+  }
+}

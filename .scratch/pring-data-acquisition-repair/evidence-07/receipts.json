@@ -1,0 +1,211 @@
+[
+  {
+    "name": "tushare-index-dailybasic-doc",
+    "url": "https://tushare.pro/document/2?doc_id=128",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.680434+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:23.636992+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=128",
+    "sha256": "55c112a3e1d830b8eeea82d56ceee0f51099a8d860f2835dce628b77508e92c7",
+    "byte_count": 34079,
+    "local_file": "55c112a3e1d830b8eeea82d56ceee0f51099a8d860f2835dce628b77508e92c7.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:21 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Etag": "W/\"c65c54aafe2fab7a719f1adc828d5272d900cb54\""
+    }
+  },
+  {
+    "name": "csi-current-valuation",
+    "url": "https://www.csindex.com.cn/csindex-home/data-service/indexValuation",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.681523+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:19.830422+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/data-service/indexValuation",
+    "sha256": "6828af1f5ee5500656fd790c324a8dc8955f4688656aa5ec880afa85bf65b14e",
+    "byte_count": 1485,
+    "local_file": "6828af1f5ee5500656fd790c324a8dc8955f4688656aa5ec880afa85bf65b14e.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "csi-000300-indicator",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/indicator/000300indicator.xls",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.682456+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:19.827681+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/indicator/000300indicator.xls",
+    "sha256": "677773b60a9aa22e51e162e3b8f6549c16c6913eff02d31c6103a840909e6123",
+    "byte_count": 8192,
+    "local_file": "677773b60a9aa22e51e162e3b8f6549c16c6913eff02d31c6103a840909e6123.xls",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/vnd.ms-excel",
+      "ETag": "\"0F6848D5B77DC2CE0C28CF1581EC0D57\"",
+      "Last-Modified": "Sun, 06 Sep 2026 14:30:20 GMT"
+    }
+  },
+  {
+    "name": "csi-000300-pe-history",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe?indexCode=000300&startDate=20260309&endDate=20260904",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.683096+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:19.885930+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe?indexCode=000300&startDate=20260309&endDate=20260904",
+    "sha256": "3a532a220eb14231072f037321ee4f17d53db39eafebab7041c7acf9101bf4bc",
+    "byte_count": 11004,
+    "local_file": "3a532a220eb14231072f037321ee4f17d53db39eafebab7041c7acf9101bf4bc.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "csi-000905-indicator",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/indicator/000905indicator.xls",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.828682+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:19.931755+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/indicator/000905indicator.xls",
+    "sha256": "7a7d915fb5ee56c1fe076fd01dcd0b548ab0a65978059dd9780493ee268dad4e",
+    "byte_count": 8192,
+    "local_file": "7a7d915fb5ee56c1fe076fd01dcd0b548ab0a65978059dd9780493ee268dad4e.xls",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/vnd.ms-excel",
+      "ETag": "\"D5FCBAFD7C817AEF8CC90698D2F72C72\"",
+      "Last-Modified": "Sun, 06 Sep 2026 14:30:55 GMT"
+    }
+  },
+  {
+    "name": "csi-000905-pe-history",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe?indexCode=000905&startDate=20260309&endDate=20260904",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.831198+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:20.001076+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe?indexCode=000905&startDate=20260309&endDate=20260904",
+    "sha256": "80ec76ac9acd629a03bf453f5877c38658b2c12faccce0ef1298fa38f44c3aa3",
+    "byte_count": 11008,
+    "local_file": "80ec76ac9acd629a03bf453f5877c38658b2c12faccce0ef1298fa38f44c3aa3.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "csi-000852-indicator",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/indicator/000852indicator.xls",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.886950+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:19.995629+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/file/autofile/indicator/000852indicator.xls",
+    "sha256": "a15cea8ce2a93f1090dab96ea3e2434acd392a855d9e3bb95161989e7c90706e",
+    "byte_count": 8192,
+    "local_file": "a15cea8ce2a93f1090dab96ea3e2434acd392a855d9e3bb95161989e7c90706e.xls",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/vnd.ms-excel",
+      "ETag": "\"BD37E8B72F093380E5A70C0A5A1A85E6\"",
+      "Last-Modified": "Sun, 06 Sep 2026 14:31:00 GMT"
+    }
+  },
+  {
+    "name": "csi-000852-pe-history",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe?indexCode=000852&startDate=20260309&endDate=20260904",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:47:19.932463+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:47:20.103081+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/indexCsiDsPe?indexCode=000852&startDate=20260309&endDate=20260904",
+    "sha256": "af2f2c2b264b0eb2f692f24b4a42a9fbaf2e3b0a8c6a872c6c990a86a9539e5c",
+    "byte_count": 11264,
+    "local_file": "af2f2c2b264b0eb2f692f24b4a42a9fbaf2e3b0a8c6a872c6c990a86a9539e5c.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:47:17 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "sse-monthly-statistics-explanation",
+    "url": "https://star.sse.com.cn/aboutus/publication/monthly/explain/",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:50:57.438713+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:50:57.685773+00:00",
+    "status": 200,
+    "final_url": "https://star.sse.com.cn/aboutus/publication/monthly/explain/",
+    "sha256": "d899c2317fb0a941de05816691db635d45a60ece16f04aab114a10e7ccd96bba",
+    "byte_count": 29715,
+    "local_file": "d899c2317fb0a941de05816691db635d45a60ece16f04aab114a10e7ccd96bba.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:50:54 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "sse-csrc-statistical-guidelines-2025",
+    "url": "https://big5.sse.com.cn/lawandrules/regulations/csrcannoun/c/10787043/files/6e68fb5e2cf54a3fb3461692ae169297.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:50:57.440698+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "received_at": "2026-09-06T14:50:58.343777+00:00",
+    "status": 200,
+    "final_url": "http://big5.sse.com.cn/site/cht/www.sse.com.cn/lawandrules/regulations/csrcannoun/c/10787043/files/6e68fb5e2cf54a3fb3461692ae169297.pdf",
+    "sha256": "ef4313bf119ef4688df6f5941c0fed2542cdbbfcc879d5a1cd06be19289702cb",
+    "byte_count": 2467682,
+    "local_file": "ef4313bf119ef4688df6f5941c0fed2542cdbbfcc879d5a1cd06be19289702cb.pdf",
+    "headers": {
+      "Content-Type": "application/pdf",
+      "Date": "Sun, 06 Sep 2026 14:50:55 GMT",
+      "Etag": "\"6889cecf-25a762\"",
+      "Last-Modified": "Wed, 30 Jul 2025 07:50:39 GMT"
+    }
+  }
+]

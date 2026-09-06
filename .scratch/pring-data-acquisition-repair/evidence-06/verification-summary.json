@@ -1,0 +1,6169 @@
+{
+  "verified_at": "2026-09-06T14:31:44.926131+00:00",
+  "comparison_level": "official raw versus existing normalized source_claim; no authenticated TuShare original response identified",
+  "target_dates": [
+    "2026-03-09",
+    "2026-03-10",
+    "2026-03-11",
+    "2026-03-12",
+    "2026-03-13",
+    "2026-03-16",
+    "2026-03-17",
+    "2026-03-18",
+    "2026-03-19",
+    "2026-03-20",
+    "2026-03-23",
+    "2026-03-24",
+    "2026-03-25",
+    "2026-03-26",
+    "2026-03-27",
+    "2026-03-30",
+    "2026-03-31",
+    "2026-04-01",
+    "2026-04-02",
+    "2026-04-03",
+    "2026-04-07",
+    "2026-04-08",
+    "2026-04-09",
+    "2026-04-10",
+    "2026-04-13",
+    "2026-04-14",
+    "2026-04-15",
+    "2026-04-16",
+    "2026-04-17",
+    "2026-04-20",
+    "2026-04-21",
+    "2026-04-22",
+    "2026-04-23",
+    "2026-04-24",
+    "2026-04-27",
+    "2026-04-28",
+    "2026-04-29",
+    "2026-04-30",
+    "2026-05-06",
+    "2026-05-07",
+    "2026-05-08",
+    "2026-05-11",
+    "2026-05-12",
+    "2026-05-13",
+    "2026-05-14",
+    "2026-05-15",
+    "2026-05-18",
+    "2026-05-19",
+    "2026-05-20",
+    "2026-05-21",
+    "2026-05-22",
+    "2026-05-25",
+    "2026-05-26",
+    "2026-05-27",
+    "2026-05-28",
+    "2026-05-29",
+    "2026-06-01",
+    "2026-06-02",
+    "2026-06-03",
+    "2026-06-04",
+    "2026-06-05",
+    "2026-06-08",
+    "2026-06-09",
+    "2026-06-10",
+    "2026-06-11",
+    "2026-06-12",
+    "2026-06-15",
+    "2026-06-16",
+    "2026-06-17",
+    "2026-06-18",
+    "2026-06-22",
+    "2026-06-23",
+    "2026-06-24",
+    "2026-06-25",
+    "2026-06-26",
+    "2026-06-29",
+    "2026-06-30",
+    "2026-07-01",
+    "2026-07-02",
+    "2026-07-03",
+    "2026-07-06",
+    "2026-07-07",
+    "2026-07-08",
+    "2026-07-09",
+    "2026-07-10",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+    "2026-07-17",
+    "2026-07-20",
+    "2026-07-21",
+    "2026-07-22",
+    "2026-07-23",
+    "2026-07-24",
+    "2026-07-27",
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-05",
+    "2026-08-06",
+    "2026-08-07",
+    "2026-08-10",
+    "2026-08-11",
+    "2026-08-12",
+    "2026-08-13",
+    "2026-08-14",
+    "2026-08-17",
+    "2026-08-18",
+    "2026-08-19",
+    "2026-08-20",
+    "2026-08-21",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27",
+    "2026-08-28"
+  ],
+  "extra_availability_window_dates": [
+    "2025-08-06",
+    "2025-08-07",
+    "2025-08-08",
+    "2025-08-11",
+    "2025-08-12",
+    "2025-08-13",
+    "2025-08-14",
+    "2025-08-15",
+    "2025-08-18",
+    "2025-08-19",
+    "2025-08-20",
+    "2025-08-21",
+    "2025-08-22",
+    "2025-08-25",
+    "2025-08-26",
+    "2025-08-27",
+    "2025-08-28",
+    "2025-08-29",
+    "2025-09-01",
+    "2025-09-02",
+    "2025-09-03",
+    "2025-09-04",
+    "2025-09-05",
+    "2025-09-08",
+    "2025-09-09",
+    "2025-09-10",
+    "2025-09-11",
+    "2025-09-12",
+    "2025-09-15",
+    "2025-09-16",
+    "2025-09-17",
+    "2025-09-18",
+    "2025-09-19",
+    "2025-09-22",
+    "2025-09-23",
+    "2025-09-24",
+    "2025-09-25",
+    "2025-09-26",
+    "2025-09-29",
+    "2025-09-30",
+    "2025-10-09",
+    "2025-10-10",
+    "2025-10-13",
+    "2025-10-14",
+    "2025-10-15",
+    "2025-10-16",
+    "2025-10-17",
+    "2025-10-20",
+    "2025-10-21",
+    "2025-10-22",
+    "2025-10-23",
+    "2025-10-24",
+    "2025-10-27",
+    "2025-10-28",
+    "2025-10-29",
+    "2025-10-30",
+    "2025-10-31",
+    "2025-11-03",
+    "2025-11-04",
+    "2025-11-05",
+    "2025-11-06",
+    "2025-11-07",
+    "2025-11-10",
+    "2025-11-11",
+    "2025-11-12",
+    "2025-11-13",
+    "2025-11-14",
+    "2025-11-17",
+    "2025-11-18",
+    "2025-11-19",
+    "2025-11-20",
+    "2025-11-21",
+    "2025-11-24",
+    "2025-11-25",
+    "2025-11-26",
+    "2025-11-27",
+    "2025-11-28",
+    "2025-12-01",
+    "2025-12-02",
+    "2025-12-03",
+    "2025-12-04",
+    "2025-12-05",
+    "2025-12-08",
+    "2025-12-09",
+    "2025-12-10",
+    "2025-12-11",
+    "2025-12-12",
+    "2025-12-15",
+    "2025-12-16",
+    "2025-12-17",
+    "2025-12-18",
+    "2025-12-19",
+    "2025-12-22",
+    "2025-12-23",
+    "2025-12-24",
+    "2025-12-25",
+    "2025-12-26",
+    "2025-12-29",
+    "2025-12-30",
+    "2025-12-31",
+    "2026-01-05",
+    "2026-01-06",
+    "2026-01-07",
+    "2026-01-08",
+    "2026-01-09",
+    "2026-01-12",
+    "2026-01-13",
+    "2026-01-14",
+    "2026-01-15",
+    "2026-01-16",
+    "2026-01-19",
+    "2026-01-20",
+    "2026-01-21",
+    "2026-01-22",
+    "2026-01-23",
+    "2026-01-26",
+    "2026-01-27",
+    "2026-01-28",
+    "2026-01-29",
+    "2026-01-30",
+    "2026-02-02",
+    "2026-02-03",
+    "2026-02-04",
+    "2026-02-05",
+    "2026-02-06",
+    "2026-02-09",
+    "2026-02-10",
+    "2026-02-11",
+    "2026-02-12",
+    "2026-02-13",
+    "2026-02-24",
+    "2026-02-25",
+    "2026-02-26",
+    "2026-02-27",
+    "2026-03-02",
+    "2026-03-03",
+    "2026-03-04",
+    "2026-03-05",
+    "2026-03-06",
+    "2026-03-09",
+    "2026-03-10",
+    "2026-03-11",
+    "2026-03-12",
+    "2026-03-13",
+    "2026-03-16",
+    "2026-03-17",
+    "2026-03-18",
+    "2026-03-19",
+    "2026-03-20",
+    "2026-03-23",
+    "2026-03-24",
+    "2026-03-25",
+    "2026-03-26",
+    "2026-03-27",
+    "2026-03-30",
+    "2026-03-31",
+    "2026-04-01",
+    "2026-04-02",
+    "2026-04-03",
+    "2026-04-07",
+    "2026-04-08",
+    "2026-04-09",
+    "2026-04-10",
+    "2026-04-13",
+    "2026-04-14",
+    "2026-04-15",
+    "2026-04-16",
+    "2026-04-17",
+    "2026-04-20",
+    "2026-04-21",
+    "2026-04-22",
+    "2026-04-23",
+    "2026-04-24",
+    "2026-04-27",
+    "2026-04-28",
+    "2026-04-29",
+    "2026-04-30",
+    "2026-05-06",
+    "2026-05-07",
+    "2026-05-08",
+    "2026-05-11",
+    "2026-05-12",
+    "2026-05-13",
+    "2026-05-14",
+    "2026-05-15",
+    "2026-05-18",
+    "2026-05-19",
+    "2026-05-20",
+    "2026-05-21",
+    "2026-05-22",
+    "2026-05-25",
+    "2026-05-26",
+    "2026-05-27",
+    "2026-05-28",
+    "2026-05-29",
+    "2026-06-01",
+    "2026-06-02",
+    "2026-06-03",
+    "2026-06-04",
+    "2026-06-05",
+    "2026-06-08",
+    "2026-06-09",
+    "2026-06-10",
+    "2026-06-11",
+    "2026-06-12",
+    "2026-06-15",
+    "2026-06-16",
+    "2026-06-17",
+    "2026-06-18",
+    "2026-06-22",
+    "2026-06-23",
+    "2026-06-24",
+    "2026-06-25",
+    "2026-06-26",
+    "2026-06-29",
+    "2026-06-30",
+    "2026-07-01",
+    "2026-07-02",
+    "2026-07-03",
+    "2026-07-06",
+    "2026-07-07",
+    "2026-07-08",
+    "2026-07-09",
+    "2026-07-10",
+    "2026-07-13",
+    "2026-07-14",
+    "2026-07-15",
+    "2026-07-16",
+    "2026-07-17",
+    "2026-07-20",
+    "2026-07-21",
+    "2026-07-22",
+    "2026-07-23",
+    "2026-07-24",
+    "2026-07-27",
+    "2026-07-28",
+    "2026-07-29",
+    "2026-07-30",
+    "2026-07-31",
+    "2026-08-03",
+    "2026-08-04",
+    "2026-08-05",
+    "2026-08-06",
+    "2026-08-07",
+    "2026-08-10",
+    "2026-08-11",
+    "2026-08-12",
+    "2026-08-13",
+    "2026-08-14",
+    "2026-08-17",
+    "2026-08-18",
+    "2026-08-19",
+    "2026-08-20",
+    "2026-08-21",
+    "2026-08-24",
+    "2026-08-25",
+    "2026-08-26",
+    "2026-08-27",
+    "2026-08-28"
+  ],
+  "csi": [
+    {
+      "metric_id": "CN_EQ_CSI300",
+      "index_code": "000300",
+      "official_sha256": "1c79fb78cb0ac19a22961386789c87fdde8a37014605ea993a85ab0bc3ee9ae2",
+      "row_count": 259,
+      "unique_dates": 259,
+      "target_rows": 120,
+      "missing_extra_window": [],
+      "extra_dates": [],
+      "wrong_identity_rows": [],
+      "duplicate_dates": [],
+      "comparison_count": 163,
+      "target_comparison_count": 120,
+      "matches_at_2dp": 163,
+      "mismatches": [],
+      "max_absolute_difference": "0.0049",
+      "first": {
+        "tradeDate": "20250806",
+        "indexCode": "000300",
+        "indexNameCnAll": "沪深300指数",
+        "indexNameCn": "沪深300",
+        "indexNameEnAll": "CSI 300 Index",
+        "indexNameEn": "CSI 300",
+        "open": 4100.43,
+        "high": 4116.71,
+        "low": 4098.35,
+        "close": 4113.49,
+        "change": 10.04,
+        "changePct": 0.24,
+        "tradingVol": 17667615500.0,
+        "tradingValue": 3076.75,
+        "consNumber": 300.0,
+        "peg": 12.74
+      },
+      "last": {
+        "tradeDate": "20260828",
+        "indexCode": "000300",
+        "indexNameCnAll": "沪深300指数",
+        "indexNameCn": "沪深300",
+        "indexNameEnAll": "CSI 300 Index",
+        "indexNameEn": "CSI 300",
+        "open": 4615.84,
+        "high": 4643.34,
+        "low": 4608.46,
+        "close": 4609.18,
+        "change": -21.1,
+        "changePct": -0.46,
+        "tradingVol": 18098949500.0,
+        "tradingValue": 5498.13,
+        "consNumber": 300.0,
+        "peg": 14.42
+      },
+      "comparisons": [
+        {
+          "date": "2025-12-26",
+          "normalized_claim": "4657.24",
+          "official_close": "4657.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2025-12-29",
+          "normalized_claim": "4639.3721",
+          "official_close": "4639.37",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2025-12-30",
+          "normalized_claim": "4651.2818",
+          "official_close": "4651.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2025-12-31",
+          "normalized_claim": "4629.9395",
+          "official_close": "4629.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-01-05",
+          "normalized_claim": "4717.7457",
+          "official_close": "4717.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-01-06",
+          "normalized_claim": "4790.6938",
+          "official_close": "4790.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-01-07",
+          "normalized_claim": "4776.6658",
+          "official_close": "4776.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-01-08",
+          "normalized_claim": "4737.6536",
+          "official_close": "4737.65",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-01-09",
+          "normalized_claim": "4758.9221",
+          "official_close": "4758.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-01-12",
+          "normalized_claim": "4789.9155",
+          "official_close": "4789.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-01-13",
+          "normalized_claim": "4761.0324",
+          "official_close": "4761.03",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-01-14",
+          "normalized_claim": "4741.9306",
+          "official_close": "4741.93",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-01-15",
+          "normalized_claim": "4751.4293",
+          "official_close": "4751.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-01-16",
+          "normalized_claim": "4731.8728",
+          "official_close": "4731.87",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-01-19",
+          "normalized_claim": "4734.4556",
+          "official_close": "4734.46",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-01-20",
+          "normalized_claim": "4718.8782",
+          "official_close": "4718.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-01-21",
+          "normalized_claim": "4723.0692",
+          "official_close": "4723.07",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-01-22",
+          "normalized_claim": "4723.7091",
+          "official_close": "4723.71",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-01-23",
+          "normalized_claim": "4702.4966",
+          "official_close": "4702.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-01-26",
+          "normalized_claim": "4706.964",
+          "official_close": "4706.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-01-27",
+          "normalized_claim": "4705.6918",
+          "official_close": "4705.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-01-28",
+          "normalized_claim": "4717.9914",
+          "official_close": "4717.99",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-01-29",
+          "normalized_claim": "4753.8697",
+          "official_close": "4753.87",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-01-30",
+          "normalized_claim": "4706.3401",
+          "official_close": "4706.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-02-02",
+          "normalized_claim": "4605.9799",
+          "official_close": "4605.98",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-02-03",
+          "normalized_claim": "4660.1074",
+          "official_close": "4660.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-02-04",
+          "normalized_claim": "4698.6832",
+          "official_close": "4698.68",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-02-05",
+          "normalized_claim": "4670.4188",
+          "official_close": "4670.42",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-02-06",
+          "normalized_claim": "4643.5959",
+          "official_close": "4643.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-02-09",
+          "normalized_claim": "4719.0559",
+          "official_close": "4719.06",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-02-10",
+          "normalized_claim": "4724.2956",
+          "official_close": "4724.3",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-02-11",
+          "normalized_claim": "4713.8185",
+          "official_close": "4713.82",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-02-12",
+          "normalized_claim": "4719.578",
+          "official_close": "4719.58",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-02-13",
+          "normalized_claim": "4660.4056",
+          "official_close": "4660.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-02-24",
+          "normalized_claim": "4707.544",
+          "official_close": "4707.54",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-02-25",
+          "normalized_claim": "4735.8858",
+          "official_close": "4735.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-02-26",
+          "normalized_claim": "4726.8739",
+          "official_close": "4726.87",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-02-27",
+          "normalized_claim": "4710.6469",
+          "official_close": "4710.65",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-03-02",
+          "normalized_claim": "4728.6688",
+          "official_close": "4728.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-03-03",
+          "normalized_claim": "4655.8962",
+          "official_close": "4655.9",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-04",
+          "normalized_claim": "4602.6247",
+          "official_close": "4602.62",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-03-05",
+          "normalized_claim": "4647.6921",
+          "official_close": "4647.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-03-06",
+          "normalized_claim": "4660.439",
+          "official_close": "4660.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2026-03-09",
+          "normalized_claim": "4615.4551",
+          "official_close": "4615.46",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-03-10",
+          "normalized_claim": "4674.7562",
+          "official_close": "4674.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-11",
+          "normalized_claim": "4704.4959",
+          "official_close": "4704.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-03-12",
+          "normalized_claim": "4687.5601",
+          "official_close": "4687.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-03-13",
+          "normalized_claim": "4669.14",
+          "official_close": "4669.14",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-03-16",
+          "normalized_claim": "4671.5591",
+          "official_close": "4671.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-03-17",
+          "normalized_claim": "4637.4392",
+          "official_close": "4637.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-03-18",
+          "normalized_claim": "4658.3324",
+          "official_close": "4658.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-03-19",
+          "normalized_claim": "4583.2511",
+          "official_close": "4583.25",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        },
+        {
+          "date": "2026-03-20",
+          "normalized_claim": "4567.0179",
+          "official_close": "4567.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-03-23",
+          "normalized_claim": "4417.9971",
+          "official_close": "4418.0",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-03-24",
+          "normalized_claim": "4474.7224",
+          "official_close": "4474.72",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-03-25",
+          "normalized_claim": "4537.4656",
+          "official_close": "4537.47",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-03-26",
+          "normalized_claim": "4477.5343",
+          "official_close": "4477.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-03-27",
+          "normalized_claim": "4502.5698",
+          "official_close": "4502.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-03-30",
+          "normalized_claim": "4491.95",
+          "official_close": "4491.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-03-31",
+          "normalized_claim": "4450.0493",
+          "official_close": "4450.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-04-01",
+          "normalized_claim": "4526.0668",
+          "official_close": "4526.07",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-04-02",
+          "normalized_claim": "4478.9141",
+          "official_close": "4478.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-04-03",
+          "normalized_claim": "4440.7889",
+          "official_close": "4440.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        },
+        {
+          "date": "2026-04-07",
+          "normalized_claim": "4440.6162",
+          "official_close": "4440.62",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-04-08",
+          "normalized_claim": "4595.556",
+          "official_close": "4595.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-04-09",
+          "normalized_claim": "4566.2237",
+          "official_close": "4566.22",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-04-10",
+          "normalized_claim": "4636.5655",
+          "official_close": "4636.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-04-13",
+          "normalized_claim": "4646.1546",
+          "official_close": "4646.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-04-14",
+          "normalized_claim": "4701.2837",
+          "official_close": "4701.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-04-15",
+          "normalized_claim": "4685.2464",
+          "official_close": "4685.25",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-04-16",
+          "normalized_claim": "4736.6077",
+          "official_close": "4736.61",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0023"
+        },
+        {
+          "date": "2026-04-17",
+          "normalized_claim": "4728.6716",
+          "official_close": "4728.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-04-20",
+          "normalized_claim": "4757.4419",
+          "official_close": "4757.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-04-21",
+          "normalized_claim": "4767.997",
+          "official_close": "4768.0",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-04-22",
+          "normalized_claim": "4799.627",
+          "official_close": "4799.63",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-04-23",
+          "normalized_claim": "4786.3273",
+          "official_close": "4786.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-04-24",
+          "normalized_claim": "4769.3688",
+          "official_close": "4769.37",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-04-27",
+          "normalized_claim": "4770.9469",
+          "official_close": "4770.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-04-28",
+          "normalized_claim": "4758.2083",
+          "official_close": "4758.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-04-29",
+          "normalized_claim": "4810.3468",
+          "official_close": "4810.35",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-04-30",
+          "normalized_claim": "4807.3069",
+          "official_close": "4807.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-05-06",
+          "normalized_claim": "4877.0932",
+          "official_close": "4877.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-05-07",
+          "normalized_claim": "4900.5098",
+          "official_close": "4900.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-05-08",
+          "normalized_claim": "4871.9122",
+          "official_close": "4871.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-05-11",
+          "normalized_claim": "4951.8366",
+          "official_close": "4951.84",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-05-12",
+          "normalized_claim": "4948.0465",
+          "official_close": "4948.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-05-13",
+          "normalized_claim": "4998.3417",
+          "official_close": "4998.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-05-14",
+          "normalized_claim": "4914.5971",
+          "official_close": "4914.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-05-15",
+          "normalized_claim": "4859.5927",
+          "official_close": "4859.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-05-18",
+          "normalized_claim": "4833.5237",
+          "official_close": "4833.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-05-19",
+          "normalized_claim": "4852.8832",
+          "official_close": "4852.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-05-20",
+          "normalized_claim": "4850.7",
+          "official_close": "4850.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0"
+        },
+        {
+          "date": "2026-05-21",
+          "normalized_claim": "4783.0976",
+          "official_close": "4783.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-05-22",
+          "normalized_claim": "4845.0956",
+          "official_close": "4845.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-05-25",
+          "normalized_claim": "4921.5974",
+          "official_close": "4921.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-05-26",
+          "normalized_claim": "4947.8493",
+          "official_close": "4947.85",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-05-27",
+          "normalized_claim": "4908.1714",
+          "official_close": "4908.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-05-28",
+          "normalized_claim": "4914.2133",
+          "official_close": "4914.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-05-29",
+          "normalized_claim": "4892.1213",
+          "official_close": "4892.12",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-06-01",
+          "normalized_claim": "4844.2556",
+          "official_close": "4844.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-06-02",
+          "normalized_claim": "4914.5591",
+          "official_close": "4914.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-06-03",
+          "normalized_claim": "4938.8091",
+          "official_close": "4938.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-06-04",
+          "normalized_claim": "4904.7454",
+          "official_close": "4904.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-06-05",
+          "normalized_claim": "4816.9199",
+          "official_close": "4816.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-06-08",
+          "normalized_claim": "4713.6358",
+          "official_close": "4713.64",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-06-09",
+          "normalized_claim": "4801.8106",
+          "official_close": "4801.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-06-10",
+          "normalized_claim": "4748.5932",
+          "official_close": "4748.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-06-11",
+          "normalized_claim": "4722.4122",
+          "official_close": "4722.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-06-12",
+          "normalized_claim": "4777.3206",
+          "official_close": "4777.32",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-06-15",
+          "normalized_claim": "4891.7126",
+          "official_close": "4891.71",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-06-16",
+          "normalized_claim": "4884.2322",
+          "official_close": "4884.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-06-17",
+          "normalized_claim": "4931.3861",
+          "official_close": "4931.39",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-06-18",
+          "normalized_claim": "4941.5986",
+          "official_close": "4941.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-06-22",
+          "normalized_claim": "5059.6582",
+          "official_close": "5059.66",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-06-23",
+          "normalized_claim": "4919.386",
+          "official_close": "4919.39",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-06-24",
+          "normalized_claim": "4943.0197",
+          "official_close": "4943.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-06-25",
+          "normalized_claim": "5020.1038",
+          "official_close": "5020.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-06-26",
+          "normalized_claim": "4868.2205",
+          "official_close": "4868.22",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-06-29",
+          "normalized_claim": "4926.921",
+          "official_close": "4926.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2026-06-30",
+          "normalized_claim": "4979.4328",
+          "official_close": "4979.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-01",
+          "normalized_claim": "4958.9773",
+          "official_close": "4958.98",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-07-02",
+          "normalized_claim": "4812.2957",
+          "official_close": "4812.3",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-07-03",
+          "normalized_claim": "4842.1737",
+          "official_close": "4842.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-07-06",
+          "normalized_claim": "4841.998",
+          "official_close": "4842.0",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-07-07",
+          "normalized_claim": "4792.2624",
+          "official_close": "4792.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-07-08",
+          "normalized_claim": "4755.5338",
+          "official_close": "4755.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-07-09",
+          "normalized_claim": "4876.3125",
+          "official_close": "4876.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-07-10",
+          "normalized_claim": "4780.7867",
+          "official_close": "4780.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-07-13",
+          "normalized_claim": "4695.383",
+          "official_close": "4695.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-07-14",
+          "normalized_claim": "4796.502",
+          "official_close": "4796.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-07-15",
+          "normalized_claim": "4786.7828",
+          "official_close": "4786.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-16",
+          "normalized_claim": "4698.4344",
+          "official_close": "4698.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-07-17",
+          "normalized_claim": "4529.0953",
+          "official_close": "4529.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-07-20",
+          "normalized_claim": "4598.3208",
+          "official_close": "4598.32",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-07-21",
+          "normalized_claim": "4739.2287",
+          "official_close": "4739.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-07-22",
+          "normalized_claim": "4717.2442",
+          "official_close": "4717.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-07-23",
+          "normalized_claim": "4728.0018",
+          "official_close": "4728.0",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-07-24",
+          "normalized_claim": "4649.1917",
+          "official_close": "4649.19",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-07-27",
+          "normalized_claim": "4702.4272",
+          "official_close": "4702.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-28",
+          "normalized_claim": "4569.5235",
+          "official_close": "4569.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-07-29",
+          "normalized_claim": "4600.2624",
+          "official_close": "4600.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-07-30",
+          "normalized_claim": "4549.7201",
+          "official_close": "4549.72",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-07-31",
+          "normalized_claim": "4588.1968",
+          "official_close": "4588.2",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-08-03",
+          "normalized_claim": "4543.1781",
+          "official_close": "4543.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-08-04",
+          "normalized_claim": "4600.9304",
+          "official_close": "4600.93",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-08-05",
+          "normalized_claim": "4658.1549",
+          "official_close": "4658.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-08-06",
+          "normalized_claim": "4651.3098",
+          "official_close": "4651.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-08-07",
+          "normalized_claim": "4694.4365",
+          "official_close": "4694.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-10",
+          "normalized_claim": "4702.0247",
+          "official_close": "4702.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-08-11",
+          "normalized_claim": "4663.7887",
+          "official_close": "4663.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-08-12",
+          "normalized_claim": "4690.9165",
+          "official_close": "4690.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-13",
+          "normalized_claim": "4663.9513",
+          "official_close": "4663.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-08-14",
+          "normalized_claim": "4665.8812",
+          "official_close": "4665.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-08-17",
+          "normalized_claim": "4741.0981",
+          "official_close": "4741.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-08-18",
+          "normalized_claim": "4725.8134",
+          "official_close": "4725.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-08-19",
+          "normalized_claim": "4588.6955",
+          "official_close": "4588.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-08-20",
+          "normalized_claim": "4592.7504",
+          "official_close": "4592.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-08-21",
+          "normalized_claim": "4618.8952",
+          "official_close": "4618.9",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-08-24",
+          "normalized_claim": "4563.1266",
+          "official_close": "4563.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-08-25",
+          "normalized_claim": "4552.0326",
+          "official_close": "4552.03",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-08-26",
+          "normalized_claim": "4590.7935",
+          "official_close": "4590.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-27",
+          "normalized_claim": "4630.277",
+          "official_close": "4630.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-08-28",
+          "normalized_claim": "4609.1764",
+          "official_close": "4609.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        }
+      ]
+    },
+    {
+      "metric_id": "CN_EQ_CSI500",
+      "index_code": "000905",
+      "official_sha256": "2a64c0283769e56e31f3e6f58a4b5f5516ceae368a9a1358d13c0172eeafa022",
+      "row_count": 259,
+      "unique_dates": 259,
+      "target_rows": 120,
+      "missing_extra_window": [],
+      "extra_dates": [],
+      "wrong_identity_rows": [],
+      "duplicate_dates": [],
+      "comparison_count": 163,
+      "target_comparison_count": 120,
+      "matches_at_2dp": 163,
+      "mismatches": [],
+      "max_absolute_difference": "0.005",
+      "first": {
+        "tradeDate": "20250806",
+        "indexCode": "000905",
+        "indexNameCnAll": "中证小盘500指数",
+        "indexNameCn": "中证500",
+        "indexNameEnAll": "CSI Smallcap 500 Index",
+        "indexNameEn": "CSI 500",
+        "open": 6298.93,
+        "high": 6357.59,
+        "low": 6293.22,
+        "close": 6357.38,
+        "change": 54.14,
+        "changePct": 0.86,
+        "tradingVol": 16602763800.0,
+        "tradingValue": 2637.71,
+        "consNumber": 500.0,
+        "peg": 23.71
+      },
+      "last": {
+        "tradeDate": "20260828",
+        "indexCode": "000905",
+        "indexNameCnAll": "中证小盘500指数",
+        "indexNameCn": "中证500",
+        "indexNameEnAll": "CSI Smallcap 500 Index",
+        "indexNameEn": "CSI 500",
+        "open": 7939.45,
+        "high": 7986.43,
+        "low": 7892.51,
+        "close": 7895.45,
+        "change": -50.87,
+        "changePct": -0.64,
+        "tradingVol": 17107047900.0,
+        "tradingValue": 3763.04,
+        "consNumber": 500.0,
+        "peg": 28.01
+      },
+      "comparisons": [
+        {
+          "date": "2025-12-26",
+          "normalized_claim": "7458.8386",
+          "official_close": "7458.84",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2025-12-29",
+          "normalized_claim": "7430.6147",
+          "official_close": "7430.61",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2025-12-30",
+          "normalized_claim": "7458.936",
+          "official_close": "7458.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2025-12-31",
+          "normalized_claim": "7465.5742",
+          "official_close": "7465.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-01-05",
+          "normalized_claim": "7651.1981",
+          "official_close": "7651.2",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-01-06",
+          "normalized_claim": "7814.1356",
+          "official_close": "7814.14",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-01-07",
+          "normalized_claim": "7875.0822",
+          "official_close": "7875.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-01-08",
+          "normalized_claim": "7894.5447",
+          "official_close": "7894.54",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-01-09",
+          "normalized_claim": "8056.6858",
+          "official_close": "8056.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-01-12",
+          "normalized_claim": "8249.1275",
+          "official_close": "8249.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-01-13",
+          "normalized_claim": "8143.28",
+          "official_close": "8143.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-01-14",
+          "normalized_claim": "8227.697",
+          "official_close": "8227.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-01-15",
+          "normalized_claim": "8223.2683",
+          "official_close": "8223.27",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-01-16",
+          "normalized_claim": "8232.674",
+          "official_close": "8232.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-01-19",
+          "normalized_claim": "8287.947",
+          "official_close": "8287.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-01-20",
+          "normalized_claim": "8247.8049",
+          "official_close": "8247.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-01-21",
+          "normalized_claim": "8340.1133",
+          "official_close": "8340.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-01-22",
+          "normalized_claim": "8387.595",
+          "official_close": "8387.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-01-23",
+          "normalized_claim": "8590.1659",
+          "official_close": "8590.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-01-26",
+          "normalized_claim": "8506.6932",
+          "official_close": "8506.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-01-27",
+          "normalized_claim": "8548.9321",
+          "official_close": "8548.93",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-01-28",
+          "normalized_claim": "8601.1644",
+          "official_close": "8601.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-01-29",
+          "normalized_claim": "8517.8429",
+          "official_close": "8517.84",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-01-30",
+          "normalized_claim": "8370.5203",
+          "official_close": "8370.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-02-02",
+          "normalized_claim": "8037.0456",
+          "official_close": "8037.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-02-03",
+          "normalized_claim": "8286.7005",
+          "official_close": "8286.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-02-04",
+          "normalized_claim": "8299.0574",
+          "official_close": "8299.06",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-02-05",
+          "normalized_claim": "8146.1073",
+          "official_close": "8146.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-02-06",
+          "normalized_claim": "8146.4128",
+          "official_close": "8146.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-02-09",
+          "normalized_claim": "8311.2829",
+          "official_close": "8311.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-02-10",
+          "normalized_claim": "8306.4448",
+          "official_close": "8306.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-02-11",
+          "normalized_claim": "8325.8107",
+          "official_close": "8325.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-02-12",
+          "normalized_claim": "8423.5695",
+          "official_close": "8423.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-02-13",
+          "normalized_claim": "8299.585",
+          "official_close": "8299.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-02-24",
+          "normalized_claim": "8392.9098",
+          "official_close": "8392.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-02-25",
+          "normalized_claim": "8527.5593",
+          "official_close": "8527.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-02-26",
+          "normalized_claim": "8557.216",
+          "official_close": "8557.22",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-02-27",
+          "normalized_claim": "8658.4503",
+          "official_close": "8658.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-03-02",
+          "normalized_claim": "8658.3336",
+          "official_close": "8658.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-03-03",
+          "normalized_claim": "8281.6139",
+          "official_close": "8281.61",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-03-04",
+          "normalized_claim": "8248.945",
+          "official_close": "8248.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-03-05",
+          "normalized_claim": "8309.1713",
+          "official_close": "8309.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-03-06",
+          "normalized_claim": "8360.3347",
+          "official_close": "8360.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-03-09",
+          "normalized_claim": "8279.4811",
+          "official_close": "8279.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        },
+        {
+          "date": "2026-03-10",
+          "normalized_claim": "8410.303",
+          "official_close": "8410.3",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-03-11",
+          "normalized_claim": "8403.3296",
+          "official_close": "8403.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-03-12",
+          "normalized_claim": "8359.4721",
+          "official_close": "8359.47",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-03-13",
+          "normalized_claim": "8239.798",
+          "official_close": "8239.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-03-16",
+          "normalized_claim": "8185.152",
+          "official_close": "8185.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-03-17",
+          "normalized_claim": "8016.0262",
+          "official_close": "8016.03",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-18",
+          "normalized_claim": "8096.4276",
+          "official_close": "8096.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-03-19",
+          "normalized_claim": "7877.09",
+          "official_close": "7877.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-03-20",
+          "normalized_claim": "7760.0365",
+          "official_close": "7760.04",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-03-23",
+          "normalized_claim": "7440.7451",
+          "official_close": "7440.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-03-24",
+          "normalized_claim": "7597.3732",
+          "official_close": "7597.37",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-03-25",
+          "normalized_claim": "7767.6654",
+          "official_close": "7767.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-03-26",
+          "normalized_claim": "7642.1302",
+          "official_close": "7642.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-03-27",
+          "normalized_claim": "7737.6144",
+          "official_close": "7737.61",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-03-30",
+          "normalized_claim": "7753.7234",
+          "official_close": "7753.72",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-03-31",
+          "normalized_claim": "7617.3262",
+          "official_close": "7617.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-04-01",
+          "normalized_claim": "7750.0924",
+          "official_close": "7750.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-04-02",
+          "normalized_claim": "7605.2932",
+          "official_close": "7605.29",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-04-03",
+          "normalized_claim": "7534.938",
+          "official_close": "7534.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-04-07",
+          "normalized_claim": "7571.1106",
+          "official_close": "7571.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-04-08",
+          "normalized_claim": "7945.1527",
+          "official_close": "7945.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-04-09",
+          "normalized_claim": "7898.6329",
+          "official_close": "7898.63",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-04-10",
+          "normalized_claim": "7969.3646",
+          "official_close": "7969.36",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-04-13",
+          "normalized_claim": "7967.697",
+          "official_close": "7967.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-04-14",
+          "normalized_claim": "8088.5687",
+          "official_close": "8088.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-04-15",
+          "normalized_claim": "8044.0773",
+          "official_close": "8044.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-04-16",
+          "normalized_claim": "8180.0815",
+          "official_close": "8180.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-04-17",
+          "normalized_claim": "8214.1939",
+          "official_close": "8214.19",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-04-20",
+          "normalized_claim": "8290.0224",
+          "official_close": "8290.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-04-21",
+          "normalized_claim": "8270.3266",
+          "official_close": "8270.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-04-22",
+          "normalized_claim": "8376.1808",
+          "official_close": "8376.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-04-23",
+          "normalized_claim": "8295.207",
+          "official_close": "8295.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-04-24",
+          "normalized_claim": "8247.8759",
+          "official_close": "8247.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-04-27",
+          "normalized_claim": "8299.0486",
+          "official_close": "8299.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-04-28",
+          "normalized_claim": "8203.9614",
+          "official_close": "8203.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-04-29",
+          "normalized_claim": "8342.4217",
+          "official_close": "8342.42",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-04-30",
+          "normalized_claim": "8349.5081",
+          "official_close": "8349.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-05-06",
+          "normalized_claim": "8588.4399",
+          "official_close": "8588.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-05-07",
+          "normalized_claim": "8696.7989",
+          "official_close": "8696.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        },
+        {
+          "date": "2026-05-08",
+          "normalized_claim": "8694.1709",
+          "official_close": "8694.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-05-11",
+          "normalized_claim": "8839.7415",
+          "official_close": "8839.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-05-12",
+          "normalized_claim": "8785.9791",
+          "official_close": "8785.98",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-05-13",
+          "normalized_claim": "8918.239",
+          "official_close": "8918.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2026-05-14",
+          "normalized_claim": "8670.1574",
+          "official_close": "8670.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-05-15",
+          "normalized_claim": "8536.3444",
+          "official_close": "8536.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-05-18",
+          "normalized_claim": "8554.2372",
+          "official_close": "8554.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-05-19",
+          "normalized_claim": "8627.9461",
+          "official_close": "8627.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-05-20",
+          "normalized_claim": "8656.3062",
+          "official_close": "8656.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-05-21",
+          "normalized_claim": "8419.8373",
+          "official_close": "8419.84",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-05-22",
+          "normalized_claim": "8576.9402",
+          "official_close": "8576.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-05-25",
+          "normalized_claim": "8703.8901",
+          "official_close": "8703.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-05-26",
+          "normalized_claim": "8658.6192",
+          "official_close": "8658.62",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-05-27",
+          "normalized_claim": "8530.9802",
+          "official_close": "8530.98",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-05-28",
+          "normalized_claim": "8563.2218",
+          "official_close": "8563.22",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-05-29",
+          "normalized_claim": "8359.5596",
+          "official_close": "8359.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-06-01",
+          "normalized_claim": "8274.212",
+          "official_close": "8274.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-06-02",
+          "normalized_claim": "8321.4347",
+          "official_close": "8321.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-06-03",
+          "normalized_claim": "8362.156",
+          "official_close": "8362.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-06-04",
+          "normalized_claim": "8356.7444",
+          "official_close": "8356.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-06-05",
+          "normalized_claim": "8251.1407",
+          "official_close": "8251.14",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-06-08",
+          "normalized_claim": "7963.4529",
+          "official_close": "7963.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-06-09",
+          "normalized_claim": "8176.1785",
+          "official_close": "8176.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-06-10",
+          "normalized_claim": "8063.8637",
+          "official_close": "8063.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-06-11",
+          "normalized_claim": "8035.7788",
+          "official_close": "8035.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-06-12",
+          "normalized_claim": "8106.203",
+          "official_close": "8106.2",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-06-15",
+          "normalized_claim": "8406.7479",
+          "official_close": "8406.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-06-16",
+          "normalized_claim": "8507.9799",
+          "official_close": "8507.98",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-06-17",
+          "normalized_claim": "8627.0862",
+          "official_close": "8627.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-06-18",
+          "normalized_claim": "8673.0899",
+          "official_close": "8673.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-06-22",
+          "normalized_claim": "8868.782",
+          "official_close": "8868.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-06-23",
+          "normalized_claim": "8688.5923",
+          "official_close": "8688.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0023"
+        },
+        {
+          "date": "2026-06-24",
+          "normalized_claim": "8842.9378",
+          "official_close": "8842.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-06-25",
+          "normalized_claim": "8938.0113",
+          "official_close": "8938.01",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-06-26",
+          "normalized_claim": "8703.5652",
+          "official_close": "8703.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-06-29",
+          "normalized_claim": "8821.0944",
+          "official_close": "8821.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-06-30",
+          "normalized_claim": "9031.3788",
+          "official_close": "9031.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-07-01",
+          "normalized_claim": "9028.9326",
+          "official_close": "9028.93",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-07-02",
+          "normalized_claim": "8694.1756",
+          "official_close": "8694.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-07-03",
+          "normalized_claim": "8745.2607",
+          "official_close": "8745.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-07-06",
+          "normalized_claim": "8651.1339",
+          "official_close": "8651.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-07-07",
+          "normalized_claim": "8508.7885",
+          "official_close": "8508.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-07-08",
+          "normalized_claim": "8390.0194",
+          "official_close": "8390.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-07-09",
+          "normalized_claim": "8652.787",
+          "official_close": "8652.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-07-10",
+          "normalized_claim": "8503.9705",
+          "official_close": "8503.97",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-07-13",
+          "normalized_claim": "8138.1443",
+          "official_close": "8138.14",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-07-14",
+          "normalized_claim": "8275.9388",
+          "official_close": "8275.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-07-15",
+          "normalized_claim": "8147.5786",
+          "official_close": "8147.58",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-07-16",
+          "normalized_claim": "7955.6635",
+          "official_close": "7955.66",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-07-17",
+          "normalized_claim": "7513.7627",
+          "official_close": "7513.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-07-20",
+          "normalized_claim": "7411.3134",
+          "official_close": "7411.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-07-21",
+          "normalized_claim": "7800.6085",
+          "official_close": "7800.61",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-07-22",
+          "normalized_claim": "7751.6618",
+          "official_close": "7751.66",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-07-23",
+          "normalized_claim": "7734.31",
+          "official_close": "7734.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-07-24",
+          "normalized_claim": "7532.7006",
+          "official_close": "7532.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-07-27",
+          "normalized_claim": "7720.5975",
+          "official_close": "7720.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-07-28",
+          "normalized_claim": "7443.4332",
+          "official_close": "7443.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-07-29",
+          "normalized_claim": "7524.5075",
+          "official_close": "7524.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-07-30",
+          "normalized_claim": "7309.5753",
+          "official_close": "7309.58",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-07-31",
+          "normalized_claim": "7493.985",
+          "official_close": "7493.99",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-08-03",
+          "normalized_claim": "7414.5227",
+          "official_close": "7414.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-08-04",
+          "normalized_claim": "7607.4867",
+          "official_close": "7607.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-08-05",
+          "normalized_claim": "7809.2065",
+          "official_close": "7809.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-06",
+          "normalized_claim": "7829.3615",
+          "official_close": "7829.36",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-08-07",
+          "normalized_claim": "7980.1245",
+          "official_close": "7980.12",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-08-10",
+          "normalized_claim": "8030.9483",
+          "official_close": "8030.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-08-11",
+          "normalized_claim": "7967.5386",
+          "official_close": "7967.54",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-08-12",
+          "normalized_claim": "8045.3099",
+          "official_close": "8045.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-08-13",
+          "normalized_claim": "7968.3809",
+          "official_close": "7968.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-08-14",
+          "normalized_claim": "7990.3277",
+          "official_close": "7990.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0023"
+        },
+        {
+          "date": "2026-08-17",
+          "normalized_claim": "8184.6407",
+          "official_close": "8184.64",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-08-18",
+          "normalized_claim": "8177.1762",
+          "official_close": "8177.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-08-19",
+          "normalized_claim": "7783.4558",
+          "official_close": "7783.46",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-08-20",
+          "normalized_claim": "7850.4006",
+          "official_close": "7850.4",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-08-21",
+          "normalized_claim": "7854.3336",
+          "official_close": "7854.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-08-24",
+          "normalized_claim": "7717.0851",
+          "official_close": "7717.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-08-25",
+          "normalized_claim": "7710.9365",
+          "official_close": "7710.94",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-26",
+          "normalized_claim": "7770.5347",
+          "official_close": "7770.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-08-27",
+          "normalized_claim": "7946.3255",
+          "official_close": "7946.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-08-28",
+          "normalized_claim": "7895.4511",
+          "official_close": "7895.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        }
+      ]
+    },
+    {
+      "metric_id": "CN_EQ_CSI1000",
+      "index_code": "000852",
+      "official_sha256": "d4ef5f09a621ac4841e7e25b5e6b9c349129f9c221098731c8f63e2eea09769c",
+      "row_count": 259,
+      "unique_dates": 259,
+      "target_rows": 120,
+      "missing_extra_window": [],
+      "extra_dates": [],
+      "wrong_identity_rows": [],
+      "duplicate_dates": [],
+      "comparison_count": 163,
+      "target_comparison_count": 120,
+      "matches_at_2dp": 163,
+      "mismatches": [],
+      "max_absolute_difference": "0.005",
+      "first": {
+        "tradeDate": "20250806",
+        "indexCode": "000852",
+        "indexNameCnAll": "中证1000指数",
+        "indexNameCn": "中证1000",
+        "indexNameEnAll": "CSI 1000 Index",
+        "indexNameEn": "CSI 1000",
+        "open": 6784.17,
+        "high": 6865.02,
+        "low": 6774.03,
+        "close": 6861.31,
+        "change": 73.83,
+        "changePct": 1.09,
+        "tradingVol": 25813388800.0,
+        "tradingValue": 3990.56,
+        "consNumber": 1000.0,
+        "peg": 28.49
+      },
+      "last": {
+        "tradeDate": "20260828",
+        "indexCode": "000852",
+        "indexNameCnAll": "中证1000指数",
+        "indexNameCn": "中证1000",
+        "indexNameEnAll": "CSI 1000 Index",
+        "indexNameEn": "CSI 1000",
+        "open": 7734.19,
+        "high": 7802.55,
+        "low": 7702.18,
+        "close": 7705.03,
+        "change": -27.92,
+        "changePct": -0.36,
+        "tradingVol": 23994948600.0,
+        "tradingValue": 4657.95,
+        "consNumber": 1000.0,
+        "peg": 32.53
+      },
+      "comparisons": [
+        {
+          "date": "2025-12-26",
+          "normalized_claim": "7605.5299",
+          "official_close": "7605.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2025-12-29",
+          "normalized_claim": "7594.1575",
+          "official_close": "7594.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2025-12-30",
+          "normalized_claim": "7597.299",
+          "official_close": "7597.3",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2025-12-31",
+          "normalized_claim": "7595.2845",
+          "official_close": "7595.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-01-05",
+          "normalized_claim": "7753.88",
+          "official_close": "7753.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-01-06",
+          "normalized_claim": "7864.9034",
+          "official_close": "7864.9",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-01-07",
+          "normalized_claim": "7906.4197",
+          "official_close": "7906.42",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-01-08",
+          "normalized_claim": "7971.5887",
+          "official_close": "7971.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-01-09",
+          "normalized_claim": "8129.1831",
+          "official_close": "8129.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-01-12",
+          "normalized_claim": "8357.0107",
+          "official_close": "8357.01",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-01-13",
+          "normalized_claim": "8203.1327",
+          "official_close": "8203.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-01-14",
+          "normalized_claim": "8257.1716",
+          "official_close": "8257.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-01-15",
+          "normalized_claim": "8240.7751",
+          "official_close": "8240.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-01-16",
+          "normalized_claim": "8232.7293",
+          "official_close": "8232.73",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-01-19",
+          "normalized_claim": "8265.6462",
+          "official_close": "8265.65",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-01-20",
+          "normalized_claim": "8182.7522",
+          "official_close": "8182.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-01-21",
+          "normalized_claim": "8247.6798",
+          "official_close": "8247.68",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-01-22",
+          "normalized_claim": "8309.3456",
+          "official_close": "8309.35",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-01-23",
+          "normalized_claim": "8470.7438",
+          "official_close": "8470.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-01-26",
+          "normalized_claim": "8365.4345",
+          "official_close": "8365.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-01-27",
+          "normalized_claim": "8382.1533",
+          "official_close": "8382.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-01-28",
+          "normalized_claim": "8399.7938",
+          "official_close": "8399.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-01-29",
+          "normalized_claim": "8332.2067",
+          "official_close": "8332.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-01-30",
+          "normalized_claim": "8254.8603",
+          "official_close": "8254.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-02-02",
+          "normalized_claim": "7975.4283",
+          "official_close": "7975.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-02-03",
+          "normalized_claim": "8209.101",
+          "official_close": "8209.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2026-02-04",
+          "normalized_claim": "8207.1203",
+          "official_close": "8207.12",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-02-05",
+          "normalized_claim": "8068.0767",
+          "official_close": "8068.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-02-06",
+          "normalized_claim": "8051.5742",
+          "official_close": "8051.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-02-09",
+          "normalized_claim": "8233.7783",
+          "official_close": "8233.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-02-10",
+          "normalized_claim": "8250.3001",
+          "official_close": "8250.3",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-02-11",
+          "normalized_claim": "8239.513",
+          "official_close": "8239.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-02-12",
+          "normalized_claim": "8314.8322",
+          "official_close": "8314.83",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-02-13",
+          "normalized_claim": "8204.8294",
+          "official_close": "8204.83",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-02-24",
+          "normalized_claim": "8299.7705",
+          "official_close": "8299.77",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-02-25",
+          "normalized_claim": "8426.3314",
+          "official_close": "8426.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-02-26",
+          "normalized_claim": "8490.6173",
+          "official_close": "8490.62",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-02-27",
+          "normalized_claim": "8560.8433",
+          "official_close": "8560.84",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-03-02",
+          "normalized_claim": "8476.965",
+          "official_close": "8476.97",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-03-03",
+          "normalized_claim": "8142.4538",
+          "official_close": "8142.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-04",
+          "normalized_claim": "8094.5183",
+          "official_close": "8094.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-03-05",
+          "normalized_claim": "8171.1194",
+          "official_close": "8171.12",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-03-06",
+          "normalized_claim": "8248.8569",
+          "official_close": "8248.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-03-09",
+          "normalized_claim": "8203.8687",
+          "official_close": "8203.87",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-03-10",
+          "normalized_claim": "8350.0896",
+          "official_close": "8350.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-03-11",
+          "normalized_claim": "8363.5262",
+          "official_close": "8363.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-12",
+          "normalized_claim": "8335.9078",
+          "official_close": "8335.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-03-13",
+          "normalized_claim": "8214.2926",
+          "official_close": "8214.29",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-03-16",
+          "normalized_claim": "8211.3517",
+          "official_close": "8211.35",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-03-17",
+          "normalized_claim": "8019.8569",
+          "official_close": "8019.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-03-18",
+          "normalized_claim": "8096.5948",
+          "official_close": "8096.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-03-19",
+          "normalized_claim": "7909.2343",
+          "official_close": "7909.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-03-20",
+          "normalized_claim": "7783.4345",
+          "official_close": "7783.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-03-23",
+          "normalized_claim": "7409.1068",
+          "official_close": "7409.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-03-24",
+          "normalized_claim": "7600.8569",
+          "official_close": "7600.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-03-25",
+          "normalized_claim": "7751.1809",
+          "official_close": "7751.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-03-26",
+          "normalized_claim": "7639.3762",
+          "official_close": "7639.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-27",
+          "normalized_claim": "7746.3131",
+          "official_close": "7746.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-03-30",
+          "normalized_claim": "7767.9301",
+          "official_close": "7767.93",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-03-31",
+          "normalized_claim": "7619.8503",
+          "official_close": "7619.85",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-04-01",
+          "normalized_claim": "7764.1525",
+          "official_close": "7764.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-04-02",
+          "normalized_claim": "7623.4168",
+          "official_close": "7623.42",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-04-03",
+          "normalized_claim": "7536.5999",
+          "official_close": "7536.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-04-07",
+          "normalized_claim": "7606.0166",
+          "official_close": "7606.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-04-08",
+          "normalized_claim": "7955.7684",
+          "official_close": "7955.77",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-04-09",
+          "normalized_claim": "7921.4465",
+          "official_close": "7921.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-04-10",
+          "normalized_claim": "7998.232",
+          "official_close": "7998.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-04-13",
+          "normalized_claim": "8025.5724",
+          "official_close": "8025.57",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-04-14",
+          "normalized_claim": "8144.7622",
+          "official_close": "8144.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-04-15",
+          "normalized_claim": "8106.1646",
+          "official_close": "8106.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-04-16",
+          "normalized_claim": "8232.9834",
+          "official_close": "8232.98",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-04-17",
+          "normalized_claim": "8307.4361",
+          "official_close": "8307.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-04-20",
+          "normalized_claim": "8357.8139",
+          "official_close": "8357.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-04-21",
+          "normalized_claim": "8351.156",
+          "official_close": "8351.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-04-22",
+          "normalized_claim": "8481.2397",
+          "official_close": "8481.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-04-23",
+          "normalized_claim": "8362.7402",
+          "official_close": "8362.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-04-24",
+          "normalized_claim": "8304.1412",
+          "official_close": "8304.14",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-04-27",
+          "normalized_claim": "8338.7263",
+          "official_close": "8338.73",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-04-28",
+          "normalized_claim": "8226.6919",
+          "official_close": "8226.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-04-29",
+          "normalized_claim": "8343.0651",
+          "official_close": "8343.07",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-04-30",
+          "normalized_claim": "8381.9465",
+          "official_close": "8381.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-05-06",
+          "normalized_claim": "8574.5557",
+          "official_close": "8574.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-05-07",
+          "normalized_claim": "8714.51",
+          "official_close": "8714.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.00"
+        },
+        {
+          "date": "2026-05-08",
+          "normalized_claim": "8741.1507",
+          "official_close": "8741.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-05-11",
+          "normalized_claim": "8866.7792",
+          "official_close": "8866.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-05-12",
+          "normalized_claim": "8821.8874",
+          "official_close": "8821.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-05-13",
+          "normalized_claim": "8955.4473",
+          "official_close": "8955.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-05-14",
+          "normalized_claim": "8778.7088",
+          "official_close": "8778.71",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-05-15",
+          "normalized_claim": "8682.6536",
+          "official_close": "8682.65",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-05-18",
+          "normalized_claim": "8720.2132",
+          "official_close": "8720.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-05-19",
+          "normalized_claim": "8808.6445",
+          "official_close": "8808.64",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-05-20",
+          "normalized_claim": "8808.9095",
+          "official_close": "8808.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-05-21",
+          "normalized_claim": "8510.4958",
+          "official_close": "8510.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-05-22",
+          "normalized_claim": "8692.6655",
+          "official_close": "8692.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-05-25",
+          "normalized_claim": "8799.3116",
+          "official_close": "8799.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-05-26",
+          "normalized_claim": "8687.2528",
+          "official_close": "8687.25",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-05-27",
+          "normalized_claim": "8546.5142",
+          "official_close": "8546.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-05-28",
+          "normalized_claim": "8637.743",
+          "official_close": "8637.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-05-29",
+          "normalized_claim": "8408.7357",
+          "official_close": "8408.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-06-01",
+          "normalized_claim": "8345.1291",
+          "official_close": "8345.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-06-02",
+          "normalized_claim": "8384.7812",
+          "official_close": "8384.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-06-03",
+          "normalized_claim": "8432.679",
+          "official_close": "8432.68",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2026-06-04",
+          "normalized_claim": "8420.0946",
+          "official_close": "8420.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-06-05",
+          "normalized_claim": "8340.9631",
+          "official_close": "8340.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-06-08",
+          "normalized_claim": "8081.2614",
+          "official_close": "8081.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-06-09",
+          "normalized_claim": "8318.6978",
+          "official_close": "8318.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-06-10",
+          "normalized_claim": "8198.7232",
+          "official_close": "8198.72",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-06-11",
+          "normalized_claim": "8159.4548",
+          "official_close": "8159.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-06-12",
+          "normalized_claim": "8202.7991",
+          "official_close": "8202.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-06-15",
+          "normalized_claim": "8521.233",
+          "official_close": "8521.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-06-16",
+          "normalized_claim": "8646.4034",
+          "official_close": "8646.4",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-06-17",
+          "normalized_claim": "8704.4677",
+          "official_close": "8704.47",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0023"
+        },
+        {
+          "date": "2026-06-18",
+          "normalized_claim": "8771.0244",
+          "official_close": "8771.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-06-22",
+          "normalized_claim": "8865.676",
+          "official_close": "8865.68",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-06-23",
+          "normalized_claim": "8680.0387",
+          "official_close": "8680.04",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-06-24",
+          "normalized_claim": "8793.4866",
+          "official_close": "8793.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-06-25",
+          "normalized_claim": "8825.9201",
+          "official_close": "8825.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-06-26",
+          "normalized_claim": "8601.4075",
+          "official_close": "8601.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-06-29",
+          "normalized_claim": "8597.8932",
+          "official_close": "8597.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-06-30",
+          "normalized_claim": "8809.7859",
+          "official_close": "8809.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-07-01",
+          "normalized_claim": "8876.6303",
+          "official_close": "8876.63",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-07-02",
+          "normalized_claim": "8625.3336",
+          "official_close": "8625.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-07-03",
+          "normalized_claim": "8620.7886",
+          "official_close": "8620.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-07-06",
+          "normalized_claim": "8472.6028",
+          "official_close": "8472.6",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-07",
+          "normalized_claim": "8301.8035",
+          "official_close": "8301.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-07-08",
+          "normalized_claim": "8117.8607",
+          "official_close": "8117.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-07-09",
+          "normalized_claim": "8300.077",
+          "official_close": "8300.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-07-10",
+          "normalized_claim": "8198.3078",
+          "official_close": "8198.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-07-13",
+          "normalized_claim": "7787.8529",
+          "official_close": "7787.85",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-07-14",
+          "normalized_claim": "7925.1232",
+          "official_close": "7925.12",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-07-15",
+          "normalized_claim": "7817.8313",
+          "official_close": "7817.83",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-07-16",
+          "normalized_claim": "7631.7622",
+          "official_close": "7631.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-07-17",
+          "normalized_claim": "7167.9959",
+          "official_close": "7168.0",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-07-20",
+          "normalized_claim": "6965.3757",
+          "official_close": "6965.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-07-21",
+          "normalized_claim": "7259.863",
+          "official_close": "7259.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-07-22",
+          "normalized_claim": "7158.7622",
+          "official_close": "7158.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-07-23",
+          "normalized_claim": "7195.4997",
+          "official_close": "7195.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-07-24",
+          "normalized_claim": "6995.6931",
+          "official_close": "6995.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-07-27",
+          "normalized_claim": "7228.7845",
+          "official_close": "7228.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-07-28",
+          "normalized_claim": "7026.2761",
+          "official_close": "7026.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-07-29",
+          "normalized_claim": "7095.1863",
+          "official_close": "7095.19",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-07-30",
+          "normalized_claim": "6900.6579",
+          "official_close": "6900.66",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-07-31",
+          "normalized_claim": "7075.5065",
+          "official_close": "7075.51",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-03",
+          "normalized_claim": "7079.7761",
+          "official_close": "7079.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-08-04",
+          "normalized_claim": "7279.1927",
+          "official_close": "7279.19",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-08-05",
+          "normalized_claim": "7493.0481",
+          "official_close": "7493.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-08-06",
+          "normalized_claim": "7530.4251",
+          "official_close": "7530.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-08-07",
+          "normalized_claim": "7679.5285",
+          "official_close": "7679.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-08-10",
+          "normalized_claim": "7733.8995",
+          "official_close": "7733.9",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-08-11",
+          "normalized_claim": "7698.0479",
+          "official_close": "7698.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-08-12",
+          "normalized_claim": "7793.7165",
+          "official_close": "7793.72",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-08-13",
+          "normalized_claim": "7715.8946",
+          "official_close": "7715.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-08-14",
+          "normalized_claim": "7769.8204",
+          "official_close": "7769.82",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-08-17",
+          "normalized_claim": "7968.383",
+          "official_close": "7968.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-08-18",
+          "normalized_claim": "7945.9644",
+          "official_close": "7945.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-08-19",
+          "normalized_claim": "7517.7684",
+          "official_close": "7517.77",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-08-20",
+          "normalized_claim": "7589.7793",
+          "official_close": "7589.78",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-08-21",
+          "normalized_claim": "7601.8044",
+          "official_close": "7601.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-08-24",
+          "normalized_claim": "7491.4899",
+          "official_close": "7491.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-08-25",
+          "normalized_claim": "7527.4984",
+          "official_close": "7527.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-08-26",
+          "normalized_claim": "7544.6696",
+          "official_close": "7544.67",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-08-27",
+          "normalized_claim": "7732.9452",
+          "official_close": "7732.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-08-28",
+          "normalized_claim": "7705.0293",
+          "official_close": "7705.03",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        }
+      ]
+    },
+    {
+      "metric_id": "CN_BOND_10Y_930916",
+      "index_code": "930916",
+      "official_sha256": "f88364440c26579136fd25a3eabbc1feced1c67fc202bf915f9022daa798f895",
+      "row_count": 259,
+      "unique_dates": 259,
+      "target_rows": 120,
+      "missing_extra_window": [],
+      "extra_dates": [],
+      "wrong_identity_rows": [],
+      "duplicate_dates": [],
+      "comparison_count": 163,
+      "target_comparison_count": 120,
+      "matches_at_2dp": 162,
+      "mismatches": [
+        {
+          "date": "2026-03-09",
+          "normalized_claim": "181.125",
+          "official_close": "181.12",
+          "equal_at_official_2dp": false,
+          "absolute_difference": "0.005"
+        }
+      ],
+      "max_absolute_difference": "0.005",
+      "first": {
+        "tradeDate": "20250806",
+        "indexCode": "930916",
+        "indexNameCnAll": "中证10年期国债指数",
+        "indexNameCn": "中证10年国债",
+        "indexNameEnAll": "CSI 10-Year Treasury Note Index",
+        "indexNameEn": "CSI 10-Year Treasury Note",
+        "open": null,
+        "high": null,
+        "low": null,
+        "close": 180.06,
+        "change": 0.08,
+        "changePct": 0.04,
+        "tradingVol": 0.0,
+        "tradingValue": 0.0,
+        "consNumber": 7.0,
+        "peg": null
+      },
+      "last": {
+        "tradeDate": "20260828",
+        "indexCode": "930916",
+        "indexNameCnAll": "中证10年期国债指数",
+        "indexNameCn": "中证10年国债",
+        "indexNameEnAll": "CSI 10-Year Treasury Note Index",
+        "indexNameEn": "CSI 10-Year Treasury Note",
+        "open": null,
+        "high": null,
+        "low": null,
+        "close": 184.59,
+        "change": 0.07,
+        "changePct": 0.04,
+        "tradingVol": 0.0,
+        "tradingValue": 0.0,
+        "consNumber": 8.0,
+        "peg": null
+      },
+      "comparisons": [
+        {
+          "date": "2025-12-26",
+          "normalized_claim": "180.0942",
+          "official_close": "180.09",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2025-12-29",
+          "normalized_claim": "179.7731",
+          "official_close": "179.77",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2025-12-30",
+          "normalized_claim": "179.7593",
+          "official_close": "179.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2025-12-31",
+          "normalized_claim": "179.8736",
+          "official_close": "179.87",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-01-05",
+          "normalized_claim": "179.7931",
+          "official_close": "179.79",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-01-06",
+          "normalized_claim": "179.4737",
+          "official_close": "179.47",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-01-07",
+          "normalized_claim": "179.2551",
+          "official_close": "179.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-01-08",
+          "normalized_claim": "179.4462",
+          "official_close": "179.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-01-09",
+          "normalized_claim": "179.5516",
+          "official_close": "179.55",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-01-12",
+          "normalized_claim": "179.8472",
+          "official_close": "179.85",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-01-13",
+          "normalized_claim": "179.9603",
+          "official_close": "179.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-01-14",
+          "normalized_claim": "180.0955",
+          "official_close": "180.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-01-15",
+          "normalized_claim": "180.1621",
+          "official_close": "180.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-01-16",
+          "normalized_claim": "180.2351",
+          "official_close": "180.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-01-19",
+          "normalized_claim": "180.3212",
+          "official_close": "180.32",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-01-20",
+          "normalized_claim": "180.524",
+          "official_close": "180.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-01-21",
+          "normalized_claim": "180.4893",
+          "official_close": "180.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-01-22",
+          "normalized_claim": "180.3816",
+          "official_close": "180.38",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-01-23",
+          "normalized_claim": "180.5487",
+          "official_close": "180.55",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-01-26",
+          "normalized_claim": "180.6585",
+          "official_close": "180.66",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-01-27",
+          "normalized_claim": "180.6305",
+          "official_close": "180.63",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-01-28",
+          "normalized_claim": "180.8046",
+          "official_close": "180.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-01-29",
+          "normalized_claim": "180.8134",
+          "official_close": "180.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-01-30",
+          "normalized_claim": "180.9554",
+          "official_close": "180.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0046"
+        },
+        {
+          "date": "2026-02-02",
+          "normalized_claim": "180.8943",
+          "official_close": "180.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-02-03",
+          "normalized_claim": "180.9087",
+          "official_close": "180.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-02-04",
+          "normalized_claim": "180.8798",
+          "official_close": "180.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-02-05",
+          "normalized_claim": "180.9543",
+          "official_close": "180.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-02-06",
+          "normalized_claim": "181.0796",
+          "official_close": "181.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-02-09",
+          "normalized_claim": "181.142",
+          "official_close": "181.14",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-02-10",
+          "normalized_claim": "181.1935",
+          "official_close": "181.19",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-02-11",
+          "normalized_claim": "181.296",
+          "official_close": "181.3",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-02-12",
+          "normalized_claim": "181.4902",
+          "official_close": "181.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-02-13",
+          "normalized_claim": "181.3885",
+          "official_close": "181.39",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0015"
+        },
+        {
+          "date": "2026-02-24",
+          "normalized_claim": "181.4257",
+          "official_close": "181.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-02-25",
+          "normalized_claim": "181.2033",
+          "official_close": "181.2",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-02-26",
+          "normalized_claim": "181.0261",
+          "official_close": "181.03",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-02-27",
+          "normalized_claim": "181.2327",
+          "official_close": "181.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-03-02",
+          "normalized_claim": "181.4251",
+          "official_close": "181.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-03-03",
+          "normalized_claim": "181.4283",
+          "official_close": "181.43",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-03-04",
+          "normalized_claim": "181.4793",
+          "official_close": "181.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-03-05",
+          "normalized_claim": "181.4618",
+          "official_close": "181.46",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        },
+        {
+          "date": "2026-03-06",
+          "normalized_claim": "181.4534",
+          "official_close": "181.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-03-09",
+          "normalized_claim": "181.125",
+          "official_close": "181.12",
+          "equal_at_official_2dp": false,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-03-10",
+          "normalized_claim": "181.1576",
+          "official_close": "181.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-03-11",
+          "normalized_claim": "181.0966",
+          "official_close": "181.1",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0034"
+        },
+        {
+          "date": "2026-03-12",
+          "normalized_claim": "181.128",
+          "official_close": "181.13",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-03-13",
+          "normalized_claim": "181.0473",
+          "official_close": "181.05",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-03-16",
+          "normalized_claim": "180.7602",
+          "official_close": "180.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-03-17",
+          "normalized_claim": "180.8462",
+          "official_close": "180.85",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0038"
+        },
+        {
+          "date": "2026-03-18",
+          "normalized_claim": "181.023",
+          "official_close": "181.02",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.003"
+        },
+        {
+          "date": "2026-03-19",
+          "normalized_claim": "180.9987",
+          "official_close": "181.0",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-03-20",
+          "normalized_claim": "180.9096",
+          "official_close": "180.91",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-03-23",
+          "normalized_claim": "180.9186",
+          "official_close": "180.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-03-24",
+          "normalized_claim": "180.9939",
+          "official_close": "180.99",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0039"
+        },
+        {
+          "date": "2026-03-25",
+          "normalized_claim": "181.059",
+          "official_close": "181.06",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.001"
+        },
+        {
+          "date": "2026-03-26",
+          "normalized_claim": "181.1588",
+          "official_close": "181.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-03-27",
+          "normalized_claim": "181.2029",
+          "official_close": "181.2",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-03-30",
+          "normalized_claim": "181.4091",
+          "official_close": "181.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-03-31",
+          "normalized_claim": "181.3312",
+          "official_close": "181.33",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-04-01",
+          "normalized_claim": "181.1479",
+          "official_close": "181.15",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-04-02",
+          "normalized_claim": "181.1971",
+          "official_close": "181.2",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-04-03",
+          "normalized_claim": "181.2376",
+          "official_close": "181.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-04-07",
+          "normalized_claim": "181.3386",
+          "official_close": "181.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-04-08",
+          "normalized_claim": "181.3969",
+          "official_close": "181.4",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-04-09",
+          "normalized_claim": "181.3595",
+          "official_close": "181.36",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-04-10",
+          "normalized_claim": "181.4092",
+          "official_close": "181.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-04-13",
+          "normalized_claim": "181.6874",
+          "official_close": "181.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-04-14",
+          "normalized_claim": "181.8925",
+          "official_close": "181.89",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-04-15",
+          "normalized_claim": "181.9604",
+          "official_close": "181.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-04-16",
+          "normalized_claim": "181.9236",
+          "official_close": "181.92",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-04-17",
+          "normalized_claim": "182.1874",
+          "official_close": "182.19",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-04-20",
+          "normalized_claim": "182.2571",
+          "official_close": "182.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0029"
+        },
+        {
+          "date": "2026-04-21",
+          "normalized_claim": "182.3713",
+          "official_close": "182.37",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-04-22",
+          "normalized_claim": "182.6058",
+          "official_close": "182.61",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0042"
+        },
+        {
+          "date": "2026-04-23",
+          "normalized_claim": "182.3579",
+          "official_close": "182.36",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-04-24",
+          "normalized_claim": "182.255",
+          "official_close": "182.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.005"
+        },
+        {
+          "date": "2026-04-27",
+          "normalized_claim": "182.0833",
+          "official_close": "182.08",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0033"
+        },
+        {
+          "date": "2026-04-28",
+          "normalized_claim": "182.2102",
+          "official_close": "182.21",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-04-29",
+          "normalized_claim": "182.4895",
+          "official_close": "182.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-04-30",
+          "normalized_claim": "182.4505",
+          "official_close": "182.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-05-06",
+          "normalized_claim": "182.3136",
+          "official_close": "182.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-05-07",
+          "normalized_claim": "182.3526",
+          "official_close": "182.35",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-05-08",
+          "normalized_claim": "182.3707",
+          "official_close": "182.37",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-05-11",
+          "normalized_claim": "182.4755",
+          "official_close": "182.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0045"
+        },
+        {
+          "date": "2026-05-12",
+          "normalized_claim": "182.5524",
+          "official_close": "182.55",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-05-13",
+          "normalized_claim": "182.6865",
+          "official_close": "182.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-05-14",
+          "normalized_claim": "182.5769",
+          "official_close": "182.58",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-05-15",
+          "normalized_claim": "182.5451",
+          "official_close": "182.55",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-05-18",
+          "normalized_claim": "182.6796",
+          "official_close": "182.68",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-05-19",
+          "normalized_claim": "182.8748",
+          "official_close": "182.87",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-05-20",
+          "normalized_claim": "182.8063",
+          "official_close": "182.81",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0037"
+        },
+        {
+          "date": "2026-05-21",
+          "normalized_claim": "182.7417",
+          "official_close": "182.74",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0017"
+        },
+        {
+          "date": "2026-05-22",
+          "normalized_claim": "182.6793",
+          "official_close": "182.68",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-05-25",
+          "normalized_claim": "182.7614",
+          "official_close": "182.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0014"
+        },
+        {
+          "date": "2026-05-26",
+          "normalized_claim": "182.8341",
+          "official_close": "182.83",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-05-27",
+          "normalized_claim": "183.1065",
+          "official_close": "183.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-05-28",
+          "normalized_claim": "183.2528",
+          "official_close": "183.25",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-05-29",
+          "normalized_claim": "183.3426",
+          "official_close": "183.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-06-01",
+          "normalized_claim": "183.4996",
+          "official_close": "183.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-06-02",
+          "normalized_claim": "183.4972",
+          "official_close": "183.5",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-06-03",
+          "normalized_claim": "183.3989",
+          "official_close": "183.4",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        },
+        {
+          "date": "2026-06-04",
+          "normalized_claim": "183.4869",
+          "official_close": "183.49",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-06-05",
+          "normalized_claim": "183.3357",
+          "official_close": "183.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0043"
+        },
+        {
+          "date": "2026-06-08",
+          "normalized_claim": "183.2219",
+          "official_close": "183.22",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-06-09",
+          "normalized_claim": "183.0721",
+          "official_close": "183.07",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-06-10",
+          "normalized_claim": "182.9284",
+          "official_close": "182.93",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-06-11",
+          "normalized_claim": "182.8765",
+          "official_close": "182.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0035"
+        },
+        {
+          "date": "2026-06-12",
+          "normalized_claim": "182.9644",
+          "official_close": "182.96",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0044"
+        },
+        {
+          "date": "2026-06-15",
+          "normalized_claim": "182.9521",
+          "official_close": "182.95",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-06-16",
+          "normalized_claim": "183.1792",
+          "official_close": "183.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0008"
+        },
+        {
+          "date": "2026-06-17",
+          "normalized_claim": "183.2781",
+          "official_close": "183.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-06-18",
+          "normalized_claim": "183.3228",
+          "official_close": "183.32",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-06-22",
+          "normalized_claim": "183.2406",
+          "official_close": "183.24",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-06-23",
+          "normalized_claim": "183.1564",
+          "official_close": "183.16",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0036"
+        },
+        {
+          "date": "2026-06-24",
+          "normalized_claim": "183.1126",
+          "official_close": "183.11",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-06-25",
+          "normalized_claim": "183.2626",
+          "official_close": "183.26",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-06-26",
+          "normalized_claim": "183.3459",
+          "official_close": "183.35",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0041"
+        },
+        {
+          "date": "2026-06-29",
+          "normalized_claim": "183.644",
+          "official_close": "183.64",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.004"
+        },
+        {
+          "date": "2026-06-30",
+          "normalized_claim": "183.4352",
+          "official_close": "183.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-07-01",
+          "normalized_claim": "183.1777",
+          "official_close": "183.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0023"
+        },
+        {
+          "date": "2026-07-02",
+          "normalized_claim": "183.3128",
+          "official_close": "183.31",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-03",
+          "normalized_claim": "183.2252",
+          "official_close": "183.23",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0048"
+        },
+        {
+          "date": "2026-07-06",
+          "normalized_claim": "183.4013",
+          "official_close": "183.4",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-07-07",
+          "normalized_claim": "183.4079",
+          "official_close": "183.41",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0021"
+        },
+        {
+          "date": "2026-07-08",
+          "normalized_claim": "183.4775",
+          "official_close": "183.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-07-09",
+          "normalized_claim": "183.472",
+          "official_close": "183.47",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-07-10",
+          "normalized_claim": "183.4772",
+          "official_close": "183.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-13",
+          "normalized_claim": "183.4501",
+          "official_close": "183.45",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-07-14",
+          "normalized_claim": "183.4772",
+          "official_close": "183.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-15",
+          "normalized_claim": "183.5268",
+          "official_close": "183.53",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0032"
+        },
+        {
+          "date": "2026-07-16",
+          "normalized_claim": "183.4772",
+          "official_close": "183.48",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0028"
+        },
+        {
+          "date": "2026-07-17",
+          "normalized_claim": "183.5602",
+          "official_close": "183.56",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-07-20",
+          "normalized_claim": "183.5181",
+          "official_close": "183.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-07-21",
+          "normalized_claim": "183.5489",
+          "official_close": "183.55",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0011"
+        },
+        {
+          "date": "2026-07-22",
+          "normalized_claim": "183.758",
+          "official_close": "183.76",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-07-23",
+          "normalized_claim": "183.7326",
+          "official_close": "183.73",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-07-24",
+          "normalized_claim": "183.8551",
+          "official_close": "183.86",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-07-27",
+          "normalized_claim": "183.8175",
+          "official_close": "183.82",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0025"
+        },
+        {
+          "date": "2026-07-28",
+          "normalized_claim": "183.8001",
+          "official_close": "183.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0001"
+        },
+        {
+          "date": "2026-07-29",
+          "normalized_claim": "183.8388",
+          "official_close": "183.84",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0012"
+        },
+        {
+          "date": "2026-07-30",
+          "normalized_claim": "184.0404",
+          "official_close": "184.04",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0004"
+        },
+        {
+          "date": "2026-07-31",
+          "normalized_claim": "184.1798",
+          "official_close": "184.18",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0002"
+        },
+        {
+          "date": "2026-08-03",
+          "normalized_claim": "184.1674",
+          "official_close": "184.17",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0026"
+        },
+        {
+          "date": "2026-08-04",
+          "normalized_claim": "184.2853",
+          "official_close": "184.29",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-08-05",
+          "normalized_claim": "184.2749",
+          "official_close": "184.27",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0049"
+        },
+        {
+          "date": "2026-08-06",
+          "normalized_claim": "184.2819",
+          "official_close": "184.28",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-08-07",
+          "normalized_claim": "184.3378",
+          "official_close": "184.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0022"
+        },
+        {
+          "date": "2026-08-10",
+          "normalized_claim": "184.4405",
+          "official_close": "184.44",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0005"
+        },
+        {
+          "date": "2026-08-11",
+          "normalized_claim": "184.3384",
+          "official_close": "184.34",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-08-12",
+          "normalized_claim": "184.3706",
+          "official_close": "184.37",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0006"
+        },
+        {
+          "date": "2026-08-13",
+          "normalized_claim": "184.5387",
+          "official_close": "184.54",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0013"
+        },
+        {
+          "date": "2026-08-14",
+          "normalized_claim": "184.7003",
+          "official_close": "184.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0003"
+        },
+        {
+          "date": "2026-08-17",
+          "normalized_claim": "184.772",
+          "official_close": "184.77",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.002"
+        },
+        {
+          "date": "2026-08-18",
+          "normalized_claim": "184.8807",
+          "official_close": "184.88",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0007"
+        },
+        {
+          "date": "2026-08-19",
+          "normalized_claim": "184.7481",
+          "official_close": "184.75",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0019"
+        },
+        {
+          "date": "2026-08-20",
+          "normalized_claim": "184.6953",
+          "official_close": "184.7",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0047"
+        },
+        {
+          "date": "2026-08-21",
+          "normalized_claim": "184.6524",
+          "official_close": "184.65",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0024"
+        },
+        {
+          "date": "2026-08-24",
+          "normalized_claim": "184.8209",
+          "official_close": "184.82",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0009"
+        },
+        {
+          "date": "2026-08-25",
+          "normalized_claim": "184.8016",
+          "official_close": "184.8",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0016"
+        },
+        {
+          "date": "2026-08-26",
+          "normalized_claim": "184.6927",
+          "official_close": "184.69",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0027"
+        },
+        {
+          "date": "2026-08-27",
+          "normalized_claim": "184.5169",
+          "official_close": "184.52",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0031"
+        },
+        {
+          "date": "2026-08-28",
+          "normalized_claim": "184.5882",
+          "official_close": "184.59",
+          "equal_at_official_2dp": true,
+          "absolute_difference": "0.0018"
+        }
+      ]
+    },
+    {
+      "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+      "index_code": "000012CNY030",
+      "official_sha256": "8309cff714d5f872cea03bfa413b0270b30b5db6545e99d9dd2b59bc489344eb",
+      "row_count": 0,
+      "unique_dates": 0,
+      "target_rows": 0,
+      "missing_extra_window": [
+        "2025-08-06",
+        "2025-08-07",
+        "2025-08-08",
+        "2025-08-11",
+        "2025-08-12",
+        "2025-08-13",
+        "2025-08-14",
+        "2025-08-15",
+        "2025-08-18",
+        "2025-08-19",
+        "2025-08-20",
+        "2025-08-21",
+        "2025-08-22",
+        "2025-08-25",
+        "2025-08-26",
+        "2025-08-27",
+        "2025-08-28",
+        "2025-08-29",
+        "2025-09-01",
+        "2025-09-02",
+        "2025-09-03",
+        "2025-09-04",
+        "2025-09-05",
+        "2025-09-08",
+        "2025-09-09",
+        "2025-09-10",
+        "2025-09-11",
+        "2025-09-12",
+        "2025-09-15",
+        "2025-09-16",
+        "2025-09-17",
+        "2025-09-18",
+        "2025-09-19",
+        "2025-09-22",
+        "2025-09-23",
+        "2025-09-24",
+        "2025-09-25",
+        "2025-09-26",
+        "2025-09-29",
+        "2025-09-30",
+        "2025-10-09",
+        "2025-10-10",
+        "2025-10-13",
+        "2025-10-14",
+        "2025-10-15",
+        "2025-10-16",
+        "2025-10-17",
+        "2025-10-20",
+        "2025-10-21",
+        "2025-10-22",
+        "2025-10-23",
+        "2025-10-24",
+        "2025-10-27",
+        "2025-10-28",
+        "2025-10-29",
+        "2025-10-30",
+        "2025-10-31",
+        "2025-11-03",
+        "2025-11-04",
+        "2025-11-05",
+        "2025-11-06",
+        "2025-11-07",
+        "2025-11-10",
+        "2025-11-11",
+        "2025-11-12",
+        "2025-11-13",
+        "2025-11-14",
+        "2025-11-17",
+        "2025-11-18",
+        "2025-11-19",
+        "2025-11-20",
+        "2025-11-21",
+        "2025-11-24",
+        "2025-11-25",
+        "2025-11-26",
+        "2025-11-27",
+        "2025-11-28",
+        "2025-12-01",
+        "2025-12-02",
+        "2025-12-03",
+        "2025-12-04",
+        "2025-12-05",
+        "2025-12-08",
+        "2025-12-09",
+        "2025-12-10",
+        "2025-12-11",
+        "2025-12-12",
+        "2025-12-15",
+        "2025-12-16",
+        "2025-12-17",
+        "2025-12-18",
+        "2025-12-19",
+        "2025-12-22",
+        "2025-12-23",
+        "2025-12-24",
+        "2025-12-25",
+        "2025-12-26",
+        "2025-12-29",
+        "2025-12-30",
+        "2025-12-31",
+        "2026-01-05",
+        "2026-01-06",
+        "2026-01-07",
+        "2026-01-08",
+        "2026-01-09",
+        "2026-01-12",
+        "2026-01-13",
+        "2026-01-14",
+        "2026-01-15",
+        "2026-01-16",
+        "2026-01-19",
+        "2026-01-20",
+        "2026-01-21",
+        "2026-01-22",
+        "2026-01-23",
+        "2026-01-26",
+        "2026-01-27",
+        "2026-01-28",
+        "2026-01-29",
+        "2026-01-30",
+        "2026-02-02",
+        "2026-02-03",
+        "2026-02-04",
+        "2026-02-05",
+        "2026-02-06",
+        "2026-02-09",
+        "2026-02-10",
+        "2026-02-11",
+        "2026-02-12",
+        "2026-02-13",
+        "2026-02-24",
+        "2026-02-25",
+        "2026-02-26",
+        "2026-02-27",
+        "2026-03-02",
+        "2026-03-03",
+        "2026-03-04",
+        "2026-03-05",
+        "2026-03-06",
+        "2026-03-09",
+        "2026-03-10",
+        "2026-03-11",
+        "2026-03-12",
+        "2026-03-13",
+        "2026-03-16",
+        "2026-03-17",
+        "2026-03-18",
+        "2026-03-19",
+        "2026-03-20",
+        "2026-03-23",
+        "2026-03-24",
+        "2026-03-25",
+        "2026-03-26",
+        "2026-03-27",
+        "2026-03-30",
+        "2026-03-31",
+        "2026-04-01",
+        "2026-04-02",
+        "2026-04-03",
+        "2026-04-07",
+        "2026-04-08",
+        "2026-04-09",
+        "2026-04-10",
+        "2026-04-13",
+        "2026-04-14",
+        "2026-04-15",
+        "2026-04-16",
+        "2026-04-17",
+        "2026-04-20",
+        "2026-04-21",
+        "2026-04-22",
+        "2026-04-23",
+        "2026-04-24",
+        "2026-04-27",
+        "2026-04-28",
+        "2026-04-29",
+        "2026-04-30",
+        "2026-05-06",
+        "2026-05-07",
+        "2026-05-08",
+        "2026-05-11",
+        "2026-05-12",
+        "2026-05-13",
+        "2026-05-14",
+        "2026-05-15",
+        "2026-05-18",
+        "2026-05-19",
+        "2026-05-20",
+        "2026-05-21",
+        "2026-05-22",
+        "2026-05-25",
+        "2026-05-26",
+        "2026-05-27",
+        "2026-05-28",
+        "2026-05-29",
+        "2026-06-01",
+        "2026-06-02",
+        "2026-06-03",
+        "2026-06-04",
+        "2026-06-05",
+        "2026-06-08",
+        "2026-06-09",
+        "2026-06-10",
+        "2026-06-11",
+        "2026-06-12",
+        "2026-06-15",
+        "2026-06-16",
+        "2026-06-17",
+        "2026-06-18",
+        "2026-06-22",
+        "2026-06-23",
+        "2026-06-24",
+        "2026-06-25",
+        "2026-06-26",
+        "2026-06-29",
+        "2026-06-30",
+        "2026-07-01",
+        "2026-07-02",
+        "2026-07-03",
+        "2026-07-06",
+        "2026-07-07",
+        "2026-07-08",
+        "2026-07-09",
+        "2026-07-10",
+        "2026-07-13",
+        "2026-07-14",
+        "2026-07-15",
+        "2026-07-16",
+        "2026-07-17",
+        "2026-07-20",
+        "2026-07-21",
+        "2026-07-22",
+        "2026-07-23",
+        "2026-07-24",
+        "2026-07-27",
+        "2026-07-28",
+        "2026-07-29",
+        "2026-07-30",
+        "2026-07-31",
+        "2026-08-03",
+        "2026-08-04",
+        "2026-08-05",
+        "2026-08-06",
+        "2026-08-07",
+        "2026-08-10",
+        "2026-08-11",
+        "2026-08-12",
+        "2026-08-13",
+        "2026-08-14",
+        "2026-08-17",
+        "2026-08-18",
+        "2026-08-19",
+        "2026-08-20",
+        "2026-08-21",
+        "2026-08-24",
+        "2026-08-25",
+        "2026-08-26",
+        "2026-08-27",
+        "2026-08-28"
+      ],
+      "extra_dates": [],
+      "wrong_identity_rows": [],
+      "duplicate_dates": [],
+      "comparison_count": 0,
+      "target_comparison_count": 0,
+      "matches_at_2dp": 0,
+      "mismatches": [],
+      "max_absolute_difference": "0",
+      "first": null,
+      "last": null,
+      "comparisons": []
+    }
+  ],
+  "claim_coverage": [
+    {
+      "metric_id": "CN_BOND_10Y_930916",
+      "grouped_rows": 163,
+      "distinct_dates": 163,
+      "first": "2025-12-26",
+      "last": "2026-08-28",
+      "target_dates_count": 120,
+      "missing_target": [],
+      "duplicate_value_groups_dates": [],
+      "sum_underlying_claim_count": 311,
+      "units": [
+        "index_points"
+      ],
+      "dimensions": [
+        "{\"source_code\": \"930916.CSI\"}"
+      ]
+    },
+    {
+      "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+      "grouped_rows": 163,
+      "distinct_dates": 163,
+      "first": "2025-12-26",
+      "last": "2026-08-28",
+      "target_dates_count": 120,
+      "missing_target": [],
+      "duplicate_value_groups_dates": [],
+      "sum_underlying_claim_count": 311,
+      "units": [
+        "index_points"
+      ],
+      "dimensions": [
+        "{\"source_code\": \"000012CNY030.CSI\"}"
+      ]
+    },
+    {
+      "metric_id": "CN_COMMODITY_BROAD_NHCI",
+      "grouped_rows": 163,
+      "distinct_dates": 163,
+      "first": "2025-12-26",
+      "last": "2026-08-28",
+      "target_dates_count": 120,
+      "missing_target": [],
+      "duplicate_value_groups_dates": [],
+      "sum_underlying_claim_count": 311,
+      "units": [
+        "index_points"
+      ],
+      "dimensions": [
+        "{\"source_code\": \"NHCI.NH\"}"
+      ]
+    },
+    {
+      "metric_id": "CN_EQ_CSI1000",
+      "grouped_rows": 163,
+      "distinct_dates": 163,
+      "first": "2025-12-26",
+      "last": "2026-08-28",
+      "target_dates_count": 120,
+      "missing_target": [],
+      "duplicate_value_groups_dates": [],
+      "sum_underlying_claim_count": 311,
+      "units": [
+        "index_points"
+      ],
+      "dimensions": [
+        "{\"source_code\": \"000852.SH\"}"
+      ]
+    },
+    {
+      "metric_id": "CN_EQ_CSI300",
+      "grouped_rows": 163,
+      "distinct_dates": 163,
+      "first": "2025-12-26",
+      "last": "2026-08-28",
+      "target_dates_count": 120,
+      "missing_target": [],
+      "duplicate_value_groups_dates": [],
+      "sum_underlying_claim_count": 311,
+      "units": [
+        "index_points"
+      ],
+      "dimensions": [
+        "{\"source_code\": \"000300.SH\"}"
+      ]
+    },
+    {
+      "metric_id": "CN_EQ_CSI500",
+      "grouped_rows": 163,
+      "distinct_dates": 163,
+      "first": "2025-12-26",
+      "last": "2026-08-28",
+      "target_dates_count": 120,
+      "missing_target": [],
+      "duplicate_value_groups_dates": [],
+      "sum_underlying_claim_count": 311,
+      "units": [
+        "index_points"
+      ],
+      "dimensions": [
+        "{\"source_code\": \"000905.SH\"}"
+      ]
+    }
+  ],
+  "nhci_samples": [
+    {
+      "date": "2026-08-28",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417/南华商品指数日报20260828.pdf",
+      "raw_sha256": "f4074c86b04efa7e3cb033e95e8c1aedd0a8ecd91fadcfbdfc503e57b921aaca",
+      "file": "f4074c86b04efa7e3cb033e95e8c1aedd0a8ecd91fadcfbdfc503e57b921aaca.pdf",
+      "received_at": "2026-09-06T13:42:59.506288+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:42:53 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Fri, 28 Aug 2026 08:33:24 GMT",
+        "ETag": "\"6a9147d4-10c06b\""
+      },
+      "publisher_listing_createTime": "2026-08-28 16:32:33",
+      "pdf_page": 1,
+      "official_close": "2961.87",
+      "official_preclose": "2917.03",
+      "official_points": "44.84",
+      "official_pct": "1.54",
+      "normalized_source_claim_close": "2961.87",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-27",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/e201b5e9-79b7-46f1-b008-af4d1fa7d806/南华商品指数日报20260827.pdf",
+      "raw_sha256": "1775efb81af480034001b0a8ccb4f2e51903c7782ea96cbb7d2eb76a9eea802e",
+      "file": "1775efb81af480034001b0a8ccb4f2e51903c7782ea96cbb7d2eb76a9eea802e.pdf",
+      "received_at": "2026-09-06T13:45:42.301974+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Thu, 27 Aug 2026 08:19:29 GMT",
+        "ETag": "\"6a8ff311-10807d\""
+      },
+      "publisher_listing_createTime": "2026-08-27 16:19:01",
+      "pdf_page": 1,
+      "official_close": "2917.03",
+      "official_preclose": "2903.30",
+      "official_points": "13.73",
+      "official_pct": "0.47",
+      "normalized_source_claim_close": "2917.03",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-26",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/757bf1f6-9c2b-484e-b0fe-f3a98b1a6ffc/南华商品指数日报20260826.pdf",
+      "raw_sha256": "249bfc9a8bec1de69a703baa30aac78bcff06d12649853a786cb2c59c68b9401",
+      "file": "249bfc9a8bec1de69a703baa30aac78bcff06d12649853a786cb2c59c68b9401.pdf",
+      "received_at": "2026-09-06T13:45:42.062752+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Wed, 26 Aug 2026 08:05:39 GMT",
+        "ETag": "\"6a8e9e53-114cd7\""
+      },
+      "publisher_listing_createTime": "2026-08-26 16:04:21",
+      "pdf_page": 1,
+      "official_close": "2903.30",
+      "official_preclose": "2926.25",
+      "official_points": "-22.95",
+      "official_pct": "-0.78",
+      "normalized_source_claim_close": "2903.3",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-25",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/fbd50310-7f32-4e14-9d78-6762d3392901/南华商品指数日报20260825.pdf",
+      "raw_sha256": "485de594757c5e86577b947c1ceff406f268922deed9b58fe0603fc9674aa147",
+      "file": "485de594757c5e86577b947c1ceff406f268922deed9b58fe0603fc9674aa147.pdf",
+      "received_at": "2026-09-06T13:45:41.961858+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Tue, 25 Aug 2026 08:19:51 GMT",
+        "ETag": "\"6a8d5027-10b845\""
+      },
+      "publisher_listing_createTime": "2026-08-25 16:19:06",
+      "pdf_page": 1,
+      "official_close": "2926.25",
+      "official_preclose": "2942.12",
+      "official_points": "-15.88",
+      "official_pct": "-0.54",
+      "normalized_source_claim_close": "2926.25",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-24",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/983370e7-b2e8-4e25-a9e9-c64402742a84/南华商品指数日报20260824.pdf",
+      "raw_sha256": "03fe94a71625465fff428430d58bf9078e3f6d8511a408b2bd6dd5e4421ec294",
+      "file": "03fe94a71625465fff428430d58bf9078e3f6d8511a408b2bd6dd5e4421ec294.pdf",
+      "received_at": "2026-09-06T13:45:41.957799+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Mon, 24 Aug 2026 08:07:05 GMT",
+        "ETag": "\"6a8bfba9-10f35f\""
+      },
+      "publisher_listing_createTime": "2026-08-24 16:06:28",
+      "pdf_page": 1,
+      "official_close": "2942.12",
+      "official_preclose": "2933.06",
+      "official_points": "9.06",
+      "official_pct": "0.31",
+      "normalized_source_claim_close": "2942.12",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-21",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/6f843531-38d9-47f9-adb9-bf4184bc8e5f/南华商品指数日报20260821.pdf",
+      "raw_sha256": "a36152be78b9c7e5ebd21e2449d1d50cb7b40bf38d9d02741e1966d947e4c363",
+      "file": "a36152be78b9c7e5ebd21e2449d1d50cb7b40bf38d9d02741e1966d947e4c363.pdf",
+      "received_at": "2026-09-06T13:45:49.237554+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:42 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Fri, 21 Aug 2026 08:30:05 GMT",
+        "ETag": "\"6a880c8d-1142ac\""
+      },
+      "publisher_listing_createTime": "2026-08-21 16:29:23",
+      "pdf_page": 1,
+      "official_close": "2933.06",
+      "official_preclose": "2912.91",
+      "official_points": "20.15",
+      "official_pct": "0.69",
+      "normalized_source_claim_close": "2933.06",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-20",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/d8abf1d7-f502-4b09-b914-6c29df0a800c/南华商品指数日报20260820.pdf",
+      "raw_sha256": "596b080f82a2e7a2e133b79ef9d7faab2a85c805303b2dd89ff179028ec3f256",
+      "file": "596b080f82a2e7a2e133b79ef9d7faab2a85c805303b2dd89ff179028ec3f256.pdf",
+      "received_at": "2026-09-06T13:45:47.547921+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:41 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Thu, 20 Aug 2026 08:54:54 GMT",
+        "ETag": "\"6a86c0de-114f50\""
+      },
+      "publisher_listing_createTime": "2026-08-20 16:54:08",
+      "pdf_page": 1,
+      "official_close": "2912.91",
+      "official_preclose": "2882.04",
+      "official_points": "30.87",
+      "official_pct": "1.07",
+      "normalized_source_claim_close": "2912.91",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-19",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/e7b8cd58-5db9-432d-9a20-65a35f6371e3/南华商品指数日报20260819.pdf",
+      "raw_sha256": "254d8298a153c916fcc898cdb489af62ad1f102d0141000c29bb3c8f78409ab7",
+      "file": "254d8298a153c916fcc898cdb489af62ad1f102d0141000c29bb3c8f78409ab7.pdf",
+      "received_at": "2026-09-06T13:45:47.766159+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:41 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Wed, 19 Aug 2026 08:37:07 GMT",
+        "ETag": "\"6a856b33-10f4ab\""
+      },
+      "publisher_listing_createTime": "2026-08-19 16:32:34",
+      "pdf_page": 1,
+      "official_close": "2882.04",
+      "official_preclose": "2902.38",
+      "official_points": "-20.35",
+      "official_pct": "-0.70",
+      "normalized_source_claim_close": "2882.04",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-18",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/c4a7c6a8-ace5-4664-90f6-6fc431d87f64/南华商品指数日报20260818.pdf",
+      "raw_sha256": "132f0b7a0e07532f0f05ec8cecc231b9e6780b633420132870e6b9b850c54904",
+      "file": "132f0b7a0e07532f0f05ec8cecc231b9e6780b633420132870e6b9b850c54904.pdf",
+      "received_at": "2026-09-06T13:45:50.376014+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:41 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Tue, 18 Aug 2026 08:21:49 GMT",
+        "ETag": "\"6a84161d-127d69\""
+      },
+      "publisher_listing_createTime": "2026-08-18 16:21:15",
+      "pdf_page": 1,
+      "official_close": "2902.38",
+      "official_preclose": "2879.35",
+      "official_points": "23.03",
+      "official_pct": "0.80",
+      "normalized_source_claim_close": "2902.38",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-14",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/b03375e6-980b-47ee-a731-e1e4b910c586/南华商品指数日报20260814.pdf",
+      "raw_sha256": "edaef3a9f1112e7ef33c10406ae13ace3bdf8c20de48fbba1d16db6d13b7d61e",
+      "file": "edaef3a9f1112e7ef33c10406ae13ace3bdf8c20de48fbba1d16db6d13b7d61e.pdf",
+      "received_at": "2026-09-06T13:45:54.526124+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:47 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Fri, 14 Aug 2026 09:04:33 GMT",
+        "ETag": "\"6a7eda21-12cd47\""
+      },
+      "publisher_listing_createTime": "2026-08-14 17:03:53",
+      "pdf_page": 1,
+      "official_close": "2854.63",
+      "official_preclose": "2850.82",
+      "official_points": "3.81",
+      "official_pct": "0.13",
+      "normalized_source_claim_close": "2854.63",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-13",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/4f305efe-bb9e-4a2a-a24a-813084304cbb/南华商品指数日报20260813.pdf",
+      "raw_sha256": "2306c84a648ac8cd21d3d31efe0d5337c633864aab19bf5960314ed6eabefb48",
+      "file": "2306c84a648ac8cd21d3d31efe0d5337c633864aab19bf5960314ed6eabefb48.pdf",
+      "received_at": "2026-09-06T13:45:55.902589+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:48 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Thu, 13 Aug 2026 08:20:00 GMT",
+        "ETag": "\"6a7d7e30-128862\""
+      },
+      "publisher_listing_createTime": "2026-08-13 16:19:18",
+      "pdf_page": 1,
+      "official_close": "2850.82",
+      "official_preclose": "2860.22",
+      "official_points": "-9.40",
+      "official_pct": "-0.33",
+      "normalized_source_claim_close": "2850.82",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-12",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/85599134-2e5b-44d2-8242-4b21c3ea439a/南华商品指数日报20260812.pdf",
+      "raw_sha256": "d131d1bc3855fa90ae03a4e9890bea76500ccde6f9311bfc4f2aec7982ba15ff",
+      "file": "d131d1bc3855fa90ae03a4e9890bea76500ccde6f9311bfc4f2aec7982ba15ff.pdf",
+      "received_at": "2026-09-06T13:45:56.367154+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:49 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Wed, 12 Aug 2026 08:02:22 GMT",
+        "ETag": "\"6a7c288e-124dc2\""
+      },
+      "publisher_listing_createTime": "2026-08-12 16:01:26",
+      "pdf_page": 1,
+      "official_close": "2860.22",
+      "official_preclose": "2857.82",
+      "official_points": "2.40",
+      "official_pct": "0.08",
+      "normalized_source_claim_close": "2860.22",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-11",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/e5d37f5b-989a-404e-8328-905a36279968/南华商品指数日报20260811.pdf",
+      "raw_sha256": "5ae1c614912d626931535047954442ee9839263e22e00c81e0da7069c7d9d89e",
+      "file": "5ae1c614912d626931535047954442ee9839263e22e00c81e0da7069c7d9d89e.pdf",
+      "received_at": "2026-09-06T13:46:01.518066+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:54 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Tue, 11 Aug 2026 08:42:52 GMT",
+        "ETag": "\"6a7ae08c-1229c7\""
+      },
+      "publisher_listing_createTime": "2026-08-11 16:42:16",
+      "pdf_page": 1,
+      "official_close": "2857.82",
+      "official_preclose": "2818.91",
+      "official_points": "38.91",
+      "official_pct": "1.38",
+      "normalized_source_claim_close": "2857.82",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-10",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/4ed8739d-73fd-4835-b838-e2c0903f5329/南华商品指数日报20260810.pdf",
+      "raw_sha256": "633497fb756ddaca2e20538baa854b841b89c6319992a938caee3d623b09d406",
+      "file": "633497fb756ddaca2e20538baa854b841b89c6319992a938caee3d623b09d406.pdf",
+      "received_at": "2026-09-06T13:46:01.193919+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:54 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Mon, 10 Aug 2026 08:35:55 GMT",
+        "ETag": "\"6a798d6b-1280e4\""
+      },
+      "publisher_listing_createTime": "2026-08-10 16:35:17",
+      "pdf_page": 1,
+      "official_close": "2818.91",
+      "official_preclose": "2809.98",
+      "official_points": "8.93",
+      "official_pct": "0.32",
+      "normalized_source_claim_close": "2818.91",
+      "exact_match": true
+    },
+    {
+      "date": "2026-08-07",
+      "official_url": "https://www.nanhua.net/cmsbigfile/2026/08/d42b8717-19eb-4cd1-a129-c0b31c0b1041/南华商品指数日报20260807.pdf",
+      "raw_sha256": "10ed46fec8b7c7d3d4f84f5672dd97ef65e5d283b398632bb27269df84ca9da6",
+      "file": "10ed46fec8b7c7d3d4f84f5672dd97ef65e5d283b398632bb27269df84ca9da6.pdf",
+      "received_at": "2026-09-06T13:46:02.058540+00:00",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 13:45:55 GMT",
+        "Content-Type": "application/pdf",
+        "Last-Modified": "Fri, 07 Aug 2026 08:30:33 GMT",
+        "ETag": "\"6a7597a9-126b08\""
+      },
+      "publisher_listing_createTime": "2026-08-07 16:29:53",
+      "pdf_page": 1,
+      "official_close": "2809.98",
+      "official_preclose": "2780.91",
+      "official_points": "29.07",
+      "official_pct": "1.05",
+      "normalized_source_claim_close": "2809.98",
+      "exact_match": true
+    }
+  ],
+  "nhci_weights": [
+    {
+      "year": 2025,
+      "sha256": "acac6c9aaa5906362d54eafff74872a235d96385f6944420e622108b177c4fa6",
+      "sheet": "2025年指数权重图表",
+      "code_cell": "C3",
+      "code": "NHCI",
+      "members": [
+        {
+          "row": 5,
+          "code": "AG",
+          "name": "白银",
+          "weight": 0.0605
+        },
+        {
+          "row": 6,
+          "code": "AL",
+          "name": "铝",
+          "weight": 0.047
+        },
+        {
+          "row": 9,
+          "code": "AU",
+          "name": "黄金",
+          "weight": 0.0733
+        },
+        {
+          "row": 16,
+          "code": "CF",
+          "name": "棉花",
+          "weight": 0.0258
+        },
+        {
+          "row": 19,
+          "code": "CU",
+          "name": "铜",
+          "weight": 0.0752
+        },
+        {
+          "row": 24,
+          "code": "FG",
+          "name": "玻璃",
+          "weight": 0.0238
+        },
+        {
+          "row": 27,
+          "code": "I",
+          "name": "铁矿石",
+          "weight": 0.0758
+        },
+        {
+          "row": 38,
+          "code": "M",
+          "name": "豆粕",
+          "weight": 0.0396
+        },
+        {
+          "row": 39,
+          "code": "MA",
+          "name": "甲醇",
+          "weight": 0.0278
+        },
+        {
+          "row": 40,
+          "code": "NI",
+          "name": "镍",
+          "weight": 0.0419
+        },
+        {
+          "row": 42,
+          "code": "OI",
+          "name": "菜籽油",
+          "weight": 0.0316
+        },
+        {
+          "row": 43,
+          "code": "P",
+          "name": "棕榈油",
+          "weight": 0.0449
+        },
+        {
+          "row": 53,
+          "code": "RB",
+          "name": "螺纹钢",
+          "weight": 0.0789
+        },
+        {
+          "row": 58,
+          "code": "RU",
+          "name": "天然橡胶",
+          "weight": 0.0362
+        },
+        {
+          "row": 59,
+          "code": "SA",
+          "name": "纯碱",
+          "weight": 0.0318
+        },
+        {
+          "row": 60,
+          "code": "SC",
+          "name": "原油",
+          "weight": 0.1644
+        },
+        {
+          "row": 69,
+          "code": "TA",
+          "name": "PTA",
+          "weight": 0.0357
+        },
+        {
+          "row": 71,
+          "code": "V",
+          "name": "聚氯乙烯",
+          "weight": 0.0224
+        },
+        {
+          "row": 74,
+          "code": "Y",
+          "name": "豆油",
+          "weight": 0.041
+        },
+        {
+          "row": 76,
+          "code": "ZN",
+          "name": "锌",
+          "weight": 0.0224
+        }
+      ],
+      "count": 20,
+      "sum": "1.0000",
+      "LH_rows": [
+        {
+          "row": 35,
+          "values": [
+            "生猪",
+            "LH",
+            null,
+            null
+          ]
+        }
+      ]
+    },
+    {
+      "year": 2026,
+      "sha256": "dad20d28d6fd453bced67e60aa65ff77b3cf6fd1f685a5b590939cbaee4054b7",
+      "sheet": "Sheet1",
+      "code_cell": "C3",
+      "code": "NHCI",
+      "members": [
+        {
+          "row": 6,
+          "code": "AG",
+          "name": "白银",
+          "weight": 0.0748
+        },
+        {
+          "row": 7,
+          "code": "AL",
+          "name": "铝",
+          "weight": 0.0489
+        },
+        {
+          "row": 10,
+          "code": "AU",
+          "name": "黄金",
+          "weight": 0.1036
+        },
+        {
+          "row": 18,
+          "code": "CF",
+          "name": "棉花",
+          "weight": 0.0232
+        },
+        {
+          "row": 21,
+          "code": "CU",
+          "name": "铜",
+          "weight": 0.0825
+        },
+        {
+          "row": 26,
+          "code": "FG",
+          "name": "玻璃",
+          "weight": 0.0225
+        },
+        {
+          "row": 29,
+          "code": "I",
+          "name": "铁矿石",
+          "weight": 0.064
+        },
+        {
+          "row": 35,
+          "code": "LC",
+          "name": "碳酸锂",
+          "weight": 0.024
+        },
+        {
+          "row": 40,
+          "code": "M",
+          "name": "豆粕",
+          "weight": 0.0365
+        },
+        {
+          "row": 42,
+          "code": "NI",
+          "name": "镍",
+          "weight": 0.0358
+        },
+        {
+          "row": 44,
+          "code": "OI",
+          "name": "菜籽油",
+          "weight": 0.0285
+        },
+        {
+          "row": 45,
+          "code": "P",
+          "name": "棕榈油",
+          "weight": 0.0398
+        },
+        {
+          "row": 58,
+          "code": "RB",
+          "name": "螺纹钢",
+          "weight": 0.0733
+        },
+        {
+          "row": 63,
+          "code": "RU",
+          "name": "天然橡胶",
+          "weight": 0.0324
+        },
+        {
+          "row": 64,
+          "code": "SA",
+          "name": "纯碱",
+          "weight": 0.0321
+        },
+        {
+          "row": 65,
+          "code": "SC",
+          "name": "原油",
+          "weight": 0.1633
+        },
+        {
+          "row": 70,
+          "code": "SN",
+          "name": "锡",
+          "weight": 0.0217
+        },
+        {
+          "row": 74,
+          "code": "TA",
+          "name": "PTA",
+          "weight": 0.0346
+        },
+        {
+          "row": 76,
+          "code": "V",
+          "name": "聚氯乙烯",
+          "weight": 0.0224
+        },
+        {
+          "row": 79,
+          "code": "Y",
+          "name": "豆油",
+          "weight": 0.0361
+        }
+      ],
+      "count": 20,
+      "sum": "1.0000",
+      "LH_rows": [
+        {
+          "row": 37,
+          "values": [
+            "生猪",
+            "LH",
+            null,
+            null
+          ]
+        }
+      ]
+    }
+  ],
+  "all_current_download_hashes_verified": true
+}

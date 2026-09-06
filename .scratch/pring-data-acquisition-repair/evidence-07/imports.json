@@ -1,0 +1,170 @@
+[
+  {
+    "name": "tushare-300-original",
+    "sha256": "9c7cbd8dfe3152de32df132a16e73013abea10295e9123d3f2af8d2752ffd954",
+    "bytes": 256,
+    "local_file": "9c7cbd8dfe3152de32df132a16e73013abea10295e9123d3f2af8d2752ffd954.json",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.406578+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "tushare-500-original",
+    "sha256": "816fd15e5468bbb98a03605e3140f8056e305a7a67b045cc052eb39b6c0c2be3",
+    "bytes": 256,
+    "local_file": "816fd15e5468bbb98a03605e3140f8056e305a7a67b045cc052eb39b6c0c2be3.json",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.416371+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "tushare-1000-empty-original",
+    "sha256": "edab244c0df5905c02babd5291c27145a182df970699879134eabcbaad4abd3c",
+    "bytes": 202,
+    "local_file": "edab244c0df5905c02babd5291c27145a182df970699879134eabcbaad4abd3c.json",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.438420+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-app-js",
+    "sha256": "44bf077194aea6d8f09c6dfa2295d4d74d5fb6ee83ebb05052c7b9befa837da5",
+    "bytes": 955177,
+    "local_file": "44bf077194aea6d8f09c6dfa2295d4d74d5fb6ee83ebb05052c7b9befa837da5.js",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.527377+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-dashboard-js",
+    "sha256": "82a2a9831136ab6b52b8425422d959fb085b453da7c01d1bfe39cbb9cfb9cb87",
+    "bytes": 20551,
+    "local_file": "82a2a9831136ab6b52b8425422d959fb085b453da7c01d1bfe39cbb9cfb9cb87.js",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.549213+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-detail-js",
+    "sha256": "3cd3b83337ae5fcead1f94540c6f0dc0fc121e4dac11733985ae63c0ce3730e2",
+    "bytes": 160770,
+    "local_file": "3cd3b83337ae5fcead1f94540c6f0dc0fc121e4dac11733985ae63c0ce3730e2.js",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.570806+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-industry-method",
+    "sha256": "e9beda14cdb9f4cff78dbcae3ffe8b6875d2664829086a7bb750cfadc58f7ecd",
+    "bytes": 153609,
+    "local_file": "e9beda14cdb9f4cff78dbcae3ffe8b6875d2664829086a7bb750cfadc58f7ecd.pdf",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.603736+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "prior-300-xls",
+    "sha256": "677773b60a9aa22e51e162e3b8f6549c16c6913eff02d31c6103a840909e6123",
+    "bytes": 8192,
+    "local_file": "677773b60a9aa22e51e162e3b8f6549c16c6913eff02d31c6103a840909e6123.xls",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.621808+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "prior-500-xls",
+    "sha256": "7a7d915fb5ee56c1fe076fd01dcd0b548ab0a65978059dd9780493ee268dad4e",
+    "bytes": 8192,
+    "local_file": "7a7d915fb5ee56c1fe076fd01dcd0b548ab0a65978059dd9780493ee268dad4e.xls",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.627993+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "prior-1000-xls",
+    "sha256": "a15cea8ce2a93f1090dab96ea3e2434acd392a855d9e3bb95161989e7c90706e",
+    "bytes": 8192,
+    "local_file": "a15cea8ce2a93f1090dab96ea3e2434acd392a855d9e3bb95161989e7c90706e.xls",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.649528+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "prior-300-pe-history",
+    "sha256": "3a532a220eb14231072f037321ee4f17d53db39eafebab7041c7acf9101bf4bc",
+    "bytes": 11004,
+    "local_file": "3a532a220eb14231072f037321ee4f17d53db39eafebab7041c7acf9101bf4bc.json",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.656080+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "prior-500-pe-history",
+    "sha256": "80ec76ac9acd629a03bf453f5877c38658b2c12faccce0ef1298fa38f44c3aa3",
+    "bytes": 11008,
+    "local_file": "80ec76ac9acd629a03bf453f5877c38658b2c12faccce0ef1298fa38f44c3aa3.json",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.662987+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "prior-1000-pe-history",
+    "sha256": "af2f2c2b264b0eb2f692f24b4a42a9fbaf2e3b0a8c6a872c6c990a86a9539e5c",
+    "bytes": 11264,
+    "local_file": "af2f2c2b264b0eb2f692f24b4a42a9fbaf2e3b0a8c6a872c6c990a86a9539e5c.json",
+    "source": "read_only_existing_CAS",
+    "verified_at": "2026-09-06T14:47:19.675421+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-000300-factsheet",
+    "sha256": "8653755655ded0148202f0e43a20d36e9beaa1682a09b0c8e6d84f321f13c056",
+    "bytes": 454479,
+    "local_file": "8653755655ded0148202f0e43a20d36e9beaa1682a09b0c8e6d84f321f13c056.pdf",
+    "source": "existing_evidence_06",
+    "original_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000300factsheet.pdf",
+    "original_received_at": "2026-09-06T14:24:15.540726+00:00",
+    "original_headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:12 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:06:00 GMT",
+      "ETag": "\"F4F2AE411C2395739C1553D17E4DDE72\""
+    },
+    "verified_at": "2026-09-06T14:53:46.921048+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-000905-factsheet",
+    "sha256": "ccabf70fa1383861c8b178d727bbacfbc2634ed8a9a16706a8313f4a19c64c06",
+    "bytes": 446226,
+    "local_file": "ccabf70fa1383861c8b178d727bbacfbc2634ed8a9a16706a8313f4a19c64c06.pdf",
+    "source": "existing_evidence_06",
+    "original_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000905factsheet.pdf",
+    "original_received_at": "2026-09-06T14:24:15.100809+00:00",
+    "original_headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:12 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:10:56 GMT",
+      "ETag": "\"14AB1ED5AD5993D68F9A79ACA1353206\""
+    },
+    "verified_at": "2026-09-06T14:53:46.929589+00:00",
+    "new_network_request": false
+  },
+  {
+    "name": "csi-000852-factsheet",
+    "sha256": "68a6e3e47a6c357537feffaef58d7cc4b994b36149c6589e661e3d1cb1eda671",
+    "bytes": 449398,
+    "local_file": "68a6e3e47a6c357537feffaef58d7cc4b994b36149c6589e661e3d1cb1eda671.pdf",
+    "source": "existing_evidence_06",
+    "original_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000852factsheet.pdf",
+    "original_received_at": "2026-09-06T14:24:15.620351+00:00",
+    "original_headers": {
+      "Date": "Sun, 06 Sep 2026 14:24:13 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 02 Sep 2026 13:10:55 GMT",
+      "ETag": "\"F5F8EC30BBD04AB0B7447A6BD79FDA20\""
+    },
+    "verified_at": "2026-09-06T14:53:46.935110+00:00",
+    "new_network_request": false
+  }
+]

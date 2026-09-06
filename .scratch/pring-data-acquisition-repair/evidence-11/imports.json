@@ -1,0 +1,112 @@
+[
+  {
+    "name": "shfe-rb-rule",
+    "sha256": "1623ea4f156653e9e54ba6f2d99c4320616b00565e5d377a1c741aa2a6a4db61",
+    "byte_count": 210411,
+    "local_file": "1623ea4f156653e9e54ba6f2d99c4320616b00565e5d377a1c741aa2a6a4db61.html",
+    "url": "https://www.shfe.cn/regulation/exchangerules/productrules/202512/t20251231_829962.html",
+    "original_fetched_at_from_prior_research": "2026-09-05T12:54:51.948455+00:00",
+    "prior_report": "docs\\research\\commodity-official-resolution-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.356275+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "czce-daily-20260828",
+    "sha256": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d",
+    "byte_count": 37607,
+    "local_file": "1e5a1fc5094eee5b3626a1d53df19c932a4f2c28403e36197ed7b8797e33099d.txt",
+    "url": "https://www.czce.com.cn/cn/DFSStaticFiles/Future/2026/20260828/FutureDataDaily.txt",
+    "original_fetched_at_from_prior_research": "2026-09-05T10:17:19.650886+00:00",
+    "prior_report": "docs\\research\\commodity-inputs-followup-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.356759+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "shfe-sp-rule",
+    "sha256": "2ce54ba6d669069b70fe4c08d5caae81686d388aff8ca4de8c3cf067d1a44fcf",
+    "byte_count": 195876,
+    "local_file": "2ce54ba6d669069b70fe4c08d5caae81686d388aff8ca4de8c3cf067d1a44fcf.html",
+    "url": "https://www.shfe.cn/regulation/exchangerules/productrules/202512/t20251231_829972.html",
+    "original_fetched_at_from_prior_research": "2026-09-05T13:00:59.396922+00:00",
+    "prior_report": "docs\\research\\commodity-official-resolution-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.357733+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "shfe-ru-rule",
+    "sha256": "3de7a1887f6b6c528bae6e013825e3add2517ef91685843d3309e0bbaa45748e",
+    "byte_count": 173503,
+    "local_file": "3de7a1887f6b6c528bae6e013825e3add2517ef91685843d3309e0bbaa45748e.html",
+    "url": "https://www.shfe.cn/regulation/exchangerules/productrules/202512/t20251231_829973.html",
+    "original_fetched_at_from_prior_research": "2026-09-05T12:54:51.876076+00:00",
+    "prior_report": "docs\\research\\commodity-official-resolution-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.358775+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "shfe-cu-rule",
+    "sha256": "424a28732e0a3fdc1837e2bc32122415b12e61b05fa3a7cc2648d2a8db58a2af",
+    "byte_count": 183707,
+    "local_file": "424a28732e0a3fdc1837e2bc32122415b12e61b05fa3a7cc2648d2a8db58a2af.html",
+    "url": "https://www.shfe.cn/regulation/exchangerules/productrules/202512/t20251231_829954.html",
+    "original_fetched_at_from_prior_research": "2026-09-05T12:53:03.155462+00:00",
+    "prior_report": "docs\\research\\commodity-official-resolution-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.359737+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "czce-2014-contracts",
+    "sha256": "58c03806b3de89558d75c01ab5e07cff1608b20b34bf918e666c0dd8c0df2776",
+    "byte_count": 218570,
+    "local_file": "58c03806b3de89558d75c01ab5e07cff1608b20b34bf918e666c0dd8c0df2776.pdf",
+    "url": "https://www.czce.com.cn/cn/rootfiles/2014/12/05/1415698821329524-1415698821331547.pdf",
+    "original_fetched_at_from_prior_research": "2026-09-05T10:26:18.333512+00:00",
+    "prior_report": "docs\\research\\commodity-inputs-followup-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.360510+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "shfe-trading-hours",
+    "sha256": "6152fe0799f49b2243c3f0e4887d010eaf4d6c1be82516fef42c620803c17ca1",
+    "byte_count": 138645,
+    "local_file": "6152fe0799f49b2243c3f0e4887d010eaf4d6c1be82516fef42c620803c17ca1.html",
+    "url": "https://www.shfe.cn/services/calenderandholidays/tradinghours/",
+    "original_fetched_at_from_prior_research": "2026-09-05T12:53:03.099888+00:00",
+    "prior_report": "docs\\research\\commodity-official-resolution-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.361272+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "czce-daily-20260831",
+    "sha256": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2",
+    "byte_count": 37607,
+    "local_file": "75cc18e546ea324d310c85e3bae2c3d962796dec3e0b0a0b8755fd420565b2f2.txt",
+    "url": "https://www.czce.com.cn/cn/DFSStaticFiles/Future/2026/20260831/FutureDataDaily.txt",
+    "original_fetched_at_from_prior_research": "2026-09-05T10:26:18.255209+00:00",
+    "prior_report": "docs\\research\\commodity-inputs-followup-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.361673+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "ine-2024-manual",
+    "sha256": "c0467343d9811db50c1b83c4431293142a9c9000ce649cb3abdb30d559e6fb18",
+    "byte_count": 5050022,
+    "local_file": "c0467343d9811db50c1b83c4431293142a9c9000ce649cb3abdb30d559e6fb18.pdf",
+    "url": "https://www.ine.com.cn/upload/20240410/1712738949255.pdf",
+    "original_fetched_at_from_prior_research": "2026-09-05T12:53:04.469875+00:00",
+    "prior_report": "docs\\research\\commodity-official-resolution-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.368588+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  },
+  {
+    "name": "czce-daily-20260827",
+    "sha256": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb",
+    "byte_count": 37607,
+    "local_file": "ff03d4cc6a853010f5ea5a2e3b4d257e862a49d509e56d789dc5517b15ca8dfb.txt",
+    "url": "https://www.czce.com.cn/cn/DFSStaticFiles/Future/2026/20260827/FutureDataDaily.txt",
+    "original_fetched_at_from_prior_research": "2026-09-05T10:26:24.586065+00:00",
+    "prior_report": "docs\\research\\commodity-inputs-followup-2026-09-05.md",
+    "import_verified_at": "2026-09-06T15:12:45.369506+00:00",
+    "provenance": "read-only runtime CAS; original receive time cited from prior report, not a new HTTP receipt"
+  }
+]

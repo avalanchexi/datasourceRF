@@ -1,0 +1,3026 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Trading Schedule during National Holidays for Year 2026</title>
+    <!-- START Public CSS -->
+    <link rel="stylesheet" type="text/css" href="/eng/images/global.css" />
+<link rel="stylesheet" type="text/css" href="/eng/images/common.css" />
+<link rel="stylesheet" type="text/css" href="/eng/images/element-ui/theme-chalk/index.css" />
+<link rel="stylesheet" type="text/css" href="/eng/images/serviceMarket.css" />
+<!-- 手机导航插件 -->
+<link rel="stylesheet" type="text/css" href="/eng/images/hc-demo.css" />
+<link rel="stylesheet" type="text/css" href="/eng/images/isMobile.css" />
+    <!-- END Public CSS -->
+    <!-- START Plugin CSS -->
+    <!-- END Plugin CSS -->
+    <style></style>
+    <!-- START head CSS -->
+    <meta name="renderer" content="webkit" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<!-- <link rel="shortcut icon" href="favicon.ico"> -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<meta name="format-detection" content="telephone=yes" />
+<!-- JS 优先加载 -->
+<script src="/eng/images/jquery.min.js" /></script>
+<script src="/eng/images/hc-offcanvas-nav.js" /></script>
+<script src="/eng/images/vue.min.js" /></script>
+<script src="/eng/images/moment.min.js" /></script>
+<script src="/eng/images/index_rem.js"></script>
+    <link href="/eng/images/watermark.css" rel="stylesheet" type="text/css" />
+    <link href="/eng/images/share.min.css" rel="stylesheet" type="text/css" />
+    <link href="/eng/images/Servicedelivery.css" rel="stylesheet" type="text/css" />
+    <link href="/eng/images/guidance.css" rel="stylesheet" type="text/css" />
+    <link href="/eng/images/CircularNewsDetails.css" rel="stylesheet" type="text/css" />
+  </head>
+  <style>
+
+
+
+
+      /* file */
+      .attachment_download {
+        width: 100%;
+	      padding: 0 0% 5%;
+        margin: 0 auto;
+        font-size: 0.1250rem;
+        color: #0F45AE;
+        line-height: 0.6250rem;
+      }
+      img.xl_dowload_img_icon {
+        width: 0.22rem;
+        height: auto;
+        margin-right: 0.12rem;
+      }
+      .document_download {
+        padding: 0.1rem 0.18rem;
+        background-color: rgba(15, 69, 174, 0.05);
+        margin-top: 0.1250rem;
+        display: flex;
+        justify-content: start;
+        align-items: center;
+        font-size: 0.18rem;
+      }
+      .document_download a {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+
+
+
+   .sqs_tyxqy_tit { word-break: break-word; }
+    @media print {
+      html {
+        font-size: 16px!important;
+      }
+    }
+@media screen and (max-width: 750px){
+  .sqs_tyxqy_tit {
+    font-size: 0.17rem;
+  }
+
+
+       /* file */
+       h1.download {
+        line-height: 0.3rem;
+        font-size: 0.15rem;
+        }
+       .attachment_download {
+          margin: 0 auto;
+          width: 100%;
+          padding: 0.15rem;
+        }
+        img.xl_dowload_img_icon {
+          width: 0.2rem;
+          margin-right: 0.08rem;
+          /* width: 100%; */
+	font-size: 0.15rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+        }
+        .document_download {
+          line-height: 1.8;
+          font-size: 0.15rem;
+          padding: 0.1rem;
+        }
+        .document_download a {
+          width: 2.4rem;
+        }
+
+}
+  </style>
+  <body>
+    <!-- START header -->
+    <!-- 头部导航-->
+<div class="sqs_top isPc">
+  <div class="sqs_top_line">
+    <a href="/eng/" target="_self" class="sqs_top_logo">
+      <img src="/eng/images/logo.png" />
+    </a>
+
+ <div class="sqs_top_fr_box">
+	 
+    <div class="top-right flex-row align-center" id="search_idNew">
+      <div class="input-box">
+        <div class="contentNew content_select">
+          <div class="search-block">
+            <el-autocomplete class="inline-input" id="searchText" placeholder="Please enter keyword" value-key="word" 
+              v-model="inputStr" 
+              :fetch-suggestions="getFullKey" 
+              :trigger-on-focus="false" 
+              @select="handleSelect" 
+              @keyup.enter.native="searchTextNew"
+              >
+              <i slot="suffix">
+                <a class="search-icon cur" id="searchHeaderBtn" @click="searchHeaderBtnNew"></a>
+              </i>
+            </el-autocomplete>
+          </div>
+        </div>
+      </div>
+      
+      <a id="height_btn" @click="height_btnNew"><img src="/eng/images/sqs_search.png"/ alt="search" /></a>
+
+      <div class="language flex-row align-center">
+		 <a class="home_top_investor" id="home_top_investor" style="display: none;"  href="/eng/services/investor/" >
+		 I Am An Investor
+		 </a>
+        <a href='/'>中文版</a>
+        <!-- <span class="bor"></span> -->
+        <!-- <span id="StranLink">繁</span> -->
+        <!-- <span id="StranLink1">简</span> -->
+        <!-- <a href="https://www.shfe.com.cn/eng/" style="margin-left: 0.0625rem;">旧版</a> -->
+      </div>
+    </div>
+	
+ </div>
+
+
+  </div>
+  <div class="sqs_top_nav">
+    <!-- 头部导航菜单 -->
+    <div class="sqs_nav">
+      <ul id="js_pub_headerDh">
+
+<!-- Circular & News -->
+<li class="sqs_tabJs">
+  <a href="/eng/CircularNews/" target="_self">
+   Circular & News </a>
+  <div class="sqs_nav_tab">
+    <div class="sqs_opacity_blackBg"></div>
+    <div class="sqs_nav_tab_con">
+      <!-- Latest News -->
+      <div class="newsBox">
+        <div class="newsBoxL">
+          <div class="newsTit">
+            <span class="newsTitSpan"> Circular</span>
+            <a class="newsTitMore" href="/eng/CircularNews/Circular/" target="_self">View More</a>
+          </div>
+          <div class="newsList">
+            <ul>
+             
+<li>
+<a href="/eng/CircularNews/Circular/202609/t20260901_833186.html" target="_self">
+  Shanghai International Energy Exchange has released its Circular on Market Makers for Certain Futures and Options
+</a>
+<p>2026-09-01</p>
+</li>
+
+<li>
+<a href="/eng/CircularNews/Circular/202609/t20260901_833184.html" target="_self">
+  Circular on Market Makers for Certain Futures and Options
+</a>
+<p>2026-09-01</p>
+</li>
+
+            </ul>
+          </div>
+        </div>
+        <div class="newsBoxC">
+          <div class="newsTit">
+            <span class="newsTitSpan"> News</span>
+              <a class="newsTitMore" href="/eng/CircularNews/News/" target="_self">View More</a>
+          </div>
+          <div class="newsList">
+
+            <div v-if="newsList.length>0">
+			 
+	<div class="newsImg">
+	  <img src="" />
+	</div>
+
+              
+            </div>
+            <div class="newsImg" v-else>
+              <img src="/eng/images/news.png" />
+            </div>
+
+            <ul>
+              
+<li>
+<a href="/eng/CircularNews/News/202601/t20260126_830239.html" target="_self">
+  Nickel Futures and Options, and TSR20, Low Sulfur Fuel Oil and Bonded Copper Options Approved as Specified Products
+</a>
+<p>2026-01-26</p>
+</li>
+
+            </ul>
+          </div>
+        </div>
+		<div class="newsBoxF">
+		  <div class="newsTit">
+		    <span class="newsTitSpan"> SHFE in Spotlight </span>
+		      <a class="newsTitMore" href="/eng/CircularNews/SHFEinSpotlight/" target="_self">View More</a>
+		  </div>
+		  <div class="newsList">
+		
+		    <div v-if="spotlightList.length>0">
+		    
+	<div class="newsImg">
+	  <img src="" />
+	</div>
+
+		    </div>
+		    <div class="newsImg" v-else>
+		      <img src="/eng/images/FocusonSHFE.png" />
+		    </div>
+		
+		    <ul>
+		       
+<li>
+<a href="/eng/CircularNews/SHFEinSpotlight/202606/t20260618_832152.html" target="_self">
+  SHFE and LME Jointly Launch Hot-Rolled Coil Futures Settlement Price Licensing Initiative: Cross-Border Cooperation Elevates Industry Services to New Heights
+</a>
+<p>2026-06-18</p>
+</li>
+
+		    </ul>
+		  </div>
+		</div>
+    		
+      </div>
+    </div>
+  </div>
+</li>
+<!-- Market -->
+<li class="sqs_tabJs">
+  <a href="/eng/Market/" target="_self"> Market </a>
+  <div class="sqs_nav_tab">
+    <div class="sqs_opacity_blackBg"></div>
+    <div class="sqs_nav_tab_con">
+      <!-- 图片集 -->
+      <div class="sqs_Market_imgs">
+        <div class="sqs_Market_topImgs">
+		 
+			<div class="sqs_Market_crudeOil" style="background-image: url(/eng/Market/202412/W020260417584034001000.png);">
+			  <!-- 图片背景透明层 -->
+			  <div class="sqs_Market_img sqs_opacity"></div>
+			  <a class="sqs_Market_topImgs_href" href="/eng/Market/Options/bc_o/" target="_self">
+			    <div class="sqs_Market_NewProduct">
+			      <p class="sqs_newProduct"></p>
+			      <p class="sqs_crudeOil">Copper(BC)</p>
+			    </div>
+			    <div class="sqs_Market_NewProduct_more">
+			      <img src="/eng/images/market_gotolink.png" />
+			    </div>
+			  </a>
+			</div>   
+		
+			<div class="sqs_Market_crudeOil" style="background-image: url(/eng/Market/202412/W020260417584388799950.png);">
+			  <!-- 图片背景透明层 -->
+			  <div class="sqs_Market_img sqs_opacity"></div>
+			  <a class="sqs_Market_topImgs_href" href="/eng/Market/Options/nr_o/" target="_self">
+			    <div class="sqs_Market_NewProduct">
+			      <p class="sqs_newProduct"></p>
+			      <p class="sqs_crudeOil">TSR 20</p>
+			    </div>
+			    <div class="sqs_Market_NewProduct_more">
+			      <img src="/eng/images/market_gotolink.png" />
+			    </div>
+			  </a>
+			</div>   
+		
+        </div>
+		<div class="sqs_Market_Platform">
+		<a href="http://otc.shfe.com.cn/" target="_blank" class="sqs_Platform_tit">
+			<div class="sqs_Platform_txt">  OTC platform</div> 
+			<div class="sqs_Platform_more"><img src="/eng/images/market_gotolink.png" /></div>
+			</a>
+			</div>
+      </div>
+
+      <!-- Futures  Options -->
+      <div class="sqs_Market_List">
+        <!-- Futures -->
+        <div class="sqs_Market_Futures">
+          <a class="sqs_Futures_mainTit" href="/eng/Market/Futures/" target="_self">
+		  Futures</a>
+          <div class="sqs_Futures_listBox">
+            <div class="sqs_Futures_list">
+              <ul>
+				   
+				 <li class="sqs_Futures_subTitLi">   <h2 class="sqs_Futures_subTit">Metal</h2></li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/cu_f/" target="_self"> Copper </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/bc_f/" target="_self"> Copper(BC) </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/al_f/" target="_self"> Aluminum </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/zn_f/" target="_self"> Zinc </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/pb_f/" target="_self"> Lead </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/ni_f/" target="_self"> Nickel </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/sn_f/" target="_self"> Tin </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/ao_f/" target="_self"> Aluminium Oxide </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/ad_f/" target="_self"> Cast Aluminum Alloy </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/au_f/" target="_self"> Gold </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/ag_f/" target="_self"> Silver </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/rb_f/" target="_self"> Steel Rebar </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/wr_f/" target="_self"> Steel Wire Rod </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/hc_f/" target="_self"> Hot Rolled Coils </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Metal/ss_f/" target="_self"> Stainless Steel </a>
+                </li>
+                
+				   
+				 <li class="sqs_Futures_subTitLi">   <h2 class="sqs_Futures_subTit">Energy</h2></li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Energy/sc_f/" target="_self"> Crude Oil </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Energy/lu_f/" target="_self"> LSFO </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Energy/fu_f/" target="_self"> Fuel Oil </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Energy/bu_f/" target="_self"> Bitumen </a>
+                </li>
+                
+				   
+				 <li class="sqs_Futures_subTitLi">   <h2 class="sqs_Futures_subTit">Chemical</h2></li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Chemical/br_f/" target="_self"> Synthetic Rubber </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Chemical/ru_f/" target="_self"> Natural Rubber </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Chemical/nr_f/" target="_self"> TSR 20 </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Chemical/sp_f/" target="_self"> Woodpulp </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/Chemical/op_f/" target="_self"> Offset Paper </a>
+                </li>
+                
+				   
+				 <li class="sqs_Futures_subTitLi">   <h2 class="sqs_Futures_subTit">Index</h2></li>
+                
+                <li>
+                  <a href="/eng/Market/Futures/index_f/ec_f/" target="_self"> SCFIS(Europe) </a>
+                </li>
+                
+				 
+              </ul>
+            </div>
+           
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="sqs_nav_tab_Options">
+          <a class="sqs_Futures_mainTit" href="/eng/Market/Options/" target="_self">Options</a>
+          <div class="sqs_Options_list">
+            <ul>
+              
+              <li>
+                <a href="/eng/Market/Options/sc_o/" target="_self"> Crude Oil </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/cu_o/" target="_self"> Copper </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/bc_o/" target="_self"> Copper(BC) </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/al_o/" target="_self"> Aluminum </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/zn_o/" target="_self"> Zinc </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/pb_o/" target="_self"> Lead </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/ni_o/" target="_self"> Nickel </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/sn_o/" target="_self"> Tin </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/ao_o/" target="_self"> Aluminium Oxide </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/ad_o/" target="_self"> Cast Aluminum Alloy </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/au_o/" target="_self"> Gold </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/ag_o/" target="_self"> Silver </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/rb_o/" target="_self"> Steel Rebar </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/fu_o/" target="_self"> Fuel Oil </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/bu_o/" target="_self"> Bitumen </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/br_o/" target="_self"> Synthetic Rubber </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/ru_o/" target="_self"> Natural Rubber </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/nr_o/" target="_self"> TSR 20 </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/sp_o/" target="_self"> Woodpulp </a>
+              </li>
+              
+              <li>
+                <a href="/eng/Market/Options/op_o/" target="_self"> Offset Paper </a>
+              </li>
+               
+			  
+            </ul>
+          </div>
+         <div class="sqs_nav_tab_ISIN">
+         				  <a class="sqs_Futures_mainTit isinMar" href="/eng/Market/ISIN/" target="_self">
+         				  ISIN
+         				  </a>
+         </div>
+        </div>
+		<div class="sqs_platform">
+			<a href="http://otc.shfe.com.cn/" target="_blank">
+					 OTC platform
+			</a>
+		</div>
+      </div>
+    </div>
+  </div>
+</li>
+<!-- Serves -->
+<li class="sqs_tabJs">
+  <a href="/eng/services/" target="_self">
+   Services </a>
+  <div class="sqs_nav_tab">
+    <div class="sqs_opacity_blackBg"></div>
+    <div class="sqs_nav_tab_con">
+      <!-- Services imgs -->
+      <div class="sqs_Services_imgs">
+        <!-- Market Data Vender -->
+        <div class="sqs_Services_MarketDataVender">
+          <!-- 图片背景透明层 -->
+          <div class="sqs_MarketDataVender_img sqs_opacity"></div>
+          <div class="sqs_MarketDataVender_main">
+          
+            <div class="sqs_MarketDataVender_tit">
+              <a class="sqs_MarketDataVender_txt" href="/eng/services/vendorMarketData/Vendorlist/" target="_self">
+                Our Market Data Vendors
+              </a>
+              <div class="sqs_MarketDataVender_more">
+                <img src="/eng/images/market_gotolink.png" />
+              </div>
+            </div>
+            <p class="sqs_MarketDataVender_con">
+              
+We collaborate with industry leading vendors, service providers and media portals to
+ distribute real-time and delayed data at a global scale. Companies interested in 
+ becoming our market data vendor, please feel free to apply.							
+            </p>
+            
+            <a class="sqs_MarketDataVender_link" href="/eng/services/vendorMarketData/BecomeaMarketDataVendor/" target="_self">
+              Become a Vendor
+            </a>
+          </div>
+        </div>
+        <!-- Our Members --><!-- <a href="/services/members/memberlist/"> -->
+        
+          <!-- <a class="sqs_Services_CurrentVendor" href="/eng/services/Members/MemberQuery/" target="_self"> -->
+          <a class="sqs_Services_CurrentVendor" href="/eng/services/Members/MemberQuery/" target="_self">
+            <!-- 图片背景透明层 -->
+            <div class="sqs_CurrentVendor_img sqs_opacity"></div>
+            <div class="sqs_CurrentVendor_tit">
+              <div class="sqs_CurrentVendor_txt">
+                Our Members
+              </div>
+              <div class="sqs_MarketDataVender_more">
+                <img src="/eng/images/market_gotolink.png" />
+              </div>
+            </div>
+          </a>
+        
+      
+        
+          
+          <a class="sqs_Services_DataServices" href="/eng/services/Rules/SHFERules/" target="_self">
+            <!-- 图片背景透明层 -->
+            <div class="sqs_DataServices_img sqs_opacity"></div>
+            <div class="sqs_DataServices_tit">
+              <div class="sqs_DataServices_txt">
+                Rules and Regulations
+              </div>
+              <div class="sqs_DataServices_more">
+                <img src="/eng/images/market_gotolink.png" />
+              </div>
+            </div>
+          </a>
+        
+      </div>
+
+      <div class="sqs_Services_items">
+      
+        <div class="itemsA">
+          
+            <h2 class="itemsA_Act">Rules</h2>
+          
+          
+            <h2>Supervision</h2>
+          
+            <h2>Trading</h2>
+          
+            <h2>Settlement</h2>
+          
+            <h2>Delivery</h2>
+          
+            <h2>Technology</h2>
+          
+        </div>
+        
+        <div class="itemsB">
+
+          
+            <div class="itemsB-H" style="display:block;">
+            
+              <a href="/eng/services/Rules/Guidance/" target="_self">Guidance</a>
+            
+              <a href="/eng/services/Rules/SHFERules/" target="_self">SHFE Rules</a>
+            
+              <a href="/eng/services/Rules/INERules/" target="_self">INE Rules</a>
+            
+            </div>
+          
+
+          
+            <div class="itemsB-H">
+              
+                <a href="/eng/services/Supervision/LargePositionReport/" target="_self">Large Position Report</a>
+              
+                <a href="/eng/services/Supervision/AdministrationofAccountsInvolvingActualControlRelationship/" target="_self">Administration of Accounts Involving Actual Control Relationship</a>
+              
+                <a href="/eng/services/Supervision/Cases/" target="_self">Cases</a>
+              
+            </div>
+          
+            <div class="itemsB-H">
+              
+                <a href="/eng/services/trading/TradingBusiness/" target="_self">Trading Business</a>
+              
+                <a href="/eng/services/trading/FloorTraderManagement/" target="_self">Floor Trader Management</a>
+              
+                <a href="/eng/services/trading/AccountOpening/" target="_self">Account Opening</a>
+              
+                <a href="/eng/services/trading/participant_eligibility/" target="_self">Participant Eligibility</a>
+              
+                <a href="/eng/services/trading/SeatManagement/" target="_self">Seat Management</a>
+              
+                <a href="/eng/services/trading/ProgramTradingFiling/" target="_self">Program Trading Filing</a>
+              
+                <a href="/eng/services/trading/HedgingOperation/" target="_self">Hedging Operation</a>
+              
+                <a href="/eng/services/trading/TAS/" target="_self">Order Guideline</a>
+              
+                <a href="/eng/services/trading/MarketMaker/" target="_self">Market Maker</a>
+              
+                <a href="/eng/services/trading/Download_Trading/" target="_self">Download</a>
+              
+            </div>
+          
+            <div class="itemsB-H">
+              
+                <a href="/eng/services/Settlement/SettlementService/" target="_self">Settlement Service</a>
+              
+                <a href="/eng/services/Settlement/SettlementBank/" target="_self">Settlement Bank</a>
+              
+                <a href="/eng/services/Settlement/downloadDownload_Settlement/" target="_self">Download</a>
+              
+            </div>
+          
+            <div class="itemsB-H">
+              
+                <a href="/eng/services/Delivery/WarehouseWarrant/" target="_self">Warehouse Warrant</a>
+              
+                <a href="/eng/services/Delivery/Warehousewarrantaccountmanagement/" target="_self">Warehouse warrant account management</a>
+              
+                <a href="/eng/services/Delivery/BondedDelivery/" target="_self">Bonded Delivery</a>
+              
+                <a href="/eng/services/Delivery/BrandRegistration/" target="_self">Brand Registration</a>
+              
+                <a href="/eng/services/Delivery/CertifiedDeliveryWarehouse/" target="_self">Certified Delivery Warehouse</a>
+              
+                <a href="/eng/services/Delivery/CommoditiesforDelivery/" target="_self">Commodities for Delivery</a>
+              
+                <a href="/eng/services/Delivery/DeliveryWarehouseAssayer/" target="_self">Delivery Warehouse & Assayer</a>
+              
+                <a href="https://www.shfe.com.cn/services/delivery/standardwarrantms/" target="_self">Standard Warrant Management System</a>
+              
+                <a href="/eng/services/Delivery/downloadDownload_Delivery/" target="_self">Download</a>
+              
+            </div>
+          
+            <div class="itemsB-H">
+              
+                <a href="/eng/services/Technology/TechnologyService/" target="_self">Technology Service</a>
+              
+                <a href="/eng/services/Technology/TechnicalSpecificationResource/" target="_self">Technical Specification & Resource</a>
+              
+            </div>
+          
+            <div class="itemsB-H">
+              
+                <a href="/eng/services/vendorMarketData/BecomeaMarketDataVendor/" target="_self">Become a Market Data Vendor</a>
+              
+                <a href="/eng/services/vendorMarketData/Vendorlist/" target="_self">Vendor list</a>
+              
+                <a href="/eng/services/vendorMarketData/SHFEMarketDataProductsandPricing/" target="_self">SHFE Market Data Products and Pricing</a>
+              
+            </div>
+          
+          
+        </div>
+        <div class="itemsC"></div>
+          
+        <div class="itemsD">
+			
+			 
+				   <h2>Market Data</h2>				
+			  
+			   
+           
+			 
+				   <h2>Members and Overseas Special Participants</h2>				
+			  
+			   
+           
+			 
+			   
+				<h2><a href="/eng/services/investor/">I Am An Investor</a></h2>	
+			  
+           
+			 
+				   <h2>PFMI</h2>				
+			  
+			   
+           
+        </div>
+        
+        <div class="itemsE">
+          
+            <div class="itemsE-H">
+				 
+              
+                <a href="/eng/services/vendorMarketData/BecomeaMarketDataVendor/" target="_self">Become a Market Data Vendor</a>
+              
+                <a href="/eng/services/vendorMarketData/Vendorlist/" target="_self">Vendor list</a>
+              
+                <a href="/eng/services/vendorMarketData/SHFEMarketDataProductsandPricing/" target="_self">SHFE Market Data Products and Pricing</a>
+              
+			
+				  
+            </div>
+          
+            <div class="itemsE-H">
+				 
+              
+                <a href="/eng/services/Members/MemberQuery/" target="_self">Member & Overseas Special Participant List</a>
+              
+                <a href="/eng/services/Members/shfe_OverseasIntermediaryList/" target="_self">Overseas Intermediary List</a>
+              
+                <a href="/eng/services/Members/Membership/" target="_self">Become A Member/An OSP</a>
+              
+                <a href="/eng/services/Members/Honor/" target="_self">Honor</a>
+              
+			
+				  
+            </div>
+          
+            <div class="itemsE-H">
+				 
+				  
+				 
+            </div>
+          
+            <div class="itemsE-H">
+				 
+              
+                <a href="/eng/services/PFMI/PFMI/" target="_self">PFMI</a>
+              
+			
+				  
+            </div>
+          
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+</li>
+<!-- Data -->
+<li class="sqs_tabJs">
+  <a href="/eng/reports/" target="_self"> Data </a>
+  <div class="sqs_nav_tab">
+    <div class="sqs_opacity_blackBg"></div>
+    <div class="sqs_nav_tab_con">
+      <!-- 日历 calendar -->
+      <div class="sqs_rili_box">
+
+        <!-- 日历 -->
+        <div id="pub_head_cascader">
+          <el-calendar v-model="calendarDate" id="header_calendar_cont">
+            <template slot="dateCell" slot-scope="{data}">
+              <p class="calendar_p">{{data.day.split('-').slice(2).join()}}
+                <div v-for="(i, index) in dayTime" :key="index">
+                  <div class="point_cont" v-if="data.day==i.day">
+                    <div v-if="i.flag_Trade" class="point_purple"></div>
+                    <div v-if="i.flag_settlement" class="point_yellow"></div>
+                    <div v-if="i.flag_delivery" class="point_blue"></div>
+                    <div v-if="i.flag_history" class="point_red"></div>
+                  </div>
+                </div>
+              </p>
+            </template>
+          </el-calendar>
+
+          <el-date-picker v-model="value4" type="month" placeholder="选择月" @change="timeChange" align="center" ref="datapicker"
+              ></el-date-picker>
+        </div>
+        
+        <!-- 内容 -->
+        <div class="pub_head_text_content">
+          <div class="pub_head_text_content_item" v-cloak>
+            <div class="pub_head_text_detail_content">
+              <!-- {{ currentDate }} -->
+              {{ currentDate.substring(0,4) + '-' + currentDate.substring(4,6) + '-' + currentDate.substring(6,8) }}
+            </div>
+          </div>
+
+          <template v-if="!item">
+            <div class="pub_head_text_detail_content">No data available.</div>
+          </template>
+
+          <template v-else>
+            <div class="pub_head_text_content_item" v-if="currentDate == item.tradeDate">
+              
+              <template v-if=" year > 2021 ">
+                <div class="pub_head_text_detail_title"
+                    v-if="item.tradeExit || item.tradeAdjust || item.tradeLastDate ||
+                    item.tradeOnBoard || item.tradeQLastDate || item.tradeLimit ||
+                    item.tradeSellingPositions || item.tradeOpeningRestriction || item.tradePositionLimit
+                    ">
+                  <div class="point_purple text_detail_mr5"></div>Trading notice:
+                </div>
+                <div class="pub_head_text_detail_content">
+                  <div v-if="item.tradeExit" v-html="item.tradeExit"></div><!-- 个人客户退出 -->
+                  <div v-if="item.tradeLastDate" v-html="item.tradeLastDate"></div><!-- 合约最后交易日 -->
+                  <div v-if="item.tradeOnBoard" v-html="item.tradeOnBoard"></div><!-- 新合约上市 -->
+                  <div v-if="item.tradeQLastDate" v-html="item.tradeQLastDate"></div><!-- 期权最后交易日 -->
+                  <div v-if="item.tradeAdjust" v-html="item.tradeAdjust"></div><!-- 非整数倍持仓调整 -->
+                  <div v-if="item.tradeLimit" v-html="item.tradeLimit"></div><!-- 涨跌停板信息 -->
+                  <div v-if="item.tradePositionLimit" v-html="item.tradePositionLimit"></div><!-- 合约限仓 -->
+                  <div v-if="item.tradeOpeningRestriction" v-html="item.tradeOpeningRestriction"></div><!-- 交易限额 -->
+                  <div v-if="item.tradeSellingPositions" v-html="item.tradeSellingPositions"></div><!-- 持仓与仓单匹配 -->
+                </div>
+                <div class="pub_head_text_detail_title"
+                    v-if="item.settleDepositAj || item.settleADepositAj || item.settleTradeFeeAj ||
+                    item.settlePledgeFee || item.settleExitDiscount ||item.settleDeliveryFee || item.settleOther"
+                    >
+                  <div class="point_yellow text_detail_mr5"></div>Settlement notice:
+                </div>
+
+                <div class="pub_head_text_detail_content">
+                  <div v-if="item.settleDepositAj" v-html="item.settleDepositAj"></div><!-- 合约保证金率调整 -->
+                  <div v-if="item.settleTradeFeeAj" v-html="item.settleTradeFeeAj"></div><!-- 合约交易手续费调整 -->
+                  <div v-if="item.settlePledgeFee" v-html="item.settlePledgeFee"></div><!-- 收取会员质押手续费 -->
+                  <div v-if="item.settleExitDiscount" v-html="item.settleExitDiscount"></div><!-- 合约退出单向大边保证金优惠 -->
+                  <div v-if="item.settleADepositAj" v-html="item.settleADepositAj"></div><!-- 品种保证金率调整 -->
+                  <div v-if="item.settleDeliveryFee" v-html="item.settleDeliveryFee"></div><!-- 收取交割手续费 -->
+                  <div v-if="item.settleOther" v-html="item.settleOther"></div><!-- 其它 -->
+                </div>
+
+                <div class="pub_head_text_detail_title" v-if="item.delivery">
+                  <div class="point_blue text_detail_mr5"></div>Delivery notice:
+                </div>
+                <div class="pub_head_text_detail_content">
+                  <div v-if="item.delivery" v-html="item.delivery"></div>
+                </div>
+              </template>
+
+              <template v-else>
+                <div class="pub_head_text_detail_content text_detail_history">
+                  <div v-if="item.historyContent" v-html="item.historyContent"></div>
+                </div>
+              </template>
+
+            </div>
+          </template>
+        </div>
+
+
+
+      </div>
+
+      <!-- DataList -->
+      <div class="sqs_Data_items">
+        <div class="sqs_Data_top">
+          <!-- Calender & Holidays  -->
+          
+          <div class="sqs_Data_topA">
+            <a class="sqs_Data_mainTitle">Calendar & Holidays</a>
+            <ul class="sqs_Data_lists">
+            
+              <li>
+                <a href="/eng/reports/CalendarHolidays/TradingCalendar/" target="_self">
+                  Trading Calendar
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/CalendarHolidays/TradingHours/" target="_self">
+                  Trading Hours
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/CalendarHolidays/Holiday/" target="_self">
+                  Holiday
+                </a>
+              </li>
+              
+            </ul>
+          </div>
+          
+          <!-- Business Data -->
+          
+          <div class="sqs_Data_topB">
+            <a class="sqs_Data_mainTitle">Business Data</a>
+            <ul class="sqs_Data_lists">
+            
+              <li>
+                <a href="/eng/reports/BusinessData/ContractParameters/" target="_self">
+                  Contract Parameters
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/BusinessData/TradingParameters/" target="_self">
+                  Trading Parameters
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/BusinessData/SpreadOrderParameters/" target="_self">
+                  Spread Order Parameters
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/BusinessData/SettlementParameters/" target="_self">
+                  Settlement Parameters
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/BusinessData/AdjustmenttoMonthlySettlementParameters/" target="_self">
+                  Adjustment to Monthly Settlement Parameters
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/BusinessData/delivery/" target="_self">
+                  Delivery Parameters
+                </a>
+              </li>
+            
+              <li>
+                <a href="/eng/reports/BusinessData/Fees/" target="_self">
+                  Fees
+                </a>
+              </li>
+             
+            </ul>
+          </div>
+          
+
+          <!-- Market Data -->
+          
+          <div class="sqs_Data_topC">
+            <a class="sqs_Data_mainTitle">Market Data</a>
+            <ul class="sqs_Data_lists">
+            
+              <li>
+                <a href="/eng/reports/delayedMarketData/DelayedQuotes/" target="_self">
+                  Delayed Quotes
+                </a>
+              </li>
+               
+            </ul>
+          </div>
+          
+        </div>
+
+        <div class="sqs_Data_bottom">
+          <!-- Statistical Data -->
+          <a class="sqs_Data_mainTitle">Statistical Data</a>
+          <div class="sqs_Data_Statistical">
+            <div class="sqs_Data_StatisticalA">
+              <ul class="sqs_Data_lists">
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=kx" target="_self">
+                    Daily Express
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=pm" target="_self">
+                    Daily Ranking
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=timeprice" target="_self">
+                    IPA
+                  </a>
+                </li>
+                  <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=markerprice" target="_self">
+                    Marker Price
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=dailystock" target="_self">
+                    Daily Warrant
+                  </a>
+                </li>
+                
+                
+              </ul>
+            </div>
+            
+            <div class="sqs_Data_StatisticalB">
+              <ul class="sqs_Data_lists">
+
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=dailyDlvPlacePremium" target="_self">
+                    Premiums and Discounts at Delivery Locations of Factory Warehouses
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_params=js_f" target="_self">
+                    Daily Settlement PRA.
+                  </a>
+                </li>
+				<li>
+				  <a href="/eng/reports/StatisticalData/DailyData/?query_params=tradedes" target="_self">
+				    Trading Overview
+				  </a>
+				</li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/DailyData/?query_options=2&query_params=tradedes_o" target="_self">
+                    Option Trading Overview
+                  </a>
+                </li>
+               
+                <li>
+                  <a href="/eng/reports/StatisticalData/WeeklyData/?query_params=week" target="_self">
+                    Weekly Market Data
+                  </a>
+                </li>
+
+                
+  
+                
+
+
+              </ul>
+            </div>
+            <div class="sqs_Data_StatisticalC">
+              <ul class="sqs_Data_lists">
+
+                 
+                
+                <li>
+                  <a href="/eng/reports/StatisticalData/WeeklyData/?query_params=weeklystock" target="_self">
+                    Weekly Inventory
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/MonthlyData/?query_params=monthstatq_f" target="_self">
+                    Monthly Statistics
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/MonthlyData/?query_params=monthprice" target="_self">
+                    Monthly Ref. Prices
+                  </a>
+                </li>
+				<li>
+				  <a href="/eng/reports/StatisticalData/MonthlyData/?query_params=month" target="_self">
+				    Monthly Market Data
+				  </a>
+				</li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/MonthlyData/?query_params=mosprice_f" target="_self">
+                    SHFE Mean of Settlement Price
+                  </a>
+                </li>
+
+
+
+              </ul>
+            </div>
+            <div class="sqs_Data_StatisticalD">
+              <ul class="sqs_Data_lists">
+                
+                <li>
+                  <a href="/eng/reports/StatisticalData/MonthlyData/?query_params=exchangedelivery_f" target="_self">
+                    Delivery Inquiry
+                  </a>
+                </li>
+                
+                <li>
+                  <a href="/eng/reports/StatisticalData/Annualdata/?query_params=yearstat_f" target="_self">
+                    Annual Statistics
+                  </a>
+                </li>
+                <li>
+                  <a href="/eng/reports/StatisticalData/Annualdata/?query_params=yearstat_f" target="_self">
+                    Historical Data
+                  </a>
+                </li>
+
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</li>
+<!-- Market Insights -->
+<li class="sqs_tabJs">
+  <a href="/eng/insights/" target="_self"> Market Insights </a>
+  <div class="sqs_nav_tab">
+    <div class="sqs_opacity_blackBg"></div>
+    <div class="sqs_nav_tab_con">
+      <!-- Events & Webinars -->
+      <div class="sqs_Insights">
+        <!-- 图片背景透明层 -->
+        <div class="sqs_Insights_img sqs_opacity"></div>
+        
+       <div class="sqs_Insights_main">
+          <div class="sqs_Insights_tit">
+            <div class="sqs_Insights_txt">
+              <p class="sqs_Insights_Short">Events & Webinars</p>
+			  
+			 <a class="sqs_Insights_main" href="https://live.btntec.com/v3/lives/watch/636682185" target="_self">
+              <p class="sqs_Insights_Long">
+                TSR20 Futures Cross-border Delivery Business Rules and Models Explained
+              </p>
+			  </a>
+			   
+            </div>
+            <div class="sqs_Insights_more">
+              <img src="/eng/images/market_gotolink.png" />
+            </div>
+          </div>
+        </div>
+       
+      </div>
+      <!-- Frontier Education -->
+      <div class="sqs_Insights_items">
+        <div class="sqs_Insights_itemsTop">
+          <!-- Frontier -->
+          <div class="sqs_Insights_list">
+            
+            <a class="sqs_Services_mainTitle" target="_self">
+              Frontier
+            </a>
+              
+            <ul class="sqs_Services_lists">
+            
+            
+              <li>
+                <a href="/eng/insights/Frontier/Index/" target="_self"> Index Quotes </a>
+              </li>
+              
+              
+            </ul>
+          </div>
+          <!-- Education -->
+          <div class="sqs_Insights_list">
+            
+            <a class="sqs_Services_mainTitle" target="_self">
+              Education
+            </a>
+              
+            <ul class="sqs_Services_lists">
+            
+            
+              <li>
+                <a href="https://edu.shfe.com.cn/" target="_self"> SHFE Investor Education </a>
+              </li>
+              
+              <li>
+                <a href="/eng/insights/Education/EventsWebinars/" target="_self"> Events & Webinars </a>
+              </li>
+              
+              
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</li>
+<!-- About -->
+<li class="sqs_tabJs">
+    <a href="/eng/AboutSHFE/" target="_self"> About SHFE </a>
+  <div class="sqs_nav_tab">
+    <div class="sqs_opacity_blackBg"></div>
+    <div class="sqs_nav_tab_con">
+      <!-- About INE -->
+      <div class="sqs_AboutSHFE">
+        <!-- 图片背景透明层 -->
+        <div class="sqs_AboutSHFE_img sqs_opacity"></div>
+        
+        <a class="sqs_AboutSHFE_main" href="/eng/AboutSHFE/Introduction/Overview/" target="_self">
+          <div class="sqs_AboutSHFE_tit">
+            <div class="sqs_AboutSHFE_txt">About SHFE</div>
+            <div class="sqs_AboutSHFE_more">
+              <img src="/eng/images/market_gotolink.png" />
+            </div>
+          </div>
+          <p class="sqs_AboutSHFE_con">
+            Established in 1999, the Shanghai Futures Exchange (“SHFE” or the “Exchange”) is a futures exchange regulated by the China Securities Regulatory Commission (“CSRC”). SHFE operates venues and facilities for the trading of futures and other derivatives; organizes and supervises trading activities; maintains a fair, orderly, and transparent market; and exercises market self-regulation in accordance with the Futures and Derivatives Law of the People’s Republic of China, the Regulations on Administration of Futures Trading, and the Measures for the Administration of Futures Exchanges, etc.
+          </p>
+        </a>
+        
+      </div>
+
+      <div class="sqs_AboutSHFE_items">
+        <div class="sqs_AboutSHFE_top">
+
+          <div class="sqs_AboutSHFE_list sqs_absa_item">
+            <!-- <a class="sqs_Services_mainTitle" href="/eng/AboutSHFE/Introduction/"> -->
+            <span class="sqs_Services_mainTitle sqs_ins_span">
+              Introduction
+            </span>
+            
+              <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Introduction/Overview/">
+                Overview
+              </a>
+            
+              <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Introduction/Organization/">
+                Organization
+              </a>
+            
+              <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Introduction/Strategy/">
+                Strategy
+              </a>
+            
+          </div>
+          <!-- 
+          Introduction
+          Institution -->
+          <div class="sqs_AboutSHFE_list sqs_absa_item">
+            <!-- <a class="sqs_Services_mainTitle" href="/eng/AboutSHFE/Institution/"> -->
+            <span class="sqs_Services_mainTitle sqs_ins_span">
+              Institution
+            </span>
+            <!-- 
+              <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Institution/sw/">
+                SHFE POST-DOCTORAL PROGRAM
+              </a>
+            
+              <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Institution/Subsidiaries/">
+                Subsidiaries
+              </a>
+             -->
+            
+            <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Institution/sw/Overview/">
+                SHFE POST-DOCTORAL PROGRAM
+            </a>
+            <a class="sqs_absa_item_a" href="/eng/AboutSHFE/Institution/Subsidiaries/sw/">
+                Subsidiaries
+            </a>
+          </div>
+
+          
+            <div class="sqs_AboutSHFE_list">
+              <a class="sqs_Services_mainTitle" href="/eng/AboutSHFE/Recruitment/" target="_self">
+                Recruitment
+              </a>
+            </div>
+          
+            <div class="sqs_AboutSHFE_list">
+              <a class="sqs_Services_mainTitle" href="/eng/AboutSHFE/PersonalInformationProtecttionPolicy/" target="_self">
+                Personal Information Protection Policy
+              </a>
+            </div>
+          
+            <div class="sqs_AboutSHFE_list">
+              <a class="sqs_Services_mainTitle" href="/eng/AboutSHFE/CorporateSocialResponsibility/" target="_self">
+                Corporate Social Responsibility
+              </a>
+            </div>
+          
+            <div class="sqs_AboutSHFE_list">
+              <a class="sqs_Services_mainTitle" href="/eng/AboutSHFE/ContactUs/" target="_self">
+                Contact Us
+              </a>
+            </div>
+          
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</li>
+
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- <script src="/eng/images/jquery.min.js"></script> -->
+<!-- <script src="/eng/images/hc-offcanvas-nav.js"></script> -->
+
+<div class="isMobile">
+  <body class="theme-default">
+    <div id="container">
+      <header>
+        <div class="wrapper cf">
+          <nav id="main-nav">
+            <ul class="first-nav">
+
+<!--home -->
+<li class="">
+  <span><a href="/eng/">Home</a></span>
+</li>
+<!--Circular&News-->  
+<li class="">
+    <a href="/eng/CircularNews/">
+        Circular & News
+    </a>
+    
+    <ul>
+      <li><a href="/eng/CircularNews/Circular/">Circular</a></li>
+    </ul>
+  
+    <ul>
+      <li><a href="/eng/CircularNews/News/">News</a></li>
+    </ul>
+  
+    <ul>
+      <li><a href="/eng/CircularNews/SHFEinSpotlight/">SHFE in Spotlight</a></li>
+    </ul>
+  
+</li>
+<!--Market-->  
+<li class="">
+    <a href="/eng/Market/">
+        Market
+    </a>
+  <ul>
+    <li class="">
+      <a href="/eng/Market/Futures/">Futures</a>
+      <ul>
+        <li>
+          <div class="m_varieties">
+            <div class="m_content">
+              
+                <div class="m_item_title "><a href="/eng/Market/Futures/Metal/">Metal</a></div>
+                <div class="m_item">
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/cu_f/">Copper</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/bc_f/">Copper(BC)</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/al_f/">Aluminum</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/zn_f/">Zinc</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/pb_f/">Lead</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/ni_f/">Nickel</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/sn_f/">Tin</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/ao_f/">Aluminium Oxide</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/ad_f/">Cast Aluminum Alloy</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/au_f/">Gold</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/ag_f/">Silver</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/rb_f/">Steel Rebar</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/wr_f/">Steel Wire Rod</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/hc_f/">Hot Rolled Coils</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Metal/ss_f/">Stainless Steel</a></div>
+                  
+                </div>
+              
+                <div class="m_item_title "><a href="/eng/Market/Futures/Energy/">Energy</a></div>
+                <div class="m_item">
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Energy/sc_f/">Crude Oil</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Energy/lu_f/">LSFO</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Energy/fu_f/">Fuel Oil</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Energy/bu_f/">Bitumen</a></div>
+                  
+                </div>
+              
+                <div class="m_item_title "><a href="/eng/Market/Futures/Chemical/">Chemical</a></div>
+                <div class="m_item">
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Chemical/br_f/">Synthetic Rubber</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Chemical/ru_f/">Natural Rubber</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Chemical/nr_f/">TSR 20</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Chemical/sp_f/">Woodpulp</a></div>
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/Chemical/op_f/">Offset Paper</a></div>
+                  
+                </div>
+              
+                <div class="m_item_title "><a href="/eng/Market/Futures/index_f/">Index</a></div>
+                <div class="m_item">
+                  
+                    <div class="m_item_it"><a href="/eng/Market/Futures/index_f/ec_f/">SCFIS(Europe)</a></div>
+                  
+                </div>
+              
+            
+            
+            </div>
+          </div>
+        </li>
+      </ul>
+    </li>
+    <li class="">
+      <a href="/eng/Market/Options/">Options</a>
+      <ul>
+        <li>
+          <div class="m_varieties">
+
+            <div class="m_content">                  
+                <div class="m_item_title "><a href="/eng/Market/Options/">Options</a></div>
+                
+                <div class="m_item">
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/sc_o/">Crude Oil</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/cu_o/">Copper</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/bc_o/">Copper(BC)</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/al_o/">Aluminum</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/zn_o/">Zinc</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/pb_o/">Lead</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/ni_o/">Nickel</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/sn_o/">Tin</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/ao_o/">Aluminium Oxide</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/ad_o/">Cast Aluminum Alloy</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/au_o/">Gold</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/ag_o/">Silver</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/rb_o/">Steel Rebar</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/fu_o/">Fuel Oil</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/bu_o/">Bitumen</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/br_o/">Synthetic Rubber</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/ru_o/">Natural Rubber</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/nr_o/">TSR 20</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/sp_o/">Woodpulp</a></div>
+                   
+                    <div class="m_item_it"><a href="/eng/Market/Options/op_o/">Offset Paper</a></div>
+                   
+                </div>
+              
+            </div>
+          </div>
+        </li>
+      </ul>
+    </li>
+    <li class="">
+      <a href="/eng/Market/ISIN/">ISIN</a>
+    </li>
+
+  </ul>
+</li>
+<!--services-->  
+<li class="">
+    <a href="/eng/services/">
+        Services
+    </a>
+  <ul>
+    
+      <li class="">
+        
+			 
+				  Rules
+				  <ul>
+					
+					  <li><a href="/eng/services/Rules/Guidance/">Guidance</a></li>
+					
+					  <li><a href="/eng/services/Rules/SHFERules/">SHFE Rules</a></li>
+					
+					  <li><a href="/eng/services/Rules/INERules/">INE Rules</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Supervision
+				  <ul>
+					
+					  <li><a href="/eng/services/Supervision/LargePositionReport/">Large Position Report</a></li>
+					
+					  <li><a href="/eng/services/Supervision/AdministrationofAccountsInvolvingActualControlRelationship/">Administration of Accounts Involving Actual Control Relationship</a></li>
+					
+					  <li><a href="/eng/services/Supervision/Cases/">Cases</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Trading
+				  <ul>
+					
+					  <li><a href="/eng/services/trading/TradingBusiness/">Trading Business</a></li>
+					
+					  <li><a href="/eng/services/trading/FloorTraderManagement/">Floor Trader Management</a></li>
+					
+					  <li><a href="/eng/services/trading/AccountOpening/">Account Opening</a></li>
+					
+					  <li><a href="/eng/services/trading/participant_eligibility/">Participant Eligibility</a></li>
+					
+					  <li><a href="/eng/services/trading/SeatManagement/">Seat Management</a></li>
+					
+					  <li><a href="/eng/services/trading/ProgramTradingFiling/">Program Trading Filing</a></li>
+					
+					  <li><a href="/eng/services/trading/HedgingOperation/">Hedging Operation</a></li>
+					
+					  <li><a href="/eng/services/trading/TAS/">Order Guideline</a></li>
+					
+					  <li><a href="/eng/services/trading/MarketMaker/">Market Maker</a></li>
+					
+					  <li><a href="/eng/services/trading/Download_Trading/">Download</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Settlement
+				  <ul>
+					
+					  <li><a href="/eng/services/Settlement/SettlementService/">Settlement Service</a></li>
+					
+					  <li><a href="/eng/services/Settlement/SettlementBank/">Settlement Bank</a></li>
+					
+					  <li><a href="/eng/services/Settlement/downloadDownload_Settlement/">Download</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Delivery
+				  <ul>
+					
+					  <li><a href="/eng/services/Delivery/WarehouseWarrant/">Warehouse Warrant</a></li>
+					
+					  <li><a href="/eng/services/Delivery/Warehousewarrantaccountmanagement/">Warehouse warrant account management</a></li>
+					
+					  <li><a href="/eng/services/Delivery/BondedDelivery/">Bonded Delivery</a></li>
+					
+					  <li><a href="/eng/services/Delivery/BrandRegistration/">Brand Registration</a></li>
+					
+					  <li><a href="/eng/services/Delivery/CertifiedDeliveryWarehouse/">Certified Delivery Warehouse</a></li>
+					
+					  <li><a href="/eng/services/Delivery/CommoditiesforDelivery/">Commodities for Delivery</a></li>
+					
+					  <li><a href="/eng/services/Delivery/DeliveryWarehouseAssayer/">Delivery Warehouse & Assayer</a></li>
+					
+					  <li><a href="https://www.shfe.com.cn/services/delivery/standardwarrantms/">Standard Warrant Management System</a></li>
+					
+					  <li><a href="/eng/services/Delivery/downloadDownload_Delivery/">Download</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Technology
+				  <ul>
+					
+					  <li><a href="/eng/services/Technology/TechnologyService/">Technology Service</a></li>
+					
+					  <li><a href="/eng/services/Technology/TechnicalSpecificationResource/">Technical Specification & Resource</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Market Data
+				  <ul>
+					
+					  <li><a href="/eng/services/vendorMarketData/BecomeaMarketDataVendor/">Become a Market Data Vendor</a></li>
+					
+					  <li><a href="/eng/services/vendorMarketData/Vendorlist/">Vendor list</a></li>
+					
+					  <li><a href="/eng/services/vendorMarketData/SHFEMarketDataProductsandPricing/">SHFE Market Data Products and Pricing</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+				  Members and Overseas Special Participants
+				  <ul>
+					
+					  <li><a href="/eng/services/Members/MemberQuery/">Member & Overseas Special Participant List</a></li>
+					
+					  <li><a href="/eng/services/Members/shfe_OverseasIntermediaryList/">Overseas Intermediary List</a></li>
+					
+					  <li><a href="/eng/services/Members/Membership/">Become A Member/An OSP</a></li>
+					
+					  <li><a href="/eng/services/Members/Honor/">Honor</a></li>
+					
+				  </ul>
+		  
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+			 
+		  
+		    <a href="/eng/services/investor/">I Am An Investor</a>
+		  
+        
+        
+		
+
+      </li>
+    
+      <li class="">
+        
+        
+          <a href="/eng/services/PFMI/PFMI/">PFMI</a>
+        
+		
+
+      </li>
+    
+    
+
+  </ul>
+</li>
+<!--Data-->  
+<li class="">
+    <a href="/eng/reports/">
+        Data
+    </a>
+  <ul>
+    
+      <li class="">
+        Calendar & Holidays
+        <ul>
+          
+          <li><a href="/eng/reports/CalendarHolidays/TradingCalendar/">Trading Calendar</a></li>
+        
+          <li><a href="/eng/reports/CalendarHolidays/TradingHours/">Trading Hours</a></li>
+        
+          <li><a href="/eng/reports/CalendarHolidays/Holiday/">Holiday</a></li>
+        
+        </ul>
+      </li>
+    
+      <li class="">
+        Business Data
+        <ul>
+          
+          <li><a href="/eng/reports/BusinessData/ContractParameters/">Contract Parameters</a></li>
+        
+          <li><a href="/eng/reports/BusinessData/TradingParameters/">Trading Parameters</a></li>
+        
+          <li><a href="/eng/reports/BusinessData/SpreadOrderParameters/">Spread Order Parameters</a></li>
+        
+          <li><a href="/eng/reports/BusinessData/SettlementParameters/">Settlement Parameters</a></li>
+        
+          <li><a href="/eng/reports/BusinessData/AdjustmenttoMonthlySettlementParameters/">Adjustment to Monthly Settlement Parameters</a></li>
+        
+          <li><a href="/eng/reports/BusinessData/delivery/">Delivery Parameters</a></li>
+        
+          <li><a href="/eng/reports/BusinessData/Fees/">Fees</a></li>
+        
+        </ul>
+      </li>
+    
+      <li class="">
+        Market Data
+        <ul>
+          
+          <li><a href="/eng/reports/delayedMarketData/DelayedQuotes/">Delayed Quotes</a></li>
+        
+        </ul>
+      </li>
+    
+      <li class="">
+        Statistical Data
+        <ul>
+          
+          <li><a href="/eng/reports/StatisticalData/DailyData/">Daily Data</a></li>
+        
+          <li><a href="/eng/reports/StatisticalData/WeeklyData/">Weekly Data</a></li>
+        
+          <li><a href="/eng/reports/StatisticalData/MonthlyData/">Monthly Data</a></li>
+        
+          <li><a href="/eng/reports/StatisticalData/Annualdata/">Annual Data</a></li>
+        
+        </ul>
+      </li>
+    
+  </ul>
+</li>
+<!--MarketInsights-->          
+<li class="">
+    <a href="/eng/insights/">
+        Market Insights
+    </a>
+    <ul>
+        
+            <li class="">
+                Frontier
+                <ul>
+                    
+                        <li>
+                            <a href="/eng/insights/Frontier/Index/">
+                                Index Quotes
+                            </a>
+                        </li>
+                    
+                </ul>
+            </li>
+        
+            <li class="">
+                Education
+                <ul>
+                    
+                        <li>
+                            <a href="https://edu.shfe.com.cn/">
+                                SHFE Investor Education
+                            </a>
+                        </li>
+                    
+                        <li>
+                            <a href="/eng/insights/Education/EventsWebinars/">
+                                Events & Webinars
+                            </a>
+                        </li>
+                    
+                </ul>
+            </li>
+        
+    </ul>
+</li>
+<!-- About -->
+<li class="">
+  <!-- 聚合页 -->
+  <a href="/eng/AboutSHFE/">
+    About SHFE
+  </a>
+  <ul>
+    <li>
+      Introduction
+      <ul>
+        
+          <li class="">
+            <a href="/eng/AboutSHFE/Introduction/Overview/">
+                Overview
+            </a>
+          </li>
+        
+          <li class="">
+            <a href="/eng/AboutSHFE/Introduction/Organization/">
+                Organization
+            </a>
+          </li>
+        
+          <li class="">
+            <a href="/eng/AboutSHFE/Introduction/Strategy/">
+                Strategy
+            </a>
+          </li>
+        
+      </ul>
+    </li>
+    <li>
+      Institution
+      <ul>
+          
+              <li class="">
+                  SHFE POST-DOCTORAL PROGRAM
+                  <ul>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/Overview/">
+                                  Overview
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/FormDownload/">
+                                  Form Download
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/Organization/">
+                                  Organization
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/ExpertTeam/">
+                                  Expert Team
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/ManagementRules/">
+                                  Management Rules
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/PostdoctoralRese/">
+                                  Postdoctoral Research
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/PostdoctoralFellows/">
+                                  Postdoctoral Fellows
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/OverseasPostdoctoralSystem/">
+                                  Overseas Postdoctoral System
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/sw/Recruitment/">
+                                  Recruitment
+                              </a>
+                          </li>
+                      
+                  </ul>
+              </li>
+          
+              <li class="">
+                  Subsidiaries
+                  <ul>
+                      
+                          <li>
+                              <a href="/eng/AboutSHFE/Institution/Subsidiaries/sw/">
+                                  Shanghai SHFE Business Services Co.,Ltd
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="https://www.ine.cn/eng/">
+                                  Shanghai International Energy Exchange
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="https://www.shfe.com.cn/sfit/">
+                                  Shanghai Futures Information Technology Co., Ltd.
+                              </a>
+                          </li>
+                      
+                          <li>
+                              <a href="https://www.shfe.com.cn/ifd/">
+                                  Shanghai Futures and Derivatives Research Institute
+                              </a>
+                          </li>
+                      
+                  </ul>
+              </li>
+          
+      </ul>
+    </li>   
+
+    
+      <li>
+        <a href="/eng/AboutSHFE/Recruitment/">
+          Recruitment
+        </a>
+      </li>
+    
+      <li>
+        <a href="/eng/AboutSHFE/PersonalInformationProtecttionPolicy/">
+          Personal Information Protection Policy
+        </a>
+      </li>
+    
+      <li>
+        <a href="/eng/AboutSHFE/CorporateSocialResponsibility/">
+          Corporate Social Responsibility
+        </a>
+      </li>
+    
+      <li>
+        <a href="/eng/AboutSHFE/ContactUs/">
+          Contact Us
+        </a>
+      </li>
+    
+    
+  </ul>
+</li>
+
+            </ul>
+          </nav>
+
+          <div class="sqs_top_line" id="top_nav_mobile">
+            <a href="/eng/" target="_self" class="sqs_top_logo">
+              <img src="/eng/images/logo.png" />
+            </a>
+            <div class="sqs_top_fr_box">
+              <!-- 头部搜索和登录 -->
+              <div class="sqs_searchAndLogin">
+                <a class="originalVersion" href="/">
+                  中文版
+                </a>
+                <a href="/eng/pubilc/server/" class="sqs_search">
+                  <img src="/eng/images/mobile_search.png" />
+                </a>
+                <a class="toggle_menu" href="#">
+                  <img src="/eng/images/mobile_menu.png" alt="" />
+                </a>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </header>
+      <script>
+        (function ($) {
+          "use strict";
+          var Nav = new hcOffcanvasNav("#main-nav", {
+            position: "right",
+            customToggle: ".toggle_menu",
+            levelTitles: true,
+            labelClose: "close",
+            labelBack: "return",
+          });
+          Nav.on( 'open.level', ( e, settings ) => {
+            sessionStorage.setItem('NavLevel', e.data.currentLevel);
+            sessionStorage.setItem('NavIndex', e.data.currentIndex);
+          });
+          Nav.on( 'close.level', ( e, settings ) => {
+            sessionStorage.setItem('NavLevel', e.data.currentLevel);
+            sessionStorage.setItem('NavIndex', e.data.currentIndex);
+          });
+          Nav.on( 'toggle', ( e, settings ) => {
+            if( e.data.action == 'open' ) {
+            Nav.open(  sessionStorage.getItem('NavLevel'), sessionStorage.getItem('NavIndex') )
+            }
+          });
+        })(jQuery);
+      </script>
+    </div>
+  </body>
+</div>
+
+
+  
+<!-- Monitor Start -->
+<script type="text/javascript">
+    var serverUrl = "http://" + window.location.host + "/";
+	if(location.pathname=='/eng/'|| location.pathname=='/shfe_en/'){$('#home_top_investor').show()}
+</script>
+<script language="JavaScript" charset="utf-8" src="/eng/images/count.js"></script>
+<script type="text/javascript">
+    params.siteId='25';
+    params.siteName='shfe_en';
+</script>
+<script language="JavaScript" charset="utf-8" src="/eng/images/submit.js"></script>
+
+<link rel="stylesheet" type="text/css" href="/eng/images/search_header.css" />
+<script type="text/javascript" charset="utf-8" src="/eng/images/vue.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="/eng/images/element-ui/index.js"></script>
+
+  
+<script>
+  var newsList = " ";
+  var spotlightList= " ";
+  newsList=newsList.trim();
+  spotlightList=spotlightList.trim();
+  // ELEMENT.locale(ELEMENT.lang.en);
+  (function () {
+  new Vue({
+    el: "#search_idNew",
+    data() {
+      return {
+        baseUrl: '/api/search/',
+        showHistory: false,
+        currentPage: 1,
+        pageSize: 10,
+        searchHistoryList: [],
+        selectValue: " or ",
+        timeradioVal: 1,
+        timeRange: [],
+        keyWordRadio: "1",
+        showMoreSearch: false,
+        pageTotal: 0,
+        inputStr: "",
+        searchParams: {
+          chlid: 1003,
+          cutsize: 150,
+          dynexpr: [],
+          dynidx: 1,
+          extopt: [],
+          orderby: "",
+          page: 1,
+          searchword: "",
+          size: 20,
+        },
+        hotTagsList: [],
+        loading: false,
+        listData: [], // 列表数据
+        timeStr: "",
+        sourceObj: {
+          products: "产品",
+          reports: "数据",
+          services: "服务",
+          regulation: "规则",
+          publicnotice: "公告",
+          about: "关于",
+        },
+        classifyObj: {
+          allNum: 0,
+          productsNum: 0,
+          reportsNum: 0,
+          servicesNum: 0,
+          regulationNum: 0,
+          publicnoticeNum: 0,
+          aboutNum: 0,
+          othersNum: 0,
+        },
+        allData: [], // 全量数据--用于分类
+        hootKeyParams: {
+          chlid: 1005,
+          cutsize: 150,
+          dynexpr: [],
+          dynidx: 1,
+          extopt: [],
+          orderby: "-searchcnt",
+          page: 1,
+          searchword: "",
+          size: 20,
+        },
+        fullKeyParams: {
+          chlid: 1006,
+          cutsize: 150,
+          dynexpr: [],
+          dynidx: 1,
+          extopt: [],
+          orderby: "-cnt",
+          page: 1,
+          searchword: "word=铜%",
+          size: 10,
+        },
+        fullSourceDic: [],
+        fullSourceParams: {
+          chlid: 1010,
+          cutsize: 1000,
+          dynexpr: [],
+          dynidx: 1,
+          extopt: [],
+          orderby: "",
+          page: 1,
+          searchword: "",
+          size: 1000,
+        },
+        selectedType: "all",
+        typeSearchStr: "",
+        loading: false,
+      };
+    },
+    mounted() {
+      let arr = JSON.parse(localStorage.getItem("searchHistoryList"));
+      if (arr && arr.length > 0) {
+        this.searchHistoryList = arr;
+      } else {
+        this.searchHistoryList = [];
+      }
+    },
+    methods: {
+      height_btnNew(){
+      let recordSearchWord = $('#searchText').val()
+      if( recordSearchWord != "" ) {
+        let recordParamsWord_str = recordSearchWord.trim();
+        if( recordParamsWord_str != "" && recordParamsWord_str.length > 100 ) {
+          this.$message({
+            message: 'The maximum length of the search term is 100, please adjust it and re-enter it again.' ,
+            type: "warning"
+          });
+          return false
+        }
+      }
+      let searchheadertext=  ''
+      searchheadertext= $('#searchText').val().trim() ? encodeURI( $('#searchText').val().trim()) : '' ;
+      let str = '/eng/pubilc/server/'
+      let str1 = str + '?searchText='+ searchheadertext + '&high=1';
+      $('#height_btn').attr('href',  str1)
+    },
+    searchHeaderBtnNew(){
+      let recordSearchWord = $('#searchText').val()
+      if( recordSearchWord != "" ) {
+        let recordParamsWord_str = recordSearchWord.trim();
+        if( recordParamsWord_str != "" && recordParamsWord_str.length > 100 ) {
+          this.$message({
+            message: 'The maximum length of the search term is 100, please adjust it and re-enter it again.' ,
+            type: "warning"
+          });
+          return false
+        }
+      }
+      let searchheadertext=  ''
+      searchheadertext= $('#searchText').val().trim() ? encodeURI( $('#searchText').val().trim()) : '' ;
+      let str = '/eng/pubilc/server/'
+      let str1 = str + '?searchText='+ searchheadertext+ '&high=0';
+      $('#searchHeaderBtn').attr('href',  str1)
+    },
+      searchTextNew(e){
+        let searchheadertext=  ''
+        if (e.which=== 13) {
+        e.preventDefault()
+          searchheadertext= $('#searchText').val().trim() ? encodeURI( $('#searchText').val().trim()) : '' ;
+          let str = '/eng/pubilc/server/'
+          let str1 = str + '?searchText='+ searchheadertext+ '&high=0';
+          window.open(str1)
+        }
+      },
+      // 获取热词
+      getHootKeys() {
+        let _this = this;
+        let obj = JSON.stringify(_this.hootKeyParams);
+        $.ajax({
+          url: _this.baseUrl,
+          //调用servlet方法
+          // data:"action=jQueryAjax",
+          data: obj,
+          type: "POST",
+          contentType: "application/json",
+          success: function (res) {
+            if (res.data?.content?.length > 0) {
+              _this.hotTagsList = [];
+              res.data.content.map((item) => {
+                _this.hotTagsList.push(item.hotkey);
+              });
+            }
+          },
+          //返回数据的格式
+          dataType: "json",
+        });
+      },
+      // 获取联想词
+      getFullKey(queryString, cb) {
+        let _this = this;
+        let strInfo = queryString ? queryString.trim() : queryString;
+        _this.fullKeyParams.searchword = "word=" + "%" + strInfo + "%" + " and siteid=shfe_en" ;
+        let obj = JSON.stringify(_this.fullKeyParams);
+        $.ajax({
+          url: _this.baseUrl,
+          //调用servlet方法
+          // data:"action=jQueryAjax",
+          data: obj,
+          type: "POST",
+          contentType: "application/json",
+          success: function (res) {
+            let arr = [];
+            if (res.data && res.data.content.length > 0) {
+              arr = res.data.content;
+            }
+            cb(arr);
+          },
+          //返回数据的格式
+          dataType: "json",
+        });
+      },
+      handleSelect(item) {
+        this.inputStr = item.word;
+        this.search();
+      },
+      handleSearch() {
+        this.searchParams.page = 1;
+        this.search();
+      },
+      chooseOrderType(val) {
+        this.searchParams.orderby = val;
+        this.search(true);
+      },
+      chooseType(val) {
+        this.selectedType = val;
+        if (val === "all") {
+          this.typeSearchStr = "";
+        } else if (val === "others") {
+          this.typeSearchStr =
+            "chnldesc!= Market and chnldesc!= reports and chnldesc!= services and chnldesc!= MarketInsights and chnldesc!= CircularNews and chnldesc!= AboutSHFE";
+        } else {
+          this.typeSearchStr = "chnldesc=" + val;
+        }
+        this.searchParams.page = 1;
+        this.search(true);
+      },
+      search(val) {
+        let _this = this;
+        _this.loading = true
+        // if (_this.searchParams.page === 1) {
+        //   _this.classifyObj = {
+        //     products: [],
+        //     reports: [],
+        //     services: [],
+        //     regulation: [],
+        //     publicnotice: [],
+        //     about: [],
+        //     others: [],
+        //   };
+        //   _this.allData = [];
+        // }
+        _this.listData = [];
+        // _this.pageTotal = 0;
+        _this.showHistory = false;
+        _this.showMoreSearch = false;
+        _this.searchParams.searchword = "";
+        if (_this.inputStr != "") {
+          _this.searchHistoryList.unshift(_this.inputStr);
+          _this.searchHistoryList = Array.from(
+            new Set(_this.searchHistoryList)
+          );
+          let str = JSON.stringify(_this.searchHistoryList);
+          localStorage.setItem("searchHistoryList", str);
+        }
+        if (_this.inputStr != "") {
+          let arr = _this.inputStr.split(" ").filter((e) => {
+            return e !== "";
+          });
+          let wordArr = [];
+          arr.map((item) => {
+            let symbolsRegex = /[（）()-_=+/?<>,.<=>=%$#*@]/;
+            if (symbolsRegex.test(item)) {
+              wordArr.push("'" + item + "'");
+            } else {
+              wordArr.push("%" + item + "%");
+            }
+          });
+          if (_this.keyWordRadio == "1") {
+            _this.searchParams.searchword = wordArr.join(_this.selectValue);
+          } else {
+            let tArr = [];
+            wordArr.map((item) => {
+              tArr.push(_this.keyWordRadio + item);
+            });
+            _this.searchParams.searchword = tArr.join(_this.selectValue);
+          }
+        }
+        if (_this.timeStr !== "") {
+          if (_this.searchParams.searchword !== "") {
+            _this.searchParams.searchword =
+              _this.searchParams.searchword + " and " + _this.timeStr;
+          } else {
+            _this.searchParams.searchword = _this.timeStr;
+          }
+        }
+        let tempsearchword = this.searchParams.searchword
+        if (_this.searchParams.searchword.length > 0) {
+          if (_this.typeSearchStr != "") {
+            _this.searchParams.searchword =
+              _this.searchParams.searchword + " and " + _this.typeSearchStr;
+          }
+        } else {
+          if (_this.typeSearchStr != "") {
+            _this.searchParams.searchword = _this.typeSearchStr;
+          }
+        }
+        let obj = JSON.stringify(_this.searchParams);
+        // let forAllObj = JSON.parse(JSON.stringify(_this.searchParams));
+        $.ajax({
+          url: _this.baseUrl,
+          //调用servlet方法
+          // data:"action=jQueryAjax",
+          data: obj,
+          type: "POST",
+          contentType: "application/json",
+          success: function (res) {
+            if (res.data?.content?.length > 0) {
+              _this.listData = res.data.content;
+              _this.pageTotal = res.data.totalElements;
+              _this.addUbas()
+              // if (_this.searchParams.page === 1) {
+              //   forAllObj.size = res.data.totalElements;
+              //   forAllObj = JSON.stringify(forAllObj);
+              //   $.ajax({
+              //     url: _this.baseUrl,
+              //     //调用servlet方法
+              //     // data:"action=jQueryAjax",
+              //     data: forAllObj,
+              //     type: "POST",
+              //     contentType: "application/json",
+              //     success: function (value) {
+              //       if (value.data?.content?.length > 0) {
+              //         _this.allData = value.data.content;
+              //         _this.getClassify();
+              //       } else {
+              //         _this.allData = [];
+              //       }
+              //     },
+              //     //返回数据的格式
+              //     dataType: "json",
+              //   });
+              // }
+            } else {
+              _this.listData = [];
+              _this.pageTotal = 0;
+            }
+            _this.loading = false
+            if (!val) {
+              _this.getAllTypesCounts(tempsearchword);
+            }
+          },
+          //返回数据的格式
+          dataType: "json",
+        });
+      },
+      // 选择时间
+      timeRadioChange(val) {
+        this.timeRange = [];
+        if (val === 1) {
+          this.timeStr = "";
+        } else if (val === 2) {
+          let s = moment(new Date(new Date() - 6 * 24 * 3600 * 1000)).format(
+            "YYYY.MM.DD"
+          );
+          let e = moment(new Date()).format("YYYY.MM.DD");
+          this.timeStr = "docreltime>=" + s + " and docreltime<=" + e;
+        } else if (val === 3) {
+          let s = moment(new Date(new Date() - 30 * 24 * 3600 * 1000)).format(
+            "YYYY.MM.DD"
+          );
+          let e = moment(new Date()).format("YYYY.MM.DD");
+          this.timeStr = "docreltime>=" + s + " and docreltime<=" + e;
+        } else if (val === 4) {
+          let s = moment(new Date(new Date() - 365 * 24 * 3600 * 1000)).format(
+            "YYYY.MM.DD"
+          );
+          let e = moment(new Date()).format("YYYY.MM.DD");
+          this.timeStr = "docreltime>=" + s + " and docreltime<=" + e;
+        } else if (val === 5) {
+          this.timeStr = "";
+        }
+      },
+      selectTimeRange() {
+        let s = moment(this.timeRange[0]).format("YYYY.MM.DD");
+        let e = moment(this.timeRange[1]).format("YYYY.MM.DD");
+        this.timeStr = "docreltime>=" + s + " and docreltime<=" + e;
+      },
+      handleClose(tag) {
+        this.searchHistoryList.splice(this.searchHistoryList.indexOf(tag), 1);
+        let str = JSON.stringify(this.searchHistoryList);
+        localStorage.setItem("searchHistoryList", str);
+      },
+      handleTagClick(val) {
+        // let reg = /[\t\r\f\n\s]*/g;
+        // this.inputStr = val.target.innerText.replace(reg, "");
+        this.inputStr = val.target.innerText.replace(/(^\s*)|(\s*$)/g, "");
+      },
+      // 分页
+      handleCurrentChange(val) {
+        this.searchParams.page = val;
+        this.search(true);
+      },
+      handleSizeChange(val) {
+        this.searchParams.page = 1;
+        this.searchParams.size = val;
+        this.search(true);
+      },
+      openUrl(val) {
+        window.open(val);
+      },
+      reset() {
+        this.inputStr = "";
+        this.selectValue = " or ";
+        this.timeRange = [];
+        this.timeradioVal = 1;
+        this.keyWordRadio = "1";
+        this.timeStr = "";
+        this.search();
+      },
+      // 分类
+      getClassify() {
+        this.allData.map((item) => {
+          let key = item.chnldesc;
+          if (!!this.classifyObj[key]) {
+            this.classifyObj[key].push(item.id);
+          } else {
+            this.classifyObj.others.push(item.id);
+          }
+        });
+      },
+      getAllTypesCounts(val) {
+        let _this = this
+        let arr = [
+          {
+            num: 'allNum',
+            str: ''
+          }, {
+            num: 'productsNum',
+            str: 'chnldesc=products'
+          }, {
+            num: 'reportsNum',
+            str: 'chnldesc=reports'
+          }, {
+            num: 'servicesNum',
+            str: 'chnldesc=services'
+          }, {
+            num: 'regulationNum',
+            str: 'chnldesc=regulation'
+          }, {
+            num: 'publicnoticeNum',
+            str: 'chnldesc=publicnotice'
+          }, {
+            num: 'aboutNum',
+            str: 'chnldesc=about'
+          }, {
+            num: 'othersNum',
+            str: 'chnldesc!=products and chnldesc!=reports and chnldesc!=services and chnldesc!=regulation and chnldesc!=publicnotice and chnldesc!=about'
+          }
+        ]
+        arr.map(item => {
+          let searchword = ''
+          if (val.length > 0) {
+            if (item.str != "") {
+              searchword =
+                val + " and " + item.str;
+            } else {
+              searchword = val
+            }
+          } else {
+            if (item.str != "") {
+              searchword = item.str;
+            }
+          }
+          let obj = {
+            chlid: 1003,
+            page: 1,
+            searchword: searchword,
+            size: 10,
+          }
+          $.ajax({
+            url: _this.baseUrl,
+            //调用servlet方法
+            // data:"action=jQueryAjax",
+            data: JSON.stringify(obj),
+            type: "POST",
+            contentType: "application/json",
+            success: function (res) {
+                _this.classifyObj[item.num] =  res.data ?  res.data.totalElements : 0
+            },
+            //返回数据的格式
+            dataType: "json",
+          });
+        })
+      },
+      // 获取来源的字典
+      getFullSourceDic() {
+        let _this = this;
+        let obj = JSON.stringify(_this.fullSourceParams);
+        $.ajax({
+          url: _this.baseUrl,
+          //调用servlet方法
+          // data:"action=jQueryAjax",
+          data: obj,
+          type: "POST",
+          contentType: "application/json",
+          success: function (res) {
+            if (res.data?.content?.length > 0) {
+
+              _this.fullSourceDic = res.data.content
+            }
+            _this.search();
+          },
+          //返回数据的格式
+          dataType: "json",
+        });
+      },
+      // 获取来源的完整路径
+      getFullSource(val) {
+        if (val.length > 0) {
+          let arr = val.split(',')
+          let str = ''
+          arr.map(item => {
+            let a = this.fullSourceDic.find(obj => obj.datapath === item)
+            str += a ? (a.chnldesc + '-') : ''
+          })
+          if (str.endsWith('-')) {
+            str = str.slice(0, -1)
+          }
+          return str
+        } else {
+          return '其他'
+        }
+      },
+      // ubas关键词统计
+      addUbas() {
+        createParams();
+        params.referrer = window.location.origin + '/pubilc/server/?searchText=' + this.inputStr
+        var strParam = "";
+        for(var key in params){
+            strParam += key+"="+params[key]+"&";
+        }
+        //console.log('=======', params, strParam)
+        strParam = strParam.substring(0,strParam.length-1);
+        var trsImg =  document.createElement("img");
+        trsImg.src = encodeURI(encodeURI(addUrl+"?"+strParam));
+        trsImg.style.display = "none";
+        document.body.appendChild(trsImg);
+    }
+      
+    },
+  });
+})();
+
+</script>
+    <!-- END header -->
+    <!-- 右边悬浮 -->
+    <!-- 右边悬浮 -->
+<div class="sqs_right">
+  <a href="/eng/Market/" target="_blank">
+    <img src="/eng/images/sqs_right_1.png" />
+    <span class="lineHeightO">Products Specs</span>
+  </a>
+  <a href="/eng/reports/CalendarHolidays/TradingCalendar/" target="_blank">
+    <img src="/eng/images/sqs_right_2.png" />
+    <span class="lineHeightO">Trading Calender</span>
+  </a>
+  <a href="/eng/reports/BusinessData/Fees/" target="_blank">
+    <img src="/eng/images/sqs_right_3.png" />
+    <span class="lineHeightT">Fees</span>
+  </a>
+  <a href="/eng/services/Rules/SHFERules/" target="_blank">
+    <img src="/eng/images/sqs_right_4.png" />
+    <span class="lineHeightT">Rules</span>
+  </a>
+  <a href="https://edu.shfe.com.cn/" target="_blank">
+    <img src="/eng/images/sqs_right_5.png" />
+    <span class="lineHeightT">Education</span>
+  </a>
+  <a href="javascript:;" onclick="pageScroll()">
+    <img src="/eng/images/sqs_right_6.png" />
+    <span class="lineHeightT">Back to Top</span>
+  </a>
+</div>
+
+    <!-- 头部图片 -->
+    <div
+      class="sqs_Service_SHFE_banner ine-banner"
+      style="
+        background: url(
+          
+            
+              ../../banner/202412/W020250411612742451696.png		
+            
+          ) no-repeat center;
+        background-size: cover;
+      "
+    >
+      <!-- banner -->
+      <!-- <div class="ine-banner"> -->
+	   <!-- <div class="banner-tit">Circular & News</div> -->
+      <div class="banner-pos">
+       
+        <div class="banner_nav">
+          <a href="/eng/" title="Home" class="m_text_info">Home</a><span class="m_text_icon"> / </span><a href="/eng/CircularNews/" title="Circular &amp; News" class="m_text_info">Circular & News</a><span class="m_text_icon"> / </span><a href="/eng/CircularNews/Circular/" title="Circular" class="m_text_info">Circular</a>
+        </div>
+      </div>
+    </div>
+    <!-- 内容盒子 -->
+    <div class="sqs_tyxqy_box" id="sqsBox">
+      <div class="sqs_tyxqy_box_text">
+        <div class="tit-box">
+          <div class="tit-logo">
+            <!-- <img src="/eng/images/tit-logo.png" /> -->
+            <img class="tit_shfeLogo" src="/eng/images/p_shfeLogo.png" />
+          </div>
+          <div class="tit-rigth">
+            <div class="tit-print">
+              <img src="/eng/images/tit-Print.png" onclick="printforWord('sqsBox')" />
+            </div>
+            <div class="tit-line"></div>
+            <div class="tit-share"></div>
+            <script src="/eng/images/jquery.share.min.js"></script>
+            <script>
+              $(".tit-share").share({
+                sites: ["wechat", "weibo"],
+                wechatQrcodeTitle: "",
+                wechatQrcodeHelper: "",
+              });
+            </script>
+          </div>
+        </div>
+        <div class="tit-bg"></div>
+        <h2 class="font-blue font-blue-mar1">Updated on 2025-12-17</h2>
+        <h2 class="sqs_tyxqy_tit">
+          Trading Schedule during National Holidays for Year 2026
+        </h2>
+
+        <div class="sqs_tyxqy_date_con">
+          <div class=TRS_Editor><style type="text/css">
+
+.TRS_Editor P{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor DIV{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor TD{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor TH{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor SPAN{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor FONT{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor UL{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor LI{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor A{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}</style>
+<div class="TRS_Editor"><style type="text/css">
+
+.TRS_Editor P{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor DIV{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor TD{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor TH{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor SPAN{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor FONT{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor UL{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor LI{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}.TRS_Editor A{margin-top:0px;margin-bottom:0px;line-height:1.4;font-family:--系统字体--;font-size:14pt;}</style>
+<div class="Custom_UnionStyle"><span style="text-align: justify; ">P</span><span style="Times New Roman&quot;; text-align: justify; ">ursuant to </span><span style="text-align: justify; ">the </span><span style="Times New Roman&quot;; text-align: justify; ">Circular</span>&nbsp;<span style="Times New Roman&quot;; text-align: justify; ">issued by the China Securities Regulatory Commission</span><span style="text-align: justify; ">&nbsp;(</span><span style="Times New Roman&quot;; text-align: justify; ">“CSRC”</span><span style="text-align: justify; ">), </span><span style="Times New Roman&quot;; text-align: justify; ">Shanghai Futures </span><span style="text-align: justify; ">Exchange (</span><span style="Times New Roman&quot;; text-align: justify; ">“</span><span style="text-align: justify; ">SHFE</span><span style="Times New Roman&quot;; text-align: justify; ">”</span><span style="text-align: justify; ">) hereby announces t</span><span style="Times New Roman&quot;; text-align: justify; ">he following trading schedule during national holidays for year 202</span><span style="text-align: justify; ">6</span><span style="Times New Roman&quot;; text-align: justify; ">:</span>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">1. New Year</span><span style="">’</span><span style=" ">s Day: SHFE </span><span style="">will </span><span style=" ">close </span><span style="">on holidays</span>&nbsp;<span style=" ">from </span><span style=" ">January </span><span style="">1</span><span style=" ">, </span><span style="">202</span><span style=" ">6 </span><span style=" ">(</span><span style=" ">Thursday</span><span style=" ">)</span><span style=" ">&nbsp;to J</span><span style=" ">anuary </span><span style=" ">3</span><span style=" ">, </span><span style="">202</span><span style=" ">6 </span><span style=" ">(</span><span style=" ">Saturday</span><span style=" ">)</span><span style="">, and</span>&nbsp;<span style="">will </span><span style=" ">open as usual on January </span><span style=" ">5</span><span style=" ">, </span><span style="">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Mon</span><span style="">day</span><span style=" ">). </span><span style="">It will also </span><span style=" ">close </span><span style="">on </span><span style=" ">January</span>&nbsp;<span style=" ">4</span><span style=" ">, </span><span style="">202</span><span style=" ">6 </span><span style=" ">(</span><span style="">Sunday</span><span style=" ">)</span><span style=" ">. </span><span style=" ">There is no continuous trading on December </span><span style=" ">31</span><span style=" ">, 20</span><span style="">2</span><span style=" ">5</span><span style=" ">&nbsp;(</span><span style=" ">Wednes</span><span style="">day</span><span style=" ">).</span></p>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">2. Spring Festival: SHFE </span><span style="">will </span><span style=" ">close </span><span style="">on holidays</span><span style=" ">&nbsp;from </span><span style=" ">February</span>&nbsp;<span style=" ">15</span><span style=" ">, </span><span style="">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Sunday</span><span style=" ">) to</span><span style="">&nbsp;February</span>&nbsp;<span style=" ">23</span><span style=" ">, </span><span style="">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Mon</span><span style="">day</span><span style=" ">)</span><span style="">, and will</span><span style=" ">&nbsp;open as usual on </span><span style="">February</span>&nbsp;<span style=" ">24</span><span style=" ">, </span><span style="">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Tues</span><span style="">day</span><span style=" ">). </span><span style="">It will also </span><span style=" ">close </span><span style="">on </span><span style=" ">February</span>&nbsp;<span style=" ">14</span><span style=" ">, </span><span style="">202</span><span style=" ">6 </span><span style=" ">(</span><span style="">S</span><span style=" ">atur</span><span style="">day</span><span style=" ">) </span><span style="">and February</span>&nbsp;<span style=" ">28</span><span style=" ">, </span><span style="">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style="">S</span><span style=" ">atur</span><span style="">day</span><span style=" ">).</span>&nbsp;<span style=" ">There is no continuous trading on </span><span style=" ">February</span>&nbsp;<span style=" ">13</span><span style=" ">, </span><span style="">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Friday</span><span style=" ">).</span></p>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">3</span><span style="">. </span><span style=" ">Qingming Festival (</span><span style="">The Tomb-Sweeping Day</span><span style=" ">)</span><span style="">: SHFE will close on holidays </span><span style=" ">from</span><span style="">&nbsp;April 4, 202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Saturday</span><span style=" ">)</span><span style=" ">&nbsp;to </span><span style="">April </span><span style=" ">6</span><span style="">, 202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Monday</span><span style=" ">)</span><span style="">, and</span>&nbsp;<span style="">will open as usual on</span>&nbsp;<span style="">April </span><span style=" ">7</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span>&nbsp;<span style=" ">(</span><span style=" ">Tues</span><span style="">day</span><span style=" ">)</span><span style="">.</span>&nbsp;<span style="">There is no continuous trading on</span>&nbsp;<span style="">April 3, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Fri</span><span style="">day</span><span style=" ">)</span><span style="">.&nbsp;</span></p>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">4</span><span style="">. The </span><span style=" ">International Workers</span><span style="">’ Day: SHFE will close on holidays from May 1, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Fri</span><span style="">day</span><span style=" ">) </span><span style="">to May 5, </span><span style=" ">202</span><span style=" ">6</span><span style="">&nbsp;(</span><span style=" ">Tues</span><span style="">day), </span><span style=" ">and </span><span style="">will open as usual on</span>&nbsp;<span style="">May 6, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Wednes</span><span style="">day</span><span style=" ">)</span><span style="">. </span><span style=" ">It </span><span style="">will also</span><span style=" ">&nbsp;close </span><span style="">on </span><span style=" ">May 9</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Satur</span><span style="">day</span><span style=" ">)</span><span style="">. There is no continuous trading on</span>&nbsp;<span style="">April 30, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Thurs</span><span style="">day</span><span style=" ">)</span><span style="">.</span></p>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">5</span><span style="">. The Dragon Boat Festival: SHFE will close on </span><span style=" ">holidays </span><span style="">from </span><span style=" ">June 19</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Fri</span><span style="">day</span><span style=" ">)</span><span style="">&nbsp;t</span><span style=" ">o June </span><span style=" ">21</span><span style=" ">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Sun</span><span style="">day</span><span style=" ">)</span><span style="">, and will open as usual on</span>&nbsp;<span style="">June </span><span style=" ">22</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Mon</span><span style="">day</span><span style=" ">)</span><span style="">. There is no continuous trading on</span>&nbsp;<span style=" ">June 18</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Thurs</span><span style="">day</span><span style=" ">)</span><span style="">.</span></p>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">6</span><span style="">. The Mid-Autumn Festiva</span><span style=" ">l: </span><span style="">SHFE will close on </span><span style=" ">holidays </span><span style="">from</span>&nbsp;<span style=" ">September</span>&nbsp;<span style=" ">25</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span>&nbsp;<span style=" ">(</span><span style=" ">Fri</span><span style="">day</span><span style=" ">)</span><span style="">&nbsp;to </span><span style=" ">September</span>&nbsp;<span style=" ">27</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span>&nbsp;<span style=" ">(</span><span style=" ">Sun</span><span style="">day</span><span style=" ">)</span><span style="">, and will open as usual on</span>&nbsp;<span style=" ">September</span>&nbsp;<span style=" ">28</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span>&nbsp;<span style=" ">(</span><span style=" ">Mon</span><span style="">day</span><span style=" ">)</span><span style="">. There is no continuous trading on</span>&nbsp;<span style="">September</span>&nbsp;<span style=" ">24</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Thurs</span><span style="">day</span><span style=" ">)</span><span style="">.</span></p>
+<p style="" align="justify"><span style=" "><br />
+</span></p>
+<p style="" align="justify"><span style=" ">7. </span><span style="">The National Day</span><span style=" ">:</span><span style="">&nbsp;SHFE will close on </span><span style=" ">holidays </span><span style="">from</span>&nbsp;<span style="">October 1, </span><span style=" ">202</span><span style=" ">6</span>&nbsp;<span style=" ">(</span><span style=" ">Thurs</span><span style="">day</span><span style=" ">)</span><span style="">&nbsp;to October </span><span style=" ">7</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style="">&nbsp;(</span><span style=" ">Wednes</span><span style="">day), and will open as usual on</span>&nbsp;<span style="">October </span><span style=" ">8</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Thur</span><span style="">sday</span><span style=" ">).</span>&nbsp;<span style=" ">It </span><span style="">will also</span><span style=" ">&nbsp;close </span><span style="">on September </span><span style=" ">20</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style="">S</span><span style=" ">un</span><span style="">day</span><span style=" ">)</span><span style=" ">&nbsp;and </span><span style="">October </span><span style=" ">10</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style="">Saturday</span><span style=" ">)</span><span style="">. There is no continuous trading on</span>&nbsp;<span style="">September</span>&nbsp;<span style=" ">30</span><span style="">, </span><span style=" ">202</span><span style=" ">6</span><span style=" ">&nbsp;(</span><span style=" ">Wednes</span><span style="">day</span><span style=" ">)</span><span style="">.</span></p>
+<p style="" align="justify"><span style=""><br />
+</span></p>
+<p style="" align="justify"><span style="">R</span><span style=" ">elevant</span>&nbsp;<span style=" ">parties</span><span style="">&nbsp;and investors shall make corresponding arrangements as per this </span><span style=" ">s</span><span style="">chedule, </span><span style=" ">adopt</span><span style="">&nbsp;effective measures for risk management, and jointly ensure the smooth and </span><span style=" ">sound</span><span style="">&nbsp;operation of the market.</span></p>
+<p align="justify" style=" text-align: right; Times New Roman&quot;;  "><span style=" "><br />
+</span></p>
+<p align="justify" style=" text-align: right; Times New Roman&quot;;  "><span style=" ">Shanghai </span><span style="">Futures</span><span style=" ">&nbsp;Exchange</span></p>
+<p align="justify" style="text-align: right;"><span style="">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp;<span style="">December</span>&nbsp;<span style="">17</span><span style="">, 202</span><span style=" ">5</span></p>
+</div>
+</div></div>
+        </div>
+
+<!-- 附件下载 -->
+
+
+
+
+
+      </div>
+
+
+
+
+
+    </div>
+
+    <!-- 公用路径跳转 -->
+    <!-- START inc_turn_to -->
+    <div class="sqs_accessTheMarket">
+  <a class="sqs_accessTheMarket_link" href="/eng/CircularNews/">
+    <div class="sqs_accessTheMarket_icon">
+      <img src="/eng/images/footer_linkIcon.png" />
+    </div>
+    <div class="sqs_accessTheMarket_name">
+	  
+      
+      <span class="sqs_accessTheMarket_nameL">View more Circular&News</span>
+      
+	  
+      <span class="sqs_accessTheMarket_nameF">
+        <img src="/eng/images/market_gotolink.png" />
+      </span>
+    </div>
+  </a>
+</div>
+    <!-- END inc_turn_to -->
+
+    <!-- START footer -->
+    <!-- pc底部 -->
+<div class="sqs_footerBox">
+  <div class="sqs_footer">
+    <div class="sqs_footer_up">
+      <div class="sqs_footer_logo">
+        <a href="/eng/" target="_blank">
+          <img src="/eng/images/footer-logo.png" />
+        </a>
+      </div>
+      <div class="sqs_footer_link">
+        <a href="/eng/AboutSHFE/ContactUs/" target="_blank"> Contact Us </a>
+        <a href="/eng/Links/" target="_blank"> Links </a>
+        <a href="/eng/PrivatePolicy/" target="_blank">
+          Private Policy
+        </a>
+        <a href="/eng/WebsiteMap/" target="_blank"> Website Map </a>
+      </div>
+    </div>
+  </div>
+  <div class="sqs_footer_middle">
+    <div class="sqs_footer_Company">
+      <p class="sqs_footer_CompanyName">SHFE Company:</p>
+      <div class="sqs_footer_some">
+        <a href="https://www.ine.com.cn/eng/" target="_blank"> INE </a>
+        <span>|</span>
+        <a href="/sfit/" target="_blank"> SFIT </a>
+        <span>|</span>
+        <a href="/ifd/" target="_blank"> SHIFD </a>
+        <span>|</span>
+        <a href="/eng/AboutSHFE/Institution/Subsidiaries/sw/" target="_blank">
+          SHFES
+        </a>
+      </div>
+    </div>
+    <div class="sqs_footer_middle_icon">
+      <div class="tc_QRBox">
+        <div class="tc_QR">
+          <img src="/eng/images/SHFE_Wechat.png" />
+        </div>
+        <div class="tc_QRafter"></div>
+      </div>
+      <a href="javascript:;" id="wx">
+        <img src="/eng/images/sqs_wx.png" alt="微信" title="微信" />
+      </a>
+      <a href="https://www.shfe.com.cn/weibo/sina/" target="_blank">
+        <img src="/eng/images/sqs_wb.png" alt="微博" title="微博" />
+      </a>
+    </div>
+  </div>
+  <div class="sqs_footer_down">
+<div class="sqs_footer_down_m">
+      <div class="sqs_footer_down_fl">
+        Address: 500 Pudian Road, Shanghai
+        <span>Zip: 200122</span>
+        <span>Tel: 68400000</span>
+        <span>Fax:+86 21 68401198</span>
+        <p class="beian">
+        <a>We recommend using the latest versions of Google Chrome and Microsoft Edge.</a>         
+        </p>
+      </div>
+      <div class="sqs_footer_down_fr">
+        <span>© Copyright SHFE</span>
+        <p class="beian">
+        <a target="_blank" href="http://beian.miit.gov.cn" class="gray">沪ICP备11031067号-1</a>
+        <a target="_blank" class="gray" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=31011502008304"><img src="/eng/images/ine_pub_record.png" />沪公网安备 31011502008304号</a>   
+         <a href="https://bszs.conac.cn/sitename?method=show&id=230151C803D27D32E06310291AAC87D8" target="_blank" style=" margin-left: 0.1rem;">
+             <img id="imgConac" vspace="0" hspace="0" border="0" src="/eng/images/footer-icon-blue.png" style='width:0.22rem;height:auto;position:relative;top:0.02rem;' />
+         </a>
+        </p>
+      
+</div>
+</div>
+
+  </div>
+</div>
+
+<!-- mobile底部 -->
+<div class="mobile_footer">
+  <div class="mobile_footer_top">
+    <div class="mobile_logo">
+      <div class="mobile_logo_left">
+        <a href='/eng/' target='_blank'><img src="/eng/images/footer-logo.png" /></a>
+      </div>
+      <div class="mobile_logo_right">
+        <div class="sqs_footer_middle_icon">
+          <div class="tc_QRBox" style="display: none">
+            <div class="tc_QR">
+              <img src="/eng/images/SHFE_Wechat.png" />
+            </div>
+            <div class="tc_QRafter"></div>
+          </div>
+          <a href="javascript:;" id="wx_mobile">
+            <img src="/eng/images/sqs_wx.png" alt="微信" title="微信" />
+          </a>
+          <a href="https://www.shfe.com.cn/weibo/sina/" target="_blank">
+            <img src="/eng/images/sqs_wb.png" alt="微博" title="微博" />
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="mobile_desc">
+      <div class="mobile_left">
+        <a class="mobile_left_item" href="/eng/AboutSHFE/ContactUs/">Contact Us</a>
+        <a class="mobile_left_item" href="/eng/Links/">Links</a>
+        <a class="mobile_left_item" href="/eng/PrivatePolicy/">Private Policy</a>
+        <a class="mobile_left_item" href="/eng/WebsiteMap/">Website Map</a>
+      </div>
+      <div class="mobile_right">
+        <a class="mobile_right_item" href="javascript:;">
+          Address: 500 Pudian Road, Shanghai
+        </a>
+        <a class="mobile_right_item" href="javascript:;">Zip: <span>200122</span></a>
+        <a class="mobile_right_item" href="javascript:;">Tel: <span>68400000</span></a>
+        <a class="mobile_right_item" href="tel:+862168401198">Fax: <span>+86 21 68401198</span></a>
+      </div>
+    </div>
+  </div>
+  <div class="mobile_footer_bottom">
+    <div class="mobile_footer_bottom_link">
+      <span class="linkName">SHFE Company:</span>
+      <span class="link_dtail"> 
+       <a href="https://www.ine.com.cn/eng/" target="_blank"> INE </a>
+      </span>
+      <span class="link_line_item">|</span>
+      <span class="link_dtail">
+      <a href="/sfit/" target="_blank"> SFIT </a>
+      </span>
+      <span class="link_line_item">|</span>
+      <span class="link_dtail">
+       <a href="/ifd/" target="_blank"> SHIFD </a>
+      </span>
+      <span class="link_line_item">|</span>
+      <span class="link_dtail">
+      <a  href="/eng/AboutSHFE/Institution/Subsidiaries/sw/" target="_blank">
+          SHFES
+        </a>
+      </span>
+    </div>
+    <div class="mobile_footer_bottom_address">
+      <span class="copy_left" style="top:-0.12rem">©Copyright SHFE</span>
+      <a href="https://bszs.conac.cn/sitename?method=show&id=230151C803D27D32E06310291AAC87D8" target="_blank" style=" margin-left: 0.18rem;display:inline-block;">
+             <img id="imgConac" vspace="0" hspace="0" border="0" src="/eng/images/footer-icon-blue.png" style=" width: 0.19rem;height: auto;" />
+         </a>
+    </div>
+
+    <div class="mobile_footer_bottom_address">
+      <a target="_blank" href="http://beian.miit.gov.cn" class="copy_left">沪ICP备11031067号-1</a>
+      <a target="_blank"class="copy_right" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=31011502008304">沪公网安备 31011502008304号</a>  
+    </div>
+  </div>
+</div>
+    <!-- END footer -->
+
+    <!-- START Public JS -->
+    <script src="/eng/images/jquery.min.js"></script>
+<script src="/eng/images/global.js" /></script>
+<script src="/eng/images/element-ui/index.js"></script>
+<script src="/eng/images/enum.js" /></script>
+<script src="/eng/images/api.js" /></script>
+<script src="/eng/images/common_utils.js" /></script>
+<script src="/eng/images/pub_header.js"></script>
+
+<!--  <script type="text/javascript" src="/eng/images/hc-offcanvas-nav.js"></script>  -->
+
+<!-- 导航 -->
+<script src="/eng/images/sqs_nav.js" /></script>
+    <script src="/eng/images/statisticalPrint.js"></script>
+
+
+
+    <script>
+      $(function(){
+        var a_label_datas=$('.document_download a');
+          if(a_label_datas.length>0){
+            $.each(a_label_datas, function (i) {
+            if($('.document_download a').eq(i).prop('href').endsWith("jpg")|| $('.document_download a').eq(i).prop('href').endsWith("png")){
+              
+            }else{
+              $(".attachment_download").show();
+              return false;
+            }  
+            })
+          }
+        
+      })
+        $(".sqs_dataCon_fr_title_border").click(function () {
+          if ($(this).children().hasClass("show_box")) {
+            $(this).children().removeClass("show_box");
+            $(this).children(0).children().removeClass("close").addClass("open");
+          } else {
+            $(this).parent().children().children(1).removeClass("show_box");
+            $(this).children(1).addClass("show_box");
+            $(this).children(0).children().removeClass("open").addClass("close");
+          }
+        });
+        let control = document.querySelectorAll(".sqs_dataCon_fr_control");
+        let controlShow = document.querySelectorAll(".sqs_dataCon_fr_show");
+        let controlAa = document.querySelectorAll(".sqs_dataCon_fr_control_aa");
+  
+        for (let i = 0; i < control.length; i++) {
+          let flag = true;
+          control[i].addEventListener("click", function () {
+            if (flag) {
+              control[i].style.color = "#020B2A";
+              controlShow[i].style.display = "block";
+              controlAa[i].textContent = "-";
+            } else {
+              control[i].style.color = "";
+              controlShow[i].style.display = "none";
+              controlAa[i].textContent = "+";
+            }
+            flag = !flag;
+          });
+        }
+      </script>
+    <!-- END Public JS -->
+    <!-- START Plugin JS -->
+    <!-- Monitor Start -->
+    <script type='text/javascript'>
+      params.docId='829807';
+      params.doctitle='Trading Schedule during National Holidays for Year 2026';
+      params.channelId='6476';
+      params.channelName='Circular';
+      params.siteId='25';
+      params.siteName='shfe_en';
+    </script>
+    <!-- Monitor End -->
+  </body>
+</html>

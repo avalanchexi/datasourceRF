@@ -1,0 +1,47 @@
+[
+  {
+    "name": "cny030-prior-export",
+    "sha256": "37bf6b5edaefd3d6e51ad28df98455d1ce1657dd59ce4de44570c53720239b07",
+    "byte_count": 3761,
+    "local_file": "37bf6b5edaefd3d6e51ad28df98455d1ce1657dd59ce4de44570c53720239b07.xlsx",
+    "source": "existing_read_only_CAS",
+    "verified_copy_at": "2026-09-06T14:24:16.831654+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "cny030-parent-file-list",
+    "sha256": "4e59132fa2f6cb5f04f9367cdffe0124e485e1912c98a8c90bff092c6457b7c9",
+    "byte_count": 1635,
+    "local_file": "4e59132fa2f6cb5f04f9367cdffe0124e485e1912c98a8c90bff092c6457b7c9.json",
+    "source": "existing_read_only_CAS",
+    "verified_copy_at": "2026-09-06T14:24:16.847188+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "vendor-protocol",
+    "sha256": "3c25a8e93c4ca11556148ae64f5460235ee8e99db8dafb04fb9385bb2f9ef59f",
+    "byte_count": 498375,
+    "local_file": "3c25a8e93c4ca11556148ae64f5460235ee8e99db8dafb04fb9385bb2f9ef59f.pdf",
+    "source": "existing_read_only_CAS",
+    "verified_copy_at": "2026-09-06T14:24:16.895483+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "ordinary-protocol",
+    "sha256": "5eed1d83aef3a3158f86bce9c454a4db2728f89a228f375ea451f6465c5d3f7e",
+    "byte_count": 490050,
+    "local_file": "5eed1d83aef3a3158f86bce9c454a4db2728f89a228f375ea451f6465c5d3f7e.pdf",
+    "source": "existing_read_only_CAS",
+    "verified_copy_at": "2026-09-06T14:24:16.937117+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "historical-market-smoke-summary-not-original-response",
+    "sha256": "864180a1a7380458a796cf065d4226ca7132f64583eea2a9986d4d0c324cca4e",
+    "byte_count": 2382,
+    "local_file": "864180a1a7380458a796cf065d4226ca7132f64583eea2a9986d4d0c324cca4e.json",
+    "source": "existing_read_only_CAS",
+    "verified_copy_at": "2026-09-06T14:33:23.991460+00:00",
+    "new_network_fetch": false
+  }
+]
