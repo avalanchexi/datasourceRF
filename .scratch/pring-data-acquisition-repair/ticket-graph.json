@@ -38,7 +38,7 @@
         2
       ],
       "path": "issues/04-core-public-time-certification.md",
-      "execution_status": "pending"
+      "execution_status": "blocked"
     },
     {
       "id": 5,
@@ -47,7 +47,7 @@
         3
       ],
       "path": "issues/05-margin-certification.md",
-      "execution_status": "pending"
+      "execution_status": "blocked"
     },
     {
       "id": 6,

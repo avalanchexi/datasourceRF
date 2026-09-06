@@ -1,7 +1,7 @@
 {
   "kind": "published_spec_and_ticket_consistency",
-  "observed_at_utc": "2026-09-06T14:18:27.735425+00:00",
-  "workspace_head": "ff5e34781ccc91f65c4c279f16b6a6d98b7714df",
+  "observed_at_utc": "2026-09-06T14:20:43.530309+00:00",
+  "workspace_head": "3231539a19c1a5ff0284b6d7f6450c2f5f632e9e",
   "required_sections": 7,
   "user_stories": 52,
   "published_ticket_count": 22,
@@ -25,7 +25,7 @@
     15,
     18
   ],
-  "relative_local_links_checked": 34,
+  "relative_local_links_checked": 38,
   "six_workstream_coverage": {
     "known_defects": [
       1,
@@ -107,13 +107,13 @@
     },
     {
       "path": "issues/04-core-public-time-certification.md",
-      "bytes": 2455,
-      "sha256": "7e2bb0b313214afeaf7595df916710143b72074b5883c4cae01b038390b3a72e"
+      "bytes": 2990,
+      "sha256": "90a4e4da0f55a66e6dce45ffb71503da348949ba4fd089ed6d0b33dd67f9b524"
     },
     {
       "path": "issues/05-margin-certification.md",
-      "bytes": 2305,
-      "sha256": "324b32dd1c32737ed9326556efca144b45d6c0eb214966a82e25077ae871ba74"
+      "bytes": 2687,
+      "sha256": "005d8202a4c75f3ae54d28d7d2a01ad4a276b169c3a11704ae2206cf136328ee"
     },
     {
       "path": "issues/06-market-index-certification.md",
@@ -203,7 +203,7 @@
     {
       "path": "ticket-graph.json",
       "bytes": 5346,
-      "sha256": "20a2a26938bd15761948361cf495d39d7e97b371ef95b52e234e20cd6f16daeb"
+      "sha256": "a336769ef85d5ebc4784c6a00819a657d0cd0912314e836263ac0eafda71d080"
     }
   ]
 }

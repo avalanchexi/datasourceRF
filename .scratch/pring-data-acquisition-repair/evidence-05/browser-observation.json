@@ -1,0 +1,13 @@
+{
+  "recorded_at": "2026-09-06T14:17:45.702511+00:00",
+  "url": "https://www.bse.cn/disclosure/rzrq_trans_list.html",
+  "method": "normal Chrome navigation through CUA",
+  "get_browser_elapsed_seconds": 1.2868,
+  "create_tab_timeout_ms": 15000,
+  "create_tab_tool_elapsed_seconds": 15.0731,
+  "result": "js execution timed out; kernel reset",
+  "page_contents_obtained": false,
+  "http_response_obtained": false,
+  "network_request_count": "unknown",
+  "historical_publication_time_inferred": false
+}

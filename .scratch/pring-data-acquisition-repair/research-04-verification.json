@@ -1,0 +1,32 @@
+{
+  "verified_at": "2026-09-06T14:10:45.302903+00:00",
+  "status": "evidence_files_verified",
+  "responses_with_verified_originals": 41,
+  "unique_originals": 41,
+  "report_sha256": "40d6c8c352948599af6d5ee1e6ec37d83c4aa584b789d568d327315643002ca3",
+  "csi_data_checks": [
+    {
+      "source": "csi-000985-120d",
+      "unique_trade_dates": 120,
+      "publication_time_certified": false
+    },
+    {
+      "source": "csi-000012-120d",
+      "unique_trade_dates": 120,
+      "publication_time_certified": false
+    },
+    {
+      "source": "csi-000985-259d",
+      "unique_trade_dates": 259,
+      "publication_time_certified": false
+    },
+    {
+      "source": "csi-000012-259d",
+      "unique_trade_dates": 259,
+      "publication_time_certified": false
+    }
+  ],
+  "certification_completed": false,
+  "network_requests": 0,
+  "production_writes": 0
+}

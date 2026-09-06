@@ -1,0 +1,7250 @@
+{
+  "queried_at": "2026-09-06T13:52:17.676582+00:00",
+  "database_mode": "ro",
+  "sql": "SELECT metric_id, period_end, value, count(*) AS n FROM source_claim WHERE metric_id IN (?,?,?) AND period_end BETWEEN ? AND ? GROUP BY metric_id,period_end,value ORDER BY metric_id,period_end,value",
+  "params": [
+    "CN_EQUITY_CORE_000985",
+    "CN_BOND_CORE_000012",
+    "CN_COMMODITY_CORE_NHII",
+    "2025-01-01",
+    "2026-08-28"
+  ],
+  "rows": [
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-02",
+      "value": 223.1261,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-03",
+      "value": 223.3896,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-06",
+      "value": 223.5621,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-07",
+      "value": 223.4992,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-08",
+      "value": 223.516,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-09",
+      "value": 223.3782,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-10",
+      "value": 223.2429,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-13",
+      "value": 223.2748,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-14",
+      "value": 223.2105,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-15",
+      "value": 223.4287,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-16",
+      "value": 223.3991,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-17",
+      "value": 223.3839,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-20",
+      "value": 223.3621,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-21",
+      "value": 223.3857,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-22",
+      "value": 223.5271,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-23",
+      "value": 223.4748,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-24",
+      "value": 223.422,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-01-27",
+      "value": 223.7181,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-05",
+      "value": 223.9992,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-06",
+      "value": 224.2221,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-07",
+      "value": 224.2426,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-10",
+      "value": 224.2143,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-11",
+      "value": 224.237,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-12",
+      "value": 224.3107,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-13",
+      "value": 224.2962,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-14",
+      "value": 224.1893,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-17",
+      "value": 224.0949,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-18",
+      "value": 223.8745,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-19",
+      "value": 223.8642,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-20",
+      "value": 223.7333,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-21",
+      "value": 223.5558,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-24",
+      "value": 223.1813,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-25",
+      "value": 223.3047,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-26",
+      "value": 223.3291,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-27",
+      "value": 223.1947,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-02-28",
+      "value": 223.2215,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-03",
+      "value": 223.4098,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-04",
+      "value": 223.3993,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-05",
+      "value": 223.497,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-06",
+      "value": 223.3845,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-07",
+      "value": 223.066,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-10",
+      "value": 222.9594,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-11",
+      "value": 222.5536,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-12",
+      "value": 222.5224,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-13",
+      "value": 222.6041,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-14",
+      "value": 222.5263,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-17",
+      "value": 222.2442,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-18",
+      "value": 222.1798,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-19",
+      "value": 222.0202,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-20",
+      "value": 222.3444,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-21",
+      "value": 222.4528,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-24",
+      "value": 222.4009,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-25",
+      "value": 222.5854,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-26",
+      "value": 222.7643,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-27",
+      "value": 222.8873,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-28",
+      "value": 222.8976,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-03-31",
+      "value": 222.8936,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-01",
+      "value": 222.8563,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-02",
+      "value": 223.078,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-03",
+      "value": 223.6531,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-07",
+      "value": 224.2484,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-08",
+      "value": 224.1952,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-09",
+      "value": 224.2267,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-10",
+      "value": 224.3326,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-11",
+      "value": 224.422,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-14",
+      "value": 224.4266,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-15",
+      "value": 224.4931,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-16",
+      "value": 224.5435,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-17",
+      "value": 224.4954,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-18",
+      "value": 224.4683,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-21",
+      "value": 224.477,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-22",
+      "value": 224.4872,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-23",
+      "value": 224.4776,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-24",
+      "value": 224.4779,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-25",
+      "value": 224.4799,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-28",
+      "value": 224.5358,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-29",
+      "value": 224.614,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-04-30",
+      "value": 224.7313,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-06",
+      "value": 224.7897,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-07",
+      "value": 224.6549,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-08",
+      "value": 224.7735,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-09",
+      "value": 224.7615,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-12",
+      "value": 224.6734,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-13",
+      "value": 224.6515,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-14",
+      "value": 224.5763,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-15",
+      "value": 224.5933,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-16",
+      "value": 224.4442,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-19",
+      "value": 224.5883,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-20",
+      "value": 224.5753,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-21",
+      "value": 224.6179,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-22",
+      "value": 224.5754,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-23",
+      "value": 224.5749,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-26",
+      "value": 224.6154,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-27",
+      "value": 224.5225,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-28",
+      "value": 224.5208,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-29",
+      "value": 224.3838,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-05-30",
+      "value": 224.4809,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-03",
+      "value": 224.5745,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-04",
+      "value": 224.6135,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-05",
+      "value": 224.6018,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-06",
+      "value": 224.6649,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-09",
+      "value": 224.7809,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-10",
+      "value": 224.9272,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-11",
+      "value": 224.9531,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-12",
+      "value": 224.9531,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-13",
+      "value": 225.0174,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-16",
+      "value": 225.1021,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-17",
+      "value": 225.1888,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-18",
+      "value": 225.2544,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-19",
+      "value": 225.3484,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-20",
+      "value": 225.4799,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-23",
+      "value": 225.5441,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-24",
+      "value": 225.4764,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-25",
+      "value": 225.3963,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-26",
+      "value": 225.4542,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-27",
+      "value": 225.5149,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-06-30",
+      "value": 225.61,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-01",
+      "value": 225.6642,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-02",
+      "value": 225.7994,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-03",
+      "value": 225.7887,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-04",
+      "value": 225.8811,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-07",
+      "value": 226.0107,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-08",
+      "value": 225.9669,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-09",
+      "value": 225.9567,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-10",
+      "value": 225.9066,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-11",
+      "value": 225.9415,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-14",
+      "value": 225.893,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-15",
+      "value": 225.929,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-16",
+      "value": 226.0155,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-17",
+      "value": 226.0405,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-18",
+      "value": 226.0148,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-21",
+      "value": 225.9493,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-22",
+      "value": 225.8096,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-23",
+      "value": 225.5669,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-24",
+      "value": 225.5515,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-25",
+      "value": 225.5017,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-28",
+      "value": 225.6191,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-29",
+      "value": 225.4686,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-30",
+      "value": 225.4687,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-07-31",
+      "value": 225.6291,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-01",
+      "value": 225.6661,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-04",
+      "value": 225.7144,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-05",
+      "value": 225.7555,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-06",
+      "value": 225.79,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-07",
+      "value": 225.8706,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-08",
+      "value": 225.8208,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-11",
+      "value": 225.8324,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-12",
+      "value": 225.7212,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-13",
+      "value": 225.7508,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-14",
+      "value": 225.6703,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-15",
+      "value": 225.593,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-18",
+      "value": 225.2629,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-19",
+      "value": 225.1404,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-20",
+      "value": 225.1101,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-21",
+      "value": 225.071,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-22",
+      "value": 224.9614,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-25",
+      "value": 225.0664,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-26",
+      "value": 225.0907,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-27",
+      "value": 225.2237,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-28",
+      "value": 225.1065,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-08-29",
+      "value": 225.0602,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-01",
+      "value": 225.1576,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-02",
+      "value": 225.0701,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-03",
+      "value": 225.1763,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-04",
+      "value": 225.3826,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-05",
+      "value": 225.1419,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-08",
+      "value": 225.0626,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-09",
+      "value": 224.955,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-10",
+      "value": 224.7028,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-11",
+      "value": 224.6543,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-12",
+      "value": 224.7032,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-15",
+      "value": 224.676,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-16",
+      "value": 224.696,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-17",
+      "value": 224.9111,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-18",
+      "value": 224.8326,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-19",
+      "value": 224.7177,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-22",
+      "value": 224.7405,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-23",
+      "value": 224.4638,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-24",
+      "value": 224.2099,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-25",
+      "value": 224.1647,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-26",
+      "value": 224.2712,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-29",
+      "value": 224.2032,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-09-30",
+      "value": 224.2821,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-09",
+      "value": 224.4762,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-10",
+      "value": 224.3535,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-13",
+      "value": 224.5074,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-14",
+      "value": 224.5544,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-15",
+      "value": 224.5052,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-16",
+      "value": 224.652,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-17",
+      "value": 224.8547,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-20",
+      "value": 224.7748,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-21",
+      "value": 224.8527,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-22",
+      "value": 224.9068,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-23",
+      "value": 224.8671,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-24",
+      "value": 224.8299,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-27",
+      "value": 224.7954,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-28",
+      "value": 225.1479,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-29",
+      "value": 225.1809,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-30",
+      "value": 225.2368,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-10-31",
+      "value": 225.365,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-03",
+      "value": 225.4357,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-04",
+      "value": 225.4406,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-05",
+      "value": 225.494,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-06",
+      "value": 225.3856,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-07",
+      "value": 225.3745,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-10",
+      "value": 225.39,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-11",
+      "value": 225.3617,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-12",
+      "value": 225.4863,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-13",
+      "value": 225.4428,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-14",
+      "value": 225.4444,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-17",
+      "value": 225.5305,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-18",
+      "value": 225.6013,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-19",
+      "value": 225.5309,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-20",
+      "value": 225.5289,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-21",
+      "value": 225.4902,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-24",
+      "value": 225.5115,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-25",
+      "value": 225.4305,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-26",
+      "value": 225.2357,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-27",
+      "value": 225.2126,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-11-28",
+      "value": 225.2092,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-01",
+      "value": 225.2824,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-02",
+      "value": 225.2114,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-03",
+      "value": 225.0634,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-04",
+      "value": 224.6365,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-05",
+      "value": 224.6427,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-08",
+      "value": 224.4196,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-09",
+      "value": 224.5075,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-10",
+      "value": 224.4506,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-11",
+      "value": 224.6715,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-12",
+      "value": 224.6323,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-15",
+      "value": 224.5,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-16",
+      "value": 224.4457,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-17",
+      "value": 224.5383,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-18",
+      "value": 224.6663,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-19",
+      "value": 224.6476,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-22",
+      "value": 224.5879,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-23",
+      "value": 224.7821,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-24",
+      "value": 224.7939,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-25",
+      "value": 224.7708,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-26",
+      "value": 224.936,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-29",
+      "value": 224.7179,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-30",
+      "value": 224.7298,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2025-12-31",
+      "value": 224.6516,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-05",
+      "value": 224.698,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-06",
+      "value": 224.6375,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-07",
+      "value": 224.4928,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-08",
+      "value": 224.53,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-09",
+      "value": 224.5461,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-12",
+      "value": 224.6149,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-13",
+      "value": 224.7089,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-14",
+      "value": 224.6993,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-15",
+      "value": 224.8232,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-16",
+      "value": 224.8613,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-19",
+      "value": 224.87,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-20",
+      "value": 224.9744,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-21",
+      "value": 225.1613,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-22",
+      "value": 225.2047,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-23",
+      "value": 225.2463,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-26",
+      "value": 225.3554,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-27",
+      "value": 225.2785,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-28",
+      "value": 225.2353,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-29",
+      "value": 225.3123,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-01-30",
+      "value": 225.3052,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-02",
+      "value": 225.3854,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-03",
+      "value": 225.3158,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-04",
+      "value": 225.3548,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-05",
+      "value": 225.46,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-06",
+      "value": 225.6292,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-09",
+      "value": 225.7124,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-10",
+      "value": 225.7411,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-11",
+      "value": 225.7875,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-12",
+      "value": 225.8183,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-13",
+      "value": 225.8337,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-24",
+      "value": 225.9425,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-25",
+      "value": 225.9201,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-26",
+      "value": 225.8187,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-02-27",
+      "value": 225.8552,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-02",
+      "value": 226.0214,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-03",
+      "value": 226.0456,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-04",
+      "value": 226.0413,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-05",
+      "value": 226.0755,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-06",
+      "value": 226.0517,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-09",
+      "value": 225.8668,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-10",
+      "value": 225.8325,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-11",
+      "value": 225.7538,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-12",
+      "value": 225.7548,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-13",
+      "value": 225.764,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-16",
+      "value": 225.6203,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-17",
+      "value": 225.6308,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-18",
+      "value": 225.717,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-19",
+      "value": 225.7776,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-20",
+      "value": 225.6951,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-23",
+      "value": 225.6393,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-24",
+      "value": 225.752,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-25",
+      "value": 225.8128,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-26",
+      "value": 225.9177,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-27",
+      "value": 225.9004,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-30",
+      "value": 226.0225,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-03-31",
+      "value": 226.091,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-01",
+      "value": 226.0513,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-02",
+      "value": 226.0268,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-03",
+      "value": 226.0543,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-07",
+      "value": 226.1548,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-08",
+      "value": 226.2342,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-09",
+      "value": 226.3298,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-10",
+      "value": 226.2895,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-13",
+      "value": 226.5347,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-14",
+      "value": 226.6423,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-15",
+      "value": 226.6715,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-16",
+      "value": 226.6938,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-17",
+      "value": 226.8238,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-20",
+      "value": 226.9019,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-21",
+      "value": 227.0341,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-22",
+      "value": 227.1972,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-23",
+      "value": 227.1291,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-24",
+      "value": 227.0906,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-27",
+      "value": 226.91,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-28",
+      "value": 226.955,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-29",
+      "value": 226.9902,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-04-30",
+      "value": 227.0014,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-06",
+      "value": 226.9258,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-07",
+      "value": 226.8992,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-08",
+      "value": 226.9625,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-11",
+      "value": 226.9978,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-12",
+      "value": 227.1231,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-13",
+      "value": 227.1616,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-14",
+      "value": 227.106,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-15",
+      "value": 227.0626,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-18",
+      "value": 227.1467,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-19",
+      "value": 227.2444,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-20",
+      "value": 227.3037,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-21",
+      "value": 227.2763,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-22",
+      "value": 227.3907,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-25",
+      "value": 227.4392,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-26",
+      "value": 227.5714,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-27",
+      "value": 227.6425,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-28",
+      "value": 227.7418,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-05-29",
+      "value": 227.7992,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-01",
+      "value": 227.9761,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-02",
+      "value": 228.0145,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-03",
+      "value": 227.9867,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-04",
+      "value": 228.074,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-05",
+      "value": 228.0429,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-08",
+      "value": 228.0069,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-09",
+      "value": 227.9812,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-10",
+      "value": 227.8462,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-11",
+      "value": 227.8074,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-12",
+      "value": 227.8357,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-15",
+      "value": 227.9432,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-16",
+      "value": 228.0235,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-17",
+      "value": 228.0949,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-18",
+      "value": 228.1383,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-22",
+      "value": 228.1858,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-23",
+      "value": 228.1207,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-24",
+      "value": 228.1265,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-25",
+      "value": 228.1942,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-26",
+      "value": 228.2697,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-29",
+      "value": 228.432,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-06-30",
+      "value": 228.3343,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-01",
+      "value": 228.2124,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-02",
+      "value": 228.2686,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-03",
+      "value": 228.2561,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-06",
+      "value": 228.3355,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-07",
+      "value": 228.356,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-08",
+      "value": 228.459,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-09",
+      "value": 228.4697,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-10",
+      "value": 228.4987,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-13",
+      "value": 228.5425,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-14",
+      "value": 228.5687,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-15",
+      "value": 228.5834,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-16",
+      "value": 228.5317,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-17",
+      "value": 228.6164,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-20",
+      "value": 228.6669,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-21",
+      "value": 228.695,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-22",
+      "value": 228.8614,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-23",
+      "value": 228.9866,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-24",
+      "value": 229.012,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-27",
+      "value": 229.1366,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-28",
+      "value": 229.1503,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-29",
+      "value": 229.1646,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-30",
+      "value": 229.3117,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-07-31",
+      "value": 229.4546,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-03",
+      "value": 229.5275,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-04",
+      "value": 229.5995,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-05",
+      "value": 229.598,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-06",
+      "value": 229.5938,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-07",
+      "value": 229.6898,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-10",
+      "value": 229.8006,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-11",
+      "value": 229.8972,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-12",
+      "value": 229.896,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-13",
+      "value": 230.0169,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-14",
+      "value": 230.1067,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-17",
+      "value": 230.1276,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-18",
+      "value": 230.2363,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-19",
+      "value": 230.2257,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-20",
+      "value": 230.1435,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-21",
+      "value": 230.1824,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-24",
+      "value": 230.2764,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-25",
+      "value": 230.3008,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-26",
+      "value": 230.2429,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-27",
+      "value": 230.1435,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_BOND_CORE_000012",
+      "period_end": "2026-08-28",
+      "value": 230.1072,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-02",
+      "value": 3781.19,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-03",
+      "value": 3750.87,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-06",
+      "value": 3738.88,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-07",
+      "value": 3730.17,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-08",
+      "value": 3731.95,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-09",
+      "value": 3743.6,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-10",
+      "value": 3753.64,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-13",
+      "value": 3846.56,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-14",
+      "value": 3857.39,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-15",
+      "value": 3874.98,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-16",
+      "value": 3924.46,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-17",
+      "value": 3937.16,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-20",
+      "value": 3893.87,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-21",
+      "value": 3902.62,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-22",
+      "value": 3885.95,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-23",
+      "value": 3856.68,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-24",
+      "value": 3868.72,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-01-27",
+      "value": 3861.58,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-05",
+      "value": 3835.68,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-06",
+      "value": 3861.22,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-07",
+      "value": 3889.91,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-10",
+      "value": 3894.69,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-11",
+      "value": 3877.34,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-12",
+      "value": 3891.1,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-13",
+      "value": 3822.75,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-14",
+      "value": 3840.56,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-17",
+      "value": 3832.84,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-18",
+      "value": 3846.47,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-19",
+      "value": 3850.35,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-20",
+      "value": 3885.01,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-21",
+      "value": 3867.52,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-24",
+      "value": 3835.39,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-25",
+      "value": 3803.25,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-26",
+      "value": 3787.54,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-27",
+      "value": 3793.88,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-02-28",
+      "value": 3799.86,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-03",
+      "value": 3787.61,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-04",
+      "value": 3747.23,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-05",
+      "value": 3719.94,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-06",
+      "value": 3720.62,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-07",
+      "value": 3722.62,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-10",
+      "value": 3718.3,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-11",
+      "value": 3710.36,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-12",
+      "value": 3709.82,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-13",
+      "value": 3736.47,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-14",
+      "value": 3763.92,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-17",
+      "value": 3744.94,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-18",
+      "value": 3725.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-19",
+      "value": 3699.95,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-20",
+      "value": 3724.68,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-21",
+      "value": 3713.34,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-24",
+      "value": 3765.82,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-25",
+      "value": 3766.58,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-26",
+      "value": 3774.09,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-27",
+      "value": 3781.51,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-28",
+      "value": 3761.81,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-03-31",
+      "value": 3719.05,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-01",
+      "value": 3781.19,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-02",
+      "value": 3772.25,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-03",
+      "value": 3727.58,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-07",
+      "value": 3562.68,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-08",
+      "value": 3480.83,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-09",
+      "value": 3410.15,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-10",
+      "value": 3513.3,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-11",
+      "value": 3501.54,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-14",
+      "value": 3512.31,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-15",
+      "value": 3507.56,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-16",
+      "value": 3469.95,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-17",
+      "value": 3498.22,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-18",
+      "value": 3501.22,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-21",
+      "value": 3529.84,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-22",
+      "value": 3507.34,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-23",
+      "value": 3572.68,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-24",
+      "value": 3544.03,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-25",
+      "value": 3539.28,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-28",
+      "value": 3546.91,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-29",
+      "value": 3513.5,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-04-30",
+      "value": 3478.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-06",
+      "value": 3445.43,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-07",
+      "value": 3470.47,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-08",
+      "value": 3438.11,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-09",
+      "value": 3446.32,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-12",
+      "value": 3512.72,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-13",
+      "value": 3498.53,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-14",
+      "value": 3571.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-15",
+      "value": 3525.32,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-16",
+      "value": 3493.78,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-19",
+      "value": 3496.62,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-20",
+      "value": 3490.98,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-21",
+      "value": 3510.81,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-22",
+      "value": 3476.36,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-23",
+      "value": 3452.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-26",
+      "value": 3453.38,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-27",
+      "value": 3434.97,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-28",
+      "value": 3401.53,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-29",
+      "value": 3436.82,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-05-30",
+      "value": 3383.03,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-03",
+      "value": 3385.02,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-04",
+      "value": 3439.76,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-05",
+      "value": 3409.91,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-06",
+      "value": 3431.2,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-09",
+      "value": 3437.64,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-10",
+      "value": 3443.7,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-11",
+      "value": 3455.16,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-12",
+      "value": 3455.78,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-13",
+      "value": 3507.97,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-16",
+      "value": 3540.76,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-17",
+      "value": 3522.01,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-18",
+      "value": 3578.23,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-19",
+      "value": 3604.74,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-20",
+      "value": 3593.71,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-23",
+      "value": 3610.13,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-24",
+      "value": 3510.37,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-25",
+      "value": 3508.53,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-26",
+      "value": 3518.77,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-27",
+      "value": 3533.86,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-06-30",
+      "value": 3523.57,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-01",
+      "value": 3519.01,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-02",
+      "value": 3560.57,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-03",
+      "value": 3570.98,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-04",
+      "value": 3557.51,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-07",
+      "value": 3543.08,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-08",
+      "value": 3560.35,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-09",
+      "value": 3574.6,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-10",
+      "value": 3630.72,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-11",
+      "value": 3612.73,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-14",
+      "value": 3633.84,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-15",
+      "value": 3604.43,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-16",
+      "value": 3604.32,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-17",
+      "value": 3617.37,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-18",
+      "value": 3640.04,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-21",
+      "value": 3722.07,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-22",
+      "value": 3774.48,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-23",
+      "value": 3744.51,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-24",
+      "value": 3793.68,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-25",
+      "value": 3823.66,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-28",
+      "value": 3709.04,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-29",
+      "value": 3744.06,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-30",
+      "value": 3758.81,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-07-31",
+      "value": 3694.96,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-01",
+      "value": 3680.14,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-04",
+      "value": 3668.63,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-05",
+      "value": 3679.36,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-06",
+      "value": 3679.31,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-07",
+      "value": 3672.25,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-08",
+      "value": 3644.95,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-11",
+      "value": 3672.16,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-12",
+      "value": 3713.92,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-13",
+      "value": 3683.1,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-14",
+      "value": 3650.38,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-15",
+      "value": 3658.04,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-18",
+      "value": 3640.41,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-19",
+      "value": 3621.82,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-20",
+      "value": 3610.11,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-21",
+      "value": 3621.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-22",
+      "value": 3630.95,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-25",
+      "value": 3665.33,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-26",
+      "value": 3638.62,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-27",
+      "value": 3611.26,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-28",
+      "value": 3621.35,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-08-29",
+      "value": 3614.83,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-01",
+      "value": 3591.67,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-02",
+      "value": 3601.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-03",
+      "value": 3602.48,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-04",
+      "value": 3583.12,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-05",
+      "value": 3612.46,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-08",
+      "value": 3610.53,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-09",
+      "value": 3593.15,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-10",
+      "value": 3604.42,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-11",
+      "value": 3609.51,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-12",
+      "value": 3596.01,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-15",
+      "value": 3634.79,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-16",
+      "value": 3660.71,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-17",
+      "value": 3664.1,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-18",
+      "value": 3622.29,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-19",
+      "value": 3630.65,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-22",
+      "value": 3618.48,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-23",
+      "value": 3583.16,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-24",
+      "value": 3619.32,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-25",
+      "value": 3658.15,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-26",
+      "value": 3626.85,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-29",
+      "value": 3610.89,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-09-30",
+      "value": 3573.84,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-09",
+      "value": 3596.46,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-10",
+      "value": 3573.12,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-13",
+      "value": 3546.48,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-14",
+      "value": 3508.62,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-15",
+      "value": 3502.24,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-16",
+      "value": 3509.05,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-17",
+      "value": 3466.89,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-20",
+      "value": 3478.1,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-21",
+      "value": 3483.7,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-22",
+      "value": 3514.73,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-23",
+      "value": 3555.56,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-24",
+      "value": 3562.25,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-27",
+      "value": 3595.45,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-28",
+      "value": 3570.13,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-29",
+      "value": 3606.61,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-30",
+      "value": 3572.89,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-10-31",
+      "value": 3556.67,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-03",
+      "value": 3565.86,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-04",
+      "value": 3534.2,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-05",
+      "value": 3533.38,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-06",
+      "value": 3546.5,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-07",
+      "value": 3531.08,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-10",
+      "value": 3543.72,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-11",
+      "value": 3521.79,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-12",
+      "value": 3545.02,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-13",
+      "value": 3534.28,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-14",
+      "value": 3523.03,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-17",
+      "value": 3531.97,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-18",
+      "value": 3505.01,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-19",
+      "value": 3509.36,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-20",
+      "value": 3479.64,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-21",
+      "value": 3456.21,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-24",
+      "value": 3480.25,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-25",
+      "value": 3482.63,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-26",
+      "value": 3478.0,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-27",
+      "value": 3481.81,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-11-28",
+      "value": 3499.25,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-01",
+      "value": 3526.23,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-02",
+      "value": 3525.18,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-03",
+      "value": 3509.24,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-04",
+      "value": 3523.97,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-05",
+      "value": 3511.97,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-08",
+      "value": 3509.33,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-09",
+      "value": 3453.72,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-10",
+      "value": 3458.08,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-11",
+      "value": 3434.53,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-12",
+      "value": 3427.15,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-15",
+      "value": 3436.31,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-16",
+      "value": 3420.43,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-17",
+      "value": 3430.24,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-18",
+      "value": 3463.38,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-19",
+      "value": 3460.46,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-22",
+      "value": 3493.62,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-23",
+      "value": 3507.98,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-24",
+      "value": 3543.43,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-25",
+      "value": 3533.48,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-26",
+      "value": 3558.94,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-29",
+      "value": 3534.24,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-30",
+      "value": 3561.07,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2025-12-31",
+      "value": 3549.74,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-05",
+      "value": 3544.39,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-06",
+      "value": 3609.73,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-07",
+      "value": 3657.23,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-08",
+      "value": 3603.79,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-09",
+      "value": 3635.84,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-12",
+      "value": 3674.29,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-13",
+      "value": 3651.95,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-14",
+      "value": 3680.51,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-15",
+      "value": 3672.4,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-16",
+      "value": 3621.64,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-19",
+      "value": 3604.8,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-20",
+      "value": 3586.63,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-21",
+      "value": 3596.59,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-22",
+      "value": 3624.02,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-23",
+      "value": 3660.83,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-26",
+      "value": 3689.42,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-27",
+      "value": 3660.54,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-28",
+      "value": 3705.54,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-29",
+      "value": 3773.37,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-01-30",
+      "value": 3710.33,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-02",
+      "value": 3594.36,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-03",
+      "value": 3644.59,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-04",
+      "value": 3702.57,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-05",
+      "value": 3644.42,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-06",
+      "value": 3623.58,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-09",
+      "value": 3634.91,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-10",
+      "value": 3645.09,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-11",
+      "value": 3667.91,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-12",
+      "value": 3659.21,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-13",
+      "value": 3605.09,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-24",
+      "value": 3679.15,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-25",
+      "value": 3709.95,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-26",
+      "value": 3683.23,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-02-27",
+      "value": 3694.04,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-02",
+      "value": 3783.93,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-03",
+      "value": 3851.6,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-04",
+      "value": 3928.64,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-05",
+      "value": 3940.49,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-06",
+      "value": 4005.41,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-09",
+      "value": 4179.67,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-10",
+      "value": 4058.3,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-11",
+      "value": 4106.95,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-12",
+      "value": 4204.8,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-13",
+      "value": 4257.28,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-16",
+      "value": 4273.97,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-17",
+      "value": 4255.82,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-18",
+      "value": 4191.72,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-19",
+      "value": 4264.49,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-20",
+      "value": 4220.17,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-23",
+      "value": 4345.97,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-24",
+      "value": 4213.15,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-25",
+      "value": 4181.97,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-26",
+      "value": 4197.4,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-27",
+      "value": 4222.06,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-30",
+      "value": 4255.04,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-03-31",
+      "value": 4182.83,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-01",
+      "value": 4050.85,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-02",
+      "value": 4147.44,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-03",
+      "value": 4158.8,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-07",
+      "value": 4144.65,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-08",
+      "value": 4018.21,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-09",
+      "value": 4028.85,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-10",
+      "value": 4003.49,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-13",
+      "value": 4045.62,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-14",
+      "value": 4048.72,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-15",
+      "value": 4047.58,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-16",
+      "value": 4082.83,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-17",
+      "value": 4084.45,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-20",
+      "value": 4074.96,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-21",
+      "value": 4065.42,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-22",
+      "value": 4098.67,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-23",
+      "value": 4119.06,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-24",
+      "value": 4122.9,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-27",
+      "value": 4162.21,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-28",
+      "value": 4173.83,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-29",
+      "value": 4177.62,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-04-30",
+      "value": 4204.53,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-06",
+      "value": 4246.38,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-07",
+      "value": 4168.19,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-08",
+      "value": 4144.17,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-11",
+      "value": 4180.86,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-12",
+      "value": 4180.39,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-13",
+      "value": 4201.41,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-14",
+      "value": 4150.03,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-15",
+      "value": 4160.44,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-18",
+      "value": 4190.86,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-19",
+      "value": 4187.84,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-20",
+      "value": 4163.74,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-21",
+      "value": 4127.0,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-22",
+      "value": 4102.71,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-25",
+      "value": 4089.94,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-26",
+      "value": 4059.75,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-27",
+      "value": 4056.82,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-28",
+      "value": 4066.34,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-05-29",
+      "value": 4053.1,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-01",
+      "value": 4100.44,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-02",
+      "value": 4109.26,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-03",
+      "value": 4119.06,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-04",
+      "value": 4065.49,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-05",
+      "value": 4058.53,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-08",
+      "value": 4068.0,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-09",
+      "value": 4017.91,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-10",
+      "value": 4005.82,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-11",
+      "value": 4020.35,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-12",
+      "value": 4002.74,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-15",
+      "value": 3962.39,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-16",
+      "value": 3928.51,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-17",
+      "value": 3889.69,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-18",
+      "value": 3852.49,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-22",
+      "value": 3845.64,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-23",
+      "value": 3777.32,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-24",
+      "value": 3763.19,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-25",
+      "value": 3677.74,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-26",
+      "value": 3680.95,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-29",
+      "value": 3682.86,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-06-30",
+      "value": 3696.61,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-01",
+      "value": 3652.75,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-02",
+      "value": 3626.49,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-03",
+      "value": 3662.16,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-06",
+      "value": 3661.61,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-07",
+      "value": 3664.54,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-08",
+      "value": 3719.13,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-09",
+      "value": 3732.7,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-10",
+      "value": 3721.64,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-13",
+      "value": 3718.84,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-14",
+      "value": 3817.2,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-15",
+      "value": 3813.08,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-16",
+      "value": 3799.29,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-17",
+      "value": 3761.68,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-20",
+      "value": 3840.0,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-21",
+      "value": 3812.87,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-22",
+      "value": 3851.63,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-23",
+      "value": 3886.43,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-24",
+      "value": 3891.64,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-27",
+      "value": 3814.83,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-28",
+      "value": 3775.91,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-29",
+      "value": 3797.67,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-30",
+      "value": 3797.27,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-07-31",
+      "value": 3757.15,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-03",
+      "value": 3733.13,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-04",
+      "value": 3760.43,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-05",
+      "value": 3734.83,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-06",
+      "value": 3754.1,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-07",
+      "value": 3787.53,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-10",
+      "value": 3789.88,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-11",
+      "value": 3862.68,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-12",
+      "value": 3855.23,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-13",
+      "value": 3847.39,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-14",
+      "value": 3861.58,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-17",
+      "value": 3892.36,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-18",
+      "value": 3928.31,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-19",
+      "value": 3913.86,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-20",
+      "value": 3923.62,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-21",
+      "value": 3952.63,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-24",
+      "value": 3961.01,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-25",
+      "value": 3942.06,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-26",
+      "value": 3890.46,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-27",
+      "value": 3912.04,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_COMMODITY_CORE_NHII",
+      "period_end": "2026-08-28",
+      "value": 3975.49,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-02",
+      "value": 4625.1118,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-03",
+      "value": 4523.1235,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-06",
+      "value": 4509.931,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-07",
+      "value": 4567.6093,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-08",
+      "value": 4559.0358,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-09",
+      "value": 4558.5117,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-10",
+      "value": 4475.6126,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-13",
+      "value": 4472.602,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-14",
+      "value": 4632.2295,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-15",
+      "value": 4604.1247,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-16",
+      "value": 4620.34,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-17",
+      "value": 4636.0726,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-20",
+      "value": 4663.5344,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-21",
+      "value": 4671.0569,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-22",
+      "value": 4627.9754,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-23",
+      "value": 4623.6343,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-24",
+      "value": 4674.2252,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-01-27",
+      "value": 4632.6668,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-05",
+      "value": 4639.2042,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-06",
+      "value": 4728.5774,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-07",
+      "value": 4796.0356,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-10",
+      "value": 4839.787,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-11",
+      "value": 4819.451,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-12",
+      "value": 4876.2831,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-13",
+      "value": 4844.6541,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-14",
+      "value": 4875.0667,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-17",
+      "value": 4899.8306,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-18",
+      "value": 4820.1935,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-19",
+      "value": 4893.4126,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-20",
+      "value": 4905.7065,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-21",
+      "value": 4973.1136,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-24",
+      "value": 4971.2614,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-25",
+      "value": 4930.2958,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-26",
+      "value": 4986.8902,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-27",
+      "value": 4983.1606,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-02-28",
+      "value": 4847.4068,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-03",
+      "value": 4853.1956,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-04",
+      "value": 4882.4483,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-05",
+      "value": 4905.0251,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-06",
+      "value": 4985.9685,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-07",
+      "value": 4964.774,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-10",
+      "value": 4961.5772,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-11",
+      "value": 4980.1333,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-12",
+      "value": 4979.8703,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-13",
+      "value": 4935.9673,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-14",
+      "value": 5037.2472,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-17",
+      "value": 5042.8386,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-18",
+      "value": 5060.9371,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-19",
+      "value": 5045.4785,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-20",
+      "value": 5015.2423,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-21",
+      "value": 4931.8154,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-24",
+      "value": 4918.6355,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-25",
+      "value": 4899.4243,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-26",
+      "value": 4905.4683,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-27",
+      "value": 4906.853,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-28",
+      "value": 4868.7456,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-03-31",
+      "value": 4826.864,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-01",
+      "value": 4844.5323,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-02",
+      "value": 4847.5648,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-03",
+      "value": 4809.7335,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-07",
+      "value": 4365.1772,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-08",
+      "value": 4409.9796,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-09",
+      "value": 4486.4734,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-10",
+      "value": 4571.4749,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-11",
+      "value": 4603.0324,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-14",
+      "value": 4643.0728,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-15",
+      "value": 4637.0127,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-16",
+      "value": 4612.7151,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-17",
+      "value": 4617.8818,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-18",
+      "value": 4616.8376,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-21",
+      "value": 4668.9115,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-22",
+      "value": 4665.2724,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-23",
+      "value": 4681.0836,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-24",
+      "value": 4658.5796,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-25",
+      "value": 4667.5574,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-28",
+      "value": 4639.9026,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-29",
+      "value": 4649.0354,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-04-30",
+      "value": 4666.796,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-06",
+      "value": 4751.8023,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-07",
+      "value": 4775.7525,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-08",
+      "value": 4807.3861,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-09",
+      "value": 4773.3335,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-12",
+      "value": 4834.218,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-13",
+      "value": 4831.2375,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-14",
+      "value": 4864.4848,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-15",
+      "value": 4807.4037,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-16",
+      "value": 4805.3678,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-19",
+      "value": 4812.0505,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-20",
+      "value": 4843.5682,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-21",
+      "value": 4846.772,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-22",
+      "value": 4816.9777,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-23",
+      "value": 4771.6242,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-26",
+      "value": 4776.1769,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-27",
+      "value": 4761.0651,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-28",
+      "value": 4751.0116,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-29",
+      "value": 4805.6622,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-05-30",
+      "value": 4764.6041,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-03",
+      "value": 4788.3736,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-04",
+      "value": 4821.1125,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-05",
+      "value": 4840.0784,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-06",
+      "value": 4834.8625,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-09",
+      "value": 4870.4276,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-10",
+      "value": 4836.6673,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-11",
+      "value": 4866.33,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-12",
+      "value": 4868.9156,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-13",
+      "value": 4813.1973,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-16",
+      "value": 4838.2264,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-17",
+      "value": 4832.052,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-18",
+      "value": 4830.9253,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-19",
+      "value": 4772.1435,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-20",
+      "value": 4754.8273,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-23",
+      "value": 4794.1406,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-24",
+      "value": 4868.0806,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-25",
+      "value": 4933.5941,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-26",
+      "value": 4916.5631,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-27",
+      "value": 4913.664,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-06-30",
+      "value": 4954.2298,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-01",
+      "value": 4966.8164,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-02",
+      "value": 4947.1364,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-03",
+      "value": 4976.6567,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-04",
+      "value": 4969.2135,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-07",
+      "value": 4966.0964,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-08",
+      "value": 5018.7943,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-09",
+      "value": 5008.498,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-10",
+      "value": 5026.4907,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-11",
+      "value": 5045.7649,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-14",
+      "value": 5052.9342,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-15",
+      "value": 5042.6524,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-16",
+      "value": 5044.1262,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-17",
+      "value": 5090.8179,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-18",
+      "value": 5110.4533,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-21",
+      "value": 5156.7249,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-22",
+      "value": 5188.2653,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-23",
+      "value": 5173.4662,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-24",
+      "value": 5229.1045,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-25",
+      "value": 5220.9501,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-28",
+      "value": 5238.8019,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-29",
+      "value": 5262.3192,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-30",
+      "value": 5241.3291,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-07-31",
+      "value": 5168.7487,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-01",
+      "value": 5161.0932,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-04",
+      "value": 5199.566,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-05",
+      "value": 5239.873,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-06",
+      "value": 5272.0772,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-07",
+      "value": 5271.1082,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-08",
+      "value": 5258.7829,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-11",
+      "value": 5310.5124,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-12",
+      "value": 5328.3963,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-13",
+      "value": 5382.3491,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-14",
+      "value": 5336.8328,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-15",
+      "value": 5412.0181,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-18",
+      "value": 5486.5658,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-19",
+      "value": 5483.4519,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-20",
+      "value": 5536.4422,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-21",
+      "value": 5529.2107,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-22",
+      "value": 5620.4251,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-25",
+      "value": 5722.0751,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-26",
+      "value": 5715.7895,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-27",
+      "value": 5615.1579,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-28",
+      "value": 5703.5468,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-08-29",
+      "value": 5723.9513,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-01",
+      "value": 5769.4505,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-02",
+      "value": 5684.0008,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-03",
+      "value": 5615.6393,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-04",
+      "value": 5502.1096,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-05",
+      "value": 5642.5939,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-08",
+      "value": 5681.2263,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-09",
+      "value": 5629.7514,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-10",
+      "value": 5641.2055,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-11",
+      "value": 5769.357,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-12",
+      "value": 5759.2864,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-15",
+      "value": 5764.1615,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-16",
+      "value": 5790.9336,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-17",
+      "value": 5829.8423,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-18",
+      "value": 5766.7158,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-19",
+      "value": 5749.1028,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-22",
+      "value": 5778.2598,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-23",
+      "value": 5742.3736,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-24",
+      "value": 5821.912,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-25",
+      "value": 5831.1453,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-26",
+      "value": 5760.8978,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-29",
+      "value": 5840.4498,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-09-30",
+      "value": 5875.4607,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-09",
+      "value": 5952.8519,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-10",
+      "value": 5855.6487,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-13",
+      "value": 5833.9572,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-14",
+      "value": 5741.3317,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-15",
+      "value": 5826.4868,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-16",
+      "value": 5800.591,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-17",
+      "value": 5652.4627,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-20",
+      "value": 5697.1596,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-21",
+      "value": 5788.8328,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-22",
+      "value": 5764.9285,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-23",
+      "value": 5772.7822,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-24",
+      "value": 5842.5729,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-27",
+      "value": 5913.0717,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-28",
+      "value": 5893.1369,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-29",
+      "value": 5961.1939,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-30",
+      "value": 5898.9039,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-10-31",
+      "value": 5866.6477,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-03",
+      "value": 5888.6791,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-04",
+      "value": 5827.9277,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-05",
+      "value": 5847.9281,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-06",
+      "value": 5918.754,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-07",
+      "value": 5903.5784,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-10",
+      "value": 5926.6604,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-11",
+      "value": 5895.6448,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-12",
+      "value": 5871.6254,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-13",
+      "value": 5948.0018,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-14",
+      "value": 5872.1266,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-17",
+      "value": 5864.1259,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-18",
+      "value": 5809.5974,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-19",
+      "value": 5793.2882,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-20",
+      "value": 5755.7861,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-21",
+      "value": 5575.4763,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-24",
+      "value": 5608.6852,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-25",
+      "value": 5676.3258,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-26",
+      "value": 5690.0807,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-27",
+      "value": 5690.0121,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-11-28",
+      "value": 5732.7705,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-01",
+      "value": 5787.1771,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-02",
+      "value": 5750.4032,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-03",
+      "value": 5710.5761,
+      "n": 18
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-04",
+      "value": 5711.8004,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-05",
+      "value": 5776.8309,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-08",
+      "value": 5835.5518,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-09",
+      "value": 5802.8454,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-10",
+      "value": 5809.3538,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-11",
+      "value": 5745.0693,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-12",
+      "value": 5787.8638,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-15",
+      "value": 5751.5535,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-16",
+      "value": 5668.201,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-17",
+      "value": 5756.2311,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-18",
+      "value": 5733.5503,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-19",
+      "value": 5777.5379,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-22",
+      "value": 5835.5355,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-23",
+      "value": 5831.4676,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-24",
+      "value": 5883.6627,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-25",
+      "value": 5918.5749,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-26",
+      "value": 5938.2943,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-29",
+      "value": 5921.1153,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-30",
+      "value": 5928.9589,
+      "n": 21
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2025-12-31",
+      "value": 5919.1153,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-05",
+      "value": 6035.9837,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-06",
+      "value": 6131.6937,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-07",
+      "value": 6142.5656,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-08",
+      "value": 6145.5399,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-09",
+      "value": 6217.681,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-12",
+      "value": 6325.6364,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-13",
+      "value": 6251.4385,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-14",
+      "value": 6270.4068,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-15",
+      "value": 6259.8213,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-16",
+      "value": 6246.92,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-19",
+      "value": 6272.4514,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-20",
+      "value": 6235.573,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-21",
+      "value": 6270.2606,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-22",
+      "value": 6298.0605,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-23",
+      "value": 6356.8198,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-26",
+      "value": 6314.8216,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-27",
+      "value": 6323.7761,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-28",
+      "value": 6331.4853,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-29",
+      "value": 6319.7731,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-01-30",
+      "value": 6259.1819,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-02",
+      "value": 6088.2773,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-03",
+      "value": 6217.1276,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-04",
+      "value": 6245.4352,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-05",
+      "value": 6176.1306,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-06",
+      "value": 6161.613,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-09",
+      "value": 6279.1368,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-10",
+      "value": 6283.2595,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-11",
+      "value": 6272.7164,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-12",
+      "value": 6299.8953,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-13",
+      "value": 6227.5438,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-24",
+      "value": 6295.2798,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-25",
+      "value": 6360.5436,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-26",
+      "value": 6373.7088,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-02-27",
+      "value": 6398.4583,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-02",
+      "value": 6375.691,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-03",
+      "value": 6188.0944,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-04",
+      "value": 6143.1882,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-05",
+      "value": 6208.8106,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-06",
+      "value": 6252.3769,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-09",
+      "value": 6199.4259,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-10",
+      "value": 6296.2039,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-11",
+      "value": 6313.0247,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-12",
+      "value": 6279.6757,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-13",
+      "value": 6220.6551,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-16",
+      "value": 6217.0675,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-17",
+      "value": 6120.1736,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-18",
+      "value": 6169.4205,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-19",
+      "value": 6039.1833,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-20",
+      "value": 5965.8893,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-23",
+      "value": 5723.4126,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-24",
+      "value": 5843.7257,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-25",
+      "value": 5948.5987,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-26",
+      "value": 5861.8928,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-27",
+      "value": 5922.2081,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-30",
+      "value": 5925.2135,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-03-31",
+      "value": 5842.342,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-01",
+      "value": 5946.5803,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-02",
+      "value": 5860.4412,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-03",
+      "value": 5791.488,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-07",
+      "value": 5822.7454,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-08",
+      "value": 6059.7473,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-09",
+      "value": 6020.053,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-10",
+      "value": 6090.0619,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-13",
+      "value": 6103.8424,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-14",
+      "value": 6181.433,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-15",
+      "value": 6153.959,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-16",
+      "value": 6239.4853,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-17",
+      "value": 6254.1137,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-20",
+      "value": 6300.2141,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-21",
+      "value": 6297.9136,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-22",
+      "value": 6357.0963,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-23",
+      "value": 6303.1042,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-24",
+      "value": 6271.1736,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-27",
+      "value": 6296.4469,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-28",
+      "value": 6246.707,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-29",
+      "value": 6328.3636,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-04-30",
+      "value": 6342.2636,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-06",
+      "value": 6465.5983,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-07",
+      "value": 6533.3261,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-08",
+      "value": 6532.3442,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-11",
+      "value": 6633.4826,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-12",
+      "value": 6605.7222,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-13",
+      "value": 6686.865,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-14",
+      "value": 6552.9453,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-15",
+      "value": 6481.3376,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-18",
+      "value": 6477.2115,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-19",
+      "value": 6526.0258,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-20",
+      "value": 6525.0583,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-21",
+      "value": 6368.4414,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-22",
+      "value": 6479.3702,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-25",
+      "value": 6559.839,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-26",
+      "value": 6532.4386,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-27",
+      "value": 6443.8443,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-28",
+      "value": 6480.4676,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-05-29",
+      "value": 6368.8357,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-01",
+      "value": 6321.1054,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-02",
+      "value": 6368.5118,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-03",
+      "value": 6395.8835,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-04",
+      "value": 6368.336,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-05",
+      "value": 6292.1915,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-08",
+      "value": 6119.2445,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-09",
+      "value": 6254.7442,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-10",
+      "value": 6173.6278,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-11",
+      "value": 6140.7498,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-12",
+      "value": 6196.2583,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-15",
+      "value": 6380.1618,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-16",
+      "value": 6421.2401,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-17",
+      "value": 6477.0704,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-18",
+      "value": 6499.3346,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-22",
+      "value": 6624.0099,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-23",
+      "value": 6483.5661,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-24",
+      "value": 6531.2516,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-25",
+      "value": 6586.2305,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-26",
+      "value": 6401.006,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-29",
+      "value": 6443.3005,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-06-30",
+      "value": 6551.6166,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-01",
+      "value": 6563.1647,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-02",
+      "value": 6376.3607,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-03",
+      "value": 6404.3967,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-06",
+      "value": 6350.8946,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-07",
+      "value": 6246.0279,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-08",
+      "value": 6157.0729,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-09",
+      "value": 6304.4262,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-10",
+      "value": 6215.1138,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-13",
+      "value": 6001.6528,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-14",
+      "value": 6119.1944,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-15",
+      "value": 6075.6575,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-16",
+      "value": 5956.5003,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-17",
+      "value": 5671.7507,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-20",
+      "value": 5638.6186,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-21",
+      "value": 5833.7268,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-22",
+      "value": 5790.7622,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-23",
+      "value": 5816.0771,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-24",
+      "value": 5687.2553,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-27",
+      "value": 5807.7998,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-28",
+      "value": 5648.7086,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-29",
+      "value": 5692.3414,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-30",
+      "value": 5581.3673,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-07-31",
+      "value": 5681.2411,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-03",
+      "value": 5652.5702,
+      "n": 27
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-04",
+      "value": 5766.3306,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-05",
+      "value": 5881.8506,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-06",
+      "value": 5896.3568,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-07",
+      "value": 5978.3032,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-10",
+      "value": 6009.5336,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-11",
+      "value": 5966.5851,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-12",
+      "value": 6024.0456,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-13",
+      "value": 5973.2654,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-14",
+      "value": 5991.019,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-17",
+      "value": 6112.6986,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-18",
+      "value": 6097.5015,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-19",
+      "value": 5846.4216,
+      "n": 24
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-20",
+      "value": 5882.464,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-21",
+      "value": 5902.1056,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-24",
+      "value": 5818.5117,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-25",
+      "value": 5832.9177,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-26",
+      "value": 5867.4379,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-27",
+      "value": 5958.9256,
+      "n": 23
+    },
+    {
+      "metric_id": "CN_EQUITY_CORE_000985",
+      "period_end": "2026-08-28",
+      "value": 5935.0294,
+      "n": 23
+    }
+  ]
+}

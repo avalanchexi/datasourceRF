@@ -1,0 +1,168 @@
+[
+  {
+    "name": "bse-margin-page",
+    "url": "https://www.bse.cn/disclosure/rzrq_trans_list.html",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:09:46.077648+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:09:46.137143+00:00",
+    "status": 403,
+    "sha256": "bbbfe0e59c1c3d196d98dcc9b21066cb3df3614b068b3edd91c53151a9a9d329",
+    "byte_count": 2025,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:09:43 GMT",
+      "Content-Type": "text/html"
+    },
+    "local_file": "bbbfe0e59c1c3d196d98dcc9b21066cb3df3614b068b3edd91c53151a9a9d329.html"
+  },
+  {
+    "name": "bse-business-guide",
+    "url": "https://www.bse.cn/jygl_list/200013680.html",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:09:46.078196+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:09:46.135338+00:00",
+    "status": 403,
+    "sha256": "5b58ef7d458e50eed94c4eb437ba598a2933142f9c1acad942e41997700939fb",
+    "byte_count": 2011,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:09:43 GMT",
+      "Content-Type": "text/html"
+    },
+    "local_file": "5b58ef7d458e50eed94c4eb437ba598a2933142f9c1acad942e41997700939fb.html"
+  },
+  {
+    "name": "bseinfo-known-public-page",
+    "url": "https://www.bseinfo.net/disclosure/tradepublic.html",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:09:46.078641+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:09:47.185529+00:00",
+    "status": 403,
+    "sha256": "1009ae5b6db3373aaa0982b52576ad6adeec18757c727678ec3355604a1817ef",
+    "byte_count": 2929,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:09:44 GMT",
+      "Content-Type": "text/html"
+    },
+    "local_file": "1009ae5b6db3373aaa0982b52576ad6adeec18757c727678ec3355604a1817ef.html"
+  },
+  {
+    "name": "bse-tech-guide-2025",
+    "url": "https://www.bse.cn/uploads/6/file/public/202510/20251010190514_4qgms4u8gx.pdf",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:11:21.705858+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:11:21.799487+00:00",
+    "status": 403,
+    "sha256": "32fe74eb10683b4da4da95782d3a7d5f0b78ba289d50ec4bb3f509895b48fa57",
+    "byte_count": 2077,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:11:19 GMT",
+      "Content-Type": "text/html"
+    },
+    "local_file": "32fe74eb10683b4da4da95782d3a7d5f0b78ba289d50ec4bb3f509895b48fa57.html"
+  },
+  {
+    "name": "tushare-margin-public-doc",
+    "url": "https://tushare.pro/document/2?doc_id=58",
+    "method": "GET",
+    "request_started_at": "2026-09-06T14:11:21.800683+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:11:23.869777+00:00",
+    "status": 200,
+    "sha256": "9f84649b54199c0f4d89dbb2cfd4235ac7ef816aab2f8d2dcd5867f6a32a1e7c",
+    "byte_count": 34682,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:11:21 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "ETag": "W/\"690b1c69f81f869817c13ee9e3c4d4f6b75d6579\""
+    },
+    "local_file": "9f84649b54199c0f4d89dbb2cfd4235ac7ef816aab2f8d2dcd5867f6a32a1e7c.html"
+  },
+  {
+    "name": "sse-20260828-refetch",
+    "url": "https://query.sse.com.cn/commonSoaQuery.do?sqlId=RZRQ_HZ_INFO&beginDate=20260828&endDate=20260828&isPagination=false",
+    "method": "GET",
+    "request_headers": {
+      "Referer": "https://www.sse.com.cn/market/othersdata/margin/sum/"
+    },
+    "request_started_at": "2026-09-06T14:12:18.473591+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:12:18.635447+00:00",
+    "status": 200,
+    "sha256": "fa7f73716372a7be474ff766b2eb8cebd7260d71d7e87c94884cd5727d6e5eed",
+    "byte_count": 804,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:12:15 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "fa7f73716372a7be474ff766b2eb8cebd7260d71d7e87c94884cd5727d6e5eed.json"
+  },
+  {
+    "name": "szse-20260828-json-refetch",
+    "url": "https://www.szse.cn/api/report/ShowReport/data?SHOWTYPE=JSON&CATALOGID=1837_xxpl&txtDate=2026-08-28&tab1PAGENO=1",
+    "method": "GET",
+    "request_headers": {},
+    "request_started_at": "2026-09-06T14:12:18.474475+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:12:18.720677+00:00",
+    "status": 200,
+    "sha256": "c795098426ebe987b7971ffcadc1bd36a34cbe3f5b9fc2295baa1883fbc77277",
+    "byte_count": 8383,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:12:16 GMT",
+      "Content-Type": "application/json"
+    },
+    "local_file": "c795098426ebe987b7971ffcadc1bd36a34cbe3f5b9fc2295baa1883fbc77277.json"
+  },
+  {
+    "name": "szse-20260828-xlsx-refetch",
+    "url": "https://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&txtDate=2026-08-28&TABKEY=tab1",
+    "method": "GET",
+    "request_headers": {},
+    "request_started_at": "2026-09-06T14:12:18.477554+00:00",
+    "timeout_seconds": [
+      10,
+      15
+    ],
+    "allow_redirects": false,
+    "received_at": "2026-09-06T14:12:18.679401+00:00",
+    "status": 200,
+    "sha256": "30b9f549a2d603efb49f502c638eb93dce59a67175427675abed0cfe2eb2a9dd",
+    "byte_count": 3711,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 14:12:16 GMT",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=GBK"
+    },
+    "local_file": "30b9f549a2d603efb49f502c638eb93dce59a67175427675abed0cfe2eb2a9dd.xlsx"
+  }
+]

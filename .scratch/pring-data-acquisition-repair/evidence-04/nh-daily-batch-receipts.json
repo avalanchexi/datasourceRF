@@ -1,0 +1,943 @@
+[
+  {
+    "name": "nh-daily-20260827",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/e201b5e9-79b7-46f1-b008-af4d1fa7d806/南华商品指数日报20260827.pdf",
+    "request_started_at": "2026-09-06T13:45:36.118952+00:00",
+    "received_at": "2026-09-06T13:45:42.301974+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/e201b5e9-79b7-46f1-b008-af4d1fa7d806/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260827.pdf",
+    "sha256": "1775efb81af480034001b0a8ccb4f2e51903c7782ea96cbb7d2eb76a9eea802e",
+    "byte_count": 1081469,
+    "local_file": "1775efb81af480034001b0a8ccb4f2e51903c7782ea96cbb7d2eb76a9eea802e.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Thu, 27 Aug 2026 08:19:29 GMT",
+      "ETag": "\"6a8ff311-10807d\""
+    }
+  },
+  {
+    "name": "nh-daily-20260826",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/757bf1f6-9c2b-484e-b0fe-f3a98b1a6ffc/南华商品指数日报20260826.pdf",
+    "request_started_at": "2026-09-06T13:45:36.119939+00:00",
+    "received_at": "2026-09-06T13:45:42.062752+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/757bf1f6-9c2b-484e-b0fe-f3a98b1a6ffc/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260826.pdf",
+    "sha256": "249bfc9a8bec1de69a703baa30aac78bcff06d12649853a786cb2c59c68b9401",
+    "byte_count": 1133783,
+    "local_file": "249bfc9a8bec1de69a703baa30aac78bcff06d12649853a786cb2c59c68b9401.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 26 Aug 2026 08:05:39 GMT",
+      "ETag": "\"6a8e9e53-114cd7\""
+    }
+  },
+  {
+    "name": "nh-daily-20260825",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/fbd50310-7f32-4e14-9d78-6762d3392901/南华商品指数日报20260825.pdf",
+    "request_started_at": "2026-09-06T13:45:36.120910+00:00",
+    "received_at": "2026-09-06T13:45:41.961858+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/fbd50310-7f32-4e14-9d78-6762d3392901/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260825.pdf",
+    "sha256": "485de594757c5e86577b947c1ceff406f268922deed9b58fe0603fc9674aa147",
+    "byte_count": 1095749,
+    "local_file": "485de594757c5e86577b947c1ceff406f268922deed9b58fe0603fc9674aa147.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Tue, 25 Aug 2026 08:19:51 GMT",
+      "ETag": "\"6a8d5027-10b845\""
+    }
+  },
+  {
+    "name": "nh-daily-20260824",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/983370e7-b2e8-4e25-a9e9-c64402742a84/南华商品指数日报20260824.pdf",
+    "request_started_at": "2026-09-06T13:45:36.121855+00:00",
+    "received_at": "2026-09-06T13:45:41.957799+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/983370e7-b2e8-4e25-a9e9-c64402742a84/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260824.pdf",
+    "sha256": "03fe94a71625465fff428430d58bf9078e3f6d8511a408b2bd6dd5e4421ec294",
+    "byte_count": 1110879,
+    "local_file": "03fe94a71625465fff428430d58bf9078e3f6d8511a408b2bd6dd5e4421ec294.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:35 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Mon, 24 Aug 2026 08:07:05 GMT",
+      "ETag": "\"6a8bfba9-10f35f\""
+    }
+  },
+  {
+    "name": "nh-daily-20260821",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/6f843531-38d9-47f9-adb9-bf4184bc8e5f/南华商品指数日报20260821.pdf",
+    "request_started_at": "2026-09-06T13:45:41.958533+00:00",
+    "received_at": "2026-09-06T13:45:49.237554+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/6f843531-38d9-47f9-adb9-bf4184bc8e5f/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260821.pdf",
+    "sha256": "a36152be78b9c7e5ebd21e2449d1d50cb7b40bf38d9d02741e1966d947e4c363",
+    "byte_count": 1131180,
+    "local_file": "a36152be78b9c7e5ebd21e2449d1d50cb7b40bf38d9d02741e1966d947e4c363.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:42 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 21 Aug 2026 08:30:05 GMT",
+      "ETag": "\"6a880c8d-1142ac\""
+    }
+  },
+  {
+    "name": "nh-daily-20260820",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/d8abf1d7-f502-4b09-b914-6c29df0a800c/南华商品指数日报20260820.pdf",
+    "request_started_at": "2026-09-06T13:45:41.963003+00:00",
+    "received_at": "2026-09-06T13:45:47.547921+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/d8abf1d7-f502-4b09-b914-6c29df0a800c/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260820.pdf",
+    "sha256": "596b080f82a2e7a2e133b79ef9d7faab2a85c805303b2dd89ff179028ec3f256",
+    "byte_count": 1134416,
+    "local_file": "596b080f82a2e7a2e133b79ef9d7faab2a85c805303b2dd89ff179028ec3f256.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:41 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Thu, 20 Aug 2026 08:54:54 GMT",
+      "ETag": "\"6a86c0de-114f50\""
+    }
+  },
+  {
+    "name": "nh-daily-20260819",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/e7b8cd58-5db9-432d-9a20-65a35f6371e3/南华商品指数日报20260819.pdf",
+    "request_started_at": "2026-09-06T13:45:42.063587+00:00",
+    "received_at": "2026-09-06T13:45:47.766159+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/e7b8cd58-5db9-432d-9a20-65a35f6371e3/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260819.pdf",
+    "sha256": "254d8298a153c916fcc898cdb489af62ad1f102d0141000c29bb3c8f78409ab7",
+    "byte_count": 1111211,
+    "local_file": "254d8298a153c916fcc898cdb489af62ad1f102d0141000c29bb3c8f78409ab7.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:41 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 19 Aug 2026 08:37:07 GMT",
+      "ETag": "\"6a856b33-10f4ab\""
+    }
+  },
+  {
+    "name": "nh-daily-20260818",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/c4a7c6a8-ace5-4664-90f6-6fc431d87f64/南华商品指数日报20260818.pdf",
+    "request_started_at": "2026-09-06T13:45:42.302730+00:00",
+    "received_at": "2026-09-06T13:45:50.376014+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/c4a7c6a8-ace5-4664-90f6-6fc431d87f64/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260818.pdf",
+    "sha256": "132f0b7a0e07532f0f05ec8cecc231b9e6780b633420132870e6b9b850c54904",
+    "byte_count": 1211753,
+    "local_file": "132f0b7a0e07532f0f05ec8cecc231b9e6780b633420132870e6b9b850c54904.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:41 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Tue, 18 Aug 2026 08:21:49 GMT",
+      "ETag": "\"6a84161d-127d69\""
+    }
+  },
+  {
+    "name": "nh-daily-20260817",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/ecfc24cc-2072-4ceb-9d43-1c6a29d9bbcc/南华商品指数周报20260814：多数上涨，能源领涨.pdf",
+    "request_started_at": "2026-09-06T13:45:47.548788+00:00",
+    "received_at": "2026-09-06T13:45:55.190116+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/ecfc24cc-2072-4ceb-9d43-1c6a29d9bbcc/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E5%91%A8%E6%8A%A520260814%EF%BC%9A%E5%A4%9A%E6%95%B0%E4%B8%8A%E6%B6%A8%EF%BC%8C%E8%83%BD%E6%BA%90%E9%A2%86%E6%B6%A8.pdf",
+    "sha256": "87d01b4c239555057fbb2af2b38e1fe71d58c955a807ed390d061385b6fe16fb",
+    "byte_count": 1733761,
+    "local_file": "87d01b4c239555057fbb2af2b38e1fe71d58c955a807ed390d061385b6fe16fb.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:46 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Tue, 18 Aug 2026 01:03:15 GMT",
+      "ETag": "\"6a83af53-1a7481\""
+    }
+  },
+  {
+    "name": "nh-daily-20260814",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/b03375e6-980b-47ee-a731-e1e4b910c586/南华商品指数日报20260814.pdf",
+    "request_started_at": "2026-09-06T13:45:47.767507+00:00",
+    "received_at": "2026-09-06T13:45:54.526124+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/b03375e6-980b-47ee-a731-e1e4b910c586/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260814.pdf",
+    "sha256": "edaef3a9f1112e7ef33c10406ae13ace3bdf8c20de48fbba1d16db6d13b7d61e",
+    "byte_count": 1232199,
+    "local_file": "edaef3a9f1112e7ef33c10406ae13ace3bdf8c20de48fbba1d16db6d13b7d61e.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:47 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 14 Aug 2026 09:04:33 GMT",
+      "ETag": "\"6a7eda21-12cd47\""
+    }
+  },
+  {
+    "name": "nh-daily-20260813",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/4f305efe-bb9e-4a2a-a24a-813084304cbb/南华商品指数日报20260813.pdf",
+    "request_started_at": "2026-09-06T13:45:49.238236+00:00",
+    "received_at": "2026-09-06T13:45:55.902589+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/4f305efe-bb9e-4a2a-a24a-813084304cbb/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260813.pdf",
+    "sha256": "2306c84a648ac8cd21d3d31efe0d5337c633864aab19bf5960314ed6eabefb48",
+    "byte_count": 1214562,
+    "local_file": "2306c84a648ac8cd21d3d31efe0d5337c633864aab19bf5960314ed6eabefb48.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:48 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Thu, 13 Aug 2026 08:20:00 GMT",
+      "ETag": "\"6a7d7e30-128862\""
+    }
+  },
+  {
+    "name": "nh-daily-20260812",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/85599134-2e5b-44d2-8242-4b21c3ea439a/南华商品指数日报20260812.pdf",
+    "request_started_at": "2026-09-06T13:45:50.376632+00:00",
+    "received_at": "2026-09-06T13:45:56.367154+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/85599134-2e5b-44d2-8242-4b21c3ea439a/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260812.pdf",
+    "sha256": "d131d1bc3855fa90ae03a4e9890bea76500ccde6f9311bfc4f2aec7982ba15ff",
+    "byte_count": 1199554,
+    "local_file": "d131d1bc3855fa90ae03a4e9890bea76500ccde6f9311bfc4f2aec7982ba15ff.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:49 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Wed, 12 Aug 2026 08:02:22 GMT",
+      "ETag": "\"6a7c288e-124dc2\""
+    }
+  },
+  {
+    "name": "nh-daily-20260811",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/e5d37f5b-989a-404e-8328-905a36279968/南华商品指数日报20260811.pdf",
+    "request_started_at": "2026-09-06T13:45:54.526878+00:00",
+    "received_at": "2026-09-06T13:46:01.518066+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/e5d37f5b-989a-404e-8328-905a36279968/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260811.pdf",
+    "sha256": "5ae1c614912d626931535047954442ee9839263e22e00c81e0da7069c7d9d89e",
+    "byte_count": 1190343,
+    "local_file": "5ae1c614912d626931535047954442ee9839263e22e00c81e0da7069c7d9d89e.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:54 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Tue, 11 Aug 2026 08:42:52 GMT",
+      "ETag": "\"6a7ae08c-1229c7\""
+    }
+  },
+  {
+    "name": "nh-daily-20260810",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/4ed8739d-73fd-4835-b838-e2c0903f5329/南华商品指数日报20260810.pdf",
+    "request_started_at": "2026-09-06T13:45:55.191112+00:00",
+    "received_at": "2026-09-06T13:46:01.193919+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/4ed8739d-73fd-4835-b838-e2c0903f5329/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260810.pdf",
+    "sha256": "633497fb756ddaca2e20538baa854b841b89c6319992a938caee3d623b09d406",
+    "byte_count": 1212644,
+    "local_file": "633497fb756ddaca2e20538baa854b841b89c6319992a938caee3d623b09d406.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:54 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Mon, 10 Aug 2026 08:35:55 GMT",
+      "ETag": "\"6a798d6b-1280e4\""
+    }
+  },
+  {
+    "name": "nh-daily-20260807",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/d42b8717-19eb-4cd1-a129-c0b31c0b1041/南华商品指数日报20260807.pdf",
+    "request_started_at": "2026-09-06T13:45:55.903417+00:00",
+    "received_at": "2026-09-06T13:46:02.058540+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/d42b8717-19eb-4cd1-a129-c0b31c0b1041/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260807.pdf",
+    "sha256": "10ed46fec8b7c7d3d4f84f5672dd97ef65e5d283b398632bb27269df84ca9da6",
+    "byte_count": 1207048,
+    "local_file": "10ed46fec8b7c7d3d4f84f5672dd97ef65e5d283b398632bb27269df84ca9da6.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:45:55 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 07 Aug 2026 08:30:33 GMT",
+      "ETag": "\"6a7597a9-126b08\""
+    }
+  },
+  {
+    "name": "nh-daily-20260806",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/37a8df8f-46ec-403b-b4a7-7cae46d899c5/南华商品指数日报20260806.pdf",
+    "request_started_at": "2026-09-06T13:45:56.368396+00:00",
+    "failed_at": "2026-09-06T13:45:58.292090+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/08/37a8df8f-46ec-403b-b4a7-7cae46d899c5/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260806.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260805",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/9f2e323b-7184-45b2-bdae-a7481f2ababa/南华商品指数日报20260805.pdf",
+    "request_started_at": "2026-09-06T13:45:58.292137+00:00",
+    "failed_at": "2026-09-06T13:46:00.270869+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/08/9f2e323b-7184-45b2-bdae-a7481f2ababa/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260805.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260804",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/48b180a6-d12c-41ed-b854-93e7ef2a848f/南华商品指数日报20260804.pdf",
+    "request_started_at": "2026-09-06T13:46:00.271020+00:00",
+    "failed_at": "2026-09-06T13:46:02.124174+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/08/48b180a6-d12c-41ed-b854-93e7ef2a848f/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260804.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260803",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/8dd38f99-e9ee-4db4-818f-96735373920e/南华商品指数日报20260803.pdf",
+    "request_started_at": "2026-09-06T13:46:01.194666+00:00",
+    "failed_at": "2026-09-06T13:46:03.165648+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/08/8dd38f99-e9ee-4db4-818f-96735373920e/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260803.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260731",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/42ae2fdb-fc01-4a7a-9754-a805fa0f9d98/南华商品指数日报20260731.pdf",
+    "request_started_at": "2026-09-06T13:46:01.518855+00:00",
+    "failed_at": "2026-09-06T13:46:03.406175+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/42ae2fdb-fc01-4a7a-9754-a805fa0f9d98/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260731.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260730",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/b0db1ae5-a6d0-4434-bd35-f0bf176bcf92/南华商品指数日报20260730.pdf",
+    "request_started_at": "2026-09-06T13:46:02.059515+00:00",
+    "failed_at": "2026-09-06T13:46:03.965154+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/b0db1ae5-a6d0-4434-bd35-f0bf176bcf92/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260730.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260729",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/60975cb7-df6a-4d42-81b8-a7e3adb47c01/南华商品指数日报20260729.pdf",
+    "request_started_at": "2026-09-06T13:46:02.124221+00:00",
+    "failed_at": "2026-09-06T13:46:03.957360+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/60975cb7-df6a-4d42-81b8-a7e3adb47c01/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260729.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260728",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/ae40849d-ee3c-4c3e-b98a-1073daefb648/南华商品指数日报20260728.pdf",
+    "request_started_at": "2026-09-06T13:46:03.165714+00:00",
+    "failed_at": "2026-09-06T13:46:05.077461+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/ae40849d-ee3c-4c3e-b98a-1073daefb648/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260728.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260727",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/deaa37dc-0198-4399-9591-56b72ba89b19/南华商品指数日报20260727.pdf",
+    "request_started_at": "2026-09-06T13:46:03.406247+00:00",
+    "failed_at": "2026-09-06T13:46:05.837492+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/deaa37dc-0198-4399-9591-56b72ba89b19/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260727.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260724",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/26b598c9-c5f8-47df-85cd-92b79bb70df6/南华商品指数日报20260724.pdf",
+    "request_started_at": "2026-09-06T13:46:03.957402+00:00",
+    "failed_at": "2026-09-06T13:46:05.952512+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/26b598c9-c5f8-47df-85cd-92b79bb70df6/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260724.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260723",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/627ef12a-0bc4-45fe-afb7-cf9975bd7b39/南华商品指数日报20260723.pdf",
+    "request_started_at": "2026-09-06T13:46:03.965220+00:00",
+    "failed_at": "2026-09-06T13:46:05.800081+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/627ef12a-0bc4-45fe-afb7-cf9975bd7b39/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260723.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260722",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/d03d8f09-363a-41be-95aa-69179abec843/南华商品指数日报20260722.pdf",
+    "request_started_at": "2026-09-06T13:46:05.077517+00:00",
+    "failed_at": "2026-09-06T13:46:06.999061+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/d03d8f09-363a-41be-95aa-69179abec843/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260722.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260721",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/cd5fa01d-a568-469c-afc7-98262c84daec/南华商品指数日报20260721.pdf",
+    "request_started_at": "2026-09-06T13:46:05.800125+00:00",
+    "failed_at": "2026-09-06T13:46:07.661037+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/cd5fa01d-a568-469c-afc7-98262c84daec/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260721.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260720",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/83051d62-bc07-4349-b291-33f1c134e1f4/南华商品指数日报20260720.pdf",
+    "request_started_at": "2026-09-06T13:46:05.837536+00:00",
+    "failed_at": "2026-09-06T13:46:08.142594+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/83051d62-bc07-4349-b291-33f1c134e1f4/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260720.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260717",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/affff67a-7a85-4835-a572-1f2506f2f162/南华商品指数日报20260717.pdf",
+    "request_started_at": "2026-09-06T13:46:05.952575+00:00",
+    "failed_at": "2026-09-06T13:46:07.869289+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/affff67a-7a85-4835-a572-1f2506f2f162/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260717.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260715",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/e1680431-1d1f-43ae-a138-a59d99684504/南华商品指数日报20260715.pdf",
+    "request_started_at": "2026-09-06T13:46:06.999098+00:00",
+    "failed_at": "2026-09-06T13:46:09.100138+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/e1680431-1d1f-43ae-a138-a59d99684504/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260715.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260714",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/adce7aff-f4af-4145-a7ec-8d8bb76334f9/南华商品指数日报20260714.pdf",
+    "request_started_at": "2026-09-06T13:46:07.661071+00:00",
+    "failed_at": "2026-09-06T13:46:09.533660+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/adce7aff-f4af-4145-a7ec-8d8bb76334f9/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260714.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260713",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/3a6d30d2-9b29-4a83-9374-c6f7e7664703/南华商品指数日报20260713.pdf",
+    "request_started_at": "2026-09-06T13:46:07.869317+00:00",
+    "failed_at": "2026-09-06T13:46:09.849431+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/3a6d30d2-9b29-4a83-9374-c6f7e7664703/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260713.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260710",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/87e8b50b-f55c-4a2b-9cbb-3179fa670ba2/南华商品指数日报20260710.pdf",
+    "request_started_at": "2026-09-06T13:46:08.142639+00:00",
+    "failed_at": "2026-09-06T13:46:09.989078+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/87e8b50b-f55c-4a2b-9cbb-3179fa670ba2/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260710.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260709",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/190b0d6f-4456-4af3-8ae1-0dffdd9c7ba0/南华商品指数日报20260709.pdf",
+    "request_started_at": "2026-09-06T13:46:09.100175+00:00",
+    "failed_at": "2026-09-06T13:46:11.066201+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/190b0d6f-4456-4af3-8ae1-0dffdd9c7ba0/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260709.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260708",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/4c7f6c52-49db-4d7b-b18e-3324aa9e529e/南华商品指数日报20260708.pdf",
+    "request_started_at": "2026-09-06T13:46:09.533690+00:00",
+    "failed_at": "2026-09-06T13:46:12.178002+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/4c7f6c52-49db-4d7b-b18e-3324aa9e529e/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260708.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260707",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/331daa1f-15f5-48ce-8b0f-1afdcf3a8684/南华商品指数日报20260707.pdf",
+    "request_started_at": "2026-09-06T13:46:09.849470+00:00",
+    "failed_at": "2026-09-06T13:46:11.729166+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/331daa1f-15f5-48ce-8b0f-1afdcf3a8684/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260707.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260706",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/9d594a9d-3b1f-499a-82f6-7fac45d1ffc6/南华商品指数日报20260706.pdf",
+    "request_started_at": "2026-09-06T13:46:09.989114+00:00",
+    "failed_at": "2026-09-06T13:46:11.868255+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/9d594a9d-3b1f-499a-82f6-7fac45d1ffc6/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260706.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260703",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/b336f58b-34f5-43ee-9c95-8515e6d0ba3e/南华商品指数日报20260703.pdf",
+    "request_started_at": "2026-09-06T13:46:11.066235+00:00",
+    "failed_at": "2026-09-06T13:46:12.895431+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/b336f58b-34f5-43ee-9c95-8515e6d0ba3e/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260703.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260702",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/37322f56-2d88-4e92-8687-a0968c453434/南华商品指数日报20260702.pdf",
+    "request_started_at": "2026-09-06T13:46:11.729189+00:00",
+    "failed_at": "2026-09-06T13:46:13.647042+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/37322f56-2d88-4e92-8687-a0968c453434/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260702.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260701",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/07/d4fb66c2-73a5-4841-bcd3-ef296e2ccc4d/南华商品指数日报20260701.pdf",
+    "request_started_at": "2026-09-06T13:46:11.868279+00:00",
+    "failed_at": "2026-09-06T13:46:14.408453+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/07/d4fb66c2-73a5-4841-bcd3-ef296e2ccc4d/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260701.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260630",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/7a1706ba-4a2c-414d-afac-7ec40ae569b0/南华商品指数日报20260630.pdf",
+    "request_started_at": "2026-09-06T13:46:12.178073+00:00",
+    "failed_at": "2026-09-06T13:46:14.037982+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/7a1706ba-4a2c-414d-afac-7ec40ae569b0/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260630.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260629",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/6e65d5e5-0fdf-4c59-b025-dc6fbac8eaf4/南华商品指数日报20260629.pdf",
+    "request_started_at": "2026-09-06T13:46:12.895461+00:00",
+    "failed_at": "2026-09-06T13:46:14.790113+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/6e65d5e5-0fdf-4c59-b025-dc6fbac8eaf4/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260629.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260626",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/fa50195a-d43b-46dc-b2c5-a1b4a323f6d7/南华商品指数日报20260626.pdf",
+    "request_started_at": "2026-09-06T13:46:13.647081+00:00",
+    "failed_at": "2026-09-06T13:46:15.547911+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/fa50195a-d43b-46dc-b2c5-a1b4a323f6d7/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260626.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260625",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/6a827682-ccf8-45b1-8431-17777eb95151/南华商品指数日报20260625.pdf",
+    "request_started_at": "2026-09-06T13:46:14.038004+00:00",
+    "failed_at": "2026-09-06T13:46:15.961053+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/6a827682-ccf8-45b1-8431-17777eb95151/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260625.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260624",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/a7953924-346b-48eb-9c2d-ad1225218d41/南华商品指数日报20260624.pdf",
+    "request_started_at": "2026-09-06T13:46:14.408547+00:00",
+    "failed_at": "2026-09-06T13:46:16.294248+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/a7953924-346b-48eb-9c2d-ad1225218d41/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260624.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260623",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/9718ac15-ac3d-466f-b97b-8854f6374b5b/南华商品指数日报20260623.pdf",
+    "request_started_at": "2026-09-06T13:46:14.790154+00:00",
+    "failed_at": "2026-09-06T13:46:17.176132+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/9718ac15-ac3d-466f-b97b-8854f6374b5b/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260623.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260622",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/8ddb1ae7-5991-43c3-b5c0-83fee4fc68e0/南华商品指数日报20260622.pdf",
+    "request_started_at": "2026-09-06T13:46:15.547943+00:00",
+    "failed_at": "2026-09-06T13:46:17.472972+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/8ddb1ae7-5991-43c3-b5c0-83fee4fc68e0/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260622.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260618",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/1cc85426-5a71-4f6e-a3c9-8cfbbba2cf97/南华商品指数日报20260618.pdf",
+    "request_started_at": "2026-09-06T13:46:15.961085+00:00",
+    "failed_at": "2026-09-06T13:46:17.828405+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/1cc85426-5a71-4f6e-a3c9-8cfbbba2cf97/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260618.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260617",
+    "url": "https://www.nanhua.net/news/2026/06/bf7fd3ed-33e1-4a2f-85cb-8a933a2d7b18.html",
+    "request_started_at": "2026-09-06T13:46:16.294294+00:00",
+    "failed_at": "2026-09-06T13:46:18.089745+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /news/2026/06/bf7fd3ed-33e1-4a2f-85cb-8a933a2d7b18.html (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))"
+  },
+  {
+    "name": "nh-daily-20260616",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/191b7223-8a35-4009-ad72-408f82f429b9/南华商品指数日报20260616.pdf",
+    "request_started_at": "2026-09-06T13:46:17.176195+00:00",
+    "failed_at": "2026-09-06T13:46:19.016734+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/191b7223-8a35-4009-ad72-408f82f429b9/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260616.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260615",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/6ada96d0-f5c5-48e9-b19c-f91585676eae/南华商品指数日报20260615.pdf",
+    "request_started_at": "2026-09-06T13:46:17.473011+00:00",
+    "failed_at": "2026-09-06T13:46:19.401190+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/6ada96d0-f5c5-48e9-b19c-f91585676eae/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260615.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260612",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/b2946158-810d-48dd-8ea6-dce17a4d8189/南华商品指数日报20260612.pdf",
+    "request_started_at": "2026-09-06T13:46:17.828436+00:00",
+    "failed_at": "2026-09-06T13:46:19.639659+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/b2946158-810d-48dd-8ea6-dce17a4d8189/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260612.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260611",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/84631ff3-7c0a-4de4-b2cd-a6ff8302c7e2/南华商品指数日报20260611.pdf",
+    "request_started_at": "2026-09-06T13:46:18.089781+00:00",
+    "failed_at": "2026-09-06T13:46:19.955596+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/84631ff3-7c0a-4de4-b2cd-a6ff8302c7e2/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260611.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260608",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/564ad227-0b4e-4260-8245-32367c7293dc/南华商品指数日报20260608.pdf",
+    "request_started_at": "2026-09-06T13:46:19.016768+00:00",
+    "failed_at": "2026-09-06T13:46:21.692408+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/564ad227-0b4e-4260-8245-32367c7293dc/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260608.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260605",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/535309a5-6173-44e8-9d96-2b2b4d436771/南华商品指数日报20260605.pdf",
+    "request_started_at": "2026-09-06T13:46:19.401255+00:00",
+    "failed_at": "2026-09-06T13:46:21.219143+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/535309a5-6173-44e8-9d96-2b2b4d436771/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260605.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260604",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/09c1b835-e8b0-41a3-a1d4-acbc9d58ee17/南华商品指数日报20260604.pdf",
+    "request_started_at": "2026-09-06T13:46:19.639721+00:00",
+    "failed_at": "2026-09-06T13:46:21.440804+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/09c1b835-e8b0-41a3-a1d4-acbc9d58ee17/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260604.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260603",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/930c8b37-1456-4774-97fc-98f16099c2a3/南华商品指数日报20260603.pdf",
+    "request_started_at": "2026-09-06T13:46:19.955671+00:00",
+    "failed_at": "2026-09-06T13:46:21.725883+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/930c8b37-1456-4774-97fc-98f16099c2a3/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260603.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260602",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/1962274c-0e97-4458-b246-90c7fd373160/南华商品指数日报20260602.pdf",
+    "request_started_at": "2026-09-06T13:46:21.219198+00:00",
+    "failed_at": "2026-09-06T13:46:23.100746+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/1962274c-0e97-4458-b246-90c7fd373160/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260602.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260601",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/06/50f369ce-278c-42ba-8d98-352c7f3e9e65/南华商品指数日报20260601.pdf",
+    "request_started_at": "2026-09-06T13:46:21.440853+00:00",
+    "failed_at": "2026-09-06T13:46:24.359225+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/06/50f369ce-278c-42ba-8d98-352c7f3e9e65/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260601.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260529",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/5f98e7f7-c216-4082-a270-1d417f53da23/南华商品指数日报20260529.pdf",
+    "request_started_at": "2026-09-06T13:46:21.692476+00:00",
+    "failed_at": "2026-09-06T13:46:24.921229+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/5f98e7f7-c216-4082-a270-1d417f53da23/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260529.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260528",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/1fb81100-d65c-43bb-9031-c193c170df2d/南华商品指数日报20260528.pdf",
+    "request_started_at": "2026-09-06T13:46:21.725956+00:00",
+    "failed_at": "2026-09-06T13:46:23.598638+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/1fb81100-d65c-43bb-9031-c193c170df2d/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260528.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260527",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/477cf5cb-9cfa-468a-98f0-502dfdf9e112/南华商品指数日报20260527.pdf",
+    "request_started_at": "2026-09-06T13:46:23.100832+00:00",
+    "failed_at": "2026-09-06T13:46:25.096481+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/477cf5cb-9cfa-468a-98f0-502dfdf9e112/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260527.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260526",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/a095be3f-1591-43b0-96aa-330c65746477/南华商品指数日报20260526.pdf",
+    "request_started_at": "2026-09-06T13:46:23.598685+00:00",
+    "failed_at": "2026-09-06T13:46:25.400494+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/a095be3f-1591-43b0-96aa-330c65746477/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260526.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260525",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/a6a7b512-d68d-4c7c-82c6-118faf85f288/南华商品指数日报20260525.pdf",
+    "request_started_at": "2026-09-06T13:46:24.359281+00:00",
+    "failed_at": "2026-09-06T13:46:26.166283+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/a6a7b512-d68d-4c7c-82c6-118faf85f288/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260525.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260521",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/1b717fba-f599-4b34-819a-0b56d0dd3962/南华商品指数日报20260521.pdf",
+    "request_started_at": "2026-09-06T13:46:24.921328+00:00",
+    "failed_at": "2026-09-06T13:46:26.840137+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/1b717fba-f599-4b34-819a-0b56d0dd3962/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260521.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260520",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/44a15fc9-882c-4ffd-b409-1e48ae385cc0/南华商品指数日报20260520.pdf",
+    "request_started_at": "2026-09-06T13:46:25.096560+00:00",
+    "failed_at": "2026-09-06T13:46:26.952560+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/44a15fc9-882c-4ffd-b409-1e48ae385cc0/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260520.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260519",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/1e1ce09d-481e-4824-ace2-349360e4bd4f/南华商品指数日报20260519.pdf",
+    "request_started_at": "2026-09-06T13:46:25.400566+00:00",
+    "failed_at": "2026-09-06T13:46:27.359901+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/1e1ce09d-481e-4824-ace2-349360e4bd4f/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260519.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260518",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/8ed448d9-9e45-4c83-9302-3b07cef4239a/南华商品指数日报20260518.pdf",
+    "request_started_at": "2026-09-06T13:46:26.166339+00:00",
+    "failed_at": "2026-09-06T13:46:28.051966+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/8ed448d9-9e45-4c83-9302-3b07cef4239a/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260518.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260515",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/82e418ff-cf5e-401e-ac7a-11a39d3acf50/南华商品指数日报20260515.pdf",
+    "request_started_at": "2026-09-06T13:46:26.840213+00:00",
+    "failed_at": "2026-09-06T13:46:28.802279+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/82e418ff-cf5e-401e-ac7a-11a39d3acf50/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260515.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260514",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/64168f96-896c-4f98-ae7b-9e8cf2361696/南华商品指数日报20260514.pdf",
+    "request_started_at": "2026-09-06T13:46:26.952618+00:00",
+    "failed_at": "2026-09-06T13:46:28.812060+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/64168f96-896c-4f98-ae7b-9e8cf2361696/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260514.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260513",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/454196ca-6c35-4eb7-aae8-55f6180a4886/南华商品指数日报20260513.pdf",
+    "request_started_at": "2026-09-06T13:46:27.359977+00:00",
+    "failed_at": "2026-09-06T13:46:30.893163+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/454196ca-6c35-4eb7-aae8-55f6180a4886/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260513.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260512",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/3f2ab934-9f51-4979-97e9-3c5626f679de/南华商品指数日报20260512.pdf",
+    "request_started_at": "2026-09-06T13:46:28.052040+00:00",
+    "failed_at": "2026-09-06T13:46:38.059821+00:00",
+    "error": "ReadTimeout: HTTPSConnectionPool(host='www.nanhua.net', port=443): Read timed out. (read timeout=10)"
+  },
+  {
+    "name": "nh-daily-20260511",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/23139bc0-61f3-49a0-80fe-47c99b186161/南华商品指数日报20260511.pdf",
+    "request_started_at": "2026-09-06T13:46:28.802403+00:00",
+    "failed_at": "2026-09-06T13:46:31.244940+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/23139bc0-61f3-49a0-80fe-47c99b186161/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260511.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260507",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/0fa663e0-5867-4f80-95f4-88da68cfab49/南华商品指数日报20260507.pdf",
+    "request_started_at": "2026-09-06T13:46:28.812135+00:00",
+    "failed_at": "2026-09-06T13:46:31.287242+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/0fa663e0-5867-4f80-95f4-88da68cfab49/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260507.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260506",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/06ee3026-0315-489e-82ed-2ee03f863a69/南华商品指数日报20260506.pdf",
+    "request_started_at": "2026-09-06T13:46:30.893229+00:00",
+    "failed_at": "2026-09-06T13:46:32.663492+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/05/06ee3026-0315-489e-82ed-2ee03f863a69/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260506.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260430",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/989040b9-0028-4d97-adab-a717eda44401/南华商品指数日报20260430.pdf",
+    "request_started_at": "2026-09-06T13:46:31.245207+00:00",
+    "failed_at": "2026-09-06T13:46:33.106760+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/989040b9-0028-4d97-adab-a717eda44401/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260430.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260429",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/405748ce-624b-4052-9d58-b3a055718542/南华商品指数日报20260429.pdf",
+    "request_started_at": "2026-09-06T13:46:31.287295+00:00",
+    "failed_at": "2026-09-06T13:46:34.169736+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/405748ce-624b-4052-9d58-b3a055718542/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260429.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260428",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/c1554b30-ddda-4fa8-9210-2b2f93620d59/南华商品指数日报20260428.pdf",
+    "request_started_at": "2026-09-06T13:46:32.663544+00:00",
+    "failed_at": "2026-09-06T13:46:34.523882+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/c1554b30-ddda-4fa8-9210-2b2f93620d59/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260428.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260427",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/4e7cc35d-1f08-4d6f-8ed2-7921e46baaef/南华商品指数日报20260427.pdf",
+    "request_started_at": "2026-09-06T13:46:33.106804+00:00",
+    "failed_at": "2026-09-06T13:46:34.984622+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/4e7cc35d-1f08-4d6f-8ed2-7921e46baaef/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260427.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260424",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/cb098431-2e75-4860-a10e-bb8847f61eb5/南华商品指数日报20260424.pdf",
+    "request_started_at": "2026-09-06T13:46:34.169798+00:00",
+    "failed_at": "2026-09-06T13:46:37.149309+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/cb098431-2e75-4860-a10e-bb8847f61eb5/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260424.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260423",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/49db069c-06fa-426e-bddf-4f1b92f20a21/南华商品指数日报20260423.pdf",
+    "request_started_at": "2026-09-06T13:46:34.523933+00:00",
+    "failed_at": "2026-09-06T13:46:36.586906+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/49db069c-06fa-426e-bddf-4f1b92f20a21/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260423.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260422",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/bfe7842e-4cd7-4d93-b60c-f885ca806d08/南华商品指数日报20260422.pdf",
+    "request_started_at": "2026-09-06T13:46:34.984679+00:00",
+    "failed_at": "2026-09-06T13:46:36.907131+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/bfe7842e-4cd7-4d93-b60c-f885ca806d08/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260422.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260421",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/137bc954-1820-45f9-9b50-53a36a2e7f97/南华商品指数日报20260421.pdf",
+    "request_started_at": "2026-09-06T13:46:36.586956+00:00",
+    "failed_at": "2026-09-06T13:46:38.845601+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/137bc954-1820-45f9-9b50-53a36a2e7f97/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260421.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260420",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/f67c05cf-dc81-48d5-83ae-8cedca473591/南华商品指数日报20260420.pdf",
+    "request_started_at": "2026-09-06T13:46:36.907179+00:00",
+    "failed_at": "2026-09-06T13:46:38.868100+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/f67c05cf-dc81-48d5-83ae-8cedca473591/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260420.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260417",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/5fdddf03-b36c-4f72-8fdb-8c63cdb75a63/南华商品指数日报20260417.pdf",
+    "request_started_at": "2026-09-06T13:46:37.149357+00:00",
+    "failed_at": "2026-09-06T13:46:39.068928+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/5fdddf03-b36c-4f72-8fdb-8c63cdb75a63/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260417.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260416",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/f91997a4-1082-47ab-809d-724d2c80d788/南华商品指数日报20260416.pdf",
+    "request_started_at": "2026-09-06T13:46:38.059876+00:00",
+    "failed_at": "2026-09-06T13:46:40.953686+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/f91997a4-1082-47ab-809d-724d2c80d788/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260416.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260415",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/fcc9ded0-fec3-47ad-b90e-8cb8d4aa4095/南华商品指数日报20260415.pdf",
+    "request_started_at": "2026-09-06T13:46:38.845658+00:00",
+    "failed_at": "2026-09-06T13:46:40.759627+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/fcc9ded0-fec3-47ad-b90e-8cb8d4aa4095/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260415.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260414",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/54914fdd-e3c0-4443-ba31-7028fc3920be/南华商品指数日报20260414.pdf",
+    "request_started_at": "2026-09-06T13:46:38.868177+00:00",
+    "failed_at": "2026-09-06T13:46:40.752528+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/54914fdd-e3c0-4443-ba31-7028fc3920be/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260414.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260413",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/bc987017-87b1-47b1-901d-39054401aecd/南华商品指数日报20260413.pdf",
+    "request_started_at": "2026-09-06T13:46:39.068995+00:00",
+    "failed_at": "2026-09-06T13:46:40.870568+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/bc987017-87b1-47b1-901d-39054401aecd/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260413.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260410",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/da99db07-1010-469e-83b0-402aa68fb0fd/南华商品指数日报20260410.pdf",
+    "request_started_at": "2026-09-06T13:46:40.752581+00:00",
+    "failed_at": "2026-09-06T13:46:42.586842+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/da99db07-1010-469e-83b0-402aa68fb0fd/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260410.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260409",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/202931f7-1a81-4f7a-84fd-2e6be3ddcc03/南华商品指数日报20260409.pdf",
+    "request_started_at": "2026-09-06T13:46:40.759716+00:00",
+    "failed_at": "2026-09-06T13:46:43.019586+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/202931f7-1a81-4f7a-84fd-2e6be3ddcc03/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260409.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260408",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/7eaf5b63-c35e-4676-b6ff-43d5a23f2087/南华商品指数日报20260408.pdf",
+    "request_started_at": "2026-09-06T13:46:40.870642+00:00",
+    "failed_at": "2026-09-06T13:46:42.755126+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/7eaf5b63-c35e-4676-b6ff-43d5a23f2087/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260408.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260407",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/950b9a03-acb5-4871-a307-05bc7e3d764f/南华商品指数日报20260407.pdf",
+    "request_started_at": "2026-09-06T13:46:40.953745+00:00",
+    "failed_at": "2026-09-06T13:46:42.957224+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/950b9a03-acb5-4871-a307-05bc7e3d764f/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260407.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260403",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/9add2403-b1bb-4cdd-b7ee-94ac1c4cac29/南华商品指数日报20260403.pdf",
+    "request_started_at": "2026-09-06T13:46:42.586928+00:00",
+    "failed_at": "2026-09-06T13:46:44.442922+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/9add2403-b1bb-4cdd-b7ee-94ac1c4cac29/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260403.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260402",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/2e5d5f6d-1c35-4d64-a0e7-75e8c53bf64c/南华商品指数日报20260402.pdf",
+    "request_started_at": "2026-09-06T13:46:42.755165+00:00",
+    "failed_at": "2026-09-06T13:46:44.902488+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/2e5d5f6d-1c35-4d64-a0e7-75e8c53bf64c/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260402.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260401",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/04/be6c4093-b1c9-41bf-9977-b6eb99efdc1a/南华商品指数日报20260401.pdf",
+    "request_started_at": "2026-09-06T13:46:42.957268+00:00",
+    "failed_at": "2026-09-06T13:46:44.810191+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/04/be6c4093-b1c9-41bf-9977-b6eb99efdc1a/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260401.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260331",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/43740fce-3ba5-4b52-9b2c-3cb554649568/南华商品指数日报20260331.pdf",
+    "request_started_at": "2026-09-06T13:46:43.019644+00:00",
+    "failed_at": "2026-09-06T13:46:44.973524+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/43740fce-3ba5-4b52-9b2c-3cb554649568/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260331.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260330",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/a235df54-14f5-4d18-a373-51c1d96460f0/南华商品指数日报20260330.pdf",
+    "request_started_at": "2026-09-06T13:46:44.442952+00:00",
+    "failed_at": "2026-09-06T13:46:46.361623+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/a235df54-14f5-4d18-a373-51c1d96460f0/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260330.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260327",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/18b18f4f-57f6-4bf5-9f23-6783b36e27e8/南华商品指数日报20260327.pdf",
+    "request_started_at": "2026-09-06T13:46:44.810227+00:00",
+    "failed_at": "2026-09-06T13:46:46.637607+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/18b18f4f-57f6-4bf5-9f23-6783b36e27e8/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260327.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260325",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/970d25c5-e41a-4377-8389-3b92bed16726/南华商品指数日报20260325.pdf",
+    "request_started_at": "2026-09-06T13:46:44.902527+00:00",
+    "failed_at": "2026-09-06T13:46:47.317036+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/970d25c5-e41a-4377-8389-3b92bed16726/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260325.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260324",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/b755bbf3-55b1-411f-b588-5a19e115d5b2/南华商品指数日报20260324.pdf",
+    "request_started_at": "2026-09-06T13:46:44.973560+00:00",
+    "failed_at": "2026-09-06T13:46:46.851828+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/b755bbf3-55b1-411f-b588-5a19e115d5b2/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260324.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260323",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/72768b80-d0ec-4f8f-be0e-d9325d8a177f/南华商品指数日报20260323.pdf",
+    "request_started_at": "2026-09-06T13:46:46.361681+00:00",
+    "failed_at": "2026-09-06T13:46:49.210284+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/72768b80-d0ec-4f8f-be0e-d9325d8a177f/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260323.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260320",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/208fd282-7ee7-49f7-9417-6215eb345698/南华商品指数日报20260320.pdf",
+    "request_started_at": "2026-09-06T13:46:46.637669+00:00",
+    "failed_at": "2026-09-06T13:46:48.450648+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/208fd282-7ee7-49f7-9417-6215eb345698/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260320.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260319",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/45bf4d71-d09d-4ea2-b04a-0baac066fa2f/南华商品指数日报20260319.pdf",
+    "request_started_at": "2026-09-06T13:46:46.851879+00:00",
+    "failed_at": "2026-09-06T13:46:49.005102+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/45bf4d71-d09d-4ea2-b04a-0baac066fa2f/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260319.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260318",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/bda90c0b-d3ce-42d5-bf6d-54a848c0f04e/南华商品指数日报20260318.pdf",
+    "request_started_at": "2026-09-06T13:46:47.317099+00:00",
+    "failed_at": "2026-09-06T13:46:49.161473+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/bda90c0b-d3ce-42d5-bf6d-54a848c0f04e/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260318.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260317",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/6bde16d1-ee3f-4d07-b666-117c8b00f371/南华商品指数日报20260317.pdf",
+    "request_started_at": "2026-09-06T13:46:48.450692+00:00",
+    "failed_at": "2026-09-06T13:46:50.426437+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/6bde16d1-ee3f-4d07-b666-117c8b00f371/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260317.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260316",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/9445889a-8d7f-46ef-bfed-cf414802039c/南华商品指数日报20260316.pdf",
+    "request_started_at": "2026-09-06T13:46:49.005153+00:00",
+    "failed_at": "2026-09-06T13:46:51.723012+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/9445889a-8d7f-46ef-bfed-cf414802039c/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260316.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260313",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/f00ba563-5db3-4805-b12b-a64f75fe6b20/南华商品指数日报20260313.pdf",
+    "request_started_at": "2026-09-06T13:46:49.161521+00:00",
+    "failed_at": "2026-09-06T13:46:51.060578+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/f00ba563-5db3-4805-b12b-a64f75fe6b20/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260313.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260312",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/f7dd92bc-d55a-43b2-9cd7-8429efe71e3e/南华商品指数日报20260312.pdf",
+    "request_started_at": "2026-09-06T13:46:49.210353+00:00",
+    "failed_at": "2026-09-06T13:46:51.032425+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/f7dd92bc-d55a-43b2-9cd7-8429efe71e3e/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260312.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260311",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/4bba6e11-5b7b-4ce1-8386-daaab14bf325/南华商品指数日报20260311.pdf",
+    "request_started_at": "2026-09-06T13:46:50.426489+00:00",
+    "failed_at": "2026-09-06T13:46:52.744058+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/4bba6e11-5b7b-4ce1-8386-daaab14bf325/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260311.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260310",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/5ac93c8b-5cfe-4134-a9ab-6b52d4da3311/南华商品指数日报20260310.pdf",
+    "request_started_at": "2026-09-06T13:46:51.032451+00:00",
+    "failed_at": "2026-09-06T13:46:52.893481+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/5ac93c8b-5cfe-4134-a9ab-6b52d4da3311/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260310.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  },
+  {
+    "name": "nh-daily-20260309",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/3ae965d4-b47c-4a33-97c5-9b66b2c495e9/南华商品指数日报20260309.pdf",
+    "request_started_at": "2026-09-06T13:46:51.060613+00:00",
+    "failed_at": "2026-09-06T13:46:52.935957+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/3ae965d4-b47c-4a33-97c5-9b66b2c495e9/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260309.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('R"
+  }
+]

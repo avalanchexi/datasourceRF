@@ -1,0 +1,437 @@
+[
+  {
+    "name": "csi-000985-120d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000985&startDate=20260309&endDate=20260828&lang=zh_CN",
+    "request_started_at": "2026-09-06T13:39:08.709986+00:00",
+    "received_at": "2026-09-06T13:39:08.879946+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000985&startDate=20260309&endDate=20260828&lang=zh_CN",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:06 GMT",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Content-Encoding": "gzip"
+    },
+    "sha256": "6e849804171177debebc666eabf63388c21066fe695a06f75f6c2cc47043f120",
+    "byte_count": 43283,
+    "local_file": "6e849804171177debebc666eabf63388c21066fe695a06f75f6c2cc47043f120.json",
+    "json_summary": "{'code': '200', 'msg': 'Success', 'data': [{'tradeDate': '20260309', 'indexCode': '000985', 'indexNameCnAll': '中证全指指数', 'indexNameCn': '中证全指', 'indexNameEnAll': 'CSI All Share Index', 'indexNameEn': 'CSI All Share', 'open': 6165.2, 'high': 6215.62, 'low': 6075.09, 'close': 6199.43, 'change': -52.95, 'changePct': -0.85, 'tradingVol': 160808944692.0, 'tradingValue': 26198.83, 'consNumber': 5164.0, '"
+  },
+  {
+    "name": "csi-000012-120d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012&startDate=20260309&endDate=20260828&lang=zh_CN",
+    "request_started_at": "2026-09-06T13:39:08.711042+00:00",
+    "received_at": "2026-09-06T13:39:08.870227+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012&startDate=20260309&endDate=20260828&lang=zh_CN",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:06 GMT",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Content-Encoding": "gzip"
+    },
+    "sha256": "a5cc98b01d04c2570ec193eff1fbe89b610e8ec35b3e095b5322636bce17f641",
+    "byte_count": 43244,
+    "local_file": "a5cc98b01d04c2570ec193eff1fbe89b610e8ec35b3e095b5322636bce17f641.json",
+    "json_summary": "{'code': '200', 'msg': 'Success', 'data': [{'tradeDate': '20260309', 'indexCode': '000012', 'indexNameCnAll': '上证国债指数', 'indexNameCn': '国债指数', 'indexNameEnAll': 'SSE Government Bond Index', 'indexNameEn': 'Government Bond Index', 'open': 226.1, 'high': 226.1, 'low': 225.85, 'close': 225.87, 'change': -0.19, 'changePct': -0.08, 'tradingVol': 462367970.0, 'tradingValue': 461.15, 'consNumber': 179.0,"
+  },
+  {
+    "name": "csi-000985-method",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175438-000985_Index_Methodology_cn.pdf",
+    "request_started_at": "2026-09-06T13:39:08.712164+00:00",
+    "received_at": "2026-09-06T13:39:09.028731+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/20231208175438-000985_Index_Methodology_cn.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:06 GMT",
+      "Content-Type": "application/pdf",
+      "ETag": "\"EDB5453365BEA745C994E3F90F68ACB1\"",
+      "Last-Modified": "Sat, 30 Nov 2024 12:38:11 GMT"
+    },
+    "sha256": "d6a4d24334f600fe2c80e4f3cbc01cffed931776ec61f7081dffcd72847969d1",
+    "byte_count": 381656,
+    "local_file": "d6a4d24334f600fe2c80e4f3cbc01cffed931776ec61f7081dffcd72847969d1.pdf"
+  },
+  {
+    "name": "csi-000985-factsheet",
+    "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000985factsheet.pdf",
+    "request_started_at": "2026-09-06T13:39:08.713105+00:00",
+    "received_at": "2026-09-06T13:39:09.264899+00:00",
+    "status": 200,
+    "final_url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000985factsheet.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:06 GMT",
+      "Content-Type": "application/pdf",
+      "ETag": "\"261EB18D0713B03F5A9C0585D1296645\"",
+      "Last-Modified": "Wed, 02 Sep 2026 13:10:59 GMT"
+    },
+    "sha256": "bade84f8672123fd901138eb59563f7af07a179c6b085c3d67b480cdb52d69e3",
+    "byte_count": 461410,
+    "local_file": "bade84f8672123fd901138eb59563f7af07a179c6b085c3d67b480cdb52d69e3.pdf"
+  },
+  {
+    "name": "sse-000012-method",
+    "url": "https://www.sse.com.cn/market/sseindex/indexlist/indexdetails/indexmethods/c1/000012_000012hbook_CN.pdf",
+    "request_started_at": "2026-09-06T13:39:08.877761+00:00",
+    "received_at": "2026-09-06T13:39:09.185246+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/market/sseindex/indexlist/indexdetails/indexmethods/c1/000012_000012hbook_CN.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:06 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 18 Jul 2025 02:53:12 GMT",
+      "ETag": "\"6879b718-42aab\""
+    },
+    "sha256": "209b82e2a207b1ae479d6a6d753fa168899faed3ee65f91857f79d636d5e3ee7",
+    "byte_count": 273067,
+    "local_file": "209b82e2a207b1ae479d6a6d753fa168899faed3ee65f91857f79d636d5e3ee7.pdf"
+  },
+  {
+    "name": "nh-2025-weight",
+    "url": "https://www.nanhua.net/cmsbigfile/2025/05/5ede4a4d-218d-4fbb-8ffb-e809669b16af/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B02025%E5%B9%B4%E6%9D%83%E9%87%8D%E8%B0%83%E6%95%B4%E5%85%AC%E5%91%8A.xlsx",
+    "request_started_at": "2026-09-06T13:39:08.885634+00:00",
+    "received_at": "2026-09-06T13:39:11.144480+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2025/05/5ede4a4d-218d-4fbb-8ffb-e809669b16af/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B02025%E5%B9%B4%E6%9D%83%E9%87%8D%E8%B0%83%E6%95%B4%E5%85%AC%E5%91%8A.xlsx",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:08 GMT",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Last-Modified": "Tue, 27 May 2025 11:55:24 GMT",
+      "ETag": "\"6835a82c-40c5\""
+    },
+    "sha256": "acac6c9aaa5906362d54eafff74872a235d96385f6944420e622108b177c4fa6",
+    "byte_count": 16581,
+    "local_file": "acac6c9aaa5906362d54eafff74872a235d96385f6944420e622108b177c4fa6.xlsx"
+  },
+  {
+    "name": "nh-2026-weight",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/05/f2db1579-be72-4735-814e-4d4551c5a7bb/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B02026%E5%B9%B4%E6%9D%83%E9%87%8D%E8%B0%83%E6%95%B4%E5%85%AC%E5%91%8A.xlsx",
+    "request_started_at": "2026-09-06T13:39:09.031327+00:00",
+    "received_at": "2026-09-06T13:39:11.351282+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/05/f2db1579-be72-4735-814e-4d4551c5a7bb/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B02026%E5%B9%B4%E6%9D%83%E9%87%8D%E8%B0%83%E6%95%B4%E5%85%AC%E5%91%8A.xlsx",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:08 GMT",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Last-Modified": "Mon, 25 May 2026 01:41:37 GMT",
+      "ETag": "\"6a13a8d1-4490\""
+    },
+    "sha256": "dad20d28d6fd453bced67e60aa65ff77b3cf6fd1f685a5b590939cbaee4054b7",
+    "byte_count": 17552,
+    "local_file": "dad20d28d6fd453bced67e60aa65ff77b3cf6fd1f685a5b590939cbaee4054b7.xlsx"
+  },
+  {
+    "name": "nh-2025-method",
+    "url": "https://www.nanhua.net/cmsbigfile/2025/05/a3eb91a3-d6fc-4d71-b652-d55a60e0b10d/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E2%80%94%E2%80%94%E7%BC%96%E5%88%B6%E7%BB%86%E5%88%99%282025%29.pdf",
+    "request_started_at": "2026-09-06T13:39:09.188256+00:00",
+    "received_at": "2026-09-06T13:39:13.720077+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2025/05/a3eb91a3-d6fc-4d71-b652-d55a60e0b10d/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E2%80%94%E2%80%94%E7%BC%96%E5%88%B6%E7%BB%86%E5%88%99%282025%29.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:09 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Thu, 22 May 2025 02:22:37 GMT",
+      "ETag": "\"682e8a6d-5dda6\""
+    },
+    "sha256": "0f602104fd1b11de0a21995a6ed314591a7b6da7707d23392cc4cc850d73bb00",
+    "byte_count": 384422,
+    "local_file": "0f602104fd1b11de0a21995a6ed314591a7b6da7707d23392cc4cc850d73bb00.pdf"
+  },
+  {
+    "name": "nh-bulletin",
+    "url": "https://www.nanhua.net/subpage/nanhuaIndex/index-bulletin.html",
+    "request_started_at": "2026-09-06T13:39:09.267742+00:00",
+    "received_at": "2026-09-06T13:39:12.094765+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/subpage/nanhuaIndex/index-bulletin.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:39:08 GMT",
+      "Content-Type": "text/html"
+    },
+    "sha256": "c38fee25d3c593f42a3143a903933ba4ffaff036bb8410361af8e83bd1b3b8e4",
+    "byte_count": 84147,
+    "local_file": "c38fee25d3c593f42a3143a903933ba4ffaff036bb8410361af8e83bd1b3b8e4.html"
+  },
+  {
+    "name": "nh-bulletin-list",
+    "url": "https://www.nanhua.net/jSearch/queryNewsListByTypeForJson.shtm?site=newnanhua&type=4041&start=0&limit=40",
+    "request_started_at": "2026-09-06T13:41:19.734218+00:00",
+    "received_at": "2026-09-06T13:41:21.824628+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/jSearch/queryNewsListByTypeForJson.shtm?site=newnanhua&type=4041&start=0&limit=40",
+    "sha256": "d47699f19517f35a6936f97172219ff0cb78a4dc03f9c6ede2f049a078a7b738",
+    "byte_count": 15836,
+    "local_file": "d47699f19517f35a6936f97172219ff0cb78a4dc03f9c6ede2f049a078a7b738.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:41:19 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "nh-research-page",
+    "url": "https://www.nanhua.net/subpage/researchIndex.html",
+    "request_started_at": "2026-09-06T13:41:19.734588+00:00",
+    "received_at": "2026-09-06T13:41:22.576513+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/subpage/researchIndex.html",
+    "sha256": "5633901cec23d8e2e5102de8e220d0985556ceee132131fb4b6d6bd0571298a3",
+    "byte_count": 100149,
+    "local_file": "5633901cec23d8e2e5102de8e220d0985556ceee132131fb4b6d6bd0571298a3.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:41:19 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "nh-force-notice",
+    "url": "https://www.nanhua.net/news/2025/05/d8278efd-56d7-475b-881d-acfb9e652405.html",
+    "request_started_at": "2026-09-06T13:41:19.734894+00:00",
+    "received_at": "2026-09-06T13:41:22.326862+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/news/2025/05/d8278efd-56d7-475b-881d-acfb9e652405.html",
+    "sha256": "ba31c97fe3816ff248a6e401e15236ab6b1b898c83963e7b442129d25ebc149e",
+    "byte_count": 84736,
+    "local_file": "ba31c97fe3816ff248a6e401e15236ab6b1b898c83963e7b442129d25ebc149e.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:41:19 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "sse-2009-factbook",
+    "url": "https://www.sse.com.cn/aboutus/publication/factbook/documents/c/10170573/files/073e042b8b87407b919e3d8e75ee91a5.pdf",
+    "request_started_at": "2026-09-06T13:41:19.735097+00:00",
+    "received_at": "2026-09-06T13:41:20.543979+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/aboutus/publication/factbook/documents/c/10170573/files/073e042b8b87407b919e3d8e75ee91a5.pdf",
+    "sha256": "c962379b144ace00f189065ce7d1d32ea8f5d7fe47e3e617adc8383a291262c2",
+    "byte_count": 2132962,
+    "local_file": "c962379b144ace00f189065ce7d1d32ea8f5d7fe47e3e617adc8383a291262c2.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:41:17 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 27 Jun 2025 01:43:59 GMT",
+      "ETag": "\"685df75f-208be2\""
+    }
+  },
+  {
+    "name": "csi-000985-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000985?lang=zh_CN",
+    "request_started_at": "2026-09-06T13:41:20.548522+00:00",
+    "received_at": "2026-09-06T13:41:20.646038+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000985?lang=zh_CN",
+    "sha256": "687e6211137694255502faed2c9d117ed935e0a808de01892d6bef9bf26df495",
+    "byte_count": 1319,
+    "local_file": "687e6211137694255502faed2c9d117ed935e0a808de01892d6bef9bf26df495.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:41:18 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "csi-000012-basic",
+    "url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000012?lang=zh_CN",
+    "request_started_at": "2026-09-06T13:41:20.646270+00:00",
+    "received_at": "2026-09-06T13:41:20.749165+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000012?lang=zh_CN",
+    "sha256": "4390b7dc8015f4ed85dfeeafde53b7a7b4565ce95064deb5028216343f0fe39b",
+    "byte_count": 1055,
+    "local_file": "4390b7dc8015f4ed85dfeeafde53b7a7b4565ce95064deb5028216343f0fe39b.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:41:18 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "nh-daily-20260828",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417/南华商品指数日报20260828.pdf",
+    "request_started_at": "2026-09-06T13:42:53.797028+00:00",
+    "received_at": "2026-09-06T13:42:59.506288+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/cmsbigfile/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260828.pdf",
+    "sha256": "f4074c86b04efa7e3cb033e95e8c1aedd0a8ecd91fadcfbdfc503e57b921aaca",
+    "byte_count": 1097835,
+    "local_file": "f4074c86b04efa7e3cb033e95e8c1aedd0a8ecd91fadcfbdfc503e57b921aaca.pdf",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:42:53 GMT",
+      "Content-Type": "application/pdf",
+      "Last-Modified": "Fri, 28 Aug 2026 08:33:24 GMT",
+      "ETag": "\"6a9147d4-10c06b\""
+    }
+  },
+  {
+    "name": "nh-daily-list-page",
+    "url": "https://www.nanhua.net/subpage/research/nawaaindex/indexresearch/index-daily.html",
+    "request_started_at": "2026-09-06T13:42:53.797471+00:00",
+    "received_at": "2026-09-06T13:42:58.098841+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/subpage/research/nawaaindex/indexresearch/index-daily.html",
+    "sha256": "0f52acd4089137424c24b4426f8c7e1dc8d355fb1934b3f5365b6e2b4bb15d37",
+    "byte_count": 84513,
+    "local_file": "0f52acd4089137424c24b4426f8c7e1dc8d355fb1934b3f5365b6e2b4bb15d37.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:42:54 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "nh-2026-weight-page",
+    "url": "https://www.nanhua.net/news/2026/05/f2db1579-be72-4735-814e-4d4551c5a7bb.html",
+    "request_started_at": "2026-09-06T13:42:53.797752+00:00",
+    "received_at": "2026-09-06T13:42:56.429041+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/news/2026/05/f2db1579-be72-4735-814e-4d4551c5a7bb.html",
+    "sha256": "1f3eecdbe960a27ee4130c9dafd5227419f93322a93a17e3f54018852c6c8446",
+    "byte_count": 83337,
+    "local_file": "1f3eecdbe960a27ee4130c9dafd5227419f93322a93a17e3f54018852c6c8446.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:42:53 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "nh-2025-weight-page",
+    "url": "https://www.nanhua.net/news/2025/05/5ede4a4d-218d-4fbb-8ffb-e809669b16af.html",
+    "request_started_at": "2026-09-06T13:42:53.797958+00:00",
+    "received_at": "2026-09-06T13:42:56.738434+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/news/2025/05/5ede4a4d-218d-4fbb-8ffb-e809669b16af.html",
+    "sha256": "13c64e98197e1f062525cf2a09f2e46292aecfe4ee1a93ae5d52abb77213aeb6",
+    "byte_count": 83331,
+    "local_file": "13c64e98197e1f062525cf2a09f2e46292aecfe4ee1a93ae5d52abb77213aeb6.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:42:53 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "nh-daily-list-260",
+    "url": "https://www.nanhua.net/jSearch/queryNewsListByTypeForJson.shtm?site=newnanhua&type=404205&start=0&limit=260",
+    "request_started_at": "2026-09-06T13:43:38.548492+00:00",
+    "received_at": "2026-09-06T13:43:41.460493+00:00",
+    "status": 200,
+    "final_url": "https://www.nanhua.net/jSearch/queryNewsListByTypeForJson.shtm?site=newnanhua&type=404205&start=0&limit=260",
+    "sha256": "fdc2a2c4c696ff176b22d5c85a51e1984f1521dcddc79ba31650a1aaf6c17581",
+    "byte_count": 148872,
+    "local_file": "fdc2a2c4c696ff176b22d5c85a51e1984f1521dcddc79ba31650a1aaf6c17581.json",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:43:37 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  },
+  {
+    "name": "sse-calendar-2026",
+    "url": "https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20251222_10802510.shtml",
+    "request_started_at": "2026-09-06T13:46:48.022225+00:00",
+    "received_at": "2026-09-06T13:46:48.198650+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20251222_10802510.shtml",
+    "sha256": "11d8a102d0747eaa8e97d9eda71eb9544ce30adbe83c706f7bdc77be4084686b",
+    "byte_count": 28809,
+    "local_file": "11d8a102d0747eaa8e97d9eda71eb9544ce30adbe83c706f7bdc77be4084686b.html",
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:46:45 GMT",
+      "Content-Type": "text/html"
+    }
+  },
+  {
+    "name": "nh-daily-20260828-page",
+    "url": "https://www.nanhua.net/news/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417.html",
+    "request_started_at": "2026-09-06T13:46:48.198740+00:00",
+    "error": "ProxyError: HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /news/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417.html (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))",
+    "failed_at": "2026-09-06T13:46:51.008017+00:00"
+  },
+  {
+    "name": "nh-daily-20260309-retry",
+    "url": "https://www.nanhua.net/cmsbigfile/2026/03/3ae965d4-b47c-4a33-97c5-9b66b2c495e9/南华商品指数日报20260309.pdf",
+    "request_started_at": "2026-09-06T13:54:08.690036+00:00",
+    "failed_at": "2026-09-06T13:54:10.565272+00:00",
+    "error_type": "ProxyError",
+    "error": "HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /cmsbigfile/2026/03/3ae965d4-b47c-4a33-97c5-9b66b2c495e9/%E5%8D%97%E5%8D%8E%E5%95%86%E5%93%81%E6%8C%87%E6%95%B0%E6%97%A5%E6%8A%A520260309.pdf (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))"
+  },
+  {
+    "name": "nh-daily-20260828-page-retry",
+    "url": "https://www.nanhua.net/news/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417.html",
+    "request_started_at": "2026-09-06T13:54:10.565325+00:00",
+    "failed_at": "2026-09-06T13:54:12.472174+00:00",
+    "error_type": "ProxyError",
+    "error": "HTTPSConnectionPool(host='www.nanhua.net', port=443): Max retries exceeded with url: /news/2026/08/dba8b812-2f80-47ad-b82a-deac81c28417.html (Caused by ProxyError('Unable to connect to proxy', RemoteDisconnected('Remote end closed connection without response')))"
+  },
+  {
+    "name": "sse-calendar-2025",
+    "url": "https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20241223_10767110.shtml",
+    "request_started_at": "2026-09-06T13:54:12.472218+00:00",
+    "received_at": "2026-09-06T13:54:12.669003+00:00",
+    "status": 200,
+    "final_url": "https://www.sse.com.cn/disclosure/dealinstruc/closed/c/c_20241223_10767110.shtml",
+    "sha256": "754afc6d12a01013cbadeef55e656aebc4e40aa7ef1cb63792f17dabf9bccdf8",
+    "byte_count": 28511,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:54:09 GMT",
+      "Content-Type": "text/html"
+    },
+    "local_file": "754afc6d12a01013cbadeef55e656aebc4e40aa7ef1cb63792f17dabf9bccdf8.html"
+  },
+  {
+    "name": "csi-000985-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000985&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "request_started_at": "2026-09-06T13:55:34.480725+00:00",
+    "received_at": "2026-09-06T13:55:34.643110+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000985&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "ffe3b20f7c9a09428bcedd641a358442e7e685c65de55844ac32022fd6b74b2d",
+    "byte_count": 93313,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:55:32 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "ffe3b20f7c9a09428bcedd641a358442e7e685c65de55844ac32022fd6b74b2d.json"
+  },
+  {
+    "name": "csi-000012-259d",
+    "url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "request_started_at": "2026-09-06T13:55:34.481549+00:00",
+    "received_at": "2026-09-06T13:55:34.659594+00:00",
+    "status": 200,
+    "final_url": "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012&startDate=20250806&endDate=20260828&lang=zh_CN",
+    "sha256": "30b9736664d961d6481386433c86ebddb8d7d8171ecd2450ad70da5e8bb49798",
+    "byte_count": 93290,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:55:32 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "local_file": "30b9736664d961d6481386433c86ebddb8d7d8171ecd2450ad70da5e8bb49798.json"
+  },
+  {
+    "name": "tushare-public-doc-95",
+    "url": "https://tushare.pro/document/2?doc_id=95",
+    "request_started_at": "2026-09-06T13:58:40.605234+00:00",
+    "received_at": "2026-09-06T13:58:42.382470+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=95",
+    "sha256": "5f5a4e8a29b483222ee398c896a4221e95b145dc209201f4d596543f00e5c54b",
+    "byte_count": 36033,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:58:39 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "ETag": "W/\"71e434800604c7ac4b25b1e75786f08ab751e158\""
+    },
+    "local_file": "5f5a4e8a29b483222ee398c896a4221e95b145dc209201f4d596543f00e5c54b.html"
+  },
+  {
+    "name": "tushare-public-doc-468",
+    "url": "https://tushare.pro/document/2?doc_id=468",
+    "request_started_at": "2026-09-06T13:58:42.383417+00:00",
+    "received_at": "2026-09-06T13:58:44.089105+00:00",
+    "status": 200,
+    "final_url": "https://tushare.pro/document/2?doc_id=468",
+    "sha256": "d0e5971998ff65e858a24f1307638de4a8ba1434da5bd0851fc009f99d364fc9",
+    "byte_count": 38165,
+    "headers": {
+      "Date": "Sun, 06 Sep 2026 13:58:41 GMT",
+      "Content-Type": "text/html; charset=UTF-8",
+      "ETag": "W/\"bb3fd1a142d7029d25599bbd196d6b4e93be4c98\""
+    },
+    "local_file": "d0e5971998ff65e858a24f1307638de4a8ba1434da5bd0851fc009f99d364fc9.html"
+  }
+]

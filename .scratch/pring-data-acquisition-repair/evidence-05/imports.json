@@ -1,0 +1,82 @@
+[
+  {
+    "name": "sse-20260828",
+    "sha256": "fa7f73716372a7be474ff766b2eb8cebd7260d71d7e87c94884cd5727d6e5eed",
+    "byte_count": 804,
+    "local_file": "fa7f73716372a7be474ff766b2eb8cebd7260d71d7e87c94884cd5727d6e5eed.json",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/fa/fa7f73716372a7be474ff766b2eb8cebd7260d71d7e87c94884cd5727d6e5eed",
+    "verified_copy_at": "2026-09-06T14:09:47.200349+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "szse-20260828-json",
+    "sha256": "c795098426ebe987b7971ffcadc1bd36a34cbe3f5b9fc2295baa1883fbc77277",
+    "byte_count": 8383,
+    "local_file": "c795098426ebe987b7971ffcadc1bd36a34cbe3f5b9fc2295baa1883fbc77277.json",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/c7/c795098426ebe987b7971ffcadc1bd36a34cbe3f5b9fc2295baa1883fbc77277",
+    "verified_copy_at": "2026-09-06T14:09:47.208896+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "szse-20260828-xlsx",
+    "sha256": "a0bccdd0398381440b43432cb8fc777f6e46a7e271a79d08ac6fdc56b031ab1c",
+    "byte_count": 3711,
+    "local_file": "a0bccdd0398381440b43432cb8fc777f6e46a7e271a79d08ac6fdc56b031ab1c.xlsx",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/a0/a0bccdd0398381440b43432cb8fc777f6e46a7e271a79d08ac6fdc56b031ab1c",
+    "verified_copy_at": "2026-09-06T14:09:47.215496+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "tushare-20260828",
+    "sha256": "3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548",
+    "byte_count": 328,
+    "local_file": "3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548.json",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/3c/3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548",
+    "verified_copy_at": "2026-09-06T14:09:47.222228+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "tushare-calendar",
+    "sha256": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+    "byte_count": 2759,
+    "local_file": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635.json",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/d0/d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+    "verified_copy_at": "2026-09-06T14:09:47.228044+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "tushare-margin-120d",
+    "sha256": "a03de595618ce8aa3fa74ce97fff980bbbe3e2197e9f5064b7157756dd7b2afd",
+    "byte_count": 17550,
+    "local_file": "a03de595618ce8aa3fa74ce97fff980bbbe3e2197e9f5064b7157756dd7b2afd.json",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/a0/a03de595618ce8aa3fa74ce97fff980bbbe3e2197e9f5064b7157756dd7b2afd",
+    "verified_copy_at": "2026-09-06T14:09:47.234567+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "margin-review-manifest",
+    "sha256": "c0bbdf18fa19fcf0a2025b602c7a57f7317e60822b54ac90ff3fc11fd3d5dc6f",
+    "byte_count": 2619,
+    "local_file": "c0bbdf18fa19fcf0a2025b602c7a57f7317e60822b54ac90ff3fc11fd3d5dc6f.json",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/c0/c0bbdf18fa19fcf0a2025b602c7a57f7317e60822b54ac90ff3fc11fd3d5dc6f",
+    "verified_copy_at": "2026-09-06T14:09:47.240776+00:00",
+    "new_network_fetch": false
+  },
+  {
+    "name": "csdata-total-20260828",
+    "sha256": "0c5fed810954d46dfe7379890f7316ae1f2511886b7bb72c459f5745b0d7b616",
+    "byte_count": 5581,
+    "local_file": "0c5fed810954d46dfe7379890f7316ae1f2511886b7bb72c459f5745b0d7b616.xlsx",
+    "source": "existing_read_only_CAS",
+    "source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/0c/0c5fed810954d46dfe7379890f7316ae1f2511886b7bb72c459f5745b0d7b616",
+    "verified_copy_at": "2026-09-06T14:09:47.249740+00:00",
+    "new_network_fetch": false
+  }
+]

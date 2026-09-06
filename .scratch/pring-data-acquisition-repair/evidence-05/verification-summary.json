@@ -1,0 +1,5294 @@
+{
+  "verified_at": "2026-09-06T14:13:13.791727+00:00",
+  "input_sha256": "a03de595618ce8aa3fa74ce97fff980bbbe3e2197e9f5064b7157756dd7b2afd",
+  "calendar_sha256": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+  "days": 120,
+  "first_date": "20260309",
+  "last_date": "20260828",
+  "rows": 360,
+  "expected_exchange_rows": 360,
+  "missing": [],
+  "extra": [],
+  "duplicate_keys": [],
+  "invalid_numeric_rows": [],
+  "observations": 240,
+  "comparisons": [
+    {
+      "exchange": "SSE",
+      "field": "rzye",
+      "official_cny": "1342943855079",
+      "tushare_cny": "1342943855079.0",
+      "equal": true
+    },
+    {
+      "exchange": "SSE",
+      "field": "rzmre",
+      "official_cny": "94338686041",
+      "tushare_cny": "94338686041.0",
+      "equal": true
+    },
+    {
+      "exchange": "SZSE",
+      "field": "rzye",
+      "official_cny": "1278973655069",
+      "tushare_cny": "1278973655069.0",
+      "equal": true
+    },
+    {
+      "exchange": "SZSE",
+      "field": "rzmre",
+      "official_cny": "95431661788",
+      "tushare_cny": "95431661788.0",
+      "equal": true
+    }
+  ],
+  "aggregate_scope_comparison": [
+    {
+      "field": "rzye",
+      "tushare_three_exchange_sum_cny": "2630249928496.0",
+      "csdata_total_cny": "2630222014595.00000000",
+      "difference_cny": "27913901.00000000",
+      "bse_tushare_cny": "8332418348.0",
+      "residual_is_not_official_bse": true
+    },
+    {
+      "field": "rzmre",
+      "tushare_three_exchange_sum_cny": "190429453014.0",
+      "csdata_total_cny": "190429452981.00000000",
+      "difference_cny": "33.00000000",
+      "bse_tushare_cny": "659105185.0",
+      "residual_is_not_official_bse": true
+    }
+  ],
+  "szse_export_retrieval_difference": {
+    "old_sha256": "a0bccdd0398381440b43432cb8fc777f6e46a7e271a79d08ac6fdc56b031ab1c",
+    "new_sha256": "30b9f549a2d603efb49f502c638eb93dce59a67175427675abed0cfe2eb2a9dd",
+    "changed_entry_bodies": [
+      "docProps/core.xml"
+    ],
+    "zip_entry_timestamps": [
+      {
+        "file": "[Content_Types].xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "_rels/.rels",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "docProps/app.xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "docProps/core.xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "xl/sharedStrings.xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "xl/styles.xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "xl/workbook.xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "xl/_rels/workbook.xml.rels",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      },
+      {
+        "file": "xl/worksheets/sheet1.xml",
+        "previous": [
+          2026,
+          9,
+          5,
+          17,
+          30,
+          52
+        ],
+        "current": [
+          2026,
+          9,
+          6,
+          21,
+          1,
+          34
+        ]
+      }
+    ],
+    "visible_cells_equal": true
+  },
+  "bse_target_sample": {
+    "trade_date": "20260828",
+    "exchange_id": "BSE",
+    "rzye": 8332418348.0,
+    "rzmre": 659105185.0
+  },
+  "normalized_arithmetic_check_only": [
+    {
+      "trade_date": "20260309",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26275.18705511",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260309",
+          "SZSE"
+        ],
+        [
+          "20260309",
+          "SSE"
+        ],
+        [
+          "20260309",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260309",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2390.36214932",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260309",
+          "SZSE"
+        ],
+        [
+          "20260309",
+          "SSE"
+        ],
+        [
+          "20260309",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260310",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26372.91703513",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260310",
+          "SZSE"
+        ],
+        [
+          "20260310",
+          "SSE"
+        ],
+        [
+          "20260310",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260310",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2341.53515249",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260310",
+          "SZSE"
+        ],
+        [
+          "20260310",
+          "SSE"
+        ],
+        [
+          "20260310",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260311",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26426.89112104",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260311",
+          "SZSE"
+        ],
+        [
+          "20260311",
+          "SSE"
+        ],
+        [
+          "20260311",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260311",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2431.95562269",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260311",
+          "SZSE"
+        ],
+        [
+          "20260311",
+          "SSE"
+        ],
+        [
+          "20260311",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260312",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26459.46164846",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260312",
+          "SZSE"
+        ],
+        [
+          "20260312",
+          "SSE"
+        ],
+        [
+          "20260312",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260312",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2325.71168311",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260312",
+          "SZSE"
+        ],
+        [
+          "20260312",
+          "SSE"
+        ],
+        [
+          "20260312",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260313",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26332.60617689",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260313",
+          "SZSE"
+        ],
+        [
+          "20260313",
+          "SSE"
+        ],
+        [
+          "20260313",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260313",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2185.41149135",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260313",
+          "SZSE"
+        ],
+        [
+          "20260313",
+          "SSE"
+        ],
+        [
+          "20260313",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260316",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26430.00837306",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260316",
+          "SZSE"
+        ],
+        [
+          "20260316",
+          "SSE"
+        ],
+        [
+          "20260316",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260316",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2232.92896203",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260316",
+          "SZSE"
+        ],
+        [
+          "20260316",
+          "SSE"
+        ],
+        [
+          "20260316",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260317",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26339.94151877",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260317",
+          "SZSE"
+        ],
+        [
+          "20260317",
+          "SSE"
+        ],
+        [
+          "20260317",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260317",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1993.48029271",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260317",
+          "SZSE"
+        ],
+        [
+          "20260317",
+          "SSE"
+        ],
+        [
+          "20260317",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260318",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26365.36757698",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260318",
+          "SZSE"
+        ],
+        [
+          "20260318",
+          "SSE"
+        ],
+        [
+          "20260318",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260318",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1925.79203956",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260318",
+          "SZSE"
+        ],
+        [
+          "20260318",
+          "SSE"
+        ],
+        [
+          "20260318",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260319",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26322.50785435",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260319",
+          "SZSE"
+        ],
+        [
+          "20260319",
+          "SSE"
+        ],
+        [
+          "20260319",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260319",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1918.69202239",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260319",
+          "SZSE"
+        ],
+        [
+          "20260319",
+          "SSE"
+        ],
+        [
+          "20260319",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260320",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26148.43046102",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260320",
+          "SZSE"
+        ],
+        [
+          "20260320",
+          "SSE"
+        ],
+        [
+          "20260320",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260320",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2074.81286853",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260320",
+          "SZSE"
+        ],
+        [
+          "20260320",
+          "SSE"
+        ],
+        [
+          "20260320",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260323",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26033.33177382",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260323",
+          "SZSE"
+        ],
+        [
+          "20260323",
+          "SSE"
+        ],
+        [
+          "20260323",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260323",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2101.86468168",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260323",
+          "SZSE"
+        ],
+        [
+          "20260323",
+          "SSE"
+        ],
+        [
+          "20260323",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260324",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25964.35902271",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260324",
+          "SZSE"
+        ],
+        [
+          "20260324",
+          "SSE"
+        ],
+        [
+          "20260324",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260324",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1802.67308765",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260324",
+          "SZSE"
+        ],
+        [
+          "20260324",
+          "SSE"
+        ],
+        [
+          "20260324",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260325",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25995.96141711",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260325",
+          "SZSE"
+        ],
+        [
+          "20260325",
+          "SSE"
+        ],
+        [
+          "20260325",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260325",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2062.40361226",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260325",
+          "SZSE"
+        ],
+        [
+          "20260325",
+          "SSE"
+        ],
+        [
+          "20260325",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260326",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25987.5995985",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260326",
+          "SZSE"
+        ],
+        [
+          "20260326",
+          "SSE"
+        ],
+        [
+          "20260326",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260326",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1761.60259359",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260326",
+          "SZSE"
+        ],
+        [
+          "20260326",
+          "SSE"
+        ],
+        [
+          "20260326",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260327",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25908.1289815",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260327",
+          "SZSE"
+        ],
+        [
+          "20260327",
+          "SSE"
+        ],
+        [
+          "20260327",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260327",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1658.77148376",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260327",
+          "SZSE"
+        ],
+        [
+          "20260327",
+          "SSE"
+        ],
+        [
+          "20260327",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260330",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25986.13158195",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260330",
+          "SZSE"
+        ],
+        [
+          "20260330",
+          "SSE"
+        ],
+        [
+          "20260330",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260330",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1733.44504778",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260330",
+          "SZSE"
+        ],
+        [
+          "20260330",
+          "SSE"
+        ],
+        [
+          "20260330",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260331",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25904.76575358",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260331",
+          "SZSE"
+        ],
+        [
+          "20260331",
+          "SSE"
+        ],
+        [
+          "20260331",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260331",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1791.18783079",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260331",
+          "SZSE"
+        ],
+        [
+          "20260331",
+          "SSE"
+        ],
+        [
+          "20260331",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260401",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25912.0639498",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260401",
+          "SZSE"
+        ],
+        [
+          "20260401",
+          "SSE"
+        ],
+        [
+          "20260401",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260401",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1884.73728367",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260401",
+          "SZSE"
+        ],
+        [
+          "20260401",
+          "SSE"
+        ],
+        [
+          "20260401",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260402",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25802.0821971",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260402",
+          "SZSE"
+        ],
+        [
+          "20260402",
+          "SSE"
+        ],
+        [
+          "20260402",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260402",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1630.04680041",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260402",
+          "SZSE"
+        ],
+        [
+          "20260402",
+          "SSE"
+        ],
+        [
+          "20260402",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260403",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25627.22619497",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260403",
+          "SZSE"
+        ],
+        [
+          "20260403",
+          "SSE"
+        ],
+        [
+          "20260403",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260403",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1503.041837",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260403",
+          "SZSE"
+        ],
+        [
+          "20260403",
+          "SSE"
+        ],
+        [
+          "20260403",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260407",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25665.8901176",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260407",
+          "SZSE"
+        ],
+        [
+          "20260407",
+          "SSE"
+        ],
+        [
+          "20260407",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260407",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1491.88911614",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260407",
+          "SZSE"
+        ],
+        [
+          "20260407",
+          "SSE"
+        ],
+        [
+          "20260407",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260408",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25828.52439835",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260408",
+          "SZSE"
+        ],
+        [
+          "20260408",
+          "SSE"
+        ],
+        [
+          "20260408",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260408",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2421.91472382",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260408",
+          "SZSE"
+        ],
+        [
+          "20260408",
+          "SSE"
+        ],
+        [
+          "20260408",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260409",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25902.05503723",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260409",
+          "SZSE"
+        ],
+        [
+          "20260409",
+          "SSE"
+        ],
+        [
+          "20260409",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260409",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2040.39407151",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260409",
+          "SZSE"
+        ],
+        [
+          "20260409",
+          "SSE"
+        ],
+        [
+          "20260409",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260410",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25955.08328662",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260410",
+          "SZSE"
+        ],
+        [
+          "20260410",
+          "SSE"
+        ],
+        [
+          "20260410",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260410",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2347.77776194",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260410",
+          "SZSE"
+        ],
+        [
+          "20260410",
+          "SSE"
+        ],
+        [
+          "20260410",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260413",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26116.04458996",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260413",
+          "SZSE"
+        ],
+        [
+          "20260413",
+          "SSE"
+        ],
+        [
+          "20260413",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260413",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2111.7861004",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260413",
+          "SZSE"
+        ],
+        [
+          "20260413",
+          "SSE"
+        ],
+        [
+          "20260413",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260414",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26278.89753728",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260414",
+          "SZSE"
+        ],
+        [
+          "20260414",
+          "SSE"
+        ],
+        [
+          "20260414",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260414",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2467.42078472",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260414",
+          "SZSE"
+        ],
+        [
+          "20260414",
+          "SSE"
+        ],
+        [
+          "20260414",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260415",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26380.77815731",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260415",
+          "SZSE"
+        ],
+        [
+          "20260415",
+          "SSE"
+        ],
+        [
+          "20260415",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260415",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2462.80735191",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260415",
+          "SZSE"
+        ],
+        [
+          "20260415",
+          "SSE"
+        ],
+        [
+          "20260415",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260416",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26489.16232522",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260416",
+          "SZSE"
+        ],
+        [
+          "20260416",
+          "SSE"
+        ],
+        [
+          "20260416",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260416",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2371.9327551",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260416",
+          "SZSE"
+        ],
+        [
+          "20260416",
+          "SSE"
+        ],
+        [
+          "20260416",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260417",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26512.06741143",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260417",
+          "SZSE"
+        ],
+        [
+          "20260417",
+          "SSE"
+        ],
+        [
+          "20260417",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260417",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2478.08119996",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260417",
+          "SZSE"
+        ],
+        [
+          "20260417",
+          "SSE"
+        ],
+        [
+          "20260417",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260420",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26803.56467676",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260420",
+          "SZSE"
+        ],
+        [
+          "20260420",
+          "SSE"
+        ],
+        [
+          "20260420",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260420",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2701.3159906",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260420",
+          "SZSE"
+        ],
+        [
+          "20260420",
+          "SSE"
+        ],
+        [
+          "20260420",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260421",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26868.14110754",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260421",
+          "SZSE"
+        ],
+        [
+          "20260421",
+          "SSE"
+        ],
+        [
+          "20260421",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260421",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2348.53533875",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260421",
+          "SZSE"
+        ],
+        [
+          "20260421",
+          "SSE"
+        ],
+        [
+          "20260421",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260422",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27004.56750452",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260422",
+          "SZSE"
+        ],
+        [
+          "20260422",
+          "SSE"
+        ],
+        [
+          "20260422",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260422",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2635.01194387",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260422",
+          "SZSE"
+        ],
+        [
+          "20260422",
+          "SSE"
+        ],
+        [
+          "20260422",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260423",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27042.27979765",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260423",
+          "SZSE"
+        ],
+        [
+          "20260423",
+          "SSE"
+        ],
+        [
+          "20260423",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260423",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2830.47969335",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260423",
+          "SZSE"
+        ],
+        [
+          "20260423",
+          "SSE"
+        ],
+        [
+          "20260423",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260424",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26929.90793524",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260424",
+          "SZSE"
+        ],
+        [
+          "20260424",
+          "SSE"
+        ],
+        [
+          "20260424",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260424",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2589.49407097",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260424",
+          "SZSE"
+        ],
+        [
+          "20260424",
+          "SSE"
+        ],
+        [
+          "20260424",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260427",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27085.72658653",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260427",
+          "SZSE"
+        ],
+        [
+          "20260427",
+          "SSE"
+        ],
+        [
+          "20260427",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260427",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2616.73138307",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260427",
+          "SZSE"
+        ],
+        [
+          "20260427",
+          "SSE"
+        ],
+        [
+          "20260427",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260428",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27086.93929834",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260428",
+          "SZSE"
+        ],
+        [
+          "20260428",
+          "SSE"
+        ],
+        [
+          "20260428",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260428",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2479.99677209",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260428",
+          "SZSE"
+        ],
+        [
+          "20260428",
+          "SSE"
+        ],
+        [
+          "20260428",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260429",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27124.91214655",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260429",
+          "SZSE"
+        ],
+        [
+          "20260429",
+          "SSE"
+        ],
+        [
+          "20260429",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260429",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2630.61725854",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260429",
+          "SZSE"
+        ],
+        [
+          "20260429",
+          "SSE"
+        ],
+        [
+          "20260429",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260430",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26955.79480417",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260430",
+          "SZSE"
+        ],
+        [
+          "20260430",
+          "SSE"
+        ],
+        [
+          "20260430",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260430",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2688.07046409",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260430",
+          "SZSE"
+        ],
+        [
+          "20260430",
+          "SSE"
+        ],
+        [
+          "20260430",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260506",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27367.44699788",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260506",
+          "SZSE"
+        ],
+        [
+          "20260506",
+          "SSE"
+        ],
+        [
+          "20260506",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260506",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3503.00544737",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260506",
+          "SZSE"
+        ],
+        [
+          "20260506",
+          "SSE"
+        ],
+        [
+          "20260506",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260507",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27663.44808556",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260507",
+          "SZSE"
+        ],
+        [
+          "20260507",
+          "SSE"
+        ],
+        [
+          "20260507",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260507",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3344.2810058",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260507",
+          "SZSE"
+        ],
+        [
+          "20260507",
+          "SSE"
+        ],
+        [
+          "20260507",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260508",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27823.22439079",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260508",
+          "SZSE"
+        ],
+        [
+          "20260508",
+          "SSE"
+        ],
+        [
+          "20260508",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260508",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3076.37981895",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260508",
+          "SZSE"
+        ],
+        [
+          "20260508",
+          "SSE"
+        ],
+        [
+          "20260508",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260511",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28130.36604257",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260511",
+          "SZSE"
+        ],
+        [
+          "20260511",
+          "SSE"
+        ],
+        [
+          "20260511",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260511",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3748.79049523",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260511",
+          "SZSE"
+        ],
+        [
+          "20260511",
+          "SSE"
+        ],
+        [
+          "20260511",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260512",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28298.64454838",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260512",
+          "SZSE"
+        ],
+        [
+          "20260512",
+          "SSE"
+        ],
+        [
+          "20260512",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260512",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3278.83495192",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260512",
+          "SZSE"
+        ],
+        [
+          "20260512",
+          "SSE"
+        ],
+        [
+          "20260512",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260513",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28528.53853843",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260513",
+          "SZSE"
+        ],
+        [
+          "20260513",
+          "SSE"
+        ],
+        [
+          "20260513",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260513",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3396.03124213",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260513",
+          "SZSE"
+        ],
+        [
+          "20260513",
+          "SSE"
+        ],
+        [
+          "20260513",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260514",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28620.07864082",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260514",
+          "SZSE"
+        ],
+        [
+          "20260514",
+          "SSE"
+        ],
+        [
+          "20260514",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260514",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3459.31488194",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260514",
+          "SZSE"
+        ],
+        [
+          "20260514",
+          "SSE"
+        ],
+        [
+          "20260514",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260515",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28561.78613244",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260515",
+          "SZSE"
+        ],
+        [
+          "20260515",
+          "SSE"
+        ],
+        [
+          "20260515",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260515",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3308.76945643",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260515",
+          "SZSE"
+        ],
+        [
+          "20260515",
+          "SSE"
+        ],
+        [
+          "20260515",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260518",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28719.05990109",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260518",
+          "SZSE"
+        ],
+        [
+          "20260518",
+          "SSE"
+        ],
+        [
+          "20260518",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260518",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2849.72359422",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260518",
+          "SZSE"
+        ],
+        [
+          "20260518",
+          "SSE"
+        ],
+        [
+          "20260518",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260519",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28770.86718039",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260519",
+          "SZSE"
+        ],
+        [
+          "20260519",
+          "SSE"
+        ],
+        [
+          "20260519",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260519",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2814.22670053",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260519",
+          "SZSE"
+        ],
+        [
+          "20260519",
+          "SSE"
+        ],
+        [
+          "20260519",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260520",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28836.18305468",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260520",
+          "SZSE"
+        ],
+        [
+          "20260520",
+          "SSE"
+        ],
+        [
+          "20260520",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260520",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2931.3036196",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260520",
+          "SZSE"
+        ],
+        [
+          "20260520",
+          "SSE"
+        ],
+        [
+          "20260520",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260521",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28752.79984951",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260521",
+          "SZSE"
+        ],
+        [
+          "20260521",
+          "SSE"
+        ],
+        [
+          "20260521",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260521",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3470.9444172",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260521",
+          "SZSE"
+        ],
+        [
+          "20260521",
+          "SSE"
+        ],
+        [
+          "20260521",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260522",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28782.20922764",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260522",
+          "SZSE"
+        ],
+        [
+          "20260522",
+          "SSE"
+        ],
+        [
+          "20260522",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260522",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2916.04890961",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260522",
+          "SZSE"
+        ],
+        [
+          "20260522",
+          "SSE"
+        ],
+        [
+          "20260522",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260525",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29035.40292004",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260525",
+          "SZSE"
+        ],
+        [
+          "20260525",
+          "SSE"
+        ],
+        [
+          "20260525",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260525",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3506.11877803",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260525",
+          "SZSE"
+        ],
+        [
+          "20260525",
+          "SSE"
+        ],
+        [
+          "20260525",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260526",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29108.53783077",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260526",
+          "SZSE"
+        ],
+        [
+          "20260526",
+          "SSE"
+        ],
+        [
+          "20260526",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260526",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3319.83005798",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260526",
+          "SZSE"
+        ],
+        [
+          "20260526",
+          "SSE"
+        ],
+        [
+          "20260526",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260527",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29149.38181194",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260527",
+          "SZSE"
+        ],
+        [
+          "20260527",
+          "SSE"
+        ],
+        [
+          "20260527",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260527",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3280.81047901",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260527",
+          "SZSE"
+        ],
+        [
+          "20260527",
+          "SSE"
+        ],
+        [
+          "20260527",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260528",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29206.06997998",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260528",
+          "SZSE"
+        ],
+        [
+          "20260528",
+          "SSE"
+        ],
+        [
+          "20260528",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260528",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2976.6805807",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260528",
+          "SZSE"
+        ],
+        [
+          "20260528",
+          "SSE"
+        ],
+        [
+          "20260528",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260529",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28909.72846928",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260529",
+          "SZSE"
+        ],
+        [
+          "20260529",
+          "SSE"
+        ],
+        [
+          "20260529",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260529",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3117.96907463",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260529",
+          "SZSE"
+        ],
+        [
+          "20260529",
+          "SSE"
+        ],
+        [
+          "20260529",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260601",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28833.98416707",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260601",
+          "SZSE"
+        ],
+        [
+          "20260601",
+          "SSE"
+        ],
+        [
+          "20260601",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260601",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2630.78028688",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260601",
+          "SZSE"
+        ],
+        [
+          "20260601",
+          "SSE"
+        ],
+        [
+          "20260601",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260602",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28847.13889246",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260602",
+          "SZSE"
+        ],
+        [
+          "20260602",
+          "SSE"
+        ],
+        [
+          "20260602",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260602",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2636.53045478",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260602",
+          "SZSE"
+        ],
+        [
+          "20260602",
+          "SSE"
+        ],
+        [
+          "20260602",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260603",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28932.17548984",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260603",
+          "SZSE"
+        ],
+        [
+          "20260603",
+          "SSE"
+        ],
+        [
+          "20260603",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260603",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3185.91824171",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260603",
+          "SZSE"
+        ],
+        [
+          "20260603",
+          "SSE"
+        ],
+        [
+          "20260603",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260604",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28997.03268327",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260604",
+          "SZSE"
+        ],
+        [
+          "20260604",
+          "SSE"
+        ],
+        [
+          "20260604",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260604",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2778.5308741",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260604",
+          "SZSE"
+        ],
+        [
+          "20260604",
+          "SSE"
+        ],
+        [
+          "20260604",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260605",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28857.15330043",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260605",
+          "SZSE"
+        ],
+        [
+          "20260605",
+          "SSE"
+        ],
+        [
+          "20260605",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260605",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2980.11431505",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260605",
+          "SZSE"
+        ],
+        [
+          "20260605",
+          "SSE"
+        ],
+        [
+          "20260605",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260608",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28624.41991753",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260608",
+          "SZSE"
+        ],
+        [
+          "20260608",
+          "SSE"
+        ],
+        [
+          "20260608",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260608",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2497.8944987",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260608",
+          "SZSE"
+        ],
+        [
+          "20260608",
+          "SSE"
+        ],
+        [
+          "20260608",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260609",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28661.83633408",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260609",
+          "SZSE"
+        ],
+        [
+          "20260609",
+          "SSE"
+        ],
+        [
+          "20260609",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260609",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2539.21530527",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260609",
+          "SZSE"
+        ],
+        [
+          "20260609",
+          "SSE"
+        ],
+        [
+          "20260609",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260610",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28579.83098727",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260610",
+          "SZSE"
+        ],
+        [
+          "20260610",
+          "SSE"
+        ],
+        [
+          "20260610",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260610",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2400.83034899",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260610",
+          "SZSE"
+        ],
+        [
+          "20260610",
+          "SSE"
+        ],
+        [
+          "20260610",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260611",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28527.10668352",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260611",
+          "SZSE"
+        ],
+        [
+          "20260611",
+          "SSE"
+        ],
+        [
+          "20260611",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260611",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2369.39194368",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260611",
+          "SZSE"
+        ],
+        [
+          "20260611",
+          "SSE"
+        ],
+        [
+          "20260611",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260612",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28523.23299852",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260612",
+          "SZSE"
+        ],
+        [
+          "20260612",
+          "SSE"
+        ],
+        [
+          "20260612",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260612",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2914.03885824",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260612",
+          "SZSE"
+        ],
+        [
+          "20260612",
+          "SSE"
+        ],
+        [
+          "20260612",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260615",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28763.74677813",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260615",
+          "SZSE"
+        ],
+        [
+          "20260615",
+          "SSE"
+        ],
+        [
+          "20260615",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260615",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2996.40036943",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260615",
+          "SZSE"
+        ],
+        [
+          "20260615",
+          "SSE"
+        ],
+        [
+          "20260615",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260616",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29028.94355769",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260616",
+          "SZSE"
+        ],
+        [
+          "20260616",
+          "SSE"
+        ],
+        [
+          "20260616",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260616",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3197.78760838",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260616",
+          "SZSE"
+        ],
+        [
+          "20260616",
+          "SSE"
+        ],
+        [
+          "20260616",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260617",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29309.66285478",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260617",
+          "SZSE"
+        ],
+        [
+          "20260617",
+          "SSE"
+        ],
+        [
+          "20260617",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260617",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3314.89785453",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260617",
+          "SZSE"
+        ],
+        [
+          "20260617",
+          "SSE"
+        ],
+        [
+          "20260617",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260618",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29438.30995286",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260618",
+          "SZSE"
+        ],
+        [
+          "20260618",
+          "SSE"
+        ],
+        [
+          "20260618",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260618",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3573.87580356",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260618",
+          "SZSE"
+        ],
+        [
+          "20260618",
+          "SSE"
+        ],
+        [
+          "20260618",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260622",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29728.55943377",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260622",
+          "SZSE"
+        ],
+        [
+          "20260622",
+          "SSE"
+        ],
+        [
+          "20260622",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260622",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3995.91678263",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260622",
+          "SZSE"
+        ],
+        [
+          "20260622",
+          "SSE"
+        ],
+        [
+          "20260622",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260623",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29789.92744318",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260623",
+          "SZSE"
+        ],
+        [
+          "20260623",
+          "SSE"
+        ],
+        [
+          "20260623",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260623",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3537.87463639",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260623",
+          "SZSE"
+        ],
+        [
+          "20260623",
+          "SSE"
+        ],
+        [
+          "20260623",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260624",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29926.76436048",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260624",
+          "SZSE"
+        ],
+        [
+          "20260624",
+          "SSE"
+        ],
+        [
+          "20260624",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260624",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3378.40397113",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260624",
+          "SZSE"
+        ],
+        [
+          "20260624",
+          "SSE"
+        ],
+        [
+          "20260624",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260625",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "30101.9682671",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260625",
+          "SZSE"
+        ],
+        [
+          "20260625",
+          "SSE"
+        ],
+        [
+          "20260625",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260625",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3889.14644621",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260625",
+          "SZSE"
+        ],
+        [
+          "20260625",
+          "SSE"
+        ],
+        [
+          "20260625",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260626",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29895.40228324",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260626",
+          "SZSE"
+        ],
+        [
+          "20260626",
+          "SSE"
+        ],
+        [
+          "20260626",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260626",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3550.42003438",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260626",
+          "SZSE"
+        ],
+        [
+          "20260626",
+          "SSE"
+        ],
+        [
+          "20260626",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260629",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29809.05340469",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260629",
+          "SZSE"
+        ],
+        [
+          "20260629",
+          "SSE"
+        ],
+        [
+          "20260629",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260629",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3368.12341878",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260629",
+          "SZSE"
+        ],
+        [
+          "20260629",
+          "SSE"
+        ],
+        [
+          "20260629",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260630",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29970.93245604",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260630",
+          "SZSE"
+        ],
+        [
+          "20260630",
+          "SSE"
+        ],
+        [
+          "20260630",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260630",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3355.29398165",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260630",
+          "SZSE"
+        ],
+        [
+          "20260630",
+          "SSE"
+        ],
+        [
+          "20260630",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260701",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "30069.90647719",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260701",
+          "SZSE"
+        ],
+        [
+          "20260701",
+          "SSE"
+        ],
+        [
+          "20260701",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260701",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3928.49086967",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260701",
+          "SZSE"
+        ],
+        [
+          "20260701",
+          "SSE"
+        ],
+        [
+          "20260701",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260702",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "30004.57833938",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260702",
+          "SZSE"
+        ],
+        [
+          "20260702",
+          "SSE"
+        ],
+        [
+          "20260702",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260702",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3243.87724852",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260702",
+          "SZSE"
+        ],
+        [
+          "20260702",
+          "SSE"
+        ],
+        [
+          "20260702",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260703",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29807.23557643",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260703",
+          "SZSE"
+        ],
+        [
+          "20260703",
+          "SSE"
+        ],
+        [
+          "20260703",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260703",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2968.97316175",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260703",
+          "SZSE"
+        ],
+        [
+          "20260703",
+          "SSE"
+        ],
+        [
+          "20260703",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260706",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29701.52549523",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260706",
+          "SZSE"
+        ],
+        [
+          "20260706",
+          "SSE"
+        ],
+        [
+          "20260706",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260706",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2816.76465768",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260706",
+          "SZSE"
+        ],
+        [
+          "20260706",
+          "SSE"
+        ],
+        [
+          "20260706",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260707",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29570.35665877",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260707",
+          "SZSE"
+        ],
+        [
+          "20260707",
+          "SSE"
+        ],
+        [
+          "20260707",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260707",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2289.76847766",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260707",
+          "SZSE"
+        ],
+        [
+          "20260707",
+          "SSE"
+        ],
+        [
+          "20260707",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260708",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29381.14539211",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260708",
+          "SZSE"
+        ],
+        [
+          "20260708",
+          "SSE"
+        ],
+        [
+          "20260708",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260708",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2277.29413506",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260708",
+          "SZSE"
+        ],
+        [
+          "20260708",
+          "SSE"
+        ],
+        [
+          "20260708",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260709",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29341.64208427",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260709",
+          "SZSE"
+        ],
+        [
+          "20260709",
+          "SSE"
+        ],
+        [
+          "20260709",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260709",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2792.23386114",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260709",
+          "SZSE"
+        ],
+        [
+          "20260709",
+          "SSE"
+        ],
+        [
+          "20260709",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260710",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "29228.04420696",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260710",
+          "SZSE"
+        ],
+        [
+          "20260710",
+          "SSE"
+        ],
+        [
+          "20260710",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260710",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "3212.01334912",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260710",
+          "SZSE"
+        ],
+        [
+          "20260710",
+          "SSE"
+        ],
+        [
+          "20260710",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260713",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28891.33187702",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260713",
+          "SZSE"
+        ],
+        [
+          "20260713",
+          "SSE"
+        ],
+        [
+          "20260713",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260713",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2327.41702229",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260713",
+          "SZSE"
+        ],
+        [
+          "20260713",
+          "SSE"
+        ],
+        [
+          "20260713",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260714",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28781.17822739",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260714",
+          "SZSE"
+        ],
+        [
+          "20260714",
+          "SSE"
+        ],
+        [
+          "20260714",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260714",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2412.84214334",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260714",
+          "SZSE"
+        ],
+        [
+          "20260714",
+          "SSE"
+        ],
+        [
+          "20260714",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260715",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28663.54213935",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260715",
+          "SZSE"
+        ],
+        [
+          "20260715",
+          "SSE"
+        ],
+        [
+          "20260715",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260715",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2336.54440696",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260715",
+          "SZSE"
+        ],
+        [
+          "20260715",
+          "SSE"
+        ],
+        [
+          "20260715",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260716",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "28377.00798247",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260716",
+          "SZSE"
+        ],
+        [
+          "20260716",
+          "SSE"
+        ],
+        [
+          "20260716",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260716",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2079.2372093",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260716",
+          "SZSE"
+        ],
+        [
+          "20260716",
+          "SSE"
+        ],
+        [
+          "20260716",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260717",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "27575.67529288",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260717",
+          "SZSE"
+        ],
+        [
+          "20260717",
+          "SSE"
+        ],
+        [
+          "20260717",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260717",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2063.40367665",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260717",
+          "SZSE"
+        ],
+        [
+          "20260717",
+          "SSE"
+        ],
+        [
+          "20260717",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260720",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26977.7615731",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260720",
+          "SZSE"
+        ],
+        [
+          "20260720",
+          "SSE"
+        ],
+        [
+          "20260720",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260720",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2147.69058951",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260720",
+          "SZSE"
+        ],
+        [
+          "20260720",
+          "SSE"
+        ],
+        [
+          "20260720",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260721",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26978.79659971",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260721",
+          "SZSE"
+        ],
+        [
+          "20260721",
+          "SSE"
+        ],
+        [
+          "20260721",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260721",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2675.86624183",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260721",
+          "SZSE"
+        ],
+        [
+          "20260721",
+          "SSE"
+        ],
+        [
+          "20260721",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260722",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26986.25737457",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260722",
+          "SZSE"
+        ],
+        [
+          "20260722",
+          "SSE"
+        ],
+        [
+          "20260722",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260722",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2468.61374374",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260722",
+          "SZSE"
+        ],
+        [
+          "20260722",
+          "SSE"
+        ],
+        [
+          "20260722",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260723",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26888.61403553",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260723",
+          "SZSE"
+        ],
+        [
+          "20260723",
+          "SSE"
+        ],
+        [
+          "20260723",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260723",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1908.49979806",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260723",
+          "SZSE"
+        ],
+        [
+          "20260723",
+          "SSE"
+        ],
+        [
+          "20260723",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260724",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26666.03145952",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260724",
+          "SZSE"
+        ],
+        [
+          "20260724",
+          "SSE"
+        ],
+        [
+          "20260724",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260724",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1635.89385521",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260724",
+          "SZSE"
+        ],
+        [
+          "20260724",
+          "SSE"
+        ],
+        [
+          "20260724",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260727",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26766.7952654",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260727",
+          "SZSE"
+        ],
+        [
+          "20260727",
+          "SSE"
+        ],
+        [
+          "20260727",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260727",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1844.97866748",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260727",
+          "SZSE"
+        ],
+        [
+          "20260727",
+          "SSE"
+        ],
+        [
+          "20260727",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260728",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26469.02594376",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260728",
+          "SZSE"
+        ],
+        [
+          "20260728",
+          "SSE"
+        ],
+        [
+          "20260728",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260728",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1695.25828434",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260728",
+          "SZSE"
+        ],
+        [
+          "20260728",
+          "SSE"
+        ],
+        [
+          "20260728",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260729",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26213.12609515",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260729",
+          "SZSE"
+        ],
+        [
+          "20260729",
+          "SSE"
+        ],
+        [
+          "20260729",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260729",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1907.70654823",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260729",
+          "SZSE"
+        ],
+        [
+          "20260729",
+          "SSE"
+        ],
+        [
+          "20260729",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260730",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25845.21675697",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260730",
+          "SZSE"
+        ],
+        [
+          "20260730",
+          "SSE"
+        ],
+        [
+          "20260730",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260730",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1934.2853637",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260730",
+          "SZSE"
+        ],
+        [
+          "20260730",
+          "SSE"
+        ],
+        [
+          "20260730",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260731",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25891.17087496",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260731",
+          "SZSE"
+        ],
+        [
+          "20260731",
+          "SSE"
+        ],
+        [
+          "20260731",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260731",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2440.94902164",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260731",
+          "SZSE"
+        ],
+        [
+          "20260731",
+          "SSE"
+        ],
+        [
+          "20260731",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260803",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25803.56348512",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260803",
+          "SZSE"
+        ],
+        [
+          "20260803",
+          "SSE"
+        ],
+        [
+          "20260803",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260803",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1660.98012624",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260803",
+          "SZSE"
+        ],
+        [
+          "20260803",
+          "SSE"
+        ],
+        [
+          "20260803",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260804",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "25923.13734952",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260804",
+          "SZSE"
+        ],
+        [
+          "20260804",
+          "SSE"
+        ],
+        [
+          "20260804",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260804",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2109.85056732",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260804",
+          "SZSE"
+        ],
+        [
+          "20260804",
+          "SSE"
+        ],
+        [
+          "20260804",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260805",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26045.37143099",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260805",
+          "SZSE"
+        ],
+        [
+          "20260805",
+          "SSE"
+        ],
+        [
+          "20260805",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260805",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2604.65292992",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260805",
+          "SZSE"
+        ],
+        [
+          "20260805",
+          "SSE"
+        ],
+        [
+          "20260805",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260806",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26155.66375058",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260806",
+          "SZSE"
+        ],
+        [
+          "20260806",
+          "SSE"
+        ],
+        [
+          "20260806",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260806",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2368.38898384",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260806",
+          "SZSE"
+        ],
+        [
+          "20260806",
+          "SSE"
+        ],
+        [
+          "20260806",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260807",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26225.44107786",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260807",
+          "SZSE"
+        ],
+        [
+          "20260807",
+          "SSE"
+        ],
+        [
+          "20260807",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260807",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2557.77250477",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260807",
+          "SZSE"
+        ],
+        [
+          "20260807",
+          "SSE"
+        ],
+        [
+          "20260807",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260810",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26366.16407049",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260810",
+          "SZSE"
+        ],
+        [
+          "20260810",
+          "SSE"
+        ],
+        [
+          "20260810",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260810",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2362.17235703",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260810",
+          "SZSE"
+        ],
+        [
+          "20260810",
+          "SSE"
+        ],
+        [
+          "20260810",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260811",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26379.20218091",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260811",
+          "SZSE"
+        ],
+        [
+          "20260811",
+          "SSE"
+        ],
+        [
+          "20260811",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260811",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2173.82568212",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260811",
+          "SZSE"
+        ],
+        [
+          "20260811",
+          "SSE"
+        ],
+        [
+          "20260811",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260812",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26473.8327581",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260812",
+          "SZSE"
+        ],
+        [
+          "20260812",
+          "SSE"
+        ],
+        [
+          "20260812",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260812",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2022.81991819",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260812",
+          "SZSE"
+        ],
+        [
+          "20260812",
+          "SSE"
+        ],
+        [
+          "20260812",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260813",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26497.4055085",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260813",
+          "SZSE"
+        ],
+        [
+          "20260813",
+          "SSE"
+        ],
+        [
+          "20260813",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260813",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2421.10328924",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260813",
+          "SZSE"
+        ],
+        [
+          "20260813",
+          "SSE"
+        ],
+        [
+          "20260813",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260814",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26478.86013996",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260814",
+          "SZSE"
+        ],
+        [
+          "20260814",
+          "SSE"
+        ],
+        [
+          "20260814",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260814",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2008.73951059",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260814",
+          "SZSE"
+        ],
+        [
+          "20260814",
+          "SSE"
+        ],
+        [
+          "20260814",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260817",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26656.70938861",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260817",
+          "SZSE"
+        ],
+        [
+          "20260817",
+          "SSE"
+        ],
+        [
+          "20260817",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260817",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2355.54765126",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260817",
+          "SZSE"
+        ],
+        [
+          "20260817",
+          "SSE"
+        ],
+        [
+          "20260817",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260818",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26708.68909392",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260818",
+          "SZSE"
+        ],
+        [
+          "20260818",
+          "SSE"
+        ],
+        [
+          "20260818",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260818",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2295.51759636",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260818",
+          "SZSE"
+        ],
+        [
+          "20260818",
+          "SSE"
+        ],
+        [
+          "20260818",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260819",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26411.51435294",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260819",
+          "SZSE"
+        ],
+        [
+          "20260819",
+          "SSE"
+        ],
+        [
+          "20260819",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260819",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2155.11837044",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260819",
+          "SZSE"
+        ],
+        [
+          "20260819",
+          "SSE"
+        ],
+        [
+          "20260819",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260820",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26395.21849011",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260820",
+          "SZSE"
+        ],
+        [
+          "20260820",
+          "SSE"
+        ],
+        [
+          "20260820",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260820",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1888.29242476",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260820",
+          "SZSE"
+        ],
+        [
+          "20260820",
+          "SSE"
+        ],
+        [
+          "20260820",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260821",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26333.15270087",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260821",
+          "SZSE"
+        ],
+        [
+          "20260821",
+          "SSE"
+        ],
+        [
+          "20260821",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260821",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1686.45073465",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260821",
+          "SZSE"
+        ],
+        [
+          "20260821",
+          "SSE"
+        ],
+        [
+          "20260821",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260824",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26290.74908274",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260824",
+          "SZSE"
+        ],
+        [
+          "20260824",
+          "SSE"
+        ],
+        [
+          "20260824",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260824",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1705.39316083",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260824",
+          "SZSE"
+        ],
+        [
+          "20260824",
+          "SSE"
+        ],
+        [
+          "20260824",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260825",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26283.77283136",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260825",
+          "SZSE"
+        ],
+        [
+          "20260825",
+          "SSE"
+        ],
+        [
+          "20260825",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260825",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1573.88448464",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260825",
+          "SZSE"
+        ],
+        [
+          "20260825",
+          "SSE"
+        ],
+        [
+          "20260825",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260826",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26250.53935897",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260826",
+          "SZSE"
+        ],
+        [
+          "20260826",
+          "SSE"
+        ],
+        [
+          "20260826",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260826",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1580.45493945",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260826",
+          "SZSE"
+        ],
+        [
+          "20260826",
+          "SSE"
+        ],
+        [
+          "20260826",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260827",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26364.09159125",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260827",
+          "SZSE"
+        ],
+        [
+          "20260827",
+          "SSE"
+        ],
+        [
+          "20260827",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260827",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "2031.68293313",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260827",
+          "SZSE"
+        ],
+        [
+          "20260827",
+          "SSE"
+        ],
+        [
+          "20260827",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260828",
+      "measure": "financing_balance",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "26302.49928496",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260828",
+          "SZSE"
+        ],
+        [
+          "20260828",
+          "SSE"
+        ],
+        [
+          "20260828",
+          "BSE"
+        ]
+      ]
+    },
+    {
+      "trade_date": "20260828",
+      "measure": "financing_buy_amount",
+      "scope": "SSE+SZSE+BSE",
+      "value_hundred_million_cny": "1904.29453014",
+      "public_available_at": null,
+      "source_row_keys": [
+        [
+          "20260828",
+          "SZSE"
+        ],
+        [
+          "20260828",
+          "SSE"
+        ],
+        [
+          "20260828",
+          "BSE"
+        ]
+      ]
+    }
+  ],
+  "certification_granted": false,
+  "database_modified": false
+}
