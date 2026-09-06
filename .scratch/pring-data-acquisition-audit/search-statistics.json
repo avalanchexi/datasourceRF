@@ -1,0 +1,462 @@
+{
+  "audit_at_utc": "2026-09-06T10:28:24.048973+00:00",
+  "database_uri": "file:/home/tywin/.local/share/pring-cycle/pring-cycle.sqlite3?mode=ro",
+  "read_transaction": true,
+  "network_calls_in_audit": 0,
+  "credential_values_read": false,
+  "scope": "Current production runtime only; historical prototype summaries are separate and are not API response artifacts.",
+  "query_results": {
+    "run_retrieval_scope_count": {
+      "sql": "SELECT count(*) AS n FROM run_retrieval_scope",
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "run_retrieval_attempt_count": {
+      "sql": "SELECT count(*) AS n FROM run_retrieval_attempt",
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "search_attempt_rows": {
+      "sql": "SELECT * FROM run_retrieval_attempt WHERE channel IN ('tavily','exa') ORDER BY retrieval_attempt_id",
+      "rows": []
+    },
+    "metric_attempts_by_channel_outcome": {
+      "sql": "SELECT channel,outcome,count(*) AS n,min(fetched_at) AS first_at,max(fetched_at) AS last_at FROM retrieval_attempt GROUP BY channel,outcome ORDER BY channel,outcome",
+      "rows": [
+        {
+          "channel": "certified_official_direct",
+          "outcome": "verified",
+          "n": 95,
+          "first_at": "2026-08-30T05:27:09.758411+00:00",
+          "last_at": "2026-08-31T20:31:52.435809+00:00"
+        },
+        {
+          "channel": "official_direct_candidate",
+          "outcome": "source_failed",
+          "n": 4,
+          "first_at": "2026-08-31T05:26:02.009739+00:00",
+          "last_at": "2026-08-31T07:35:05.378154+00:00"
+        },
+        {
+          "channel": "official_direct_candidate",
+          "outcome": "verified_candidate",
+          "n": 4914,
+          "first_at": "2026-08-31T05:25:54.536760+00:00",
+          "last_at": "2026-08-31T20:32:02.636864+00:00"
+        },
+        {
+          "channel": "tushare",
+          "outcome": "source_failed",
+          "n": 22,
+          "first_at": "2026-08-31T03:14:50.200362+00:00",
+          "last_at": "2026-08-31T08:07:23.701156+00:00"
+        },
+        {
+          "channel": "tushare",
+          "outcome": "verified",
+          "n": 27,
+          "first_at": "2026-08-31T03:14:27.093035+00:00",
+          "last_at": "2026-08-31T20:47:04.548204+00:00"
+        },
+        {
+          "channel": "tushare",
+          "outcome": "verified_candidate",
+          "n": 599,
+          "first_at": "2026-08-31T03:14:42.411073+00:00",
+          "last_at": "2026-08-31T20:51:38.506319+00:00"
+        },
+        {
+          "channel": "tushare-history",
+          "outcome": "verified",
+          "n": 84,
+          "first_at": "2026-08-30T04:49:21.106054+00:00",
+          "last_at": "2026-08-31T20:28:21.316986+00:00"
+        }
+      ]
+    },
+    "runs_by_type_status": {
+      "sql": "SELECT command_type,status,outcome,count(*) AS n FROM parent_run GROUP BY command_type,status,outcome ORDER BY command_type,status,outcome",
+      "rows": [
+        {
+          "command_type": "manual_full",
+          "status": "action_required",
+          "outcome": null,
+          "n": 2
+        },
+        {
+          "command_type": "manual_full",
+          "status": "cancelled",
+          "outcome": null,
+          "n": 2
+        },
+        {
+          "command_type": "manual_full",
+          "status": "completed",
+          "outcome": "changed",
+          "n": 6
+        },
+        {
+          "command_type": "report_generation",
+          "status": "action_required",
+          "outcome": null,
+          "n": 1
+        },
+        {
+          "command_type": "report_generation",
+          "status": "completed",
+          "outcome": "changed",
+          "n": 2
+        }
+      ]
+    },
+    "run_budget_totals": {
+      "sql": "SELECT command_type,consumed_budget_json,count(*) AS n FROM parent_run GROUP BY command_type,consumed_budget_json",
+      "rows": [
+        {
+          "command_type": "manual_full",
+          "consumed_budget_json": "{\"tavily\": 0, \"exa\": 0, \"ai_websearch\": 0}",
+          "n": 10
+        },
+        {
+          "command_type": "report_generation",
+          "consumed_budget_json": "{\"tavily\": 0, \"exa\": 0, \"ai_websearch\": 0}",
+          "n": 3
+        }
+      ]
+    },
+    "claims_by_provider": {
+      "sql": "SELECT provider,certification_status,quality_status,count(*) AS n FROM source_claim GROUP BY provider,certification_status,quality_status ORDER BY provider,certification_status,quality_status",
+      "rows": [
+        {
+          "provider": "tushare",
+          "certification_status": "awaiting_source_certification",
+          "quality_status": "validated",
+          "n": 858
+        },
+        {
+          "provider": "tushare",
+          "certification_status": "certified",
+          "quality_status": "validated",
+          "n": 270121
+        },
+        {
+          "provider": "中国人民银行",
+          "certification_status": "certified",
+          "quality_status": "validated",
+          "n": 1589
+        },
+        {
+          "provider": "中国货币网",
+          "certification_status": "certified",
+          "quality_status": "validated",
+          "n": 20
+        },
+        {
+          "provider": "国家统计局",
+          "certification_status": "certified",
+          "quality_status": "validated",
+          "n": 361
+        }
+      ]
+    },
+    "search_artifact_references": {
+      "sql": "SELECT * FROM artifact_reference WHERE lower(source_reference) LIKE '%tavily%' OR lower(source_reference) LIKE '%exa.ai%'",
+      "rows": []
+    },
+    "search_provider_or_reference_claim_count": {
+      "sql": "SELECT count(*) AS n FROM source_claim WHERE lower(provider) IN ('tavily','exa') OR lower(source_reference) LIKE '%tavily%' OR lower(source_reference) LIKE '%exa.ai%'",
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "negative_cache_count": {
+      "sql": "SELECT count(*) AS n FROM retrieval_negative_cache",
+      "rows": [
+        {
+          "n": 0
+        }
+      ]
+    },
+    "report_attempts": {
+      "sql": "SELECT adapter,outcome,tool_events,count(*) AS n FROM report_attempt GROUP BY adapter,outcome,tool_events",
+      "rows": [
+        {
+          "adapter": "claude_code_cli",
+          "outcome": "cli_not_installed",
+          "tool_events": 0,
+          "n": 6
+        },
+        {
+          "adapter": "claude_code_cli",
+          "outcome": "process_start_failed",
+          "tool_events": 0,
+          "n": 1
+        },
+        {
+          "adapter": "claude_code_cli",
+          "outcome": "timed_out",
+          "tool_events": 0,
+          "n": 1
+        },
+        {
+          "adapter": "codex_cli",
+          "outcome": "timed_out",
+          "tool_events": 0,
+          "n": 8
+        }
+      ]
+    },
+    "report_snapshot_summary": {
+      "sql": "SELECT status,adapter,count(*) AS n FROM report_snapshot GROUP BY status,adapter",
+      "rows": [
+        {
+          "status": "completed_degraded",
+          "adapter": "deterministic",
+          "n": 8
+        }
+      ]
+    },
+    "bundle_identities": {
+      "sql": "SELECT bundle_id,bundle_hash,projection_set_id,length(document_json) AS document_characters FROM evidence_bundle",
+      "rows": [
+        {
+          "bundle_id": "bundle-1bcafb76cc22f33723cd",
+          "bundle_hash": "10097cdcf5524e2b7a5043ce260e6abd01b759ca12985e56d296b2426fc2bea3",
+          "projection_set_id": "projection-ee74b686e8b8184000bd",
+          "document_characters": 1022276
+        },
+        {
+          "bundle_id": "bundle-a3fdf0b4e1380948065d",
+          "bundle_hash": "6ca3fa460408b7ea60d9247a011ca4dec67e7a145498e4582f805c3d32c599c3",
+          "projection_set_id": "projection-53dfb497eae637be0da7",
+          "document_characters": 993959
+        },
+        {
+          "bundle_id": "bundle-085428f0786f266764c8",
+          "bundle_hash": "e26ad039fb5a8ea8d3f84af2d758a59a9cbb4d59e120a34de4b1624a42e03e7b",
+          "projection_set_id": "projection-e0d2d0d36354554cc780",
+          "document_characters": 603018
+        },
+        {
+          "bundle_id": "bundle-15a2066b950ca4e4c5e6",
+          "bundle_hash": "6fce3b62741f7c67ba02e6f3013eb69f3d5b27007934cb57edf287d00eb348b0",
+          "projection_set_id": "projection-e0d2d0d36354554cc780",
+          "document_characters": 99513
+        },
+        {
+          "bundle_id": "bundle-0f32de1cbcf9be689d25",
+          "bundle_hash": "78a5d4b7ed85db0f03b150b456a4213151e118e4e5d33276ba74ba6eb5984d9b",
+          "projection_set_id": "projection-a2e263177225cd7b9662",
+          "document_characters": 793708
+        },
+        {
+          "bundle_id": "bundle-d08024e9cd35776cee07",
+          "bundle_hash": "2eb0dff3da32fb04604681e0283c1c7cd41a402d25b32daf9dc92684927b706f",
+          "projection_set_id": "projection-2dada70d59403586f74f",
+          "document_characters": 836544
+        },
+        {
+          "bundle_id": "bundle-bab23e6851708f21c70e",
+          "bundle_hash": "d66898994dfc9b31e0c1cda2d6d98bd84a28822786db9107ade8a50e45aa8f22",
+          "projection_set_id": "projection-e2e1e503e2a41cdaa7a2",
+          "document_characters": 829176
+        },
+        {
+          "bundle_id": "bundle-b8d0d3b7d18b284cf3f9",
+          "bundle_hash": "44e6f39226dada99b01a1b7fceb68f61a9be715404b50d27da3110bd2e6ab7ba",
+          "projection_set_id": "projection-7a12ff2f7ab7175a31b2",
+          "document_characters": 829168
+        }
+      ]
+    },
+    "production_table_counts": {
+      "sql": "SELECT 'artifact' AS table_name,count(*) AS n FROM artifact UNION ALL SELECT 'projection_set',count(*) FROM projection_set UNION ALL SELECT 'evidence_bundle',count(*) FROM evidence_bundle UNION ALL SELECT 'source_claim',count(*) FROM source_claim",
+      "rows": [
+        {
+          "table_name": "artifact",
+          "n": 691
+        },
+        {
+          "table_name": "projection_set",
+          "n": 7
+        },
+        {
+          "table_name": "evidence_bundle",
+          "n": 8
+        },
+        {
+          "table_name": "source_claim",
+          "n": 272949
+        }
+      ]
+    }
+  },
+  "schema": {
+    "parent_run": "CREATE TABLE parent_run (\n    run_id TEXT PRIMARY KEY,\n    command_type TEXT NOT NULL,\n    target_business_date TEXT NOT NULL,\n    model_version_id TEXT NOT NULL,\n    system_as_of TEXT NOT NULL,\n    report_cutoff TEXT NOT NULL,\n    status TEXT NOT NULL,\n    current_step TEXT NOT NULL,\n    outcome TEXT,\n    recoverable INTEGER NOT NULL,\n    next_action TEXT NOT NULL,\n    consumed_budget_json TEXT NOT NULL,\n    projection_set_id TEXT,\n    error_classification TEXT,\n    accepted_at TEXT NOT NULL\n)",
+    "run_retrieval_scope": "CREATE TABLE run_retrieval_scope (\n    run_id TEXT PRIMARY KEY REFERENCES parent_run(run_id),\n    release_event_id TEXT NOT NULL,\n    metric_ids_json TEXT NOT NULL,\n    period TEXT NOT NULL,\n    priority TEXT NOT NULL,\n    source_url TEXT\n)",
+    "run_retrieval_attempt": "CREATE TABLE run_retrieval_attempt (\n    retrieval_attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    run_id TEXT NOT NULL REFERENCES parent_run(run_id),\n    release_event_id TEXT NOT NULL,\n    sequence INTEGER NOT NULL,\n    channel TEXT NOT NULL,\n    outcome TEXT NOT NULL,\n    classification TEXT,\n    latency_ms INTEGER NOT NULL,\n    remaining_run_budget INTEGER,\n    remaining_daily_budget INTEGER,\n    budget_charged INTEGER NOT NULL,\n    cache_hit INTEGER NOT NULL,\n    manual_budget_exemption INTEGER NOT NULL,\n    candidate_source TEXT,\n    occurred_at TEXT NOT NULL,\n    UNIQUE(run_id, sequence)\n)",
+    "retrieval_attempt": "CREATE TABLE retrieval_attempt (\n    retrieval_attempt_id TEXT PRIMARY KEY,\n    metric_id TEXT NOT NULL,\n    channel TEXT NOT NULL,\n    outcome TEXT NOT NULL,\n    fetched_at TEXT NOT NULL,\n    safe_metadata_json TEXT NOT NULL\n)",
+    "source_claim": "CREATE TABLE source_claim (\n    claim_id TEXT PRIMARY KEY,\n    observation_id TEXT NOT NULL,\n    metric_id TEXT NOT NULL,\n    definition_version TEXT NOT NULL,\n    period_kind TEXT NOT NULL,\n    period_start TEXT NOT NULL,\n    period_end TEXT NOT NULL,\n    dimensions_json TEXT NOT NULL,\n    value REAL,\n    value_state TEXT NOT NULL,\n    unit TEXT NOT NULL,\n    provider TEXT NOT NULL,\n    source_reference TEXT NOT NULL,\n    release_event_id TEXT NOT NULL REFERENCES release_event(release_event_id),\n    release_at TEXT,\n    public_available_at TEXT,\n    fetched_at TEXT NOT NULL,\n    available_at TEXT NOT NULL,\n    certification_status TEXT NOT NULL,\n    quality_status TEXT NOT NULL,\n    supersedes_claim_id TEXT REFERENCES source_claim(claim_id)\n)",
+    "artifact": "CREATE TABLE artifact (\n\tcontent_hash VARCHAR(64) NOT NULL, \n\tbyte_count INTEGER NOT NULL, \n\tmedia_type VARCHAR(255) NOT NULL, \n\tcreated_at VARCHAR(64) NOT NULL, \n\tPRIMARY KEY (content_hash)\n)",
+    "artifact_reference": "CREATE TABLE artifact_reference (\n\tcontent_hash VARCHAR(64) NOT NULL, \n\tsource_reference VARCHAR(255) NOT NULL, \n\tPRIMARY KEY (content_hash, source_reference), \n\tFOREIGN KEY(content_hash) REFERENCES artifact (content_hash)\n)",
+    "evidence_bundle": "CREATE TABLE evidence_bundle (\n    bundle_id TEXT PRIMARY KEY,\n    bundle_hash TEXT NOT NULL,\n    projection_set_id TEXT NOT NULL,\n    document_json TEXT NOT NULL,\n    created_at TEXT NOT NULL\n)",
+    "report_attempt": "CREATE TABLE report_attempt (\n    attempt_id INTEGER PRIMARY KEY AUTOINCREMENT,\n    report_snapshot_id TEXT NOT NULL,\n    adapter TEXT NOT NULL,\n    adapter_version TEXT NOT NULL,\n    started_at TEXT NOT NULL,\n    completed_at TEXT NOT NULL,\n    outcome TEXT NOT NULL,\n    tool_events INTEGER NOT NULL,\n    output_hash TEXT\n)"
+  },
+  "bundle_checks": [
+    {
+      "bundle_id": "bundle-1bcafb76cc22f33723cd",
+      "allowed_evidence_id_count": 7588,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-a3fdf0b4e1380948065d",
+      "allowed_evidence_id_count": 7108,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-085428f0786f266764c8",
+      "allowed_evidence_id_count": 7948,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-15a2066b950ca4e4c5e6",
+      "allowed_evidence_id_count": 433,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-0f32de1cbcf9be689d25",
+      "allowed_evidence_id_count": 947,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-d08024e9cd35776cee07",
+      "allowed_evidence_id_count": 974,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-bab23e6851708f21c70e",
+      "allowed_evidence_id_count": 968,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    },
+    {
+      "bundle_id": "bundle-b8d0d3b7d18b284cf3f9",
+      "allowed_evidence_id_count": 968,
+      "canonical_sha256_verified": true,
+      "contains_search_provider_or_candidate_strings": false,
+      "limitation": "String absence is not complete discovery provenance; no discovery-to-claim relation exists."
+    }
+  ],
+  "logs": [
+    {
+      "path": "/home/tywin/.local/state/pring-cycle/logs/web.jsonl",
+      "sha256": "3e9f7d0645157bbb51f7b10ead4979d06efe0d0ef033a42435ced0ee9bbd3a44",
+      "line_count": 27,
+      "events": {
+        "web_started": 15,
+        "web_stopped": 12
+      },
+      "search_string_lines": 0
+    },
+    {
+      "path": "/home/tywin/.local/state/pring-cycle/logs/worker.jsonl",
+      "sha256": "ca8fbbe1faa144b95cd0dfe6db909555514e51e6abafd448bad53b16340b13c9",
+      "line_count": 20,
+      "events": {
+        "worker_started": 12,
+        "worker_stopped": 8
+      },
+      "search_string_lines": 0
+    }
+  ],
+  "historical_probe": {
+    "date": "2026-08-21",
+    "evidence_level": "Persisted narrative summary only; raw responses, returned URLs, and temporary probe were not retained.",
+    "tavily": {
+      "reported_requests": 3,
+      "reported_official_domain_and_semantic_group_hits": 3,
+      "reported_results_per_request": 3,
+      "reported_median_seconds": 2.713,
+      "model_usable_unique_gaps_filled": null
+    },
+    "exa": {
+      "reported_requests": 2,
+      "reported_official_domain_and_semantic_group_hits": 2,
+      "reported_results_per_request": 3,
+      "reported_median_seconds": 1.638,
+      "model_usable_unique_gaps_filled": null
+    },
+    "not_comparable_to_current_contract": "Probe reports official-domain restrictions, 3 results, Exa fast; current source uses generic query, 5 results, Exa auto.",
+    "legacy_project_summary_excluded": {
+      "reported_runs": 12,
+      "reported_search_attempts": 97,
+      "reported_successes": 9,
+      "not_revalidated": true
+    }
+  },
+  "file_checks": [
+    {
+      "path": ".scratch/pring-cycle-v1-wayfinding/issues/07-validate-retrieval-budgets.md",
+      "sha256": "77df9dfd8be1fa9f1b6cac1419a073ac35526480b1bb8dc3c52fb6c4a952671d",
+      "byte_count": 5124
+    },
+    {
+      "path": ".scratch/pring-cycle-v1-wayfinding/prototypes/retrieval-budget-prototype.html",
+      "sha256": "89f9f6f549887f6c9ae9263df23e63327bfb128ffd56b242e188812ba212e221",
+      "byte_count": 40209
+    },
+    {
+      "path": "src/pring_cycle/search_discovery.py",
+      "sha256": "277a9060f336dd20a1a70ec4a43db96a75a3e01a1b17ae99adee7a8369edaabe",
+      "byte_count": 5475
+    },
+    {
+      "path": "src/pring_cycle/retrieval.py",
+      "sha256": "dc381338bde66fd76ac0657ae238a67c88627ea7324f14aacfbff8468a4f522c",
+      "byte_count": 7165
+    },
+    {
+      "path": "src/pring_cycle/worker.py",
+      "sha256": "39015dce514078b5d14e80f45a629762f8c605551e6660d60c6bf03f2ba7f4c8",
+      "byte_count": 55732
+    },
+    {
+      "path": "src/pring_cycle/runs.py",
+      "sha256": "4edb3f02e62e019d4da0813b769abbda08e9f8ce28ee3c9d1f2ff618f8ee8921",
+      "byte_count": 43592
+    }
+  ],
+  "metrics": {
+    "unique_model_usable_gap_completion_rate": null,
+    "reason": "No production retrieval scopes or search attempts. No persisted before/after eligible unique-gap plan or discovery-to-selected-observation adoption relation. Zero searched gaps is not zero-percent effectiveness.",
+    "production_search_scoped_gap_count": 0,
+    "production_observed_search_requests": {
+      "tavily": 0,
+      "exa": 0
+    },
+    "attributable_search_filled_gaps": 0,
+    "all_model_eligible_unique_gap_denominator": null,
+    "actual_provider_billed_cost": null
+  }
+}

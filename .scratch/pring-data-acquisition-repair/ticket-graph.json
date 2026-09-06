@@ -1,0 +1,196 @@
+{
+  "schema_version": "repair-ticket-draft-graph-v1",
+  "status": "published_approved",
+  "spec": "spec.md",
+  "initial_frontier": [
+    1,
+    2,
+    18
+  ],
+  "tickets": [
+    {
+      "id": 1,
+      "title": "正确显示资产候选持续天数",
+      "blocked_by": [],
+      "path": "issues/01-candidate-duration.md"
+    },
+    {
+      "id": 2,
+      "title": "核心采集原件与双点时可追溯",
+      "blocked_by": [],
+      "path": "issues/02-core-acquisition-receipts.md"
+    },
+    {
+      "id": 3,
+      "title": "上下文采集原件与未知公开时间隔离",
+      "blocked_by": [
+        2
+      ],
+      "path": "issues/03-context-acquisition-receipts.md"
+    },
+    {
+      "id": 4,
+      "title": "三核心官方语义与历史公开时间认证",
+      "blocked_by": [
+        2
+      ],
+      "path": "issues/04-core-public-time-certification.md"
+    },
+    {
+      "id": 5,
+      "title": "沪深北融资完整采集与认证",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/05-margin-certification.md"
+    },
+    {
+      "id": 6,
+      "title": "确认指数及 CNY030 官方点位认证",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/06-market-index-certification.md"
+    },
+    {
+      "id": 7,
+      "title": "三指数估值定义与维度完整性认证",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/07-valuation-certification.md"
+    },
+    {
+      "id": 8,
+      "title": "历史股票池与日涨跌广度可复核",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/08-breadth-daily-universe.md"
+    },
+    {
+      "id": 9,
+      "title": "120日广度与必要预热正确计算",
+      "blocked_by": [
+        8
+      ],
+      "path": "issues/09-breadth-window-metrics.md"
+    },
+    {
+      "id": 10,
+      "title": "成交金额完整性与上涨金额占比",
+      "blocked_by": [
+        8
+      ],
+      "path": "issues/10-breadth-amount-share.md"
+    },
+    {
+      "id": 11,
+      "title": "真实月份合约与历史可知映射输入",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/11-futures-contract-evidence.md"
+    },
+    {
+      "id": 12,
+      "title": "冻结换月规则并重建去生猪篮子",
+      "blocked_by": [
+        11
+      ],
+      "path": "issues/12-commodity-basket.md"
+    },
+    {
+      "id": 13,
+      "title": "其余27项P1认证与派生可用性复核",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/13-remaining-p1-evidence.md"
+    },
+    {
+      "id": 14,
+      "title": "P2来源与可用状态透明呈现",
+      "blocked_by": [
+        3
+      ],
+      "path": "issues/14-p2-availability.md"
+    },
+    {
+      "id": 15,
+      "title": "一个定向缺口的持久计量与预算恢复",
+      "blocked_by": [
+        2
+      ],
+      "path": "issues/15-retrieval-ledger-budgets.md"
+    },
+    {
+      "id": 16,
+      "title": "搜索候选到模型可用证据的完整闭环",
+      "blocked_by": [
+        3,
+        15
+      ],
+      "path": "issues/16-search-verified-evidence.md"
+    },
+    {
+      "id": 17,
+      "title": "完整运行按真实缺口补证并采纳",
+      "blocked_by": [
+        16
+      ],
+      "path": "issues/17-full-run-gap-retrieval.md"
+    },
+    {
+      "id": 18,
+      "title": "CLI报告运行修复与解释证据验收",
+      "blocked_by": [],
+      "path": "issues/18-report-cli-evidence.md"
+    },
+    {
+      "id": 19,
+      "title": "汇总认证证据并创建新完整候选模型",
+      "blocked_by": [
+        1,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        12,
+        13,
+        14
+      ],
+      "path": "issues/19-immutable-candidate-catalog.md"
+    },
+    {
+      "id": 20,
+      "title": "真实缺口Tavily与Exa配对测量",
+      "blocked_by": [
+        17,
+        19
+      ],
+      "path": "issues/20-retrieval-paired-benchmark.md"
+    },
+    {
+      "id": 21,
+      "title": "新候选120交易日点时重放验收",
+      "blocked_by": [
+        19
+      ],
+      "path": "issues/21-public-replay-120d.md"
+    },
+    {
+      "id": 22,
+      "title": "当前目标日真实验收、模型生效与切换",
+      "blocked_by": [
+        18,
+        20,
+        21
+      ],
+      "path": "issues/22-live-acceptance-cutover.md"
+    }
+  ],
+  "approval": "2026-09-06: user instructed 下一步 after the concrete seam and 22-ticket review."
+}

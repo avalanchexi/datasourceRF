@@ -1,0 +1,147 @@
+﻿{
+    "observed_at_utc":  "2026-09-06T11:11:19.6134271Z",
+    "kind":  "spec_and_ticket_draft_consistency",
+    "spec_required_sections":  7,
+    "user_stories":  52,
+    "draft_ticket_count":  22,
+    "dependency_edges":  32,
+    "topologically_ordered_acyclic":  true,
+    "initial_frontier":  [
+                             1,
+                             2,
+                             18
+                         ],
+    "local_links_checked":  26,
+    "errors":  [
+
+               ],
+    "application_tests_run":  false,
+    "production_actions_run":  false,
+    "artifacts":  [
+                      {
+                          "path":  "review.md",
+                          "bytes":  11149,
+                          "sha256":  "cf781233f186b32255814046930ad3287a794af61e90ab7ec224a6af92814b8a"
+                      },
+                      {
+                          "path":  "spec.md",
+                          "bytes":  26892,
+                          "sha256":  "7cb2e278b97f55f0ec64e4cfb28d77da5f7f0ade1a7b59b55874ceef839917ac"
+                      },
+                      {
+                          "path":  "ticket-graph.json",
+                          "bytes":  4480,
+                          "sha256":  "d5a28d3b8d2b0b44626c22205c4d307fce58fc2d4d50fe027cfbe99810847eb5"
+                      },
+                      {
+                          "path":  "drafts/issues/01-candidate-duration.md",
+                          "bytes":  2175,
+                          "sha256":  "4f12cdec2078a235682e5a11d3c70d39e78460c13bb97f9e323eeba445ce663d"
+                      },
+                      {
+                          "path":  "drafts/issues/02-core-acquisition-receipts.md",
+                          "bytes":  2507,
+                          "sha256":  "50200994807e40c75fa5cee8d07687f451639707fe351945e4d4760fbb8eaae2"
+                      },
+                      {
+                          "path":  "drafts/issues/03-context-acquisition-receipts.md",
+                          "bytes":  2418,
+                          "sha256":  "b592d9058e70e6e900b1b09247118861422808a3b50cf710d4fdf82f44ef2671"
+                      },
+                      {
+                          "path":  "drafts/issues/04-core-public-time-certification.md",
+                          "bytes":  2386,
+                          "sha256":  "5550215b5fcf544f526783d6d30b53d97f1bb9e1b5005fa5d830c314c9085375"
+                      },
+                      {
+                          "path":  "drafts/issues/05-margin-certification.md",
+                          "bytes":  2236,
+                          "sha256":  "9ebe25e0aaccd0096b4f98d9fd9e801ef4c27941aa99807f2a19eb8aa64ac607"
+                      },
+                      {
+                          "path":  "drafts/issues/06-market-index-certification.md",
+                          "bytes":  2190,
+                          "sha256":  "2a449c26376337996f0aac58cf5bfd0d9aaeb0eda6a380cb2175ffdf2db64d8f"
+                      },
+                      {
+                          "path":  "drafts/issues/07-valuation-certification.md",
+                          "bytes":  2335,
+                          "sha256":  "e8d6491c73587f178308bc934c68b9acd93f372a734e4bcc316f0a256f594c7c"
+                      },
+                      {
+                          "path":  "drafts/issues/08-breadth-daily-universe.md",
+                          "bytes":  2385,
+                          "sha256":  "734b5ecb9fc06dbdfc6e425eb294431d533e798ed3a0afdc3942187a088cd49c"
+                      },
+                      {
+                          "path":  "drafts/issues/09-breadth-window-metrics.md",
+                          "bytes":  2310,
+                          "sha256":  "f2e4aff8900ecf537800e961b92f46174d4827e6aec7b7b1b48ec7e4ef945b5f"
+                      },
+                      {
+                          "path":  "drafts/issues/10-breadth-amount-share.md",
+                          "bytes":  2224,
+                          "sha256":  "bb6d9c55654f34bd1eefa05adf41c3ce390b754a9843c687044176121813eb2f"
+                      },
+                      {
+                          "path":  "drafts/issues/11-futures-contract-evidence.md",
+                          "bytes":  2270,
+                          "sha256":  "83fcc65fd53ceb144178fb2d1b424f5b790bc666970ef368dfb29ad57e6ec6e9"
+                      },
+                      {
+                          "path":  "drafts/issues/12-commodity-basket.md",
+                          "bytes":  2221,
+                          "sha256":  "8b542c8a2a6217055c6dd7a90e10cbd3052b6217297a88b8a876358b6b4a20b7"
+                      },
+                      {
+                          "path":  "drafts/issues/13-remaining-p1-evidence.md",
+                          "bytes":  2346,
+                          "sha256":  "e774d424f3eeab7f098205c31e3bd232ef94f6af14aa501e3a25da8f72756ec9"
+                      },
+                      {
+                          "path":  "drafts/issues/14-p2-availability.md",
+                          "bytes":  2296,
+                          "sha256":  "d6c0837bc7bb84806854b448ddf17ae3e66ad1b3ab07118edeaca70550003cfa"
+                      },
+                      {
+                          "path":  "drafts/issues/15-retrieval-ledger-budgets.md",
+                          "bytes":  2546,
+                          "sha256":  "2014f518376131459501daeaa7a73c8e5c20a1dc99f3270f9e3eaa3ead6c981a"
+                      },
+                      {
+                          "path":  "drafts/issues/16-search-verified-evidence.md",
+                          "bytes":  2652,
+                          "sha256":  "30aa306a88bc97be7b1d16247deb37a4ae03f8e1eb077aa3edb188685e4e7943"
+                      },
+                      {
+                          "path":  "drafts/issues/17-full-run-gap-retrieval.md",
+                          "bytes":  2684,
+                          "sha256":  "62911d838598cc54cc94a0dbda3d2cf1b12081120ebd24f0538bfdb79920ed41"
+                      },
+                      {
+                          "path":  "drafts/issues/18-report-cli-evidence.md",
+                          "bytes":  2677,
+                          "sha256":  "7d8cbea0b9168b1f2aff6d900942ea8e3e19d00ab996081a0e4c7277038b811c"
+                      },
+                      {
+                          "path":  "drafts/issues/19-immutable-candidate-catalog.md",
+                          "bytes":  2952,
+                          "sha256":  "6d89f9743322ddfde2fe724ab7965e207d47cec08b4c5c282ba8ec12e7924173"
+                      },
+                      {
+                          "path":  "drafts/issues/20-retrieval-paired-benchmark.md",
+                          "bytes":  2638,
+                          "sha256":  "a2eff03fdd08b572a712a54403c69ee0c547c05a3ae395497d39a15f5f1ba3ec"
+                      },
+                      {
+                          "path":  "drafts/issues/21-public-replay-120d.md",
+                          "bytes":  2617,
+                          "sha256":  "5abd99a9838e083c8cc01f6ecd81c6a9934610db69e92fc959e94ec5a691e359"
+                      },
+                      {
+                          "path":  "drafts/issues/22-live-acceptance-cutover.md",
+                          "bytes":  3074,
+                          "sha256":  "93b0d673ad81b98d22d43cbbc5fe97cac2accffecc61546628c54b564932bc08"
+                      }
+                  ]
+}

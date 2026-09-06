@@ -1,0 +1,74 @@
+﻿{
+    "observed_at_utc":  "2026-09-06T10:44:14.1710809Z",
+    "kind":  "audit_artifact_consistency_only",
+    "checks":  {
+                   "json_parse":  true,
+                   "metric_count_61":  true,
+                   "unique_metric_ids_61":  true,
+                   "source_count_272949":  true,
+                   "catalog_derived_count_87":  true,
+                   "metric_categories_match":  true,
+                   "all_model_use_blocked":  true,
+                   "reports_8_degraded":  true,
+                   "local_links_resolve":  true,
+                   "inventory_hash_matches_notes":  true,
+                   "search_hash_matches_notes":  true
+               },
+    "metric_categories":  {
+                              "source_only":  42,
+                              "source_and_derived":  2,
+                              "derived_only":  5,
+                              "neither":  12
+                          },
+    "local_links_checked":  18,
+    "local_link_failures":  [
+
+                            ],
+    "artifacts":  [
+                      {
+                          "path":  "audit.md",
+                          "bytes":  11940,
+                          "sha256":  "a27d16d5e89e377446338aa61561cf87c07f64e16c6e2ba2458332a35d0ee5b3"
+                      },
+                      {
+                          "path":  "interview.md",
+                          "bytes":  4270,
+                          "sha256":  "7cdfab5be91e6889932fefdcc5412a74f4c22b8bb1110daedd940ef0e48932d1"
+                      },
+                      {
+                          "path":  "metric-inventory-notes.md",
+                          "bytes":  19235,
+                          "sha256":  "5b0d1ae2f4fdf9a1673666474f60a9f52915ebcdf43cd3cec90c931e80ed220a"
+                      },
+                      {
+                          "path":  "metric-inventory.json",
+                          "bytes":  835445,
+                          "sha256":  "6bcae5fcf3631d626f9f94efb01cd05fea69c3901e8fd61243b5abef0b87a2e7"
+                      },
+                      {
+                          "path":  "model-output-statistics.json",
+                          "bytes":  245228,
+                          "sha256":  "db72bb9e9fff73b9979000dcce2ce5e542caab041c579cae68efd1f900096fa4"
+                      },
+                      {
+                          "path":  "model-output-trace.md",
+                          "bytes":  14676,
+                          "sha256":  "bab632785ef1f6834c94eac2b35817f618be7ffc238893c93986ddfdb3169484"
+                      },
+                      {
+                          "path":  "search-effectiveness.md",
+                          "bytes":  16693,
+                          "sha256":  "5e405e2edb6d0f1142352a86271f1f60209dcfb5dbdbf55f71d8df4164418348"
+                      },
+                      {
+                          "path":  "search-statistics.json",
+                          "bytes":  19620,
+                          "sha256":  "8c582c5be89679636494a3b8d70de5a50e53258933866dc70c9c2a603ce92bad"
+                      },
+                      {
+                          "path":  "issues/01-audit-and-clarify.md",
+                          "bytes":  1106,
+                          "sha256":  "7080002a35b4035769e493fc8969938f6c1ffd10bb3b1ebf700162198f5361a4"
+                      }
+                  ]
+}
