@@ -4,13 +4,16 @@ import hashlib
 import json
 import sqlite3
 from bisect import bisect_right
-from dataclasses import dataclass
-from datetime import UTC, datetime
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
 from math import isfinite
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition import ACQUISITION_SCHEMA, AcquisitionReceipt, receipt_from_row
 from pring_cycle.catalog import metric_definition
 from pring_cycle.source_contract_review import require_source_contract
 
@@ -18,6 +21,23 @@ from pring_cycle.source_contract_review import require_source_contract
 class AsOfMode(StrEnum):
     PUBLIC = "public_as_of"
     SYSTEM = "system_as_of"
+
+
+def publication_times(
+    published_at: date | datetime | None, source_timezone: ZoneInfo
+) -> tuple[datetime | None, datetime | None]:
+    """Convert a source parser's reliable time; this does not authenticate evidence."""
+    if published_at is None:
+        return None, None
+    if isinstance(published_at, datetime):
+        if published_at.tzinfo is None:
+            raise ValueError("publication_timezone_required")
+        released = published_at.astimezone(UTC)
+        return released, released
+    public_at = datetime.combine(
+        published_at + timedelta(days=1), time.min, source_timezone
+    ).astimezone(UTC)
+    return None, public_at
 
 
 class EvidenceValueState(StrEnum):
@@ -46,6 +66,7 @@ class SourceClaimInput:
     available_at: datetime
     certification_status: str
     quality_status: str
+    acquisition_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -113,6 +134,8 @@ class EvidenceTrace:
     selected_value: float | None
     value_state: EvidenceValueState | None
     claims: tuple[ClaimView, ...]
+    acquisitions: tuple[AcquisitionReceipt, ...] = ()
+    acquisition_status: str = "untraced"
 
 
 @dataclass(frozen=True)
@@ -231,6 +254,8 @@ class EvidenceRepository:
     def append_source_claims(
         self,
         claims: tuple[SourceClaimInput, ...],
+        *,
+        availability_clock: Callable[[], datetime] | None = None,
     ) -> tuple[StoredSourceClaim, ...]:
         if not claims:
             raise ValueError("evidence_claim_batch_required")
@@ -238,10 +263,34 @@ class EvidenceRepository:
             _validate_claim(claim)
             if claim.certification_status == "certified":
                 require_source_contract(claim.definition_version, metric_id=claim.metric_id)
+        if availability_clock is not None:
+            available_at = availability_clock()
+            if available_at.tzinfo is None or any(
+                claim.acquisition_id is None or available_at < claim.available_at
+                for claim in claims
+            ):
+                raise ValueError("acquisition_availability_time_invalid")
+            claims = tuple(replace(claim, available_at=available_at) for claim in claims)
         stored: list[StoredSourceClaim] = []
         with self._connect() as connection:
             for claim in claims:
-                stored.append(_append_source_claim(connection, claim))
+                item = _append_source_claim(connection, claim)
+                if claim.acquisition_id is not None:
+                    receipt = connection.execute(
+                        "SELECT * FROM acquisition_request WHERE acquisition_id=?",
+                        (claim.acquisition_id,),
+                    ).fetchone()
+                    if (
+                        receipt is None or receipt["state"] != "validated"
+                        or claim.available_at < _required_datetime(receipt["validated_at"])
+                        or claim.fetched_at != _required_datetime(receipt["received_at"])
+                    ):
+                        raise ValueError("claim_acquisition_not_validated")
+                    connection.execute(
+                        "INSERT OR IGNORE INTO source_claim_acquisition VALUES (?, ?)",
+                        (item.claim_id, claim.acquisition_id),
+                    )
+                stored.append(item)
         self._preloaded_series_rows.clear()
         self._preloaded_series_states.clear()
         return tuple(stored)
@@ -762,6 +811,35 @@ class EvidenceRepository:
             as_of=as_of,
             tolerance=tolerance,
         )
+        with self._connect() as connection:
+            visible_ids = tuple(claim.claim_id for claim in queried.claims)
+            schema_present = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='acquisition_request'"
+            ).fetchone()
+            receipts = []
+            links = []
+            if schema_present is not None:
+                receipts = connection.execute(
+                    """SELECT DISTINCT request.* FROM acquisition_request AS request
+                       JOIN source_claim_acquisition AS link USING(acquisition_id)
+                       WHERE link.claim_id IN (SELECT value FROM json_each(?))
+                       ORDER BY request.started_at, request.acquisition_id""",
+                    (json.dumps(visible_ids),),
+                ).fetchall()
+                links = connection.execute(
+                    """SELECT claim_id FROM source_claim_acquisition
+                       WHERE claim_id IN (SELECT value FROM json_each(?))
+                       """,
+                    (json.dumps(visible_ids),),
+                ).fetchall()
+        if not visible_ids:
+            acquisition_status = "not_visible"
+        elif not links:
+            acquisition_status = "untraced"
+        elif set(visible_ids) <= {str(link["claim_id"]) for link in links}:
+            acquisition_status = "linked"
+        else:
+            acquisition_status = "partially_linked"
         return EvidenceTrace(
             observation_id=observation_id,
             metric_id=str(row["metric_id"]),
@@ -780,6 +858,8 @@ class EvidenceRepository:
             selected_value=queried.selected_value,
             value_state=queried.value_state,
             claims=queried.claims,
+            acquisitions=tuple(receipt_from_row(receipt) for receipt in receipts),
+            acquisition_status=acquisition_status,
         )
 
     def append_derived_observation(
@@ -935,6 +1015,7 @@ class EvidenceRepository:
             connection.executescript(_EVIDENCE_SCHEMA)
             connection.executescript(_RELEASE_EVENT_EXTENSIONS_SCHEMA)
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
+            connection.executescript(ACQUISITION_SCHEMA)
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._database_path)

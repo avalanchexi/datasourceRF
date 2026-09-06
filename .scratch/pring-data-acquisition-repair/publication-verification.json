@@ -1,7 +1,7 @@
 {
   "kind": "published_spec_and_ticket_consistency",
-  "observed_at_utc": "2026-09-06T12:01:02.328856+00:00",
-  "workspace_head": "074dea6f725e2aa2f992c2906f7d6cce62e7d43f",
+  "observed_at_utc": "2026-09-06T13:01:18.208749+00:00",
+  "workspace_head": "f5c88befe1a8ea4056ebc8aba54b735c2ccd6e59",
   "required_sections": 7,
   "user_stories": 52,
   "published_ticket_count": 22,
@@ -9,13 +9,16 @@
   "dependency_edges": 32,
   "topologically_ordered_acyclic": true,
   "completed_tickets": [
-    1
+    1,
+    2
   ],
   "current_frontier": [
-    2,
+    3,
+    4,
+    15,
     18
   ],
-  "relative_local_links_checked": 28,
+  "relative_local_links_checked": 32,
   "six_workstream_coverage": {
     "known_defects": [
       1,
@@ -72,13 +75,13 @@
   "artifacts": [
     {
       "path": "spec.md",
-      "bytes": 27508,
-      "sha256": "68c674d58abf3eeaa5097e6ac504f3cd7b9c1cb66124530410e261f5162264dc"
+      "bytes": 27762,
+      "sha256": "f5c32c407f216841b2afed0aaab3863868bdc394d9057207d25dbc9e9a561cc4"
     },
     {
       "path": "review.md",
-      "bytes": 12995,
-      "sha256": "d1e32398d3b5598025ab1f59e4356124bf293ecd1c61c3aeb3dd286fc7d42634"
+      "bytes": 13269,
+      "sha256": "65c461fb8c23c0b102126466cccf30fd98fb26c44bf548726f3afebbe5dc4ebf"
     },
     {
       "path": "issues/01-candidate-duration.md",
@@ -87,8 +90,8 @@
     },
     {
       "path": "issues/02-core-acquisition-receipts.md",
-      "bytes": 2551,
-      "sha256": "98b87a07b48582f856e2fd79255734740da55a723d70eaeb8eb4567561049eaf"
+      "bytes": 2848,
+      "sha256": "1adca41653ab10bf932b86e8b80221be886b70f2131868a4a617cd5c6b236b6d"
     },
     {
       "path": "issues/03-context-acquisition-receipts.md",
@@ -192,8 +195,8 @@
     },
     {
       "path": "ticket-graph.json",
-      "bytes": 5282,
-      "sha256": "e552ad9e9e3e95be1184143217e590e47e6beea34b855f0cbaf097faa0436dd5"
+      "bytes": 5299,
+      "sha256": "e006f53c85463ecac729fd580e4a5e946128f814d104c23c36dddd85c8276b5f"
     }
   ]
 }

@@ -13,9 +13,10 @@ from typing import Any, cast
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from starlette.routing import Mount
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import (
@@ -136,6 +137,28 @@ def create_web_application(
                 as_of=as_of,
             )
         return JSONResponse(content=jsonable_encoder(asdict(result)))
+
+    @server.get("/api/v1/acquisitions", name="acquisition_index")
+    def acquisition_index() -> dict[str, object]:
+        return {"acquisitions": [
+            asdict(receipt)
+            for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        ]}
+
+    @server.get(
+        "/api/v1/acquisitions/{acquisition_id}/artifacts/{kind}",
+        name="acquisition_artifact",
+    )
+    def acquisition_artifact(acquisition_id: str, kind: str) -> Response:
+        try:
+            content = AcquisitionRepository(paths.database, paths.artifacts).read_content(
+                acquisition_id, kind
+            )
+        except (LookupError, FileNotFoundError) as error:
+            return JSONResponse(status_code=404, content={"error": type(error).__name__})
+        except ValueError as error:
+            return JSONResponse(status_code=400, content={"error": str(error)})
+        return Response(content=content, media_type="application/octet-stream")
 
     @server.get("/api/v1/catalog", name="metric_catalog")
     def catalog() -> dict[str, object]:

@@ -25,7 +25,6 @@ from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     MetricSeriesPoint,
-    SourceClaimInput,
 )
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
@@ -1386,83 +1385,17 @@ def _refresh_core_sources(
     token = secrets.get("TUSHARE_TOKEN")
     if token is None:
         return
-    adapter = TushareCoreAdapter(token)
+    from pring_cycle.core_history import refresh_core_history
+
     target = date.fromisoformat(target_business_date)
-    start = target.fromordinal(target.toordinal() - 280)
-    calendar = adapter.trading_days(start, target)
-    expected = calendar[-160:]
-    if not expected or expected[-1] != target:
-        raise ValueError("target_business_date_not_in_china_calendar")
-    evidence = EvidenceRepository(paths.database)
-    fetched_at = datetime.now(UTC)
-    for metric_id, (api_name, source_code) in CORE_API_IDENTITIES.items():
-        definition = metric_definition(
-            metric_id,
-            definition_version=definition_version,
-        )
-        bars = adapter.core_bars(
-            metric_id,
-            start=expected[0],
-            end=expected[-1],
-            expected_business_dates=expected,
-        )
-        for bar in bars:
-            public_available_at = datetime(
-                bar.business_date.year,
-                bar.business_date.month,
-                bar.business_date.day,
-                7,
-                30,
-                tzinfo=UTC,
-            )
-            evidence.append_source_claim(
-                SourceClaimInput(
-                    metric_id=metric_id,
-                    definition_version=definition.definition_version,
-                    period_kind="business_day",
-                    period_start=bar.business_date.isoformat(),
-                    period_end=bar.business_date.isoformat(),
-                    dimensions={},
-                    value=bar.close,
-                    value_state=EvidenceValueState.REPORTED_VALUE,
-                    unit=bar.unit,
-                    provider="tushare",
-                    source_reference=(
-                        f"tushare:{api_name}:{source_code}:{bar.business_date.isoformat()}"
-                    ),
-                    release_event_id=(
-                        f"release:{api_name}:{source_code}:{bar.business_date.isoformat()}"
-                    ),
-                    release_at=public_available_at,
-                    public_available_at=public_available_at,
-                    fetched_at=fetched_at,
-                    available_at=fetched_at,
-                    certification_status=bar.certification_status,
-                    quality_status="validated",
-                )
-            )
-        normalized_hash = hashlib.sha256(
-            repr(
-                [
-                    (bar.business_date.isoformat(), bar.close, bar.pre_close)
-                    for bar in bars
-                ]
-            ).encode()
-        ).hexdigest()
-        evidence.record_retrieval_attempt(
-            metric_id=metric_id,
-            channel="tushare",
-            outcome="verified",
-            fetched_at=fetched_at,
-            safe_metadata={
-                "api_name": api_name,
-                "first_business_date": bars[0].business_date.isoformat(),
-                "last_business_date": bars[-1].business_date.isoformat(),
-                "normalized_hash": normalized_hash,
-                "observations": str(len(bars)),
-                "source_code": source_code,
-            },
-        )
+    refresh_core_history(
+        paths,
+        TushareCoreAdapter(token),
+        start=target - timedelta(days=280),
+        end=target,
+        definition_version=definition_version,
+        latest_observations=160,
+    )
 
 
 def _last_confirmed_stage(

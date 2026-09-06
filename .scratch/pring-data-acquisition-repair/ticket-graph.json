@@ -20,7 +20,7 @@
       "title": "核心采集原件与双点时可追溯",
       "blocked_by": [],
       "path": "issues/02-core-acquisition-receipts.md",
-      "execution_status": "pending"
+      "execution_status": "completed"
     },
     {
       "id": 3,
@@ -216,7 +216,9 @@
   ],
   "approval": "2026-09-06: user instructed 下一步 after the concrete seam and 22-ticket review.",
   "current_frontier": [
-    2,
+    3,
+    4,
+    15,
     18
   ]
 }

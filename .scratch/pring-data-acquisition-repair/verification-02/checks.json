@@ -1,0 +1,73 @@
+{
+  "implementation_base": "f5c88befe1a8ea4056ebc8aba54b735c2ccd6e59",
+  "test_environment": "WSL Ubuntu-22.04, installed package, PYTHONPATH unset",
+  "runtime_isolation": "WSL native verification cache; no live runtime writes",
+  "file_sha256": {
+    "src/pring_cycle/acquisition.py": "0b6b991bc7c92c1726b7ad9f3efca266b85e04dc008cddee309bc7db3db4df3b",
+    "src/pring_cycle/core_history.py": "dce17e2d957ffe6a5d2175accd19e0fda207dad0a523d8516b44e8d3f09128bc",
+    "src/pring_cycle/evidence.py": "9d217fcdacfcdaa88924b92d37f892120b149e948ab16a30aa155e119d089fc7",
+    "src/pring_cycle/source_adapters.py": "b41051e8b6786ecb6a183984b482a8af5657e5a6f89f556ab34f1ee8f85dc190",
+    "src/pring_cycle/storage.py": "4f460ba9ca068893cd7dba9b5b055398c32e767f79cc82e1ab45266a46bdd529",
+    "src/pring_cycle/web.py": "63f868684c9cdb357dda2948cd49aa40f8d2ec221a2d88e8751ef46f7e9629b8",
+    "src/pring_cycle/worker.py": "a7dcdc08d869acbe191d25fccf13f590a338e64ae9d1eab57e6b7015531b0c21",
+    "src/pring_cycle/migrations/versions/0014_acquisition_receipts.py": "7c45a716ae063e1968231ab20587e205d21de5b2cd52387e476c3ba5181da626",
+    "tests/integration/test_core_history_refresh.py": "ba462042fbeefb2548ede5d2f81f7643952dc5f91267ba38695b3786dd171a52"
+  },
+  "checks": [
+    {
+      "command": [
+        "/home/tywin/.local/bin/uv",
+        "sync",
+        "--locked",
+        "--offline",
+        "--extra",
+        "dev",
+        "--no-editable",
+        "--reinstall-package",
+        "pring-cycle"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.44,
+      "stdout": "",
+      "stderr": "Resolved 55 packages in 8ms\n   Building pring-cycle @ file:///mnt/d/cursor/datasourceRF\n      Built pring-cycle @ file:///mnt/d/cursor/datasourceRF\nPrepared 1 package in 2.23s\nUninstalled 1 package in 2ms\nInstalled 1 package in 6ms\n ~ pring-cycle==0.1.0 (from file:///mnt/d/cursor/datasourceRF)\n"
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        "-m",
+        "ruff",
+        "check",
+        "src",
+        "tests"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.34,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        "-m",
+        "mypy"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.2,
+      "stdout": "Success: no issues found in 70 source files\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--basetemp=/home/tywin/.cache/pring-cycle/verification/repair-02-full"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 118.65,
+      "stdout": "........................................................................ [ 16%]\n........................................................................ [ 33%]\n........................................................................ [ 50%]\n........................................................................ [ 66%]\n........................................................................ [ 83%]\n......................................................................   [100%]\n430 passed in 117.51s (0:01:57)\n",
+      "stderr": ""
+    }
+  ]
+}

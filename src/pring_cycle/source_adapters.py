@@ -4,10 +4,11 @@ import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 from urllib.request import Request, build_opener
 
+from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
 from pring_cycle.adapters import MarketBar, validate_core_market_bars
 
 TUSHARE_ENDPOINT = "https://api.tushare.pro"
@@ -31,15 +32,22 @@ class CoreSourceSmokeResult:
     status: str
 
 
-Transport = Callable[[dict[str, Any]], dict[str, Any]]
+Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
 
 class TushareCoreAdapter:
-    def __init__(self, token: str, *, transport: Transport | None = None) -> None:
+    def __init__(
+        self,
+        token: str,
+        *,
+        transport: Transport | None = None,
+        clock: Callable[[], datetime] = utc_now,
+    ) -> None:
         if not token:
             raise ValueError("tushare_token_required")
         self._token = token
         self._transport = transport or self._post
+        self._clock = clock
 
     def trading_days(self, start: date, end: date) -> tuple[date, ...]:
         response = self._call(
@@ -47,15 +55,72 @@ class TushareCoreAdapter:
             {"exchange": "SSE", "start_date": _compact(start), "end_date": _compact(end)},
             "cal_date,is_open",
         )
-        rows = _rows(response)
-        days = sorted(
-            date.fromisoformat(str(row["cal_date"]))
-            for row in rows
-            if int(row["is_open"]) == 1
+        return _calendar_rows(response, start, end)
+
+    def acquire_calendar(
+        self, repository: AcquisitionRepository, start: date, end: date
+    ) -> Acquired[tuple[date, ...]]:
+        return self._acquire(
+            repository,
+            "trade_cal",
+            {"exchange": "SSE", "start_date": _compact(start), "end_date": _compact(end)},
+            "cal_date,is_open",
+            lambda response: _calendar_rows(response, start, end),
+            lambda days: [day.isoformat() for day in days],
         )
-        if not days:
-            raise ValueError("china_trading_calendar_missing")
-        return tuple(days)
+
+    def acquire_core_bars(
+        self,
+        repository: AcquisitionRepository,
+        metric_id: str,
+        *,
+        start: date,
+        end: date,
+        expected_business_dates: tuple[date, ...],
+    ) -> Acquired[tuple[MarketBar, ...]]:
+        api_name, source_code = CORE_API_IDENTITIES[metric_id]
+        return self._acquire(
+            repository,
+            api_name,
+            {"ts_code": source_code, "start_date": _compact(start), "end_date": _compact(end)},
+            "ts_code,trade_date,close,pre_close,pct_chg",
+            lambda response: _core_bars_response(response, metric_id, expected_business_dates),
+            lambda bars: [asdict(bar) for bar in bars],
+        )
+
+    def _acquire[T](
+        self,
+        repository: AcquisitionRepository,
+        api_name: str,
+        parameters: dict[str, str],
+        fields: str,
+        parse: Callable[[dict[str, Any]], T],
+        normalize: Callable[[T], object],
+    ) -> Acquired[T]:
+        def fetch() -> bytes:
+            response = self._transport(
+                {
+                    "api_name": api_name,
+                    "params": parameters,
+                    "fields": fields,
+                    "token": self._token,
+                }
+            )
+            if not isinstance(response, bytes):
+                raise ValueError("acquisition_raw_response_bytes_required")
+            return response
+
+        return repository.capture(
+            provider="tushare",
+            api_name=api_name,
+            parameters=parameters,
+            fields=fields,
+            parser_version="tushare-core-parser-v0002",
+            fetch=fetch,
+            parse=lambda raw: parse(_response_document(raw)),
+            normalize=normalize,
+            clock=self._clock,
+        )
 
     def core_bars(
         self,
@@ -74,31 +139,7 @@ class TushareCoreAdapter:
             {"ts_code": source_code, "start_date": _compact(start), "end_date": _compact(end)},
             "ts_code,trade_date,close,pre_close,pct_chg",
         )
-        return_divisor = 1.0 if api_name == "fut_index_daily" else 100.0
-        bars = tuple(
-            sorted(
-                (
-                    MarketBar(
-                        metric_id=metric_id,
-                        source_code=str(row["ts_code"]),
-                        business_date=_trade_date(row["trade_date"]),
-                        close=float(row["close"]),
-                        pre_close=float(row["pre_close"]),
-                        official_return=float(row["pct_chg"]) / return_divisor,
-                        unit="index_points",
-                        certification_status="certified",
-                    )
-                    for row in _rows(response)
-                ),
-                key=lambda item: item.business_date,
-            )
-        )
-        validate_core_market_bars(
-            metric_id,
-            list(bars),
-            expected_business_dates=expected_business_dates,
-        )
-        return bars
+        return _core_bars_response(response, metric_id, expected_business_dates)
 
     def smoke(
         self,
@@ -129,18 +170,11 @@ class TushareCoreAdapter:
 
     def _call(self, api_name: str, params: dict[str, str], fields: str) -> dict[str, Any]:
         response = self._transport(
-            {
-                "api_name": api_name,
-                "fields": fields,
-                "params": params,
-                "token": self._token,
-            }
+            {"api_name": api_name, "fields": fields, "params": params, "token": self._token}
         )
-        if int(response.get("code", -1)) != 0:
-            raise ValueError("tushare_source_failed")
-        return response
+        return _response_document(response)
 
-    def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def _post(self, payload: dict[str, Any]) -> bytes:
         request = Request(
             TUSHARE_ENDPOINT,
             data=_canonical_json(payload).encode(),
@@ -148,10 +182,62 @@ class TushareCoreAdapter:
             method="POST",
         )
         with build_opener().open(request, timeout=30) as response:
-            document = json.load(response)
-        if not isinstance(document, dict):
-            raise ValueError("tushare_response_invalid")
-        return {str(key): value for key, value in document.items()}
+            return bytes(response.read())
+
+
+def _calendar_rows(response: dict[str, Any], start: date, end: date) -> tuple[date, ...]:
+    rows = _rows(response)
+    dates = [date.fromisoformat(str(row["cal_date"])) for row in rows]
+    if len(dates) != len(set(dates)) or any(day < start or day > end for day in dates):
+        raise ValueError("china_trading_calendar_invalid")
+    days = sorted(
+        date.fromisoformat(str(row["cal_date"])) for row in rows if int(row["is_open"]) == 1
+    )
+    if not days:
+        raise ValueError("china_trading_calendar_missing")
+    return tuple(days)
+
+
+def _core_bars_response(
+    response: dict[str, Any],
+    metric_id: str,
+    expected_business_dates: tuple[date, ...] | None,
+) -> tuple[MarketBar, ...]:
+    api_name, _source_code = CORE_API_IDENTITIES[metric_id]
+    return_divisor = 1.0 if api_name == "fut_index_daily" else 100.0
+    bars = tuple(
+        sorted(
+            (
+                MarketBar(
+                    metric_id=metric_id,
+                    source_code=str(row["ts_code"]),
+                    business_date=_trade_date(row["trade_date"]),
+                    close=float(row["close"]),
+                    pre_close=float(row["pre_close"]),
+                    official_return=float(row["pct_chg"]) / return_divisor,
+                    unit="index_points",
+                    certification_status="certified",
+                )
+                for row in _rows(response)
+            ),
+            key=lambda item: item.business_date,
+        )
+    )
+    validate_core_market_bars(
+        metric_id,
+        list(bars),
+        expected_business_dates=expected_business_dates,
+    )
+    return bars
+
+
+def _response_document(response: bytes | dict[str, Any]) -> dict[str, Any]:
+    document = json.loads(response) if isinstance(response, bytes) else response
+    if not isinstance(document, dict):
+        raise ValueError("tushare_response_invalid")
+    if int(document.get("code", -1)) != 0:
+        raise ValueError("tushare_source_failed")
+    return {str(key): value for key, value in document.items()}
 
 
 def _rows(response: dict[str, Any]) -> tuple[dict[str, Any], ...]:
