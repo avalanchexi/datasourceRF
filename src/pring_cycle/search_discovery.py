@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, field, replace
 from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.catalog import metric_definition
+from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.retrieval import RetrievalAdapterResponse
+from pring_cycle.retrieval_ledger import (
+    RetrievalBudgetBlocked,
+    RetrievalLedger,
+    http_failure_classification,
+)
+from pring_cycle.runtime import RuntimePaths
 
 MAX_SEARCH_RESPONSE_BYTES = 1_000_000
 
@@ -18,6 +27,8 @@ MAX_SEARCH_RESPONSE_BYTES = 1_000_000
 class SearchHttpResponse:
     status: int
     document: object
+    raw: bytes | None = None
+    headers: dict[str, str] = field(default_factory=dict)
 
 
 SearchTransport = Callable[
@@ -47,6 +58,8 @@ def search_discovery_adapter(
     query: str,
     *,
     transport: SearchTransport | None = None,
+    paths: RuntimePaths | None = None,
+    run_id: str | None = None,
 ) -> Callable[[str], RetrievalAdapterResponse]:
     if not api_key:
         raise ValueError("search_api_key_required")
@@ -55,12 +68,19 @@ def search_discovery_adapter(
     endpoint, headers, payload = _request_contract(provider, api_key, query)
     request = transport or _post_json
 
-    def retrieve(_release_event_id: str) -> RetrievalAdapterResponse:
-        response = request(endpoint, headers, payload)
-        failure = _failure_classification(response.status)
+    def interpret(response: SearchHttpResponse) -> RetrievalAdapterResponse:
+        failure = http_failure_classification(response.status)
         if failure is not None:
             return RetrievalAdapterResponse("failed", classification=failure)
-        candidate = _first_candidate_url(response.document)
+        document = response.document
+        if response.raw is not None:
+            if len(response.raw) > MAX_SEARCH_RESPONSE_BYTES:
+                raise ValueError("search_response_too_large")
+            try:
+                document = json.loads(response.raw)
+            except (UnicodeDecodeError, json.JSONDecodeError) as error:
+                raise ValueError("search_response_invalid_json") from error
+        candidate = _first_candidate_url(document)
         if candidate is None:
             return RetrievalAdapterResponse("not_found")
         return RetrievalAdapterResponse(
@@ -68,6 +88,57 @@ def search_discovery_adapter(
             evidence=candidate,
             classification="unverified_candidate",
         )
+
+    def retrieve(release_event_id: str) -> RetrievalAdapterResponse:
+        if paths is None or run_id is None:
+            return interpret(request(endpoint, headers, payload))
+        ledger = RetrievalLedger(paths.database)
+        try:
+            request_id = ledger.reserve(run_id, provider, release_event_id, query)
+        except RetrievalBudgetBlocked as error:
+            return RetrievalAdapterResponse(
+                "not_attempted", classification=str(error), cache_hit=error.cache_hit
+            )
+        responses = []
+
+        def fetch() -> bytes:
+            response = request(endpoint, headers, payload)
+            responses.append(response)
+            if response.raw is None:
+                raise ValueError("acquisition_raw_response_bytes_required")
+            return response.raw
+
+        try:
+            acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+                provider=provider,
+                api_name="search",
+                parameters={"query": query, "retrieval_request_id": request_id},
+                fields="results",
+                parser_version="search-discovery-v0002",
+                fetch=fetch,
+                parse=lambda raw: interpret(responses[0]),
+                normalize=asdict,
+                on_started=lambda acquisition_id: ledger.attach_acquisition(
+                    request_id, acquisition_id
+                ),
+            )
+            result = acquired.value
+        except (OSError, TimeoutError):
+            result = RetrievalAdapterResponse("failed", classification="transient_transport_error")
+        except ValueError:
+            result = RetrievalAdapterResponse("failed", classification="semantic_validation_failed")
+        response = responses[0] if responses else None
+        cost, provider_request_id = _response_usage(provider, response)
+        ledger.complete(
+            request_id,
+            outcome=result.status,
+            classification=result.classification,
+            status=response.status if response else None,
+            headers=response.headers if response else None,
+            cost=cost,
+            provider_request_id=provider_request_id,
+        )
+        return replace(result, physical_request_id=request_id)
 
     return retrieve
 
@@ -88,10 +159,11 @@ def _request_contract(
             {
                 "query": query,
                 "search_depth": "basic",
-                "max_results": 5,
+                "max_results": 3,
                 "include_answer": False,
                 "include_raw_content": False,
                 "include_images": False,
+                "include_usage": True,
             },
         )
     if provider == "exa":
@@ -102,7 +174,7 @@ def _request_contract(
                 "Content-Type": "application/json",
                 "x-api-key": api_key,
             },
-            {"query": query, "type": "auto", "numResults": 5},
+            {"query": query, "type": "auto", "numResults": 3},
         )
     raise ValueError("unsupported_search_provider")
 
@@ -124,29 +196,44 @@ def _post_json(
         with urlopen(request, timeout=15) as response:  # noqa: S310 - fixed endpoint allowlist
             content = response.read(MAX_SEARCH_RESPONSE_BYTES + 1)
             status = int(response.status)
+            response_headers = {str(key): str(value) for key, value in response.headers.items()}
     except HTTPError as error:
-        return SearchHttpResponse(int(error.code), {})
-    if len(content) > MAX_SEARCH_RESPONSE_BYTES:
-        raise ValueError("search_response_too_large")
+        return SearchHttpResponse(
+            int(error.code), {}, error.read(MAX_SEARCH_RESPONSE_BYTES + 1), dict(error.headers)
+        )
+    return SearchHttpResponse(status, None, content, response_headers)
+
+
+def _response_usage(
+    provider: str, response: SearchHttpResponse | None
+) -> tuple[dict[str, object] | None, str | None]:
+    if response is None or response.raw is None or len(response.raw) > MAX_SEARCH_RESPONSE_BYTES:
+        return None, None
     try:
-        document: object = json.loads(content)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise ValueError("search_response_invalid_json") from error
-    return SearchHttpResponse(status, document)
-
-
-def _failure_classification(status: int) -> str | None:
-    if status == 200:
-        return None
-    if status in {401, 403}:
-        return "authentication_failed"
-    if status == 402:
-        return "quota_exhausted"
-    if status == 429:
-        return "rate_limited"
-    if status >= 500:
-        return "transient_transport_error"
-    return "semantic_validation_failed"
+        document = json.loads(response.raw)
+    except (UnicodeDecodeError, ValueError):
+        return None, None
+    if not isinstance(document, dict):
+        return None, None
+    request_id = document.get("request_id" if provider == "tavily" else "requestId")
+    if not isinstance(request_id, str) or len(request_id) > 128:
+        request_id = None
+    usage = document.get("usage" if provider == "tavily" else "costDollars")
+    if not isinstance(usage, dict):
+        return None, request_id
+    amount = usage.get("credits" if provider == "tavily" else "total")
+    if isinstance(amount, bool) or not isinstance(amount, (int, float)) or amount < 0:
+        return None, request_id
+    try:
+        if not math.isfinite(amount):
+            return None, request_id
+    except OverflowError:
+        return None, request_id
+    return {
+        "amount": amount,
+        "unit": "credit" if provider == "tavily" else "USD",
+        "basis": "provider_usage" if provider == "tavily" else "provider_estimate",
+    }, request_id
 
 
 def _first_candidate_url(document: object) -> str | None:

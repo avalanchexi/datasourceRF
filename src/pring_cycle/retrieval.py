@@ -13,6 +13,7 @@ class RetrievalRequest:
     released: bool = True
     negative_cache_active: bool = False
     manual_deep_search: bool = False
+    persistent_accounting: bool = False
 
 
 @dataclass
@@ -37,6 +38,7 @@ class RetrievalAttempt:
     budget_charged: bool = False
     cache_hit: bool = False
     manual_budget_exemption: bool = False
+    physical_request_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,8 @@ class RetrievalAdapterResponse:
     status: str
     evidence: str | None = None
     classification: str | None = None
+    physical_request_id: str | None = None
+    cache_hit: bool = False
 
 
 @dataclass(frozen=True)
@@ -99,7 +103,9 @@ def run_retrieval_cascade(
             )
             continue
         remaining = (
-            None if request.manual_deep_search else _consume_budget(channel, budget)
+            None
+            if request.manual_deep_search or request.persistent_accounting
+            else _consume_budget(channel, budget)
         )
         if isinstance(remaining, _BudgetDecision) and not remaining.allowed:
             attempts.append(
@@ -111,7 +117,13 @@ def run_retrieval_cascade(
                 )
             )
             continue
-        responses = _adapter_attempts(adapter, request.release_event_id)
+        responses = _adapter_attempts(
+            adapter,
+            request.release_event_id,
+            retry_limit=1
+            if request.persistent_accounting and channel not in {"official", "tushare"}
+            else 3,
+        )
         for response_index, adapter_attempt in enumerate(responses):
             response = adapter_attempt.response
             if response.status == "candidate_source" and response.evidence is not None:
@@ -120,18 +132,18 @@ def run_retrieval_cascade(
                 RetrievalAttempt(
                     channel,
                     response.status,
-                    remaining.remaining_run
-                    if isinstance(remaining, _BudgetDecision)
-                    else None,
-                    remaining.remaining_daily
-                    if isinstance(remaining, _BudgetDecision)
-                    else None,
+                    remaining.remaining_run if isinstance(remaining, _BudgetDecision) else None,
+                    remaining.remaining_daily if isinstance(remaining, _BudgetDecision) else None,
                     adapter_attempt.latency_ms,
                     response.classification,
                     response.evidence if response.status == "candidate_source" else None,
-                    isinstance(remaining, _BudgetDecision) and response_index == 0,
-                    False,
+                    response.physical_request_id is not None
+                    and channel in {"tavily", "exa", "ai_websearch"}
+                    if request.persistent_accounting
+                    else isinstance(remaining, _BudgetDecision) and response_index == 0,
+                    response.cache_hit,
                     request.manual_deep_search,
+                    response.physical_request_id,
                 )
             )
         verified = next(
@@ -164,11 +176,13 @@ def run_retrieval_cascade(
 def _adapter_attempts(
     adapter: Callable[[str], str | RetrievalAdapterResponse | None] | None,
     release_event_id: str,
+    *,
+    retry_limit: int = 3,
 ) -> tuple[_AdapterAttempt, ...]:
     if adapter is None:
         return (_AdapterAttempt(RetrievalAdapterResponse("not_configured"), 0),)
     responses: list[_AdapterAttempt] = []
-    for _attempt in range(3):
+    for _attempt in range(retry_limit):
         started = monotonic()
         try:
             value = adapter(release_event_id)

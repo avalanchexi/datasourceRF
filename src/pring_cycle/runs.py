@@ -8,6 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 RUN_STEPS = (
@@ -43,6 +44,7 @@ class RunRecord:
     error_classification: str | None
     retrieval_scope: RetrievalScope | None
     retrieval_attempts: tuple[dict[str, object], ...]
+    retrieval_ledger: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -431,6 +433,9 @@ class RunRepository:
             connection.execute(
                 "DELETE FROM worker_lease WHERE lease_name='worker:global-execution'"
             )
+            from pring_cycle.retrieval_ledger import interrupt_retrieval_requests
+
+            interrupt_retrieval_requests(connection, run_id)
         return LeaseDecision(owner_state, run_id, "explicit_resume_required")
 
     def mark_interrupted(self, run_id: str, classification: str) -> None:
@@ -628,6 +633,7 @@ class RunRepository:
         manual_budget_exemption: bool,
         candidate_source: str | None,
         occurred_at: datetime,
+        physical_request_id: str | None = None,
     ) -> None:
         if occurred_at.tzinfo is None:
             raise ValueError("retrieval_attempt_time_must_be_timezone_aware")
@@ -652,8 +658,8 @@ class RunRepository:
                     run_id, release_event_id, sequence, channel, outcome,
                     classification, latency_ms, remaining_run_budget,
                     remaining_daily_budget, budget_charged, cache_hit,
-                    manual_budget_exemption, candidate_source, occurred_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    manual_budget_exemption, candidate_source, occurred_at, physical_request_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_id,
@@ -670,6 +676,7 @@ class RunRepository:
                     int(manual_budget_exemption),
                     candidate_source,
                     occurred_at.astimezone(UTC).isoformat(),
+                    physical_request_id,
                 ),
             )
 
@@ -681,6 +688,12 @@ class RunRepository:
         end = start + timedelta(days=1)
         totals = {"tavily": 0, "exa": 0, "ai_websearch": 0}
         with self._connect() as connection:
+            if connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='retrieval_physical_request'"
+            ).fetchone():
+                from pring_cycle.retrieval_ledger import daily_consumption
+
+                return daily_consumption(connection, observed_at)
             rows = connection.execute(
                 """
                 SELECT channel, COUNT(*) AS consumed
@@ -866,10 +879,17 @@ class RunRepository:
         return connection
 
     def _run_record(self, connection: sqlite3.Connection, row: sqlite3.Row) -> RunRecord:
-        return _run_record(
-            row,
-            retrieval_scope=self._retrieval_scope(connection, str(row["run_id"])),
-            retrieval_attempts=self._retrieval_attempts(connection, str(row["run_id"])),
+        from dataclasses import replace
+
+        from pring_cycle.retrieval_ledger import RetrievalLedger
+
+        return replace(
+            _run_record(
+                row,
+                retrieval_scope=self._retrieval_scope(connection, str(row["run_id"])),
+                retrieval_attempts=self._retrieval_attempts(connection, str(row["run_id"])),
+            ),
+            retrieval_ledger=RetrievalLedger(self._database_path).for_run(str(row["run_id"])),
         )
 
     def _retrieval_scope(
@@ -1138,6 +1158,7 @@ CREATE TABLE IF NOT EXISTS run_retrieval_attempt (
     manual_budget_exemption INTEGER NOT NULL,
     candidate_source TEXT,
     occurred_at TEXT NOT NULL,
+    physical_request_id TEXT,
     UNIQUE(run_id, sequence)
 );
 CREATE TABLE IF NOT EXISTS retrieval_negative_cache (

@@ -5,7 +5,7 @@ import json
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
@@ -59,6 +59,7 @@ class AcquisitionRepository:
         normalize: Callable[[T], object],
         clock: Callable[[], datetime] = utc_now,
         defer_validation: bool = False,
+        on_started: Callable[[str], None] | None = None,
     ) -> Acquired[T]:
         acquisition_id = "acquisition-" + uuid4().hex
         started_at = clock()
@@ -80,6 +81,8 @@ class AcquisitionRepository:
                 ),
             )
         try:
+            if on_started is not None:
+                on_started(acquisition_id)
             try:
                 raw = fetch()
             except HTTPError as error:
@@ -189,6 +192,11 @@ class AcquisitionRepository:
         receipt = self.get(acquisition_id)
         if kind not in {"raw", "normalized"}:
             raise ValueError("acquisition_artifact_kind_invalid")
+        expiry = response_retention_deadline(
+            receipt.provider, receipt.api_name, receipt.received_at
+        )
+        if kind == "raw" and expiry is not None and expiry <= utc_now():
+            raise LookupError("search_response_expired")
         digest = receipt.raw_hash if kind == "raw" else receipt.normalized_hash
         if digest is None:
             raise LookupError("acquisition_artifact_unavailable")
@@ -207,6 +215,14 @@ class AcquisitionRepository:
 def _check_time(value: datetime, previous: datetime | None = None) -> None:
     if value.tzinfo is None or (previous is not None and value < previous):
         raise ValueError("acquisition_time_invalid")
+
+
+def response_retention_deadline(
+    provider: str, api_name: str, received_at: datetime | None
+) -> datetime | None:
+    if provider in {"tavily", "exa"} and api_name == "search" and received_at is not None:
+        return received_at + timedelta(days=30)
+    return None
 
 
 def _schema_available(connection: sqlite3.Connection) -> bool:

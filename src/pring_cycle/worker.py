@@ -151,6 +151,9 @@ def process_pending_run(
         return None
     runs = RunRepository(paths.database)
     queued = runs.next_queued()
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+
+    RetrievalLedger(paths.database).expire_responses(paths.artifacts)
     if queued is None:
         return None
     owner_id = f"worker-{os.getpid()}"
@@ -180,6 +183,13 @@ def process_pending_run(
                 queued.run_id,
                 f"worker_failure:{type(error).__name__}:{error}",
             )
+    except BaseException:
+        from pring_cycle.retrieval_ledger import RetrievalLedger
+
+        RetrievalLedger(paths.database).interrupt(queued.run_id)
+        if runs.get(queued.run_id).status != "cancelled":
+            runs.mark_interrupted(queued.run_id, "worker_process_interrupted")
+        raise
     finally:
         heartbeat_stop.set()
         heartbeat.join(timeout=1)
@@ -397,13 +407,19 @@ def _execute_retrieval_run(
     if now.tzinfo is None:
         raise ValueError("retrieval_now_must_be_timezone_aware")
     scope = runs.retrieval_scope(run.run_id)
+    definition_version = ContextProjectionRules.from_manifest(
+        ModelRepository(paths.database).manifest(run.model_version_id)
+    ).metric_catalog_version
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+
+    RetrievalLedger(paths.database).bind_run(run, definition_version)
     runs.advance(run.run_id, "refreshing_evidence")
     released = (
         release_resolver(scope, now)
         if release_resolver is not None
         else _retrieval_release_ready(paths, scope, now)
     )
-    cache_active = runs.negative_cache_active(
+    cache_active = adapters is not None and runs.negative_cache_active(
         scope.release_event_id,
         scope.metric_ids,
         now=now,
@@ -447,14 +463,12 @@ def _execute_retrieval_run(
         budget.run_exa_remaining,
         budget.run_ai_remaining,
     )
-    definition_version = ContextProjectionRules.from_manifest(
-        ModelRepository(paths.database).manifest(run.model_version_id)
-    ).metric_catalog_version
     configured_adapters = adapters or _production_retrieval_adapters(
         paths,
         scope,
         now,
         definition_version=definition_version,
+        run_id=run.run_id,
     )
     result = run_retrieval_cascade(
         RetrievalRequest(
@@ -463,6 +477,7 @@ def _execute_retrieval_run(
             priority=scope.priority,
             released=True,
             manual_deep_search=run.command_type == "manual_deep_search",
+            persistent_accounting=adapters is None,
         ),
         configured_adapters,
         budget,
@@ -482,8 +497,9 @@ def _execute_retrieval_run(
             manual_budget_exemption=attempt.manual_budget_exemption,
             candidate_source=attempt.candidate_source,
             occurred_at=now,
+            physical_request_id=attempt.physical_request_id,
         )
-    if run.command_type != "manual_deep_search":
+    if adapters is not None and run.command_type != "manual_deep_search":
         runs.set_budget_consumption(
             run.run_id,
             tavily=consumed["tavily"] + initial_run_budget[0] - budget.run_tavily_remaining,
@@ -510,7 +526,7 @@ def _execute_retrieval_run(
         attempt.outcome in {"not_found", "candidate_source"}
         for attempt in result.attempts
     )
-    if cacheable and result.attempts:
+    if adapters is not None and cacheable and result.attempts:
         runs.store_negative_cache(
             scope.release_event_id,
             scope.metric_ids,
@@ -552,6 +568,7 @@ def _production_retrieval_adapters(
     now: datetime,
     *,
     definition_version: str,
+    run_id: str,
 ) -> dict[str, Callable[[str], str | RetrievalAdapterResponse | None]]:
     adapters: dict[str, Callable[[str], str | RetrievalAdapterResponse | None]] = {
         "local": lambda _event: _local_retrieval(
@@ -582,6 +599,32 @@ def _production_retrieval_adapters(
                 now,
                 definition_version=definition_version,
             )
+    if scope.source_url is not None and "official" in adapters:
+        from pring_cycle.retrieval_ledger import RetrievalLedger
+
+        adapters["official"] = lambda event: RetrievalLedger(paths.database).trace_acquisition(
+            run_id,
+            "official",
+            event,
+            scope.source_url or "",
+            lambda on_started: (
+                _official_lpr_retrieval(
+                    paths,
+                    scope,
+                    now,
+                    definition_version=definition_version,
+                    on_acquisition_started=on_started,
+                )
+                if scope.metric_ids == ("CN_LPR_1Y_5Y",)
+                else _official_context_retrieval(
+                    paths,
+                    scope,
+                    now,
+                    definition_version=definition_version,
+                    on_acquisition_started=on_started,
+                )
+            ),
+        )
     secrets = parse_data_source_secrets(paths.secrets)
     if "TAVILY_API_KEY" in secrets or "EXA_API_KEY" in secrets:
         from pring_cycle.search_discovery import (
@@ -591,9 +634,13 @@ def _production_retrieval_adapters(
 
         query = build_search_query(scope.metric_ids, period=scope.period)
         if token := secrets.get("TAVILY_API_KEY"):
-            adapters["tavily"] = search_discovery_adapter("tavily", token, query)
+            adapters["tavily"] = search_discovery_adapter(
+                "tavily", token, query, paths=paths, run_id=run_id
+            )
         if token := secrets.get("EXA_API_KEY"):
-            adapters["exa"] = search_discovery_adapter("exa", token, query)
+            adapters["exa"] = search_discovery_adapter(
+                "exa", token, query, paths=paths, run_id=run_id
+            )
     return adapters
 
 
@@ -641,6 +688,7 @@ def _official_lpr_retrieval(
     now: datetime,
     *,
     definition_version: str,
+    on_acquisition_started: Callable[[str], None] | None = None,
 ) -> str | RetrievalAdapterResponse:
     if scope.source_url is None:
         return RetrievalAdapterResponse(
@@ -655,6 +703,7 @@ def _official_lpr_retrieval(
         expected_period=scope.period,
         fetched_at=now,
         definition_version=definition_version,
+        on_acquisition_started=on_acquisition_started,
     )
     return "official-evidence:" + hashlib.sha256(
         "\x1f".join(refreshed.claim_ids).encode()
@@ -667,6 +716,7 @@ def _official_context_retrieval(
     now: datetime,
     *,
     definition_version: str,
+    on_acquisition_started: Callable[[str], None] | None = None,
 ) -> str | RetrievalAdapterResponse:
     if scope.source_url is None:
         return RetrievalAdapterResponse(
@@ -686,6 +736,7 @@ def _official_context_retrieval(
         expected_period=scope.period,
         fetched_at=now,
         definition_version=definition_version,
+        on_acquisition_started=on_acquisition_started,
     )
     if not all(
         metric_definition(

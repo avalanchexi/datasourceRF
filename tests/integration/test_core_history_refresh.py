@@ -185,6 +185,26 @@ def test_core_claim_trace_retains_each_request_original(tmp_path: Path) -> None:
 def test_manual_run_cannot_backdate_daily_core_availability(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    from time import monotonic
+
+    origin = datetime.now(UTC)
+    started = monotonic()
+
+    class StableDateTimeMeta(type):
+        def __instancecheck__(cls, value):
+            return isinstance(value, datetime)
+
+    class StableDateTime(datetime, metaclass=StableDateTimeMeta):
+        @classmethod
+        def now(cls, tz=None):
+            value = origin + timedelta(seconds=monotonic() - started)
+            return value.astimezone(tz) if tz is not None else value.replace(tzinfo=None)
+
+    # WSL wall-clock resynchronization must not move this availability probe
+    # behind receipts that were just validated. Replace only the clock boundary.
+    monkeypatch.setattr("pring_cycle.acquisition.datetime", StableDateTime)
+    monkeypatch.setattr("pring_cycle.core_history.datetime", StableDateTime)
+    monkeypatch.setattr("pring_cycle.worker.datetime", StableDateTime)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
@@ -202,7 +222,7 @@ def test_manual_run_cannot_backdate_daily_core_availability(
             if code not in {"000985.CSI", "000012.SH", "NHII.NH"}:
                 raise OSError("fixture_context_unavailable")
             if code == "000985.CSI":
-                during_stock_request.append(datetime.now(UTC))
+                during_stock_request.append(StableDateTime.now(UTC))
             return BytesIO(historical_response(payload))
 
     # Replace only the external HTTP transport, retaining both real adapters.
@@ -227,12 +247,14 @@ def test_manual_run_cannot_backdate_daily_core_availability(
     after = evidence.metric_series(
         "CN_EQUITY_CORE_000985",
         mode=AsOfMode.SYSTEM,
-        as_of=datetime.now(UTC),
+        as_of=StableDateTime.now(UTC),
         definition_version="metric-catalog-v0001",
     )
     assert len(after) == 160
     assert all(point.claims[0].public_available_at is None for point in after)
-    trace = evidence.trace(after[-1].observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
+    trace = evidence.trace(
+        after[-1].observation_id, mode=AsOfMode.SYSTEM, as_of=StableDateTime.now(UTC)
+    )
     assert len(trace.acquisitions) == 1
     # The isolated legacy model permits SYSTEM evidence; unknown publication
     # is a PUBLIC availability gap, not a fabricated transport failure.

@@ -1,0 +1,15 @@
+{
+  "base_commit": "074771022daf5552f6d47899ba5c8aac0b1d385e",
+  "ticket": 15,
+  "full_suite": {"passed": 487, "failed": 0, "duration_seconds": 198.17,
+    "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-15-full-verified"},
+  "mypy": {"source_files": 73, "status": "passed"},
+  "ruff": "passed",
+  "spec_review_remaining": 0,
+  "standards_review_remaining": 0,
+  "tests_replace": ["HTTP transport", "clock", "process lifecycle"],
+  "real_search_benchmark_completed": false,
+  "production_writes": 0,
+  "public_replay_completed": false,
+  "model_cutover_completed": false
+}

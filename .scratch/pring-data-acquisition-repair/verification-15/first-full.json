@@ -1,0 +1,20 @@
+{
+  "base_commit": "074771022daf5552f6d47899ba5c8aac0b1d385e",
+  "test_command": "python -m pytest -q --basetemp=/home/tywin/.cache/pring-cycle/verification/repair-15-full",
+  "passed": 486,
+  "failed": 1,
+  "duration_seconds": 283.05,
+  "failure": "test_manual_run_cannot_backdate_daily_core_availability",
+  "observed_state": {
+    "run_status": "completed",
+    "core_claims_per_metric": 160,
+    "core_available_at": "2026-09-06T15:56:58.677649+00:00",
+    "step_validating_evidence": "2026-09-06T15:56:59.841217+00:00",
+    "later_step_evaluating_core_readiness": "2026-09-06T15:56:57.595141+00:00",
+    "later_step_completed": "2026-09-06T15:56:58.055550+00:00"
+  },
+  "diagnosis": "Wall clock moved backwards during the test; after-query cutoff preceded freshly stored available_at. Original data was retained, not missing.",
+  "unchanged_targeted_rerun": {"passed": 1, "duration_seconds": 3.82},
+  "response": "Stabilize only the regression clock boundary using monotonic elapsed time; preserve before/after visibility assertions. No production clock or publication timestamps rewritten.",
+  "production_writes": 0
+}

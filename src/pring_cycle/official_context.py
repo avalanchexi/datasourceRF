@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request
 from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
@@ -20,6 +20,7 @@ from pring_cycle.evidence import (
     SourceClaimInput,
     publication_times,
 )
+from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
@@ -405,6 +406,7 @@ def refresh_official_context_document(
     fetched_at: datetime,
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
     definition_version: str = METRIC_CATALOG_VERSION,
+    on_acquisition_started: Callable[[str], None] | None = None,
 ) -> OfficialContextIngestionResult:
     _validate_source_identity(family, source_url)
     if fetched_at.tzinfo is None:
@@ -429,6 +431,7 @@ def refresh_official_context_document(
             parameters={"source_url": source_url, "period": expected_period, "family": family},
             fields="", parser_version="official-context-parser-v0002",
             fetch=fetch, parse=parse, normalize=asdict,
+            on_started=on_acquisition_started,
         )
         return ingest_acquired_official_release(
             paths, acquired, definition_version=definition_version

@@ -7,12 +7,13 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request
 from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
 from pring_cycle.catalog import METRIC_CATALOG_VERSION
 from pring_cycle.evidence import EvidenceRepository, publication_times
+from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.official_context import (
     ParsedOfficialContextRelease,
     ingest_acquired_official_release,
@@ -298,6 +299,7 @@ def refresh_lpr_release(
     fetched_at: datetime,
     fetcher: Callable[[str], FetchedOfficialDocument] | None = None,
     definition_version: str = METRIC_CATALOG_VERSION,
+    on_acquisition_started: Callable[[str], None] | None = None,
 ) -> LprIngestionResult:
     _validate_official_url(source_url)
     fetch = fetcher or fetch_official_document
@@ -334,6 +336,7 @@ def refresh_lpr_release(
             fetch=fetch_bytes,
             parse=parse,
             normalize=asdict,
+            on_started=on_acquisition_started,
         )
         return _ingest_lpr_acquisition(paths, acquired, definition_version=definition_version)
     except (OSError, ValueError) as error:
