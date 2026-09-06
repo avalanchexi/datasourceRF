@@ -451,7 +451,7 @@ def test_worker_fails_closed_and_classifies_context_validation_failures(
         def open(self, request: Any, *, timeout: int) -> BytesIO:
             return BytesIO(b'{"code":-1,"msg":"fixture_source_schema_failed"}')
 
-    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", Opener)
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
 
     readiness = tuple(
         CoreAssetReadiness(
@@ -794,12 +794,36 @@ def test_targeted_official_context_refresh_keeps_uncertified_result_as_candidate
     paths = runtime(tmp_path)
     runs = RunRepository(paths.database)
     source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
+    now = datetime.now(UTC)
+    published = datetime(2026, 7, 9, 1, 30, tzinfo=UTC)
+    EvidenceRepository(paths.database).append_source_claim(
+        SourceClaimInput(
+            metric_id="CN_CORE_CPI",
+            definition_version="metric-catalog-v0001",
+            period_kind="month",
+            period_start="2026-06-01",
+            period_end="2026-06-30",
+            dimensions={"measure": "yoy", "category": "ex_food_energy"},
+            value=None,
+            value_state=EvidenceValueState.NOT_DISCLOSED,
+            unit="percent",
+            provider="国家统计局",
+            source_reference=source_url,
+            release_event_id="nbs-core-cpi:2026-06",
+            release_at=published,
+            public_available_at=published,
+            fetched_at=published,
+            available_at=published,
+            certification_status="awaiting_source_certification",
+            quality_status="validated",
+        )
+    )
     submitted = runs.submit(
         command_type="targeted_refresh",
         target_business_date="2026-07-09",
         client_request_id="targeted-core-cpi-candidate",
         model_version_id="model-v0001",
-        system_as_of=datetime(2026, 7, 9, 2, tzinfo=UTC),
+        system_as_of=now + timedelta(days=1),
         release_event_id="nbs-core-cpi:2026-06",
         metric_ids=("CN_CORE_CPI",),
         period="2026-06",
@@ -807,31 +831,58 @@ def test_targeted_official_context_refresh_keeps_uncertified_result_as_candidate
     )
     calls: list[str] = []
 
-    def refresh(*_args: object, **kwargs: object) -> object:
-        calls.append(str(kwargs["family"]))
-        return SimpleNamespace(
-            claim_ids=("candidate-claim",),
-            metric_ids=("CN_CORE_CPI",),
-        )
+    content = """<html><body><h1>2026年6月份居民消费价格</h1>
+        <p>发布时间：2026-07-09 09:30</p><table>
+        <tr><th>指标</th><th>环比（%）</th><th>同比（%）</th><th>累计平均同比（%）</th></tr>
+        <tr><td>不包括食品和能源</td><td>0.1</td><td>1.0</td><td>1.2</td></tr>
+        </table></body></html>""".encode()
+
+    class Response(BytesIO):
+        status = 200
+        headers = {"Content-Type": "text/html"}
+
+        def geturl(self):
+            return source_url
+
+    def fetch(request, **kwargs):
+        calls.append(request.full_url)
+        return Response(content)
 
     monkeypatch.setattr(
-        "pring_cycle.official_context.refresh_official_context_document",
-        refresh,
+        "pring_cycle.official_context.urlopen",
+        fetch,
     )
 
     process_pending_run(
         paths,
         report_adapters=(),
-        retrieval_now=datetime(2026, 7, 9, 2, tzinfo=UTC),
+        retrieval_now=now,
     )
 
     stored = runs.get(submitted.run_id)
-    assert calls == ["nbs_core_cpi"]
+    assert calls == [source_url]
     assert stored.status == "action_required"
     official = next(item for item in stored.retrieval_attempts if item["channel"] == "official")
     assert official["outcome"] == "candidate_source"
     assert official["candidate_source"] == source_url
     assert runs.reusable_checkpoints(submitted.run_id) == ()
+    from pring_cycle.acquisition import AcquisitionRepository
+
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipt = acquisitions.history()[0]
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == content
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_CORE_CPI",
+        mode=AsOfMode.SYSTEM,
+        as_of=now + timedelta(days=1),
+        definition_version="metric-catalog-v0001",
+    )
+    assert len(points) == 3
+    assert any(
+        claim.source_reference == f"{source_url}#sha256={receipt.raw_hash}"
+        for point in points
+        for claim in point.claims
+    )
 
 
 def test_unreleased_targeted_refresh_and_active_negative_cache_make_no_calls(

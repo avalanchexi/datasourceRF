@@ -355,7 +355,7 @@ def test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explic
             )
 
     monkeypatch.setattr("pring_cycle.source_adapters.build_opener", Opener)
-    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", Opener)
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
     runs = RunRepository(paths.database)
     run = runs.submit_manual_full(
         target_business_date="2026-08-03",

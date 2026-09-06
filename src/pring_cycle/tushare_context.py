@@ -20,6 +20,7 @@ from pring_cycle.evidence import (
     SourceClaimInput,
     StoredSourceClaim,
 )
+from pring_cycle.http_transport import NoRedirect
 from pring_cycle.market_breadth import (
     FullDaySuspensionEvidence,
     MarketBreadthDay,
@@ -127,6 +128,13 @@ class _Field:
     multiplier: float = 1.0
 
 
+ContextRows = tuple[dict[str, object], ...]
+ContextRequestOperation = Callable[[Callable[[str], None] | None], ContextRows]
+ContextRequestWrapper = Callable[
+    [str, dict[str, str], tuple[str, ...], ContextRequestOperation], ContextRows
+]
+
+
 class TushareContextAdapter:
     def __init__(self, token: str, *, transport: Transport | None = None) -> None:
         if not token:
@@ -136,6 +144,7 @@ class TushareContextAdapter:
         self._network_requests = 0
         self._acquisitions: AcquisitionRepository | None = None
         self._receipts: list[AcquisitionReceipt] = []
+        self._request_wrapper: ContextRequestWrapper | None = None
 
     def acquire_scalars(
         self,
@@ -143,11 +152,13 @@ class TushareContextAdapter:
         retrieve: Callable[[], tuple[ContextScalar, ...]],
         *,
         definition_version: str = METRIC_CATALOG_VERSION,
+        request_wrapper: ContextRequestWrapper | None = None,
     ) -> ContextIngestionResult:
         if self._acquisitions is not None:
             raise ValueError("context_acquisition_already_running")
         self._acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
         self._receipts = []
+        self._request_wrapper = request_wrapper
         try:
             scalars = retrieve()
             if not self._receipts:
@@ -186,6 +197,7 @@ class TushareContextAdapter:
         finally:
             self._acquisitions = None
             self._receipts = []
+            self._request_wrapper = None
 
     @property
     def network_requests(self) -> int:
@@ -427,7 +439,6 @@ class TushareContextAdapter:
                             "measure": measure,
                         },
                         unit=unit,
-
                     )
                 )
         return tuple(scalars)
@@ -560,7 +571,6 @@ class TushareContextAdapter:
                 date_field="date",
                 dimensions={},
                 unit="percent",
-
             )
             for row in rows
             for metric_id, source_field in (
@@ -601,7 +611,6 @@ class TushareContextAdapter:
                 date_field="trade_date",
                 dimensions={},
                 unit="percent",
-
             )
             for row in repo_rows
             if str(row.get("ts_code")) == "DR007.IB" and str(row.get("repo_maturity")) == "DR007"
@@ -617,7 +626,6 @@ class TushareContextAdapter:
                         date_field="date",
                         dimensions={"tenor": tenor},
                         unit="percent",
-
                     )
                 )
         return tuple(scalars)
@@ -653,7 +661,6 @@ class TushareContextAdapter:
                         date_field="trade_date",
                         dimensions={"source_code": source_code},
                         unit="index_points",
-
                     )
                 )
         return tuple(scalars)
@@ -705,7 +712,6 @@ class TushareContextAdapter:
                         dimensions={"measure": measure, "scope": "all_exchanges"},
                         value=value / 100_000_000.0,
                         unit="hundred_million_cny",
-
                     )
                 )
         return tuple(scalars)
@@ -811,7 +817,6 @@ class TushareContextAdapter:
                             date_field="trade_date",
                             dimensions={"index": source_code, "measure": measure},
                             unit=unit,
-
                         )
                     )
         return tuple(scalars)
@@ -1076,11 +1081,11 @@ class TushareContextAdapter:
     ) -> tuple[dict[str, object], ...]:
         self._network_requests += 1
         payload = {
-                "api_name": api_name,
-                "fields": ",".join(fields),
-                "params": params,
-                "token": self._token,
-            }
+            "api_name": api_name,
+            "fields": ",".join(fields),
+            "params": params,
+            "token": self._token,
+        }
 
         def parse(response: bytes | dict[str, Any]) -> tuple[dict[str, object], ...]:
             document = json.loads(response) if isinstance(response, bytes) else response
@@ -1099,13 +1104,27 @@ class TushareContextAdapter:
                 raise ValueError("acquisition_raw_response_bytes_required")
             return response
 
-        acquired = self._acquisitions.capture(
-            provider="tushare", api_name=api_name, parameters=params, fields=",".join(fields),
-            parser_version="tushare-context-parser-v0002", fetch=fetch, parse=parse,
-            normalize=lambda rows: rows, defer_validation=True,
-        )
-        self._receipts.append(acquired.receipt)
-        return acquired.value
+        acquisitions = self._acquisitions
+
+        def acquire(on_started: Callable[[str], None] | None) -> ContextRows:
+            acquired = acquisitions.capture(
+                provider="tushare",
+                api_name=api_name,
+                parameters=params,
+                fields=",".join(fields),
+                parser_version="tushare-context-parser-v0002",
+                fetch=fetch,
+                parse=parse,
+                normalize=lambda rows: rows,
+                defer_validation=True,
+                on_started=on_started,
+            )
+            self._receipts.append(acquired.receipt)
+            return acquired.value
+
+        if self._request_wrapper is not None:
+            return self._request_wrapper(api_name, params, fields, acquire)
+        return acquire(None)
 
     def _post(self, payload: dict[str, Any]) -> bytes:
         request = Request(
@@ -1114,7 +1133,7 @@ class TushareContextAdapter:
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with build_opener().open(request, timeout=30) as response:
+        with build_opener(NoRedirect()).open(request, timeout=30) as response:
             return bytes(response.read())
 
 
@@ -1195,7 +1214,9 @@ def ingest_context_scalars(
             else True
         )
         if (
-            existing is not None and same_in_definition and explicit_schedule_matches
+            existing is not None
+            and same_in_definition
+            and explicit_schedule_matches
             and not scalar.acquisition_ids
         ):
             stored_by_input.append(
@@ -1233,7 +1254,9 @@ def ingest_context_scalars(
                 public_available_at=public_available_at,
             )
         elif (
-            existing is None and physical_same and physical_existing is not None
+            existing is None
+            and physical_same
+            and physical_existing is not None
             and scalar.release_at == physical_existing.release_at
             and scalar.public_available_at == physical_existing.public_available_at
         ):

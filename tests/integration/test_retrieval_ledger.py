@@ -218,6 +218,57 @@ def prepared_runtime(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     models = ModelRepository(paths.database)
     models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
+    # These accounting scenarios concern known releases with missing values.
+    from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+
+    known = datetime(2026, 9, 1, tzinfo=UTC)
+    for version in ("metric-catalog-v0001", "metric-catalog-v0002"):
+        for metric, period_start, period_end, dimensions in (
+            (
+                "CN_CPI_HEADLINE",
+                "2026-08-01",
+                "2026-08-31",
+                {"category": "headline", "measure": "yoy"},
+            ),
+            ("CN_PPI", "2026-08-01", "2026-08-31", {"category": "headline", "measure": "yoy"}),
+            ("CN_SF_TOTAL", "2026-07-01", "2026-07-31", {"measure": "ytd_increment"}),
+            (
+                "CN_SF_COMPONENTS",
+                "2026-07-01",
+                "2026-07-31",
+                {"component": "rmb_loans", "measure": "increment"},
+            ),
+            (
+                "CN_GDP",
+                "2026-04-01",
+                "2026-06-30",
+                {"aggregate": "total", "measure": "real_quarter_yoy"},
+            ),
+        ):
+            EvidenceRepository(paths.database).append_source_claim(
+                SourceClaimInput(
+                    metric_id=metric,
+                    definition_version=version,
+                    period_kind="quarter" if metric == "CN_GDP" else "month",
+                    period_start=period_start,
+                    period_end=period_end,
+                    dimensions=dimensions,
+                    value=None,
+                    value_state=EvidenceValueState.NOT_DISCLOSED,
+                    unit="hundred_million_cny"
+                    if metric in {"CN_SF_TOTAL", "CN_SF_COMPONENTS"}
+                    else "percent",
+                    provider="已知发布机构",
+                    source_reference="fixture:known-release:" + metric,
+                    release_event_id="fixture-release:" + metric,
+                    release_at=known,
+                    public_available_at=known,
+                    fetched_at=known,
+                    available_at=known,
+                    certification_status="awaiting_source_certification",
+                    quality_status="validated",
+                )
+            )
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n", encoding="utf-8")
     return paths, RunRepository(paths.database)
 

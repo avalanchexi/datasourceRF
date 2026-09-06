@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from time import monotonic
 
 
+def matches_retrieval_period(period_end: str, period: str) -> bool:
+    prefix = f"{period[:4]}-{int(period[-1]) * 3:02d}" if "-Q" in period else period
+    return period_end.startswith(prefix)
+
+
 @dataclass(frozen=True)
 class RetrievalRequest:
     release_event_id: str
@@ -48,6 +53,8 @@ class RetrievalAdapterResponse:
     classification: str | None = None
     physical_request_id: str | None = None
     cache_hit: bool = False
+    candidate_sources: tuple[str, ...] = ()
+    candidate_summaries: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -138,6 +145,7 @@ def run_retrieval_cascade(
                     response.classification,
                     response.evidence if response.status == "candidate_source" else None,
                     response.physical_request_id is not None
+                    and not response.cache_hit
                     and channel in {"tavily", "exa", "ai_websearch"}
                     if request.persistent_accounting
                     else isinstance(remaining, _BudgetDecision) and response_index == 0,

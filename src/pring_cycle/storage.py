@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0015_retrieval_physical_requests"
+SCHEMA_HEAD = "0016_search_candidate_validation"
 
 
 def migrate_database(database_path: Path) -> None:

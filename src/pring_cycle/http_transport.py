@@ -5,7 +5,7 @@ from typing import Any
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
-class _NoRedirect(HTTPRedirectHandler):
+class NoRedirect(HTTPRedirectHandler):
     def redirect_request(
         self, req: Request, fp: Any, code: int, msg: str, headers: Message, newurl: str
     ) -> None:
@@ -14,4 +14,4 @@ class _NoRedirect(HTTPRedirectHandler):
 
 
 def open_no_redirects(request: Request, *, timeout: float) -> Any:
-    return build_opener(_NoRedirect()).open(request, timeout=timeout)
+    return build_opener(NoRedirect()).open(request, timeout=timeout)

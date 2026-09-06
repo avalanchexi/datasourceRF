@@ -10,7 +10,7 @@ from urllib.parse import urlsplit
 from urllib.request import Request
 
 from pring_cycle.acquisition import AcquisitionRepository
-from pring_cycle.catalog import metric_definition
+from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import (
@@ -37,12 +37,17 @@ SearchTransport = Callable[
 ]
 
 
-def build_search_query(metric_ids: tuple[str, ...], *, period: str) -> str:
+def build_search_query(
+    metric_ids: tuple[str, ...],
+    *,
+    period: str,
+    definition_version: str = METRIC_CATALOG_VERSION,
+) -> str:
     if not metric_ids:
         raise ValueError("search_metric_ids_required")
     identities = []
     for metric_id in metric_ids:
-        definition = metric_definition(metric_id)
+        definition = metric_definition(metric_id, definition_version=definition_version)
         identities.append(
             " ".join((definition.metric_id, definition.name_cn, *definition.source_codes))
         )
@@ -60,6 +65,7 @@ def search_discovery_adapter(
     transport: SearchTransport | None = None,
     paths: RuntimePaths | None = None,
     run_id: str | None = None,
+    verify_candidates: Callable[[str, tuple[str, ...]], RetrievalAdapterResponse] | None = None,
 ) -> Callable[[str], RetrievalAdapterResponse]:
     if not api_key:
         raise ValueError("search_api_key_required")
@@ -80,22 +86,56 @@ def search_discovery_adapter(
                 document = json.loads(response.raw)
             except (UnicodeDecodeError, json.JSONDecodeError) as error:
                 raise ValueError("search_response_invalid_json") from error
-        candidate = _first_candidate_url(document)
-        if candidate is None:
+        candidates = _candidates(document)
+        if not candidates:
             return RetrievalAdapterResponse("not_found")
         return RetrievalAdapterResponse(
             "candidate_source",
-            evidence=candidate,
+            evidence=candidates[0][0],
             classification="unverified_candidate",
+            candidate_sources=tuple(item[0] for item in candidates),
+            candidate_summaries=tuple(item[1] for item in candidates),
         )
 
     def retrieve(release_event_id: str) -> RetrievalAdapterResponse:
         if paths is None or run_id is None:
             return interpret(request(endpoint, headers, payload))
         ledger = RetrievalLedger(paths.database)
+
+        def reuse(interrupted_only: bool) -> RetrievalAdapterResponse | None:
+            reused = ledger.search_checkpoint(run_id, provider, query)
+            if reused is None or verify_candidates is None:
+                return None
+            original_request_id, acquisition_id = reused
+            try:
+                acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+                normalized = json.loads(acquisitions.read_content(acquisition_id, "normalized"))
+                if normalized.get("status") != "candidate_source":
+                    return None
+                raw = acquisitions.read_content(acquisition_id, "raw")
+                candidate = interpret(SearchHttpResponse(200, None, raw))
+            except (LookupError, OSError, ValueError):
+                return None
+            if not candidate.candidate_sources:
+                return None
+            if interrupted_only and not ledger.candidate_resume_pending(
+                original_request_id, candidate.candidate_sources
+            ):
+                return None
+            ledger.record_search_reuse(run_id, original_request_id)
+            return replace(
+                verify_candidates(original_request_id, candidate.candidate_sources),
+                cache_hit=True,
+                physical_request_id=original_request_id,
+            )
+
+        if checkpoint := reuse(interrupted_only=True):
+            return checkpoint
         try:
             request_id = ledger.reserve(run_id, provider, release_event_id, query)
         except RetrievalBudgetBlocked as error:
+            if checkpoint := reuse(interrupted_only=False):
+                return checkpoint
             return RetrievalAdapterResponse(
                 "not_attempted", classification=str(error), cache_hit=error.cache_hit
             )
@@ -138,6 +178,8 @@ def search_discovery_adapter(
             cost=cost,
             provider_request_id=provider_request_id,
         )
+        if result.candidate_sources and verify_candidates is not None:
+            result = verify_candidates(request_id, result.candidate_sources)
         return replace(result, physical_request_id=request_id)
 
     return retrieve
@@ -236,13 +278,15 @@ def _response_usage(
     }, request_id
 
 
-def _first_candidate_url(document: object) -> str | None:
+def _candidates(document: object) -> tuple[tuple[str, str], ...]:
     if not isinstance(document, dict):
         raise ValueError("search_response_must_be_object")
     results: Any = document.get("results")
     if not isinstance(results, list):
         raise ValueError("search_results_must_be_list")
-    for item in results[:10]:
+    candidates = []
+    remaining_characters = 1800
+    for item in results[:3]:
         if not isinstance(item, dict) or not isinstance(item.get("url"), str):
             continue
         candidate = str(item["url"])
@@ -254,5 +298,8 @@ def _first_candidate_url(document: object) -> str | None:
             and parsed.username is None
             and parsed.password is None
         ):
-            return candidate
-    return None
+            summary = item.get("content", item.get("text", ""))
+            summary = summary[:remaining_characters] if isinstance(summary, str) else ""
+            remaining_characters -= len(summary)
+            candidates.append((candidate, summary))
+    return tuple(candidates)

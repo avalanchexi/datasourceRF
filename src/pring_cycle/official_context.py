@@ -183,6 +183,7 @@ def parse_official_context_document(
     source_url: str,
     expected_period: str,
     fetched_at: datetime,
+    parser_text_limit: int | None = None,
 ) -> ParsedOfficialContextRelease:
     provider = _validate_source_identity(family, source_url)
     if fetched_at.tzinfo is None:
@@ -193,6 +194,8 @@ def parse_official_context_document(
     parser = _OfficialHtmlParser()
     parser.feed(document)
     text = _normalized_text(" ".join(parser.parts))
+    if parser_text_limit is not None and len(text) > parser_text_limit:
+        raise ValueError("official_parser_fragment_too_large")
     source_timezone = ZoneInfo("Asia/Shanghai")
     published = _release_timestamp(text)
     release_at, public_at = publication_times(published, source_timezone)
@@ -325,8 +328,7 @@ def ingest_acquired_official_release(
         and (
             parsed.public_available_at is None
             or (
-                prior.public_available_at is None
-                and parsed.public_available_at <= prior.fetched_at
+                prior.public_available_at is None and parsed.public_available_at <= prior.fetched_at
             )
             or (
                 prior.public_available_at is not None
@@ -407,6 +409,7 @@ def refresh_official_context_document(
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
+    parser_text_limit: int | None = None,
 ) -> OfficialContextIngestionResult:
     _validate_source_identity(family, source_url)
     if fetched_at.tzinfo is None:
@@ -422,15 +425,23 @@ def refresh_official_context_document(
         def parse(raw: bytes) -> ParsedOfficialContextRelease:
             _validate_fetched_document(family, source_url, response_holder[0])
             return parse_official_context_document(
-                raw, family=family, source_url=source_url, expected_period=expected_period,
+                raw,
+                family=family,
+                source_url=source_url,
+                expected_period=expected_period,
                 fetched_at=utc_now(),
+                parser_text_limit=parser_text_limit,
             )
 
         acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
-            provider=_validate_source_identity(family, source_url), api_name="official_http_get",
+            provider=_validate_source_identity(family, source_url),
+            api_name="official_http_get",
             parameters={"source_url": source_url, "period": expected_period, "family": family},
-            fields="", parser_version="official-context-parser-v0002",
-            fetch=fetch, parse=parse, normalize=asdict,
+            fields="",
+            parser_version="official-context-parser-v0002",
+            fetch=fetch,
+            parse=parse,
+            normalize=asdict,
             on_started=on_acquisition_started,
         )
         return ingest_acquired_official_release(
@@ -562,9 +573,7 @@ def _parse_core_cpi(
             raise error
         rows = live_tables[0]
     matching = [
-        row
-        for row in rows[1:]
-        if row and row[0].removeprefix("其中：") == "不包括食品和能源"
+        row for row in rows[1:] if row and row[0].removeprefix("其中：") == "不包括食品和能源"
     ]
     column_count = len(rows[0])
     if len(matching) != 1 or len(matching[0]) != column_count:
@@ -767,17 +776,14 @@ def _parse_industrial_value_added(
                 table
                 for table in tables
                 if len(table) >= 3
-                and tuple(_compact_text(cell) for cell in table[0])
-                == ("指标", "1—2月")
-                and tuple(_compact_text(cell) for cell in table[1])
-                == ("绝对量", "同比增长（%）")
+                and tuple(_compact_text(cell) for cell in table[0]) == ("指标", "1—2月")
+                and tuple(_compact_text(cell) for cell in table[1]) == ("绝对量", "同比增长（%）")
             )
         sa_tables = _unique_tables(
             table
             for table in tables
             if table
-            and tuple(_compact_text(cell) for cell in table[0])
-            == ("年份", "月份", "环比增速（%）")
+            and tuple(_compact_text(cell) for cell in table[0]) == ("年份", "月份", "环比增速（%）")
         )
         if len(main_tables) != 1 or len(sa_tables) != 1:
             raise error
@@ -785,9 +791,7 @@ def _parse_industrial_value_added(
         main_rows = [
             row
             for row in main_tables[0][2:]
-            if row
-            and row[0] == "规模以上工业增加值"
-            and len(row) == expected_columns
+            if row and row[0] == "规模以上工业增加值" and len(row) == expected_columns
         ]
         if len(main_rows) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
@@ -973,10 +977,7 @@ def _parse_industrial_finance_live(
         if len(table) >= 3
         and tuple(_compact_text(cell) for cell in table[0])
         == ("分组", "营业收入", "营业成本", "利润总额")
-        and tuple(
-            _compact_text(cell).replace("(", "（").replace(")", "）")
-            for cell in table[1]
-        )
+        and tuple(_compact_text(cell).replace("(", "（").replace(")", "）") for cell in table[1])
         == (
             "金额（亿元）",
             "同比增长（%）",
@@ -1140,17 +1141,14 @@ def _parse_capacity_utilization(
                 table
                 for table in tables
                 if len(table) >= 3
-                and tuple(_compact_text(cell) for cell in table[0])
-                == ("行业", "一季度")
+                and tuple(_compact_text(cell) for cell in table[0]) == ("行业", "一季度")
                 and tuple(_compact_text(cell) for cell in table[1])
                 == ("产能利用率（%）", "比上年同期增减（百分点）")
             )
         if len(live_tables) != 1:
             raise error
         matching = [
-            row
-            for row in live_tables[0][2:]
-            if row and row[0] == "工业" and len(row) in {3, 5}
+            row for row in live_tables[0][2:] if row and row[0] == "工业" and len(row) in {3, 5}
         ]
         if len(matching) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
@@ -1221,16 +1219,14 @@ def _parse_omo_notice(
             if table
             and len(table[0]) in {3, 4}
             and "逆回购操作情况期限" in _compact_text(table[0][0])
-            and tuple(_compact_text(cell) for cell in table[0][-2:])
-            == ("投标量", "中标量")
+            and tuple(_compact_text(cell) for cell in table[0][-2:]) == ("投标量", "中标量")
         )
         if len(live_tables) != 1:
             raise error
         live_rows = [
             row
             for row in live_tables[0][1:]
-            if len(row) == len(live_tables[0][0])
-            and _compact_text(row[0]) == "7天"
+            if len(row) == len(live_tables[0][0]) and _compact_text(row[0]) == "7天"
         ]
         if len(live_rows) != 1:
             raise ValueError("official_context_row_identity_mismatch") from error
@@ -1538,8 +1534,7 @@ def _parse_social_financing_live(
     compact = _compact_text(text)
     has_stock = "社会融资规模存量为" in compact
     has_increment = any(
-        label in compact
-        for label in ("社会融资规模增量累计为", "社会融资规模增量为")
+        label in compact for label in ("社会融资规模增量累计为", "社会融资规模增量为")
     )
     if not has_stock and not has_increment:
         raise ValueError("official_context_social_financing_components_mismatch")
@@ -1596,9 +1591,7 @@ def _parse_social_financing_live(
                 release_at,
             )
         )
-    for component, (stock_label, increment_label) in (
-        _LIVE_SOCIAL_FINANCING_COMPONENTS.items()
-    ):
+    for component, (stock_label, increment_label) in _LIVE_SOCIAL_FINANCING_COMPONENTS.items():
         component_values: list[tuple[str, str, str, str, float, str]] = []
         if has_stock:
             stock, yoy = _stock_level_and_yoy(compact, stock_label)
@@ -1717,21 +1710,11 @@ def _parse_loan_structure_live(
         ("household", "total"): _signed_amount_after_label(household, "住户贷款"),
         ("household", "short_term"): _signed_amount_after_label(household, "短期贷款"),
         ("household", "long_term"): _signed_amount_after_label(household, "中长期贷款"),
-        ("enterprise", "total"): _signed_amount_after_label(
-            enterprise, "企（事）业单位贷款"
-        ),
-        ("enterprise", "short_term"): _signed_amount_after_label(
-            enterprise, "短期贷款"
-        ),
-        ("enterprise", "long_term"): _signed_amount_after_label(
-            enterprise, "中长期贷款"
-        ),
-        ("enterprise", "bill_financing"): _signed_amount_after_label(
-            enterprise, "票据融资"
-        ),
-        ("nonbank_financial", "total"): _signed_amount_after_label(
-            nonbank, "非银行业金融机构贷款"
-        ),
+        ("enterprise", "total"): _signed_amount_after_label(enterprise, "企（事）业单位贷款"),
+        ("enterprise", "short_term"): _signed_amount_after_label(enterprise, "短期贷款"),
+        ("enterprise", "long_term"): _signed_amount_after_label(enterprise, "中长期贷款"),
+        ("enterprise", "bill_financing"): _signed_amount_after_label(enterprise, "票据融资"),
+        ("nonbank_financial", "total"): _signed_amount_after_label(nonbank, "非银行业金融机构贷款"),
         ("all_rmb_loans", "total"): _signed_amount_after_label(
             compact, _year_to_date_label(period, "人民币贷款")
         ),
@@ -1873,9 +1856,7 @@ def _pmi_period_row(
         header_text = "".join(_compact_text(cell) for row in table[:3] for cell in row)
         if not all(_compact_text(header) in header_text for header in required_headers):
             continue
-        matching.update(
-            row for row in table if row and _compact_text(row[0]) == normalized_target
-        )
+        matching.update(row for row in table if row and _compact_text(row[0]) == normalized_target)
     if len(matching) != 1:
         raise ValueError("official_context_row_identity_mismatch")
     return next(iter(matching))
@@ -1886,9 +1867,7 @@ def _table_with_first_column_members(
     required: set[str],
 ) -> list[tuple[str, ...]]:
     matching = _unique_tables(
-        table
-        for table in tables
-        if required <= {row[0] for row in table if row}
+        table for table in tables if required <= {row[0] for row in table if row}
     )
     if len(matching) != 1:
         raise ValueError("official_context_table_schema_mismatch")
@@ -2024,8 +2003,7 @@ def _period_is_identified(text: str, period: str) -> bool:
             )
             or (
                 month_number == 12
-                and re.search(rf"{year}年(?:社会融资规模|金融统计)", text)
-                is not None
+                and re.search(rf"{year}年(?:社会融资规模|金融统计)", text) is not None
             )
         )
     if re.fullmatch(r"\d{4}-Q[1-4]", period):
@@ -2074,18 +2052,13 @@ def _pbc_amount(value: str) -> float:
 
 def _stock_level_and_yoy(text: str, label: str) -> tuple[float, float]:
     match = re.search(
-        re.escape(label)
-        + r"为?(?P<level>\d+(?:\.\d+)?)万亿元[，,]同比"
+        re.escape(label) + r"为?(?P<level>\d+(?:\.\d+)?)万亿元[，,]同比"
         r"(?:(?P<direction>增长|下降)(?P<yoy>\d+(?:\.\d+)?)%|(?P<flat>持平))",
         text,
     )
     if match is None:
         raise ValueError("official_context_social_financing_components_mismatch")
-    yoy = (
-        0.0
-        if match.group("flat") is not None
-        else _bounded_number(match.group("yoy"))
-    )
+    yoy = 0.0 if match.group("flat") is not None else _bounded_number(match.group("yoy"))
     if match.group("direction") == "下降":
         yoy = -yoy
     return round(_bounded_number(match.group("level"), minimum=0) * 10_000, 6), yoy
@@ -2093,8 +2066,7 @@ def _stock_level_and_yoy(text: str, label: str) -> tuple[float, float]:
 
 def _signed_amount_after_label(text: str, label: str) -> float:
     match = re.search(
-        re.escape(label)
-        + r"(?P<direction>增加|减少|净融资)?(?P<value>\d+(?:\.\d+)?)"
+        re.escape(label) + r"(?P<direction>增加|减少|净融资)?(?P<value>\d+(?:\.\d+)?)"
         r"(?P<unit>万亿元|亿元)",
         text,
     )

@@ -227,7 +227,9 @@ def test_manual_run_cannot_backdate_daily_core_availability(
 
     # Replace only the external HTTP transport, retaining both real adapters.
     monkeypatch.setattr("pring_cycle.source_adapters.build_opener", FixtureOpener)
-    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", FixtureOpener)
+    monkeypatch.setattr(
+        "pring_cycle.tushare_context.build_opener", lambda *handlers: FixtureOpener()
+    )
     runs = RunRepository(paths.database)
     run = runs.submit_manual_full(
         target_business_date="2026-08-03",
@@ -471,6 +473,7 @@ def test_new_acquisition_preserves_old_release_and_claim_bytes(tmp_path: Path) -
     )
     # Reproduce the previous on-disk schema inside this isolated runtime.
     with sqlite3.connect(paths.database) as connection:
+        connection.execute("DROP TABLE retrieval_candidate_validation")
         connection.execute("DROP TABLE source_claim_acquisition")
         connection.execute("DROP TABLE acquisition_request")
         connection.execute(

@@ -110,9 +110,7 @@ class RetrievalLedger:
                     now.isoformat(),
                     None if decision.blocked else request_id,
                     decision.blocked,
-                    decision.next_eligible.isoformat()
-                    if decision.next_eligible
-                    else None,
+                    decision.next_eligible.isoformat() if decision.next_eligible else None,
                     int(decision.cache_hit),
                     decision.reused_request_id if decision.blocked else None,
                 ),
@@ -203,7 +201,9 @@ class RetrievalLedger:
             )
             budget[provider] = max(budget.get(provider, 0), owned_count + legacy_count)
         previous = connection.execute(
-            "SELECT p.* FROM retrieval_physical_request p WHERE p.channel=? AND p.provider_key=?",
+            "SELECT p.*, q.query_text FROM retrieval_physical_request p "
+            "JOIN retrieval_query q ON q.physical_request_id=p.request_id "
+            "WHERE p.channel=? AND p.provider_key=?",
             (channel, _provider_key(channel, query)),
         ).fetchall()
         daily = [
@@ -220,7 +220,9 @@ class RetrievalLedger:
         same_attempt = [
             item
             for item in previous
-            if item["run_id"] == run_id and item["run_attempt"] == row["attempt_count"]
+            if item["run_id"] == run_id
+            and item["run_attempt"] == row["attempt_count"]
+            and (channel not in {"official", "tushare"} or item["query_text"] == query)
         ]
         for cached in connection.execute("SELECT * FROM retrieval_negative_cache"):
             if datetime.fromisoformat(cached["expires_at"]) <= now:
@@ -259,7 +261,8 @@ class RetrievalLedger:
                     (item["request_id"],),
                 )
             }
-            if item["provider_cache"] or prior_keys & event_keys:
+            same_source = channel not in {"official", "tushare"} or item["query_text"] == query
+            if item["provider_cache"] or (prior_keys & event_keys and same_source):
                 cache_hit = True
                 next_eligible = max(next_eligible or now, datetime.fromisoformat(expiry))
                 if prior_keys & event_keys:
@@ -295,9 +298,7 @@ class RetrievalLedger:
                 >= daily_limit
             ):
                 blocked = "daily_limit"
-            if (
-                row["command_type"] != "manual_deep_search" and budget.get(channel, 0) >= run_limit
-            ):
+            if row["command_type"] != "manual_deep_search" and budget.get(channel, 0) >= run_limit:
                 blocked = "run_limit"
         if channel == "ai_websearch" and row["priority"] == "P2":
             blocked = "priority_excludes_ai"
@@ -326,6 +327,8 @@ class RetrievalLedger:
         release_event_id: str,
         query: str,
         operation: Callable[[Callable[[str], None]], str | RetrievalAdapterResponse],
+        *,
+        defer_completion: bool = False,
     ) -> RetrievalAdapterResponse:
         request_id: str | None = None
         http_status = None
@@ -357,7 +360,9 @@ class RetrievalLedger:
             result = RetrievalAdapterResponse("failed", classification="transient_transport_error")
         except (TypeError, ValueError):
             result = RetrievalAdapterResponse("failed", classification="semantic_validation_failed")
-        if request_id is not None:
+        if request_id is not None and not (
+            defer_completion and result.status == "candidate_source"
+        ):
             self.complete(
                 request_id,
                 outcome=result.status,
@@ -370,6 +375,51 @@ class RetrievalLedger:
     def interrupt(self, run_id: str) -> None:
         with self._connect() as connection:
             interrupt_retrieval_requests(connection, run_id)
+
+    def search_checkpoint(self, run_id: str, channel: str, query: str) -> tuple[str, str] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT p.request_id, p.acquisition_id FROM retrieval_query q "
+                "JOIN retrieval_physical_request p ON p.request_id=q.physical_request_id "
+                "JOIN acquisition_request a ON a.acquisition_id=p.acquisition_id "
+                "WHERE q.run_id=? AND q.channel=? AND q.query_text=? AND a.state='validated' "
+                "AND p.state IN ('completed', 'unknown_completion') "
+                "AND p.run_attempt < (SELECT COUNT(*) FROM run_attempt WHERE run_id=q.run_id) "
+                "ORDER BY q.rowid DESC LIMIT 1",
+                (run_id, channel, query),
+            ).fetchone()
+        return (str(row[0]), str(row[1])) if row else None
+
+    def candidate_resume_pending(self, request_id: str, candidates: tuple[str, ...]) -> bool:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT candidate_url, outcome FROM retrieval_candidate_validation "
+                "WHERE search_request_id=? ORDER BY run_attempt, rowid",
+                (request_id,),
+            ).fetchall()
+        latest = {str(row[0]): str(row[1]) for row in rows}
+        # Preserve historical unknown receipts, but only unfinished work from
+        # the latest validation of each raw-response candidate is resumable.
+        return any(
+            latest.get(url) in {None, "checking", "unknown_completion"} for url in candidates
+        )
+
+    def record_search_reuse(self, run_id: str, request_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO retrieval_query(query_id, logical_query_id, run_id, channel, "
+                "query_text, attempted_at, classification, cache_hit, reused_request_id) "
+                "SELECT ?, logical_query_id, ?, channel, query_text, ?, "
+                "'verified_search_checkpoint', "
+                "1, ? FROM retrieval_query WHERE physical_request_id=? LIMIT 1",
+                (
+                    "retrieval-query-" + uuid4().hex,
+                    run_id,
+                    utc_now().isoformat(),
+                    request_id,
+                    request_id,
+                ),
+            )
 
     def consumption(self, run_id: str) -> dict[str, int]:
         with self._connect() as connection:
@@ -494,7 +544,7 @@ class RetrievalLedger:
             ):
                 return None
             gap_rows = connection.execute(
-                """SELECT gap_id, identity_json FROM retrieval_gap
+                """SELECT gap_id, identity_json, event_key FROM retrieval_gap
                    JOIN retrieval_run_gap USING(gap_id)
                    WHERE run_id=? ORDER BY gap_id""",
                 (run_id,),
@@ -540,10 +590,16 @@ class RetrievalLedger:
                 )
             return {
                 "gaps": [
-                    {"gap_id": row["gap_id"], **json.loads(row["identity_json"])}
+                    {
+                        "gap_id": row["gap_id"],
+                        **json.loads(row["identity_json"]),
+                        "release_event_key": row["event_key"],
+                        "release_event_kind": "budget_family_period",
+                    }
                     for row in gap_rows
                 ],
                 "requests": requests,
+                "candidate_validations": self._candidate_validations(connection, run_id),
                 "queries": [
                     dict(row)
                     for row in connection.execute(
@@ -551,6 +607,30 @@ class RetrievalLedger:
                     )
                 ],
             }
+
+    def _candidate_validations(
+        self, connection: sqlite3.Connection, run_id: str
+    ) -> list[dict[str, Any]]:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='retrieval_candidate_validation'"
+        ).fetchone():
+            return []
+        results = []
+        for row in connection.execute(
+            "SELECT * FROM retrieval_candidate_validation WHERE run_id=? ORDER BY rowid", (run_id,)
+        ):
+            item = dict(row)
+            for field in (
+                "gap_ids",
+                "claim_ids",
+                "selected_claim_ids",
+                "missing_members",
+                "public_selected_claim_ids",
+            ):
+                item[field] = json.loads(item.pop(field + "_json") or "[]")
+            item["public_complete"] = bool(item["public_complete"])
+            results.append(item)
+        return results
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database)
@@ -637,6 +717,14 @@ def interrupt_retrieval_requests(connection: sqlite3.Connection, run_id: str) ->
         connection.execute(
             "UPDATE retrieval_physical_request SET state='unknown_completion' "
             "WHERE run_id=? AND state='reserved'",
+            (run_id,),
+        )
+    if connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='retrieval_candidate_validation'"
+    ).fetchone():
+        connection.execute(
+            "UPDATE retrieval_candidate_validation SET outcome='unknown_completion', "
+            "reason='worker_process_interrupted' WHERE run_id=? AND outcome='checking'",
             (run_id,),
         )
 

@@ -7,7 +7,7 @@ from pring_cycle.search_discovery import (
 )
 
 
-def test_tavily_and_exa_contracts_only_return_sanitized_candidate_urls() -> None:
+def test_tavily_and_exa_contracts_return_unverified_urls_and_bounded_summaries() -> None:
     calls: list[tuple[str, dict[str, str], dict[str, object]]] = []
 
     def transport(
@@ -50,7 +50,12 @@ def test_tavily_and_exa_contracts_only_return_sanitized_candidate_urls() -> None
     assert calls[0][2]["include_raw_content"] is False
     assert calls[1][0] == "https://api.exa.ai/search"
     assert calls[1][1]["x-api-key"] == "exa-secret"
-    assert "full external response sentinel" not in repr((tavily, exa))
+    assert (
+        tavily.candidate_summaries
+        == exa.candidate_summaries
+        == ("full external response sentinel",)
+    )
+    assert "untrusted result body must not persist" not in repr((tavily, exa))
     assert "secret" not in repr((tavily, exa))
 
 

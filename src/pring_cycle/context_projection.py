@@ -233,7 +233,7 @@ def build_context_projection(
             target_date = date.fromisoformat(target_business_date)
         except ValueError as error:
             raise ValueError("context_projection_target_date_invalid") from error
-        target_repository = _TargetBoundEvidenceRepository(
+        target_repository = TargetBoundEvidenceRepository(
             repository,
             target_date,
             {metric_id: definition.frequency for metric_id, definition in definitions.items()},
@@ -246,7 +246,7 @@ def build_context_projection(
                 raise ValueError("context_projection_visible_start_invalid") from error
             if visible_start > target_date:
                 raise ValueError("context_projection_visible_window_invalid")
-            visible_repository = _TargetBoundEvidenceRepository(
+            visible_repository = TargetBoundEvidenceRepository(
                 target_repository,
                 target_date,
                 {metric_id: definition.frequency for metric_id, definition in definitions.items()},
@@ -284,11 +284,7 @@ def build_context_projection(
     for metric_id, rows in market_derived_rows.items():
         existing = rows_by_metric[metric_id]
         rows_by_metric[metric_id] = (
-            tuple(
-                row
-                for row in existing
-                if not str(row["observation_id"]).startswith("gap:")
-            )
+            tuple(row for row in existing if not str(row["observation_id"]).startswith("gap:"))
             + rows
         )
     credit_impulse_row, credit_formula, credit_version_ids = _credit_impulse_proxy(
@@ -370,9 +366,7 @@ def build_context_projection(
             "production": production,
             "inventory": inventory_direction,
         },
-        "cards": [
-            _inventory_card_document(card, rows_by_metric) for card in inventory.cards
-        ],
+        "cards": [_inventory_card_document(card, rows_by_metric) for card in inventory.cards],
         "real_inventory_approximation": real_inventory,
         "semantics": {
             "pmi_inventory": "diffusion_index_not_inventory_quantity",
@@ -416,7 +410,7 @@ def build_context_projection(
     return ContextProjection(macro_document, inventory_document, versions, warnings)
 
 
-class _TargetBoundEvidenceRepository:
+class TargetBoundEvidenceRepository:
     """Delegate evidence access while enforcing one historical period boundary."""
 
     def __init__(
@@ -469,8 +463,7 @@ class _TargetBoundEvidenceRepository:
             tzinfo=ZoneInfo("Asia/Shanghai"),
         )
         return any(
-            _certified_point(point)
-            and date.fromisoformat(point.period_start) <= self._target_date
+            _certified_point(point) and date.fromisoformat(point.period_start) <= self._target_date
             for point in self._repository.metric_series(*args, **query_kwargs)
         )
 
@@ -490,8 +483,7 @@ def _point_at_target(
         claim
         for claim in point.claims
         if claim.public_available_at is not None
-        and claim.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
-        <= target_date
+        and claim.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date() <= target_date
     )
     if not claims:
         return None
@@ -510,9 +502,7 @@ def _point_at_target(
         and claim.value_state is EvidenceValueState.REPORTED_VALUE
         and claim.value is not None
     ]
-    conflicted = bool(reported_values) and (
-        max(reported_values) - min(reported_values) > tolerance
-    )
+    conflicted = bool(reported_values) and (max(reported_values) - min(reported_values) > tolerance)
     return MetricSeriesPoint(
         observation_id=point.observation_id,
         period_start=point.period_start,
@@ -555,9 +545,7 @@ def _derived_market_context_rows(
             amount_by_period.setdefault(point.period_end, {})[measure] = point
     omo_formula = formula_versions.get("omo_net_injection")
     injection_points = [
-        point
-        for point in amount_points
-        if point.dimensions.get("measure") == "injection"
+        point for point in amount_points if point.dimensions.get("measure") == "injection"
     ]
     complete_periods = [
         period
@@ -594,9 +582,7 @@ def _derived_market_context_rows(
             if trading_calendar_metric_id is not None
             else ()
         )
-        trading_days = tuple(
-            date.fromisoformat(point.period_end) for point in trading_day_points
-        )
+        trading_days = tuple(date.fromisoformat(point.period_end) for point in trading_day_points)
         trading_points_by_day = {
             date.fromisoformat(point.period_end): point for point in trading_day_points
         }
@@ -736,10 +722,7 @@ def _derived_market_context_rows(
     )
     order_inventory_periods = set(pmi_new_orders) & set(pmi_finished_goods)
     order_formula = formula_versions.get("order_inventory_spread")
-    if (
-        order_inventory_periods
-        and order_formula == "pmi-order-inventory-spread-v0001"
-    ):
+    if order_inventory_periods and order_formula == "pmi-order-inventory-spread-v0001":
         period = max(order_inventory_periods)
         derived_row, derived_versions = _difference_row(
             repository,
@@ -778,9 +761,7 @@ def _derived_market_context_rows(
 
     loan_formula = formula_versions.get("loan_monthly_change")
     loan_input_measure = (
-        "ytd_increment"
-        if loan_formula == "loan-ytd-monthly-change-v0002"
-        else "stock_end"
+        "ytd_increment" if loan_formula == "loan-ytd-monthly-change-v0002" else "stock_end"
     )
     loan_stock_points = [
         point
@@ -790,8 +771,7 @@ def _derived_market_context_rows(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if _certified_point(point)
-        and point.dimensions.get("measure") == loan_input_measure
+        if _certified_point(point) and point.dimensions.get("measure") == loan_input_measure
     ]
     loan_groups: dict[tuple[str, str], list[MetricSeriesPoint]] = {}
     for point in loan_stock_points:
@@ -902,15 +882,11 @@ def _repo_net_injection_row(
     selected_claims = tuple(claim for claim in claims if claim is not None)
     inputs = tuple(
         sorted(
-            point.selected_claim_id
-            for point in input_points
-            if point.selected_claim_id is not None
+            point.selected_claim_id for point in input_points if point.selected_claim_id is not None
         )
     )
     maturity_amount = sum(
-        float(point.selected_value)
-        for point in maturity_points
-        if point.selected_value is not None
+        float(point.selected_value) for point in maturity_points if point.selected_value is not None
     )
     injection_amount = (
         float(injection.selected_value)
@@ -1094,8 +1070,7 @@ def _certified_points_by_period(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if _certified_point(point)
-        and (dimensions is None or point.dimensions == dimensions)
+        if _certified_point(point) and (dimensions is None or point.dimensions == dimensions)
     }
 
 
@@ -1124,8 +1099,7 @@ def _latest_certified_point(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if _certified_point(point)
-        and (no_later_than is None or point.period_end <= no_later_than)
+        if _certified_point(point) and (no_later_than is None or point.period_end <= no_later_than)
     ]
     return points[-1] if points else None
 
@@ -1182,9 +1156,7 @@ def _metric_rows(
             release_status=release_status,
         )
         candidate_value = current.selected_value
-        value = (
-            None if status == "awaiting_source_certification" else candidate_value
-        )
+        value = None if status == "awaiting_source_certification" else candidate_value
         rows.append(
             {
                 "available_at": selected.available_at.isoformat() if selected is not None else None,
@@ -1210,9 +1182,7 @@ def _metric_rows(
                         "source_reference": claim.source_reference,
                         "unit": claim.unit,
                         "value": (
-                            None
-                            if status == "awaiting_source_certification"
-                            else claim.value
+                            None if status == "awaiting_source_certification" else claim.value
                         ),
                         "value_state": claim.value_state.value,
                     }
@@ -1224,8 +1194,7 @@ def _metric_rows(
                     value,
                     (
                         previous.selected_value
-                        if previous is not None
-                        and status != "awaiting_source_certification"
+                        if previous is not None and status != "awaiting_source_certification"
                         else None
                     ),
                     current.dimensions,
@@ -1400,9 +1369,7 @@ def _signals(
                     freshness=str(row["status"]),
                     conflict=row["status"] == "conflicted",
                     period_start=(
-                        str(row["period_start"])
-                        if row.get("period_start") is not None
-                        else None
+                        str(row["period_start"]) if row.get("period_start") is not None else None
                     ),
                     period=str(row["period"]) if row["period"] is not None else None,
                     available_at=(
@@ -1469,9 +1436,7 @@ def _credit_direction(metric_id: str, raw: str) -> str:
 
 def _policy_component_direction(signals: list[EvidenceSignal]) -> str:
     valid = [
-        item.direction
-        for item in signals
-        if item.freshness == "current" and not item.conflict
+        item.direction for item in signals if item.freshness == "current" and not item.conflict
     ]
     directions = set(valid) - {"unknown"}
     if len(directions) == 1:
@@ -1559,8 +1524,7 @@ def _real_inventory_proxy(
         (
             row
             for row in rows_by_metric["CN_FINISHED_GOODS_INVENTORY"]
-            if row["status"] == "current"
-            and row["dimensions"] == {"measure": "nominal_end_level"}
+            if row["status"] == "current" and row["dimensions"] == {"measure": "nominal_end_level"}
         ),
         None,
     )
@@ -1581,9 +1545,7 @@ def _real_inventory_proxy(
         "nominal_inventory": nominal,
         "ppi_input": ppi,
         "status": (
-            "missing_certified_inputs"
-            if formula_version is not None
-            else "disabled_by_model"
+            "missing_certified_inputs" if formula_version is not None else "disabled_by_model"
         ),
         "value": None,
     }
@@ -1646,9 +1608,7 @@ def _credit_impulse_proxy(
             "- prior_rolling_12m_social_financing / prior_rolling_4q_nominal_gdp)"
         ),
         "status": (
-            "missing_certified_inputs"
-            if formula_version is not None
-            else "disabled_by_model"
+            "missing_certified_inputs" if formula_version is not None else "disabled_by_model"
         ),
     }
     if formula_version is None:
@@ -1661,8 +1621,7 @@ def _credit_impulse_proxy(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if point.dimensions == {"measure": "monthly_increment"}
-        and _certified_point(point)
+        if point.dimensions == {"measure": "monthly_increment"} and _certified_point(point)
     ]
     reported_ytd_social_financing = [
         point
@@ -1672,8 +1631,7 @@ def _credit_impulse_proxy(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if point.dimensions == {"measure": "ytd_increment"}
-        and _certified_point(point)
+        if point.dimensions == {"measure": "ytd_increment"} and _certified_point(point)
     ]
     reported_quarterly_gdp = [
         point
@@ -1683,8 +1641,7 @@ def _credit_impulse_proxy(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if point.dimensions
-        == {"aggregate": "total", "measure": "nominal_quarterly_level"}
+        if point.dimensions == {"aggregate": "total", "measure": "nominal_quarterly_level"}
         and _certified_point(point)
     ]
     allow_ytd_gdp = configured_formula_version in {
@@ -1700,8 +1657,7 @@ def _credit_impulse_proxy(
                 as_of=as_of,
                 definition_version=definition_version,
             )
-            if point.dimensions
-            == {"aggregate": "total", "measure": "nominal_ytd_level"}
+            if point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
             and _certified_point(point)
         ]
         if allow_ytd_gdp
@@ -1733,9 +1689,7 @@ def _credit_impulse_proxy(
             for input_point in inputs
         }
         gdp_input_points = [
-            point
-            for point in reported_ytd_gdp
-            if point.selected_claim_id in selected_input_ids
+            point for point in reported_ytd_gdp if point.selected_claim_id in selected_input_ids
         ]
         gdp_input_measure = "nominal_ytd_level"
     social_input_points: list[MetricSeriesPoint]
@@ -1894,10 +1848,7 @@ def _periods_are_consecutive(
         else:
             ordinal = period.year * 4 + (period.month - 1) // 3
         ordinals.append(ordinal)
-    return all(
-        right - left == 1
-        for left, right in zip(ordinals, ordinals[1:], strict=False)
-    )
+    return all(right - left == 1 for left, right in zip(ordinals, ordinals[1:], strict=False))
 
 
 def _quarter_levels_from_ytd(
