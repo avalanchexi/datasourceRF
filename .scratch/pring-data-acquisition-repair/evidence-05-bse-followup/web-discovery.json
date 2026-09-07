@@ -1,0 +1,43 @@
+{
+  "tool": "web.run search_query",
+  "calls": 2,
+  "queries": [
+    "site:bse.cn 2026-08-28 融资",
+    "site:bse.cn rzrq js",
+    "site:bse.cn 融资融券 2026年8月28日 余额",
+    "site:bse.cn rzrq .js",
+    "site:bse.cn 融资融券交易总量 2026-08-28",
+    "site:bse.cn 融资融券 导出 交易",
+    "site:bse.cn 20260828 融资余额"
+  ],
+  "new_direct_get_basis": {
+    "https://www.bse.cn/myhead.html": "Official navigation indexed directly, includes margin navigation; new URL absent from old receipts",
+    "https://www.bse.cn/jygl_list/200013679.html": "Official final margin trading rules publication; differs from old failed business-guide URL 200013680"
+  },
+  "indexed_content_only": {
+    "url": "https://www.bse.cn/disclosure/rzrq_trans_list.html",
+    "labels": [
+      "融资买入额（万元）",
+      "融资余额（万元）",
+      "融券卖出量（万股）",
+      "融券余量（万股）",
+      "融券余额（万元）",
+      "融资融券余额（万元）"
+    ],
+    "scope_note": "Official index text says summary includes remaining balances for removed eligible stocks; detail covers current eligible stocks",
+    "arithmetic_note": "Indexed page says total margin balance equals financing balance plus securities-lending balance",
+    "target_numeric_rows": 0,
+    "actual_http_bytes_saved_for_this_index_text": false
+  },
+  "excluded": [
+    "Already failed margin page, business guide, backup public page and 2025 PDF not retried",
+    "Corporate financing/guarantee PDFs are not exchange margin aggregates",
+    "Unconfirmed guessed JS/API paths were not requested",
+    "Different date values, detail sums, residual estimates, current totals and third-party quotes not used"
+  ],
+  "stop_reason": "2 of 5 allowed new GETs completed, both self-redirect; no documented new finance data/query/download path found after bounded official discovery. Remaining budget is not authority to guess routes or bypass a challenge.",
+  "tavily_calls": 0,
+  "exa_calls": 0,
+  "source_certifications": 0,
+  "model_adoptions": 0
+}

@@ -1,0 +1,30 @@
+{
+  "corrects": "connectivity.json:attempts[0]",
+  "prior_wsl_probe_valid": false,
+  "prior_probe_issue": "WSL default shell expanded --noproxy * into workspace names; resulting multi-URL requests and combined output cannot measure a single ChatGPT probe.",
+  "wsl_invocation": "--exec curl (no shell)",
+  "attempts": [
+    {
+      "route": "direct",
+      "started_at": "2026-09-07T10:05:22.541755+00:00",
+      "completed_at": "2026-09-07T10:05:25.411992+00:00",
+      "elapsed_seconds": 2.87,
+      "exit_code": 28,
+      "stdout": "000",
+      "stderr": "curl: (28) Failed to connect to chatgpt.com port 443 after 2707 ms: Connection timed out\n"
+    },
+    {
+      "route": "loopback_proxy",
+      "started_at": "2026-09-07T10:05:25.412347+00:00",
+      "completed_at": "2026-09-07T10:05:25.630318+00:00",
+      "elapsed_seconds": 0.218,
+      "exit_code": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 10809 after 1 ms: Connection refused\n"
+    }
+  ],
+  "authentication_sent": false,
+  "cli_generation_attempts": 0,
+  "configuration_writes": 0,
+  "production_writes": 0
+}

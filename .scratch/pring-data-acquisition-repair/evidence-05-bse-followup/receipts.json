@@ -1,0 +1,42 @@
+[
+  {
+    "method": "GET",
+    "url": "https://www.bse.cn/myhead.html",
+    "started_at": "2026-09-07T09:59:25.285070+00:00",
+    "automatic_redirects": false,
+    "status": 302,
+    "final_url": "https://www.bse.cn/myhead.html",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 09:59:32 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "138",
+      "Location": "https://www.bse.cn/myhead.html"
+    },
+    "bytes": 138,
+    "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "local_file": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "truncated": false,
+    "received_at": "2026-09-07T09:59:32.466344+00:00",
+    "public_available_at": null
+  },
+  {
+    "method": "GET",
+    "url": "https://www.bse.cn/jygl_list/200013679.html",
+    "started_at": "2026-09-07T10:00:44.310517+00:00",
+    "automatic_redirects": false,
+    "status": 302,
+    "final_url": "https://www.bse.cn/jygl_list/200013679.html",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 10:00:44 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "138",
+      "Location": "https://www.bse.cn/jygl_list/200013679.html"
+    },
+    "bytes": 138,
+    "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "local_file": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "truncated": false,
+    "received_at": "2026-09-07T10:00:44.378199+00:00",
+    "public_available_at": null
+  }
+]

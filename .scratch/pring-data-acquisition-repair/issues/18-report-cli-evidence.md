@@ -33,6 +33,8 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-07环境恢复后复查：Windows经原127.0.0.1:10809代理的无认证ChatGPT HEAD得到403，直连仍超时；这只证明该代理路径收到HTTP响应。WSL使用修正的`--exec curl`探针，直连超时、loopback代理拒绝连接；监听仍仅Windows127.0.0.1，WSL默认路由172.28.208.1。首次WSL探针因默认shell展开`--noproxy *`而无效，原日志保留且明确排除，见[复查说明](../evidence-18-recovery/review.md)。没有发起新的模型请求或改代理配置，真实合格AI输出仍0；待WSL可达路径，原待答问题不重复发送。
+
 - 2026-09-07：协议实现及独立审查问题已修，见[实施记录](../implementation-18.md)。上述公开协议成功使用真实子进程替身，不计为真实模型AI成功。真实冻结包和缩减的独立诊断包均未获得合格AI输出；WSL直连ChatGPT不可达，Windows已启用代理仅监听Windows loopback，WSL无法使用，已询问可用代理地址。代码可独立交付，逐段真实解释和至少一份真实合格输出两项仍开放，继续17，不绕过来源隔离或改用API。
 
 - 2026-09-07：以3cc9e8a为实施审查基点进入18；沿用implement/tdd/code-review。WSL实际安装codex-cli 0.144.4、Claude Code 2.1.191，help支持现有关键参数；旧cli_not_installed不可当作当前状态。先对只读提取的冻结证据包做隔离CLI诊断，不启动生产Worker、改v3或发布新正式投影。

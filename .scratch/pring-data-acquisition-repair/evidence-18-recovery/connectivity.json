@@ -1,0 +1,45 @@
+{
+  "reason": "WSL restarted after host disk recovery",
+  "attempts": [
+    {
+      "route": "wsl_direct",
+      "target": "https://chatgpt.com/",
+      "method": "HEAD",
+      "started_at": "2026-09-07T10:04:00.505607+00:00",
+      "completed_at": "2026-09-07T10:04:14.220958+00:00",
+      "elapsed_seconds": 13.715,
+      "exit_code": 28,
+      "http_status": "302000000000HTTP/1.1 301 Moved Permanently\r\nServer: nginx/1.30.2\r\nDate: Mon, 07 Sep 2026 10:04:10 GMT\r\nContent-Type: text/html\r\nContent-Length: 169\r\nConnection: keep-alive\r\nLocation: https://readme.md/\r\n\r\n301000000000000",
+      "error_text": "curl: (6) Could not resolve host: docs\ncurl: (6) Could not resolve host: output\ncurl: (6) Could not resolve host: pyproject.toml\ncurl: (6) Could not resolve host: src\ncurl: (6) Could not resolve host: tests\ncurl: (6) Could not resolve host: uv.lock\ncurl: (28) Failed to connect to chatgpt.com port 443 after 2723 ms: Connection timed out",
+      "stderr_sha256": "e045d246395d70bdf323612de7f3f2df78ee9e99c17f1dcb39b11f253319cdc8"
+    },
+    {
+      "route": "windows_direct",
+      "target": "https://chatgpt.com/",
+      "method": "HEAD",
+      "started_at": "2026-09-07T10:04:14.221082+00:00",
+      "completed_at": "2026-09-07T10:04:19.261132+00:00",
+      "elapsed_seconds": 5.04,
+      "exit_code": 28,
+      "http_status": "000",
+      "error_text": "curl: (28) Connection timed out after 5008 milliseconds",
+      "stderr_sha256": "7b279ad212ee771cc9c7d69153d095a8f9c1368e0a59b5bfef930adcd7c517c3"
+    },
+    {
+      "route": "windows_previously_observed_proxy",
+      "target": "https://chatgpt.com/",
+      "method": "HEAD",
+      "started_at": "2026-09-07T10:04:19.261249+00:00",
+      "completed_at": "2026-09-07T10:04:19.631007+00:00",
+      "elapsed_seconds": 0.37,
+      "exit_code": 0,
+      "http_status": "403",
+      "error_text": "",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "authentication_sent": false,
+  "cli_generation_attempts": 0,
+  "proxy_configuration_changed": false,
+  "production_writes": 0
+}

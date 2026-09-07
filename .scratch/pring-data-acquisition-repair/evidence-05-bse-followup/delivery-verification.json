@@ -1,0 +1,112 @@
+{
+  "research_delivery_validation": "passed",
+  "new_get_attempts": 2,
+  "http_2xx_count": 0,
+  "self_redirects": 2,
+  "valid_target_samples": 0,
+  "unique_new_response_bytes": 138,
+  "received_response_body_bytes_across_requests": 276,
+  "verified_new_originals": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+      "bytes": 138,
+      "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0"
+    }
+  ],
+  "verified_reused_originals": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05/bbbfe0e59c1c3d196d98dcc9b21066cb3df3614b068b3edd91c53151a9a9d329.html",
+      "bytes": 2025,
+      "sha256": "bbbfe0e59c1c3d196d98dcc9b21066cb3df3614b068b3edd91c53151a9a9d329"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05/5b58ef7d458e50eed94c4eb437ba598a2933142f9c1acad942e41997700939fb.html",
+      "bytes": 2011,
+      "sha256": "5b58ef7d458e50eed94c4eb437ba598a2933142f9c1acad942e41997700939fb"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05/1009ae5b6db3373aaa0982b52576ad6adeec18757c727678ec3355604a1817ef.html",
+      "bytes": 2929,
+      "sha256": "1009ae5b6db3373aaa0982b52576ad6adeec18757c727678ec3355604a1817ef"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05/32fe74eb10683b4da4da95782d3a7d5f0b78ba289d50ec4bb3f509895b48fa57.html",
+      "bytes": 2077,
+      "sha256": "32fe74eb10683b4da4da95782d3a7d5f0b78ba289d50ec4bb3f509895b48fa57"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05/3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548.json",
+      "bytes": 328,
+      "sha256": "3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548"
+    }
+  ],
+  "old_report_sha256_unchanged": "b4d606f38ff3c59d6478a5d822fd3a5109daf84a689b533d4ed0d92c8a6b2634",
+  "report_local_links_checked": [
+    "research-05.md",
+    "issues/05-margin-certification.md",
+    "../../docs/research/margin-inputs-followup-2026-09-05.md",
+    "../../docs/research/margin-official-resolution-2026-09-05.md",
+    "evidence-05-bse-followup/prior-attempts.json",
+    "evidence-05-bse-followup/web-discovery.json",
+    "evidence-05-bse-followup/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "evidence-05-bse-followup/receipts.json",
+    "evidence-05/3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548.json",
+    "../../docs/adr/0006-dual-as-of-and-immutable-evidence-vintages.md",
+    "evidence-05-bse-followup/delivery-files.txt",
+    "evidence-05-bse-followup/delivery-verification.json",
+    "evidence-05-bse-followup/source-inspection.json",
+    "evidence-05-bse-followup/verify_delivery.py"
+  ],
+  "delivery_path_count": 10,
+  "files": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+      "bytes": 138,
+      "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/capture_get.py",
+      "bytes": 2354,
+      "sha256": "99f7c583ad35b2b4ccc77146d7076721e158a78a27b852d2528b433ed3c77b3b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/delivery-files.txt",
+      "bytes": 869,
+      "sha256": "6de1558f4f6ba83d027bf2d161465f73dedf92e093f5ff8d186fcedc5e077e37"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/prior-attempts.json",
+      "bytes": 4325,
+      "sha256": "96921b2211b17f8635c748bd8dd28ce47410a936b2a7c855fa508703c32fded8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/receipts.json",
+      "bytes": 1520,
+      "sha256": "4123386d5be24aabec5aa5e034b1dd15ba5019d9ef9e927523a27abe6bdf1105"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/source-inspection.json",
+      "bytes": 2759,
+      "sha256": "a76fb1a7b14804c24431a74f431b23dba20170a48d7ca4733f4263c1fd285af6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/verify_delivery.py",
+      "bytes": 7467,
+      "sha256": "27b6db7d310f98581a6d5f47176c93023d190fda1dd9851c58e5044ae3543f89"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/web-discovery.json",
+      "bytes": 2118,
+      "sha256": "ad99e494eb5db60273415feca1c544cf1c02de342eaa29c4fb8b8ae2ab92dfe7"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/margin-bse-followup.md",
+      "bytes": 9657,
+      "sha256": "4b6690e908b3a92d71f502e94011f88b2bf634a423dd573cd9ddd9dfe5c58b62"
+    }
+  ],
+  "manifest_self_hash_excluded": true,
+  "source_certifications": 0,
+  "model_adoptions": 0,
+  "verification_network_requests": 0
+}

@@ -1,0 +1,110 @@
+{
+  "reviewed_reports": [
+    ".scratch/pring-data-acquisition-repair/research-05.md",
+    "docs/research/margin-inputs-followup-2026-09-05.md",
+    "docs/research/margin-official-resolution-2026-09-05.md"
+  ],
+  "old_http_attempts": [
+    {
+      "name": "bse-margin-page",
+      "url": "https://www.bse.cn/disclosure/rzrq_trans_list.html",
+      "method": "GET",
+      "request_started_at": "2026-09-06T14:09:46.077648+00:00",
+      "timeout_seconds": [
+        10,
+        15
+      ],
+      "allow_redirects": false,
+      "received_at": "2026-09-06T14:09:46.137143+00:00",
+      "status": 403,
+      "sha256": "bbbfe0e59c1c3d196d98dcc9b21066cb3df3614b068b3edd91c53151a9a9d329",
+      "byte_count": 2025,
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 14:09:43 GMT",
+        "Content-Type": "text/html"
+      },
+      "local_file": "bbbfe0e59c1c3d196d98dcc9b21066cb3df3614b068b3edd91c53151a9a9d329.html"
+    },
+    {
+      "name": "bse-business-guide",
+      "url": "https://www.bse.cn/jygl_list/200013680.html",
+      "method": "GET",
+      "request_started_at": "2026-09-06T14:09:46.078196+00:00",
+      "timeout_seconds": [
+        10,
+        15
+      ],
+      "allow_redirects": false,
+      "received_at": "2026-09-06T14:09:46.135338+00:00",
+      "status": 403,
+      "sha256": "5b58ef7d458e50eed94c4eb437ba598a2933142f9c1acad942e41997700939fb",
+      "byte_count": 2011,
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 14:09:43 GMT",
+        "Content-Type": "text/html"
+      },
+      "local_file": "5b58ef7d458e50eed94c4eb437ba598a2933142f9c1acad942e41997700939fb.html"
+    },
+    {
+      "name": "bseinfo-known-public-page",
+      "url": "https://www.bseinfo.net/disclosure/tradepublic.html",
+      "method": "GET",
+      "request_started_at": "2026-09-06T14:09:46.078641+00:00",
+      "timeout_seconds": [
+        10,
+        15
+      ],
+      "allow_redirects": false,
+      "received_at": "2026-09-06T14:09:47.185529+00:00",
+      "status": 403,
+      "sha256": "1009ae5b6db3373aaa0982b52576ad6adeec18757c727678ec3355604a1817ef",
+      "byte_count": 2929,
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 14:09:44 GMT",
+        "Content-Type": "text/html"
+      },
+      "local_file": "1009ae5b6db3373aaa0982b52576ad6adeec18757c727678ec3355604a1817ef.html"
+    },
+    {
+      "name": "bse-tech-guide-2025",
+      "url": "https://www.bse.cn/uploads/6/file/public/202510/20251010190514_4qgms4u8gx.pdf",
+      "method": "GET",
+      "request_started_at": "2026-09-06T14:11:21.705858+00:00",
+      "timeout_seconds": [
+        10,
+        15
+      ],
+      "allow_redirects": false,
+      "received_at": "2026-09-06T14:11:21.799487+00:00",
+      "status": 403,
+      "sha256": "32fe74eb10683b4da4da95782d3a7d5f0b78ba289d50ec4bb3f509895b48fa57",
+      "byte_count": 2077,
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 14:11:19 GMT",
+        "Content-Type": "text/html"
+      },
+      "local_file": "32fe74eb10683b4da4da95782d3a7d5f0b78ba289d50ec4bb3f509895b48fa57.html"
+    }
+  ],
+  "prior_browser_observation": {
+    "recorded_at": "2026-09-06T14:17:45.702511+00:00",
+    "url": "https://www.bse.cn/disclosure/rzrq_trans_list.html",
+    "method": "normal Chrome navigation through CUA",
+    "get_browser_elapsed_seconds": 1.2868,
+    "create_tab_timeout_ms": 15000,
+    "create_tab_tool_elapsed_seconds": 15.0731,
+    "result": "js execution timed out; kernel reset",
+    "page_contents_obtained": false,
+    "http_response_obtained": false,
+    "network_request_count": "unknown",
+    "historical_publication_time_inferred": false
+  },
+  "older_documented_attempts": [
+    "Two margin page urllib requests ended in redirect loops on 2026-09-05; do not repeat",
+    "Normal homepage browser title seen on 2026-09-05, subsequent CUA read timed out; no finance data/JS artifact acquired"
+  ],
+  "new_urls_not_in_old_receipts": true,
+  "reused_report_sha256": "b4d606f38ff3c59d6478a5d822fd3a5109daf84a689b533d4ed0d92c8a6b2634",
+  "candidate_date_fixed": "2026-08-28",
+  "candidate_scope_note": "Current followup requests financing balance, securities-lending balance, total margin balance; original ticket also requires financing buy amount. Neither scope is silently substituted."
+}

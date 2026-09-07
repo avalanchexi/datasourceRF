@@ -1,0 +1,10 @@
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/capture_get.py
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/delivery-files.txt
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/delivery-verification.json
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/prior-attempts.json
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/receipts.json
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/source-inspection.json
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/verify_delivery.py
+.scratch/pring-data-acquisition-repair/evidence-05-bse-followup/web-discovery.json
+.scratch/pring-data-acquisition-repair/margin-bse-followup.md

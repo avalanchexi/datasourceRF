@@ -14,6 +14,9 @@ evidence-14-live-eia/* -text
 treasury-followup.md -text whitespace=cr-at-eol
 vix-followup.md -text whitespace=cr-at-eol
 dr007-followup.md -text whitespace=cr-at-eol
+margin-bse-followup.md -text whitespace=cr-at-eol
+evidence-05-bse-followup/* -text whitespace=cr-at-eol
+evidence-05-bse-followup/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0 -diff
 evidence-13-dr007-followup/* -text whitespace=cr-at-eol
 evidence-13-dr007-followup/b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96 -diff
 evidence-13-dr007-followup/d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d -diff

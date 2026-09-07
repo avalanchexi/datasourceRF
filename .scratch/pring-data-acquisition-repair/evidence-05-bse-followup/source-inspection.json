@@ -1,0 +1,70 @@
+{
+  "fixed_target_date": "2026-08-28",
+  "new_get_budget": 5,
+  "new_get_attempts": 2,
+  "remaining_budget_unused": 3,
+  "http_2xx_count": 0,
+  "http_self_redirect_count": 2,
+  "received_response_body_bytes_across_requests": 276,
+  "unique_new_response_artifacts": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05-bse-followup/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+      "bytes": 138,
+      "sha256": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0"
+    }
+  ],
+  "unique_new_response_bytes": 138,
+  "valid_target_sample_count": 0,
+  "target_fields": [
+    {
+      "field": "financing_balance",
+      "indexed_label": "融资余额",
+      "indexed_unit": "ten_thousand_cny",
+      "official_numeric_value": null,
+      "observed_statistical_date": null,
+      "new_http_unit_proof": false
+    },
+    {
+      "field": "securities_lending_balance",
+      "indexed_label": "融券余额",
+      "indexed_unit": "ten_thousand_cny",
+      "official_numeric_value": null,
+      "observed_statistical_date": null,
+      "new_http_unit_proof": false
+    },
+    {
+      "field": "total_margin_balance",
+      "indexed_label": "融资融券余额",
+      "indexed_unit": "ten_thousand_cny",
+      "official_numeric_value": null,
+      "observed_statistical_date": null,
+      "new_http_unit_proof": false
+    }
+  ],
+  "original_ticket_financing_buy_amount_official_sample": null,
+  "legacy_provider_reference_only": {
+    "source": "Previously acquired TuShare JSON; this followup does not call an account API or DB",
+    "statistical_date": "2026-08-28",
+    "exchange": "BSE",
+    "unit": "cny",
+    "financing_balance": "8332418348",
+    "financing_buy_amount": "659105185",
+    "securities_lending_balance": null,
+    "total_margin_balance": null,
+    "official_bse_value_match_established": false,
+    "source_file": {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-05/3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548.json",
+      "bytes": 328,
+      "sha256": "3cb57edb3e560a118fd2a84c94d471a53179547489b5ef0936649c63e4ae4548"
+    }
+  },
+  "publication": {
+    "release_at": null,
+    "public_available_at": null,
+    "reason": "No target-date numeric content or actual publication record was obtained; response Date is transport metadata, not historical availability."
+  },
+  "stop_reason": "Both documented new public paths self-redirected; bounded discovery found no official new finance query/download script. No repetition, guessed endpoint, challenge bypass, substitute date or residual estimate.",
+  "source_certifications": 0,
+  "model_adoptions": 0,
+  "production_mutations": 0
+}
