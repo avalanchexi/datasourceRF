@@ -1,6 +1,8 @@
-Execution: pending-implementation
+Execution: completed-code-batch
 
 # 14续：把已经取得的来源期次与批次计划传给读取投影
+
+已于2026-09-08完成，见[实施与682项全套结果](implementation-14-p2-source-timing.md)。下文保留原始定位、反例和实现边界。
 
 票14要求保留真实期次，并区分发布与陈旧原因。Treasury公开候选入口已经在取得记录保存逐指标`latest_source_period`；EIA公开HTML入口已经保存`release_date`、`next_release_date`与`release_timezone`。当前`build_context_projection`的P2 `latest_acquisition`只选择condition等字段，丢弃上述已经校验的元数据；Dashboard也只显示获取结果标签。这使当前值的统计期与来源已观测最新期无法同时检查。
 

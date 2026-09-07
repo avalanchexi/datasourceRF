@@ -1,0 +1,56 @@
+{
+  "schema": "p1-official-preparation-delivery-v1",
+  "manifest_self_hash_excluded": true,
+  "inspection": {
+    "validation": "passed",
+    "validation_scope": "stdlib_hash_counts_links_only_no_application_import",
+    "raw_files_verified": 250,
+    "raw_bytes_verified": 20069217,
+    "public_parser_calls_in_saved_execution": 268,
+    "scalar_count": 1858,
+    "independent_scalar_review_counts": {
+      "not_individually_fact_audited": 1840,
+      "representative_anchor_passed": 18
+    },
+    "local_links": 12,
+    "delivery_path_count": 8,
+    "new_certification_granted": false
+  },
+  "files": [
+    {
+      "path": "evidence-13-preparation/anchor-expectations.json",
+      "bytes": 4152,
+      "sha256": "e4ba9fe88c93701d7fa6ba7f2cca1e37387b95ba2f91771b320fa7be7035eafe"
+    },
+    {
+      "path": "evidence-13-preparation/delivery-files.txt",
+      "bytes": 343,
+      "sha256": "440256a13eb4591db7d527958e1c0eb763e23f119369cef6ebd01343aab49bda"
+    },
+    {
+      "path": "evidence-13-preparation/preparation.json",
+      "bytes": 2767926,
+      "sha256": "a9fe475c47303fb7791b27df04849dcef0aacabde27b64f57023972c9a4ec20a"
+    },
+    {
+      "path": "evidence-13-preparation/prepare.py",
+      "bytes": 18456,
+      "sha256": "e9295dcd722d9ff1f67e9fb0e57db6154c297510f80df344258b69971f638b27"
+    },
+    {
+      "path": "evidence-13-preparation/read-only-reparse-output.json",
+      "bytes": 954,
+      "sha256": "90a9b61f61ee4c79da8b46226bfc813ceba30d7cb84b54f13cc4e3552767761f"
+    },
+    {
+      "path": "evidence-13-preparation/verify_delivery.py",
+      "bytes": 5828,
+      "sha256": "560a9e4079d000400cc1ace3fcf50709ffc5e0579c300c14741d267a48654155"
+    },
+    {
+      "path": "p1-official-preparation.md",
+      "bytes": 11901,
+      "sha256": "1a1c6984c96df6da41c76a008c4f37419ef9b23621f6391e84e78e68c3444b5f"
+    }
+  ]
+}

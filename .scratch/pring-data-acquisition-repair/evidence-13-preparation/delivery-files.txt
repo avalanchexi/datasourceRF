@@ -1,0 +1,8 @@
+evidence-13-preparation/anchor-expectations.json
+evidence-13-preparation/delivery-files.txt
+evidence-13-preparation/delivery-verification.json
+evidence-13-preparation/preparation.json
+evidence-13-preparation/prepare.py
+evidence-13-preparation/read-only-reparse-output.json
+evidence-13-preparation/verify_delivery.py
+p1-official-preparation.md

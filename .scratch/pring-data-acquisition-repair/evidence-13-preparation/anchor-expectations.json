@@ -1,0 +1,23 @@
+{
+  "basis": "Explicit representative values and identities independently stated from official pages in p1-certification-readiness.md; this is not a dump of the current parser output. One selected scalar per A18 metric is tested, not every historical scalar.",
+  "anchors": [
+    {"metric_id":"CN_OMO_7D_RATE","family":"pbc_omo_notice","period":"2026-08-28","dimensions":{},"value":"1.4","unit":"percent","source_field":"operation_rate_pct"},
+    {"metric_id":"CN_OMO_7D_AMOUNT","family":"pbc_omo_notice","period":"2026-08-28","dimensions":{"measure":"injection"},"value":"200","unit":"hundred_million_cny","source_field":"injection_100m"},
+    {"metric_id":"CN_TOOL_LIQUIDITY_MONTHLY","family":"pbc_tool_liquidity_monthly","period":"2026-07","dimensions":{"tool":"7天期逆回购","measure":"net_injection"},"value":"-2495","unit":"hundred_million_cny","source_field":"net_injection_100m"},
+    {"metric_id":"CN_PMI_ACTIVITY","family":"nbs_pmi","period":"2026-07","dimensions":{"series":"new_orders","measure":"level"},"value":"48.5","unit":"diffusion_index_points","source_field":"new_orders"},
+    {"metric_id":"CN_PMI_INVENTORY","family":"nbs_pmi","period":"2026-07","dimensions":{"series":"finished_goods","measure":"level"},"value":"48.6","unit":"diffusion_index_points","source_field":"finished_goods"},
+    {"metric_id":"CN_PMI_PRICES","family":"nbs_pmi","period":"2026-07","dimensions":{"series":"purchase_prices","measure":"level"},"value":"53.2","unit":"diffusion_index_points","source_field":"purchase_prices"},
+    {"metric_id":"CN_CPI_HEADLINE","family":"nbs_core_cpi","period":"2026-07","dimensions":{"category":"headline","measure":"yoy"},"value":"0.5","unit":"percent","source_field":"headline_cpi_yoy_pct"},
+    {"metric_id":"CN_CORE_CPI","family":"nbs_core_cpi","period":"2026-07","dimensions":{"category":"ex_food_energy","measure":"yoy"},"value":"0.9","unit":"percent","source_field":"core_cpi_yoy_pct"},
+    {"metric_id":"CN_PPI","family":"nbs_ppi","period":"2026-07","dimensions":{"category":"headline","measure":"yoy"},"value":"3.5","unit":"percent","source_field":"ppi_yoy"},
+    {"metric_id":"CN_INDUSTRIAL_VA","family":"nbs_industrial_value_added","period":"2026-07","dimensions":{"measure":"current_month_real_yoy"},"value":"4.5","unit":"percent","source_field":"industrial_va_yoy_real_pct"},
+    {"metric_id":"CN_INDUSTRIAL_FINANCE","family":"nbs_industrial_finance","period":"2026-07","dimensions":{"item":"revenue","measure":"ytd_level"},"value":"809230.7","unit":"hundred_million_cny","source_field":"industrial_revenue_ytd_100m"},
+    {"metric_id":"CN_FINISHED_GOODS_INVENTORY","family":"nbs_industrial_finance","period":"2026-07","dimensions":{"measure":"nominal_end_level"},"value":"72700","unit":"hundred_million_cny","source_field":"finished_goods_inventory_100m"},
+    {"metric_id":"CN_INVENTORY_TURNOVER","family":"nbs_industrial_finance","period":"2026-07","dimensions":{"measure":"days"},"value":"21.3","unit":"days","source_field":"finished_goods_turnover_days"},
+    {"metric_id":"CN_CAPACITY_UTILIZATION","family":"nbs_capacity_utilization","period":"2026-Q2","dimensions":{"industry":"all_industry","measure":"quarter_rate"},"value":"73.0","unit":"percent","source_field":"industrial_capacity_utilization_pct"},
+    {"metric_id":"CN_M1_M2","family":"pbc_money","period":"2026-07","dimensions":{"aggregate":"m1","measure":"balance"},"value":"1154600","unit":"hundred_million_cny","source_field":"m1"},
+    {"metric_id":"CN_SF_TOTAL","family":"pbc_social_financing","period":"2026-07","dimensions":{"measure":"stock_end"},"value":"4632700","unit":"hundred_million_cny","source_field":"stock_end_trillion"},
+    {"metric_id":"CN_SF_COMPONENTS","family":"pbc_social_financing","period":"2026-07","dimensions":{"component":"government_bonds","measure":"ytd_increment"},"value":"77600","unit":"hundred_million_cny","source_field":"ytd_increment_100m"},
+    {"metric_id":"CN_LOAN_STRUCTURE","family":"pbc_loan_structure","period":"2026-07","dimensions":{"borrower":"enterprise","tenor":"long_term","measure":"ytd_increment"},"value":"53200","unit":"hundred_million_cny","source_field":"ytd_increment_100m"}
+  ]
+}

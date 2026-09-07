@@ -292,6 +292,11 @@ def build_context_projection(
                 if attempt.safe_metadata.get("request_sent") == "false"
                 else None,
                 "rejected_fields": attempt.safe_metadata.get("rejected_fields"),
+                "latest_source_period": attempt.safe_metadata.get("latest_source_period"),
+                "source_timezone": attempt.safe_metadata.get("source_timezone"),
+                "release_date": attempt.safe_metadata.get("release_date"),
+                "next_release_date": attempt.safe_metadata.get("next_release_date"),
+                "release_timezone": attempt.safe_metadata.get("release_timezone"),
             }
             if attempt is not None
             else None

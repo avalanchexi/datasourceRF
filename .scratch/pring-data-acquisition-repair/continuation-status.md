@@ -1,10 +1,14 @@
 # 修复项目当前执行入口
 
-核对时间：2026-09-07。阶段为 **implement中的来源候选接入与认证补证**；grill-with-docs、to-spec、to-tickets已完成发布，不需要重做规划或重发已提出的问题。规格及票是范围依据，本文是续作索引。
+核对时间：2026-09-08。阶段为 **implement中的来源候选接入与认证补证**；grill-with-docs、to-spec、to-tickets已完成发布，不需要重做规划或重发已提出的问题。规格及票是范围依据，本文是续作索引。
 
 ## 已实际完成的本轮交付
 
-当前最新批次从`b8d53a`继续：[库存报告期校验](implementation-13-inventory-period.md)完成，**680全套通过、0失败、795.31秒**，60针对、Ruff、mypy82、双审查0，81安装Python文件与工作区一致。[最终收据](verification-13-inventory-period/final.json)。接下来修[P2获取记录的来源时间字段未传入投影](p2-source-timing-boundary.md)，2个任务归属明确的公开反例已经失败；测试设置错误另行保留。
+最新批次从`ad86bd0`继续：[P2来源时间元数据](implementation-14-p2-source-timing.md)完成任务归属获取记录→读取投影→页面详情，**682全套通过、0失败、742.99秒**，69针对、Ruff/mypy82、两轴审查0，81安装Python文件一致。[最终收据](verification-14-p2-source-timing/final.json)。该项不再列代码待修；源日历鲜度、来源认证仍不是本批已完成内容。
+
+[18项常规官方来源准备](p1-official-preparation.md)已形成可复算8文件包：250唯一原件、268家族调用、1858标量；18独立代表性期望、5专项和根代理默认只读重跑通过。其余1840标量未逐格独立审计。27项全家族的新认证及模型采用矩阵仍待外部缺件，不能把此准备包记为已创建候选或已完成120日重放。
+
+前批`ad86bd0`：[库存报告期校验](implementation-13-inventory-period.md)完成，**680全套通过、0失败、795.31秒**，60针对、Ruff、mypy82、双审查0，81安装Python文件与工作区一致。[最终收据](verification-13-inventory-period/final.json)。当时P2元数据RED与测试设置错误保留，真实缺陷由本次682项批次修复。
 
 [P1准备清单](p1-certification-readiness.md)完成27项分流和68链接根复核：18项常规官方材料可先整理，3项另核时间/用途、2项外补、4派生依父项。部分1月CPI/PPI少列和工业VA合并期源自原表，不直接判采集缺失。没有新来源认证或候选模型采用。北交所[浏览器补证](margin-bse-browser-followup.md)1次导航超时，有效样本0、实际HTTP请求数未知，原阻塞不变。
 

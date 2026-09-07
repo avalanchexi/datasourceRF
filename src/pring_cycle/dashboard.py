@@ -604,6 +604,18 @@ def _evidence_row(
     if international:
         if item.get("acquisition_status") is not None:
             details.append(f"最近获取 {_state_label(item['acquisition_status'])}")
+        acquisition = item.get("latest_acquisition")
+        if isinstance(acquisition, dict):
+            for key, label in (
+                ("latest_source_period", "来源已见最新期"),
+                ("release_date", "当前批次发布日"),
+                ("next_release_date", "下次计划发布日"),
+            ):
+                if acquisition.get(key) is not None:
+                    details.append(f"{label} {_display_value(acquisition[key])}")
+            timezone = acquisition.get("release_timezone") or acquisition.get("source_timezone")
+            if timezone is not None:
+                details.append(f"来源时区 {_display_value(timezone)}")
         boundary = _international_boundary(metric_id)
         if boundary:
             details.append(boundary)

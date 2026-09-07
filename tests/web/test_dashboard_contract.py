@@ -311,6 +311,22 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
                         "acquisition_status": "missing_credentials",
                     },
                     {
+                        "metric_id": "UST2Y_NOMINAL_YIELD",
+                        "acquisition_status": "verified_candidate",
+                        "latest_acquisition": {
+                            "latest_source_period": "2026-09-04",
+                            "source_timezone": "America/New_York",
+                        },
+                    },
+                    {
+                        "metric_id": "EIA_BRENT_RBRTE",
+                        "latest_acquisition": {
+                            "release_date": "2026-09-02",
+                            "next_release_date": "2026-09-10",
+                            "release_timezone": "America/New_York",
+                        },
+                    },
+                    {
                         "metric_id": "UST_2S10S_SPREAD",
                         "value": 39.00000000000006,
                         "unit": "basis_points",
@@ -357,6 +373,10 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
     assert "值 39.00 basis_points" in macro
     assert "39.00000000000006" not in macro
     assert "最近获取 由输入证据计算" in macro
+    assert "来源已见最新期 2026-09-04" in macro
+    assert "当前批次发布日 2026-09-02" in macro
+    assert "下次计划发布日 2026-09-10" in macro
+    assert "来源时区 America/New_York" in macro
     assert "证据 observation-lpr-1y" in macro
     assert "来源声明 中国货币网=3.0 percent（已选）" in macro
     assert "需求 up · 生产 矛盾 · 库存 数据不足" in inventory
