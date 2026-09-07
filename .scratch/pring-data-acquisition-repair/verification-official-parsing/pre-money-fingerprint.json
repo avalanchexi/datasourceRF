@@ -1,0 +1,7 @@
+{
+  "scope": "actual workspace bytes read by root after capacity repair, before money conversion edit",
+  "path": "src/pring_cycle/official_context.py",
+  "bytes": 80058,
+  "sha256": "370ac84bf4a93e1dec155a5b8a3f3fb77bd77c15e999f60fe8f18aefdce2adba",
+  "meaning": "historical input fingerprint for money-normalization-boundary.md; later edits must not be expected to match"
+}

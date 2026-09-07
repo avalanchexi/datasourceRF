@@ -93,7 +93,7 @@ def test_rrr_scopes_share_original_and_record_actual_system_acquisition(tmp_path
     assert len(result.observation_ids) == 2
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     (receipt,) = acquisitions.history()
-    assert receipt.parser_version == "official-context-parser-v0003"
+    assert receipt.parser_version == "official-context-parser-v0004"
     assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
     assert receipt.received_at is not None
     assert receipt.validated_at is not None

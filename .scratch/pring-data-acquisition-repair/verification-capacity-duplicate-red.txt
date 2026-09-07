@@ -1,0 +1,33 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+______ test_q2_capacity_row_missing_cumulative_columns_is_rejected[True] _______
+
+duplicate_valid_row = True
+
+    @pytest.mark.parametrize("duplicate_valid_row", [False, True])
+    def test_q2_capacity_row_missing_cumulative_columns_is_rejected(duplicate_valid_row: bool) -> None:
+        content = """
+        <html><body>
+          <h1>2026年二季度全国规模以上工业产能利用率为73.0%</h1>
+          <p>2026/07/15 10:00</p>
+          <table>
+            <tr><th>行业</th><th>二季度</th><th>上半年</th></tr>
+            <tr><th>产能利用率（ % ）</th><th>比上年同期增减（百分点）</th>
+            <th>产能利用率（ % ）</th><th>比上年同期增减（百分点）</th></tr>
+            <tr><td>工业</td><td>73.0</td><td>-1.0</td></tr>
+          </table>
+        </body></html>
+        """.encode()
+        if duplicate_valid_row:
+            content = content.replace(
+                b"</table>",
+                "<tr><td>工业</td><td>73.0</td><td>-1.0</td><td>73.3</td><td>-0.7</td></tr></table>".encode(),
+            )
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'ValueError'>
+
+tests/adapters/test_capacity_column_completeness.py:27: Failed
+=========================== short test summary info ============================
+FAILED tests/adapters/test_capacity_column_completeness.py::test_q2_capacity_row_missing_cumulative_columns_is_rejected[True]
+1 failed, 1 passed in 0.81s

@@ -1,0 +1,19 @@
+{
+  "money_boundary": {
+    "local_links": 15,
+    "input_fingerprints": 17,
+    "historical_workspace_fingerprint": "370ac84bf4a93e1dec155a5b8a3f3fb77bd77c15e999f60fe8f18aefdce2adba",
+    "original_function_verified_from_base": true
+  },
+  "loan_structure": {
+    "verified_literals": 279,
+    "originals": 31,
+    "original_bytes": 1281208,
+    "local_links": 35,
+    "negative_values": 49,
+    "zero_values": 0,
+    "trillion_conversions": 157
+  },
+  "network_requests": 0,
+  "application_parser_calls": 0
+}

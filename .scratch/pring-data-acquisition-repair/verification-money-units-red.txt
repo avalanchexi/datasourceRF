@@ -1,0 +1,26 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___________ test_real_m2_balance_keeps_decimal_unit_conversion_exact ___________
+
+    def test_real_m2_balance_keeps_decimal_unit_conversion_exact() -> None:
+        # PBC 2026-02 report, L359: M2 balance 349.22 trillion CNY.
+        raw = (Path(__file__).parents[1] / "fixtures/pbc_money_202602.html").read_bytes()
+        parsed = parse_official_context_document(
+            raw,
+            family="pbc_money",
+            source_url="https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026031317020260950/index.html",
+            expected_period="2026-02",
+            fetched_at=datetime(2026, 9, 8, tzinfo=UTC),
+        )
+        balance = next(
+            item for item in parsed.scalars
+            if item.dimensions == {"aggregate": "m2", "measure": "balance"}
+        )
+>       assert balance.value == 3492200.0
+E       AssertionError: assert 3492200.0000000005 == 3492200.0
+E        +  where 3492200.0000000005 = ContextScalar(metric_id='CN_M1_M2', api_name='pbc_money', source_field='m2', period_kind='month', period_start='2026-0...ime(2026, 3, 13, 17, 0, 1, tzinfo=zoneinfo.ZoneInfo(key='Asia/Shanghai')), definition_version=None, acquisition_ids=()).value
+
+tests/adapters/test_official_money_units.py:21: AssertionError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_official_money_units.py::test_real_m2_balance_keeps_decimal_unit_conversion_exact
+1 failed in 0.88s

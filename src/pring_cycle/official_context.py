@@ -6,6 +6,7 @@ import re
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
+from decimal import Decimal
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 from urllib.request import Request
@@ -264,7 +265,7 @@ def ingest_official_context_document(
         api_name="document_import",
         parameters={"source_url": source_url, "period": expected_period, "family": family},
         fields="",
-        parser_version="official-context-parser-v0003",
+        parser_version="official-context-parser-v0004",
         fetch=lambda: content,
         parse=parse,
         normalize=asdict,
@@ -446,7 +447,7 @@ def refresh_official_context_document(
             api_name="official_http_get",
             parameters={"source_url": source_url, "period": expected_period, "family": family},
             fields="",
-            parser_version="official-context-parser-v0003",
+            parser_version="official-context-parser-v0004",
             fetch=fetch,
             parse=parse,
             normalize=asdict,
@@ -1157,10 +1158,9 @@ def _parse_capacity_utilization(
             )
         if len(live_tables) != 1:
             raise error
-        matching = [
-            row for row in live_tables[0][2:] if row and row[0] == "工业" and len(row) in {3, 5}
-        ]
-        if len(matching) != 1:
+        expected_row_width = len(live_tables[0][1]) + 1
+        matching = [row for row in live_tables[0][2:] if row and row[0] == "工业"]
+        if len(matching) != 1 or len(matching[0]) != expected_row_width:
             raise ValueError("official_context_row_identity_mismatch") from error
         quarter_rate, yoy_change = matching[0][1:3]
         ytd_rate = matching[0][3] if len(matching[0]) == 5 else quarter_rate
@@ -1782,7 +1782,7 @@ def _parse_money(
         values.append(
             (
                 aggregate,
-                _bounded_number(match.group("balance"), minimum=0),
+                float(Decimal(match.group("balance")) * 10_000),
                 yoy,
             )
         )
@@ -1799,9 +1799,9 @@ def _parse_money(
             unit,
             release_at,
         )
-        for aggregate, balance, yoy in values
+        for aggregate, balance_100m, yoy in values
         for source_field, measure, value, unit in (
-            (aggregate, "balance", balance * 10_000, "hundred_million_cny"),
+            (aggregate, "balance", balance_100m, "hundred_million_cny"),
             (f"{aggregate}_yoy", "yoy", yoy, "percent"),
         )
     )

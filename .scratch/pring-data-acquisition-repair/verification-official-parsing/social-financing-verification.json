@@ -1,0 +1,16 @@
+{
+  "verified_literals": 837,
+  "originals": 51,
+  "original_bytes": 1609364,
+  "negative_values": 131,
+  "explicit_zero_values": 2,
+  "trillion_conversions": 390,
+  "hundred_million_values": 168,
+  "official_yoy_values": 279,
+  "report_bytes": 147300,
+  "report_sha256": "a649d2b86df819fa2682c46997a0cec0fd4021c8d702225ddc6ff3a920cb7437",
+  "local_links": 2,
+  "network_requests": 0,
+  "application_parser_calls": 0,
+  "scope": "raw nonempty block line/index, named component clause, literal, identity, exact decimal normalization, scalar index, period"
+}
