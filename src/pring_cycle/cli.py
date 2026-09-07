@@ -380,6 +380,15 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         )
         return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
     if namespace.command == "model-source-certify":
+        if namespace.candidate_request_hash is not None:
+            from pring_cycle.candidate_admission import admit_source_certified_candidate
+
+            return admit_source_certified_candidate(
+                paths,
+                request_hash=namespace.candidate_request_hash,
+                target_business_date=namespace.target_date,
+                personal_noncommercial_use_approved=namespace.confirm_personal_noncommercial,
+            )
         from pring_cycle.source_certification import create_source_certified_candidate
 
         return create_source_certified_candidate(
@@ -684,10 +693,11 @@ def _parser() -> argparse.ArgumentParser:
     model_replay.add_argument("--end", required=True)
     model_source_certify = _runtime_parser(subparsers, "model-source-certify")
     model_source_certify.add_argument("--target-date", required=True)
-    model_source_certify.add_argument(
+    certification_input = model_source_certify.add_mutually_exclusive_group(required=True)
+    certification_input.add_argument("--candidate-request-hash")
+    certification_input.add_argument(
         "--source-smoke-hash",
         action="append",
-        required=True,
     )
     model_source_certify.add_argument(
         "--confirm-personal-noncommercial",

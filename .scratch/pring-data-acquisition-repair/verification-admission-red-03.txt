@@ -1,0 +1,88 @@
+.FFF......                                                               [100%]
+=================================== FAILURES ===================================
+_ test_review_for_previous_manifest_cannot_certify_changed_inputs[definition] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-03/test_review_for_previous_manif0')
+capsys = <_pytest.capture.CaptureFixture object at 0x760a866add60>
+changed = 'definition'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:119: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "0c66a929e00df9784befe4a219fcd07e2aad93ab5629110a590a506fcaccfb6a", "model_version_id": "model-reviewed-d48e1f96d5b582c318365e2e3f07169b07758e36239cf6957ef46d8235188fca", "network_requests": 0, "status": "candidate"}
+____ test_review_for_previous_manifest_cannot_certify_changed_inputs[rule] _____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-03/test_review_for_previous_manif1')
+capsys = <_pytest.capture.CaptureFixture object at 0x760a866d3c20>
+changed = 'rule'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:119: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "51a8ee99b377729e4230f162570a4a4d75ccdd5309c512f976f8c467330224e3", "model_version_id": "model-reviewed-c0e122281af08dc7434585ca005100a1bbe217dd7164f2e0d15122812377f6c5", "network_requests": 0, "status": "candidate"}
+__ test_review_for_previous_manifest_cannot_certify_changed_inputs[execution] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-03/test_review_for_previous_manif2')
+capsys = <_pytest.capture.CaptureFixture object at 0x760a865a0860>
+changed = 'execution'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:119: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "200e36099d1e86b5418833ac14bb92d8ff323731f9ccae4b046bfe1f1e6cd12b", "model_version_id": "model-reviewed-74f50907864035e6c8584ea14db1f3f1eefc8ee0f705727a4395f9d1c4dfe49d", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[definition]
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[rule]
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[execution]
+3 failed, 7 passed in 7.10s

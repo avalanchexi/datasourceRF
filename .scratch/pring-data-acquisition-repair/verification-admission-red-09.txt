@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[invalid_volatility_window] _
+tests/models/test_candidate_admission.py:355: in test_formal_review_does_not_override_candidate_completeness_and_identity
+    with pytest.raises(SystemExit) as failure:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "18731ac3285e869b6912e6f05e7df25001d3e1cd575c5a01c9508c790c6b08ac", "model_version_id": "model-reviewed-f85c9eb4569b4fae780ff843d71b6ed66f0e7d99c81a3ebf98f1d9d672886dc8", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[invalid_volatility_window]
+1 failed, 49 deselected in 2.86s

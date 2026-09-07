@@ -99,3 +99,6 @@ source-history-receipt-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
 ticket19-implementation-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
 verification-history-*.txt whitespace=-blank-at-eol
 verification-history-receipts/*.txt whitespace=-blank-at-eol
+verification-admission-*.txt whitespace=-blank-at-eol
+verification-admission/*.txt whitespace=-blank-at-eol
+candidate-catalog-consumption-boundary.md -text whitespace=cr-at-eol,-blank-at-eof

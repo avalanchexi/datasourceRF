@@ -1,0 +1,1258 @@
+.FFF......FFFFFFFFFFFFFFFFFF                                             [100%]
+=================================== FAILURES ===================================
+_ test_review_for_previous_manifest_cannot_certify_changed_inputs[definition] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif0')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b77947e3f0>
+changed = 'definition'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+        with pytest.raises(SystemExit) as failure:
+            submit(paths, save(paths, request))
+    
+        assert failure.value.code == 2
+        assert "certification_package_manifest_mismatch" in capsys.readouterr().err
+>       assert len(ModelRepository(paths.database).list_versions()) == 1
+E       AssertionError: assert 3 == 1
+E        +  where 3 = len((ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')))
+E        +    where (ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')) = list_versions()
+E        +      where list_versions = <pring_cycle.models.ModelRepository object at 0x76b7796b09e0>.list_versions
+E        +        where <pring_cycle.models.ModelRepository object at 0x76b7796b09e0> = ModelRepository(PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif0/runtime/data/pring-cycle.sqlite3'))
+E        +          where PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif0/runtime/data/pring-cycle.sqlite3') = RuntimePaths(config=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_m...root=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif0/runtime')).database
+
+tests/models/test_candidate_admission.py:124: AssertionError
+____ test_review_for_previous_manifest_cannot_certify_changed_inputs[rule] _____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif1')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779301250>
+changed = 'rule'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+        with pytest.raises(SystemExit) as failure:
+            submit(paths, save(paths, request))
+    
+        assert failure.value.code == 2
+        assert "certification_package_manifest_mismatch" in capsys.readouterr().err
+>       assert len(ModelRepository(paths.database).list_versions()) == 1
+E       AssertionError: assert 3 == 1
+E        +  where 3 = len((ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')))
+E        +    where (ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')) = list_versions()
+E        +      where list_versions = <pring_cycle.models.ModelRepository object at 0x76b779216750>.list_versions
+E        +        where <pring_cycle.models.ModelRepository object at 0x76b779216750> = ModelRepository(PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif1/runtime/data/pring-cycle.sqlite3'))
+E        +          where PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif1/runtime/data/pring-cycle.sqlite3') = RuntimePaths(config=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_m...root=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif1/runtime')).database
+
+tests/models/test_candidate_admission.py:124: AssertionError
+__ test_review_for_previous_manifest_cannot_certify_changed_inputs[execution] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif2')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779366450>
+changed = 'execution'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+        with pytest.raises(SystemExit) as failure:
+            submit(paths, save(paths, request))
+    
+        assert failure.value.code == 2
+        assert "certification_package_manifest_mismatch" in capsys.readouterr().err
+>       assert len(ModelRepository(paths.database).list_versions()) == 1
+E       AssertionError: assert 3 == 1
+E        +  where 3 = len((ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')))
+E        +    where (ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')) = list_versions()
+E        +      where list_versions = <pring_cycle.models.ModelRepository object at 0x76b77927bb90>.list_versions
+E        +        where <pring_cycle.models.ModelRepository object at 0x76b77927bb90> = ModelRepository(PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif2/runtime/data/pring-cycle.sqlite3'))
+E        +          where PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif2/runtime/data/pring-cycle.sqlite3') = RuntimePaths(config=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_m...root=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_review_for_previous_manif2/runtime')).database
+
+tests/models/test_candidate_admission.py:124: AssertionError
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[no_packages] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov0')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b77a76f530>
+defect = 'no_packages'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "34b14c97e4c169766fe5ae0472f61d2718f5d10b2675c8e2304f411b67088006", "model_version_id": "model-reviewed-b12591bb7e24bb934e21513f04dee901eccb59769c873e45d8cb0c92eec84880", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_p1] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov1')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7793a8e30>
+defect = 'missing_p1'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "b905d41172004fea4cce8dc20f8976e06c50e3edb345fa0c05117f38c283fbb6", "model_version_id": "model-reviewed-6088461cebc7e9a3f17fd1d6fd2c0dd5b3eb00b5218aa3d5756ddd23cc55970b", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[wrong_definition_hash] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov2')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779231310>
+defect = 'wrong_definition_hash'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "92b33871a265d759c222f251cb55f1f6cef361a1f63eb74de4f5f9ded5a2b6e9", "model_version_id": "model-reviewed-dd47ed9967681caf7bc744d90b6cc43995a4f78f9b389974dbe9fd0a820ccbea", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[wrong_definition_version] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov3')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7792ded80>
+defect = 'wrong_definition_version'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "a513261da33298cfa3e7bf4fa7928d8d98411230ae7086ff12b15e3c4a574b50", "model_version_id": "model-reviewed-95084f26f2056450081ff137013cd3b55d45384d70f3c77bbb0ae914f3af58ce", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_metric] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov4')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b77934a1b0>
+defect = 'missing_metric'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "868683e0e5c466987d7c919e69b2c9caf598c9d3d0afb24c6630910036d56e10", "model_version_id": "model-reviewed-60f8f9b784b7ddb8e366b40dc458ad11e21de288b2433496472ef4f131b35163", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[wrong_priority] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov5')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7793aac30>
+defect = 'wrong_priority'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "5fb4abd5d1bbf74932865d95cf43e9039c02258d205918802b84391298e4fe77", "model_version_id": "model-reviewed-3a4ba0ce235e34429c337ce2f75e9893e11410a1352dcf15ec0a53a4f0103aae", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_duration] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov6')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7793a7d70>
+defect = 'missing_duration'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "7a84c0ccf09c005fa5c18650d9beedeeb2532fd47709370401c3e417fc4e9cd8", "model_version_id": "model-reviewed-f593e9e5cf2e8f963a34d3ea22fd69a5d912419432e9d41c4def32ff9bfb1561", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_selection] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov7')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779173740>
+defect = 'missing_selection'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "ee23070ddf54b135c8738c6fbf8fa85108315b3ae48a8c7c0a6abce3b462cacd", "model_version_id": "model-reviewed-1f40d4217f45304a40d0d370e5c9a7b82f57041fa85d45e48869ed7194f81493", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_time] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov8')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7793a4e90>
+defect = 'missing_time'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "406c9e7400e6d29ed90744788b0b721b20e7f8c461a9f94fa537ef2a2722d57c", "model_version_id": "model-reviewed-c489820b5da43f4b544f7d89395212a5567a2e89f825ec7774bfbe3150cba004", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_formula] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov9')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7792eb2f0>
+defect = 'missing_formula'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "3ea9b1e0e58a286abf75cb76a256b5028e8172bf9667bd4701161f63c6a5b229", "model_version_id": "model-reviewed-f9b14d5cef61642143a0228d5aaebb0deff8e1777a3a2c66b1f0797a01b55448", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[stale_execution] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov10')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779488fe0>
+defect = 'stale_execution'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "d1d6062e9d8535b2ea3b7fff1ea411651a44e9301ef3d7b4ef68f8b7196e95c5", "model_version_id": "model-reviewed-64a1fbd79be258060015604c8236e910f45655a06f9e93cfd585cfed864cee85", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[frozen_catalog] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov11')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7793abb30>
+defect = 'frozen_catalog'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "48071467f7f32472038dc4a5c70cbeef0af6fef0f9a1feaadaaeebaef61e7f73", "model_version_id": "model-reviewed-91999518a67a92517e55e9d2ad9081ff120fd01ea57001685aa21636bedd2461", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[target_mismatch] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov12')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b7796b0e00>
+defect = 'target_mismatch'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "b50a29e919014c3e41d50fefc458d3da968a304d60909e184de866e17a890ddf", "model_version_id": "model-reviewed-53ce7a635d1ed3c76ba92016a5b66516345cdbd3d7c859e3e0e824b86026a0ca", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[replay_before_certification] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov13')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779230a70>
+defect = 'replay_before_certification'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "e395391c169c0626a9bc144c9840c3fa312d05eadb3c856fa0462b49c15deb11", "model_version_id": "model-reviewed-abf98a3d26a012d858a743fd75af8bd02bc3388345afa11c18153bed7c9a459d", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[core_mismatch] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov14')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779451e20>
+defect = 'core_mismatch'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "6ab234dfa043b1b9f06f51813470f0431f9d37a966ae16e11b7b6b74c97f4dd9", "model_version_id": "model-reviewed-507906967e401d3c1fdc7b60d5914cee3179a78550d37b039e1f1674be763334", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[uncertified_p1] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov15')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779231eb0>
+defect = 'uncertified_p1'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "451ecb43d1f803ad70cab53e0ca6ba9699dcee442ada6ffd510e3bad168c5616", "model_version_id": "model-reviewed-5476fcef149bf054bd0f7b9e141795ee8b5041e07a9b3484111e972ca6e87bd5", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[uncovered_p2_certification] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_formal_review_does_not_ov16')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779205520>
+defect = 'uncovered_p2_certification'
+
+    @pytest.mark.parametrize("defect", [
+        "no_packages", "missing_p1", "wrong_definition_hash", "wrong_definition_version",
+        "missing_metric", "wrong_priority", "missing_duration", "missing_selection",
+        "missing_time", "missing_formula", "stale_execution", "frozen_catalog",
+        "target_mismatch", "replay_before_certification", "core_mismatch", "uncertified_p1",
+        "uncovered_p2_certification",
+    ])
+    def test_formal_review_does_not_override_candidate_completeness_and_identity(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        manifest = request["manifest"]
+        if defect == "missing_p1":
+            package["definition_bindings"].pop("CN_MARGIN_BALANCE")
+        elif defect == "wrong_definition_hash":
+            package["definition_bindings"]["CN_MARGIN_BALANCE"] = "0" * 64
+        elif defect == "wrong_definition_version":
+            manifest["metric_definitions"][7]["definition_version"] = "another-definition"
+        elif defect == "missing_metric":
+            manifest["metric_definitions"].pop()
+        elif defect == "wrong_priority":
+            manifest["metric_definitions"][7]["priority"] = "P2"
+        elif defect == "missing_duration":
+            manifest["trend_rules"].pop("candidate_duration_rule_version")
+        elif defect == "missing_selection":
+            manifest.pop("selection_rule_version")
+        elif defect == "missing_time":
+            manifest.pop("point_in_time_rule_version")
+        elif defect == "missing_formula":
+            manifest.pop("derived_formula_versions")
+        elif defect == "stale_execution":
+            manifest["execution_fingerprint"]["code_hash"] = "0" * 64
+        elif defect == "frozen_catalog":
+            manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        elif defect == "target_mismatch":
+            request["target_business_date"] = "2026-08-27"
+        elif defect == "replay_before_certification":
+            package["certified_from"] = "2026-03-10"
+        elif defect == "core_mismatch":
+            manifest["core_metrics"]["stock"] = "CN_EQ_CSI300"
+        elif defect == "uncertified_p1":
+            manifest["metric_definitions"][7]["certification_status"] = "awaiting_source_certification"
+        elif defect == "uncovered_p2_certification":
+            manifest["metric_definitions"][-1]["certification_status"] = "certified"
+        bind_synthetic_review(paths, request, package)
+        if defect == "no_packages":
+            request["package_hashes"] = []
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:228: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "53c4d9e35312ab8b6bf309fb819cd8661f8420200626a6bb1466b9df6525629c", "model_version_id": "model-reviewed-45506036f9f0bf2d9713c19efab69f5790c6090e966972ccb88d9920afa4ca9c", "network_requests": 0, "status": "candidate"}
+_ test_complete_synthetic_contract_creates_one_queryable_candidate_without_activation _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-04/test_complete_synthetic_contra0')
+capsys = <_pytest.capture.CaptureFixture object at 0x76b779302240>
+
+    def test_complete_synthetic_contract_creates_one_queryable_candidate_without_activation(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        request_hash = save(paths, request)
+    
+        submit(paths, request_hash)
+        admitted = json.loads(capsys.readouterr().out)
+        submit(paths, request_hash)
+        assert json.loads(capsys.readouterr().out) == admitted
+        assert admitted["status"] == "candidate"
+        assert admitted["network_requests"] == 0
+        main(["models", "--runtime-root", str(paths.override_root), "--json"])
+        queried = json.loads(capsys.readouterr().out)
+>       assert len(queried["models"]) == 2
+E       AssertionError: assert 4 == 2
+E        +  where 4 = len([{'certified_replay_start': '2018-06-01', 'manifest_hash': '87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe998823...version_id': 'model-reviewed-b83d505fd8fe76c10483aeed0453ef4744166d3cdc6161b56cc95061917082a3', 'status': 'candidate'}])
+
+tests/models/test_candidate_admission.py:252: AssertionError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[definition]
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[rule]
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[execution]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[no_packages]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_p1]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[wrong_definition_hash]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[wrong_definition_version]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_metric]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[wrong_priority]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_duration]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_selection]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_time]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_formula]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[stale_execution]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[frozen_catalog]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[target_mismatch]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[replay_before_certification]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[core_mismatch]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[uncertified_p1]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[uncovered_p2_certification]
+FAILED tests/models/test_candidate_admission.py::test_complete_synthetic_contract_creates_one_queryable_candidate_without_activation
+21 failed, 7 passed in 17.83s

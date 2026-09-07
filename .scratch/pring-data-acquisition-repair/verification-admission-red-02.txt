@@ -1,0 +1,250 @@
+.FFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+___ test_incomplete_or_unbound_review_cannot_certify_a_package[preparation] ____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-02/test_incomplete_or_unbound_rev0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7976e19bcf20>
+defect = 'preparation'
+
+    @pytest.mark.parametrize("defect", ["preparation", "pending", "missing_fields", "empty_finding", "empty_evidence", "wrong_subject"])
+    def test_incomplete_or_unbound_review_cannot_certify_a_package(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        if defect == "preparation":
+            package["schema_version"] = "source-preparation-v0002"
+        elif defect == "pending":
+            review["decision"] = "pending"
+        elif defect == "missing_fields":
+            review["assessments"].pop("fields")
+        elif defect == "empty_finding":
+            review["assessments"]["fields"]["finding"] = ""
+        elif defect == "empty_evidence":
+            review["assessments"]["fields"]["evidence"] = []
+        else:
+            review["subject_hash"] = "0" * 64
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        versions_before = ModelRepository(paths.database).list_versions()
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:136: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "5ffe72cc2583c4dbbf5f046b4abab8af3695bdaebdf8ac899355c10dfebd65b7", "model_version_id": "model-reviewed-e354382a1d4c46cb081ac32832b7705be1e4e07c09e42573255b7e8838b03c90", "network_requests": 0, "status": "candidate"}
+_____ test_incomplete_or_unbound_review_cannot_certify_a_package[pending] ______
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-02/test_incomplete_or_unbound_rev1')
+capsys = <_pytest.capture.CaptureFixture object at 0x7976e1826330>
+defect = 'pending'
+
+    @pytest.mark.parametrize("defect", ["preparation", "pending", "missing_fields", "empty_finding", "empty_evidence", "wrong_subject"])
+    def test_incomplete_or_unbound_review_cannot_certify_a_package(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        if defect == "preparation":
+            package["schema_version"] = "source-preparation-v0002"
+        elif defect == "pending":
+            review["decision"] = "pending"
+        elif defect == "missing_fields":
+            review["assessments"].pop("fields")
+        elif defect == "empty_finding":
+            review["assessments"]["fields"]["finding"] = ""
+        elif defect == "empty_evidence":
+            review["assessments"]["fields"]["evidence"] = []
+        else:
+            review["subject_hash"] = "0" * 64
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        versions_before = ModelRepository(paths.database).list_versions()
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:136: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "6a5f121ff4f2cadcaf090c8b53358a11e03afab67068a900128db981bde478cd", "model_version_id": "model-reviewed-45ce039457904882201e95929217fc002d109d895fac08989559954da62db7ab", "network_requests": 0, "status": "candidate"}
+__ test_incomplete_or_unbound_review_cannot_certify_a_package[missing_fields] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-02/test_incomplete_or_unbound_rev2')
+capsys = <_pytest.capture.CaptureFixture object at 0x7976e197a9f0>
+defect = 'missing_fields'
+
+    @pytest.mark.parametrize("defect", ["preparation", "pending", "missing_fields", "empty_finding", "empty_evidence", "wrong_subject"])
+    def test_incomplete_or_unbound_review_cannot_certify_a_package(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        if defect == "preparation":
+            package["schema_version"] = "source-preparation-v0002"
+        elif defect == "pending":
+            review["decision"] = "pending"
+        elif defect == "missing_fields":
+            review["assessments"].pop("fields")
+        elif defect == "empty_finding":
+            review["assessments"]["fields"]["finding"] = ""
+        elif defect == "empty_evidence":
+            review["assessments"]["fields"]["evidence"] = []
+        else:
+            review["subject_hash"] = "0" * 64
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        versions_before = ModelRepository(paths.database).list_versions()
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:136: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "81777cb48ad69c641f811d2f4c9a4e30395f85d2a4936c7cfb0830495a6151f2", "model_version_id": "model-reviewed-90705b7d1957e71f4ac8409a010621a78cb871e0b747a93bb0fcfcf870820b15", "network_requests": 0, "status": "candidate"}
+__ test_incomplete_or_unbound_review_cannot_certify_a_package[empty_finding] ___
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-02/test_incomplete_or_unbound_rev3')
+capsys = <_pytest.capture.CaptureFixture object at 0x7976e19ab3e0>
+defect = 'empty_finding'
+
+    @pytest.mark.parametrize("defect", ["preparation", "pending", "missing_fields", "empty_finding", "empty_evidence", "wrong_subject"])
+    def test_incomplete_or_unbound_review_cannot_certify_a_package(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        if defect == "preparation":
+            package["schema_version"] = "source-preparation-v0002"
+        elif defect == "pending":
+            review["decision"] = "pending"
+        elif defect == "missing_fields":
+            review["assessments"].pop("fields")
+        elif defect == "empty_finding":
+            review["assessments"]["fields"]["finding"] = ""
+        elif defect == "empty_evidence":
+            review["assessments"]["fields"]["evidence"] = []
+        else:
+            review["subject_hash"] = "0" * 64
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        versions_before = ModelRepository(paths.database).list_versions()
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:136: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "575ffa94e83d8fb8b78efe32f86fd15e776736d70b92515ecd340b2fc6c56565", "model_version_id": "model-reviewed-f3f1c7079999133690c3a53a8eabe3137a976dd94277f2c1cf5136c748eeb40d", "network_requests": 0, "status": "candidate"}
+__ test_incomplete_or_unbound_review_cannot_certify_a_package[empty_evidence] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-02/test_incomplete_or_unbound_rev4')
+capsys = <_pytest.capture.CaptureFixture object at 0x7976e1971ca0>
+defect = 'empty_evidence'
+
+    @pytest.mark.parametrize("defect", ["preparation", "pending", "missing_fields", "empty_finding", "empty_evidence", "wrong_subject"])
+    def test_incomplete_or_unbound_review_cannot_certify_a_package(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        if defect == "preparation":
+            package["schema_version"] = "source-preparation-v0002"
+        elif defect == "pending":
+            review["decision"] = "pending"
+        elif defect == "missing_fields":
+            review["assessments"].pop("fields")
+        elif defect == "empty_finding":
+            review["assessments"]["fields"]["finding"] = ""
+        elif defect == "empty_evidence":
+            review["assessments"]["fields"]["evidence"] = []
+        else:
+            review["subject_hash"] = "0" * 64
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        versions_before = ModelRepository(paths.database).list_versions()
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:136: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "7b91efcb2f2b7e6b7bc3e4ca2938fc4526383abcea7e862f89967ea16f4a309f", "model_version_id": "model-reviewed-0e77f544ce65cf95b45b9dc2e3e12b40fdaac36554d5881673dc8ca63ff91b8d", "network_requests": 0, "status": "candidate"}
+__ test_incomplete_or_unbound_review_cannot_certify_a_package[wrong_subject] ___
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-02/test_incomplete_or_unbound_rev5')
+capsys = <_pytest.capture.CaptureFixture object at 0x7976e18c7830>
+defect = 'wrong_subject'
+
+    @pytest.mark.parametrize("defect", ["preparation", "pending", "missing_fields", "empty_finding", "empty_evidence", "wrong_subject"])
+    def test_incomplete_or_unbound_review_cannot_certify_a_package(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], defect: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        if defect == "preparation":
+            package["schema_version"] = "source-preparation-v0002"
+        elif defect == "pending":
+            review["decision"] = "pending"
+        elif defect == "missing_fields":
+            review["assessments"].pop("fields")
+        elif defect == "empty_finding":
+            review["assessments"]["fields"]["finding"] = ""
+        elif defect == "empty_evidence":
+            review["assessments"]["fields"]["evidence"] = []
+        else:
+            review["subject_hash"] = "0" * 64
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        versions_before = ModelRepository(paths.database).list_versions()
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:136: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "ddbd297ac11c6a4d600370dcbc052279755c7b29dc48485a3f6386a744567bb2", "model_version_id": "model-reviewed-95244091de621296c43bbfdbafc5971d3c92163b426a41ff308bf15a1a83b6f5", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_incomplete_or_unbound_review_cannot_certify_a_package[preparation]
+FAILED tests/models/test_candidate_admission.py::test_incomplete_or_unbound_review_cannot_certify_a_package[pending]
+FAILED tests/models/test_candidate_admission.py::test_incomplete_or_unbound_review_cannot_certify_a_package[missing_fields]
+FAILED tests/models/test_candidate_admission.py::test_incomplete_or_unbound_review_cannot_certify_a_package[empty_finding]
+FAILED tests/models/test_candidate_admission.py::test_incomplete_or_unbound_review_cannot_certify_a_package[empty_evidence]
+FAILED tests/models/test_candidate_admission.py::test_incomplete_or_unbound_review_cannot_certify_a_package[wrong_subject]
+6 failed, 1 passed in 5.99s

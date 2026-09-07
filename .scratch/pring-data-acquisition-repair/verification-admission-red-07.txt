@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[early_replay] _
+tests/models/test_candidate_admission.py:308: in test_formal_review_does_not_override_candidate_completeness_and_identity
+    with pytest.raises(SystemExit) as failure:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2020-01-01", "manifest_hash": "e7f441c8c5f2bdc891cddc574cc59ba11e4e8b215eb6ceb67cb47462da377ab3", "model_version_id": "model-reviewed-a74df3e355ddb49ace6b067ecb39946f30011ad678569b0c48e244a0d72e4d2a", "network_requests": 0, "status": "candidate"}
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[missing_calibration_start] _
+tests/models/test_candidate_admission.py:308: in test_formal_review_does_not_override_candidate_completeness_and_identity
+    with pytest.raises(SystemExit) as failure:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "d67398a64dfb518a93f00641e8f607574d01515e186550b7b15c408e51f27b4e", "model_version_id": "model-reviewed-8d56cd701737dc7f4ba36d55b5b8a23adfc35a8308619de2471afd20b3640807", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[early_replay]
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[missing_calibration_start]
+2 failed, 39 deselected in 3.32s

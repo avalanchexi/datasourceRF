@@ -1,0 +1,2 @@
+tests/models/test_candidate_admission.py:374: error: Argument "assets" to "publish" of "P0ProjectionService" has incompatible type "tuple[CoreAssetReadiness, ...]"; expected "tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]"  [arg-type]
+Found 1 error in 1 file (checked 83 source files)

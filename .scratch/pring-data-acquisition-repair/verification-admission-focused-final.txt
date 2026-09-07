@@ -1,0 +1,12 @@
+...............................................F..............           [100%]
+=================================== FAILURES ===================================
+_ test_complete_synthetic_contract_creates_one_queryable_candidate_without_activation _
+tests/models/test_candidate_admission.py:391: in test_complete_synthetic_contract_creates_one_queryable_candidate_without_activation
+    published_before = projections.current()
+                       ^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/projections.py:295: in current
+    raise LookupError("current_projection_unavailable")
+E   LookupError: current_projection_unavailable
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_complete_synthetic_contract_creates_one_queryable_candidate_without_activation
+1 failed, 61 passed in 56.86s

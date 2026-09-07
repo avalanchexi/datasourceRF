@@ -1,0 +1,109 @@
+.FFF......                                                               [100%]
+=================================== FAILURES ===================================
+_ test_review_for_previous_manifest_cannot_certify_changed_inputs[definition] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7fa362eddaf0>
+changed = 'definition'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+        with pytest.raises(SystemExit) as failure:
+            submit(paths, save(paths, request))
+    
+        assert failure.value.code == 2
+        assert "certification_package_manifest_mismatch" in capsys.readouterr().err
+>       assert len(ModelRepository(paths.database).list_versions()) == 1
+E       AssertionError: assert 3 == 1
+E        +  where 3 = len((ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')))
+E        +    where (ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')) = list_versions()
+E        +      where list_versions = <pring_cycle.models.ModelRepository object at 0x7fa362ef0e30>.list_versions
+E        +        where <pring_cycle.models.ModelRepository object at 0x7fa362ef0e30> = ModelRepository(PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif0/runtime/data/pring-cycle.sqlite3'))
+E        +          where PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif0/runtime/data/pring-cycle.sqlite3') = RuntimePaths(config=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous...ot=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif0/runtime')).database
+
+tests/models/test_candidate_admission.py:124: AssertionError
+____ test_review_for_previous_manifest_cannot_certify_changed_inputs[rule] _____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif1')
+capsys = <_pytest.capture.CaptureFixture object at 0x7fa362d34770>
+changed = 'rule'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+        with pytest.raises(SystemExit) as failure:
+            submit(paths, save(paths, request))
+    
+        assert failure.value.code == 2
+        assert "certification_package_manifest_mismatch" in capsys.readouterr().err
+>       assert len(ModelRepository(paths.database).list_versions()) == 1
+E       AssertionError: assert 3 == 1
+E        +  where 3 = len((ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')))
+E        +    where (ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')) = list_versions()
+E        +      where list_versions = <pring_cycle.models.ModelRepository object at 0x7fa362eddb50>.list_versions
+E        +        where <pring_cycle.models.ModelRepository object at 0x7fa362eddb50> = ModelRepository(PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif1/runtime/data/pring-cycle.sqlite3'))
+E        +          where PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif1/runtime/data/pring-cycle.sqlite3') = RuntimePaths(config=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous...ot=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif1/runtime')).database
+
+tests/models/test_candidate_admission.py:124: AssertionError
+__ test_review_for_previous_manifest_cannot_certify_changed_inputs[execution] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif2')
+capsys = <_pytest.capture.CaptureFixture object at 0x7fa362edc110>
+changed = 'execution'
+
+    @pytest.mark.parametrize("changed", ["definition", "rule", "execution"])
+    def test_review_for_previous_manifest_cannot_certify_changed_inputs(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], changed: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        if changed == "definition":
+            request["manifest"]["metric_definitions"][7]["unit"] = "changed-unit"
+        elif changed == "rule":
+            request["manifest"]["trend_rules"]["persistence_days"] = 9
+        else:
+            request["manifest"]["execution_fingerprint"]["code_hash"] = "0" * 64
+    
+        with pytest.raises(SystemExit) as failure:
+            submit(paths, save(paths, request))
+    
+        assert failure.value.code == 2
+        assert "certification_package_manifest_mismatch" in capsys.readouterr().err
+>       assert len(ModelRepository(paths.database).list_versions()) == 1
+E       AssertionError: assert 3 == 1
+E        +  where 3 = len((ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')))
+E        +    where (ModelVersion(model_version_id='model-v0001', manifest_hash='87db11acfb184571b661b40e10b862927978e6e2e9954b22b5fe99882...f39dcb718d37ff503d51a0e2388cc0d153aa1f5cb6ea61a4916e848c79b', status='candidate', certified_replay_start='2018-06-01')) = list_versions()
+E        +      where list_versions = <pring_cycle.models.ModelRepository object at 0x7fa362de3f50>.list_versions
+E        +        where <pring_cycle.models.ModelRepository object at 0x7fa362de3f50> = ModelRepository(PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif2/runtime/data/pring-cycle.sqlite3'))
+E        +          where PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif2/runtime/data/pring-cycle.sqlite3') = RuntimePaths(config=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous...ot=PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-green-03/test_review_for_previous_manif2/runtime')).database
+
+tests/models/test_candidate_admission.py:124: AssertionError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[definition]
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[rule]
+FAILED tests/models/test_candidate_admission.py::test_review_for_previous_manifest_cannot_certify_changed_inputs[execution]
+3 failed, 7 passed in 8.10s

@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_formal_review_does_not_override_candidate_completeness_and_identity[unsupported_frequency] _
+tests/models/test_candidate_admission.py:321: in test_formal_review_does_not_override_candidate_completeness_and_identity
+    with pytest.raises(SystemExit) as failure:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "b0ef91789418e0ab52801a7b7f2ef7edea345f7a9a0dba18122570a32175d16a", "model_version_id": "model-reviewed-0b847afbfa3265a1d6d0e7626d3746d5e0357675178b23ff8c7b50d0e059be93", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_formal_review_does_not_override_candidate_completeness_and_identity[unsupported_frequency]
+1 failed, 41 deselected in 2.81s

@@ -1,0 +1,184 @@
+{
+  "status": "completed_code_batch",
+  "base_commit": "1cd2c00fc4be1a4fa599d5e45f8ca18fe284c2d1",
+  "passed": 806,
+  "failed": 0,
+  "test_exit_code": 0,
+  "full_suite_runs": 1,
+  "duration_seconds": 860.32,
+  "targeted_passed": 63,
+  "targeted_duration_seconds": 51.48,
+  "new_regression_cases": 50,
+  "installed_source_files": 82,
+  "mypy_checked_files": 83,
+  "runtime": "/home/tywin/.cache/pring-cycle/verification/admission-full-final",
+  "spec_initial_findings": 3,
+  "spec_followup_findings": 1,
+  "spec_final_findings": 0,
+  "standards_initial_findings": 1,
+  "standards_final_findings": 0,
+  "source_certification_grants": 0,
+  "production_writes": 0,
+  "model_activations": 0,
+  "new_live_network_requests": 0,
+  "real_candidate_models": 0,
+  "ticket_19_execution": "in-progress",
+  "goal_complete": false,
+  "evidence": [
+    {
+      "path": "verification-admission-final.txt",
+      "bytes": 100,
+      "sha256": "617fd0cdf7f880c738191e269383ffba06c017689927b8d3de4a75d3e564a6be"
+    },
+    {
+      "path": "verification-admission-focused-final-corrected.txt",
+      "bytes": 100,
+      "sha256": "46ca8e5a4c7f21d2af1caf1a8b835a7c3c36d7e91635c128186244a1905df149"
+    },
+    {
+      "path": "verification-admission-focused-final.txt",
+      "bytes": 938,
+      "sha256": "7ee0204ea396fa24ed6f1c81b1041c0668290cdfd73f487d23095320b6640dae"
+    },
+    {
+      "path": "verification-admission-full.txt",
+      "bytes": 992,
+      "sha256": "e596073e1d11648fdafacc13660940344af899b93cf3bc50aa74727efba82a30"
+    },
+    {
+      "path": "verification-admission-green-01.txt",
+      "bytes": 98,
+      "sha256": "2b38bea586f6566a5ace012e1477ba7dd3e599443b5ab807077223fc7fd49484"
+    },
+    {
+      "path": "verification-admission-green-02.txt",
+      "bytes": 98,
+      "sha256": "911e56e23630d63b6b2a6c22c7c7562c67a2b16265677bb28c0263217a58f086"
+    },
+    {
+      "path": "verification-admission-green-03.txt",
+      "bytes": 8782,
+      "sha256": "d737fa355d6e86ee06f05b2d7868a2c0de5b9888f722d35592b2884f5b2f32da"
+    },
+    {
+      "path": "verification-admission-green-04.txt",
+      "bytes": 100,
+      "sha256": "6960b778d6730266b74c5ed1f5fa55c32304738c14a456ad7423d9abff176112"
+    },
+    {
+      "path": "verification-admission-green-05.txt",
+      "bytes": 100,
+      "sha256": "9f2a21c670a8f414a304aab3d4ee6c07a6eb2e34f742639562f3df123d629568"
+    },
+    {
+      "path": "verification-admission-green-07.txt",
+      "bytes": 100,
+      "sha256": "82155f3e33e80bddf594f0ce31d31fc61e41b0b0814674e5d4ceb7df11f32e85"
+    },
+    {
+      "path": "verification-admission-mypy-final.txt",
+      "bytes": 44,
+      "sha256": "a766815ce9137d28823902e2a13996ac5e7021d76946b008d607ddbe5fe9163c"
+    },
+    {
+      "path": "verification-admission-mypy.txt",
+      "bytes": 304,
+      "sha256": "9f7b76315a3f973cc8065adde775ebce909ad036f6461ca95927c8f89047b3f5"
+    },
+    {
+      "path": "verification-admission-red-01.txt",
+      "bytes": 1701,
+      "sha256": "d3b2a60506bf4ee5dc87b07d429144e713330a02196d758b78e6bfa3502d6301"
+    },
+    {
+      "path": "verification-admission-red-02.txt",
+      "bytes": 14682,
+      "sha256": "059e62c1315ff7707c440cad3cac4c1816c2802ee0773265f17962396500a37c"
+    },
+    {
+      "path": "verification-admission-red-03.txt",
+      "bytes": 5251,
+      "sha256": "c972983da50ccffebdca39c1180386152cd831870d6b2a48155d6cd3b8d0f568"
+    },
+    {
+      "path": "verification-admission-red-04-corrected.txt",
+      "bytes": 14599,
+      "sha256": "136d297f3fe3b533a72561d95bb48b1309361618a826b432fe2d498ad786d556"
+    },
+    {
+      "path": "verification-admission-red-04.txt",
+      "bytes": 75887,
+      "sha256": "17812326a579cba12338c967516d11f79db97594db40016212ce6d184b7c0d14"
+    },
+    {
+      "path": "verification-admission-red-05.txt",
+      "bytes": 1075,
+      "sha256": "55b957a26ced8f2e3570fb0b0c5ca0966dbf7eecb86cc6450df276fd1da42bbd"
+    },
+    {
+      "path": "verification-admission-red-06.txt",
+      "bytes": 8714,
+      "sha256": "255e272e84befd11da780eb49676dab411fe1b78612f3974586dcb77ed25d5f1"
+    },
+    {
+      "path": "verification-admission-red-07.txt",
+      "bytes": 1969,
+      "sha256": "e46f298b7278066da20cfa7b714260ee04538d3b8acb8d7185ed4cc002ad2eaa"
+    },
+    {
+      "path": "verification-admission-red-08.txt",
+      "bytes": 1127,
+      "sha256": "d4a526fd24d2e0c1dea40bb3d499e534e2c986296216a8809adf471e6e550568"
+    },
+    {
+      "path": "verification-admission-red-09.txt",
+      "bytes": 1135,
+      "sha256": "80b7e2b56c025f6de71bcca71fea2308ac7164afb5361c2e20e7f9413c98cb58"
+    },
+    {
+      "path": "verification-admission-ruff.txt",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "verification-admission/checks-format.txt",
+      "bytes": 26,
+      "sha256": "eee76f865de5a9f2456950f710ae5d5f9b5bd0ea02aa54f614c5eed6642a0bfd"
+    },
+    {
+      "path": "verification-admission/checks-mypy.txt",
+      "bytes": 44,
+      "sha256": "a766815ce9137d28823902e2a13996ac5e7021d76946b008d607ddbe5fe9163c"
+    },
+    {
+      "path": "verification-admission/checks-ruff.txt",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "verification-admission/fingerprint-final-before.json",
+      "bytes": 12938,
+      "sha256": "833c3a365791070937987f722432f941329b0ddf1f5880e1a501ac3607ffccc4"
+    },
+    {
+      "path": "verification-admission/fingerprint-final-after.json",
+      "bytes": 12938,
+      "sha256": "833c3a365791070937987f722432f941329b0ddf1f5880e1a501ac3607ffccc4"
+    },
+    {
+      "path": "verification-admission/review.md",
+      "bytes": 2459,
+      "sha256": "ac62d688784450697ac3aa800601fdbbd5139ca07f49baf0c2e8c7d7c3ef4b0c"
+    },
+    {
+      "path": "verification-admission/research-verification.json",
+      "bytes": 228,
+      "sha256": "7c77ae9de1fa8fd71b3a3350212d49d10a30628f73e84700ca7ecee7c7e93f09"
+    },
+    {
+      "path": "candidate-catalog-consumption-boundary.md",
+      "bytes": 31750,
+      "sha256": "67259c271373d9ea51da8677a2b95987966dfe790817dbb29f635b43f5e88d2d"
+    }
+  ]
+}

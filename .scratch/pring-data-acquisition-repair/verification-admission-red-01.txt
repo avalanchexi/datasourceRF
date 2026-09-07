@@ -1,0 +1,27 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_corrupted_referenced_original_cannot_create_a_candidate _________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/admission-red-01/test_corrupted_referenced_orig0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7e2ea8e65df0>
+
+    def test_corrupted_referenced_original_cannot_create_a_candidate(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, original_hash = prepared_request(paths)
+        request_hash = save(paths, request)
+        versions_before = ModelRepository(paths.database).list_versions()
+        (paths.artifacts / original_hash[:2] / original_hash).write_bytes(b"altered original")
+    
+>       with pytest.raises(SystemExit) as failure:
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE <class 'SystemExit'>
+
+tests/models/test_candidate_admission.py:97: Failed
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "c35eb8f9a9ca855a35b3a195bc1776491d518cb41b4e054274650c0172d9ea70", "model_version_id": "model-reviewed-3aaa49784fffd59d6e4fdb2d700b79d4d9be3738a0c6b4a7f6c0bc9d25f209ef", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_corrupted_referenced_original_cannot_create_a_candidate
+1 failed in 2.49s
