@@ -72,3 +72,8 @@ evidence-13-rrr-original-notices/f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5
 p2-freshness-evidence-boundary.md -text whitespace=cr-at-eol
 p1-cpi-full-value-audit.md -text whitespace=cr-at-eol
 verification-derived-freshness-*.txt whitespace=-blank-at-eol
+p1-ppi-full-value-audit.md -text whitespace=cr-at-eol,-blank-at-eof
+verification-loan-ytd-*.txt whitespace=-blank-at-eol
+verification-omo-invalid-flow-red.txt whitespace=-blank-at-eol
+p1-pmi-full-value-audit.md -text whitespace=cr-at-eol,-blank-at-eof
+omo-missing-flow-boundary.md -text whitespace=cr-at-eol

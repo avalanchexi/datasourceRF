@@ -1,4 +1,4 @@
-Execution: reproduced-not-fixed
+Execution: completed-code-batch
 
 # 贷款累计增量跨年反例
 
@@ -17,5 +17,19 @@ Execution: reproduced-not-fixed
 下一批先修这个纵向缺陷，验证一月缺前期/有前一年、同年2月差分、缺同年前月拒绝、
 负的真实增量保留、stock版本跨年不变、原件/派生父项血缘及PUBLIC未知传播。
 
-本反例不在默认tests目录，全套派生鲜度通过也不表示它已修。
+最初这份反例草案不在默认tests目录，当时全套派生鲜度通过不表示它已修。
 草案日志在鲜度全套运行时于另一个原生WSL临时库独立生成，未变更在测应用。
+
+## 从375950b继续的修复
+
+基点 `375950b03a0a3ac73c21135a28e283c10afe1030`。现已将该反例提升到
+`tests/integration/test_loan_ytd_year_boundary.py`。一月累计版允许单父项，自身即月流量；
+其他月份仍要求相邻前月，余额版仍需两期且允许跨年。没有构造上一年末零值来源声明。
+差值文档构造支持明确省略对比项，派生身份与PUBLIC/SYSTEM时间只依实际父项。
+
+首轮2项GREEN通过1.40秒。扩展为14项验证一月有/无上年、真实零值、公开时间已知/未知、
+只引用一月、同年差分、缺相邻月拒绝、负增量和余额版跨年。
+连同派生鲜度与模型认证59项通过6.87秒，见[关联日志](verification-loan-ytd-focused.txt)。
+应用代码在规定WSL非editable环境重装退出0后测试。完整套件716通过、0失败、782.66秒，
+双轴审查0、Ruff/mypy84/2文件format通过，81安装源文件一致。
+[最终收据](verification-loan-ytd/final.json)记录本代码批完成；整票13仍进行中。

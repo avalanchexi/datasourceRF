@@ -916,14 +916,23 @@ def _derived_market_context_rows(
     if loan_formula is not None:
         for (borrower, tenor), points in sorted(loan_groups.items()):
             ordered = sorted(points, key=lambda point: point.period_end)
-            if len(ordered) < 2 or not _consecutive_months(ordered[-2], ordered[-1]):
+            current = ordered[-1]
+            previous: MetricSeriesPoint | None
+            if (
+                loan_formula == "loan-ytd-monthly-change-v0002"
+                and date.fromisoformat(current.period_end).month == 1
+            ):
+                previous = None
+            elif len(ordered) < 2 or not _consecutive_months(ordered[-2], current):
                 continue
+            else:
+                previous = ordered[-2]
             derived_row, derived_versions = _difference_row(
                 repository,
                 metric_id="CN_LOAN_STRUCTURE",
                 formula_version=loan_formula,
-                left=ordered[-1],
-                right=ordered[-2],
+                left=current,
+                right=previous,
                 multiplier=1.0,
                 dimensions={
                     "borrower": borrower,
@@ -1089,7 +1098,7 @@ def _difference_row(
     metric_id: str,
     formula_version: str,
     left: MetricSeriesPoint,
-    right: MetricSeriesPoint,
+    right: MetricSeriesPoint | None,
     multiplier: float,
     dimensions: dict[str, str],
     unit: str,
@@ -1098,19 +1107,17 @@ def _difference_row(
     persist_derived: bool,
 ) -> tuple[dict[str, object], tuple[str, ...]]:
     left_value = left.selected_value
-    right_value = right.selected_value
-    left_claim = _selected_claim(left)
-    right_claim = _selected_claim(right)
+    right_value = right.selected_value if right is not None else 0.0
+    points = (left, right) if right is not None else (left,)
+    claims = [_selected_claim(point) for point in points]
     if (
         left_value is None
         or right_value is None
-        or left_claim is None
-        or right_claim is None
-        or left.selected_claim_id is None
-        or right.selected_claim_id is None
+        or any(claim is None for claim in claims)
+        or any(point.selected_claim_id is None for point in points)
     ):
         raise ValueError("derived_difference_inputs_invalid")
-    inputs = tuple(sorted((left.selected_claim_id, right.selected_claim_id)))
+    inputs = tuple(sorted(str(point.selected_claim_id) for point in points))
     value = (left_value - right_value) * multiplier
     derived_id = _derived_observation_identity(
         repository,
@@ -1123,14 +1130,12 @@ def _difference_row(
         unit=unit,
         persist=persist_derived,
     )
-    public_available_at = (
-        max(left_claim.public_available_at, right_claim.public_available_at)
-        if left_claim.public_available_at is not None
-        and right_claim.public_available_at is not None
-        else None
-    )
+    public_times = [
+        claim.public_available_at for claim in claims if claim.public_available_at is not None
+    ]
+    public_available_at = max(public_times) if len(public_times) == len(claims) else None
     row: dict[str, object] = {
-        "available_at": max(left_claim.available_at, right_claim.available_at).isoformat(),
+        "available_at": max(claim.available_at for claim in claims).isoformat(),
         "certification_status": "derived_from_certified_inputs",
         "claim_ids": [],
         "claims": [],
@@ -1141,7 +1146,7 @@ def _difference_row(
         "input_observation_version_ids": list(inputs),
         "metric_id": metric_id,
         "observation_id": derived_id,
-        "period": max(left.period_end, right.period_end),
+        "period": max(point.period_end for point in points),
         "public_available_at": (
             public_available_at.isoformat() if public_available_at is not None else None
         ),
