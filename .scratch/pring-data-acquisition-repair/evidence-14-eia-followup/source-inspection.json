@@ -1,0 +1,156 @@
+{
+  "inspected_at": "2026-09-07T05:08:16.185741+00:00",
+  "new_network_requests": 0,
+  "production_writes": 0,
+  "source_file_copies": 0,
+  "series": [
+    {
+      "series": "RBRTE",
+      "sha256": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+      "bytes": 457442,
+      "date_cells": 10255,
+      "first_grid_date": "1987-05-18",
+      "last_grid_date": "2026-09-04",
+      "counts": {
+        "blank": 288,
+        "numeric": 9967,
+        "positive": 9967
+      },
+      "special_marker_count": 0,
+      "special_markers": [],
+      "negative_values": [],
+      "zero_values": [],
+      "min_value": {
+        "date": "1998-12-10",
+        "value": "9.10"
+      },
+      "max_value": {
+        "date": "2008-07-03",
+        "value": "143.95"
+      },
+      "window_numeric_count": 122,
+      "window_negative_count": 0,
+      "selected_raw_rows": [
+        [
+          "1987 May-18 to May-22",
+          "",
+          "",
+          "18.63",
+          "18.45",
+          "18.55"
+        ],
+        [
+          "2020 Apr-20 to Apr-24",
+          "17.36",
+          "9.12",
+          "13.77",
+          "15.06",
+          "15.87"
+        ],
+        [
+          "2026 Aug-24 to Aug-28",
+          "92.71",
+          "88.24",
+          "87.77",
+          "90.18",
+          "89.75"
+        ],
+        [
+          "2026 Aug-31 to Sep- 4",
+          "",
+          "96.02",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "duplicate_dates": 0,
+      "calendar_row_validation_passed": true
+    },
+    {
+      "series": "RWTC",
+      "sha256": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+      "bytes": 472300,
+      "date_cells": 10615,
+      "first_grid_date": "1985-12-30",
+      "last_grid_date": "2026-09-04",
+      "counts": {
+        "blank": 379,
+        "numeric": 10236,
+        "positive": 10235,
+        "negative": 1
+      },
+      "special_marker_count": 0,
+      "special_markers": [],
+      "negative_values": [
+        {
+          "date": "2020-04-20",
+          "raw_value": "-36.98"
+        }
+      ],
+      "zero_values": [],
+      "min_value": {
+        "date": "2020-04-20",
+        "value": "-36.98"
+      },
+      "max_value": {
+        "date": "2008-07-03",
+        "value": "145.31"
+      },
+      "window_numeric_count": 123,
+      "window_negative_count": 0,
+      "selected_raw_rows": [
+        [
+          "1985 Dec-30 to Jan- 3",
+          "",
+          "",
+          "",
+          "25.56",
+          "26.00"
+        ],
+        [
+          "1987 May-18 to May-22",
+          "19.91",
+          "19.97",
+          "19.75",
+          "19.95",
+          "19.68"
+        ],
+        [
+          "2020 Apr-20 to Apr-24",
+          "-36.98",
+          "8.91",
+          "13.64",
+          "15.06",
+          "15.99"
+        ],
+        [
+          "2026 Aug-24 to Aug-28",
+          "86.34",
+          "83.90",
+          "83.46",
+          "84.81",
+          "84.57"
+        ],
+        [
+          "2026 Aug-31 to Sep- 4",
+          "87.03",
+          "91.48",
+          "",
+          "",
+          ""
+        ]
+      ],
+      "duplicate_dates": 0,
+      "calendar_row_validation_passed": true
+    }
+  ],
+  "legend_definitions": {
+    "-": "No Data Reported",
+    "--": "Not Applicable",
+    "NA": "Not Available",
+    "W": "Withheld to avoid disclosure of individual company data"
+  },
+  "legend_is_not_observation": true,
+  "notes": "Blank cells were kept at their Monday-Friday coordinate. Numeric negatives and zero are not missing. All figures computed from original bytes; parser code was run inline and not written into repo."
+}

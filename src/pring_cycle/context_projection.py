@@ -267,6 +267,43 @@ def build_context_projection(
         )
         for metric_id in sorted(relevant)
     }
+    acquisition_period = (
+        target_business_date or as_of.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
+    )
+    for definition in definitions.values():
+        if definition.priority != "P2":
+            continue
+        attempt = repository.latest_retrieval_attempt(
+            definition.metric_id,
+            period=None,
+            as_of=as_of,
+            definition_version=definition.definition_version,
+            target_business_date=acquisition_period,
+        )
+        latest = (
+            {
+                "attempt_id": attempt.retrieval_attempt_id,
+                "channel": attempt.channel,
+                "outcome": attempt.outcome,
+                "recorded_at": attempt.fetched_at.isoformat(),
+                "definition_version": definition.definition_version,
+                "condition": attempt.safe_metadata.get("condition"),
+                "request_sent": False
+                if attempt.safe_metadata.get("request_sent") == "false"
+                else None,
+                "rejected_fields": attempt.safe_metadata.get("rejected_fields"),
+            }
+            if attempt is not None
+            else None
+        )
+        rows_by_metric[definition.metric_id] = tuple(
+            {
+                **row,
+                "acquisition_status": attempt.outcome if attempt else "no_attempt_for_target",
+                "latest_acquisition": latest,
+            }
+            for row in rows_by_metric[definition.metric_id]
+        )
     rows_by_metric["CN_OMO_7D_AMOUNT"] = tuple(
         row
         for row in rows_by_metric["CN_OMO_7D_AMOUNT"]
@@ -287,6 +324,24 @@ def build_context_projection(
             tuple(row for row in existing if not str(row["observation_id"]).startswith("gap:"))
             + rows
         )
+    treasury_inputs = [
+        {
+            "metric_id": metric_id,
+            "acquisition_status": row["acquisition_status"],
+            "latest_acquisition": row["latest_acquisition"],
+        }
+        for metric_id in ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD")
+        for row in rows_by_metric[metric_id]
+    ]
+    rows_by_metric["UST_2S10S_SPREAD"] = tuple(
+        {
+            **row,
+            "acquisition_status": "derived_from_inputs",
+            "latest_acquisition": None,
+            "input_acquisition": treasury_inputs,
+        }
+        for row in rows_by_metric["UST_2S10S_SPREAD"]
+    )
     credit_impulse_row, credit_formula, credit_version_ids = _credit_impulse_proxy(
         repository,
         as_of=as_of,

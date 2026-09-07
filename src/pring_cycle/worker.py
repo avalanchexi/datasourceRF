@@ -1265,12 +1265,29 @@ def _refresh_context_sources(
 
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
+    repository = EvidenceRepository(paths.database)
+
+    def record(metric_ids: tuple[str, ...], channel: str, outcome: str, **details: str) -> None:
+        recorded_at = datetime.now(UTC)
+        for metric_id in metric_ids:
+            repository.record_retrieval_attempt(
+                metric_id=metric_id,
+                channel=channel,
+                outcome=outcome,
+                fetched_at=recorded_at,
+                safe_metadata={
+                    "period": target_business_date,
+                    "target_business_date": target_business_date,
+                    "definition_version": definition_version,
+                    **details,
+                },
+            )
+
+    eia_metrics = ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC")
     eia_key = secrets.get("EIA_API_KEY")
     if eia_key is not None:
-        fetched_at = datetime.now(UTC)
-        repository = EvidenceRepository(paths.database)
         try:
-            with acquisition_metrics(("EIA_BRENT_RBRTE", "EIA_WTI_RWTC")):
+            with acquisition_metrics(eia_metrics):
                 _eia_context_adapter(eia_key).acquire_spot_prices(
                     paths,
                     start_date=target - timedelta(days=220),
@@ -1284,22 +1301,35 @@ def _refresh_context_sources(
                 outcome = "adapter_failed"
             else:
                 outcome = "validation_failed"
-            for metric_id in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
-                repository.record_retrieval_attempt(
-                    metric_id=metric_id,
-                    channel="eia_official_candidate",
-                    outcome=outcome,
-                    fetched_at=fetched_at,
-                    safe_metadata={
-                        "error_type": type(error).__name__,
-                        "family": "spot_prices",
-                        "period": target_business_date,
-                        "target_business_date": target_business_date,
-                    },
-                )
+            record(
+                eia_metrics,
+                "eia_official_candidate",
+                outcome,
+                error_type=type(error).__name__,
+                family="spot_prices",
+            )
+        else:
+            record(
+                eia_metrics, "eia_official_candidate", "verified_candidate", family="spot_prices"
+            )
+    else:
+        record(
+            eia_metrics,
+            "eia_official_candidate",
+            "missing_credentials",
+            condition="EIA_API_KEY_not_configured",
+            request_sent="false",
+        )
 
     token = secrets.get("TUSHARE_TOKEN")
     if token is None:
+        record(
+            ("CN_GDP", "UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
+            "tushare",
+            "missing_credentials",
+            condition="TUSHARE_TOKEN_not_configured",
+            request_sent="false",
+        )
         return
     start_month = date(target.year - 2, target.month, 1).strftime("%Y%m")
     end_month = target.strftime("%Y%m")
@@ -1421,42 +1451,41 @@ def _refresh_context_sources(
             ),
         ),
     )
-    repository = EvidenceRepository(paths.database)
     for family, metric_ids, retrieve in families:
-        fetched_at = datetime.now(UTC)
         try:
             with acquisition_metrics(metric_ids):
-                adapter.acquire_scalars(paths, retrieve, definition_version=definition_version)
-        except OSError as error:
-            for metric_id in metric_ids:
-                repository.record_retrieval_attempt(
-                    metric_id=metric_id,
-                    channel="tushare",
-                    outcome="source_failed",
-                    fetched_at=fetched_at,
-                    safe_metadata={
-                        "error_type": type(error).__name__,
-                        "family": family,
-                        "period": target_business_date,
-                        "target_business_date": target_business_date,
-                    },
+                result = adapter.acquire_scalars(
+                    paths, retrieve, definition_version=definition_version
                 )
+        except OSError as error:
+            record(
+                metric_ids,
+                "tushare",
+                "source_failed",
+                error_type=type(error).__name__,
+                family=family,
+            )
         except (TypeError, ValueError) as error:
             outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
-            for metric_id in metric_ids:
-                repository.record_retrieval_attempt(
-                    metric_id=metric_id,
-                    channel="tushare",
-                    outcome=outcome,
-                    fetched_at=fetched_at,
-                    safe_metadata={
-                        "error_type": type(error).__name__,
-                        "family": family,
-                        "period": target_business_date,
-                        "target_business_date": target_business_date,
-                    },
-                )
-            raise
+            record(metric_ids, "tushare", outcome, error_type=type(error).__name__, family=family)
+            if any(
+                metric_definition(metric_id, definition_version=definition_version).priority != "P2"
+                for metric_id in metric_ids
+            ):
+                raise
+        else:
+            record(
+                result.metric_ids,
+                "tushare",
+                "partial_validation" if result.rejected_field_count else "verified_candidate",
+                family=family,
+                rejected_fields=str(result.rejected_field_count),
+            )
+            missing_metrics = tuple(
+                metric_id for metric_id in metric_ids if metric_id not in result.metric_ids
+            )
+            if missing_metrics:
+                record(missing_metrics, "tushare", "missing_fields", family=family)
 
 
 def _scheduled_p0_deadline_elapsed(

@@ -308,7 +308,14 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
                         "direction": "unknown",
                         "period": None,
                         "certification_status": "awaiting_source_certification",
-                    }
+                        "acquisition_status": "missing_credentials",
+                    },
+                    {
+                        "metric_id": "UST_2S10S_SPREAD",
+                        "value": 39.00000000000006,
+                        "unit": "basis_points",
+                        "acquisition_status": "derived_from_inputs",
+                    },
                 ],
             },
             "inventory": {
@@ -347,6 +354,9 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
     assert "统计期 2026-08-31" in macro
     assert "认证 certified" in macro
     assert "收益率方向，不是债券价格" in macro
+    assert "值 39.00 basis_points" in macro
+    assert "39.00000000000006" not in macro
+    assert "最近获取 由输入证据计算" in macro
     assert "证据 observation-lpr-1y" in macro
     assert "来源声明 中国货币网=3.0 percent（已选）" in macro
     assert "需求 up · 生产 矛盾 · 库存 数据不足" in inventory

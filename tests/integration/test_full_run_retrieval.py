@@ -26,6 +26,178 @@ def prepare(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     return paths, RunRepository(paths.database)
 
 
+@pytest.mark.parametrize(
+    "failure", [None, OSError("fixture offline"), ValueError("fixture schema")]
+)
+def test_p2_projection_separates_acquisition_condition_from_certification(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: Exception | None
+) -> None:
+    paths, runs = prepare(tmp_path)
+    seed_core_history(paths)
+    requests = []
+    if failure is not None:
+        paths.secrets.write_text("EIA_API_KEY=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+
+    class Opener:
+        def open(self, request, *, timeout):
+            requests.append(request)
+            assert failure is not None, "Missing credentials must not send a request"
+            raise failure
+
+    monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="p2-acquisition-condition",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+    stored = runs.get(run.run_id)
+    assert stored.projection_set_id is not None
+    projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id)
+    row = next(
+        row
+        for row in projection.datasets["macro"]["international_context"]
+        if row["metric_id"] == "EIA_BRENT_RBRTE"
+    )
+    expected = (
+        "missing_credentials"
+        if failure is None
+        else "source_failed"
+        if isinstance(failure, OSError)
+        else "validation_failed"
+    )
+    assert row["acquisition_status"] == expected
+    assert row["certification_status"] == "awaiting_source_certification"
+    assert row["value"] is None
+    assert row["role"] == "context_only_never_formal_stage"
+    assert row["latest_acquisition"]["channel"] == "eia_official_candidate"
+    assert row["latest_acquisition"]["definition_version"] == "metric-catalog-v0001"
+    assert len(requests) == (0 if failure is None else 1)
+    if failure is None:
+        assert row["latest_acquisition"]["request_sent"] is False
+
+
+def test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time(
+    tmp_path: Path,
+) -> None:
+    paths, _runs = prepare(tmp_path)
+    evidence = EvidenceRepository(paths.database)
+    recorded = datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=UTC)
+    evidence.record_retrieval_attempt(
+        metric_id="EIA_BRENT_RBRTE",
+        channel="eia_official_candidate",
+        outcome="source_failed",
+        fetched_at=recorded,
+        safe_metadata={"period": "2026-08-28"},
+    )
+    assert (
+        evidence.latest_retrieval_attempt(
+            "EIA_BRENT_RBRTE", period="2026-08-28", as_of=recorded - timedelta(microseconds=1)
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+) -> None:
+    paths, runs = prepare(tmp_path)
+    seed_core_history(paths)
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+    paths.secrets.chmod(0o600)
+
+    class Opener:
+        def open(self, request, *, timeout):
+            payload = json.loads(request.data)
+            api = payload["api_name"]
+            if api == "cn_gdp" and case == "gdp_no_levels":
+                fields = payload["fields"].split(",")
+                row = {field: None for field in fields}
+                row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+            elif api == "us_tycr" and case.startswith("treasury"):
+                fields = payload["fields"].split(",")
+                row = {"date": "20260828", "y2": None, "y10": 4.2}
+                if case == "treasury_schema":
+                    return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+            else:
+                raise OSError("fixture source unavailable; keep preexisting core evidence")
+            return BytesIO(
+                json.dumps(
+                    {
+                        "code": 0,
+                        "data": {"fields": fields, "items": [[row[field] for field in fields]]},
+                    }
+                ).encode()
+            )
+
+    class CoreOpener:
+        def open(self, request, *, timeout):
+            payload = json.loads(request.data)
+            params = payload["params"]
+            start = datetime.strptime(params["start_date"], "%Y%m%d").date()
+            end = datetime.strptime(params["end_date"], "%Y%m%d").date()
+            days = [
+                start + timedelta(days=i)
+                for i in range((end - start).days + 1)
+                if (start + timedelta(days=i)).weekday() < 5
+            ]
+            if payload["api_name"] == "trade_cal":
+                fields = ["cal_date", "is_open"]
+                items = [[day.strftime("%Y%m%d"), 1] for day in days]
+            else:
+                fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+                items = [
+                    [
+                        params["ts_code"],
+                        day.strftime("%Y%m%d"),
+                        100 + i,
+                        99 + i,
+                        0.01 if payload["api_name"] == "fut_index_daily" else 1.0,
+                    ]
+                    for i, day in enumerate(days)
+                ]
+            return BytesIO(
+                json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
+            )
+
+    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: CoreOpener())
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id=case,
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+    stored = runs.get(run.run_id)
+    assert stored.projection_set_id is not None
+    rows = (
+        ProjectionSetRepository(paths.database)
+        .get(stored.projection_set_id)
+        .datasets["macro"]["international_context"]
+    )
+    metric_id = "CN_GDP" if case == "gdp_no_levels" else "UST2Y_NOMINAL_YIELD"
+    row = next(row for row in rows if row["metric_id"] == metric_id)
+    assert row["acquisition_status"] == (
+        "missing_fields" if case == "treasury_partial" else "validation_failed"
+    )
+    if case == "treasury_partial":
+        ten_year = next(row for row in rows if row["metric_id"] == "UST10Y_NOMINAL_YIELD")
+        assert ten_year["acquisition_status"] == "verified_candidate"
+        spread = next(row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD")
+        assert spread["acquisition_status"] == "derived_from_inputs"
+        assert spread["latest_acquisition"] is None
+        assert {
+            item["metric_id"]: item["acquisition_status"] for item in spread["input_acquisition"]
+        } == {
+            "UST2Y_NOMINAL_YIELD": "missing_fields",
+            "UST10Y_NOMINAL_YIELD": "verified_candidate",
+        }
+
+
 def test_full_run_preserves_explicit_historical_cutoff_even_when_executed_later(
     tmp_path: Path,
 ) -> None:

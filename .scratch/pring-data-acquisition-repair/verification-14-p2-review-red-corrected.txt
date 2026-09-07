@@ -1,0 +1,222 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-p2-review-red-corrected/test_p2_tushare_failure_or_mis0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76cc359e2a80>
+case = 'gdp_no_levels'
+
+    @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+    def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                api = payload["api_name"]
+                if api == "cn_gdp" and case == "gdp_no_levels":
+                    fields = payload["fields"].split(",")
+                    row = {field: None for field in fields}
+                    row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+                elif api == "us_tycr" and case.startswith("treasury"):
+                    fields = payload["fields"].split(",")
+                    row = {"date": "20260828", "y2": None, "y10": 4.2}
+                    if case == "treasury_schema":
+                        return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+                else:
+                    raise OSError("fixture source unavailable; keep preexisting core evidence")
+                return BytesIO(json.dumps(
+                    {"code": 0, "data": {"fields": fields, "items": [[row[field] for field in fields]]}}
+                ).encode())
+    
+        class CoreOpener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                params = payload["params"]
+                start = datetime.strptime(params["start_date"], "%Y%m%d").date()
+                end = datetime.strptime(params["end_date"], "%Y%m%d").date()
+                days = [
+                    start + timedelta(days=i) for i in range((end - start).days + 1)
+                    if (start + timedelta(days=i)).weekday() < 5
+                ]
+                if payload["api_name"] == "trade_cal":
+                    fields = ["cal_date", "is_open"]
+                    items = [[day.strftime("%Y%m%d"), 1] for day in days]
+                else:
+                    fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+                    items = [
+                        [params["ts_code"], day.strftime("%Y%m%d"), 100 + i, 99 + i,
+                         0.01 if payload["api_name"] == "fut_index_daily" else 1.0]
+                        for i, day in enumerate(days)
+                    ]
+                return BytesIO(json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode())
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: CoreOpener())
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id=case,
+            model_version_id="model-v0001", system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+>       assert stored.projection_set_id is not None
+E       AssertionError: assert None is not None
+E        +  where None = RunRecord(run_id='run-406e9f2b92019b747ae5', command_type='manual_full', target_business_date='2026-08-28', model_vers...ieval_scope=None, retrieval_attempts=(), retrieval_ledger=None, cutoff_mode='acquisition_window', cutoffs_frozen=False).projection_set_id
+
+tests/integration/test_full_run_retrieval.py:161: AssertionError
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-p2-review-red-corrected/test_p2_tushare_failure_or_mis1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76cc34c74620>
+case = 'treasury_schema'
+
+    @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+    def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                api = payload["api_name"]
+                if api == "cn_gdp" and case == "gdp_no_levels":
+                    fields = payload["fields"].split(",")
+                    row = {field: None for field in fields}
+                    row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+                elif api == "us_tycr" and case.startswith("treasury"):
+                    fields = payload["fields"].split(",")
+                    row = {"date": "20260828", "y2": None, "y10": 4.2}
+                    if case == "treasury_schema":
+                        return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+                else:
+                    raise OSError("fixture source unavailable; keep preexisting core evidence")
+                return BytesIO(json.dumps(
+                    {"code": 0, "data": {"fields": fields, "items": [[row[field] for field in fields]]}}
+                ).encode())
+    
+        class CoreOpener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                params = payload["params"]
+                start = datetime.strptime(params["start_date"], "%Y%m%d").date()
+                end = datetime.strptime(params["end_date"], "%Y%m%d").date()
+                days = [
+                    start + timedelta(days=i) for i in range((end - start).days + 1)
+                    if (start + timedelta(days=i)).weekday() < 5
+                ]
+                if payload["api_name"] == "trade_cal":
+                    fields = ["cal_date", "is_open"]
+                    items = [[day.strftime("%Y%m%d"), 1] for day in days]
+                else:
+                    fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+                    items = [
+                        [params["ts_code"], day.strftime("%Y%m%d"), 100 + i, 99 + i,
+                         0.01 if payload["api_name"] == "fut_index_daily" else 1.0]
+                        for i, day in enumerate(days)
+                    ]
+                return BytesIO(json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode())
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: CoreOpener())
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id=case,
+            model_version_id="model-v0001", system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+>       assert stored.projection_set_id is not None
+E       AssertionError: assert None is not None
+E        +  where None = RunRecord(run_id='run-3ece685e2c120d8b618d', command_type='manual_full', target_business_date='2026-08-28', model_vers...ieval_scope=None, retrieval_attempts=(), retrieval_ledger=None, cutoff_mode='acquisition_window', cutoffs_frozen=False).projection_set_id
+
+tests/integration/test_full_run_retrieval.py:161: AssertionError
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-p2-review-red-corrected/test_p2_tushare_failure_or_mis2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76cc3621fd70>
+case = 'treasury_partial'
+
+    @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+    def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                api = payload["api_name"]
+                if api == "cn_gdp" and case == "gdp_no_levels":
+                    fields = payload["fields"].split(",")
+                    row = {field: None for field in fields}
+                    row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+                elif api == "us_tycr" and case.startswith("treasury"):
+                    fields = payload["fields"].split(",")
+                    row = {"date": "20260828", "y2": None, "y10": 4.2}
+                    if case == "treasury_schema":
+                        return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+                else:
+                    raise OSError("fixture source unavailable; keep preexisting core evidence")
+                return BytesIO(json.dumps(
+                    {"code": 0, "data": {"fields": fields, "items": [[row[field] for field in fields]]}}
+                ).encode())
+    
+        class CoreOpener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                params = payload["params"]
+                start = datetime.strptime(params["start_date"], "%Y%m%d").date()
+                end = datetime.strptime(params["end_date"], "%Y%m%d").date()
+                days = [
+                    start + timedelta(days=i) for i in range((end - start).days + 1)
+                    if (start + timedelta(days=i)).weekday() < 5
+                ]
+                if payload["api_name"] == "trade_cal":
+                    fields = ["cal_date", "is_open"]
+                    items = [[day.strftime("%Y%m%d"), 1] for day in days]
+                else:
+                    fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+                    items = [
+                        [params["ts_code"], day.strftime("%Y%m%d"), 100 + i, 99 + i,
+                         0.01 if payload["api_name"] == "fut_index_daily" else 1.0]
+                        for i, day in enumerate(days)
+                    ]
+                return BytesIO(json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode())
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: CoreOpener())
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id=case,
+            model_version_id="model-v0001", system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+        assert stored.projection_set_id is not None
+        rows = ProjectionSetRepository(paths.database).get(stored.projection_set_id).datasets["macro"]["international_context"]
+        metric_id = "CN_GDP" if case == "gdp_no_levels" else "UST2Y_NOMINAL_YIELD"
+        row = next(row for row in rows if row["metric_id"] == metric_id)
+>       assert row["acquisition_status"] == (
+            "missing_fields" if case == "treasury_partial" else "validation_failed"
+        )
+E       AssertionError: assert 'no_attempt_for_target' == 'missing_fields'
+E         
+E         - missing_fields
+E         + no_attempt_for_target
+
+tests/integration/test_full_run_retrieval.py:165: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels]
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema]
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial]
+3 failed, 32 deselected in 35.67s

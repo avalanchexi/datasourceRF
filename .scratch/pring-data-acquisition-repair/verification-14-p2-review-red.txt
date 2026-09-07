@@ -1,0 +1,148 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-p2-review-red/test_p2_tushare_failure_or_mis0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x71a27d956ab0>
+case = 'gdp_no_levels'
+
+    @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+    def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                api = payload["api_name"]
+                if api == "cn_gdp" and case == "gdp_no_levels":
+                    fields = payload["fields"].split(",")
+                    row = {field: None for field in fields}
+                    row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+                elif api == "us_tycr" and case.startswith("treasury"):
+                    fields = payload["fields"].split(",")
+                    row = {"date": "20260828", "y2": None, "y10": 4.2}
+                    if case == "treasury_schema":
+                        return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+                else:
+                    raise OSError("fixture source unavailable; keep preexisting core evidence")
+                return BytesIO(json.dumps(
+                    {"code": 0, "data": {"fields": fields, "items": [[row[field] for field in fields]]}}
+                ).encode())
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: Opener())
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id=case,
+            model_version_id="model-v0001", system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+>       assert stored.projection_set_id is not None
+E       AssertionError: assert None is not None
+E        +  where None = RunRecord(run_id='run-66ea5371eb9e70e75b11', command_type='manual_full', target_business_date='2026-08-28', model_vers...ieval_scope=None, retrieval_attempts=(), retrieval_ledger=None, cutoff_mode='acquisition_window', cutoffs_frozen=False).projection_set_id
+
+tests/integration/test_full_run_retrieval.py:139: AssertionError
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-p2-review-red/test_p2_tushare_failure_or_mis1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x71a27cad35f0>
+case = 'treasury_schema'
+
+    @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+    def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                api = payload["api_name"]
+                if api == "cn_gdp" and case == "gdp_no_levels":
+                    fields = payload["fields"].split(",")
+                    row = {field: None for field in fields}
+                    row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+                elif api == "us_tycr" and case.startswith("treasury"):
+                    fields = payload["fields"].split(",")
+                    row = {"date": "20260828", "y2": None, "y10": 4.2}
+                    if case == "treasury_schema":
+                        return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+                else:
+                    raise OSError("fixture source unavailable; keep preexisting core evidence")
+                return BytesIO(json.dumps(
+                    {"code": 0, "data": {"fields": fields, "items": [[row[field] for field in fields]]}}
+                ).encode())
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: Opener())
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id=case,
+            model_version_id="model-v0001", system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+>       assert stored.projection_set_id is not None
+E       AssertionError: assert None is not None
+E        +  where None = RunRecord(run_id='run-f75a57729b1b92b4bfa9', command_type='manual_full', target_business_date='2026-08-28', model_vers...ieval_scope=None, retrieval_attempts=(), retrieval_ledger=None, cutoff_mode='acquisition_window', cutoffs_frozen=False).projection_set_id
+
+tests/integration/test_full_run_retrieval.py:139: AssertionError
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-p2-review-red/test_p2_tushare_failure_or_mis2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x71a27c90e060>
+case = 'treasury_partial'
+
+    @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
+    def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                payload = json.loads(request.data)
+                api = payload["api_name"]
+                if api == "cn_gdp" and case == "gdp_no_levels":
+                    fields = payload["fields"].split(",")
+                    row = {field: None for field in fields}
+                    row.update(quarter="2026Q2", gdp_yoy=4.7, pi_yoy=3.7, si_yoy=3.9, ti_yoy=5.2)
+                elif api == "us_tycr" and case.startswith("treasury"):
+                    fields = payload["fields"].split(",")
+                    row = {"date": "20260828", "y2": None, "y10": 4.2}
+                    if case == "treasury_schema":
+                        return BytesIO(b'{"code":0,"data":{"fields":[],"items":[[]]}}')
+                else:
+                    raise OSError("fixture source unavailable; keep preexisting core evidence")
+                return BytesIO(json.dumps(
+                    {"code": 0, "data": {"fields": fields, "items": [[row[field] for field in fields]]}}
+                ).encode())
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *handlers: Opener())
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28", client_request_id=case,
+            model_version_id="model-v0001", system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+>       assert stored.projection_set_id is not None
+E       AssertionError: assert None is not None
+E        +  where None = RunRecord(run_id='run-999cfed5b892de44dfc6', command_type='manual_full', target_business_date='2026-08-28', model_vers...ieval_scope=None, retrieval_attempts=(), retrieval_ledger=None, cutoff_mode='acquisition_window', cutoffs_frozen=False).projection_set_id
+
+tests/integration/test_full_run_retrieval.py:139: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels]
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema]
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial]
+3 failed, 32 deselected in 11.14s

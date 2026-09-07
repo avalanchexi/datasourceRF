@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial] _
+tests/integration/test_full_run_retrieval.py:191: in test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection
+    assert spread["acquisition_status"] == "derived_from_inputs"
+E   AssertionError: assert 'no_attempt_for_target' == 'derived_from_inputs'
+E     
+E     - derived_from_inputs
+E     + no_attempt_for_target
+=========================== short test summary info ============================
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial]
+1 failed, 34 deselected in 18.59s

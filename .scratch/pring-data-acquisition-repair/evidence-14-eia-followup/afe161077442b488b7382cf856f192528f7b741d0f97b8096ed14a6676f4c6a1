@@ -1,0 +1,391 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+
+<head>
+	<title>Table Definitions, Sources, and Explanatory Notes</title>
+    <link rel="StyleSheet" href="../Styles/pet_wrapper3.css" TYPE="text/css">
+    <link rel="StyleSheet" href="../Styles/tabledefs.css" TYPE="text/css">
+	<link rel="stylesheet" href="/styles/Eia_sitewideF.css" type="text/css" />		
+
+	  <!-- Header Script -->
+    <script language="JavaScript" src="/styles/eia_header.js" type="text/javascript"></script>
+  <!--/ Header Script -->
+ 
+  <!-- Footer Script -->
+    <script src="/styles/eia_footer.js" type="text/javascript"></script>
+  <!--/ Footer Script -->
+	
+</head>
+
+<body>
+
+<script language="JavaScript" type="text/javascript">InsertEIAHeaderCode();</script>
+
+<div id="align_w">	
+
+
+
+<br clear="all">
+<table width="960" border="0" cellspacing="0" cellpadding="0" align="left">
+<tr>	
+	<td align="left">
+      <table width="960" border="0" cellspacing="0" cellpadding="0">
+      <tr>
+	    <td height="2" class="Title_Page3"><img src="../img/spacer_transp.gif" alt="" width="1" height="1" border="0"></td>
+	  </tr>
+      <tr>
+	    <td class="Title_Page3">&nbsp;Definitions, Sources and Explanatory Notes</td>
+	  </tr>
+      <tr>
+	    <td height="2" class="Title_Page3"><img src="../img/spacer_transp.gif" alt="" width="1" height="1" border="0"></td>
+	  </tr>
+	  <tr>
+	    <td height="8"></td>
+	  </tr>
+	  </table>
+	</td>
+</tr>
+</table>	  
+		  
+<br clear="all">
+<table width="300" border="0" cellspacing="0" cellpadding="0" align="left">
+
+
+
+  
+
+	      <tr>
+		    <td width="50" valign="top" class="Title_Cat">&nbsp;Category:&nbsp;&nbsp;</td>
+			<td width="250" class="Title_Cat">
+<a class="cat" href="../pet_pri_top.asp">Petroleum Prices</a>
+</td>
+	      </tr>
+          <tr>
+            <td colspan="2" height="2"></td>
+          </tr>	
+	      <tr>
+		    <td valign="top" class="Title_Cat">&nbsp;Topic:&nbsp;&nbsp;</td>
+	        <td class="Title_Cat">
+<a class="cat" href="../pet_pri_spt_s1_d.htm">Spot Prices</a>
+  </td>
+</tr>
+</table>			  		
+<br clear="all">
+
+<table width="960" border="0" cellspacing="0" cellpadding="0" align="left">
+<tr>
+	<td colspan="2" height="12"></td>
+</tr>
+<tr>
+	<td align="left" class="SubHead"><img src="../img/Bullet_redsq1.gif" alt="" width="9" height="15" border="0">&nbsp;&nbsp;Definitions</td>
+	<td align="right" class="D"></td>
+</tr>
+<tr>
+	<td colspan="2" height="5"></td>
+</tr>
+</table>
+<br clear="all"><table width="960" border="1" cellspacing="0" cellpadding="3" align="left" bordercolor="#3366CC">
+<tr bgcolor="#3366CC">
+  <th class="C1" width="20%">Key Terms</th>
+  <th class="C1" width="80%">Definition</th>
+</tr>
+
+
+<tr class="Row">
+  <td class="B1">Brent</td>
+  <td class="B2">A blended crude stream produced in the North Sea region which serves as a reference or
+"marker" for pricing a number of other crude streams.
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Conventional Gasoline</td>
+  <td class="B2">Finished motor gasoline not included in the oxygenated or reformulated gasoline categories. 
+Excludes reformulated gasoline blendstock for oxygenate blending (RBOB) 
+as well as other blendstock. 
+
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Crude Oil</td>
+  <td class="B2">A mixture of hydrocarbons that exists in liquid phase in natural underground 
+reservoirs and remains liquid at atmospheric pressure after passing through 
+surface separating facilities. Depending upon the characteristics of the crude 
+stream, it may also include: 
+<br>
+<li>Small amounts of hydrocarbons that exist in gaseous phase in natural 
+underground reservoirs but are liquid at atmospheric pressure after being 
+recovered from oil well (casinghead) gas in lease separators and are subsequently 
+commingled with the crude stream without being separately measured. Lease 
+condensate recovered as a liquid from natural gas wells in lease or field 
+separation facilities and later mixed into the crude stream is also included;  </li>
+<li>Small amounts of nonhydrocarbons produced with the oil, such as sulfur and 
+various metals;</li>
+<li>Drip gases, and liquid hydrocarbons produced from tar sands, oil sands, 
+gilsonite, and oil shale.</li>
+<br><br>
+Liquids produced at natural gas processing plants are excluded. Crude oil is refined to produce 
+a wide array of petroleum products, including heating oils; gasoline, diesel and jet fuels; 
+lubricants; asphalt; ethane, propane, and butane; and many other products used for their 
+energy or chemical content. 
+ 
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Kerosene-Type Jet Fuel</td>
+  <td class="B2">A kerosene-based product having a maximum distillation temperature of 400 degrees Fahrenheit at 
+the 10-percent recovery point and a final maximum boiling point of 572 degrees Fahrenheit 
+and meeting ASTM Specification D 1655 and Military Specifications MIL-T-5624P and MIL-T-83133D
+(Grades JP-5 and JP-8). It is used for commercial
+ and military turbojet and turboprop aircraft engines. 
+
+
+
+
+
+
+
+
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Los Angeles</td>
+  <td class="B2">The location specified in either spot or futures contracts for delivery of a product in 
+any port city in southern California.
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Mont Belvieu</td>
+  <td class="B2">The location specified in either spot or futures contracts for delivery of propane in
+Mont Belvieu, Texas.
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">New York Harbor</td>
+  <td class="B2">The location specified in either spot or futures contracts for delivery of a product
+in New York Harbor.
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">No. 2 Diesel Fuel</td>
+  <td class="B2">A gasoil type distillate for use in high speed diesel engines generally operated under uniform
+speed and load conditions, with distillation temperatures between 540-640 degrees Fahrenheit
+at the 90-percent recovery point; and the kinematic viscosities between 1.9-4.1 centistokes
+at 100 degrees Fahrenheit as defined in ASTM specification D975-93. Includes Type R-R diesel
+fuel used for railroad locomotive engines, and Type T-T for diesel-engine trucks.
+<br><br>
+For pricing data:  <strong>Ultra-Low Sulfur</strong> or <strong>On-Highway Diesel Fuel</strong> is No. 2 diesel fuel which has a sulfur level less than or equal to 15 ppm (parts per million);  <strong>Low Sulfur Diesel Fuel</strong> is No. 2 diesel fuel which has a sulfur level greater than 15 and less than or equal to 500 ppm; and <strong>High Sulfur</strong> refers to No. 2 distillate (either diesel or fuel oil) which has a sulfur level greater than 500 ppm.
+
+
+
+
+
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Oxygenates</td>
+  <td class="B2">Substances which, when added to gasoline, increase the amount of oxygen in that gasoline blend.  
+Ethanol, Methyl Tertiary Butyl Ether (MTBE), Ethyl Tertiary Butyl Ether (ETBE), and methanol 
+are common oxygenates.
+
+<li>
+<strong>Fuel Ethanol</strong>: Blends of up to 10 percent by volume anhydrous ethanol (200 proof) (commonly referred to as the 
+"gasohol waiver").
+</li>
+<li>
+<strong>Methanol</strong>: Blends of methanol and gasoline-grade tertiary butyl alcohol (GTBA) such that the total oxygen content
+does not exceed 3.5 percent by weight and the ratio of methanol to GTBA is less than or equal to 1. It is also 
+specified that this blended fuel must meet ASTM volatility specifications (commonly referred to as the "ARCO" 
+waiver).
+<br>
+Blends of up to 5.0 percent by volume methanol with a minimum of 2.5 percent by volume cosolvent alcohols having a carbon number of 4 or less (i.e., ethanol, propanol, butanol, and/or GTBA). The total oxygen must not exceed 3.7 percent by weight, and the blend must meet ASTM volatility specifications as well as phase separation and alcohol purity specifications (commonly referred to as the "DuPont" waiver).
+</li>
+<li>
+<strong>MTBE (Methyl tertiary butyl ether)</strong>: Blends up to 15.0 percent by volume MTBE which must meet the ASTM D4814 
+specifications.  Blenders must take precautions that the blends are not used as base gasolines for other 
+oxygenated blends (commonly referred to as the "Sun" waiver).
+</li>
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Propane (C<sub>3</sub>H<sub>8</sub>)</td>
+  <td class="B2">A normally gaseous straight-chain hydrocarbon. It is a colorless paraffinic gas that boils at a 
+temperature of -43.67 degrees Fahrenheit. It is extracted from natural gas or refinery gas streams.
+It includes all products designated in ASTM Specification D1835 and Gas Processors Association 
+Specifications for commercial propane and HD-05 propane.  For price data, it does not include
+the propane portion of any natural gas liquids (NGL) mixes; i.e., butane-propane and ethane-propane
+mix.
+ 
+
+
+
+
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">RBOB</td>
+  <td class="B2">"Reformulated Gasoline Blendstock for Oxygenate Blending" is motor gasoline blending components 
+intended for blending with oxygenates to produce finished reformulated gasoline. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Regular Gasoline</td>
+  <td class="B2">Gasoline having an antiknock index (average of the research octane rating and the motor octane
+number) greater than or equal to 85 and less than 88. Note: Octane requirements may vary by altitude.
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">Spot Price</td>
+  <td class="B2">The price for a one-time open market transaction for immediate delivery of a specific
+quantity of product at a specific location where the commodity is purchased "on the spot"
+at current market rates.
+
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">U.S. Gulf Coast</td>
+  <td class="B2">The location specified in either spot or futures contracts for delivery of a product
+in any port city along the coastline of Texas and Louisiana.
+
+
+</td>
+</tr>
+<tr class="Row">
+  <td class="B1">West Texas Intermediate (WTI - Cushing)</td>
+  <td class="B2">A crude stream produced in Texas and southern Oklahoma which serves as a reference or "marker"
+for pricing a number of other crude streams and which is traded in the domestic spot market
+at Cushing, Oklahoma.
+
+
+</td>
+</tr>
+
+
+</table>
+<br clear="all"><table width="98%" border="0" cellspacing="0" cellpadding="3" align="center">
+<tr>
+  <td height="5"></td>
+</tr>
+<tr>
+  <td class="Notes">
+   For definitions of related energy terms, refer to the
+   <a href="http://www.eia.doe.gov/glossary/index.html" class="reg">EIA Energy Glossary</a>. 
+  </td>
+</tr>
+</table>
+<br clear="all">
+<table width="960" border="0" cellspacing="0" cellpadding="3" align="left">
+<tr>
+	<td class="SubHead"><img src="../img/Bullet_redsq1.gif" alt="" width="9" height="15" border="0">&nbsp;
+	Sources</td>
+</tr>
+</table>
+<br clear="all">
+<table width="960" border="0" cellspacing="0" cellpadding="0" align="left">
+<tr>
+  <td height="5" colspan="2"></td>
+</tr>
+<tr>
+  <td width="22"></td>
+  <td width="938" class="B2">Refinitiv, an LSEG business   </td>
+</tr>
+</table><br clear="all">
+<table width="960" border="0" cellspacing="0" cellpadding="0" align="left">
+<tr>
+	<td height="15"></td>
+</tr>
+<tr>
+	<td class="SubHead"><img src="../img/Bullet_redsq1.gif" alt="" width="9" height="15" border="0">&nbsp;
+	Explanatory Notes</td>
+</tr>
+<tr>
+	<td height="5"></td>
+</tr>
+</table>
+<br clear="all">
+
+<table width="960" border="0" cellspacing="0" cellpadding="0" align="left">
+<tr>
+<td width="22"></td>
+<td width="938">
+
+	<table width="938" border="0" cellspacing="0" cellpadding="0" align="left">
+	<tr>
+	  <td height="5" colspan="2"></td>
+	</tr>
+	<tr>
+	  <td width="5"></td>  
+	  <td width="933"></td>
+	</tr> <tr>
+  <td class="Notes" align="center" valign="top"><li></td>  
+  <td class="Notes">
+  Weekly, monthly, and annual prices are calculated by EIA from daily data by  
+  taking an unweighted average of the daily closing spot prices
+  for a given product over the specified time period.
+  </td>
+</tr> 
+
+
+  </table>
+  </td>
+</tr>
+</table>
+<br clear="all">
+
+</div> <!-- align_w -->
+
+ <script type="text/javascript">InsertEIAFooterCode();</script>
+
+</body>
+</html>

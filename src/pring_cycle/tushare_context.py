@@ -96,6 +96,7 @@ class ContextIngestionResult:
     observation_ids: tuple[str, ...]
     claim_ids: tuple[str, ...]
     metric_ids: tuple[str, ...]
+    rejected_field_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,7 @@ class TushareContextAdapter:
         self._acquisitions: AcquisitionRepository | None = None
         self._receipts: list[AcquisitionReceipt] = []
         self._request_wrapper: ContextRequestWrapper | None = None
+        self._field_rejections: list[dict[str, str]] = []
 
     def acquire_scalars(
         self,
@@ -159,6 +161,7 @@ class TushareContextAdapter:
         self._acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
         self._receipts = []
         self._request_wrapper = request_wrapper
+        self._field_rejections = []
         try:
             scalars = retrieve()
             if not self._receipts:
@@ -172,24 +175,42 @@ class TushareContextAdapter:
                 linked.append(
                     replace(scalar, acquisition_ids=tuple(r.acquisition_id for r in inputs))
                 )
+            normalized: object = [asdict(s) for s in linked]
+            if self._field_rejections:
+                normalized = {
+                    "accepted_scalars": normalized,
+                    "rejected_fields": self._field_rejections,
+                }
             store_artifact(
                 paths.database,
                 paths.artifacts,
-                _canonical_json([asdict(s) for s in linked]).encode(),
+                _canonical_json(normalized).encode(),
                 "application/json",
                 f"context-acquisition:{self._receipts[0].acquisition_id}",
             )
             for receipt in self._receipts:
+                receipt_document: object = [
+                    asdict(s) for s in linked if receipt.acquisition_id in s.acquisition_ids
+                ]
+                rejected = [
+                    item for item in self._field_rejections if item["api_name"] == receipt.api_name
+                ]
+                if rejected:
+                    receipt_document = {
+                        "accepted_scalars": receipt_document,
+                        "rejected_fields": rejected,
+                    }
                 self._acquisitions.complete_validation(
                     receipt.acquisition_id,
-                    [asdict(s) for s in linked if receipt.acquisition_id in s.acquisition_ids],
+                    receipt_document,
                 )
-            return ingest_context_scalars(
+            result = ingest_context_scalars(
                 paths,
                 tuple(linked),
                 fetched_at=utc_now(),
                 definition_version=definition_version,
             )
+            return replace(result, rejected_field_count=len(self._field_rejections))
         except Exception as error:
             for receipt in self._receipts:
                 self._acquisitions.fail_validation(receipt.acquisition_id, error)
@@ -198,6 +219,7 @@ class TushareContextAdapter:
             self._acquisitions = None
             self._receipts = []
             self._request_wrapper = None
+            self._field_rejections = []
 
     @property
     def network_requests(self) -> int:
@@ -486,6 +508,7 @@ class TushareContextAdapter:
         start_quarter: str,
         end_quarter: str,
     ) -> tuple[ContextScalar, ...]:
+        """Keep nominal levels; disputed provider YoY fields require separate certification."""
         start_value = _quarter_value(start_quarter)
         end_value = _quarter_value(end_quarter)
         if _quarter_ordinal(end_value) < _quarter_ordinal(start_value):
@@ -506,7 +529,7 @@ class TushareContextAdapter:
         )
         scalars: list[ContextScalar] = []
         for row in rows:
-            year_start, quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
+            year_start, _quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
             for aggregate, level_field, yoy_field in fields:
                 level = _number(row.get(level_field))
                 if level is not None:
@@ -527,22 +550,17 @@ class TushareContextAdapter:
                         )
                     )
                 yoy = _number(row.get(yoy_field))
-                if yoy is not None:
-                    scalars.append(
-                        ContextScalar(
-                            metric_id="CN_GDP",
-                            api_name="cn_gdp",
-                            source_field=yoy_field,
-                            period_kind="quarter",
-                            period_start=quarter_start,
-                            period_end=quarter_end,
-                            dimensions={
-                                "aggregate": aggregate,
-                                "measure": "real_quarter_yoy",
-                            },
-                            value=yoy,
-                            unit="percent",
-                        )
+                if yoy is not None and self._acquisitions is not None:
+                    # Q2 delivery disagrees with the documented single-quarter
+                    # meaning. Do not relabel every vintage as cumulative either.
+                    self._field_rejections.append(
+                        {
+                            "metric_id": "CN_GDP",
+                            "api_name": "cn_gdp",
+                            "source_field": yoy_field,
+                            "period_end": quarter_end,
+                            "reason": "gdp_yoy_period_semantics_unverified",
+                        }
                     )
         return tuple(scalars)
 
@@ -1112,7 +1130,11 @@ class TushareContextAdapter:
                 api_name=api_name,
                 parameters=params,
                 fields=",".join(fields),
-                parser_version="tushare-context-parser-v0002",
+                parser_version=(
+                    "tushare-gdp-parser-v0003"
+                    if api_name == "cn_gdp"
+                    else "tushare-context-parser-v0002"
+                ),
                 fetch=fetch,
                 parse=parse,
                 normalize=lambda rows: rows,
@@ -1159,6 +1181,13 @@ def ingest_context_scalars(
     claims: list[SourceClaimInput] = []
     stored_by_input: list[StoredSourceClaim | None] = []
     for scalar in scalars:
+        if scalar.api_name == "cn_gdp" and scalar.source_field in {
+            "gdp_yoy",
+            "pi_yoy",
+            "si_yoy",
+            "ti_yoy",
+        }:
+            raise ValueError("gdp_yoy_period_semantics_unverified")
         if (
             scalar.definition_version is not None
             and scalar.definition_version != definition_version
@@ -1312,11 +1341,17 @@ def ingest_context_scalars(
             metric_id=metric_id,
             channel="tushare",
             outcome="verified_candidate",
-            fetched_at=fetched_at,
+            fetched_at=utc_now()
+            if any(item.acquisition_ids for item in metric_scalars)
+            else fetched_at,
+            acquisition_ids=tuple(
+                sorted({identity for item in metric_scalars for identity in item.acquisition_ids})
+            ),
             safe_metadata={
                 "api_names": ",".join(sorted({item.api_name for item in metric_scalars})),
                 "observations": str(len(metric_scalars)),
                 "period_end": max(item.period_end for item in metric_scalars),
+                "definition_version": definition_version,
             },
         )
     return ContextIngestionResult(

@@ -369,7 +369,7 @@ def test_futures_warrant_saturated_range_is_split_until_every_date_is_visible() 
     assert adapter.network_requests == 3
 
 
-def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy() -> None:
+def test_gdp_contract_keeps_levels_and_excludes_uncertified_yoy_semantics() -> None:
     adapter = TushareContextAdapter(
         "fixture-token",
         transport=transport(
@@ -395,11 +395,11 @@ def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy
 
     scalars = adapter.gdp(start_quarter="2026Q2", end_quarter="2026Q2")
 
-    assert len(scalars) == 8
+    assert len(scalars) == 4
     assert {(item.dimensions["aggregate"], item.dimensions["measure"]) for item in scalars} == {
         (aggregate, measure)
         for aggregate in ("total", "primary", "secondary", "tertiary")
-        for measure in ("nominal_ytd_level", "real_quarter_yoy")
+        for measure in ("nominal_ytd_level",)
     }
     total_level = next(
         item
@@ -410,24 +410,10 @@ def test_gdp_contract_keeps_reported_cumulative_levels_distinct_from_quarter_yoy
             "measure": "nominal_ytd_level",
         }
     )
-    total_yoy = next(
-        item
-        for item in scalars
-        if item.dimensions
-        == {
-            "aggregate": "total",
-            "measure": "real_quarter_yoy",
-        }
-    )
     assert (total_level.period_start, total_level.period_end, total_level.unit) == (
         "2026-01-01",
         "2026-06-30",
         "hundred_million_cny",
-    )
-    assert (total_yoy.period_start, total_yoy.period_end, total_yoy.unit) == (
-        "2026-04-01",
-        "2026-06-30",
-        "percent",
     )
 
 

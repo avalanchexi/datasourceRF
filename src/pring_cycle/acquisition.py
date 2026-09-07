@@ -79,6 +79,37 @@ class AcquisitionReceipt:
     error_type: str | None
 
 
+def acquisition_analysis_context(
+    database: Path, acquisition_ids: tuple[str, ...]
+) -> dict[str, str]:
+    """Use persisted ownership; mixed or unbound originals have no single analysis target."""
+    if not acquisition_ids:
+        return {}
+    with sqlite3.connect(database) as connection:
+        if (
+            connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='full_run_acquisition'"
+            ).fetchone()
+            is None
+        ):
+            return {}
+        rows = connection.execute(
+            """
+            SELECT a.acquisition_id, a.run_id, r.target_business_date
+            FROM full_run_acquisition a JOIN parent_run r ON r.run_id=a.run_id
+            WHERE a.acquisition_id IN (SELECT value FROM json_each(?))
+            """,
+            (json.dumps(acquisition_ids),),
+        ).fetchall()
+    if {row[0] for row in rows} != set(acquisition_ids):
+        return {}
+    contexts = {(str(row[1]), str(row[2])) for row in rows}
+    if len(contexts) != 1:
+        return {}
+    run_id, target = next(iter(contexts))
+    return {"run_id": run_id, "target_business_date": target}
+
+
 @dataclass(frozen=True)
 class Acquired[T]:
     value: T

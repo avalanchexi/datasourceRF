@@ -1,0 +1,36 @@
+{
+  "base_commit": "02a5cce7e9d97a6199534992533d96da84f26b6c",
+  "ticket": 14,
+  "ticket_status": "in-progress",
+  "code_batch_status": "verified",
+  "scope": ["GDP source field semantics", "P2 acquisition state and nonfatal errors", "source attempt ownership and completion time", "derived Treasury input status", "basis point display"],
+  "full_suite": {
+    "passed": 580,
+    "failed": 0,
+    "duration_seconds": 719.66,
+    "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-suite-20260907a",
+    "log": "../verification-14-pytest.txt",
+    "package_mode": "installed non-editable",
+    "pythonpath_unset": true
+  },
+  "mypy": {"status": "passed", "source_files": 79, "log": "mypy.txt"},
+  "ruff": {"status": "passed", "log": "ruff.txt"},
+  "source_identity": {"matched_python_files": 79, "manifest": "code-fingerprint.json", "verifier": "verify_artifacts.py"},
+  "spec_review_remaining": 0,
+  "standards_review_remaining": 0,
+  "real_official_rehearsal": {
+    "requests": 2,
+    "candidate_claims": 9,
+    "raw_artifacts": 2,
+    "normalized_artifacts": 2,
+    "evidence": "../evidence-14-live-official/delivery-verification.json",
+    "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-live-official-20260907a"
+  },
+  "eia_contract_research": "../evidence-14-eia-followup/delivery-verification.json",
+  "source_certifications_completed": 0,
+  "real_search_benchmark_completed": false,
+  "production_writes": 0,
+  "public_replay_completed": false,
+  "real_cli_explanation_completed": false,
+  "model_cutover_completed": false
+}

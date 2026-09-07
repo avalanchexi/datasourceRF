@@ -1,0 +1,250 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns[http] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-official-failure-red/test_official_gdp_quarter_yoy_0')
+later_failure = 'http'
+
+    @pytest.mark.parametrize("later_failure", [None, "http", "parse"])
+    def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
+        tmp_path: Path, later_failure: str | None
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        models = ModelRepository(paths.database)
+        models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+        models.activate("model-v0001", explicitly_approved=True)
+        run = RunRepository(paths.database).submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="official-gdp-candidate",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        digest = "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+        content = (
+            Path(__file__).resolve().parents[2]
+            / ".scratch/pring-data-acquisition-repair/evidence-14"
+            / digest
+        ).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == digest
+        EvidenceRepository(paths.database).record_retrieval_attempt(
+            metric_id="CN_GDP", channel="tushare", outcome="missing_credentials",
+            fetched_at=datetime.now(UTC), safe_metadata={
+                "period": "2026-08-28", "target_business_date": "2026-08-28",
+                "definition_version": "metric-catalog-v0001",
+            },
+        )
+        with own_acquisitions(
+            paths.database, run.run_id, "gap_retrieval", metric_ids=("CN_GDP",), period="2026-Q2"
+        ):
+            result = ingest_official_context_document(
+                paths,
+                content,
+                family="nbs_gdp",
+                source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+                expected_period="2026-Q2",
+                fetched_at=datetime.now(UTC),
+                definition_version="metric-catalog-v0001",
+            )
+        assert result.observation_count == 8
+        evidence = EvidenceRepository(paths.database)
+        points = evidence.metric_series(
+            "CN_GDP",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        quarter = [p for p in points if p.dimensions["measure"] == "real_quarter_yoy"]
+        assert {p.dimensions["aggregate"]: p.claims[0].value for p in quarter} == {
+            "total": 4.3,
+            "primary": 3.7,
+            "secondary": 3.0,
+            "tertiary": 5.1,
+        }
+        assert {p.claims[0].public_available_at for p in quarter} == {
+            datetime(2026, 7, 16, 1, 30, tzinfo=UTC)
+        }
+        assert all(p.claims[0].certification_status == "awaiting_source_certification" for p in points)
+        attempt = evidence.latest_retrieval_attempt(
+            "CN_GDP",
+            period=None,
+            target_business_date="2026-08-28",
+            as_of=datetime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        assert attempt is not None
+        assert attempt.outcome == "verified_candidate"
+        assert attempt.safe_metadata["period"] == "2026-Q2"
+        assert attempt.safe_metadata["target_business_date"] == "2026-08-28"
+        assert attempt.safe_metadata["run_id"] == run.run_id
+        context = build_context_projection(
+            evidence, as_of=datetime.now(UTC), model_manifest=models.manifest("model-v0001"),
+            target_business_date="2026-08-28",
+        )
+        rows = [row for row in context.macro["international_context"] if row["metric_id"] == "CN_GDP"]
+        assert {row["acquisition_status"] for row in rows} == {"verified_candidate"}
+        assert {row["certification_status"] for row in rows} == {"awaiting_source_certification"}
+        assert all(row["value"] is None for row in rows)
+        if later_failure is None:
+            return
+    
+        before_failure = datetime.now(UTC)
+        started: list[str] = []
+    
+        def failed_fetch(url: str) -> FetchedOfficialContextDocument:
+            if later_failure == "http":
+                raise OSError("fixture source unavailable")
+            return FetchedOfficialContextDocument(b"<html>no GDP table</html>", "text/html", url, 200)
+    
+        with own_acquisitions(
+            paths.database, run.run_id, "gap_retrieval", metric_ids=("CN_GDP",), period="2026-Q2"
+        ), pytest.raises(OSError if later_failure == "http" else ValueError):
+            refresh_official_context_document(
+                paths,
+                family="nbs_gdp",
+                source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+                expected_period="2026-Q2",
+                fetched_at=datetime(2026, 7, 16, tzinfo=UTC),
+                fetcher=failed_fetch,
+                definition_version="metric-catalog-v0001",
+                on_acquisition_started=started.append,
+            )
+        latest = evidence.latest_retrieval_attempt(
+            "CN_GDP", period=None, target_business_date="2026-08-28", as_of=datetime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        assert latest is not None
+        outcome = "source_failed" if later_failure == "http" else "validation_failed"
+>       assert latest.outcome == outcome
+E       AssertionError: assert 'verified_candidate' == 'source_failed'
+E         
+E         - source_failed
+E         + verified_candidate
+
+tests/integration/test_gdp_semantics.py:199: AssertionError
+_ test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns[parse] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-official-failure-red/test_official_gdp_quarter_yoy_1')
+later_failure = 'parse'
+
+    @pytest.mark.parametrize("later_failure", [None, "http", "parse"])
+    def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
+        tmp_path: Path, later_failure: str | None
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        models = ModelRepository(paths.database)
+        models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+        models.activate("model-v0001", explicitly_approved=True)
+        run = RunRepository(paths.database).submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="official-gdp-candidate",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        digest = "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+        content = (
+            Path(__file__).resolve().parents[2]
+            / ".scratch/pring-data-acquisition-repair/evidence-14"
+            / digest
+        ).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == digest
+        EvidenceRepository(paths.database).record_retrieval_attempt(
+            metric_id="CN_GDP", channel="tushare", outcome="missing_credentials",
+            fetched_at=datetime.now(UTC), safe_metadata={
+                "period": "2026-08-28", "target_business_date": "2026-08-28",
+                "definition_version": "metric-catalog-v0001",
+            },
+        )
+        with own_acquisitions(
+            paths.database, run.run_id, "gap_retrieval", metric_ids=("CN_GDP",), period="2026-Q2"
+        ):
+            result = ingest_official_context_document(
+                paths,
+                content,
+                family="nbs_gdp",
+                source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+                expected_period="2026-Q2",
+                fetched_at=datetime.now(UTC),
+                definition_version="metric-catalog-v0001",
+            )
+        assert result.observation_count == 8
+        evidence = EvidenceRepository(paths.database)
+        points = evidence.metric_series(
+            "CN_GDP",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        quarter = [p for p in points if p.dimensions["measure"] == "real_quarter_yoy"]
+        assert {p.dimensions["aggregate"]: p.claims[0].value for p in quarter} == {
+            "total": 4.3,
+            "primary": 3.7,
+            "secondary": 3.0,
+            "tertiary": 5.1,
+        }
+        assert {p.claims[0].public_available_at for p in quarter} == {
+            datetime(2026, 7, 16, 1, 30, tzinfo=UTC)
+        }
+        assert all(p.claims[0].certification_status == "awaiting_source_certification" for p in points)
+        attempt = evidence.latest_retrieval_attempt(
+            "CN_GDP",
+            period=None,
+            target_business_date="2026-08-28",
+            as_of=datetime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        assert attempt is not None
+        assert attempt.outcome == "verified_candidate"
+        assert attempt.safe_metadata["period"] == "2026-Q2"
+        assert attempt.safe_metadata["target_business_date"] == "2026-08-28"
+        assert attempt.safe_metadata["run_id"] == run.run_id
+        context = build_context_projection(
+            evidence, as_of=datetime.now(UTC), model_manifest=models.manifest("model-v0001"),
+            target_business_date="2026-08-28",
+        )
+        rows = [row for row in context.macro["international_context"] if row["metric_id"] == "CN_GDP"]
+        assert {row["acquisition_status"] for row in rows} == {"verified_candidate"}
+        assert {row["certification_status"] for row in rows} == {"awaiting_source_certification"}
+        assert all(row["value"] is None for row in rows)
+        if later_failure is None:
+            return
+    
+        before_failure = datetime.now(UTC)
+        started: list[str] = []
+    
+        def failed_fetch(url: str) -> FetchedOfficialContextDocument:
+            if later_failure == "http":
+                raise OSError("fixture source unavailable")
+            return FetchedOfficialContextDocument(b"<html>no GDP table</html>", "text/html", url, 200)
+    
+        with own_acquisitions(
+            paths.database, run.run_id, "gap_retrieval", metric_ids=("CN_GDP",), period="2026-Q2"
+        ), pytest.raises(OSError if later_failure == "http" else ValueError):
+            refresh_official_context_document(
+                paths,
+                family="nbs_gdp",
+                source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+                expected_period="2026-Q2",
+                fetched_at=datetime(2026, 7, 16, tzinfo=UTC),
+                fetcher=failed_fetch,
+                definition_version="metric-catalog-v0001",
+                on_acquisition_started=started.append,
+            )
+        latest = evidence.latest_retrieval_attempt(
+            "CN_GDP", period=None, target_business_date="2026-08-28", as_of=datetime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        assert latest is not None
+        outcome = "source_failed" if later_failure == "http" else "validation_failed"
+>       assert latest.outcome == outcome
+E       AssertionError: assert 'verified_candidate' == 'validation_failed'
+E         
+E         - validation_failed
+E         + verified_candidate
+
+tests/integration/test_gdp_semantics.py:199: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_gdp_semantics.py::test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns[http]
+FAILED tests/integration/test_gdp_semantics.py::test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns[parse]
+2 failed, 3 deselected in 2.74s

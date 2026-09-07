@@ -327,11 +327,23 @@ def ingest_eia_spot_prices(
             metric_id=metric_id,
             channel="eia_official_candidate",
             outcome="verified_candidate",
-            fetched_at=fetched_at,
+            fetched_at=utc_now()
+            if any(price.acquisition_id for price in metric_prices)
+            else fetched_at,
+            acquisition_ids=tuple(
+                sorted(
+                    {
+                        price.acquisition_id
+                        for price in metric_prices
+                        if price.acquisition_id is not None
+                    }
+                )
+            ),
             safe_metadata={
                 "endpoint": EIA_SPOT_PRICE_ENDPOINT,
                 "observations": str(len(metric_prices)),
                 "series_id": metric_prices[0].series_id,
+                "definition_version": definition_version,
             },
         )
     return EiaIngestionResult(

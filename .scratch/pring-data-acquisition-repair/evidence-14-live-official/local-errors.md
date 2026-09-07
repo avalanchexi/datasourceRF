@@ -1,0 +1,3 @@
+首次导出脚本在中间价请求已完成、原件/标准化字节已导出之后，误读ClaimView.acquisition_id而发生AttributeError；这不是来源失败。既有原件SHA为a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa。
+
+改为公开EvidenceRepository.trace取得实际关联；通过显式--resume只导出已完成请求，之后继续尚未请求的NBS。中间价不重复GET，历史SYSTEM时间不回填，错误计入本地导出故障。

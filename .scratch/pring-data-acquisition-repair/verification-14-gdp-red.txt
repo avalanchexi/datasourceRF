@@ -1,0 +1,47 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy ____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-gdp-red/test_gdp_acquisition_preserves0')
+
+    def test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy(tmp_path: Path) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        # A transport-shaped fixture from the archived Q2 comparison. NBS single
+        # quarter total/secondary/tertiary are 4.3/3.0/5.1, not 4.7/3.9/5.2.
+        row = {
+            "quarter": "2026Q2",
+            "gdp": 695704.0,
+            "gdp_yoy": 4.7,
+            "pi": 31521.8,
+            "pi_yoy": 3.7,
+            "si": 250472.9,
+            "si_yoy": 3.9,
+            "ti": 413709.2,
+            "ti_yoy": 5.2,
+        }
+        originals = []
+    
+        def transport(payload):
+            assert payload["api_name"] == "cn_gdp"
+            fields = payload["fields"].split(",")
+            raw = json.dumps(
+                {"code": 0, "data": {"fields": fields, "items": [[row[f] for f in fields]]}}
+            ).encode()
+            originals.append(raw)
+            return raw
+    
+        adapter = TushareContextAdapter("fixture-secret", transport=transport)
+        result = adapter.acquire_scalars(
+            paths,
+            lambda: adapter.gdp(start_quarter="2026Q2", end_quarter="2026Q2"),
+            definition_version="metric-catalog-v0002",
+        )
+>       assert result.observation_count == 4
+E       AssertionError: assert 8 == 4
+E        +  where 8 = ContextIngestionResult(observation_count=8, observation_ids=('da11830fb21c180fed784d3d506d153a4dd8372c5ba8e5574d12e2cc...366418dd3fd24e0580e60ff4', 'f9dc1463ee51151dc5074f073746cf78ff64117f39d7dfd679e44b4aa832dc1c'), metric_ids=('CN_GDP',)).observation_count
+
+tests/integration/test_gdp_semantics.py:46: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_gdp_semantics.py::test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy
+1 failed in 2.22s

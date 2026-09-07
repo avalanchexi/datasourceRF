@@ -315,10 +315,15 @@ def test_official_context_refresh_records_family_failure_without_storing_values(
         )
 
     repository = EvidenceRepository(paths.database)
+    assert (
+        repository.latest_retrieval_attempt("CN_CORE_CPI", period="2026-06", as_of=fetched_at)
+        is None
+    )
+    completed_at = datetime.now(UTC)
     attempt = repository.latest_retrieval_attempt(
         "CN_CORE_CPI",
         period="2026-06",
-        as_of=fetched_at,
+        as_of=completed_at,
     )
     assert attempt is not None
     assert attempt.channel == "official_direct_candidate"
@@ -327,7 +332,7 @@ def test_official_context_refresh_records_family_failure_without_storing_values(
         repository.metric_series(
             "CN_CORE_CPI",
             mode=AsOfMode.SYSTEM,
-            as_of=fetched_at,
+            as_of=completed_at,
         )
         == ()
     )

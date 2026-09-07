@@ -1,0 +1,121 @@
+{
+  "verified_at": "2026-09-07T05:14:14.508970+00:00",
+  "new_get_requests": 4,
+  "new_get_success": 4,
+  "new_raw_bytes": 192149,
+  "reused_raw_count": 3,
+  "total_verified_raw_count": 7,
+  "total_verified_raw_bytes": 1174186,
+  "raw_checks": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+      "sha256": "6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+      "bytes": 18787,
+      "reused": false
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+      "sha256": "6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+      "bytes": 106106,
+      "reused": false
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+      "sha256": "966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+      "bytes": 54803,
+      "reused": false
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+      "sha256": "afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+      "bytes": 12453,
+      "reused": false
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+      "sha256": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+      "bytes": 457442,
+      "reused": true
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+      "sha256": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+      "bytes": 472300,
+      "reused": true
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/72b33b17f2f6f645df00181b818636b416a085684e693c6c9c68fe2eb94c101a",
+      "sha256": "72b33b17f2f6f645df00181b818636b416a085684e693c6c9c68fe2eb94c101a",
+      "bytes": 52295,
+      "reused": true
+    }
+  ],
+  "local_link_count": 13,
+  "local_links": [
+    "research-14.md",
+    "evidence-14-eia-followup/source-inspection.json",
+    "evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+    "evidence-14/b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+    "evidence-14/7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+    "evidence-14/72b33b17f2f6f645df00181b818636b416a085684e693c6c9c68fe2eb94c101a",
+    "evidence-14-eia-followup/receipts.json",
+    "evidence-14-eia-followup/6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+    "evidence-14-eia-followup/6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+    "evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+    "evidence-14-eia-followup/afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+    "evidence-14-eia-followup/source-inspection.json",
+    "evidence-14-eia-followup/delivery-verification.json"
+  ],
+  "files": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/eia-html-contract.md",
+      "sha256": "9efe0e5a19afd66ba7aea8b85b22aaaafb286be6a0b07b463e896760ecb7ded9",
+      "bytes": 16765
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+      "sha256": "6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+      "bytes": 106106
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+      "sha256": "6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+      "bytes": 18787
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+      "sha256": "966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+      "bytes": 54803
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+      "sha256": "afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+      "bytes": 12453
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/receipts.json",
+      "sha256": "e28a1d49dff4ca3d66eeb7ebeaf80cc606cc4f3887de77d41af67a3546fb5238",
+      "bytes": 2883
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/source-inspection.json",
+      "sha256": "bc0aac56fcafac9c12a809435d7f314441cf90271bf855cefd007aeaa687f7e4",
+      "bytes": 3775
+    }
+  ],
+  "delivery_paths": [
+    ".scratch/pring-data-acquisition-repair/eia-html-contract.md",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/receipts.json",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/source-inspection.json",
+    ".scratch/pring-data-acquisition-repair/evidence-14-eia-followup/delivery-verification.json"
+  ],
+  "self_hash_excluded": true,
+  "frozen_research14_sha256_unchanged": "1bad5c100b8996dfa1286da712c723211b9640d8cc98a1e24cdec8647bedf82b",
+  "production_writes": 0,
+  "new_certifications": 0,
+  "new_code_files": 0
+}

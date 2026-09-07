@@ -597,11 +597,13 @@ def _evidence_row(
         f"方向 {_state_label(item.get('direction'))}",
         f"统计期 {_display_value(item.get('period'))}",
         f"状态 {_state_label(status)}",
-        f"值 {_display_value(value)} {_display_value(unit)}",
+        f"值 {_display_value(value, unit=unit)} {_display_value(unit)}",
         f"认证 {_display_value(item.get('certification_status'))}",
         f"来源 {_source_label(source)}",
     ]
     if international:
+        if item.get("acquisition_status") is not None:
+            details.append(f"最近获取 {_state_label(item['acquisition_status'])}")
         boundary = _international_boundary(metric_id)
         if boundary:
             details.append(boundary)
@@ -1330,6 +1332,14 @@ def _state_label(value: object) -> str:
         "awaiting_source_certification": "等待来源认证",
         "awaiting_release": "等待发布",
         "source_failed": "来源失败",
+        "missing_credentials": "当前渠道未配置接入凭据",
+        "adapter_failed": "适配器失败",
+        "validation_failed": "数据校验失败",
+        "verified_candidate": "已取得候选数据",
+        "partial_validation": "部分字段未通过校验",
+        "missing_fields": "请求已完成，缺少所需字段",
+        "no_attempt_for_target": "未记录此目标日与定义的获取结果",
+        "derived_from_inputs": "由输入证据计算",
     }.get(str(value).lower(), str(value))
 
 
@@ -1360,7 +1370,9 @@ def _definition_rows(document: dict[str, object]) -> html.Div:
     return html.Div(rows, className="definition-list")
 
 
-def _display_value(value: object) -> str:
+def _display_value(value: object, *, unit: object = None) -> str:
+    if unit == "basis_points" and isinstance(value, (int, float)) and not isinstance(value, bool):
+        return f"{value:.2f}"
     if isinstance(value, (dict, list, tuple)):
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
     if value is None:

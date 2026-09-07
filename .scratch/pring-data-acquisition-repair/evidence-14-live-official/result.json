@@ -1,0 +1,758 @@
+{
+  "scope": "real HTTP through public acquisition; fresh isolated candidate store",
+  "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-live-official-20260907a",
+  "definition_version": "metric-catalog-v0002",
+  "recorded_at": "2026-09-07 05:12:10.197164+00:00",
+  "attempted_families": 2,
+  "certification_grants": 0,
+  "production_writes": 0,
+  "model_activations": 0,
+  "public_replay_completed": false,
+  "records": [
+    {
+      "family": "pbc_usdcny_central_parity",
+      "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+      "period": "2026-09-04",
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html",
+      "status": "stored_candidate",
+      "resumed_export": true,
+      "new_requests_this_resume": 0,
+      "receipts": [
+        {
+          "acquisition_id": "acquisition-4346686d04e14252971407db7a5e1dc7",
+          "provider": "中国人民银行",
+          "api_name": "official_http_get",
+          "parameters": {
+            "family": "pbc_usdcny_central_parity",
+            "period": "2026-09-04",
+            "source_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html"
+          },
+          "fields": "",
+          "parser_version": "official-context-parser-v0002",
+          "started_at": "2026-09-07 05:10:43.735047+00:00",
+          "received_at": "2026-09-07 05:10:43.911101+00:00",
+          "validated_at": "2026-09-07 05:10:44.046222+00:00",
+          "state": "validated",
+          "raw_hash": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+          "normalized_hash": "a89b4bcb01b4af1766cb092e03d5a06599facb10437bbd0c660782dc3037b778",
+          "error_type": null
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "cb4d2c2a00132d70aa39c98c7d62f5e9abc0ee9593211294cee8e9f3a33ae323",
+          "period_start": "2026-09-04",
+          "period_end": "2026-09-04",
+          "dimensions": {
+            "currency_pair": "USD/CNY",
+            "quote_direction": "CNY per USD"
+          },
+          "value": 6.7787,
+          "unit": "cny_per_usd",
+          "public_available_at": "2026-09-04 01:25:17+00:00",
+          "fetched_at": "2026-09-07 05:10:43.911101+00:00",
+          "available_at": "2026-09-07 05:10:44.091839+00:00",
+          "certification_status": "awaiting_source_certification"
+        }
+      ],
+      "traces": [
+        {
+          "observation_id": "71885bb868992779c5284d7849348cb250a08301200b7e87527f0eb22895db19",
+          "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-04",
+          "period_end": "2026-09-04",
+          "dimensions": {
+            "currency_pair": "USD/CNY",
+            "quote_direction": "CNY per USD"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:09.193386+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "cb4d2c2a00132d70aa39c98c7d62f5e9abc0ee9593211294cee8e9f3a33ae323",
+          "selected_value": 6.7787,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "cb4d2c2a00132d70aa39c98c7d62f5e9abc0ee9593211294cee8e9f3a33ae323",
+              "provider": "中国人民银行",
+              "value": 6.7787,
+              "value_state": "reported_value",
+              "unit": "cny_per_usd",
+              "source_reference": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html#sha256=a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+              "release_at": "2026-09-04 01:25:17+00:00",
+              "public_available_at": "2026-09-04 01:25:17+00:00",
+              "fetched_at": "2026-09-07 05:10:43.911101+00:00",
+              "available_at": "2026-09-07 05:10:44.091839+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-4346686d04e14252971407db7a5e1dc7",
+              "provider": "中国人民银行",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "pbc_usdcny_central_parity",
+                "period": "2026-09-04",
+                "source_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125217/125925/2026090409004494582/index.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:10:43.735047+00:00",
+              "received_at": "2026-09-07 05:10:43.911101+00:00",
+              "validated_at": "2026-09-07 05:10:44.046222+00:00",
+              "state": "validated",
+              "raw_hash": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+              "normalized_hash": "a89b4bcb01b4af1766cb092e03d5a06599facb10437bbd0c660782dc3037b778",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        }
+      ]
+    },
+    {
+      "family": "nbs_gdp",
+      "metric_id": "CN_GDP",
+      "period": "2026-Q2",
+      "url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+      "status": "stored_candidate",
+      "ingestion": {
+        "status": "stored_candidate",
+        "family": "nbs_gdp",
+        "release_event_id": "official:nbs_gdp:2026-Q2:60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+        "period": "2026-Q2",
+        "artifact_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+        "observation_ids": [
+          "da11830fb21c180fed784d3d506d153a4dd8372c5ba8e5574d12e2cce58a5257",
+          "bfda029e50291063fd2757ccf0ffbf9e420dc19fc25715ff52126ac2b2327bd4",
+          "a979540debd623ba6976c427f1b1f2fb70720ade5c89ca72f637cf7b9bfa658c",
+          "6a6f656ce9b42f22cb73323de2af446b24af3ce49e159a6ff9366ae181e6ee0a",
+          "c64f91a8c502122fcfe7c8ea2f95c88a5aff8837d2223c0cc896d649b1575c9c",
+          "c80b5b7d0db7592d3d5410927f602112a6ad2fdc20bfe0ef8cb794b8a30c4029",
+          "da0dc66eb81f2abe8534ec20c89ad53816657034331a718a37d5d7ef60a32c39",
+          "c6e70fe201402da7ce3edb69d02a73e80b90d95e80db2f06a4b9efb7d28155f2"
+        ],
+        "claim_ids": [
+          "fe9097cb7825ed8fda311fbbe12fe1423957fba33f321dce92c4c8749b3fc948",
+          "6b07ab91575585dee6ddd2d790f49e90fd1fef531f1e74424b6ab2c30acaf27e",
+          "f0e43da40fa1db09885c2d94af604add1fd1ceff93ba6533c2795592fe3d979d",
+          "c51b25979ab062bbc34c9d192a2ab77d160342bcf44f93a5fabb0a9a295e2177",
+          "02e8cc2bfdc8005adb866ddb32e9490aef6b3821ec18fb2ead4dd839ebce4061",
+          "294233b5cac1d92b24e450b98b8c6a02d200b78be11a6a1408a314bbb8f29aca",
+          "9197a8092af39d8c9ef9c5adec508183640776a4846d6854c55ee914cf88b90e",
+          "0758ced25f9d6b3a65bfda7db7ef43deb948bef8b9fca7f113782a651b00fe7c"
+        ],
+        "metric_ids": [
+          "CN_GDP"
+        ],
+        "observation_count": 8
+      },
+      "receipts": [
+        {
+          "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+          "provider": "国家统计局",
+          "api_name": "official_http_get",
+          "parameters": {
+            "family": "nbs_gdp",
+            "period": "2026-Q2",
+            "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+          },
+          "fields": "",
+          "parser_version": "official-context-parser-v0002",
+          "started_at": "2026-09-07 05:12:09.206716+00:00",
+          "received_at": "2026-09-07 05:12:10.014659+00:00",
+          "validated_at": "2026-09-07 05:12:10.080526+00:00",
+          "state": "validated",
+          "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+          "error_type": null
+        }
+      ],
+      "claims": [
+        {
+          "claim_id": "c51b25979ab062bbc34c9d192a2ab77d160342bcf44f93a5fabb0a9a295e2177",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "primary",
+            "measure": "real_quarter_yoy"
+          },
+          "value": 3.7,
+          "unit": "percent",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "f0e43da40fa1db09885c2d94af604add1fd1ceff93ba6533c2795592fe3d979d",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "primary",
+            "measure": "nominal_ytd_level"
+          },
+          "value": 31522.0,
+          "unit": "hundred_million_cny",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "6b07ab91575585dee6ddd2d790f49e90fd1fef531f1e74424b6ab2c30acaf27e",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "total",
+            "measure": "real_quarter_yoy"
+          },
+          "value": 4.3,
+          "unit": "percent",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "02e8cc2bfdc8005adb866ddb32e9490aef6b3821ec18fb2ead4dd839ebce4061",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "secondary",
+            "measure": "nominal_ytd_level"
+          },
+          "value": 250473.0,
+          "unit": "hundred_million_cny",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "0758ced25f9d6b3a65bfda7db7ef43deb948bef8b9fca7f113782a651b00fe7c",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "tertiary",
+            "measure": "real_quarter_yoy"
+          },
+          "value": 5.1,
+          "unit": "percent",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "294233b5cac1d92b24e450b98b8c6a02d200b78be11a6a1408a314bbb8f29aca",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "secondary",
+            "measure": "real_quarter_yoy"
+          },
+          "value": 3.0,
+          "unit": "percent",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "9197a8092af39d8c9ef9c5adec508183640776a4846d6854c55ee914cf88b90e",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "tertiary",
+            "measure": "nominal_ytd_level"
+          },
+          "value": 413709.0,
+          "unit": "hundred_million_cny",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        },
+        {
+          "claim_id": "fe9097cb7825ed8fda311fbbe12fe1423957fba33f321dce92c4c8749b3fc948",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "total",
+            "measure": "nominal_ytd_level"
+          },
+          "value": 695704.0,
+          "unit": "hundred_million_cny",
+          "public_available_at": "2026-07-16 01:30:00+00:00",
+          "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+          "available_at": "2026-09-07 05:12:10.115317+00:00",
+          "certification_status": "awaiting_source_certification"
+        }
+      ],
+      "traces": [
+        {
+          "observation_id": "6a6f656ce9b42f22cb73323de2af446b24af3ce49e159a6ff9366ae181e6ee0a",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "quarter",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "primary",
+            "measure": "real_quarter_yoy"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.165750+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "c51b25979ab062bbc34c9d192a2ab77d160342bcf44f93a5fabb0a9a295e2177",
+          "selected_value": 3.7,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "c51b25979ab062bbc34c9d192a2ab77d160342bcf44f93a5fabb0a9a295e2177",
+              "provider": "国家统计局",
+              "value": 3.7,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "a979540debd623ba6976c427f1b1f2fb70720ade5c89ca72f637cf7b9bfa658c",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "year_to_quarter",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "primary",
+            "measure": "nominal_ytd_level"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.169225+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "f0e43da40fa1db09885c2d94af604add1fd1ceff93ba6533c2795592fe3d979d",
+          "selected_value": 31522.0,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "f0e43da40fa1db09885c2d94af604add1fd1ceff93ba6533c2795592fe3d979d",
+              "provider": "国家统计局",
+              "value": 31522.0,
+              "value_state": "reported_value",
+              "unit": "hundred_million_cny",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "bfda029e50291063fd2757ccf0ffbf9e420dc19fc25715ff52126ac2b2327bd4",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "quarter",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "total",
+            "measure": "real_quarter_yoy"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.172760+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "6b07ab91575585dee6ddd2d790f49e90fd1fef531f1e74424b6ab2c30acaf27e",
+          "selected_value": 4.3,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "6b07ab91575585dee6ddd2d790f49e90fd1fef531f1e74424b6ab2c30acaf27e",
+              "provider": "国家统计局",
+              "value": 4.3,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "c64f91a8c502122fcfe7c8ea2f95c88a5aff8837d2223c0cc896d649b1575c9c",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "year_to_quarter",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "secondary",
+            "measure": "nominal_ytd_level"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.181403+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "02e8cc2bfdc8005adb866ddb32e9490aef6b3821ec18fb2ead4dd839ebce4061",
+          "selected_value": 250473.0,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "02e8cc2bfdc8005adb866ddb32e9490aef6b3821ec18fb2ead4dd839ebce4061",
+              "provider": "国家统计局",
+              "value": 250473.0,
+              "value_state": "reported_value",
+              "unit": "hundred_million_cny",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "c6e70fe201402da7ce3edb69d02a73e80b90d95e80db2f06a4b9efb7d28155f2",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "quarter",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "tertiary",
+            "measure": "real_quarter_yoy"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.185223+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "0758ced25f9d6b3a65bfda7db7ef43deb948bef8b9fca7f113782a651b00fe7c",
+          "selected_value": 5.1,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "0758ced25f9d6b3a65bfda7db7ef43deb948bef8b9fca7f113782a651b00fe7c",
+              "provider": "国家统计局",
+              "value": 5.1,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "c80b5b7d0db7592d3d5410927f602112a6ad2fdc20bfe0ef8cb794b8a30c4029",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "quarter",
+          "period_start": "2026-04-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "secondary",
+            "measure": "real_quarter_yoy"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.188346+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "294233b5cac1d92b24e450b98b8c6a02d200b78be11a6a1408a314bbb8f29aca",
+          "selected_value": 3.0,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "294233b5cac1d92b24e450b98b8c6a02d200b78be11a6a1408a314bbb8f29aca",
+              "provider": "国家统计局",
+              "value": 3.0,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "da0dc66eb81f2abe8534ec20c89ad53816657034331a718a37d5d7ef60a32c39",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "year_to_quarter",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "tertiary",
+            "measure": "nominal_ytd_level"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.191139+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "9197a8092af39d8c9ef9c5adec508183640776a4846d6854c55ee914cf88b90e",
+          "selected_value": 413709.0,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "9197a8092af39d8c9ef9c5adec508183640776a4846d6854c55ee914cf88b90e",
+              "provider": "国家统计局",
+              "value": 413709.0,
+              "value_state": "reported_value",
+              "unit": "hundred_million_cny",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "da11830fb21c180fed784d3d506d153a4dd8372c5ba8e5574d12e2cce58a5257",
+          "metric_id": "CN_GDP",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "year_to_quarter",
+          "period_start": "2026-01-01",
+          "period_end": "2026-06-30",
+          "dimensions": {
+            "aggregate": "total",
+            "measure": "nominal_ytd_level"
+          },
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:12:10.193825+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "fe9097cb7825ed8fda311fbbe12fe1423957fba33f321dce92c4c8749b3fc948",
+          "selected_value": 695704.0,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "fe9097cb7825ed8fda311fbbe12fe1423957fba33f321dce92c4c8749b3fc948",
+              "provider": "国家统计局",
+              "value": 695704.0,
+              "value_state": "reported_value",
+              "unit": "hundred_million_cny",
+              "source_reference": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html#sha256=60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "release_at": "2026-07-16 01:30:00+00:00",
+              "public_available_at": "2026-07-16 01:30:00+00:00",
+              "fetched_at": "2026-09-07 05:12:10.014659+00:00",
+              "available_at": "2026-09-07 05:12:10.115317+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-b8adf97057a0414ab2bbd55f18523ad9",
+              "provider": "国家统计局",
+              "api_name": "official_http_get",
+              "parameters": {
+                "family": "nbs_gdp",
+                "period": "2026-Q2",
+                "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+              },
+              "fields": "",
+              "parser_version": "official-context-parser-v0002",
+              "started_at": "2026-09-07 05:12:09.206716+00:00",
+              "received_at": "2026-09-07 05:12:10.014659+00:00",
+              "validated_at": "2026-09-07 05:12:10.080526+00:00",
+              "state": "validated",
+              "raw_hash": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+              "normalized_hash": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        }
+      ]
+    }
+  ]
+}

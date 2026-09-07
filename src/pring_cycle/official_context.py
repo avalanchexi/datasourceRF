@@ -369,7 +369,6 @@ def ingest_acquired_official_release(
         for scalar in parsed.scalars
     )
     stored = repository.append_source_claims(claims, availability_clock=clock)
-    fetched_at = receipt.received_at
     family = parsed.family
     expected_period = parsed.period
     metric_ids = tuple(sorted({scalar.metric_id for scalar in parsed.scalars}))
@@ -378,12 +377,14 @@ def ingest_acquired_official_release(
             metric_id=metric_id,
             channel="official_direct_candidate",
             outcome="verified_candidate",
-            fetched_at=fetched_at,
+            fetched_at=clock(),
+            acquisition_ids=(receipt.acquisition_id,),
             safe_metadata={
                 "artifact_hash": artifact.content_hash,
                 "family": family,
                 "period": expected_period,
                 "provider": parsed.provider,
+                "definition_version": definition_version,
             },
         )
     return OfficialContextIngestionResult(
@@ -414,6 +415,13 @@ def refresh_official_context_document(
     _validate_source_identity(family, source_url)
     if fetched_at.tzinfo is None:
         raise ValueError("official_context_fetched_at_must_be_timezone_aware")
+    acquisition_ids: list[str] = []
+
+    def started(acquisition_id: str) -> None:
+        acquisition_ids.append(acquisition_id)
+        if on_acquisition_started is not None:
+            on_acquisition_started(acquisition_id)
+
     try:
         response_holder: list[FetchedOfficialContextDocument] = []
 
@@ -442,7 +450,7 @@ def refresh_official_context_document(
             fetch=fetch,
             parse=parse,
             normalize=asdict,
-            on_started=on_acquisition_started,
+            on_started=started,
         )
         return ingest_acquired_official_release(
             paths, acquired, definition_version=definition_version
@@ -454,11 +462,13 @@ def refresh_official_context_document(
                 metric_id=metric_id,
                 channel="official_direct_candidate",
                 outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
-                fetched_at=fetched_at,
+                fetched_at=utc_now(),
+                acquisition_ids=tuple(acquisition_ids),
                 safe_metadata={
                     "error_type": type(error).__name__,
                     "family": family,
                     "period": expected_period,
+                    "definition_version": definition_version,
                 },
             )
         raise

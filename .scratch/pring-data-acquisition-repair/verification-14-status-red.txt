@@ -1,0 +1,156 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_p2_projection_separates_acquisition_condition_from_certification[None] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-status-red/test_p2_projection_separates_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d631d7605f0>
+failure = None
+
+    @pytest.mark.parametrize("failure", [None, OSError("fixture offline"), ValueError("fixture schema")])
+    def test_p2_projection_separates_acquisition_condition_from_certification(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: Exception | None
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        requests = []
+        if failure is not None:
+            paths.secrets.write_text("EIA_API_KEY=fixture-only\n", encoding="utf-8")
+            paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                requests.append(request)
+                assert failure is not None, "Missing credentials must not send a request"
+                raise failure
+    
+        monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="p2-acquisition-condition",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+        assert stored.projection_set_id is not None
+        projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id)
+        row = next(
+>           row for row in projection.macro["international_context"]
+                           ^^^^^^^^^^^^^^^^
+            if row["metric_id"] == "EIA_BRENT_RBRTE"
+        )
+E       AttributeError: 'ProjectionSet' object has no attribute 'macro'
+
+tests/integration/test_full_run_retrieval.py:58: AttributeError
+_ test_p2_projection_separates_acquisition_condition_from_certification[failure1] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-status-red/test_p2_projection_separates_a1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d631b6cc590>
+failure = OSError('fixture offline')
+
+    @pytest.mark.parametrize("failure", [None, OSError("fixture offline"), ValueError("fixture schema")])
+    def test_p2_projection_separates_acquisition_condition_from_certification(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: Exception | None
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        requests = []
+        if failure is not None:
+            paths.secrets.write_text("EIA_API_KEY=fixture-only\n", encoding="utf-8")
+            paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                requests.append(request)
+                assert failure is not None, "Missing credentials must not send a request"
+                raise failure
+    
+        monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="p2-acquisition-condition",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+        assert stored.projection_set_id is not None
+        projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id)
+        row = next(
+>           row for row in projection.macro["international_context"]
+                           ^^^^^^^^^^^^^^^^
+            if row["metric_id"] == "EIA_BRENT_RBRTE"
+        )
+E       AttributeError: 'ProjectionSet' object has no attribute 'macro'
+
+tests/integration/test_full_run_retrieval.py:58: AttributeError
+_ test_p2_projection_separates_acquisition_condition_from_certification[failure2] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-status-red/test_p2_projection_separates_a2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7d631c6228a0>
+failure = ValueError('fixture schema')
+
+    @pytest.mark.parametrize("failure", [None, OSError("fixture offline"), ValueError("fixture schema")])
+    def test_p2_projection_separates_acquisition_condition_from_certification(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: Exception | None
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        requests = []
+        if failure is not None:
+            paths.secrets.write_text("EIA_API_KEY=fixture-only\n", encoding="utf-8")
+            paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                requests.append(request)
+                assert failure is not None, "Missing credentials must not send a request"
+                raise failure
+    
+        monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="p2-acquisition-condition",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+        assert stored.projection_set_id is not None
+        projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id)
+        row = next(
+>           row for row in projection.macro["international_context"]
+                           ^^^^^^^^^^^^^^^^
+            if row["metric_id"] == "EIA_BRENT_RBRTE"
+        )
+E       AttributeError: 'ProjectionSet' object has no attribute 'macro'
+
+tests/integration/test_full_run_retrieval.py:58: AttributeError
+___ test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time ___
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-status-red/test_retrieval_attempt_is_not_0')
+
+    def test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time(tmp_path: Path) -> None:
+        paths, _runs = prepare(tmp_path)
+        evidence = EvidenceRepository(paths.database)
+        recorded = datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=UTC)
+        evidence.record_retrieval_attempt(
+            metric_id="EIA_BRENT_RBRTE", channel="eia_official_candidate",
+            outcome="source_failed", fetched_at=recorded,
+            safe_metadata={"period": "2026-08-28"},
+        )
+>       assert evidence.latest_retrieval_attempt(
+            "EIA_BRENT_RBRTE", period="2026-08-28", as_of=recorded - timedelta(microseconds=1)
+        ) is None
+E       AssertionError: assert RetrievalAttemptView(retrieval_attempt_id='f1281de6c86bd13340d304c6e74bb2f4f0ddcb274451adde326c227ca3cb7a59', metric_i...at=datetime.datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=datetime.timezone.utc), safe_metadata={'period': '2026-08-28'}) is None
+E        +  where RetrievalAttemptView(retrieval_attempt_id='f1281de6c86bd13340d304c6e74bb2f4f0ddcb274451adde326c227ca3cb7a59', metric_i...at=datetime.datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=datetime.timezone.utc), safe_metadata={'period': '2026-08-28'}) = latest_retrieval_attempt('EIA_BRENT_RBRTE', period='2026-08-28', as_of=(datetime.datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=datetime.timezone.utc) - datetime.timedelta(microseconds=1)))
+E        +    where latest_retrieval_attempt = <pring_cycle.evidence.EvidenceRepository object at 0x7d631d970650>.latest_retrieval_attempt
+E        +    and   datetime.timedelta(microseconds=1) = timedelta(microseconds=1)
+
+tests/integration/test_full_run_retrieval.py:86: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[None]
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[failure1]
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[failure2]
+FAILED tests/integration/test_full_run_retrieval.py::test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time
+4 failed, 28 deselected in 79.07s (0:01:19)

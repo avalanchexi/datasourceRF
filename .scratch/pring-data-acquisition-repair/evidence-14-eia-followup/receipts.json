@@ -1,0 +1,76 @@
+[
+  {
+    "url": "https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_D.htm",
+    "method": "GET",
+    "started_at": "2026-09-07T05:05:32.576442+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_D.htm",
+    "headers": {
+      "Content-Type": "text/html",
+      "Last-Modified": "Wed, 02 Sep 2026 15:35:56 GMT",
+      "ETag": "\"096e1bef03add1:0\"",
+      "Content-Length": "18787",
+      "Date": "Mon, 07 Sep 2026 05:05:41 GMT"
+    },
+    "sha256": "6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+    "bytes": 18787,
+    "local_file": "6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90",
+    "truncated": false,
+    "received_at": "2026-09-07T05:05:41.794507+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.eia.gov/petroleum/data.php",
+    "method": "GET",
+    "started_at": "2026-09-07T05:05:41.797261+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/petroleum/data.php",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "106106",
+      "Date": "Mon, 07 Sep 2026 05:05:54 GMT"
+    },
+    "sha256": "6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+    "bytes": 106106,
+    "local_file": "6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9",
+    "truncated": false,
+    "received_at": "2026-09-07T05:05:54.823656+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.eia.gov/reports/upcoming.php",
+    "method": "GET",
+    "started_at": "2026-09-07T05:06:58.784949+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/reports/upcoming.php",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Content-Length": "54803",
+      "Date": "Mon, 07 Sep 2026 05:07:07 GMT"
+    },
+    "sha256": "966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+    "bytes": 54803,
+    "local_file": "966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+    "truncated": false,
+    "received_at": "2026-09-07T05:07:07.878264+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.eia.gov/dnav/pet/TblDefs/pet_pri_spt_tbldef2.asp",
+    "method": "GET",
+    "started_at": "2026-09-07T05:07:07.881063+00:00",
+    "status": 200,
+    "final_url": "https://www.eia.gov/dnav/pet/TblDefs/pet_pri_spt_tbldef2.asp",
+    "headers": {
+      "Content-Type": "text/html",
+      "Content-Length": "12453",
+      "Date": "Mon, 07 Sep 2026 05:07:16 GMT"
+    },
+    "sha256": "afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+    "bytes": 12453,
+    "local_file": "afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1",
+    "truncated": false,
+    "received_at": "2026-09-07T05:07:16.790570+00:00",
+    "public_available_at": null
+  }
+]

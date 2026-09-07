@@ -13,7 +13,12 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import ACQUISITION_SCHEMA, AcquisitionReceipt, receipt_from_row
+from pring_cycle.acquisition import (
+    ACQUISITION_SCHEMA,
+    AcquisitionReceipt,
+    acquisition_analysis_context,
+    receipt_from_row,
+)
 from pring_cycle.catalog import metric_definition
 from pring_cycle.source_contract_review import require_source_contract
 
@@ -325,9 +330,7 @@ class EvidenceRepository:
                 f"SELECT * FROM source_claim WHERE {clauses}",
                 parameters,
             ).fetchall()
-        grouped: dict[tuple[str, str], list[sqlite3.Row]] = {
-            pair: [] for pair in ordered
-        }
+        grouped: dict[tuple[str, str], list[sqlite3.Row]] = {pair: [] for pair in ordered}
         for row in rows:
             grouped[(str(row["metric_id"]), str(row["definition_version"]))].append(row)
         for pair, pair_rows in grouped.items():
@@ -344,8 +347,7 @@ class EvidenceRepository:
                     )
                 )
                 timestamps = tuple(
-                    _required_datetime(row[time_column]).timestamp()
-                    for row in visible_rows
+                    _required_datetime(row[time_column]).timestamp() for row in visible_rows
                 )
                 self._preloaded_series_rows[(*pair, mode)] = (
                     timestamps,
@@ -493,7 +495,7 @@ class EvidenceRepository:
                        value_state, unit, release_event_id, release_at,
                        public_available_at, fetched_at
                 FROM source_claim
-                WHERE {' AND '.join(clauses)}
+                WHERE {" AND ".join(clauses)}
                 ORDER BY julianday(available_at) DESC, rowid DESC LIMIT 1
                 """,
                 tuple(parameters),
@@ -504,9 +506,7 @@ class EvidenceRepository:
             claim_id=str(row["claim_id"]),
             observation_id=str(row["observation_id"]),
             supersedes_claim_id=(
-                str(row["supersedes_claim_id"])
-                if row["supersedes_claim_id"] is not None
-                else None
+                str(row["supersedes_claim_id"]) if row["supersedes_claim_id"] is not None else None
             ),
             value=float(row["value"]) if row["value"] is not None else None,
             value_state=EvidenceValueState(str(row["value_state"])),
@@ -558,9 +558,7 @@ class EvidenceRepository:
         *,
         definition_version: str | None = None,
     ) -> tuple[StoredSourceClaim, ...]:
-        definition_clause = (
-            " AND definition_version=?" if definition_version is not None else ""
-        )
+        definition_clause = " AND definition_version=?" if definition_version is not None else ""
         parameters = (
             (release_event_id, source_reference, definition_version)
             if definition_version is not None
@@ -593,8 +591,10 @@ class EvidenceRepository:
         self,
         metric_id: str,
         *,
-        period: str,
+        period: str | None,
         as_of: datetime,
+        definition_version: str | None = None,
+        target_business_date: str | None = None,
     ) -> RetrievalAttemptView | None:
         if as_of.tzinfo is None:
             raise ValueError("retrieval_attempt_as_of_must_be_timezone_aware")
@@ -607,12 +607,31 @@ class EvidenceRepository:
                 """,
                 (metric_id, _iso(as_of)),
             ).fetchall()
+        rows.sort(
+            key=lambda row: (
+                _required_datetime(row["fetched_at"]),
+                str(row["retrieval_attempt_id"]),
+            ),
+            reverse=True,
+        )
         for row in rows:
+            if _required_datetime(row["fetched_at"]) > as_of:
+                continue
             metadata = {
                 str(key): str(value)
                 for key, value in json.loads(str(row["safe_metadata_json"])).items()
             }
-            if metadata.get("period") != period:
+            if period is not None and metadata.get("period") != period:
+                continue
+            if (
+                target_business_date is not None
+                and metadata.get("target_business_date") != target_business_date
+            ):
+                continue
+            if (
+                definition_version is not None
+                and metadata.get("definition_version") != definition_version
+            ):
                 continue
             return RetrievalAttemptView(
                 retrieval_attempt_id=str(row["retrieval_attempt_id"]),
@@ -679,9 +698,7 @@ class EvidenceRepository:
             raise ValueError("as_of_must_be_timezone_aware")
         if public_as_of is not None and public_as_of.tzinfo is None:
             raise ValueError("public_as_of_must_be_timezone_aware")
-        definition_clause = (
-            " AND definition_version=?" if definition_version is not None else ""
-        )
+        definition_clause = " AND definition_version=?" if definition_version is not None else ""
         time_column = {
             AsOfMode.PUBLIC: "public_available_at",
             AsOfMode.SYSTEM: "available_at",
@@ -704,11 +721,7 @@ class EvidenceRepository:
             if definition_version is not None and public_as_of is None
             else None
         )
-        preloaded = (
-            self._preloaded_series_rows.get(cache_key)
-            if cache_key is not None
-            else None
-        )
+        preloaded = self._preloaded_series_rows.get(cache_key) if cache_key is not None else None
         if preloaded is not None:
             assert cache_key is not None
             timestamps, cached_rows = preloaded
@@ -720,9 +733,7 @@ class EvidenceRepository:
                 state.points_by_observation.clear()
                 state.tolerance = None
             changed_observations: set[str] = (
-                set(state.rows_by_observation)
-                if state.tolerance != tolerance
-                else set()
+                set(state.rows_by_observation) if state.tolerance != tolerance else set()
             )
             for row in cached_rows[state.visible_count : visible_count]:
                 observation_id = str(row["observation_id"])
@@ -794,9 +805,7 @@ class EvidenceRepository:
                         period_end=str(row["period_end"]),
                         dimensions={
                             str(key): str(value)
-                            for key, value in json.loads(
-                                str(row["dimensions_json"])
-                            ).items()
+                            for key, value in json.loads(str(row["dimensions_json"])).items()
                         },
                         selected_value=result.selected_value,
                         value_state=result.value_state,
@@ -807,6 +816,7 @@ class EvidenceRepository:
                 )
         points.sort(key=lambda point: (point.period_end, point.observation_id))
         return tuple(points)
+
     def trace(
         self,
         observation_id: str,
@@ -960,8 +970,7 @@ class EvidenceRepository:
             metric_id=str(row["metric_id"]),
             formula_version=str(row["formula_version"]),
             input_observation_version_ids=tuple(
-                str(item)
-                for item in json.loads(str(row["input_observation_version_ids_json"]))
+                str(item) for item in json.loads(str(row["input_observation_version_ids_json"]))
             ),
             as_of_mode=AsOfMode(str(row["as_of_mode"])),
             as_of_cutoff=_required_datetime(row["as_of_cutoff"]),
@@ -978,10 +987,18 @@ class EvidenceRepository:
         outcome: str,
         fetched_at: datetime,
         safe_metadata: dict[str, str],
+        acquisition_ids: tuple[str, ...] = (),
     ) -> str:
         if fetched_at.tzinfo is None:
             raise ValueError("retrieval_attempt_time_must_be_timezone_aware")
-        metadata_json = json.dumps(safe_metadata, ensure_ascii=False, sort_keys=True)
+        metadata = dict(safe_metadata)
+        context = acquisition_analysis_context(self._database_path, acquisition_ids)
+        if any(key in metadata and metadata[key] != value for key, value in context.items()):
+            raise ValueError("retrieval_attempt_acquisition_context_mismatch")
+        metadata.update(context)
+        if acquisition_ids:
+            metadata["acquisition_ids"] = ",".join(sorted(set(acquisition_ids)))
+        metadata_json = json.dumps(metadata, ensure_ascii=False, sort_keys=True)
         attempt_id = _stable_hash(
             metric_id,
             channel,
@@ -1093,9 +1110,7 @@ def _select_claim_rows(
         and item.value_state is EvidenceValueState.REPORTED_VALUE
         and item.value is not None
     ]
-    conflicted = bool(reported_values) and (
-        max(reported_values) - min(reported_values) > tolerance
-    )
+    conflicted = bool(reported_values) and (max(reported_values) - min(reported_values) > tolerance)
     return EvidenceQueryResult(
         observation_id=observation_id,
         mode=mode,
@@ -1120,10 +1135,7 @@ def _validate_claim(claim: SourceClaimInput) -> None:
         raise ValueError("evidence_unit_mismatch")
     if set(claim.dimensions) != set(definition.dimensions):
         raise ValueError("evidence_dimensions_mismatch")
-    if (
-        claim.certification_status == "certified"
-        and definition.certification_status != "certified"
-    ):
+    if claim.certification_status == "certified" and definition.certification_status != "certified":
         raise ValueError("evidence_source_not_certified_by_model")
     if claim.certification_status not in {
         "certified",
@@ -1171,9 +1183,7 @@ def _append_source_claim(
         (claim_id,),
     ).fetchone()
     if existing_claim is not None:
-        supersedes = (
-            str(existing_claim[0]) if existing_claim[0] is not None else None
-        )
+        supersedes = str(existing_claim[0]) if existing_claim[0] is not None else None
         return StoredSourceClaim(claim_id, observation_id, supersedes)
     existing_event = connection.execute(
         """

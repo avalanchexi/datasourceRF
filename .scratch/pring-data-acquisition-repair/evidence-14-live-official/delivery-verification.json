@@ -1,0 +1,14 @@
+{
+  "verified_at": "2026-09-07T13:13:31.400168+08:00",
+  "real_requests": 2,
+  "claims": 9,
+  "verified_artifacts": 4,
+  "raw_artifacts": 2,
+  "normalization_artifacts": 2,
+  "trace_links_verified": 9,
+  "official_sample_fields_match": true,
+  "system_time_not_backfilled": true,
+  "certification_grants": 0,
+  "production_writes": 0,
+  "verification_network_requests": 0
+}

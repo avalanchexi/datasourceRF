@@ -1,0 +1,53 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_p2_projection_separates_acquisition_condition_from_certification[None] __
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-14-status-red-corrected/test_p2_projection_separates_a0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7da11d00e8a0>
+failure = None
+
+    @pytest.mark.parametrize("failure", [None, OSError("fixture offline"), ValueError("fixture schema")])
+    def test_p2_projection_separates_acquisition_condition_from_certification(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: Exception | None
+    ) -> None:
+        paths, runs = prepare(tmp_path)
+        seed_core_history(paths)
+        requests = []
+        if failure is not None:
+            paths.secrets.write_text("EIA_API_KEY=fixture-only\n", encoding="utf-8")
+            paths.secrets.chmod(0o600)
+    
+        class Opener:
+            def open(self, request, *, timeout):
+                requests.append(request)
+                assert failure is not None, "Missing credentials must not send a request"
+                raise failure
+    
+        monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="p2-acquisition-condition",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        stored = runs.get(run.run_id)
+        assert stored.projection_set_id is not None
+        projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id)
+        row = next(
+            row for row in projection.datasets["macro"]["international_context"]
+            if row["metric_id"] == "EIA_BRENT_RBRTE"
+        )
+        expected = (
+            "missing_credentials" if failure is None
+            else "source_failed" if isinstance(failure, OSError)
+            else "validation_failed"
+        )
+>       assert row["acquisition_status"] == expected
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'acquisition_status'
+
+tests/integration/test_full_run_retrieval.py:66: KeyError
+=========================== short test summary info ============================
+FAILED tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[None]
+1 failed, 31 deselected in 28.37s

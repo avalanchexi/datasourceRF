@@ -6,3 +6,13 @@ research-13.md -text whitespace=cr-at-eol
 research-14.md -text
 research-pp-followup.md -text whitespace=cr-at-eol
 verification-17-pytest*.txt whitespace=-blank-at-eol
+verification-14-*.txt whitespace=-blank-at-eol
+eia-html-contract.md -text whitespace=cr-at-eol
+evidence-14-eia-followup/* -text whitespace=cr-at-eol
+evidence-14-live-official/* -text
+evidence-14-eia-followup/6fc996f7a1d41d02e463224eb5c0cf8ceb696b6e6a29a4f2f71c177cad773c90 -diff
+evidence-14-eia-followup/6a29786f5ec24df03517a97a51dd15c0bdf9376f080803752e5b4868510afce9 -diff
+evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9 -diff
+evidence-14-eia-followup/afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1 -diff
+evidence-14-live-official/a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa -diff
+evidence-14-live-official/60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915 -diff
