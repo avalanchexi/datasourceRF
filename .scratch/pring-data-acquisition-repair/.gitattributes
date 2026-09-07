@@ -106,3 +106,5 @@ verification-catalog-*.txt whitespace=-blank-at-eol
 verification-catalog/*.txt whitespace=-blank-at-eol
 lpr-certification-gap-matrix.md -text whitespace=cr-at-eol,-blank-at-eof
 evidence-lpr-import-20260908/* -text -diff
+verification-lpr-review/*.json -text
+lpr-usage-evidence-review.md -text whitespace=cr-at-eol,-blank-at-eof

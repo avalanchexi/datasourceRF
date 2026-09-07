@@ -1,0 +1,865 @@
+{
+  "schema_version": "lpr-review-inputs-draft-v0001",
+  "decision": "draft_not_certified",
+  "metric_id": "CN_LPR_1Y_5Y",
+  "provider": "中国货币网",
+  "source_code": "CHINAMONEY_LPR",
+  "semantic_scope": "贷款市场报价利率，两期限，月度公布，下一次发布前有效",
+  "definition_binding": null,
+  "manifest_hash": null,
+  "certified_from": null,
+  "receipt_hash": "31e1572983801245e76e1b4c33f57616029ba14bc304d2a276b9c1d1977d2d22",
+  "calendar_hash": "d0740f44c9648b5adc6ba98fe9acb59565858e8195cdf25df09e59f691b94635",
+  "calendar_status": "existing_tushare_sample_not_new_calendar_certification",
+  "records": [
+    {
+      "period": "2025-12",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20251222/3256124.html",
+      "artifact_hash": "29b9ad8e5c806acc7acf3a7e7990ef5e69182ccd806d74ef1b677968b2b0cb7e",
+      "source_reference": "acquisition-040673720aea460cb710ba547e29323b:raw",
+      "body_line": 78,
+      "publication_line": 60,
+      "source_publication_literal": "2025-12-22 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-040673720aea460cb710ba547e29323b",
+      "received_at": "2026-09-07 20:46:12.436699+00:00",
+      "validated_at": "2026-09-07 20:46:12.455244+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-01",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260120/3271248.html",
+      "artifact_hash": "56990bedd9bc26a666ffed41e48be8ae506f97088f353d04a31877aa5acdc0e7",
+      "source_reference": "acquisition-e1b2cc4e662f44dbae07f058d8b4f81c:raw",
+      "body_line": 78,
+      "publication_line": 60,
+      "source_publication_literal": "2026-01-20 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-e1b2cc4e662f44dbae07f058d8b4f81c",
+      "received_at": "2026-09-07 20:46:12.485659+00:00",
+      "validated_at": "2026-09-07 20:46:12.504963+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-02",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260224/3285699.html",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3",
+      "source_reference": "acquisition-5d97d5d5221742bfad0c1f6c94f82f3a:raw",
+      "body_line": 75,
+      "publication_line": 60,
+      "source_publication_literal": "2026-02-24 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-5d97d5d5221742bfad0c1f6c94f82f3a",
+      "received_at": "2026-09-07 20:46:12.529046+00:00",
+      "validated_at": "2026-09-07 20:46:12.546946+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-03",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260320/3301473.html",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb",
+      "source_reference": "acquisition-8c37de9e8b4045349fa2c40260e31b16:raw",
+      "body_line": 75,
+      "publication_line": 60,
+      "source_publication_literal": "2026-03-20 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-8c37de9e8b4045349fa2c40260e31b16",
+      "received_at": "2026-09-07 20:46:12.568900+00:00",
+      "validated_at": "2026-09-07 20:46:12.585639+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-04",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260420/3318431.html",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780",
+      "source_reference": "acquisition-652d3d16f3ca4db58f1aaab4b928a690:raw",
+      "body_line": 77,
+      "publication_line": 60,
+      "source_publication_literal": "2026-04-20 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-652d3d16f3ca4db58f1aaab4b928a690",
+      "received_at": "2026-09-07 20:46:12.605819+00:00",
+      "validated_at": "2026-09-07 20:46:12.624987+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-05",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260520/3343089.html",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad",
+      "source_reference": "acquisition-97eb08b7dc7940568e7422999a87b2b7:raw",
+      "body_line": 77,
+      "publication_line": 60,
+      "source_publication_literal": "2026-05-20 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-97eb08b7dc7940568e7422999a87b2b7",
+      "received_at": "2026-09-07 20:46:12.660480+00:00",
+      "validated_at": "2026-09-07 20:46:12.681873+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-06",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260622/3361525.html",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f",
+      "source_reference": "acquisition-180b80f8247f42739f8e9f233c63c97e:raw",
+      "body_line": 77,
+      "publication_line": 60,
+      "source_publication_literal": "2026-06-22 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-180b80f8247f42739f8e9f233c63c97e",
+      "received_at": "2026-09-07 20:46:12.708098+00:00",
+      "validated_at": "2026-09-07 20:46:12.739478+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-07",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260720/3379021.html",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4",
+      "source_reference": "acquisition-957e64d6668a4c7e9b07cb385abb8c9e:raw",
+      "body_line": 77,
+      "publication_line": 60,
+      "source_publication_literal": "2026-07-20 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-957e64d6668a4c7e9b07cb385abb8c9e",
+      "received_at": "2026-09-07 20:46:12.770841+00:00",
+      "validated_at": "2026-09-07 20:46:12.802688+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    },
+    {
+      "period": "2026-08",
+      "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+      "source_reference": "acquisition-c735a6924ce44727a3d437e9d9c3d395:raw",
+      "body_line": 77,
+      "publication_line": 60,
+      "source_publication_literal": "2026-08-20 09:00",
+      "source_timezone": "Asia/Shanghai",
+      "source_precision": "minute",
+      "values_percent": {
+        "1y": 3.0,
+        "5y_plus": 3.5
+      },
+      "acquisition_id": "acquisition-c735a6924ce44727a3d437e9d9c3d395",
+      "received_at": "2026-09-07 20:46:12.853297+00:00",
+      "validated_at": "2026-09-07 20:46:12.895537+00:00",
+      "first_vintage_bytes_proven": false,
+      "historical_system_available_at": null,
+      "certified_public_available_at": null
+    }
+  ],
+  "expected_quote_states": [
+    {
+      "period": "2026-02",
+      "first_target_date": "2026-03-09",
+      "last_target_date": "2026-03-19",
+      "target_day_count": 9
+    },
+    {
+      "period": "2026-03",
+      "first_target_date": "2026-03-20",
+      "last_target_date": "2026-04-17",
+      "target_day_count": 20
+    },
+    {
+      "period": "2026-04",
+      "first_target_date": "2026-04-20",
+      "last_target_date": "2026-05-19",
+      "target_day_count": 19
+    },
+    {
+      "period": "2026-05",
+      "first_target_date": "2026-05-20",
+      "last_target_date": "2026-06-18",
+      "target_day_count": 22
+    },
+    {
+      "period": "2026-06",
+      "first_target_date": "2026-06-22",
+      "last_target_date": "2026-07-17",
+      "target_day_count": 20
+    },
+    {
+      "period": "2026-07",
+      "first_target_date": "2026-07-20",
+      "last_target_date": "2026-08-19",
+      "target_day_count": 23
+    },
+    {
+      "period": "2026-08",
+      "first_target_date": "2026-08-20",
+      "last_target_date": "2026-08-28",
+      "target_day_count": 7
+    }
+  ],
+  "expected_target_date_coverage": [
+    {
+      "target_business_date": "2026-03-09",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-10",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-11",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-12",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-13",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-16",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-17",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-18",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-19",
+      "expected_period": "2026-02",
+      "artifact_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3"
+    },
+    {
+      "target_business_date": "2026-03-20",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-23",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-24",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-25",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-26",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-27",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-30",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-03-31",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-01",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-02",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-03",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-07",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-08",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-09",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-10",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-13",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-14",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-15",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-16",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-17",
+      "expected_period": "2026-03",
+      "artifact_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb"
+    },
+    {
+      "target_business_date": "2026-04-20",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-21",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-22",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-23",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-24",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-27",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-28",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-29",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-04-30",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-06",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-07",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-08",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-11",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-12",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-13",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-14",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-15",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-18",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-19",
+      "expected_period": "2026-04",
+      "artifact_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780"
+    },
+    {
+      "target_business_date": "2026-05-20",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-21",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-22",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-25",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-26",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-27",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-28",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-05-29",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-01",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-02",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-03",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-04",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-05",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-08",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-09",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-10",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-11",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-12",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-15",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-16",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-17",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-18",
+      "expected_period": "2026-05",
+      "artifact_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad"
+    },
+    {
+      "target_business_date": "2026-06-22",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-06-23",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-06-24",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-06-25",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-06-26",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-06-29",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-06-30",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-01",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-02",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-03",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-06",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-07",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-08",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-09",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-10",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-13",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-14",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-15",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-16",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-17",
+      "expected_period": "2026-06",
+      "artifact_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f"
+    },
+    {
+      "target_business_date": "2026-07-20",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-21",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-22",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-23",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-24",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-27",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-28",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-29",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-30",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-07-31",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-03",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-04",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-05",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-06",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-07",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-10",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-11",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-12",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-13",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-14",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-17",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-18",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-19",
+      "expected_period": "2026-07",
+      "artifact_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4"
+    },
+    {
+      "target_business_date": "2026-08-20",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "target_business_date": "2026-08-21",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "target_business_date": "2026-08-24",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "target_business_date": "2026-08-25",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "target_business_date": "2026-08-26",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "target_business_date": "2026-08-27",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    },
+    {
+      "target_business_date": "2026-08-28",
+      "expected_period": "2026-08",
+      "artifact_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+    }
+  ],
+  "assessments": {
+    "semantics": "literal_evidence_prepared_pending_complete_definition_binding",
+    "fields": "18_of_18_literals_verified_two_tenors_percent",
+    "history": "9_pages_7_required_quote_states_revision_inventory_not_proven",
+    "time": "page_minute_metadata_and_current_import_clocks_separated_formal_review_pending",
+    "permissions": "see_lpr_usage_evidence_review_no_grant_in_this_draft",
+    "usage": "see_lpr_usage_evidence_review_no_grant_in_this_draft"
+  },
+  "source_claims_created": 0,
+  "certification_grants": 0,
+  "model_adoptions": 0,
+  "real_replay_cutoffs_executed": 0,
+  "network_requests": 0,
+  "production_writes": 0
+}
