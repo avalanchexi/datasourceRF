@@ -4,7 +4,11 @@
 
 ## 已实际完成的本轮交付
 
-最新代码批次从`ba596eb`继续：[RRR范围解析修复](implementation-13-rrr-scope.md)完成同日两个机构范围分别输出、完整分句校验和收据版本更新；真实原件修复前后一项/两项分别保存。**677全套通过、0失败、748.11秒**，66针对测试、Ruff、mypy82、两轴复审通过。[最终收据](verification-13-rrr-scope/final.json)。接下来是[库存输入错期](inventory-period-repair-boundary.md)：公开反例确认7月库存会与6月PPI组合成可用近似，尚未修复。此缺陷的draft测试不属于前一批默认测试范围，不因RRR全套通过而关闭。
+当前最新批次从`b8d53a`继续：[库存报告期校验](implementation-13-inventory-period.md)完成，**680全套通过、0失败、795.31秒**，60针对、Ruff、mypy82、双审查0，81安装Python文件与工作区一致。[最终收据](verification-13-inventory-period/final.json)。接下来修[P2获取记录的来源时间字段未传入投影](p2-source-timing-boundary.md)，2个任务归属明确的公开反例已经失败；测试设置错误另行保留。
+
+[P1准备清单](p1-certification-readiness.md)完成27项分流和68链接根复核：18项常规官方材料可先整理，3项另核时间/用途、2项外补、4派生依父项。部分1月CPI/PPI少列和工业VA合并期源自原表，不直接判采集缺失。没有新来源认证或候选模型采用。北交所[浏览器补证](margin-bse-browser-followup.md)1次导航超时，有效样本0、实际HTTP请求数未知，原阻塞不变。
+
+历史代码批次从`ba596eb`继续：[RRR范围解析修复](implementation-13-rrr-scope.md)完成同日两个机构范围分别输出、完整分句校验和收据版本更新；真实原件修复前后一项/两项分别保存。**677全套通过、0失败、748.11秒**，66针对测试、Ruff、mypy82、两轴复审通过。[最终收据](verification-13-rrr-scope/final.json)。当时发现的库存错期由上面的680项批次修复，旧RRR收据保留其历史状态。
 
 最新代码批次从`9199a5b`继续：[派生认证修复](implementation-13-derived-eligibility.md)完成7公式模型内输入/输出认证守门、未认证日历排除及任一输入PUBLIC未知的传播；关闭公式也不再引入其依赖。**664项全套通过、0失败、768.46秒**，57项针对测试、Ruff、mypy82与双轴复审通过；[最终收据](verification-13-derived/final.json)。其后工作从[RRR双范围解析RED](rrr-scope-repair-boundary.md)继续：真实2025原件的定向-5pp目前未输出。这个已知后续缺陷不在前一代码批次的默认测试范围内，不能因全套通过而标已修。
 

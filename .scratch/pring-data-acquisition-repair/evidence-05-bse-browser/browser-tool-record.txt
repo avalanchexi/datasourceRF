@@ -1,0 +1,30 @@
+Evidence type: agent transcription of observed CUA tool calls and tool-visible results.
+This file is not an official page, rendered DOM, screenshot, browser network log, download, or HTTP response body.
+Fixed target: BSE market aggregate margin data for 2026-08-28.
+
+1. Select only the browser associated with the known official target URL.
+Code: let bseBrowser = await cua.getBrowser({ url: 'https://www.bse.cn/disclosure/rzrq_trans_list.html' });
+Observed result: browser API documentation and selected Chrome, extension type.
+This API selects a browser and does not create a tab or navigate.
+No inventory of other tabs was requested or retained.
+
+2. Name the task session.
+Code: await bseBrowser.nameSession('🔎 北交所融资补证');
+Observed tool wall time: 0.1071 seconds.
+Observed output: empty, no error.
+This API is not a navigation.
+
+3. Attempt one task-owned tab at the known official URL.
+Code: let bseNavStartedAt = new Date().toISOString(); let bseTab = await cua.createBrowserTab(bseBrowser.browserId, 'https://www.bse.cn/disclosure/rzrq_trans_list.html', { sessionName: '🔎 北交所融资补证' });
+Tool timeout_ms: 60000.
+Observed tool wall time: 60.2151 seconds.
+Exact tool output: js execution timed out; kernel reset, rerun your request
+The tool returned no tab handle or initial page state. The in-kernel start timestamp was not returned and is unavailable after reset.
+Whether a browser tab was partially created is unknown. The actual page URL, title, HTTP status, redirect chain, browser subrequest count, DOM, and screenshot are unknown.
+No second navigation, reload, recovery tab inventory, challenge interaction, backend URL probe, or direct HTTP GET was attempted.
+No screenshot or downloaded official response bytes were obtained. No page read time or actual data publication time is established.
+
+4. Post-failure bookkeeping clock read.
+Tool: clock.curr_time, accessed through functions.exec tools.clock__curr_time.
+Exact result current_time: 2026-09-07 15:16:01 UTC
+This is a clock observation after the failed call, not the navigation start/end time, an official page read time, or a data publication time.

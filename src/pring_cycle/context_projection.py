@@ -1682,6 +1682,8 @@ def _real_inventory_proxy(
     }
     if formula_version is None or nominal is None or ppi is None:
         return document, ()
+    if nominal["period"] != ppi["period"]:
+        return {**document, "status": "period_mismatch"}, ()
     nominal_value = _numeric_value(nominal["value"])
     ppi_value = _numeric_value(ppi["value"])
     nominal_claim_id = nominal["selected_claim_id"]

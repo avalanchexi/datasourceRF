@@ -1,0 +1,18 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_acquired_source_timing_survives_public_context_projection[treasury] ___
+.scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py:63: in test_acquired_source_timing_survives_public_context_projection
+    assert acquisition.get(key) == value
+E   AssertionError: assert None == '2026-09-04'
+E    +  where None = <built-in method get of dict object at 0x78f0107aa140>('latest_source_period')
+E    +    where <built-in method get of dict object at 0x78f0107aa140> = {'attempt_id': '4e4fc39a2ab604f1f10dfc9af3a610a17e11c4e8b8a6550cb7a10a1c1840f10b', 'channel': 'treasury_csv_candidate', 'condition': None, 'definition_version': 'metric-catalog-v0001', ...}.get
+_____ test_acquired_source_timing_survives_public_context_projection[eia] ______
+.scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py:63: in test_acquired_source_timing_survives_public_context_projection
+    assert acquisition.get(key) == value
+E   AssertionError: assert None == '2026-09-02'
+E    +  where None = <built-in method get of dict object at 0x78f0107927c0>('release_date')
+E    +    where <built-in method get of dict object at 0x78f0107927c0> = {'attempt_id': 'b57e74bde632c36c4daa11e84277ad07f30f4be3a7a877a3223abea3696e224d', 'channel': 'eia_html_candidate', 'condition': None, 'definition_version': 'metric-catalog-v0001', ...}.get
+=========================== short test summary info ============================
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py::test_acquired_source_timing_survives_public_context_projection[treasury]
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py::test_acquired_source_timing_survives_public_context_projection[eia]
+2 failed in 18.60s

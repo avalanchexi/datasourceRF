@@ -1,0 +1,14 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_acquired_source_timing_survives_public_context_projection[treasury] ___
+.scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py:50: in test_acquired_source_timing_survives_public_context_projection
+    assert acquisition is not None
+E   assert None is not None
+_____ test_acquired_source_timing_survives_public_context_projection[eia] ______
+.scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py:50: in test_acquired_source_timing_survives_public_context_projection
+    assert acquisition is not None
+E   assert None is not None
+=========================== short test summary info ============================
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py::test_acquired_source_timing_survives_public_context_projection[treasury]
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py::test_acquired_source_timing_survives_public_context_projection[eia]
+2 failed in 5.66s

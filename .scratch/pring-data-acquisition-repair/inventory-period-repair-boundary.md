@@ -1,6 +1,8 @@
-Execution: pending-implementation
+Execution: completed-code-batch
 
 # 13续：库存近似输入期次检查
+
+本批已完成，见[实施与680项全套结果](implementation-13-inventory-period.md)；以下保留修复前反例与边界。
 
 依据票13“同期多维输入”和用户要求数据正确进入模型，公开`build_context_projection`反例已复现：7月名义产成品库存与6月PPI均有有效/已认证来源时，旧实现直接组合为可用近似。隔离fixture使用名义105、PPI +5%，同期独立期望100；错期不能使用同一计算输出冒充有效输入。
 

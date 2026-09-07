@@ -1,0 +1,16 @@
+
+==================================== ERRORS ====================================
+_ ERROR collecting .scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py _
+ImportError while importing test module '/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py:7: in <module>
+    from pring_cycle.catalog import metric_catalog_v0002
+E   ImportError: cannot import name 'metric_catalog_v0002' from 'pring_cycle.catalog' (/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/catalog.py)
+=========================== short test summary info ============================
+ERROR .scratch/pring-data-acquisition-repair/draft-tests/test_p2_source_timing.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 2.19s

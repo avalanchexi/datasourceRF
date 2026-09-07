@@ -1,0 +1,14 @@
+.FF                                                                      [100%]
+=================================== FAILURES ===================================
+____ test_inventory_approximation_does_not_combine_different_months[06-07] _____
+tests/integration/test_inventory_period_alignment.py:69: in test_inventory_approximation_does_not_combine_different_months
+    assert proxy["value"] is None
+E   assert 100.0 is None
+____ test_inventory_approximation_does_not_combine_different_months[07-06] _____
+tests/integration/test_inventory_period_alignment.py:69: in test_inventory_approximation_does_not_combine_different_months
+    assert proxy["value"] is None
+E   assert 100.0 is None
+=========================== short test summary info ============================
+FAILED tests/integration/test_inventory_period_alignment.py::test_inventory_approximation_does_not_combine_different_months[06-07]
+FAILED tests/integration/test_inventory_period_alignment.py::test_inventory_approximation_does_not_combine_different_months[07-06]
+2 failed, 1 passed in 0.96s
