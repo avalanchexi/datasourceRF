@@ -3,8 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -16,6 +18,48 @@ from pring_cycle.artifacts import store_artifact
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+@dataclass(frozen=True)
+class AcquisitionOwner:
+    database: Path
+    run_id: str
+    phase: str
+    metric_ids: tuple[str, ...]
+    period: str | None
+
+
+_acquisition_owner: ContextVar[AcquisitionOwner | None] = ContextVar(
+    "acquisition_owner", default=None
+)
+
+
+@contextmanager
+def own_acquisitions(
+    database: Path,
+    run_id: str,
+    phase: str,
+    *,
+    metric_ids: tuple[str, ...] = (),
+    period: str | None = None,
+) -> Iterator[None]:
+    token = _acquisition_owner.set(
+        AcquisitionOwner(database.resolve(), run_id, phase, metric_ids, period)
+    )
+    try:
+        yield
+    finally:
+        _acquisition_owner.reset(token)
+
+
+@contextmanager
+def acquisition_metrics(metric_ids: tuple[str, ...]) -> Iterator[None]:
+    owner = _acquisition_owner.get()
+    token = _acquisition_owner.set(replace(owner, metric_ids=metric_ids) if owner else None)
+    try:
+        yield
+    finally:
+        _acquisition_owner.reset(token)
 
 
 @dataclass(frozen=True)
@@ -64,7 +108,10 @@ class AcquisitionRepository:
         acquisition_id = "acquisition-" + uuid4().hex
         started_at = clock()
         _check_time(started_at)
+        owner = _acquisition_owner.get()
         with self._connect() as connection:
+            if owner is not None:
+                self._require_active_owner(connection, owner)
             connection.execute(
                 """INSERT INTO acquisition_request(
                     acquisition_id, provider, api_name, parameters_json, fields,
@@ -80,9 +127,23 @@ class AcquisitionRepository:
                     started_at.isoformat(),
                 ),
             )
+            if owner is not None:
+                connection.execute(
+                    "INSERT INTO full_run_acquisition VALUES (?, ?, ?, ?, ?)",
+                    (
+                        owner.run_id,
+                        acquisition_id,
+                        owner.phase,
+                        json.dumps(owner.metric_ids),
+                        owner.period,
+                    ),
+                )
         try:
             if on_started is not None:
                 on_started(acquisition_id)
+            if owner is not None:
+                with self._connect() as connection:
+                    self._require_active_owner(connection, owner)
             try:
                 raw = fetch()
             except HTTPError as error:
@@ -100,6 +161,17 @@ class AcquisitionRepository:
         except Exception as error:
             self.fail_validation(acquisition_id, error)
             raise
+
+    def _require_active_owner(
+        self, connection: sqlite3.Connection, owner: AcquisitionOwner
+    ) -> None:
+        if owner.database != self.database.resolve():
+            raise ValueError("acquisition_owner_database_mismatch")
+        row = connection.execute(
+            "SELECT status FROM parent_run WHERE run_id=?", (owner.run_id,)
+        ).fetchone()
+        if row is None or row[0] not in {"queued", "running"}:
+            raise ValueError("acquisition_run_not_running")
 
     def complete_validation(
         self,

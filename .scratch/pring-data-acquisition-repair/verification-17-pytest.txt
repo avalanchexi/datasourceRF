@@ -1,0 +1,181 @@
+........................................................................ [ 12%]
+........................................................................ [ 25%]
+........................................................................ [ 38%]
+..........................................F............................. [ 51%]
+....................F................................................... [ 63%]
+........................................................................ [ 76%]
+........................................................................ [ 89%]
+...........................................................              [100%]
+=================================== FAILURES ===================================
+_ test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explicit _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-17-suite-20260907a/test_manual_run_acquires_macro0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x74a2ffc00fb0>
+
+    def test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explicit(
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
+        paths.secrets.chmod(0o600)
+        models = ModelRepository(paths.database)
+        models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+        models.activate("model-v0001", explicitly_approved=True)
+        during_pmi = []
+    
+        class Opener:
+            def open(self, request: Any, *, timeout: int) -> BytesIO:
+                payload = json.loads(request.data)
+                if payload["api_name"] == "cn_pmi":
+                    during_pmi.append(datetime.now(UTC))
+                    fields = payload["fields"].split(",")
+                    row = ["202607" if field == "month" else 49.3 for field in fields]
+                    return BytesIO(
+                        json.dumps({"code": 0, "data": {"fields": fields, "items": [row]}}).encode()
+                    )
+                params = payload["params"]
+                if payload["api_name"] != "trade_cal" and params.get("ts_code") not in {
+                    "000985.CSI",
+                    "000012.SH",
+                    "NHII.NH",
+                }:
+                    raise OSError("fixture_optional_source_unavailable")
+                start = datetime.strptime(params["start_date"], "%Y%m%d").date()
+                end = datetime.strptime(params["end_date"], "%Y%m%d").date()
+                days = [
+                    start + timedelta(days=i)
+                    for i in range((end - start).days + 1)
+                    if (start + timedelta(days=i)).weekday() < 5
+                ]
+                if payload["api_name"] == "trade_cal":
+                    fields = ["cal_date", "is_open"]
+                    items = [[day.strftime("%Y%m%d"), 1] for day in days]
+                else:
+                    fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+                    items = [
+                        [
+                            params["ts_code"],
+                            day.strftime("%Y%m%d"),
+                            100 + i,
+                            99 + i,
+                            0.01 if payload["api_name"] == "fut_index_daily" else 1.0,
+                        ]
+                        for i, day in enumerate(days)
+                    ]
+                return BytesIO(
+                    json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
+                )
+    
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", Opener)
+        monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+        runs = RunRepository(paths.database)
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-03",
+            client_request_id="macro-receipts",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+>       assert runs.get(run.run_id).status == "completed"
+E       AssertionError: assert 'action_required' == 'completed'
+E         
+E         - completed
+E         + action_required
+
+tests/integration/test_context_acquisition_receipts.py:367: AssertionError
+___________ test_manual_run_cannot_backdate_daily_core_availability ____________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-17-suite-20260907a/test_manual_run_cannot_backdat0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x74a2ffb3aa20>
+
+    def test_manual_run_cannot_backdate_daily_core_availability(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from time import monotonic
+    
+        origin = datetime.now(UTC)
+        started = monotonic()
+    
+        class StableDateTimeMeta(type):
+            def __instancecheck__(cls, value):
+                return isinstance(value, datetime)
+    
+        class StableDateTime(datetime, metaclass=StableDateTimeMeta):
+            @classmethod
+            def now(cls, tz=None):
+                value = origin + timedelta(seconds=monotonic() - started)
+                return value.astimezone(tz) if tz is not None else value.replace(tzinfo=None)
+    
+        # WSL wall-clock resynchronization must not move this availability probe
+        # behind receipts that were just validated. Replace only the clock boundary.
+        monkeypatch.setattr("pring_cycle.acquisition.datetime", StableDateTime)
+        monkeypatch.setattr("pring_cycle.core_history.datetime", StableDateTime)
+        monkeypatch.setattr("pring_cycle.worker.datetime", StableDateTime)
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
+        models = ModelRepository(paths.database)
+        models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+        models.activate("model-v0001", explicitly_approved=True)
+        during_stock_request = []
+    
+        class FixtureOpener:
+            def open(self, request: Any, *, timeout: int) -> BytesIO:
+                payload = json.loads(request.data)
+                code = payload["params"].get("ts_code")
+                if payload["api_name"] == "trade_cal":
+                    return BytesIO(historical_response(payload))
+                if code not in {"000985.CSI", "000012.SH", "NHII.NH"}:
+                    raise OSError("fixture_context_unavailable")
+                if code == "000985.CSI":
+                    during_stock_request.append(StableDateTime.now(UTC))
+                return BytesIO(historical_response(payload))
+    
+        # Replace only the external HTTP transport, retaining both real adapters.
+        monkeypatch.setattr("pring_cycle.source_adapters.build_opener", FixtureOpener)
+        monkeypatch.setattr(
+            "pring_cycle.tushare_context.build_opener", lambda *handlers: FixtureOpener()
+        )
+        runs = RunRepository(paths.database)
+        run = runs.submit_manual_full(
+            target_business_date="2026-08-03",
+            client_request_id="daily-acquisition",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        process_pending_run(paths, report_adapters=())
+        evidence = EvidenceRepository(paths.database)
+        before_response = evidence.metric_series(
+            "CN_EQUITY_CORE_000985",
+            mode=AsOfMode.SYSTEM,
+            as_of=during_stock_request[0],
+            definition_version="metric-catalog-v0001",
+        )
+        assert before_response == ()
+        after = evidence.metric_series(
+            "CN_EQUITY_CORE_000985",
+            mode=AsOfMode.SYSTEM,
+            as_of=StableDateTime.now(UTC),
+            definition_version="metric-catalog-v0001",
+        )
+        assert len(after) == 160
+        assert all(point.claims[0].public_available_at is None for point in after)
+        trace = evidence.trace(
+            after[-1].observation_id, mode=AsOfMode.SYSTEM, as_of=StableDateTime.now(UTC)
+        )
+        assert len(trace.acquisitions) == 1
+        # The isolated legacy model permits SYSTEM evidence; unknown publication
+        # is a PUBLIC availability gap, not a fabricated transport failure.
+>       assert runs.get(run.run_id).status == "completed"
+E       AssertionError: assert 'action_required' == 'completed'
+E         
+E         - completed
+E         + action_required
+
+tests/integration/test_core_history_refresh.py:263: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_acquisition_receipts.py::test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explicit
+FAILED tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability
+2 failed, 561 passed in 562.85s (0:09:22)

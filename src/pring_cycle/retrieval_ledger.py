@@ -51,8 +51,9 @@ class _RequestDecision:
 class RetrievalLedger:
     """Persistent gap identity and physical request accounting for a run."""
 
-    def __init__(self, database: Path) -> None:
+    def __init__(self, database: Path, *, scope_run: RunRecord | None = None) -> None:
         self.database = database
+        self.scope_run = scope_run
 
     def bind_run(self, run: RunRecord, definition_version: str) -> None:
         scope = run.retrieval_scope
@@ -176,19 +177,39 @@ class RetrievalLedger:
         reused_request_id = None
         reused_event_keys: set[str] = set()
         gaps = connection.execute(
-            "SELECT gap_id, event_key FROM retrieval_run_gap "
+            "SELECT gap_id, event_key, identity_json FROM retrieval_run_gap "
             "JOIN retrieval_gap USING(gap_id) WHERE run_id=?",
             (run_id,),
         ).fetchall()
+        if self.scope_run is not None:
+            scope = self.scope_run.retrieval_scope
+            if scope is None or self.scope_run.run_id != run_id:
+                raise ValueError("retrieval_scope_identity_mismatch")
+            gaps = [
+                row
+                for row in gaps
+                if (
+                    (identity := json.loads(row["identity_json"]))["metric_id"] in scope.metric_ids
+                    and identity["period"] == scope.period
+                    and identity["as_of"] == self.scope_run.system_as_of.astimezone(UTC).isoformat()
+                )
+            ]
         if not gaps:
             raise ValueError("retrieval_gaps_not_bound")
-        row = connection.execute(
-            "SELECT consumed_budget_json, command_type, priority, period, metric_ids_json, "
+        parent = connection.execute(
+            "SELECT consumed_budget_json, command_type, status, priority, period, metric_ids_json, "
             "(SELECT COUNT(*) FROM run_attempt a WHERE a.run_id=parent_run.run_id) "
             "AS attempt_count FROM parent_run "
-            "JOIN run_retrieval_scope USING(run_id) WHERE run_id=?",
+            "LEFT JOIN run_retrieval_scope USING(run_id) WHERE run_id=?",
             (run_id,),
         ).fetchone()
+        row = dict(parent)
+        if self.scope_run is not None and self.scope_run.retrieval_scope is not None:
+            row.update(
+                priority=self.scope_run.retrieval_scope.priority,
+                period=self.scope_run.retrieval_scope.period,
+                metric_ids_json=json.dumps(self.scope_run.retrieval_scope.metric_ids),
+            )
         budget = json.loads(row["consumed_budget_json"])
         all_legacy = _legacy_requests(connection)
         for provider in LIMITS:
@@ -307,6 +328,9 @@ class RetrievalLedger:
         if blocked is None and cache_hit:
             blocked = "negative_cache_active"
         if blocked in {"run_limit", "priority_excludes_ai"}:
+            next_eligible = None
+        if row["status"] in {"cancelled", "interrupted", "action_required", "failed", "completed"}:
+            blocked = "run_not_running"
             next_eligible = None
         return _RequestDecision(
             gaps,
@@ -453,12 +477,19 @@ class RetrievalLedger:
         with self._connect() as connection:
             row = connection.execute(
                 "SELECT s.priority, p.channel, p.run_id, p.release_event_id, q.query_text "
-                "FROM run_retrieval_scope s JOIN retrieval_physical_request p USING(run_id) "
+                "FROM retrieval_physical_request p LEFT JOIN run_retrieval_scope s USING(run_id) "
                 "JOIN retrieval_query q ON q.physical_request_id=p.request_id WHERE p.request_id=?",
                 (request_id,),
             ).fetchone()
             expiry = _cache_expiry(
-                now, outcome, classification, row["priority"], status, headers or {}
+                now,
+                outcome,
+                classification,
+                self.scope_run.retrieval_scope.priority
+                if self.scope_run is not None and self.scope_run.retrieval_scope is not None
+                else row["priority"],
+                status,
+                headers or {},
             )
             connection.execute(
                 """UPDATE retrieval_physical_request SET state='completed', completed_at=?,

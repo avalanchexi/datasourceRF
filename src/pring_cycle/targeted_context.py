@@ -10,7 +10,7 @@ from functools import partial
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import RetrievalLedger
-from pring_cycle.runs import RunRepository
+from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import select_retrieval_input
 from pring_cycle.tushare_context import (
@@ -27,9 +27,9 @@ class _RequestFailed(Exception):
 
 
 def retrieve_tushare_context(
-    paths: RuntimePaths, run_id: str, token: str
+    paths: RuntimePaths, run_id: str, token: str, *, scope_run: RunRecord | None = None
 ) -> RetrievalAdapterResponse:
-    run = RunRepository(paths.database).get(run_id)
+    run = scope_run or RunRepository(paths.database).get(run_id)
     scope = run.retrieval_scope
     if scope is None:
         raise ValueError("retrieval_scope_required")
@@ -84,7 +84,7 @@ def retrieve_tushare_context(
             "not_configured", classification="targeted_tushare_family_unavailable"
         )
 
-    ledger = RetrievalLedger(paths.database)
+    ledger = RetrievalLedger(paths.database, scope_run=scope_run)
     pending_requests: list[str] = []
 
     def finish(outcome: str, classification: str) -> None:

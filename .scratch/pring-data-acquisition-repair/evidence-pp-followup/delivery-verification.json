@@ -1,0 +1,36 @@
+{
+    "verified_at":  "2026-09-07T03:22:31.8533494+00:00",
+    "search_tool_calls":  3,
+    "search_query_count":  8,
+    "new_dce_http_requests":  0,
+    "new_raw_count":  0,
+    "new_raw_bytes":  0,
+    "http_success_rate":  null,
+    "new_certifications":  0,
+    "production_mutations":  0,
+    "files":  [
+                  {
+                      "path":  ".scratch/pring-data-acquisition-repair/research-pp-followup.md",
+                      "bytes":  4356,
+                      "sha256":  "750b63e4b7e163c8b94660f687c1e13ba3aba3fd3700ee063744a72e2ad8d7bc"
+                  },
+                  {
+                      "path":  ".scratch/pring-data-acquisition-repair/evidence-pp-followup/search-discovery.json",
+                      "bytes":  3109,
+                      "sha256":  "35ebfab9df0916f723bad780256092b7c12ef778adee0b8c839a501e4b3619af"
+                  },
+                  {
+                      "path":  ".scratch/pring-data-acquisition-repair/evidence-pp-followup/receipts.json",
+                      "bytes":  3,
+                      "sha256":  "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+                  }
+              ],
+    "delivery_paths":  [
+                           ".scratch/pring-data-acquisition-repair/research-pp-followup.md",
+                           ".scratch/pring-data-acquisition-repair/evidence-pp-followup/search-discovery.json",
+                           ".scratch/pring-data-acquisition-repair/evidence-pp-followup/receipts.json",
+                           ".scratch/pring-data-acquisition-repair/evidence-pp-followup/delivery-verification.json"
+                       ],
+    "self_hash_excluded":  true,
+    "file_hashes_are_research_records_not_source_raw":  true
+}

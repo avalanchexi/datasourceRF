@@ -156,7 +156,7 @@
         16
       ],
       "path": "issues/17-full-run-gap-retrieval.md",
-      "execution_status": "pending"
+      "execution_status": "completed"
     },
     {
       "id": 18,
@@ -224,7 +224,6 @@
     11,
     13,
     14,
-    17,
     18
   ]
 }

@@ -33,6 +33,7 @@ class CoreAssetReadiness:
     distance_pct: float | None = None
     slope_pct: float | None = None
     noise_band_pct: float | None = None
+    model_input_observation_version_ids: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -81,11 +82,20 @@ class P0ProjectionService:
         resolved_macro_document = macro_document or _default_macro_document()
         resolved_inventory_document = inventory_document or _default_inventory_document()
         asset_documents = [_asset_document(item) for item in assets]
+        model_inputs = (
+            sorted(
+                {
+                    version_id
+                    for item in assets
+                    for version_id in (item.model_input_observation_version_ids or ())
+                }
+            )
+            if all(item.model_input_observation_version_ids is not None for item in assets)
+            else None
+        )
         resolved_snapshot_id = evidence_snapshot_id or (
             "snapshot-"
-            + hashlib.sha256(
-                json.dumps(asset_documents, sort_keys=True).encode()
-            ).hexdigest()[:20]
+            + hashlib.sha256(json.dumps(asset_documents, sort_keys=True).encode()).hexdigest()[:20]
         )
         if gaps:
             assessment = self._projections.prepare_p0_assessment(
@@ -128,6 +138,8 @@ class P0ProjectionService:
             "inventory": resolved_inventory_document,
             "release_calendar_events": list(release_calendar_events),
         }
+        if model_inputs is not None:
+            identity_document["core_model_input_observation_version_ids"] = model_inputs
         projection_set_id = (
             "projection-"
             + hashlib.sha256(json.dumps(identity_document, sort_keys=True).encode()).hexdigest()[
@@ -187,6 +199,8 @@ class P0ProjectionService:
             }
         )
         datasets["core_assets"]["assets"] = asset_documents
+        if model_inputs is not None:
+            datasets["core_assets"]["model_input_observation_version_ids"] = model_inputs
         datasets["macro"].update(resolved_macro_document)
         datasets["inventory"].update(resolved_inventory_document)
         datasets["release_calendar"]["events"] = list(release_calendar_events)
@@ -199,10 +213,7 @@ class P0ProjectionService:
             current = self._projections.current()
         except LookupError:
             current = None
-        if (
-            current is not None
-            and current.envelope.projection_set_id == projection_set_id
-        ):
+        if current is not None and current.envelope.projection_set_id == projection_set_id:
             return P0PublishResult(
                 "published",
                 projection_set_id,
@@ -281,9 +292,7 @@ def _default_inventory_document() -> dict[str, object]:
 def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:
     return {
         "asset": item.asset,
-        "candidate_30d": (
-            item.candidate_30d.value if item.candidate_30d is not None else None
-        ),
+        "candidate_30d": (item.candidate_30d.value if item.candidate_30d is not None else None),
         "candidate_days": item.candidate_days,
         "candidate_state": (
             item.candidate_state.value if item.candidate_state is not None else None
@@ -332,9 +341,7 @@ def _assessment_document(
         "event_kind": "formal" if current_stage is not None else "gap",
         "evidence_snapshot_id": evidence_snapshot_id,
         "gaps": list(gaps),
-        "last_confirmed_stage": (
-            last_confirmed_stage.value if last_confirmed_stage else None
-        ),
+        "last_confirmed_stage": (last_confirmed_stage.value if last_confirmed_stage else None),
         "model_version_id": model_version_id,
         "projection_set_id": projection_set_id,
         "stage_reason": stage_reason,

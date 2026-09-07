@@ -1,0 +1,30 @@
+{
+  "base_commit": "94a16a19bf5e743605e8e52afc43a7a6df1ee7bd",
+  "completed_ticket": 17,
+  "partial_fixes": {"7": "nine required valuation members", "13": "1000-row warrant response saturation"},
+  "full_suite": {
+    "passed": 568,
+    "failed": 0,
+    "duration_seconds": 642.84,
+    "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-07-13-17-suite-20260907a",
+    "log": "../verification-07-13-17-pytest.txt",
+    "package_mode": "installed non-editable",
+    "pythonpath_unset": true
+  },
+  "earlier_full_suites": [
+    {"passed": 561, "failed": 2, "duration_seconds": 562.85, "log": "../verification-17-pytest.txt"},
+    {"passed": 564, "failed": 1, "duration_seconds": 625.45, "log": "../verification-17-pytest-final.txt"}
+  ],
+  "mypy": {"status": "passed", "source_files": 79, "log": "mypy.txt"},
+  "ruff": {"status": "passed", "log": "ruff.txt"},
+  "source_identity": {"matched_python_files": 79, "manifest": "code-fingerprint.json", "verifier": "verify_artifacts.py"},
+  "spec_review_remaining": 0,
+  "standards_review_remaining": 0,
+  "tests_replace": ["HTTP transport", "clock", "process lifecycle"],
+  "source_family_certifications_completed_by_this_test_run": 0,
+  "real_search_benchmark_completed": false,
+  "production_writes": 0,
+  "public_replay_completed": false,
+  "real_cli_explanation_completed": false,
+  "model_cutover_completed": false
+}

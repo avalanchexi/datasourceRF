@@ -41,10 +41,8 @@ REQUIRED_DIMENSION_MEMBERS: dict[str, tuple[dict[str, str], ...]] = {
     ),
     "CN_INDEX_VALUATION": tuple(
         {"index": index, "measure": measure}
-        # index_dailybasic publishes broad-market daily indicators for CSI 300
-        # and CSI 500, but not CSI 1000. Keep every supported valuation field
-        # instead of inventing a CSI 1000 value from a different methodology.
-        for index in ("000300.SH", "000905.SH")
+        # Required model members do not shrink to a provider's delivery coverage.
+        for index in ("000300.SH", "000905.SH", "000852.SH")
         for measure in ("price_earnings", "price_book", "turnover_rate")
     ),
     "CN_COMMODITY_SLEEVE_CONTRIBUTION": tuple(

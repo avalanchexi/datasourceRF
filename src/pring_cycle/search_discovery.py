@@ -66,6 +66,7 @@ def search_discovery_adapter(
     paths: RuntimePaths | None = None,
     run_id: str | None = None,
     verify_candidates: Callable[[str, tuple[str, ...]], RetrievalAdapterResponse] | None = None,
+    ledger: RetrievalLedger | None = None,
 ) -> Callable[[str], RetrievalAdapterResponse]:
     if not api_key:
         raise ValueError("search_api_key_required")
@@ -100,10 +101,10 @@ def search_discovery_adapter(
     def retrieve(release_event_id: str) -> RetrievalAdapterResponse:
         if paths is None or run_id is None:
             return interpret(request(endpoint, headers, payload))
-        ledger = RetrievalLedger(paths.database)
+        active_ledger = ledger or RetrievalLedger(paths.database)
 
         def reuse(interrupted_only: bool) -> RetrievalAdapterResponse | None:
-            reused = ledger.search_checkpoint(run_id, provider, query)
+            reused = active_ledger.search_checkpoint(run_id, provider, query)
             if reused is None or verify_candidates is None:
                 return None
             original_request_id, acquisition_id = reused
@@ -118,11 +119,11 @@ def search_discovery_adapter(
                 return None
             if not candidate.candidate_sources:
                 return None
-            if interrupted_only and not ledger.candidate_resume_pending(
+            if interrupted_only and not active_ledger.candidate_resume_pending(
                 original_request_id, candidate.candidate_sources
             ):
                 return None
-            ledger.record_search_reuse(run_id, original_request_id)
+            active_ledger.record_search_reuse(run_id, original_request_id)
             return replace(
                 verify_candidates(original_request_id, candidate.candidate_sources),
                 cache_hit=True,
@@ -132,7 +133,7 @@ def search_discovery_adapter(
         if checkpoint := reuse(interrupted_only=True):
             return checkpoint
         try:
-            request_id = ledger.reserve(run_id, provider, release_event_id, query)
+            request_id = active_ledger.reserve(run_id, provider, release_event_id, query)
         except RetrievalBudgetBlocked as error:
             if checkpoint := reuse(interrupted_only=False):
                 return checkpoint
@@ -158,7 +159,7 @@ def search_discovery_adapter(
                 fetch=fetch,
                 parse=lambda raw: interpret(responses[0]),
                 normalize=asdict,
-                on_started=lambda acquisition_id: ledger.attach_acquisition(
+                on_started=lambda acquisition_id: active_ledger.attach_acquisition(
                     request_id, acquisition_id
                 ),
             )
@@ -169,7 +170,7 @@ def search_discovery_adapter(
             result = RetrievalAdapterResponse("failed", classification="semantic_validation_failed")
         response = responses[0] if responses else None
         cost, provider_request_id = _response_usage(provider, response)
-        ledger.complete(
+        active_ledger.complete(
             request_id,
             outcome=result.status,
             classification=result.classification,

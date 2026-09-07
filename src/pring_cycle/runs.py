@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle.run_cutoffs import cutoff_contract, upgrade_run_cutoffs
+
 RUN_STEPS = (
     "queued",
     "preflight",
@@ -45,6 +47,8 @@ class RunRecord:
     retrieval_scope: RetrievalScope | None
     retrieval_attempts: tuple[dict[str, object], ...]
     retrieval_ledger: dict[str, Any] | None = None
+    cutoff_mode: str = "legacy_unknown"
+    cutoffs_frozen: bool = False
 
 
 @dataclass(frozen=True)
@@ -74,6 +78,7 @@ class RunRepository:
         with repository._connect() as connection:
             connection.executescript(_RUN_SCHEMA)
             connection.executescript(_RETRIEVAL_RUN_SCHEMA)
+            upgrade_run_cutoffs(connection)
             connection.execute(
                 """
                 INSERT OR IGNORE INTO schedule_configuration(
@@ -101,6 +106,7 @@ class RunRepository:
         client_request_id: str,
         model_version_id: str,
         system_as_of: datetime,
+        cutoff_mode: str = "acquisition_window",
     ) -> RunRecord:
         return self.submit(
             command_type="manual_full",
@@ -108,6 +114,7 @@ class RunRepository:
             client_request_id=client_request_id,
             model_version_id=model_version_id,
             system_as_of=system_as_of,
+            cutoff_mode=cutoff_mode,
         )
 
     def submit_scheduled_full(
@@ -138,6 +145,7 @@ class RunRepository:
         metric_ids: tuple[str, ...] = (),
         period: str | None = None,
         source_url: str | None = None,
+        cutoff_mode: str | None = None,
     ) -> RunRecord:
         allowed_commands = {
             "manual_full",
@@ -150,6 +158,15 @@ class RunRepository:
             raise ValueError("unsupported_run_command")
         if system_as_of.tzinfo is None:
             raise ValueError("system_as_of_must_be_timezone_aware")
+        cutoff_mode = cutoff_mode or (
+            "acquisition_window"
+            if command_type in {"manual_full", "scheduled_full"}
+            else "explicit"
+        )
+        if cutoff_mode not in {"explicit", "acquisition_window"}:
+            raise ValueError("invalid_cutoff_mode")
+        if command_type not in {"manual_full", "scheduled_full"} and cutoff_mode != "explicit":
+            raise ValueError("acquisition_window_requires_full_run")
         scope = _validated_retrieval_scope(
             command_type,
             database_path=self._database_path,
@@ -171,6 +188,7 @@ class RunRepository:
                 run_id = str(existing_command["run_id"])
                 if self._retrieval_scope(connection, run_id) != scope:
                     raise ValueError("retrieval_scope_idempotency_conflict")
+                self._check_cutoff_identity(connection, run_id, cutoff_mode, system_as_of)
                 return self.get(run_id)
             active = None
             if command_type == "manual_full":
@@ -186,6 +204,7 @@ class RunRepository:
                 ).fetchone()
             if active is not None:
                 run_id = str(active["run_id"])
+                self._check_cutoff_identity(connection, run_id, cutoff_mode, system_as_of)
                 connection.execute(
                     """
                     INSERT INTO run_command(command_type, client_request_id, run_id, accepted_at)
@@ -230,6 +249,10 @@ class RunRepository:
                     budget_json,
                     datetime.now(UTC).isoformat(),
                 ),
+            )
+            connection.execute(
+                "INSERT INTO run_cutoff_contract VALUES (?, ?, ?, 'submitted')",
+                (run_id, cutoff_mode, system_as_of.isoformat()),
             )
             connection.execute(
                 """
@@ -543,9 +566,20 @@ class RunRepository:
         if system_as_of.tzinfo is None:
             raise ValueError("system_as_of_must_be_timezone_aware")
         current = self.get(run_id)
-        if current.current_step not in {"queued", "preflight", "refreshing_evidence"}:
+        if current.cutoffs_frozen or current.current_step not in {
+            "queued",
+            "preflight",
+            "refreshing_evidence",
+        }:
             raise ValueError("run_cutoff_already_frozen")
+        if system_as_of < current.system_as_of:
+            raise ValueError("run_cutoff_before_acquisition_window")
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "INSERT INTO run_cutoff_freeze VALUES (?, ?)",
+                (run_id, system_as_of.isoformat()),
+            )
             connection.execute(
                 """
                 UPDATE parent_run SET system_as_of=?, report_cutoff=? WHERE run_id=?
@@ -617,6 +651,12 @@ class RunRepository:
             raise LookupError("run_retrieval_scope_missing")
         return scope
 
+    def full_retrieval_plan(self, run_id: str) -> dict[str, Any]:
+        from pring_cycle.full_retrieval import read_full_retrieval_plan
+
+        self.get(run_id)
+        return read_full_retrieval_plan(self._database_path, run_id)
+
     def record_retrieval_attempt(
         self,
         run_id: str,
@@ -642,7 +682,32 @@ class RunRepository:
         with self._connect() as connection:
             scope = self._retrieval_scope(connection, run_id)
             if scope is None:
-                raise ValueError("retrieval_attempt_requires_scoped_run")
+                plan = connection.execute(
+                    "SELECT document_json FROM full_run_gap_plan "
+                    "WHERE run_id=? AND phase='initial'",
+                    (run_id,),
+                ).fetchone()
+                planned = (
+                    next(
+                        (
+                            item
+                            for item in json.loads(plan[0])["scopes"]
+                            if item["release_event_id"] == release_event_id
+                        ),
+                        None,
+                    )
+                    if plan
+                    else None
+                )
+                if planned is None:
+                    raise ValueError("retrieval_attempt_requires_scoped_run")
+                scope = RetrievalScope(
+                    planned["release_event_id"],
+                    tuple(planned["metric_ids"]),
+                    planned["period"],
+                    planned["priority"],
+                    planned["source_url"],
+                )
             if scope.release_event_id != release_event_id:
                 raise ValueError("retrieval_attempt_release_event_mismatch")
             sequence = connection.execute(
@@ -883,6 +948,7 @@ class RunRepository:
 
         from pring_cycle.retrieval_ledger import RetrievalLedger
 
+        mode, frozen = cutoff_contract(connection, str(row["run_id"]))
         return replace(
             _run_record(
                 row,
@@ -890,7 +956,20 @@ class RunRepository:
                 retrieval_attempts=self._retrieval_attempts(connection, str(row["run_id"])),
             ),
             retrieval_ledger=RetrievalLedger(self._database_path).for_run(str(row["run_id"])),
+            cutoff_mode=mode,
+            cutoffs_frozen=frozen,
         )
+
+    def _check_cutoff_identity(
+        self, connection: sqlite3.Connection, run_id: str, mode: str, as_of: datetime
+    ) -> None:
+        row = connection.execute(
+            "SELECT mode, initial_system_as_of FROM run_cutoff_contract WHERE run_id=?", (run_id,)
+        ).fetchone()
+        if row is not None and (
+            row[0] != mode or (mode == "explicit" and _parse_time(row[1]) != as_of)
+        ):
+            raise ValueError("run_cutoff_identity_conflict")
 
     def _retrieval_scope(
         self,
@@ -927,9 +1006,7 @@ class RunRepository:
                 "channel": str(row["channel"]),
                 "outcome": str(row["outcome"]),
                 "classification": (
-                    str(row["classification"])
-                    if row["classification"] is not None
-                    else None
+                    str(row["classification"]) if row["classification"] is not None else None
                 ),
                 "latency_ms": int(row["latency_ms"]),
                 "remaining_run_budget": (
@@ -946,9 +1023,7 @@ class RunRepository:
                 "cache_hit": bool(row["cache_hit"]),
                 "manual_budget_exemption": bool(row["manual_budget_exemption"]),
                 "candidate_source": (
-                    str(row["candidate_source"])
-                    if row["candidate_source"] is not None
-                    else None
+                    str(row["candidate_source"]) if row["candidate_source"] is not None else None
                 ),
                 "occurred_at": str(row["occurred_at"]),
             }

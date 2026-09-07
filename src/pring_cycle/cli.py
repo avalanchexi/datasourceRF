@@ -292,9 +292,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         }
     if namespace.command == "models":
         return {
-            "models": [
-                asdict(item) for item in ModelRepository(paths.database).list_versions()
-            ],
+            "models": [asdict(item) for item in ModelRepository(paths.database).list_versions()],
             "status": "ok",
         }
     if namespace.command == "model-accept":
@@ -396,7 +394,10 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             target_business_date=namespace.target_date,
             client_request_id=namespace.request_id,
             model_version_id=model_version_id,
-            system_as_of=datetime.now(UTC),
+            system_as_of=(
+                datetime.fromisoformat(namespace.as_of) if namespace.as_of else datetime.now(UTC)
+            ),
+            cutoff_mode="explicit" if namespace.as_of else None,
             release_event_id=namespace.release_event,
             metric_ids=tuple(namespace.metric),
             period=namespace.period,
@@ -436,9 +437,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         source = json.loads(namespace.input.read_text(encoding="utf-8"))
         if not isinstance(source, dict):
             raise ValueError("evidence_input_must_be_object")
-        stored = EvidenceRepository(paths.database).append_source_claim(
-            _source_claim_input(source)
-        )
+        stored = EvidenceRepository(paths.database).append_source_claim(_source_claim_input(source))
         return {**asdict(stored), "status": "stored"}
     if namespace.command == "evidence-query":
         queried = EvidenceRepository(paths.database).query(
@@ -687,6 +686,9 @@ def _parser() -> argparse.ArgumentParser:
     run_submit.add_argument("--target-date", required=True)
     run_submit.add_argument("--request-id", required=True)
     run_submit.add_argument("--model")
+    run_submit.add_argument(
+        "--as-of", help="Fixed SYSTEM cutoff (timezone required); omit for live acquisition"
+    )
     run_submit.add_argument("--release-event")
     run_submit.add_argument("--metric", action="append", default=[])
     run_submit.add_argument("--period")
@@ -798,8 +800,7 @@ def _source_claim_input(source: dict[str, Any]) -> SourceClaimInput:
         raise ValueError("certified_evidence_requires_certified_adapter")
     dimensions = source["dimensions"]
     if not isinstance(dimensions, dict) or any(
-        not isinstance(key, str) or not isinstance(value, str)
-        for key, value in dimensions.items()
+        not isinstance(key, str) or not isinstance(value, str) for key, value in dimensions.items()
     ):
         raise ValueError("evidence_dimensions_must_be_string_map")
     return SourceClaimInput(
@@ -826,6 +827,7 @@ def _source_claim_input(source: dict[str, Any]) -> SourceClaimInput:
 
 def _optional_datetime(value: object) -> datetime | None:
     return datetime.fromisoformat(str(value)) if value is not None else None
+
 
 def _runtime_parser(
     subparsers: argparse._SubParsersAction[argparse.ArgumentParser],

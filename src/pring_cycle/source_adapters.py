@@ -10,6 +10,7 @@ from urllib.request import Request, build_opener
 
 from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
 from pring_cycle.adapters import MarketBar, validate_core_market_bars
+from pring_cycle.evidence import MetricSeriesPoint
 
 TUSHARE_ENDPOINT = "https://api.tushare.pro"
 
@@ -18,6 +19,22 @@ CORE_API_IDENTITIES = {
     "CN_BOND_CORE_000012": ("index_daily", "000012.SH"),
     "CN_COMMODITY_CORE_NHII": ("fut_index_daily", "NHII.NH"),
 }
+
+
+def selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bool:
+    selected = next(
+        (claim for claim in point.claims if claim.claim_id == point.selected_claim_id), None
+    )
+    if selected is None:
+        return False
+    api_name, source_code = CORE_API_IDENTITIES[metric_id]
+    return (
+        selected.provider == "tushare"
+        and selected.source_reference == f"tushare:{api_name}:{source_code}:{point.period_end}"
+        and selected.unit == "index_points"
+        and selected.certification_status == "certified"
+        and selected.quality_status == "validated"
+    )
 
 
 @dataclass(frozen=True)

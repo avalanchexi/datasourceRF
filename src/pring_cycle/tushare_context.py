@@ -34,7 +34,7 @@ Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
 WARRANT_SYMBOLS = frozenset({"CU", "RB", "PP", "CF", "TA", "RU", "SP", "SC"})
 _FUTURES_WARRANT_CHUNK_DAYS = 31
-_FUTURES_WARRANT_RESPONSE_LIMIT = 1_200
+_FUTURES_WARRANT_RESPONSE_LIMIT = 1_000
 MARKET_INDEX_IDENTITIES = {
     "CN_EQ_CSI300": ("index_daily", "000300.SH"),
     "CN_EQ_CSI500": ("index_daily", "000905.SH"),

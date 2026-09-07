@@ -1,0 +1,54 @@
+........................................................................ [ 12%]
+........................................................................ [ 25%]
+........................................................................ [ 38%]
+........................................................................ [ 50%]
+........................................................................ [ 63%]
+........................................................................ [ 76%]
+.....F.................................................................. [ 89%]
+.............................................................            [100%]
+=================================== FAILURES ===================================
+_______ test_core_readiness_ignores_observations_after_historical_target _______
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-17-suite-20260907b/test_core_readiness_ignores_ob0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x783003c4f230>
+
+    def test_core_readiness_ignores_observations_after_historical_target(
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        paths = runtime(tmp_path)
+        target = date(2026, 8, 3)
+        run = RunRepository(paths.database).submit_manual_full(
+            target_business_date=target.isoformat(),
+            client_request_id="historical-target-cutoff",
+            model_version_id="model-v0001",
+            system_as_of=datetime(2026, 8, 31, 3, tzinfo=UTC),
+        )
+        series = tuple(
+            SimpleNamespace(
+                period_end=(target - timedelta(days=159 - index)).isoformat(),
+                selection_status="selected",
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                selected_value=100.0 + index,
+                selected_claim_id=f"claim-{index}",
+                claims=(),
+            )
+            for index in range(160)
+        ) + (
+            SimpleNamespace(
+                period_end="2026-08-28",
+                selection_status="selected",
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                selected_value=300.0,
+                selected_claim_id="future-claim",
+                claims=(),
+            ),
+        )
+        monkeypatch.setattr(EvidenceRepository, "metric_series", lambda *_args, **_kwargs: series)
+>       monkeypatch.setattr(worker_module, "_selected_core_claim_is_valid", lambda *_args: True)
+E       AttributeError: <module 'pring_cycle.worker' from '/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/worker.py'> has no attribute '_selected_core_claim_is_valid'
+
+tests/integration/test_worker_execution.py:213: AttributeError
+=========================== short test summary info ============================
+FAILED tests/integration/test_worker_execution.py::test_core_readiness_ignores_observations_after_historical_target
+1 failed, 564 passed in 625.45s (0:10:25)

@@ -16,7 +16,6 @@ from pring_cycle.context_projection import (
     build_context_projection as actual_build_context_projection,
 )
 from pring_cycle.domain import CoreAssetState
-from pring_cycle.domain.trend import TrendRules
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -76,7 +75,7 @@ def test_runtime_p1_completeness_requires_all_current_valuation_members() -> Non
     trading_days.reverse()
     required = tuple(
         (index, measure)
-        for index in ("000300.SH", "000905.SH")
+        for index in ("000300.SH", "000905.SH", "000852.SH")
         for measure in ("price_earnings", "price_book", "turnover_rate")
     )
     points = []
@@ -179,56 +178,62 @@ def test_runtime_policy_rate_does_not_require_duplicate_daily_claims() -> None:
 
 def test_core_readiness_ignores_observations_after_historical_target(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     paths = runtime(tmp_path)
     target = date(2026, 8, 3)
-    run = RunRepository(paths.database).submit_manual_full(
+    runs = RunRepository(paths.database)
+    run = runs.submit_manual_full(
         target_business_date=target.isoformat(),
         client_request_id="historical-target-cutoff",
         model_version_id="model-v0001",
         system_as_of=datetime(2026, 8, 31, 3, tzinfo=UTC),
+        cutoff_mode="explicit",
     )
-    series = tuple(
-        SimpleNamespace(
-            period_end=(target - timedelta(days=159 - index)).isoformat(),
-            selection_status="selected",
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            selected_value=100.0 + index,
-            selected_claim_id=f"claim-{index}",
-            claims=(),
-        )
-        for index in range(160)
-    ) + (
-        SimpleNamespace(
-            period_end="2026-08-28",
-            selection_status="selected",
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            selected_value=300.0,
-            selected_claim_id="future-claim",
-            claims=(),
-        ),
-    )
-    monkeypatch.setattr(EvidenceRepository, "metric_series", lambda *_args, **_kwargs: series)
-    monkeypatch.setattr(worker_module, "_selected_core_claim_is_valid", lambda *_args: True)
-
-    readiness = worker_module._core_readiness(
-        paths,
-        run,
-        rules=TrendRules(),
-        definition_version="metric-catalog-v0001",
-    )
-
-    assert {item.reason for item in readiness} == {"validated"}
-    assert {item.latest_business_date for item in readiness} == {target.isoformat()}
-    assert {item.observation_count for item in readiness} == {120}
-    assert {item.evidence_window_start for item in readiness} == {
-        (target - timedelta(days=119)).isoformat()
-    }
-    assert all(
-        item.observation_version_ids == tuple(f"claim-{index}" for index in range(40, 160))
-        for item in readiness
-    )
+    evidence = EvidenceRepository(paths.database)
+    future_ids = set()
+    for metric, (api, code) in CORE_API_IDENTITIES.items():
+        claims = []
+        days = [target - timedelta(days=159 - index) for index in range(160)]
+        days.append(date(2026, 8, 28))
+        for index, day in enumerate(days):
+            known = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
+            claims.append(
+                SourceClaimInput(
+                    metric_id=metric,
+                    definition_version="metric-catalog-v0001",
+                    period_kind="business_day",
+                    period_start=day.isoformat(),
+                    period_end=day.isoformat(),
+                    dimensions={},
+                    value=100.0 + index,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="index_points",
+                    provider="tushare",
+                    source_reference=f"tushare:{api}:{code}:{day}",
+                    release_event_id=f"fixture:{metric}:{day}",
+                    release_at=known,
+                    public_available_at=known,
+                    fetched_at=known,
+                    available_at=known,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+        stored = evidence.append_source_claims(tuple(claims))
+        future_ids.add(stored[-1].claim_id)
+    process_pending_run(paths, report_adapters=())
+    assert runs.get(run.run_id).status == "completed"
+    projection = ProjectionSetRepository(paths.database).current()
+    assets = projection.datasets["core_assets"]["assets"]
+    assert {item["reason"] for item in assets} == {"validated"}
+    assert {item["latest_business_date"] for item in assets} == {target.isoformat()}
+    assert {item["observation_count"] for item in assets} == {120}
+    assert all(len(item["observation_version_ids"]) == 120 for item in assets)
+    assert projection.envelope.evidence_window_start == (target - timedelta(days=119)).isoformat()
+    adoption = runs.full_retrieval_plan(run.run_id)["adoption"]
+    assert len(adoption["selected_claim_ids"]) == 480
+    assert future_ids.isdisjoint(adoption["selected_claim_ids"])
+    assert future_ids.isdisjoint(adoption["referenced_observation_version_ids"])
 
 
 def test_context_refresh_ingests_eia_independently_of_tushare(

@@ -375,6 +375,22 @@ def build_context_projection(
         "score": None,
     }
     all_rows = [row for rows in rows_by_metric.values() for row in rows]
+    model_inputs = set(derived_ids)
+    for row in [*all_rows, real_inventory]:
+        if row.get("status") not in {"current", "available"} or row.get("value") is None:
+            continue
+        selected_id = row.get("selected_claim_id")
+        if isinstance(selected_id, str):
+            model_inputs.add(selected_id)
+        for key in (
+            "input_observation_version_ids",
+            "trading_calendar_observation_version_ids",
+            "direction_input_observation_version_ids",
+        ):
+            inputs = row.get(key)
+            if isinstance(inputs, list):
+                model_inputs.update(str(item) for item in inputs)
+    macro_document["model_input_observation_version_ids"] = sorted(model_inputs)
     versions = tuple(
         sorted(
             {
@@ -386,6 +402,7 @@ def build_context_projection(
             | set(credit_version_ids)
             | set(derived_ids)
             | set(market_derived_ids)
+            | model_inputs
         )
     )
     inventory_context_state = inventory.quadrant or (
@@ -1157,6 +1174,26 @@ def _metric_rows(
         )
         candidate_value = current.selected_value
         value = None if status == "awaiting_source_certification" else candidate_value
+        previous_value = (
+            previous.selected_value
+            if value is not None and previous is not None and _certified_point(previous)
+            else None
+        )
+        direction_inputs = []
+        if (
+            value is not None
+            and previous is not None
+            and previous_value is not None
+            and previous.selected_claim_id is not None
+            and not definition.metric_id.startswith("CN_PMI")
+            and current.dimensions.get("measure")
+            not in {
+                "net_injection",
+                "released_funds",
+                "rrr_change",
+            }
+        ):
+            direction_inputs.append(previous.selected_claim_id)
         rows.append(
             {
                 "available_at": selected.available_at.isoformat() if selected is not None else None,
@@ -1189,14 +1226,11 @@ def _metric_rows(
                     for claim in current.claims
                 ],
                 "dimensions": current.dimensions,
+                "direction_input_observation_version_ids": direction_inputs,
                 "direction": _raw_direction(
                     definition.metric_id,
                     value,
-                    (
-                        previous.selected_value
-                        if previous is not None and status != "awaiting_source_certification"
-                        else None
-                    ),
+                    previous_value,
                     current.dimensions,
                 ),
                 "metric_id": definition.metric_id,

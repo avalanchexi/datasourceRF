@@ -5,18 +5,19 @@ import json
 import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
-from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
-from pring_cycle.runs import RunRecord, RunRepository
+from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import CORE_API_IDENTITIES, selected_core_claim_is_valid
 
 
 @dataclass(frozen=True)
@@ -32,53 +33,100 @@ def select_retrieval_input(
     scope = run.retrieval_scope
     if scope is None:
         raise ValueError("retrieval_scope_required")
-    version = str(
-        ModelRepository(paths.database).manifest(run.model_version_id)["metric_catalog_version"]
-    )
-    evidence = TargetBoundEvidenceRepository(
-        EvidenceRepository(paths.database), date.fromisoformat(run.target_business_date), {}
-    )
-    selected_ids = []
-    missing = []
-    for metric_id in scope.metric_ids:
-        definition = metric_definition(metric_id, definition_version=version)
-        expected = REQUIRED_DIMENSION_MEMBERS.get(metric_id)
-        if expected is None:
-            if definition.dimensions:
-                missing.append(f"{metric_id}:dimension_contract_unavailable")
-                continue
-            expected = ({},)
-        points = evidence.metric_series(
-            metric_id, mode=mode, as_of=run.system_as_of, definition_version=version
+    return ModelInputSelector(paths, run, mode=mode).select(scope)
+
+
+class ModelInputSelector:
+    """One fixed evaluation instant, with shared reads across periods and members."""
+
+    def __init__(
+        self, paths: RuntimePaths, run: RunRecord, *, mode: AsOfMode = AsOfMode.SYSTEM
+    ) -> None:
+        self.version = str(
+            ModelRepository(paths.database).manifest(run.model_version_id)["metric_catalog_version"]
         )
-        for member in expected:
-            matches = [
-                p
-                for p in points
-                if matches_retrieval_period(p.period_end, scope.period) and p.dimensions == member
-            ]
-            accepted = []
-            for point in matches:
-                claim = next(
-                    (c for c in point.claims if c.claim_id == point.selected_claim_id), None
+        self.evidence = TargetBoundEvidenceRepository(
+            EvidenceRepository(paths.database), date.fromisoformat(run.target_business_date), {}
+        )
+        self.core_evidence = EvidenceRepository(paths.database)
+        self.target_business_date = run.target_business_date
+        self.full_run = run.command_type in {"manual_full", "scheduled_full"}
+        self.as_of = (
+            utc_now()
+            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
+            else run.system_as_of
+        )
+        self.mode = mode
+        self._points: dict[str, tuple[MetricSeriesPoint, ...]] = {}
+
+    def series(self, metric_id: str) -> tuple[MetricSeriesPoint, ...]:
+        if metric_id not in self._points:
+            # Full-run core evaluation follows the bound model's SYSTEM path.
+            # Unknown PUBLIC time remains unknown; it is not a transport error.
+            repository = (
+                self.core_evidence
+                if self.full_run
+                and self.mode is AsOfMode.SYSTEM
+                and metric_id in CORE_API_IDENTITIES
+                else self.evidence
+            )
+            self._points[metric_id] = tuple(
+                point
+                for point in repository.metric_series(
+                    metric_id, mode=self.mode, as_of=self.as_of, definition_version=self.version
                 )
-                if (
-                    point.selection_status == "selected"
-                    and point.value_state == EvidenceValueState.REPORTED_VALUE
-                    and point.selected_value is not None
-                    and claim is not None
-                    and claim.certification_status == "certified"
-                    and claim.quality_status == "validated"
-                    and definition.certification_status == "certified"
-                ):
-                    accepted.append(claim.claim_id)
-            if len(accepted) == 1:
-                selected_ids.extend(accepted)
-            else:
-                missing.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
-    return ModelInputSelection(
-        not missing and bool(selected_ids), tuple(selected_ids), tuple(missing)
-    )
+                if metric_id not in CORE_API_IDENTITIES
+                or point.period_end <= self.target_business_date
+            )
+        return self._points[metric_id]
+
+    def select(self, scope: RetrievalScope) -> ModelInputSelection:
+        selected_ids = []
+        missing = []
+        for metric_id in scope.metric_ids:
+            definition = metric_definition(metric_id, definition_version=self.version)
+            expected = REQUIRED_DIMENSION_MEMBERS.get(metric_id)
+            if expected is None:
+                if definition.dimensions:
+                    missing.append(f"{metric_id}:dimension_contract_unavailable")
+                    continue
+                expected = ({},)
+            points = self.series(metric_id)
+            for member in expected:
+                matches = [
+                    p
+                    for p in points
+                    if (
+                        matches_retrieval_period(p.period_end, scope.period)
+                        and p.dimensions == member
+                    )
+                ]
+                accepted = []
+                for point in matches:
+                    claim = next(
+                        (c for c in point.claims if c.claim_id == point.selected_claim_id), None
+                    )
+                    if (
+                        point.selection_status == "selected"
+                        and point.value_state == EvidenceValueState.REPORTED_VALUE
+                        and point.selected_value is not None
+                        and claim is not None
+                        and claim.certification_status == "certified"
+                        and claim.quality_status == "validated"
+                        and definition.certification_status == "certified"
+                        and (
+                            metric_id not in CORE_API_IDENTITIES
+                            or selected_core_claim_is_valid(metric_id, point)
+                        )
+                    ):
+                        accepted.append(claim.claim_id)
+                if len(accepted) == 1:
+                    selected_ids.extend(accepted)
+                else:
+                    missing.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
+        return ModelInputSelection(
+            not missing and bool(selected_ids), tuple(selected_ids), tuple(missing)
+        )
 
 
 def verify_search_candidates(
@@ -86,18 +134,28 @@ def verify_search_candidates(
     run_id: str,
     search_request_id: str,
     urls: tuple[str, ...],
+    *,
+    scope_run: RunRecord | None = None,
 ) -> RetrievalAdapterResponse:
-    run = RunRepository(paths.database).get(run_id)
+    run = scope_run or RunRepository(paths.database).get(run_id)
     scope = run.retrieval_scope
     if scope is None:
         raise ValueError("retrieval_scope_required")
     version = str(
         ModelRepository(paths.database).manifest(run.model_version_id)["metric_catalog_version"]
     )
-    ledger = RetrievalLedger(paths.database)
+    ledger = RetrievalLedger(paths.database, scope_run=scope_run)
     snapshot = ledger.for_run(run_id)
     assert snapshot is not None
-    gap_ids = [g["gap_id"] for g in snapshot["gaps"]]
+    gap_ids = [
+        g["gap_id"]
+        for g in snapshot["gaps"]
+        if (
+            g["metric_id"] in scope.metric_ids
+            and g["period"] == scope.period
+            and g["as_of"] == run.system_as_of.astimezone(UTC).isoformat()
+        )
+    ]
     for url in urls[:3]:
         validation_id = "candidate-validation-" + uuid4().hex
         with sqlite3.connect(paths.database) as connection:
@@ -106,8 +164,9 @@ def verify_search_candidates(
             ).fetchone()[0]
             duplicate = connection.execute(
                 "SELECT validation_id FROM retrieval_candidate_validation "
-                "WHERE run_id=? AND run_attempt=? AND candidate_url=? LIMIT 1",
-                (run_id, attempt, url),
+                "WHERE run_id=? AND run_attempt=? AND candidate_url=? "
+                "AND gap_ids_json=? LIMIT 1",
+                (run_id, attempt, url, json.dumps(gap_ids)),
             ).fetchone()
             connection.execute(
                 "INSERT INTO retrieval_candidate_validation(validation_id, run_id, "

@@ -48,7 +48,10 @@ from pring_cycle.retrieval import (
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
-from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
+from pring_cycle.source_adapters import (
+    TushareCoreAdapter,
+    selected_core_claim_is_valid,
+)
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, record_worker_heartbeat
 from pring_cycle.tushare_context import (
@@ -233,12 +236,20 @@ def _execute_run(
         snapshot = ReportRepository(paths.database).get(report_snapshot_id)
         if run.projection_set_id is None or snapshot.projection_set_id != run.projection_set_id:
             raise ValueError("report_checkpoint_projection_mismatch")
+        if run.command_type in {"manual_full", "scheduled_full"}:
+            from pring_cycle.full_retrieval import FullRunRetrieval
+
+            FullRunRetrieval(paths).record_adoption(run)
         runs.advance(run.run_id, "completed")
         return
     if projection_set_id := checkpoints.get("published_projection"):
         if run.projection_set_id != projection_set_id:
             raise ValueError("projection_checkpoint_identity_mismatch")
         _validate_bound_projection(paths, run, projection_set_id)
+        if run.command_type in {"manual_full", "scheduled_full"}:
+            from pring_cycle.full_retrieval import FullRunRetrieval
+
+            FullRunRetrieval(paths).record_adoption(run)
         runs.advance(run.run_id, "generating_report")
         generated = _generate_report(paths, runs, run, report_adapters)
         runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)
@@ -277,20 +288,45 @@ def _execute_run(
         return
 
     runs.advance(run.run_id, "refreshing_evidence")
-    if "verified_evidence" not in checkpoints:
-        _refresh_core_sources(
-            paths,
-            run.target_business_date,
-            definition_version=definition_version,
-        )
-        _refresh_context_sources(
-            paths,
-            run.target_business_date,
-            definition_version=definition_version,
-        )
-        run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
+    from pring_cycle.full_retrieval import FullRunRetrieval
+
+    full_retrieval = FullRunRetrieval(paths)
+    if (
+        "verified_evidence" not in checkpoints
+        and runs.full_retrieval_plan(run.run_id)["final"] is None
+    ):
+        from pring_cycle.acquisition import own_acquisitions
+
+        with own_acquisitions(
+            paths.database,
+            run.run_id,
+            "direct_core_refresh",
+            metric_ids=("CN_EQUITY_CORE_000985", "CN_BOND_CORE_000012", "CN_COMMODITY_CORE_NHII"),
+        ):
+            _refresh_core_sources(
+                paths, run.target_business_date, definition_version=definition_version
+            )
+        with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
+            _refresh_context_sources(
+                paths, run.target_business_date, definition_version=definition_version
+            )
+        full_retrieval.retrieve(run)
+        if runs.get(run.run_id).status != "running":
+            return
+        if not run.cutoffs_frozen:
+            run = runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
     else:
         run = runs.get(run.run_id)
+        if "verified_evidence" in checkpoints:
+            full_retrieval.recover_legacy_plan(run)
+    full_retrieval.evaluate(run)
+    plan = runs.full_retrieval_plan(run.run_id)
+    if plan["final"]["daily_window"]["status"] == "available" and any(
+        not gap["complete"] and gap["metric_id"] in model_manifest["core_metrics"].values()
+        for gap in plan["final"]["gaps"]
+    ):
+        runs.mark_action_required(run.run_id, "p0_required_calendar_period_missing")
+        return
     runs.advance(run.run_id, "validating_evidence")
     readiness = _core_readiness(
         paths,
@@ -324,6 +360,11 @@ def _execute_run(
     last_stage = _last_confirmed_stage(paths, run.target_business_date)
     observation_versions = (
         tuple(version_id for item in readiness for version_id in item.observation_version_ids)
+        + tuple(
+            version_id
+            for item in readiness
+            for version_id in (item.model_input_observation_version_ids or ())
+        )
         + context.observation_version_ids
     )
     evidence_snapshot_id = None
@@ -380,6 +421,7 @@ def _execute_run(
         return
     runs.link_projection(run.run_id, result.projection_set_id)
     run = runs.get(run.run_id)
+    full_retrieval.record_adoption(run)
     ModelRepository(paths.database).record_first_publication(
         run.model_version_id,
         run.target_business_date,
@@ -546,19 +588,25 @@ def _retrieval_release_status(
     now: datetime,
     *,
     definition_version: str,
+    public_as_of: datetime | None = None,
 ) -> str:
     repository = EvidenceRepository(paths.database)
+    public_cutoff = min(now, public_as_of) if public_as_of is not None else now
     states: list[str] = []
     for metric_id in scope.metric_ids:
         points = repository.metric_series(
-            metric_id, mode=AsOfMode.SYSTEM, as_of=now, definition_version=definition_version
+            metric_id,
+            mode=AsOfMode.SYSTEM,
+            as_of=now,
+            public_as_of=public_cutoff,
+            definition_version=definition_version,
         )
         if any(
             matches_retrieval_period(point.period_end, scope.period)
             and any(
                 claim.quality_status == "validated"
                 and claim.public_available_at is not None
-                and claim.public_available_at <= now
+                and claim.public_available_at <= public_cutoff
                 for claim in point.claims
             )
             for point in points
@@ -568,7 +616,9 @@ def _retrieval_release_status(
             from pring_cycle.release_calendar import lpr_release_expectation
 
             expectation = lpr_release_expectation(scope.period)
-            states.append("released" if now >= expectation.window_start else "awaiting_release")
+            states.append(
+                "released" if public_cutoff >= expectation.window_start else "awaiting_release"
+            )
         else:
             states.append("unknown_release_configuration")
     if "awaiting_release" in states:
@@ -585,11 +635,15 @@ def _production_retrieval_adapters(
     *,
     definition_version: str,
     run_id: str,
+    scope_run: RunRecord | None = None,
 ) -> dict[str, Callable[[str], str | RetrievalAdapterResponse | None]]:
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+
     adapters: dict[str, Callable[[str], str | RetrievalAdapterResponse | None]] = {
         "local": lambda _event: _local_retrieval(
             paths,
             run_id,
+            scope_run=scope_run,
         ),
     }
     if scope.metric_ids == ("CN_LPR_1Y_5Y",):
@@ -598,6 +652,7 @@ def _production_retrieval_adapters(
             scope,
             now,
             run_id=run_id,
+            scope_run=scope_run,
             definition_version=definition_version,
         )
     elif scope.source_url is not None:
@@ -613,12 +668,15 @@ def _production_retrieval_adapters(
                 scope,
                 now,
                 run_id=run_id,
+                scope_run=scope_run,
                 definition_version=definition_version,
             )
     if scope.source_url is not None and "official" in adapters:
         from pring_cycle.retrieval_ledger import RetrievalLedger
 
-        adapters["official"] = lambda event: RetrievalLedger(paths.database).trace_acquisition(
+        adapters["official"] = lambda event: RetrievalLedger(
+            paths.database, scope_run=scope_run
+        ).trace_acquisition(
             run_id,
             "official",
             event,
@@ -629,6 +687,7 @@ def _production_retrieval_adapters(
                     scope,
                     now,
                     run_id=run_id,
+                    scope_run=scope_run,
                     definition_version=definition_version,
                     on_acquisition_started=on_started,
                 )
@@ -638,6 +697,7 @@ def _production_retrieval_adapters(
                     scope,
                     now,
                     run_id=run_id,
+                    scope_run=scope_run,
                     definition_version=definition_version,
                     on_acquisition_started=on_started,
                 )
@@ -647,7 +707,9 @@ def _production_retrieval_adapters(
     if tushare_token := secrets.get("TUSHARE_TOKEN"):
         from pring_cycle.targeted_context import retrieve_tushare_context
 
-        adapters["tushare"] = lambda _event: retrieve_tushare_context(paths, run_id, tushare_token)
+        adapters["tushare"] = lambda _event: retrieve_tushare_context(
+            paths, run_id, tushare_token, scope_run=scope_run
+        )
     if "TAVILY_API_KEY" in secrets or "EXA_API_KEY" in secrets:
         from pring_cycle.search_discovery import (
             build_search_query,
@@ -665,8 +727,9 @@ def _production_retrieval_adapters(
                 query,
                 paths=paths,
                 run_id=run_id,
+                ledger=RetrievalLedger(paths.database, scope_run=scope_run),
                 verify_candidates=lambda request_id, urls: verify_search_candidates(
-                    paths, run_id, request_id, urls
+                    paths, run_id, request_id, urls, scope_run=scope_run
                 ),
             )
         if token := secrets.get("EXA_API_KEY"):
@@ -676,8 +739,9 @@ def _production_retrieval_adapters(
                 query,
                 paths=paths,
                 run_id=run_id,
+                ledger=RetrievalLedger(paths.database, scope_run=scope_run),
                 verify_candidates=lambda request_id, urls: verify_search_candidates(
-                    paths, run_id, request_id, urls
+                    paths, run_id, request_id, urls, scope_run=scope_run
                 ),
             )
     return adapters
@@ -686,10 +750,14 @@ def _production_retrieval_adapters(
 def _local_retrieval(
     paths: RuntimePaths,
     run_id: str,
+    *,
+    scope_run: RunRecord | None = None,
 ) -> str | None:
     from pring_cycle.search_evidence import select_retrieval_input
 
-    selection = select_retrieval_input(paths, RunRepository(paths.database).get(run_id))
+    selection = select_retrieval_input(
+        paths, scope_run or RunRepository(paths.database).get(run_id)
+    )
     if not selection.complete:
         return None
     digest = hashlib.sha256("\x1f".join(sorted(selection.selected_claim_ids)).encode()).hexdigest()
@@ -702,6 +770,7 @@ def _official_lpr_retrieval(
     now: datetime,
     *,
     run_id: str,
+    scope_run: RunRecord | None = None,
     definition_version: str,
     on_acquisition_started: Callable[[str], None] | None = None,
 ) -> str | RetrievalAdapterResponse:
@@ -720,7 +789,7 @@ def _official_lpr_retrieval(
         definition_version=definition_version,
         on_acquisition_started=on_acquisition_started,
     )
-    return _local_retrieval(paths, run_id) or RetrievalAdapterResponse(
+    return _local_retrieval(paths, run_id, scope_run=scope_run) or RetrievalAdapterResponse(
         "candidate_source", evidence=scope.source_url, classification="incomplete_model_input"
     )
 
@@ -731,6 +800,7 @@ def _official_context_retrieval(
     now: datetime,
     *,
     run_id: str,
+    scope_run: RunRecord | None = None,
     definition_version: str,
     on_acquisition_started: Callable[[str], None] | None = None,
 ) -> str | RetrievalAdapterResponse:
@@ -767,7 +837,7 @@ def _official_context_retrieval(
             evidence=scope.source_url,
             classification="awaiting_source_certification",
         )
-    return _local_retrieval(paths, run_id) or RetrievalAdapterResponse(
+    return _local_retrieval(paths, run_id, scope_run=scope_run) or RetrievalAdapterResponse(
         "candidate_source", evidence=scope.source_url, classification="incomplete_model_input"
     )
 
@@ -831,13 +901,14 @@ def _core_readiness(
         distance_pct = None
         slope_pct = None
         noise_band_pct = None
+        model_inputs: tuple[str, ...] = ()
         if not series:
             reason = "source_missing"
         elif any(item.selection_status == "conflicted" for item in series):
             reason = "source_conflict"
         elif series[-1].period_end != run.target_business_date:
             reason = "stale_for_target_business_date"
-        elif any(not _selected_core_claim_is_valid(metric_id, point) for point in series):
+        elif any(not selected_core_claim_is_valid(metric_id, point) for point in series):
             reason = "source_identity_not_certified"
         elif any(
             item.value_state is not EvidenceValueState.REPORTED_VALUE or item.selected_value is None
@@ -851,6 +922,9 @@ def _core_readiness(
                 if item.selected_value is not None
             ]
             trend = evaluate_trend(points, rules)
+            model_inputs = tuple(
+                item.selected_claim_id for item in series if item.selected_claim_id is not None
+            )
             state = trend.stable_state
             candidate_state = trend.candidate_state
             candidate_days = rules.candidate_days_for_output(trend)
@@ -862,8 +936,8 @@ def _core_readiness(
             if state is None:
                 reason = trend.reason
         results.append(
-            # The full preheat series remains an internal trend input. Only the
-            # latest 120 observations may enter the page/report projection.
+            # Keep the price display at 120 observations. The separate input
+            # manifest preserves the full preheat used by the stateful trend.
             CoreAssetReadiness(
                 asset=asset,
                 metric_id=metric_id,
@@ -884,6 +958,7 @@ def _core_readiness(
                 distance_pct=distance_pct,
                 slope_pct=slope_pct,
                 noise_band_pct=noise_band_pct,
+                model_input_observation_version_ids=model_inputs,
             )
         )
     return tuple(results)  # type: ignore[return-value]
@@ -908,26 +983,6 @@ def _trend_rules_for_model(paths: RuntimePaths, model_version_id: str) -> TrendR
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("model_trend_rules_invalid") from error
-
-
-def _selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bool:
-    selected_claim_id = point.selected_claim_id
-    claims = point.claims
-    selected = next(
-        (claim for claim in claims if claim.claim_id == selected_claim_id),
-        None,
-    )
-    if selected is None:
-        return False
-    api_name, source_code = CORE_API_IDENTITIES[metric_id]
-    expected_reference = f"tushare:{api_name}:{source_code}:{point.period_end}"
-    return (
-        selected.provider == "tushare"
-        and selected.source_reference == expected_reference
-        and selected.unit == "index_points"
-        and selected.certification_status == "certified"
-        and selected.quality_status == "validated"
-    )
 
 
 def _explanatory_evidence_warnings(
@@ -1206,6 +1261,8 @@ def _refresh_context_sources(
     *,
     definition_version: str,
 ) -> None:
+    from pring_cycle.acquisition import acquisition_metrics
+
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
     eia_key = secrets.get("EIA_API_KEY")
@@ -1213,12 +1270,13 @@ def _refresh_context_sources(
         fetched_at = datetime.now(UTC)
         repository = EvidenceRepository(paths.database)
         try:
-            _eia_context_adapter(eia_key).acquire_spot_prices(
-                paths,
-                start_date=target - timedelta(days=220),
-                end_date=target,
-                definition_version=definition_version,
-            )
+            with acquisition_metrics(("EIA_BRENT_RBRTE", "EIA_WTI_RWTC")):
+                _eia_context_adapter(eia_key).acquire_spot_prices(
+                    paths,
+                    start_date=target - timedelta(days=220),
+                    end_date=target,
+                    definition_version=definition_version,
+                )
         except (OSError, TypeError, ValueError) as error:
             if isinstance(error, OSError):
                 outcome = "source_failed"
@@ -1367,11 +1425,8 @@ def _refresh_context_sources(
     for family, metric_ids, retrieve in families:
         fetched_at = datetime.now(UTC)
         try:
-            adapter.acquire_scalars(
-                paths,
-                retrieve,
-                definition_version=definition_version,
-            )
+            with acquisition_metrics(metric_ids):
+                adapter.acquire_scalars(paths, retrieve, definition_version=definition_version)
         except OSError as error:
             for metric_id in metric_ids:
                 repository.record_retrieval_attempt(

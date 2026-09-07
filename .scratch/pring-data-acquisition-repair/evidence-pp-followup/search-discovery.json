@@ -1,0 +1,33 @@
+{
+  "recorded_on_local_date": "2026-09-07",
+  "purpose": "Discover a new official DCE public source for 2026-08-28 PP contract settle/pre_settle or warehouse receipt value without repeating known failed requests",
+  "tool": "web search_query",
+  "tool_call_count": 3,
+  "query_count": 8,
+  "queries": [
+    {"query": "site.dce.com.cn 2026 08 28 聚丙烯 仓单 日报", "domain_filter": null},
+    {"query": "site.dce.com.cn 20260828 聚丙烯 结算 日行情", "domain_filter": null},
+    {"query": "仓单日报 聚丙烯 2026 8 28", "domain_filter": ["dce.com.cn"]},
+    {"query": "日行情 20260828", "domain_filter": ["dce.com.cn"]},
+    {"query": "仓单日报 大连商品交易所", "domain_filter": ["dce.com.cn"]},
+    {"query": "site:dce.com.cn \"日行情\" \"统计\"", "domain_filter": null},
+    {"query": "site:dce.com.cn \"仓单日报\" \"查询\"", "domain_filter": null},
+    {"query": "site:dce.com.cn \"2026年8月\" \"月报\"", "domain_filter": null}
+  ],
+  "official_candidates_observed": [
+    {"url": "https://extportal.dce.com.cn/file/pc/index.html", "kind": "desktop client download page", "rejected_for_target": "Not a public historical quote or warrant file; no software installed or account entered"},
+    {"url": "https://extportal.dce.com.cn/file/app/index.html", "kind": "mobile client download page", "rejected_for_target": "Not a historical quote or warrant file"},
+    {"url": "https://www.dce.com.cn/dalianshangpin/resource/cms/2019/05/2019051410181769090.pdf", "kind": "2019 market monthly report", "rejected_for_target": "Wrong period and monthly aggregation; cannot prove 2026-08-28 daily value"},
+    {"url": "https://www.dce.com.cn/dalianshangpin/resource/cms/2020/11/2020111209380878948.pdf", "kind": "2020 market monthly report", "rejected_for_target": "Wrong period and monthly aggregation"},
+    {"url": "https://www.dce.com.cn/dalianshangpin/resource/cms/article/489932/8507992/2022080208291768754.pdf", "kind": "2022 market monthly report", "rejected_for_target": "Wrong period and monthly aggregation"},
+    {"url": "https://www.dce.com.cn/dalianshangpin/resource/cms/article/8523995/8524596/2022120916485655746.pdf", "kind": "warehouse registration user manual", "rejected_for_target": "Operational manual, not the dated public warrant statistical table"}
+  ],
+  "additional_official_rule_candidate": "Previously documented 2024 PP business rules PDF also reappeared; prior direct download timeout already recorded in evidence-11/receipts.json, not retried",
+  "last_tool_call_result": "Empty search results for all three queries",
+  "third_party_results": "Some initial query results linked third-party reports and quote pages. Their numbers and timestamps were not adopted, downloaded, or used to certify the target.",
+  "new_dce_http_requests": 0,
+  "new_official_raw_response_count": 0,
+  "raw_http_sha256": null,
+  "target_official_data_found": false,
+  "limitation": "Discovery record, not raw search-engine response bytes and not proof that DCE never publishes the requested data. Tool metadata times and snippets are not publication evidence."
+}

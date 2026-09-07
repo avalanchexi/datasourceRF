@@ -188,6 +188,22 @@ def create_web_application(
     def run_index() -> list[dict[str, object]]:
         return [asdict(item) for item in _runs(paths)]
 
+    @server.get("/api/v1/runs/{run_id}/audit", name="run_audit")
+    def run_audit(run_id: str) -> JSONResponse:
+        runs = RunRepository(paths.database)
+        try:
+            run = runs.get(run_id)
+        except LookupError:
+            return JSONResponse(status_code=404, content={"error": "run_not_found"})
+        return JSONResponse(
+            content=jsonable_encoder(
+                {
+                    "run": asdict(run),
+                    "full_retrieval": runs.full_retrieval_plan(run_id),
+                }
+            )
+        )
+
     @server.get("/api/v1/reports", name="report_index")
     def report_index() -> list[dict[str, object]]:
         return [asdict(item) for item in _reports(paths)]
@@ -640,7 +656,12 @@ def _persist_command(paths: RuntimePaths, payload: dict[str, object]) -> dict[st
             target_business_date=str(payload["target_business_date"]),
             client_request_id=str(payload["client_request_id"]),
             model_version_id=model_version_id,
-            system_as_of=datetime.now(UTC),
+            system_as_of=(
+                datetime.fromisoformat(str(payload["system_as_of"]))
+                if payload.get("system_as_of") is not None
+                else datetime.now(UTC)
+            ),
+            cutoff_mode="explicit" if payload.get("system_as_of") is not None else None,
             release_event_id=(
                 str(payload["release_event_id"])
                 if payload.get("release_event_id") is not None
