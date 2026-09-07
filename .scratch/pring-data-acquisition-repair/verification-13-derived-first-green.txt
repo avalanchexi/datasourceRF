@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_uncertified_model_input_cannot_become_a_certified_policy_spread _____
+tests/integration/test_context_model_certification.py:70: in test_uncertified_model_input_cannot_become_a_certified_policy_spread
+    assert input_ids["CN_DR007"] not in context.observation_version_ids
+E   AssertionError: assert 'e240d1ee925bde5fa584cc4ee388de06b1610ceefdc9df5f41e41212919346b9' not in ('0619f3c84107d274286e229fc149a0d3e9def8d5b5de7b4e16a3c765c81c9d54', 'e240d1ee925bde5fa584cc4ee388de06b1610ceefdc9df5f41e41212919346b9')
+E    +  where ('0619f3c84107d274286e229fc149a0d3e9def8d5b5de7b4e16a3c765c81c9d54', 'e240d1ee925bde5fa584cc4ee388de06b1610ceefdc9df5f41e41212919346b9') = ContextProjection(macro={'policy_direction': 'insufficient_data', 'policy_action': {'direction': 'insufficient_data', ...a', 'price_context_degraded:insufficient_data', 'inventory_context_degraded:insufficient_data', 'p2_context_degraded')).observation_version_ids
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_uncertified_model_input_cannot_become_a_certified_policy_spread
+1 failed in 1.56s

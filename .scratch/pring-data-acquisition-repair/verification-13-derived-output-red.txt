@@ -1,0 +1,9 @@
+..F                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_uncertified_model_input_cannot_become_a_certified_policy_spread[CN_DR007_POLICY_SPREAD] _
+tests/integration/test_context_model_certification.py:75: in test_uncertified_model_input_cannot_become_a_certified_policy_spread
+    assert spread["value"] is None
+E   assert -1.4100000000000001 is None
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_uncertified_model_input_cannot_become_a_certified_policy_spread[CN_DR007_POLICY_SPREAD]
+1 failed, 2 passed in 1.27s

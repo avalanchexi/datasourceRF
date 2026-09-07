@@ -4,6 +4,10 @@
 
 ## 已实际完成的本轮交付
 
+最新代码批次从`9199a5b`继续：[派生认证修复](implementation-13-derived-eligibility.md)完成7公式模型内输入/输出认证守门、未认证日历排除及任一输入PUBLIC未知的传播；关闭公式也不再引入其依赖。**664项全套通过、0失败、768.46秒**，57项针对测试、Ruff、mypy82与双轴复审通过；[最终收据](verification-13-derived/final.json)。其后工作从[RRR双范围解析RED](rrr-scope-repair-boundary.md)继续：真实2025原件的定向-5pp目前未输出。这个已知后续缺陷不在前一代码批次的默认测试范围内，不能因全套通过而标已修。
+
+新增RRR四批研究共14次官方GET、4,384,725字节；[回顾与目录](rrr-followup.md)、[四篇公告](rrr-announcements-followup.md)、[两篇政策材料](rrr-policy-status-followup.md)、[原公告补证](rrr-original-notices-followup.md)均经根代理只读校验。原始发布会明确特定机构5%降至0%与2025-05-07日期，但精确时刻、阶段期限、区间事件全集和最近前置状态仍未证明；CSRC/吉林域不能冒充PBC认证域。不计入Tavily/Exa配对检索分母。公开解析入口已证实拒绝2025原件的2026请求，局部regex的错年试算不能再当确定生产缺陷。
+
 应用基点为`9aaf5263132e2e3596ca4f71f18b109ef20a8c7f`：Treasury官方CSV候选入口/CLI、原件和真实SYSTEM关联、缺值/修订/来源最新期次等行为完成；27项针对测试、**639项全套、0失败、800.47秒**，Ruff、mypy81、Spec/Standards复审均通过。[实施记录](implementation-14-treasury.md)、[最终收据](verification-14-treasury/final.json)。前批EIA为`abbeb01`、612项全套通过；磁盘故障失败日志与恢复结果分别保留，不能只引用旧失败或旧成功。
 
 | 实际新交付 | 取得与核验结果 | 仍不代表 |

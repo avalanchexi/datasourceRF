@@ -1,0 +1,18 @@
+{
+  "tool": "web.run search_query",
+  "calls": 4,
+  "queries": 12,
+  "query_groups": [
+    ["site:pbc.gov.cn 2026 \"降准\" \"5月\" \"存款准备金率\"", "site:pbc.gov.cn \"2026年\" \"货币政策大事记\"", "site:pbc.gov.cn \"2025年5月15日\" \"存款准备金率\" \"2025-05-07\""],
+    ["site:pbc.gov.cn \"中国人民银行决定下调金融机构存款准备金率\" \"2025\"", "site:pbc.gov.cn \"2026年上半年\" \"大事记\"", "site:pbc.gov.cn \"2026\" \"存款准备金率\" \"2026-08\"", "site:pbc.gov.cn \"2026年第二季度中国货币政策执行报告\""],
+    ["site:pbc.gov.cn \"2025-05-07\" \"准备金\"", "site:pbc.gov.cn \"2026\" \"降准\" \"3月\"", "site:pbc.gov.cn \"2026年第一季度\" \"货币政策执行报告\""],
+    ["中国人民银行 2025 5 7 降准 官方", "site:pbc.gov.cn 2026 降准"]
+  ],
+  "outcome": "No returned 2026 PBC RRR notice or requested 2026 report link. Returned older PBC sources included the already stored 2025 H1/Q3 retrospect and 2025 Q2 report. Third-party and non-PBC search hits were not downloaded or admitted as evidence. The current 2026 official links were subsequently obtained from actual PBC news directory raw HTML, not search snippets.",
+  "historical_announcement_time_established_from_search": false,
+  "event_completeness_established_from_search": false,
+  "tavily_or_exa_requests": 0,
+  "network_get_budget_separate_from_search_discovery": true,
+  "search_call_times": null,
+  "search_call_time_note": "Exact per-search call clock was not separately captured; do not invent one. Direct GETs have started_at and received_at in receipts.json."
+}

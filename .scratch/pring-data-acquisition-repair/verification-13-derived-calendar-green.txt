@@ -1,0 +1,38 @@
+........................F.....................F.FFF....                  [100%]
+=================================== FAILURES ===================================
+_________ test_context_formula_dispatch_is_bound_to_the_model_manifest _________
+tests/integration/test_context_projection.py:127: in test_context_formula_dispatch_is_bound_to_the_model_manifest
+    assert any(row.get("formula_version") == "repo-net-injection-v0001" for row in v2_policy)
+E   assert False
+E    +  where False = any(<generator object test_context_formula_dispatch_is_bound_to_the_model_manifest.<locals>.<genexpr> at 0x7019298a0ee0>)
+___ test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages ___
+tests/integration/test_context_projection.py:1105: in test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages
+    assert formula["status"] == "available"
+E   AssertionError: assert 'uncertified_..._dependencies' == 'available'
+E     
+E     - available
+E     + uncertified_model_dependencies
+_ test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[monthly_increment] _
+tests/integration/test_context_projection.py:1311: in test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp
+    assert formula["gdp_input_measure"] == "nominal_ytd_level"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'gdp_input_measure'
+_ test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_increment] _
+tests/integration/test_context_projection.py:1311: in test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp
+    assert formula["gdp_input_measure"] == "nominal_ytd_level"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'gdp_input_measure'
+__ test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_gap] ___
+tests/integration/test_context_projection.py:1298: in test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp
+    assert formula["status"] == "nonconsecutive_social_financing_inputs"
+E   AssertionError: assert 'uncertified_..._dependencies' == 'nonconsecuti...ancing_inputs'
+E     
+E     - nonconsecutive_social_financing_inputs
+E     + uncertified_model_dependencies
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_projection.py::test_context_formula_dispatch_is_bound_to_the_model_manifest
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[monthly_increment]
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_increment]
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_gap]
+5 failed, 50 passed in 19.58s

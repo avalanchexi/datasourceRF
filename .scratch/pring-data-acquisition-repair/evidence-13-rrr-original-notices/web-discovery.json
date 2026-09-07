@@ -1,0 +1,34 @@
+{
+  "search_tool": "web.run search_query",
+  "search_calls": 2,
+  "queries": 7,
+  "query_groups": [
+    [
+      "2025年5月15日 中国人民银行 决定 下调 金融机构 存款准备金率 0.5 公告",
+      "2025年5月7日 中国人民银行 汽车金融 金融租赁 存款准备金率 5 0 公告",
+      "site:pbc.gov.cn 一揽子金融政策支持稳市场稳预期 2025年5月7日"
+    ],
+    [
+      "site:pbc.gov.cn \"2025年5月15日起\"",
+      "site:pbc.gov.cn \"2025\" \"reserve requirement\" \"May 15\"",
+      "site:csrc.gov.cn \"一揽子金融政策支持稳市场稳预期\" \"2025-05-07\"",
+      "site:pbc.gov.cn \"2025\" \"汽车金融公司\" \"0%\""
+    ]
+  ],
+  "selected_official_urls": [
+    {"url": "https://jr.jl.gov.cn/jrzx/zyjrxxzz/gj/202505/t20250512_3454788.html", "found_by_search_call": 1, "identity": "Jilin government republication attributing the notice to PBC; not the original PBC host"},
+    {"url": "https://www.csrc.gov.cn/csrc/c106311/c7555758/content.shtml", "found_by_search_call": 2, "identity": "CSRC official host of the original joint press-conference transcript"}
+  ],
+  "csrc_search_view_clock_markers_observed": ["09:01:06", "09:12:26", "09:16:00", "09:20:49", "10:06:02"],
+  "search_view_clock_marker_date": "2025-05-07",
+  "search_clocks_are_not_raw_evidence": true,
+  "actual_csrc_get_contains_these_clock_markers": false,
+  "comparison_basis": "Search response displayed block-level clock strings, including 09:20:49 after the initial RRR measures. Exact downloaded HTML has none of the listed clocks and no 2025-05-07 date-plus-time string. Only the visible date is retained as publication evidence.",
+  "unselected_results": "Other PBC hits were old retrospect/report or unrelated lending rates/penalties; third-party financial/news search snippets were not used as certification evidence.",
+  "original_pbc_notice_link_found": false,
+  "new_gets": 2,
+  "get_cap": 4,
+  "why_stopped_below_get_cap": "Two searches exhausted. The two downloaded official pages give no original PBC notice or official press-conference source hyperlink. No URL guessing, enumeration or extra directory reading. Parent confirmed stopping at two GETs.",
+  "tavily_or_exa_calls": 0,
+  "exact_per_search_clock_not_captured": true
+}

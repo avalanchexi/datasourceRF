@@ -1,0 +1,62 @@
+{
+  "verification": "passed",
+  "default_read_only_stdlib": true,
+  "new_raw_count": 4,
+  "new_raw_bytes": 106823,
+  "old_rrr_delivery_paths_verified": 20,
+  "delivery_paths": 11,
+  "report_local_links": 7,
+  "manifest_self_hash_excluded": true,
+  "files": [
+    {
+      "path": "evidence-13-rrr-announcements/08ef3d75785d478189ad533ff82575e8f2770a27df3f6ea950c4757cc2d5ad15",
+      "bytes": 26903,
+      "sha256": "08ef3d75785d478189ad533ff82575e8f2770a27df3f6ea950c4757cc2d5ad15"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/28a9f4cbde775f247aadcf57cb00bfd61a2d6cf2b143fd89135cb1a74c6287c8",
+      "bytes": 28544,
+      "sha256": "28a9f4cbde775f247aadcf57cb00bfd61a2d6cf2b143fd89135cb1a74c6287c8"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/8ae204fb99e40f561274234dae37bc960e409ca523cf21afb58a6d1878ce13f7",
+      "bytes": 27812,
+      "sha256": "8ae204fb99e40f561274234dae37bc960e409ca523cf21afb58a6d1878ce13f7"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/94c9c9fa851bd92b46dd7400fe1f629c0dcafb6b3567b19fdb57f704d95bef1f",
+      "bytes": 23564,
+      "sha256": "94c9c9fa851bd92b46dd7400fe1f629c0dcafb6b3567b19fdb57f704d95bef1f"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/capture_get.py",
+      "bytes": 2860,
+      "sha256": "ca4b211c3cd92b8bfdefea51692019867c0620844e96af8012d6d6cdc7469343"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/delivery-files.txt",
+      "bytes": 718,
+      "sha256": "d4452fe5b35f19caab7cafe17e50e1517225bff0bb0ea86dcbc65b4a5b103753"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/receipts.json",
+      "bytes": 3549,
+      "sha256": "bd5353609415968b503275c1c68cfa2f1fdd05ca0bf6022ffacf9bf2529f63b3"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/source-inspection.json",
+      "bytes": 13919,
+      "sha256": "80abdead07ef3d50168f82df8c794a8986fab0e73f372380a746c65901492973"
+    },
+    {
+      "path": "evidence-13-rrr-announcements/verify_delivery.py",
+      "bytes": 9229,
+      "sha256": "8affb9cd3c1fbae454c8796bf8a81d095d9f928b67496160a7c7cd27c0742397"
+    },
+    {
+      "path": "rrr-announcements-followup.md",
+      "bytes": 7646,
+      "sha256": "06177aa90786280c5ad1f4aac331a76a744315ab94d2ffbc386353e9e1583907"
+    }
+  ]
+}

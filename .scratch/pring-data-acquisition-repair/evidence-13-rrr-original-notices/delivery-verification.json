@@ -1,0 +1,62 @@
+{
+  "verification": "passed",
+  "default_read_only_stdlib": true,
+  "new_raw_count": 2,
+  "new_raw_bytes": 124677,
+  "old_pbc_raw_verified": 1,
+  "delivery_paths": 11,
+  "report_local_links": 11,
+  "manifest_self_hash_excluded": true,
+  "files": [
+    {
+      "path": "evidence-13-rrr-original-notices/capture_get.py",
+      "bytes": 2485,
+      "sha256": "eb5b108af2686bdc17001186cd7c4f8c4126fcd21837c22e08353f288f5a0f13"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846",
+      "bytes": 100491,
+      "sha256": "d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/delivery-files.txt",
+      "bytes": 663,
+      "sha256": "c53da55087a5d829dd750437bda12939f51c71d960d12658e8401b8ae7119905"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83",
+      "bytes": 24186,
+      "sha256": "f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/receipts.json",
+      "bytes": 1589,
+      "sha256": "56c0f7a973ea4d0c09cfa64030ebbaf41f8206bc398b1990b326f0c4a2a056e2"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/source-boundaries.json",
+      "bytes": 2693,
+      "sha256": "27d708be75e0826a1575b94e42e864ff2bc7435ac2fea3ea0ad516b49671a456"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/source-inspection.json",
+      "bytes": 6546,
+      "sha256": "4d04677026404eecac5e42822f0d07987bd4746ab34fc73620d2991838ae178c"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/verify_delivery.py",
+      "bytes": 10205,
+      "sha256": "4201039de6d130b9ed6ff586943eb5b1e4632955bda62f9b485243ff82331cde"
+    },
+    {
+      "path": "evidence-13-rrr-original-notices/web-discovery.json",
+      "bytes": 2271,
+      "sha256": "16947973cef46c78d0829d85e9dfd943de1b738e33fc45e6ac2f667e814bc4b8"
+    },
+    {
+      "path": "rrr-original-notices-followup.md",
+      "bytes": 9049,
+      "sha256": "b0128252a6b8bedf89cc607368a1370f39c6daacd74b62dbaaffa43480c74c22"
+    }
+  ]
+}

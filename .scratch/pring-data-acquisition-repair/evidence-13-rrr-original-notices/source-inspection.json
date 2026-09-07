@@ -1,0 +1,113 @@
+{
+  "network_requests": 2,
+  "get_cap": 4,
+  "http_2xx": 2,
+  "http_failures": 0,
+  "raw_bytes": 124677,
+  "search_calls": 2,
+  "search_queries": 7,
+  "valid_official_documents": 2,
+  "original_pbc_host_notice_downloaded": false,
+  "new_certifications": 0,
+  "model_adoptions": 0,
+  "new_model_usable_rrr_inputs": 0,
+  "effective_date_supported_by_republication_and_old_pbc_chronicle": "2025-05-15",
+  "csrc": {
+    "url": "https://www.csrc.gov.cn/csrc/c106311/c7555758/content.shtml",
+    "sha256": "d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846",
+    "bytes": 100491,
+    "official_host_role": "CSRC official host of original joint press-conference transcript",
+    "visible_date": "2025-05-07",
+    "date_precision": "day",
+    "original_exact_clock": null,
+    "date_only_conservative_boundary_candidate": "2025-05-08T00:00:00+08:00",
+    "candidate_boundary_is_source_certification": false,
+    "meta_PubDate": "2026-08-01 21:47:01",
+    "meta_page_generation_time": "2026-08-01 21:47:01",
+    "search_clocks_absent_from_actual_raw": {
+      "09:01:06": 0,
+      "09:12:26": 0,
+      "09:16:00": 0,
+      "09:20:49": 0,
+      "10:06:02": 0
+    },
+    "body_paragraph_count": 437,
+    "relevant_rrr_paragraphs": [
+      {
+        "paragraph": 42,
+        "text": "一是数量型政策，通过降准等措施，加大中长期流动性供给，保持市场流动性充裕。二是价格型政策，下调政策利率，降低结构性货币政策工具利率，也就是中央银行向商业银行提供再贷款的利率，同时调降公积金贷款利率。三是结构型政策，完善现有结构性货币政策工具，并创设新的政策工具，支持科技创新、扩大消费、普惠金融等领域。"
+      },
+      {
+        "paragraph": 46,
+        "text": "第一，降低存款准备金率0.5 个百分点，预计将向市场提供长期流动性约 1 万亿元。"
+      },
+      {
+        "paragraph": 48,
+        "text": "第二，完善存款准备金制度，阶段性将汽车金融公司、金融租赁公司的存款准备金率从目前的5% 调降为 0% 。"
+      },
+      {
+        "paragraph": 168,
+        "text": "刚才潘行长提到，将下调存款准备金率和政策利率，大家非常关注，能否详细介绍一下？谢谢。"
+      },
+      {
+        "paragraph": 174,
+        "text": "谢谢您的问题。货币政策总量措施的调整，比如政策利率、存款准备金率这些调整，各方面都非常关注。去年12 月中央经济工作会议和今年《政府工作报告》都明确提出，今年要实施适度宽松的货币政策，适时降准降息。适度宽松的货币政策主要有几点内涵：一是流动性充裕，社会融资条件比较宽松，包括社会融资规模、广义货币供应量这些宏观金融总量合理增长，社会综合融资成本比较低。二是政策实施需要相机抉择，综合评估国内外经济金融形势和金融市场运行情况，运用多种货币政策工具进行动态调整。三是货币政策的取向，是一种对于状态的描述，最近几年人民银行连续多次降准降息，货币政策的状态是支持性的，总量也比较宽松。"
+      },
+      {
+        "paragraph": 178,
+        "text": "第一，关于降低存款准备金率。这次将下调存款准备金率0.5 个百分点，向金融市场提供长期流动性约 1 万亿元。通过降准可以优化央行向银行体系提供流动性的结构，降低银行负债成本，增强银行负债的稳定性。同时，阶段性降低汽车金融公司、金融租赁公司的存款准备金率，从目前的 5% 降至 0% 。这两类机构直接面向汽车消费、设备更新投资等领域提供金融支持，降低存款准备金率后，将有效增强这两类机构面向特定领域的信贷供给能力。"
+      }
+    ],
+    "effective_date_in_this_transcript": null
+  },
+  "jilin": {
+    "url": "https://jr.jl.gov.cn/jrzx/zyjrxxzz/gj/202505/t20250512_3454788.html",
+    "sha256": "f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83",
+    "bytes": 24186,
+    "official_host_role": "Jilin financial authority republication attributed to PBC; not the original PBC site",
+    "visible_republication_timestamp_local": "2025-05-12 09:22:58",
+    "original_pbc_publication_timestamp": null,
+    "body_paragraphs": [
+      "中国人民银行决定下调金融机构存款准备金率",
+      "为落实中央经济工作会议精神和《政府工作报告》部署，实施适度宽松的货币政策，提高宏观调控的前瞻性、针对性、有效性，中国人民银行决定，自2025年5月15日起，下调金融机构存款准备金率0.5个百分点（不含已执行5％存款准备金率的金融机构），下调汽车金融公司和金融租赁公司存款准备金率5个百分点。"
+    ]
+  },
+  "scoped_facts": [
+    {
+      "scope": "financial institutions excluding institutions already at 5%",
+      "change_pp": -0.5,
+      "uniform_post_rate_percent": null,
+      "weighted_average_post_rate_percent": null,
+      "effective_date": "2025-05-15",
+      "scope_and_effective_date_source": "f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83",
+      "change_source": "d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846",
+      "released_funds_context": "approximately 1 trillion yuan estimate for broad cut; not an exact institutional allocation"
+    },
+    {
+      "scope_members": [
+        "auto finance companies",
+        "financial leasing companies"
+      ],
+      "change_pp": -5.0,
+      "pre_rate_percent": 5.0,
+      "post_rate_percent": 0.0,
+      "post_rate_is_explicit_not_inferred": true,
+      "source": "d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846",
+      "stage_limited": true,
+      "stage_end_date": null,
+      "renewal_or_expiry_notice": null,
+      "effective_date": "2025-05-15",
+      "effective_date_source": "f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83",
+      "canonical_scope_codes_frozen": false
+    }
+  ],
+  "acceptance_boundaries": {
+    "new_hosts_match_existing_pbc_rrr_notice": false,
+    "source_url_may_be_rewritten_to_pbc": false,
+    "period_2026_05_public_parser_rejected_in_root_probe": true,
+    "local_regex_trial_is_public_bug_reproduction": false,
+    "latest_predecessor_as_of_2026_03_09_proven": false,
+    "event_census_2026_03_09_to_08_28_proven": false,
+    "stage_policy_remained_active_at_replay_start_proven": false
+  }
+}

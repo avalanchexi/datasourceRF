@@ -1,0 +1,42 @@
+{
+  "recorded_at": "2026-09-07T14:33:21.492347+00:00",
+  "app_imported_or_executed": false,
+  "provider_family_source_path": "src\\pring_cycle\\source_families.py",
+  "provider_family_source_sha256": "420a241b90fc0ff63cafe5e9119f15a375e90617834cae2698e403ccbcaa5f6e",
+  "rrr_descriptor": "    \"pbc_rrr_notice\": OfficialContextFamily(\n        \"中国人民银行\", \"www.pbc.gov.cn\", (\"CN_RRR_EVENT\",)\n    ),\n",
+  "url_validation_source_path": "src\\pring_cycle\\official_context.py",
+  "url_validation_source_sha256": "65259796b8b6fb4ee30520934e9f98c30a8a40ae8b67c072d39a1af4a5fb2bf0",
+  "url_validation_function": "def _validate_source_identity(family: str, source_url: str) -> str:\n    try:\n        provider, host = _PROVIDERS[family]\n    except KeyError as error:\n        raise ValueError(\"official_context_family_unsupported\") from error\n    parsed = urlsplit(source_url)\n    if (\n        parsed.scheme != \"https\"\n        or parsed.hostname != host\n        or parsed.port not in {None, 443}\n        or parsed.username is not None\n        or parsed.password is not None\n        or parsed.query\n        or parsed.fragment\n        or (host == \"www.stats.gov.cn\" and not parsed.path.startswith(\"/sj/\"))\n        or (host == \"www.pbc.gov.cn\" and not parsed.path.startswith(\"/\"))\n    ):\n        raise ValueError(\"official_context_source_url_not_official\")\n    return provider\n\n",
+  "public_boundary_observation_source": "rrr-public-boundary-check.json",
+  "public_boundary_observation_bytes": 550,
+  "public_boundary_observation_sha256": "cc97c6c0b49b7dd7a570bb63566a4a90497223c13289c3fbfc80a19e6808de2e",
+  "public_boundary_observation_encoding": "utf-8-sig",
+  "public_boundary_observation": {
+    "public_parser": true,
+    "database_writes": 0,
+    "results": [
+      {
+        "period": "2025-05",
+        "status": "parsed",
+        "release_at": "2025-11-11 17:00:09+08:00",
+        "scalars": [
+          {
+            "period": "2025-05-15",
+            "dimensions": {
+              "scope": "excluding_5_percent_institutions",
+              "measure": "rrr_change"
+            },
+            "value": -0.5
+          }
+        ]
+      },
+      {
+        "period": "2026-05",
+        "status": "rejected",
+        "error": "official_context_period_identity_mismatch"
+      }
+    ]
+  },
+  "publication_date_rule": "Reliable date-only publication uses next local day 00:00 under the existing Asia/Shanghai source convention; this proposal is not a source certification.",
+  "host_boundary": "CSRC and Jilin official domains cannot be renamed to www.pbc.gov.cn or silently admitted to pbc_rrr_notice."
+}

@@ -1,0 +1,40 @@
+.FFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+__ test_macro_derived_rows_do_not_bypass_model_certification[CN_PMI_ACTIVITY] __
+tests/integration/test_context_model_certification.py:201: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert not derived, (blocked_metric, formula)
+E   AssertionError: ('CN_PMI_ACTIVITY', 'pmi-order-inventory-spread-v0001')
+E   assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+_ test_macro_derived_rows_do_not_bypass_model_certification[CN_PMI_INVENTORY] __
+tests/integration/test_context_model_certification.py:201: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert not derived, (blocked_metric, formula)
+E   AssertionError: ('CN_PMI_INVENTORY', 'pmi-order-inventory-spread-v0001')
+E   assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+_ test_macro_derived_rows_do_not_bypass_model_certification[CN_ORDER_INVENTORY_SPREAD] _
+tests/integration/test_context_model_certification.py:201: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert not derived, (blocked_metric, formula)
+E   AssertionError: ('CN_ORDER_INVENTORY_SPREAD', 'pmi-order-inventory-spread-v0001')
+E   assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+_ test_macro_derived_rows_do_not_bypass_model_certification[CN_PRODUCTION_ORDER_SPREAD] _
+tests/integration/test_context_model_certification.py:201: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert not derived, (blocked_metric, formula)
+E   AssertionError: ('CN_PRODUCTION_ORDER_SPREAD', 'pmi-production-order-spread-v0001')
+E   assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+_ test_macro_derived_rows_do_not_bypass_model_certification[CN_LOAN_STRUCTURE] _
+tests/integration/test_context_model_certification.py:201: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert not derived, (blocked_metric, formula)
+E   AssertionError: ('CN_LOAN_STRUCTURE', 'loan-stock-monthly-change-v0001')
+E   assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+_ test_macro_derived_rows_do_not_bypass_model_certification[CN_OMO_7D_AMOUNT] __
+tests/integration/test_context_model_certification.py:201: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert not derived, (blocked_metric, formula)
+E   AssertionError: ('CN_OMO_7D_AMOUNT', 'repo-net-injection-v0001')
+E   assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[CN_PMI_ACTIVITY]
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[CN_PMI_INVENTORY]
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[CN_ORDER_INVENTORY_SPREAD]
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[CN_PRODUCTION_ORDER_SPREAD]
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[CN_LOAN_STRUCTURE]
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[CN_OMO_7D_AMOUNT]
+6 failed, 1 passed, 7 deselected in 2.12s

@@ -309,12 +309,45 @@ def build_context_projection(
         for row in rows_by_metric["CN_OMO_7D_AMOUNT"]
         if row.get("dimensions") != {"measure": "net_injection"}
     )
+    formula_versions = dict(rules.formula_versions)
+    for formula, output_metric, input_metrics in (
+        ("dr007_policy_spread", "CN_DR007_POLICY_SPREAD", ("CN_DR007", "CN_OMO_7D_RATE")),
+        ("ust_2s10s_spread", "UST_2S10S_SPREAD", ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD")),
+        (
+            "order_inventory_spread",
+            "CN_ORDER_INVENTORY_SPREAD",
+            ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY"),
+        ),
+        ("production_order_spread", "CN_PRODUCTION_ORDER_SPREAD", ("CN_PMI_ACTIVITY",)),
+        ("loan_monthly_change", "CN_LOAN_STRUCTURE", ("CN_LOAN_STRUCTURE",)),
+        ("omo_net_injection", "CN_OMO_7D_AMOUNT", ("CN_OMO_7D_AMOUNT",)),
+        ("credit_impulse", "CN_CREDIT_IMPULSE", ("CN_SF_TOTAL", "CN_GDP")),
+    ):
+        if formula not in formula_versions:
+            continue
+        missing_dependencies = sorted({output_metric, *input_metrics} - definitions.keys())
+        if missing_dependencies:
+            raise ValueError(f"context_model_metric_missing:{','.join(missing_dependencies)}")
+        if any(
+            definitions[metric_id].certification_status != "certified"
+            for metric_id in input_metrics
+        ) or definitions[output_metric].certification_status not in {
+            "certified",
+            "derived_from_certified_inputs",
+        }:
+            formula_versions.pop(formula, None)
+    trading_calendar_metric_id = _core_stock_metric_id(model_manifest)
+    if trading_calendar_metric_id is not None and (
+        trading_calendar_metric_id not in definitions
+        or definitions[trading_calendar_metric_id].certification_status != "certified"
+    ):
+        trading_calendar_metric_id = None
     market_derived_rows, market_derived_ids = _derived_market_context_rows(
         repository,
         as_of=as_of,
-        formula_versions=rules.formula_versions,
+        formula_versions=formula_versions,
         definition_version=rules.metric_catalog_version,
-        trading_calendar_metric_id=_core_stock_metric_id(model_manifest),
+        trading_calendar_metric_id=trading_calendar_metric_id,
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
     )
@@ -345,11 +378,16 @@ def build_context_projection(
     credit_impulse_row, credit_formula, credit_version_ids = _credit_impulse_proxy(
         repository,
         as_of=as_of,
-        configured_formula_version=rules.formula_versions.get("credit_impulse"),
+        configured_formula_version=formula_versions.get("credit_impulse"),
         definition_version=rules.metric_catalog_version,
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
     )
+    if "credit_impulse" in rules.formula_versions and "credit_impulse" not in formula_versions:
+        credit_formula.update(
+            formula_version=rules.formula_versions["credit_impulse"],
+            status="uncertified_model_dependencies",
+        )
     if credit_impulse_row is not None:
         rows_by_metric["CN_CREDIT_IMPULSE"] = (credit_impulse_row,)
     policy_actions = _signals(rows_by_metric, _POLICY_ACTION, transform="policy")
@@ -1003,7 +1041,11 @@ def _repo_net_injection_row(
         "metric_id": "CN_OMO_7D_AMOUNT",
         "observation_id": derived_id,
         "period": target_period,
-        "public_available_at": max(public_times).isoformat() if public_times else None,
+        "public_available_at": (
+            max(public_times).isoformat()
+            if public_times and len(public_times) == len(selected_claims)
+            else None
+        ),
         "quality_status": "validated",
         "selected_claim_id": derived_id,
         "semantic_field": "derived_repo_net_injection",
@@ -1858,7 +1900,9 @@ def _credit_impulse_proxy(
         for claim in selected_claims
         if claim.public_available_at is not None
     ]
-    public_available_at = max(public_times) if public_times else None
+    public_available_at = (
+        max(public_times) if public_times and len(public_times) == len(selected_claims) else None
+    )
     row: dict[str, object] = {
         "available_at": available_at.isoformat(),
         "certification_status": "derived_from_certified_inputs",

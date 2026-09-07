@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="keywords" content="">
+ <meta name="description" content=',2025-05-07' />
+      <meta name="ContentSource" content="中国证监会">
+    
+<meta name="SiteName" content="中国证券监督管理委员会"/>
+<meta name="SiteDomain" content="www.csrc.gov.cn"/>
+<meta name="SiteIDCode" content="bm56000001"/>
+<meta name="ColumnName" content="首页轮播图" />
+<meta name="ColumnDescription" content="首页轮播图"/>
+<meta name="ColumnKeywords" content="首页轮播图"/>
+<meta name="ColumnType" content="首页轮播图"/>
+<meta name="ArticleTitle" content="国新办举行新闻发布会 介绍“一揽子金融政策支持稳市场稳预期”有关情况"/>
+<meta name="PubDate" content="2026-08-01 21:47:01"/>
+<meta name="ContentSource" content="中国证监会"/>
+<meta name="Keywords" content=""/>
+<meta name="Description" content=""/>
+
+<meta name="others" content="页面生成时间 2026-08-01 21:47:01" />
+<meta name="template,templategroup,version" content="92e409a5702b4b0e928f02b8bb2c6791,default,3.0" />
+<title>国新办举行新闻发布会 介绍“一揽子金融政策支持稳市场稳预期”有关情况_中国证券监督管理委员会</title>
+    <link rel="stylesheet" href="/csrc/xhtml/css/common.css?v=1.0">
+    <link rel="stylesheet" href="/csrc/xhtml/css/footer.css">
+    <link rel="stylesheet" href="/csrc/xhtml/css/common_detail.css">
+    <script src="/csrc/xhtml/js/jquery.min.js"></script>
+<link rel="icon" href="/favicon.ico?v=1.0" type="image/x-icon"></head>
+<body>
+    <!--公共头-->
+	<!--<link rel="stylesheet" type="text/css" href="/csrc/xhtml/css/common.css?v=1.0" />-->
+<div class="header">
+    <div class="head-box">
+        <div class="tips">
+            <ul>
+                <li>
+                  <script src="/csrc/xhtml/js/public.js"></script>|
+                </li>
+                <li class="en">
+                    <a href="/csrc_en/index.shtml">English</a>
+                </li>
+                <li class="ydd">
+					<img src="/csrc/xhtml/images/index/yd.png" alt="">
+					<a>移动端</a>|
+                   <div class="wb">
+                       <img src="/csrc/xhtml/images/index/andriod.png">
+                     <img src="/csrc/xhtml/images/index/ios.png">
+                     <div class="clear"></div>
+                  </div>
+				</li>
+				<li class="djwb">
+					<img src="/csrc/xhtml/images/index/wb.png" alt="">
+					<a href="https://weibo.com/csrcfabu">微博</a>|
+                   
+				</li>
+				<li  class="wx">
+					<img src="/csrc/xhtml/images/index/wx.png" alt="">
+					<a>微信</a>|
+                   <div class="wx1">
+                       <img src="/csrc/xhtml/images/index/wx.jpg">
+                  </div>
+				</li>
+                <li class="wza">
+                    <img src="/csrc/xhtml/images/index/wza.png" alt="">
+                    <a id="cniil_wza" href="/wza">无障碍</a>
+                </li>
+                <div class="clear"></div>
+            </ul>
+            <div class="clear"></div>
+        </div>
+        <div class="logo">
+            <a href="/" ><img src="/csrc/xhtml/images/index/logo.png?v=1.0" alt=""></a>
+            <div class="fr r-box">
+
+              	<form action="/guestweb4/s" method="post" name="form1" target="_blank" id="form1" class="search-group" onsubmit="return check()">
+                    <input name="searchWord" type="text" id="searchWord" size="50"  placeholder="请输入关键字">
+                    <input name="uc" type="hidden" id="uc" value="1">
+                    <input name="siteCode" type="hidden" id="siteCode" size="50" value="bm56000001">
+                    <input name="column" type="hidden" id="siteCode" size="50" value="全部">
+                    <div class="searth-btn">
+                      <a href="#"><img src="/csrc/xhtml/images/index/search.png" alt=""></a>
+                      <input type="submit" name="button" id="button" value="提交" >
+                  	</div>
+
+				</form>
+                <div class="search-group" style="display: none;">
+                    <input type="text" placeholder="请输入关键字">
+                    <a href="#">
+                        <img src="/csrc/xhtml/images/index/search.png" alt="">
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function check(){
+      if(!$('#searchWord').val()){
+             alert('请输入关键字!');
+             return false;
+      }else{
+      		return true;
+      }
+    }
+  </script>
+<div class="nav">
+    <ul class="nav-bar">
+        <li class="sy">
+            <a href="/csrc/index.shtml">首页</a>
+            <div></div>
+        </li>
+        <li class="jggk">
+            <a href="/csrc/jggk/index.shtml">机构概况</a>
+        </li>
+        <li class="xwfb">
+            <a href="/csrc/xwfb/index.shtml">新闻发布</a>
+        </li>
+        <li class="zwxx">
+            <a href="/csrc/zwxx/index.shtml">政务信息</a>
+        </li>
+        <li class="bsfw">
+            <a href="/csrc/bsfw/index.shtml">办事服务</a>
+        </li>
+        <li class="hdjl">
+            <a href="/csrc/hdjl/index.shtml">互动交流</a>
+        </li>
+        <li class="tjxx">
+            <a href="/csrc/tjsj/index.shtml">统计信息</a>
+        </li>
+        <li class="ztzl">
+            <a href="/csrc/ztzl/index.shtml">专题专栏</a>
+        </li>
+        <div class="clear"></div>
+    </ul>
+</div>
+<script src="/csrc/xhtml/js/jquery.SuperSlide.js"></script>
+<script src="/csrc/xhtml/js/head.js"></script>
+<!--1-->
+    <div class="BreadcrumbNav mt10">
+        <img src="/csrc/xhtml/images/public/location.png" alt="">
+        当前位置：
+<a href='/csrc/index.shtml'  target="_parent">首页</a>><a href='/csrc/xwfb/index.shtml'  target="_parent">新闻发布</a>
+
+    </div>
+    <div class="main">
+        <div class="content">
+            <h2>国新办举行新闻发布会 介绍“一揽子金融政策支持稳市场稳预期”有关情况</h2>
+            <div class="info">
+                <p class="fl">日期：2025-05-07     来源：证监会</p>
+                <div class="share fr m-hide" id="share">
+                    <div class="print-icon"></div>
+                    <div class="share-icon"></div>
+                    <div class="share-box" id="share-box">
+                        <a class="share-btn gwds_weixin" data-w="gwds_weixin" title="微信"> </a>
+                        <a class="share-btn gwds_tsina" data-w="gwds_tsina" title="新浪微博"> </a>
+                        <span class="gwds_more"> </span>
+                    </div>
+                    <div class="right share-popup bottom" id="share-popup" style="display: none;">
+                        <h6>分享到：<b></b></h6>
+                        <ul>
+                            <li><a data-w="gwds_qzone" class="share-btn gwds_qzone">QQ空间</a></li>
+                            <li><a data-w="gwds_douban" class="share-btn gwds_douban">豆瓣网</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="fr m-hide changeSize" id="changeSize">
+                	【字号：
+                	<span class="">大</span>
+                  	<span class="">中</span>
+               	 	<span class="on">小</span>】
+                </p>
+                <div class="clear"></div>
+            </div>
+            <div class="repeatX"></div>
+            <div class="detail-news">
+                <p style="text-indent: 2em;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/1现场原图-20250507120721724.jpg" style=" border:0px width:600px;height:416px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>新闻发布会现场（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>国务院新闻办新闻局局长、新闻发言人寿小丽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>女士们、先生们，大家上午好！欢迎出席国务院新闻办新闻发布会。今天我们邀请到中国人民银行行长潘功胜先生，金融监管总局局长李云泽先生，中国证监会主席吴清先生，请他们为大家介绍“一揽子金融政策支持稳市场稳预期”有关情况，并回答大家关心的问题。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>下面，我们首先请潘功胜先生作介绍。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span>:<span>01</span>:<span>06</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/2潘原图.jpeg" style=" border:0px width:600px;height:426px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>潘功胜（徐想&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>中国人民银行行长潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>各位记者朋友，大家上午好！非常高兴再次和大家见面，感谢大家长期以来对金融业改革发展以及人民银行各项工作的关注和支持！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>今年以来，人民银行认真贯彻落实中央经济工作会议精神和《政府工作报告》部署，实施好适度宽松的货币政策，强化逆周期调节，综合运用多种货币政策工具，服务实体经济高质量发展，为推动经济持续回升向好营造良好的货币金融环境。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>从效果上看，今年以来各项宏观金融数据都比较不错，货币信贷呈现出“数量增加、价格下降、结构优化”的运行特征。一季度末，社会融资规模同比增长8.4%<font face="宋体">、贷款同比增长</font>7.4%<font face="宋体">（在贷款数据中，如果把地方专项债置换地方融资平台贷款的影响进行还原，贷款同比增速将超过</font>8%<font face="宋体">），广义货币供应量（</font>M2<font face="宋体">）保持在</font>7%<font face="宋体">左右平稳增长，明显高于名义经济增速。同时，社会融资成本保持低位，普惠小微、制造业中长期、科技型中小企业等贷款增速均快于全部贷款增速，信贷结构进一步优化。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span>:<span>12</span>:<span>26</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>从金融市场看，一季度表现良好。股市运行总体平稳，交易较为活跃，上证指数保持在3300<font face="宋体">点左右。债券市场在经济信心提升的带动下自我校正。在岸、离岸人民币对美元汇率较去年末小幅升值</font>1%<font face="宋体">左右，跨境资本流动相对均衡。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>4<font face="宋体">月份以来，尽管面临比较大的外部冲击，国内金融体系仍然保持稳健，金融市场展现出较强韧性。上证指数在</font>4<font face="宋体">月</font>7<font face="宋体">日下跌后迅速反弹并企稳，目前</font>10<font face="宋体">年期国债收益率徘徊在</font>1.65%<font face="宋体">左右，人民币对美元汇率略有贬值后目前回升到</font>7.2<font face="宋体">元左右。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>当前，全球经济充满不确定性，经济碎片化和贸易紧张局势加剧，扰乱全球产业链和供应链，引发国际金融市场动荡，削弱全球经济增长动能。前不久，我去华盛顿参加IMF<font face="宋体">和世界银行的春季会议，会上各国央行行长和国际金融组织负责人都对此深表担忧。人民银行将认真贯彻落实中央决策部署，推动经济高质量发展，坚定不移推进高水平对外开放，积极参与国际金融治理与合作，维护以规则为基础的国际经济金融秩序。同时，统筹金融开放与安全，探索拓展央行宏观审慎和金融稳定的功能，坚定维护中国的汇市、债市、股市等金融市场平稳运行。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span>:<span>16</span>:<span>00</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>4<font face="宋体">月</font>25<font face="宋体">日，中央政治局召开会议分析研究了当前经济形势和经济工作。为贯彻中央政治局会议精神，进一步实施好适度宽松的货币政策，人民银行将加大宏观调控强度，推出一揽子货币政策措施，主要有三大类共十项措施。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是数量型政策，通过降准等措施，加大中长期流动性供给，保持市场流动性充裕。二是价格型政策，下调政策利率，降低结构性货币政策工具利率，也就是中央银行向商业银行提供再贷款的利率，同时调降公积金贷款利率。三是结构型政策，完善现有结构性货币政策工具，并创设新的政策工具，支持科技创新、扩大消费、普惠金融等领域。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>这三类举措共有十项具体政策：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第一，降低存款准备金率0.5<font face="宋体">个百分点，预计将向市场提供长期流动性约</font>1<font face="宋体">万亿元。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第二，完善存款准备金制度，阶段性将汽车金融公司、金融租赁公司的存款准备金率从目前的5%<font face="宋体">调降为</font>0%<font face="宋体">。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第三，下调政策利率0.1<font face="宋体">个百分点，即公开市场</font>7<font face="宋体">天期逆回购操作利率从目前的</font>1.5%<font face="宋体">调降至</font>1.4%<font face="宋体">，预计将带动贷款市场报价利率（</font>LPR<font face="宋体">）同步下行约</font>0.1<font face="宋体">个百分点。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第四，下调结构性货币政策工具利率0.25<font face="宋体">个百分点，包括：各类专项结构性工具利率、支农支小再贷款利率，都从目前的</font>1.75%<font face="宋体">降至</font>1.5%<font face="宋体">，这些工具利率是中央银行向商业银行提供再贷款资金的利率。抵押补充贷款（</font>PSL<font face="宋体">）利率从目前的</font>2.25%<font face="宋体">降至</font>2%<font face="宋体">。抵押补充贷款是由中央银行向政策性银行提供资金的一个工具。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第五，降低个人住房公积金贷款利率0.25<font face="宋体">个百分点，五年期以上首套房利率由</font>2.85%<font face="宋体">降至</font>2.6%<font face="宋体">，其他期限利率同步调整。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span>:<span>20</span>:<span>49</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第六，增加3000<font face="宋体">亿元科技创新和技术改造再贷款额度，由目前的</font>5000<font face="宋体">亿元增加至</font>8000<font face="宋体">亿元。这项再贷款工具本来就存在，这次额度增加</font>3000<font face="宋体">亿元，总额度达到</font>8000<font face="宋体">亿元，持续支持“两新”政策实施，也就是大规模设备更新和消费品以旧换新，我们简称为“两新”。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第七，设立5000<font face="宋体">亿元“服务消费与养老再贷款”，引导商业银行加大对服务消费与养老的信贷支持。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第八，增加支农支小再贷款额度3000<font face="宋体">亿元，与调降再贷款利率的政策形成协同效应，支持银行扩大对涉农、小微和民营企业的贷款投放。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第九，优化两项支持资本市场的货币政策工具，将5000<font face="宋体">亿元证券基金保险公司互换便利和</font>3000<font face="宋体">亿元股票回购增持再贷款，这两个工具的额度合并使用，总额度</font>8000<font face="宋体">亿元。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第十，创设科技创新债券风险分担工具，央行提供低成本再贷款资金，可购买科技创新债券，并与地方政府、市场化增信机构等合作，通过共同担保等多样化的增信措施，分担债券的部分违约损失风险，为科技创新企业和股权投资机构发行低成本、长期限的科创债券融资提供支持。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>上面讲的三大类共十项具体政策措施，我们将在人民银行网站上逐步公开并实施。下一步，人民银行将继续认真贯彻党中央、国务院各项部署，实施好适度宽松的货币政策，根据国内外经济金融形势和金融市场运行情况，持续做好货币政策调控，并加强与财政政策的协同配合，推动经济高质量发展。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span>:<span>26</span>:<span>05</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>寿小丽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢潘行长的介绍。下面，请李云泽先生作介绍。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span><span style="font-size: 9pt;">:</span><span style="text-indent: 2em; font-size: 9pt;">27</span><span style="font-size: 9pt;">:</span><span style="font-size: 9pt; text-indent: 2em;">42</span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/3李云泽原图.jpeg" style=" border:0px width:600px;height:426px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>李云泽（徐想&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>金融监管总局局长李云泽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>各位媒体朋友，大家上午好。很高兴和大家再次见面，回答大家的提问。首先，代表金融监管总局向各位媒体朋友长期以来对金融监管工作的关心和支持表示衷心感谢！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>今年以来，金融监管总局坚决贯彻党中央、国务院决策部署，认真落实4<font face="宋体">月</font>25<font face="宋体">日中央政治局会议精神，强化底线思维，加力扩围政策措施，积极应对外部冲击，防风险、强监管、促发展各项工作扎实推进。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是金融运行总体稳健。当前，银行保险机构各项业务有序开展，主要监管指标均处于健康区间。大型金融机构基本盘稳固，“压舱石”作用明显。中小金融机构改革化险取得重要阶段性成效。从前4<font face="宋体">个月看，银行资本充足率、保险偿付能力充足率保持稳中向好态势，不良贷款率同比下降约</font>0.1<font face="宋体">个百分点，拨备覆盖率同比上升约</font>10<font face="宋体">个百分点。可以说，行业安全垫持续增厚。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是监管政策效应持续显现。我们强化监管引领，加快完善监管制度，修订出台公司治理、监管评级、消费者保护等各类制度30<font face="宋体">余项。制定银行业、保险业、资管业等领域高质量发展意见，提高专业化特色化发展能力。引导行业深入推进降本增效，可持续发展基础进一步夯实。完善资本补充机制，大型商业银行资本补充工作正在加快实施，大型保险集团资本补充已经提上日程，各地也正在多渠道有序补充中小金融机构资本金。这些措施将进一步增强金融体系韧性和服务高质量发展的能力。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是服务质效有力提升。制定科技、绿色、养老、普惠金融等专项实施方案，出台支持消费、外贸等多项金融政策，加大“两重”“两新”领域支持力度，强化民生保障。前4<font face="宋体">个月，银行业、保险业通过贷款、债券等多种方式为实体经济新增融资约</font>17<font face="宋体">万亿元。无还本续贷政策自去年</font>9<font face="宋体">月扩围以来，累计为中小微企业续贷</font>4.4<font face="宋体">万亿元，更好满足了企业接续融资需求。短期出口信用险承保金额同比增长</font>15.3%<font face="宋体">，为稳外贸提供了有力支持。今年</font>1-4<font face="宋体">月，保险业赔付约</font>1<font face="宋体">万亿元，新能源车险承保车辆超过</font>1000<font face="宋体">万辆。与此同时，保险公司为人民群众积累的养老、健康保险保障长期准备金已经超过</font>10<font face="宋体">万亿元。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>下一步，我们将按照党中央、国务院要求，进一步增强抓落实的责任感、紧迫感和主动性，加力加劲推动既定政策落地见效，加快加强增量政策储备，不断完善应对预案，全力巩固经济回升向好的基本面。近期，我们将推出以下增量政策，共八项。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是加快出台与房地产发展新模式相适配的系列融资制度，助力持续巩固房地产市场稳定态势。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是进一步扩大保险资金长期投资试点范围，为市场引入更多增量资金。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是调整优化监管规则，进一步调降保险公司股票投资风险因子，支持稳定和活跃资本市场。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>四是尽快推出支持小微企业、民营企业融资一揽子政策，做深做实融资协调工作机制，助力稳企业稳经济。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>五是制定实施银行业保险业护航外贸发展系列政策措施，对受关税影响较大的市场主体提供精准服务，全力帮扶稳定经营、拓展市场。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>六是修订出台并购贷款管理办法，促进产业加快转型升级。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>七是将发起设立金融资产投资公司的主体扩展至符合条件的全国性商业银行，加大对科创企业的投资力度。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>八是制定科技保险高质量发展意见，更好发挥风险分担和补偿作用，切实为科技创新提供有力保障。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span><span style="font-size: 9pt;">:</span><span style="text-indent: 2em; font-size: 9pt;">33</span><span style="font-size: 9pt;">:</span><span style="font-size: 9pt; text-indent: 2em;">23</span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>寿小丽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢李云泽局长的介绍。下面，请吴清先生作介绍。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span><span style="font-size: 9pt;">:</span><span style="text-indent: 2em; font-size: 9pt;">34</span><span style="font-size: 9pt;">:</span><span style="font-size: 9pt; text-indent: 2em;">00</span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/4.jpg" style=" border:0px width:600px;height:426px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>吴清（徐想&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>中国证监会主席吴清：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>女士们、先生们，各位媒体朋友们，大家上午好！首先，感谢大家长期以来对资本市场和证监会工作的大力关心支持！今年以来，证监会深入贯彻党中央、国务院一系列决策部署，持续推动新“国九条”及系列政策文件落地见效，市场运行总体稳中有进、稳中向好。4<font face="宋体">月初以来，美政府关税政策严重冲击国际经贸秩序，国际金融市场剧烈动荡，也给国内资本市场带来很大压力。面对突如其来的严峻考验，在党中央、国务院坚强领导下，在中央金融办统筹协调下，证监会会同相关部门迅速行动，从政策对冲、资金对冲、预期对冲等方面打出了一揽子稳市“组合拳”。包括中国人民银行、金融监管总局、国务院国资委、外汇局等释放强有力政策信号，中央汇金公司果断出手，全国社保基金、证券基金机构、银行保险机构以及各类投资者都坚定信心、积极投入，一大批上市公司采取回购增持等多种方式维护股价稳定。所谓众人拾柴火焰高，风雨同舟浪自平。在广大投资者和市场参与各方共同努力下，</font>A<font face="宋体">股市场经历了初期实际上也就一天的大幅波动后持续反弹、回稳向好，展现出较为强劲的韧性和抗风险能力。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>4<font face="宋体">月</font>25<font face="宋体">日中央政治局会议强调，要“持续稳定和活跃资本市场”，充分体现了党中央对于稳市场、稳预期的高度重视和殷切期望。我们将全力抓好贯彻落实，坚持“两强两严”，坚定不移办好自己的事，既努力在市场运行上体现“稳”，同时在激发市场活力、强化市场功能上体现“进”。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是全力巩固市场回稳向好势头。强化市场监测和风险综合研判，动态完善应对各类外部风险冲击的工作预案，全力支持中央汇金公司发挥好类“平准基金”作用，中央汇金公司在前方进行强有力操作，中国人民银行作为后盾，这是全世界最有力有效模式之一。配合中国人民银行健全支持资本市场货币政策工具长效机制，更好发挥市场各参与方的稳市功能。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是突出服务新质生产力发展这个重要着力点。重点抓好几件事：第一，近期将出台深化科创板、创业板改革政策措施，择机会发布，在市场层次、审核机制、投资者保护等方面进一步增强制度包容性、适应性，同时尽快推动典型案例落地。第二，抓紧发布新修订的《上市公司重大资产重组管理办法》和相关监管指引，更好发挥资本市场并购重组主渠道作用。第三，大力发展科技创新债券，优化发行注册流程，完善增信支持，为科创企业提供全方位、“接力式”的金融服务。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是大力推动中长期资金入市。在引导上市公司完善治理、改善绩效，持续提升投资者回报的同时，更大力度“引长钱”，协同各方继续提升各类中长期资金入市规模和占比，抓紧印发和落实《推动公募基金高质量发展行动方案》，今天就发布，也更好体现基金管理人与投资者同甘共苦、共同发展、相互成就，努力形成“回报增—资金进—市场稳”的良性循环。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>股市稳定关乎经济社会大局、关乎亿万投资者切身利益。当前，我国经济回稳向好的态势不断巩固，各有关方面对外部冲击做了政策应对的充分准备，这不仅为充满不确定性的世界经济注入更多确定性，也为我国资本市场稳定运行创造了坚实的基础和条件。对于资本市场，我们的底气和信心主要来自四个方面：一是党中央、国务院的坚强领导和维护市场稳定的坚定决心、有力部署。大家都看到了，这都是扎扎实实的行动，也都有实实在在的成效。二是资本市场“1+N<font face="宋体">”政策体系的落地实施，推动市场内在结构发生了积极而深刻的变化，投融资协调的市场生态正加快形成。三是</font>A<font face="宋体">股市场“科技叙事”逻辑越来越清晰，集聚效应日益明显，新质生产力发展的巨大潜力也将伴随着经济高质量发展越来越显现，科技创新和产业创新深度融合发展，将为资本市场提供更多有价值的源头活水。四是</font>A<font face="宋体">股市场估值水平实际上被业界认为仍处于相对低位。沪深</font>300<font face="宋体">市盈率只有</font>12.3<font face="宋体">，国内市场主要指数市盈率都明显低于标普</font>500<font face="宋体">等全球主要指数。在全球市场面临不稳定因素明显增多的环境下，中国资产的配置价值和吸引力在持续提升。简单来说，我们有靠谱的经济发展、靠谱的宏观政策、靠谱的制度保障，这在不确定性的大环境下，为我国经济和资本市场注入更多的确定性。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>总之，前行路上有风有雨是常态，不管面临的是轻风细雨还是狂风暴雨，是风高浪急还是惊涛骇浪，我们都完全有条件、有信心、有能力实现中国股市稳定健康发展。谢谢！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;09</span>:<span>56</span>:<span>03</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/5寿.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>寿小丽邀请记者提问（栾海军&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>寿小丽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢吴主席的介绍。下面进入提问环节，提问前请通报大家所在的新闻机构。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>00</span>:<span>41</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/6总台.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>中央广播电视总台央视记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>中央广播电视总台央视记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>刚才潘行长提到，将下调存款准备金率和政策利率，大家非常关注，能否详细介绍一下？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>05</span>:<span>44</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢您的问题。货币政策总量措施的调整，比如政策利率、存款准备金率这些调整，各方面都非常关注。去年12<font face="宋体">月中央经济工作会议和今年《政府工作报告》都明确提出，今年要实施适度宽松的货币政策，适时降准降息。适度宽松的货币政策主要有几点内涵：一是流动性充裕，社会融资条件比较宽松，包括社会融资规模、广义货币供应量这些宏观金融总量合理增长，社会综合融资成本比较低。二是政策实施需要相机抉择，综合评估国内外经济金融形势和金融市场运行情况，运用多种货币政策工具进行动态调整。三是货币政策的取向，是一种对于状态的描述，最近几年人民银行连续多次降准降息，货币政策的状态是支持性的，总量也比较宽松。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>刚才我发布的几项总量货币政策措施的调整，这里再展开介绍一下。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第一，关于降低存款准备金率。这次将下调存款准备金率0.5<font face="宋体">个百分点，向金融市场提供长期流动性约</font>1<font face="宋体">万亿元。通过降准可以优化央行向银行体系提供流动性的结构，降低银行负债成本，增强银行负债的稳定性。同时，阶段性降低汽车金融公司、金融租赁公司的存款准备金率，从目前的</font>5%<font face="宋体">降至</font>0%<font face="宋体">。这两类机构直接面向汽车消费、设备更新投资等领域提供金融支持，降低存款准备金率后，将有效增强这两类机构面向特定领域的信贷供给能力。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第二，关于降低利率，这里有三个内容：一是下调政策利率0.1<font face="宋体">个百分点，所谓政策利率，在央行政策体系中是指公开市场</font>7<font face="宋体">天期逆回购操作利率，目前水平是</font>1.5%<font face="宋体">，这次下调到</font>1.4%<font face="宋体">。经过市场化的利率传导，预计将带动贷款市场报价利率（</font>LPR<font face="宋体">）随之下行</font>0.1<font face="宋体">个百分点。同时，我们也将通过利率自律机制引导商业银行相应下调存款利率。二是降低所有结构性货币政策工具利率</font>0.25<font face="宋体">个百分点，结构性货币政策工具一般指中央银行向商业银行提供的贷款，预计每年可节约银行资金成本大概</font>150-200<font face="宋体">亿元，推动银行加力支持经济结构转型。三是降低个人住房公积金贷款利率</font>0.25<font face="宋体">个百分点。其中，五年期以上的首套房利率由</font>2.85%<font face="宋体">降至</font>2.6%<font face="宋体">，其他期限的利率同步调整，预计每年将节省居民公积金贷款利息支出超过</font>200<font face="宋体">亿元，有利于支持居民家庭刚性住房需求，促进房地产市场止跌企稳。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>同时，人民银行还将进一步完善货币政策框架，持续强化利率政策的执行和监督，对于一些不合理的、容易削减货币政策传导的市场行为加强规范，畅通货币政策传导机制，提升资源配置效率。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>上述政策措施将向金融机构提供规模可观的、低成本的中长期资金，有利于降低金融机构的负债成本，稳定净息差。政策效果还将进一步传导至实体经济，带动社会综合融资成本稳中有降，提振市场信心，有效支持实体经济稳定增长。谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>06</span>:<span>02</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/7 21.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>21<font face="宋体">世纪经济报道记者提问（刘健&ensp;摄）</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>21<font face="宋体">世纪经济报道记者</font>：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>请问吴主席，加征关税可能对A<font face="宋体">股上市公司生产经营产生何种影响？证监会将如何支持上市公司做好应对？</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>17</span>:<span>44</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>吴清：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>非常感谢您的提问！针对美加征关税的影响，近期有不少A<font face="宋体">股上市公司通过公告、业绩说明会等方式做了披露。总的看，美滥施关税严重冲击了全球经贸秩序，上市公司生产经营不可避免会受到直接或间接影响，有的大一些，有的小一些，部分对美出口占比较高的公司影响更大一些。习近平总书记指出，“中国经济是一片大海，而不是一个小池塘”，</font>A<font face="宋体">股上市公司作为中国经济的优秀企业群体代表，具备强大的韧性和适应能力。第一，超大规模的内需和潜在需求是最大底气。</font>A<font face="宋体">股上市公司近九成收入还是来自国内，中国经济稳中向好、长期向好的基本面，决定了上市公司经营绩效将持续稳健增长。</font>2024<font face="宋体">年度有四分之三的上市公司是盈利的，五成的公司利润是增长的，特别是人工智能引领科技产业浪潮，半导体、消费电子等相关行业净利润分别同比增长</font>13.2%<font face="宋体">、</font>12.9%<font face="宋体">。与此同时，大家看到全市场分红、回购也都创了历史新高，沪深</font>300<font face="宋体">指数股息率达到</font>3.6%<font face="宋体">。今年一季度，从季报看上市公司净利润同比增长</font>3.6%<font face="宋体">，其中实体经济类上市公司净利润同比增长</font>4.3%<font face="宋体">。第二，构建多元化出口市场成效显著。自</font>2018<font face="宋体">年美对我加征关税以来，</font>A<font face="宋体">股上市公司逐步调整完善海外产能布局，有条件的都在进行调整，进一步开拓新的市场。出口收入</font>2018<font face="宋体">年是</font>4.9<font face="宋体">万亿元，</font>2024<font face="宋体">年是</font>9.4<font face="宋体">万亿元，增长</font>92%<font face="宋体">，将近一倍；同时，对美直接出口收入在营业收入中的占比明显下降，</font>91%<font face="宋体">的公司对美出口收入占比不足</font>10%<font face="宋体">。第三，出口竞争力不断提升。“中国制造”已经深度嵌入全球产业链供应链，</font>A<font face="宋体">股上市公司在产品品质的稳定性、规模生产的经济性、技术的创新性等方面，都具备较强的竞争优势。</font>4<font face="宋体">月</font>7<font face="宋体">日以来，也就是不到一个月，已经有近</font>350<font face="宋体">家上市公司披露回购增持计划，这也体现了上市公司对自身价值和发展前景充满信心。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>上市公司是中国经济的重要组成部分，也是资本市场的基石。下一步，证监会将继续促进资本市场功能发挥，在加强监管的同时也要努力传递监管温度，尽力帮助受影响企业应对美加征关税的冲击。一是进一步加大走访帮扶。从去年到今年3<font face="宋体">月底，证监会会同地方政府累计走访</font>2352<font face="宋体">家上市公司，帮助企业解决了</font>3300<font face="宋体">多项痛点难点问题，我们还将继续会同相关方面抓好这项工作。二是优化监管安排。对于确实受关税政策影响比较大的上市公司，在股权质押、再融资、募集资金使用等方面增强监管包容度，帮助纾困解难。进一步完善信息披露豁免相关规则，进一步引导上市公司加强与投资者有效沟通。三是支持转型升级、特别是支持上市公司通过并购重组转型升级。去年“并购六条”发布以来，沪深两市披露重组项目近</font>1400<font face="宋体">单，同比增长</font>40%<font face="宋体">，其中重大资产重组超</font>160<font face="宋体">单，同比增长</font>2.4<font face="宋体">倍。我们目前正抓紧修订《上市公司重大资产重组管理办法》以及相关监管指引，进一步完善“并购六条”配套措施，以更大力度支持上市公司并购重组，围绕产业逻辑“强身健体”、激发活力、提高质量，不断提升创新能力以及风险抵御能力。四是强化多层次资本市场产品和服务支持。支持上市公司利用股、债、</font>REITs<font face="宋体">等多种工具开展直接融资，也鼓励符合条件的境内企业依法依规赴境外上市，增强全球市场拓展能力。谢谢！</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>20</span>:<span>06</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/8经济日报.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>经济日报记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>经济日报记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>楼市和股市是经济运行的重要风向标，刚才李局长也有提到。请问金融监管总局在稳楼市稳股市方面有哪些考虑？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>28</span>:<span>50</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>李云泽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢您的提问。稳住楼市股市对提振社会预期、畅通内需循环具有重要意义。4<font face="宋体">月</font>25<font face="宋体">日中央政治局会议，再次对稳定楼市和股市提出了明确要求。金融监管总局坚决贯彻落实党中央、国务院部署要求，协同打好“组合拳”，积极做好相关工作。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>稳楼市方面，我们扎实推动城市房地产融资协调机制扩围增效，支持打赢保交房攻坚战。目前，商业银行审批通过的“白名单”贷款增至6.7<font face="宋体">万亿元，支持了</font>1600<font face="宋体">多万套住宅的建设和交付，有力保障了广大购房人的合法权益，为房地产市场止跌回稳提供了重要支撑。房地产市场的积极变化在信贷数据上也有所体现。今年一季度，房地产贷款余额增加</font>7500<font face="宋体">多亿元，其中新增个人住房贷款创</font>2022<font face="宋体">年以来单季最大增幅，住房租赁贷款同比增长</font>28%<font face="宋体">。最近一些来华的头部国际投资机构也认为中国房地产市场的投资价值正在逐步显现。下一步，我们将加快完善与房地产发展新模式相适配的系列融资制度，包括房地产开发、个人住房、城市更新等贷款管理办法。指导金融机构继续保持房地产融资稳定，有效满足刚性和改善性住房需求，强化对高品质住房的资金供给，助力持续巩固房地产市场稳定态势。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>稳股市方面，我们充分发挥保险资金作为耐心资本、长期资本的优势，加大入市稳市力度。前期，开展了保险资金长期投资改革试点，为股市提供了真金白银的增量资金。上个月，我们又上调了保险资金权益类资产投资的比例上限，进一步释放投资空间。下一步，我们还将推出几条具体措施，继续支持稳定和活跃资本市场。一是进一步扩大保险资金长期投资的试点范围。近期拟再批复600<font face="宋体">亿元，为市场注入更多的增量资金。二是调整偿付能力监管规则，将股票投资的风险因子进一步调降</font>10%<font face="宋体">，鼓励保险公司加大入市力度。三是推动完善长周期考核机制，调动机构的积极性，促进实现“长钱长投”。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>29</span>:<span>07</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/9第一财经.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>第一财经记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>第一财经记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>刚才潘行长提到，将创设并加力实施结构性货币政策工具，这些结构性工具将对经济结构调整产生积极作用，能否请您再详细介绍一下？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>29</span>:<span>27</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>从传统意义上讲，货币政策主要是总量工具，但在中国经济运行中，大家都十分清楚，很多矛盾和挑战是结构性的，结构调不好，总量调控也很难发挥有效作用。结构性货币政策工具有助于推动解决一些结构性的矛盾和问题。这些年来，人民银行在实践中不断地探索，按照“聚焦重点、合理适度、有进有退”的原则，先后创设了多项结构性货币政策工具，目前形成了总量工具为主、结构性工具为补充的货币政策调控框架。到4<font face="宋体">月末，存续的结构性政策工具共</font>9<font face="宋体">项，主要聚焦于国民经济重点领域、重大战略和薄弱环节，存量余额约</font>5.9<font face="宋体">万亿元，占人民银行资产负债表规模的</font>13%<font face="宋体">，处于合理水平。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>结构性货币政策工具，一般称为再贷款，是指中央银行给金融机构的贷款，这些工具一般内嵌激励机制的安排，引导商业银行自主向市场主体发放贷款。近年来，在结构性货币政策工具的引导下，金融机构的信贷投放结构发生了质的变化。大家非常清楚，前些年商业银行的资产负债表中，对房地产、地方融资平台等领域的风险敞口很大，近些年这类风险敞口逐步收敛。金融支持实体经济的强度、适配性和精准性明显提升。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>这次我们创设并加力实施系列结构性货币政策工具，既有数量的增加，也有价格的优惠，更好发挥了结构性货币政策工具的牵引和带动作用。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是下调结构性货币政策工具利率0.25<font face="宋体">个百分点。这次将支农支小再贷款、科技创新和技术改造再贷款、碳减排支持工具、股票回购增持再贷款、保障性住房再贷款等结构性货币政策工具利率从目前的</font>1.75%<font face="宋体">下调到</font>1.5%<font face="宋体">。同时，给政策性金融机构的抵押补充贷款（</font>PSL<font face="宋体">）利率从目前的</font>2.25%<font face="宋体">下调到</font>2%<font face="宋体">。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是设立5000<font face="宋体">亿元的服务消费与养老再贷款。当前，我国经济政策的着力点在于扩大国内需求，大力提振消费，其中服务消费是消费升级扩容的重要着力点。为提升和改善服务消费供给，人民银行设立“服务消费与养老再贷款”工具，激励引导金融机构加大对住宿餐饮、文体娱乐、教育等服务消费重点领域和养老产业的金融支持，并与财政及其他行业政策协同配合，更好地满足群众消费升级的需求。这项工具也是人民银行支持提振消费的一项创新举措，额度是</font>5000<font face="宋体">亿元。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是将科技创新和技术改造再贷款额度从5000<font face="宋体">亿元增加至</font>8000<font face="宋体">亿元。这项工具是</font>2024<font face="宋体">年</font>4<font face="宋体">月由人民银行会同发改委、科技部等部门设立，初始额度</font>5000<font face="宋体">亿元，有力地支持了科技型中小企业及重点领域技术改造和设备更新。这次我们将再贷款额度增加</font>3000<font face="宋体">亿元，增加到</font>8000<font face="宋体">亿元，支持“两新”政策加力扩围。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>四是增加支农支小再贷款额度3000<font face="宋体">亿元。增加后人民银行对金融机构的支农支小再贷款总额度将达到</font>3<font face="宋体">万亿元，叠加本次再贷款利率下调，将会形成量价协同的效应，将进一步支持商业银行扩大对涉农、小微，特别是中小民营企业的贷款投放。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>未来，根据经济金融运行情况和各项工具使用效果，还可以扩大工具规模、完善工具政策要素，或者创设新的政策工具。谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>29</span>:<span>45</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/10南华.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>南华早报记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>南华早报记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>中美贸易冲突背景下，对于外贸依存度较高的企业，除了“不断贷、不抽贷”之外是否有其他救济措施？对小微企业还有哪些具体的支持举措？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>33</span>:<span>26</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>李云泽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢您的提问。近年来，我们不断深化金融供给侧结构性改革，引导银行保险机构持续提高服务适配性，鼓励开发差异化、个性化产品，更好满足不同规模、不同类型企业的金融需求。特别是针对小微企业、民营企业融资难题，我们牵头建立了专门的融资协调工作机制，推动低成本资金快速直达企业。目前，各地累计走访经营主体超过6700<font face="宋体">万户，发放贷款</font>12.6<font face="宋体">万亿元，其中约</font>1/3<font face="宋体">是信用贷款。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>近期，总局即将会同有关部门进一步推出支持小微企业、民营企业融资的一揽子政策，重点从四个方面发力：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是增供给，继续做深做实融资协调工作机制，深入开展“千企万户大走访”活动，加大首贷、续贷、信用贷投放，带动普惠型小微企业贷款增速高于各项贷款的平均增速。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是降成本，及时传导市场利率红利和内部资金转移定价优惠，同时规范机构与第三方的合作，促进综合融资成本稳中有降，进一步减轻企业负担。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是提效率，推动银行简化内部流程，提高贷款审批时效，灵活满足各类融资需求，缓解企业的资金周转压力。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>四是优环境，强化货币、财税、产业、监管等相关政策协同，在担保增信、信用修复、划型标准等方面，加快完善相关制度，营造更加适宜的发展环境。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>在当前外部冲击影响加大的背景下，我们将制定实施银行业保险业护航外贸发展系列政策措施，按照市场化、法治化原则，从金融方面持续加大支持力度。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是强化金融纾困。将融资协调工作机制扩展至全部外贸企业，推动银行加快落实各项稳外贸政策，确保应贷尽贷、应续尽续。对受关税影响较大、经营暂时困难的市场主体，“一企一策”提供精准服务。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是加力稳定出口。优化出口信用保险监管政策，提高承保能力，提供优惠费率，实施快赔预赔，稳定企业接单和出口信心。督促机构做好跨境电商、海外仓等重点领域的金融服务，支持发展专属保险，引导银行推出综合性、一站式服务，支持外贸新业态发展。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是助力扩大内销。强化外贸企业出口转内销的融资保障，指导组建“内贸险共保体”，推出专属产品，推动内贸险扩面提额。多措并举支持提振消费、扩大内需，为外贸企业拓销路打开空间，助力加快内外贸一体化。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>35</span>:<span>07</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/11美国.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>美国国际市场新闻社记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>美国国际市场新闻社记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>提问吴清主席。在当前复杂多变的国际形势下，市场对贸易紧张局势可能蔓延至金融等领域的担忧上升。请问，这是否会对中国资本市场的对外开放产生影响？中国证监会考虑采取何种措施应对？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>40</span>:<span>32</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>吴清：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢您的提问！对外开放是中国的基本国策，也是资本市场高质量发展的必然要求。近年来，证监会坚决贯彻落实党中央关于“完善高水平对外开放体制机制”“推动金融高水平开放”的重要部署，积极稳妥推进市场、产品和机构全方位双向开放，持续提升外资参与境内市场的便利性，优化合格境外投资者制度，稳步拓展跨境互联互通，全面取消行业机构外资股比限制，提升境外上市备案效率，等等。目前，外资证券类金融机构和外资已经成为A<font face="宋体">股市场重要的参与力量，外资通过</font>QFII<font face="宋体">、沪深股通等形式持有</font>A<font face="宋体">股流通市值稳定在</font>3<font face="宋体">万亿元左右。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>尽管当前外部形势复杂多变，但中国经济高质量发展的战略方向是非常清晰而坚定的，宏观政策的稳定性、可预期性进一步上升，特别是宏观政策适时进行调整，这些都进一步增强了外资参与中国资本市场的信心。近期我们也看到，不少外资机构上调中国股票评级，密集调研A<font face="宋体">股上市公司，广泛关注和积极评价中国资本市场和中国资产。正如习近平总书记所指出的，“投资中国就是投资未来”。下一阶段，证监会将坚定不移推进资本市场高水平对外开放，进一步完善对外开放格局，稳步推出一系列对外开放的务实举措。一是持续扩大机构开放。进一步优化合格境外投资者准入服务，高效办成资格审批与开户“一件事”，进一步扩大投资范围。支持符合条件的外资机构申请证券基金投资咨询业务资格。鼓励境外投资机构依规设立投资境内的人民币基金。二是进一步丰富产品供给。推进期货期权向合格境外投资者开放，支持境内外期货交易所扩大商品期货结算价授权合作。深化交易所债券市场对外开放，将</font>REITs<font face="宋体">等纳入沪深港通标的。三是不断深化市场开放。梳理优化境外上市备案机制、流程和相关要素，提高境外上市备案质效。大力支持上海国际金融中心建设和巩固提升香港国际金融中心地位，稳步推进人民币股票交易柜台纳入港股通、支持在港推出跨境投资和风险管理产品等对港合作各项措施。四是加强双多边跨境监管合作。坚持尊重规律、尊重规则，积极塑造稳定、透明、可预期的监管环境，进一步加强证券监管和审计监管方面的合作，维护企业在境外市场正当利益，并创造条件支持优质中概股企业回归内地和香港股市，同时做好投资者合法权益保护。谢谢！</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>43</span>:<span>15</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/12金融时报.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>金融时报记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>金融时报记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>我注意到，金融监管总局此前曾推出多项试点措施支持科技创新，4<font face="宋体">月份又联合多部委出台了《银行业保险业科技金融高质量发展实施方案》，请问这些政策目前实施进展如何？还将采取哪些支持性措施？谢谢。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>49</span>:<span>51</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>李云泽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢您的提问。发展科技金融是促进科技创新与产业创新深度融合的必由之路。我们持续推动银行保险机构加大对科技创新的支持力度，积极探索科技金融的新路径。截至目前，高新技术企业贷款增速是各项贷款平均增速的近3<font face="宋体">倍，科技保险提供保障超过</font>2<font face="宋体">万亿元。我们推出的多项试点政策，都取得了积极进展。金融资产投资公司股权投资试点加力扩围，目前签约意向金额突破</font>3800<font face="宋体">亿元。科技企业并购贷款有序开展，</font>18<font face="宋体">个城市试点银行“首单”业务都已经落地。知识产权金融生态综合试点稳步推进，多地已建成服务平台，加快破解质押登记、评估处置等难题。科技保险服务模式不断优化，首台（套）、首批次等保险补偿机制持续完善。今年</font>3<font face="宋体">月底，我们又在北京成立了首个商业航天共保体。“共保体”是国际通行的做法，是多家保险公司共同为一个新兴行业或者产业进行风险分担的一种机制，对不确定性比较大的初创行业和产业的发展非常重要。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>下一步，我们将着力深化现有试点，积极拓展新模式，健全同科技创新相适应的科技金融体制，全力服务新质生产力发展。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是优化信贷服务。推动建立信贷支持科技创新的专项机制，支持银行有序设立科技金融专门机构，鼓励探索长周期的科技贷款绩效考核制度。近期，我们正在修订并购贷款管理办法，将尽快出台实施，进一步释放并购贷款的潜力，促进产业加快转型升级。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是强化保险保障。加快制定科技保险高质量发展的意见，更好发挥风险分担和补偿作用，支持更多以共保体方式为重大科技攻关提供保险保障，推动研发机器人、低空飞行器等新兴领域的保险产品，切实为企业创新发展保驾护航。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是扩大股权投资。鼓励保险资金按照市场化原则积极参与创业投资，有序开展对未上市科技企业的重大股权投资。我们支持符合条件的全国性商业银行设立金融资产投资公司，近日即将陆续批复，今天我们就会批复一家，推动加大对科创企业的投资力度。谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span><span style="font-size: 9pt;">:</span><span style="text-indent: 2em; font-size: 9pt;">50</span><span style="font-size: 9pt;">:</span><span style="font-size: 9pt; text-indent: 2em;">12</span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/13每日.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>每日经济新闻记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>每日经济新闻记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>刚刚潘行长提到，去年四季度央行推出了两项支持资本市场的货币政策工具。大家很关注，这半年来央行做了哪些工作？如何评价这些工具使用效果？下阶段如何完善工具设计？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>50</span>:<span>28</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>去年人民银行会同证监会、金融监管总局等部门创设了两项支持资本市场的工具，去年9<font face="宋体">月，我也是在这里对外进行了发布。这两项资本市场支持工具首期额度分别是</font>5000<font face="宋体">亿元、</font>3000<font face="宋体">亿元，适应了市场需求，受到市场广泛欢迎，起到了提振投资者信心、改善金融市场预期、增强资本市场内在稳定性的重要作用。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>这两项工具完全按照市场化原则设计，为上市公司通过股票回购和增持等方法进行市值管理提供了重要支持。互换便利增强参与主体的资金获取能力，回购增持再贷款为发放相关贷款的商业银行提供了低成本资金，两项工具的市场参与主体自主决策购买股票的时机和规模。目前，互换便利工具已经开展了2<font face="宋体">次操作、总金额</font>1050<font face="宋体">亿元；超过</font>500<font face="宋体">家上市公司、主要股东公告使用贷款回购增持股票，贷款总金额约</font>3000<font face="宋体">亿元。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>这两项工具内嵌了逆周期调节属性，主要发挥托底作用。它们的作用逻辑和机理，是在资本市场被明显低估时，证券业机构、上市公司和主要股东将会有更强意愿使用两项工具提供的低成本资金去购买股票，从而阻断市场走弱的负向循环。像去年的11<font face="宋体">月份、今年元旦前后，以及</font>4<font face="宋体">月初美国滥施关税带来冲击时，互换便利使用量明显增加，上市公司回购增持也比较活跃。由此建立的内在稳定机制，发挥了两项工具校正资本市场超调、稳定市场预期的作用。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>在政策实施过程中，人民银行会同证监会、金融监管总局不断总结实践经验，我和吴清主席交流中比较多的话题也是这两项工具。我们结合各方建议，不断优化工具的政策要素，提高政策的实施效率。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是将两项工具总额度8000<font face="宋体">亿元合并使用，额度打通后两个工具都可以用，有助于提升工具便利性、灵活性，更好满足不同类型市场主体需求。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是在互换便利方面，证监会将参与机构范围由首批20<font face="宋体">家券商基金扩大到</font>40<font face="宋体">家的备选机构池，质押品范围纳入了港股、限售股等，并指导金融基础设施降低业务收费标准。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是回购增持再贷款方面，将贷款最长期限由1<font face="宋体">年延长到</font>3<font face="宋体">年，鼓励银行发放信用贷款，将上市公司回购增持股票的自有资金比例要求从</font>30%<font face="宋体">下降到</font>10%<font face="宋体">，同时我们和国资委协商，将中国诚通控股和中国国新控股这两个国有资本运营平台纳入到支持范围，两家公司已经宣布拟使用工具资金合计</font>1800<font face="宋体">亿元，用于增持上市公司股票。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>此外，刚才吴清主席也讲了，汇金公司是维护资本市场稳定的重要战略力量。人民银行坚定支持汇金公司在必要时加大力度增持股票市场指数基金，并向其提供充足的再贷款支持，坚决维护资本市场平稳运行。谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;10</span>:<span>50</span>:<span>54</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/14新华社.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>新华社记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>新华社记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>提问吴清主席。您刚才提到《推动公募基金高质量发展行动方案》，请问工作进展如何？行动方案落地将对资本市场产生什么样的影响？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;11</span>:<span>41</span>:<span>18</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>吴清：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢您的提问。今年1<font face="宋体">月和</font>3<font face="宋体">月的两次新闻发布会上，我在谈到推动中长期资金入市工作的进展时，也简要介绍了公募基金改革的基本思路。去年</font>9<font face="宋体">月</font>26<font face="宋体">日中央政治局会议以来，证监会贯彻落实“稳步推进公募基金改革”决策部署，先后开展</font>30<font face="宋体">余次专题调研，听取了包括投资者</font></span><span style="font-size: 9pt;">、</span><span style="text-indent: 2em; font-size: 9pt;">机构等各方面意见，聚焦广大投资者普遍反映的痛点、堵点问题，研究制定了《推动公募基金高质量发展行动方案》，目前已经成熟，今日就发布实施，基本思路已经跟大家介绍过，详细情况大家可以在网站上看。发布这项改革举措，恰巧碰上了投资界这几天热议的巴菲特告别演说。巴菲特是广受尊敬的投资家，他今年即将退休。我想大家从他那儿取到的最重要的“经”就是价值投资、长期投资、理性投资、努力回报投资者，这些基本理念不会“退休”。这正是我们这项改革要致力推进的。这个时代在呼唤新的伟大投资家，我们有着一批非常优秀的企业和企业家，相信也一定会产生一批优秀的投资家、投资机构。这需要一些重要的规则来催生。这次改革的重点主要是“几个突出”：</span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>一是突出强化与投资者的利益绑定。重点是改革基金运营模式，督促行业回归“受人之托、代客理财”的本源。优化主动权益类基金收费模式，业绩差的必须少收管理费，通过浮动管理费收取机制，扭转基金公司“旱涝保收”的现象。同时，把业绩是否跑赢基准、投资者盈亏情况等直接关乎投资者切身利益的指标，纳入基金公司和基金经理的考核体系，督促基金公司从“重规模”向“重回报”转变。此外，提高基金公司高管、基金经理用奖金跟投自己产品的比例要求，并适度延长锁定期，让这些“关键少数”与投资者利益更为一致。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>二是突出增强基金投资行为稳定性。针对基金“风格漂移”“货不对版”等问题，要求为每只基金产品设定清晰的业绩比较基准，作为衡量产品真实业绩的“尺子”，避免产品投资行为偏离名称和定位，尽量确保投资者所见即所得。同时，围绕锻造长期投资的长板，建立健全监管部门、自律组织、评价机构、公司自身等全方位激励约束机制，督导基金公司全面实施长周期考核，明确三年以上考核权重不低于80%<font face="宋体">，减少基金经理“追涨杀跌”现象，提高产品长期收益。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>三是突出提升服务投资者的能力。引导基金公司、基金销售机构优化投资研究、产品设计、风险管理等资源配置，更好为投资者服务。抓紧出台公募基金投资顾问管理规定，促进规范发展，为投资者提供合适的资产配置组合。同时，加快推出机构投资者直销服务平台，便利各类机构投资者参与基金投资。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>四是突出发展壮大权益类基金的工作导向。权益投资是公募基金能够为投资者创造独特价值的关键所在。去年9<font face="宋体">月以来，权益类基金规模已经从</font>7<font face="宋体">万亿元增长到了</font>8.3<font face="宋体">万亿元。下一步，我们将加强监管引导，优化基金公司、基金销售机构分类评价机制，促进加大权益类基金发行、销售力度。积极推动产品创新，持续丰富符合国家发展导向、更有利于为投资者创造长期收益的指数基金和主动型基金。在前期已经建立股票</font>ETF5<font face="宋体">个工作日快速注册机制的基础上，对主动管理权益类基金和符合一定权益投资比例要求的其他基金产品也进一步大幅提高注册效率。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>我们相信，随着改革方案的落地实施，公募基金将更加突出投资人最佳利益的导向，投资人的获得感将会进一步提升。谢谢！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;11</span>:<span>43</span>:<span>42</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>寿小丽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>请继续提问。发布会已经进行近85<font face="宋体">分钟了，由于时间关系，最后一个提问。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;11</span>:<span>44</span>:<span>49</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-align: center;"><span><img src="7555758/images/15凤凰.png" style=" border:0px width:600px;height:418px;" align="center"><br>
+</span></p>
+<p style="text-align: center;"><span>凤凰卫视记者提问（刘健&ensp;摄）</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>凤凰卫视记者：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘行长，今年两会记者会上您提到，创新推出债券市场“科技板”，请问相关工作进展如何？刚才您提到，要创设科技创新债券风险分担工具，请问有何考虑？谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;11</span>:<span>46</span>:<span>36</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>潘功胜：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>建设同科技创新相适应的科技金融体制，是金融服务实体经济高质量发展的重要着力点，也是深化金融供给侧结构性改革的重要内容。近年来，人民银行会同有关部门，综合发挥信贷、债券、股权、保险等工具作用，持续加大对科技创新的金融支持，做了不少工作，也积累了一些经验。刚才，李云泽局长和吴清主席谈了不少这方面的情况。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>前期，人民银行会同证监会、金融监管总局、科技部等部门，积极准备推出债券市场“科技板”，支持金融机构、科技型企业、股权投资机构这三类市场主体发行科技创新债券。同时，针对科技型企业、股权投资机构的特点，我们对科技创新债券的发行交易、信息披露、信用评级等制度安排进行了完善，健全了与科技创新融资特点相适应的配套规则体系。相关政策和准备工作已经基本就绪。目前看，市场各方响应非常积极，各类型金融机构、科技型企业、股权投资机构积极与人民银行、证监会沟通，对接发行科技创新债券的意愿。初步统计，目前有近100<font face="宋体">家市场机构计划发行超过</font>3000<font face="宋体">亿元的科技创新债券，预计后续还会有更多机构参与。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>此外，为了支持股权投资机构在“科技板”发行长期限的债券融资，人民银行会同证监会借鉴2018<font face="宋体">年设立民营企业债券融资支持工具的经验，创设了科技创新债券风险分担工具。大家知道，股权投资机构在支持科技创新、特别是促进资本形成方面发挥着关键作用，有统计，股权投资机构参与支持了我国近九成科创板上市公司和六成创业板上市公司。但是股权投资机构在债券市场发债融资比较少，而且用自身来发债融资可能期限比较短、成本也相对比较高。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>科技创新债券风险分担工具借鉴2018<font face="宋体">年民营企业债券融资支持工具的经验，由人民银行提供低成本的再贷款资金，可以购买科技创新债券，同时与地方政府、市场化增信机构一起，采取多样化的增信措施，共同参与分担债券投资人的违约损失风险，还可以有效降低股权投资机构的发债融资成本，支持其发行更长期限，比如</font>8<font face="宋体">年期、</font>10<font face="宋体">年期债券。</font></span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>前期，我们在政策形成过程中，邀请了多位股权投资的专家、市场知名私募股权投资机构，当面征求他们的意见，他们提供了很多很好的政策建议，也对这项政策工具的出台有很高期待。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>总之，通过债券市场“科技板”和风险分担工具这些具体政策安排，有利于进一步拓宽科技型企业和股权投资机构的融资渠道，也有利于进一步激发市场活力和信心，带动更多社会资本进入科技创新领域，推动私募股权融资市场与股票发行交易市场相互促进和良性循环。谢谢。</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;11</span>:<span>47</span>:<span>58</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>寿小丽：</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>谢谢各位发布人，谢谢各位记者朋友的参与。今天的新闻发布会就到这里，大家再见！</span><span><o:p></o:p></span></p>
+<p style="text-indent: 2em; text-align: justify;"></p>
+<p style="text-indent: 2em; text-align: justify;"><span>2025-05-07&ensp;11</span>:<span>49</span>:<span>24</span><span><o:p></o:p></span></p>
+              <div  id="files" style="display: none">
+<a href="7555758/images/4.jpg" target="_blank">
+                  4.jpg
+              </a>              </div>
+            </div>
+        </div>
+    </div>
+    <link rel="stylesheet" type="text/css" href="/csrc/xhtml/css/footer.css" />
+
+		<div class="footpc">
+			<div class="footcont">
+				<div class="foot-head">
+					<div class="footcont-left">
+						<p>
+							<span>链接：</span>
+							
+								<a href="http://www.gov.cn/"><img src="/csrc/xhtml/images/public/gh_f.png" class="foot-icon" />中国政府网</a> 
+
+
+						</p>
+					</div>
+					<div class="footcont-right">
+						<select name="--相关机构--" class="k105" onchange="javascript:window.open(this.options[this.selectedIndex].value);this.selectedIndex=0">
+						  <option value="/csrc/c100225/common_list.shtml">行业相关网站</option>
+
+								<option value="http://www.investor.org.cn/"><a href="http://www.investor.org.cn/" target="_blank"  >中国投资者网</a></option>
+
+								<option value="http://www.csisc.cn/"><a href="http://www.csisc.cn/" target="_blank"  >中国资本市场标准网</a></option>
+
+						</select>
+						<div class="zfndbb">
+							<a href="/csrc/c105799/common_list.shtml">
+								<img src="/csrc/xhtml/images/public/footer_zf.png" />
+								<h1>政府网站年度报表</h1>
+							</a>
+						</div>
+					</div>
+					<div class="clear"></div>
+				</div>
+				<div class="foot-bottom">
+					<div class="footcont-left">
+						<p>主办单位：中国证券监督管理委员会      版权所有：中国证券监督管理委员会 </p>
+						<p>网站识别码：bm56000001 <a href="https://beian.miit.gov.cn">京ICP备 05035542号</a>
+							<a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=11040102700080" TARGET='_blank'><img src="/csrc/xhtml/images/public/footer_tu.png" class="footer_xiao" />京公网安备 11040102700080号</a>
+						</p>
+					</div>
+					<div class="footcont-right">
+                      	<script id="_jiucuo_" sitecode='bm56000001' src='https://zfwzgl.www.gov.cn/exposure/jiucuo.js'></script>
+						<script type="text/javascript">document.write(unescape("%3Cspan id='_ideConac' %3E%3C/span%3E%3Cscript src='https://dcs.conac.cn/js/33/000/0000/60407915/CA330000000604079150001.js' type='text/javascript'%3E%3C/script%3E"));</script>
+						<!--<img src="/csrc/xhtml/images/public/footer_logo.png" class="foot_logo" />-->
+						<p>
+							<a href="/csrc/c100025/c1003151/content.shtml">联系我们</a> |
+							<a href="/csrc/c100227/c1362477/content.shtml">法律声明</a> |
+                          	<a href="/csrc/c105974/common_list.shtml">归档数据</a>
+						</p>
+					</div>
+					<div class="clear"></div>
+				</div>
+			</div>
+		</div>
+		<!---->
+		<div class="footsj">
+			<p>主办单位：中国证券监督管理委员会</p>
+			<p>版权所有：中国证券监督管理委员会</p>
+		</div>
+
+	<script language="JavaScript">var _trackDataType = 'web';var _trackData = _trackData || [];</script>
+<script type="text/javascript" charset="utf-8" id="kpyfx_js_id_10008998" src="//fxsjcj.kaipuyun.cn/count/10008998/10008998.js"></script>
+	<script src='/csrc/xhtml/js/foot.js'></script>
+</body>
+<script src="/csrc/xhtml/js/share.js"></script>
+<script src="/csrc/xhtml/js/wxShare.js"></script>
+<script src="/csrc/xhtml/js/commonDetail.js"></script>
+</html>

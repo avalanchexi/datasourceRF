@@ -1,0 +1,567 @@
+{
+  "network_requests": 6,
+  "http_2xx": 6,
+  "http_failed": 0,
+  "response_bytes": 4058270,
+  "new_rrr_event_rows_proven": 0,
+  "new_certifications": 0,
+  "model_adoptions": 0,
+  "database_reads_or_writes": 0,
+  "old_raw_sha256": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+  "old_raw_bytes": 31945,
+  "combined_primary_raw_bytes": 4090215,
+  "old_rrr_article_visible_timestamp": "2025-11-11 17:00:09",
+  "old_rrr_paragraph": "5月15日，中国人民银行下调金融机构存款准备金率0.5个百分点（不含已执行5%存款准备金率的金融机构），下调汽车金融公司和金融租赁公司存款准备金率5个百分点。",
+  "old_known_event_components": [
+    {
+      "effective_date": "2025-05-15",
+      "change_pp": -0.5,
+      "scope": "financial institutions excluding those already at 5%",
+      "original_announcement_at": null,
+      "post_rate": null
+    },
+    {
+      "effective_date": "2025-05-15",
+      "change_pp": -5.0,
+      "scope": "auto finance and financial leasing companies",
+      "original_announcement_at": null,
+      "post_rate": null
+    }
+  ],
+  "legacy_rrr_public_points_at_target": 1,
+  "legacy_rrr_system_points_at_target": 0,
+  "legacy_history_270_contains_rrr": false,
+  "h1_visible_timestamp": "2026-08-12 18:25:21",
+  "q2_html_visible_timestamp": "2026-08-12 18:26:05",
+  "timezone_note": "Visible page timestamps have no offset; Asia/Shanghai is existing project source convention, not newly proved by these raw pages.",
+  "h1_entries": [
+    {
+      "date": "2026-01-10",
+      "text": "1月10日，中国人民银行与加拿大银行续签规模为2000亿元人民币的双边本币互换协议。"
+    },
+    {
+      "date": "2026-01-15",
+      "text": "1月15日，中国人民银行印发《关于下调再贷款、再贴现利率的通知》（银发〔2026〕9号），决定自1月19日起下调再贷款、再贴现利率0.25个百分点。调整后，3个月、6个月和1年期支农支小再贷款利率分别为0.95%、1.15%和1.25%，再贴现利率为1.5%，抵押补充贷款利率为1.75%，专项结构性货币政策工具利率为1.25%。"
+    },
+    {
+      "date": "2026-01-15",
+      "text": "1月15日，中国人民银行决定增加支农支小再贷款额度5000亿元，将支农支小再贷款额度与再贴现额度打通使用。"
+    },
+    {
+      "date": "2026-01-15",
+      "text": "1月15日，中国人民银行决定增加科技创新和技术改造再贷款额度4000亿元。增加后，科技创新和技术改造再贷款总额度为1.2万亿元。适当拓展政策支持领域，自2026年起，将研发投入水平较高的民营中小企业纳入科技创新和技术改造再贷款政策支持领域。"
+    },
+    {
+      "date": "2026-01-16",
+      "text": "1月16日，中国人民银行会同金融监管总局印发《关于调整商业用房购房贷款最低首付款比例政策的通知》（银发〔2026〕14号），将商业用房（含商住两用房）购房贷款最低首付比例调整为不低于30%。"
+    },
+    {
+      "date": "2026-01-20",
+      "text": "1月20日，中国人民银行授权全国银行间同业拆借中心公布贷款市场报价利率（LPR），1年期LPR为3.0%，5年期以上LPR为3.5%，均与前次持平。"
+    },
+    {
+      "date": "2026-01-20",
+      "text": "1月20日，中国人民银行与斯里兰卡中央银行签署了在斯里兰卡建立人民币清算安排的合作备忘录。"
+    },
+    {
+      "date": "2026-01-27",
+      "text": "1月27日，中国人民银行向全国人大财经委员会汇报2025年货币政策执行情况。"
+    },
+    {
+      "date": "2026-01-27",
+      "text": "1月27日，中国人民银行印发《关于优化碳减排支持工具管理有关事宜的通知》（银发〔2026〕25号），将节能改造、绿色升级、能源绿色低碳转型等具有直接碳减排效应的项目纳入碳减排支持工具支持领域。"
+    },
+    {
+      "date": "2026-01-27",
+      "text": "1月27日，中国人民银行印发《关于设立民营企业再贷款有关事宜的通知》（银发〔2026〕27号），在支农支小再贷款项下设立民营企业再贷款，额度1万亿元，引导地方法人金融机构进一步聚焦重点，加力支持民营中小微企业。"
+    },
+    {
+      "date": "2026-01-29",
+      "text": "1月29日，中国人民银行授权中国银行股份有限公司伦敦分行担任英国人民币清算行。"
+    },
+    {
+      "date": "2026-02-13",
+      "text": "2月13日，中国人民银行、金融监管总局发布2025年我国系统重要性银行名单。"
+    },
+    {
+      "date": "2026-02-13",
+      "text": "2月13日，中国人民银行联合金融监管总局、中国证监会、农业农村部印发《关于统筹建立常态化金融支持机制 助力防止返贫致贫和乡村全面振兴的意见》（银发〔2026〕43号）。"
+    },
+    {
+      "date": "2026-02-24",
+      "text": "2月24日，中国人民银行授权全国银行间同业拆借中心公布贷款市场报价利率（LPR），1年期LPR为3.0%，5年期以上LPR为3.5%，均与前次持平。"
+    },
+    {
+      "date": "2026-02-26",
+      "text": "2月26日，中国人民银行授权中国银行股份有限公司科伦坡分行担任斯里兰卡人民币清算行。"
+    },
+    {
+      "date": "2026-02-26",
+      "text": "2月26日，中国人民银行印发《关于银行业金融机构人民币跨境同业融资业务有关事宜的通知》（银发〔2026〕51号），支持境内银行业金融机构与境外机构开展人民币跨境同业融资业务，发展人民币离岸市场，完善跨境资本流动宏观审慎管理。"
+    },
+    {
+      "date": "2026-03-17",
+      "text": "3月17日，中国人民银行印发《关于做好银行业金融机构投融资碳核算工作的通知》（银办发〔2026〕48号），建立健全银行业金融机构投融资碳核算工作制度，组织金融机构高质量开展碳核算工作。"
+    },
+    {
+      "date": "2026-03-20",
+      "text": "3月20日，中国人民银行授权全国银行间同业拆借中心公布贷款市场报价利率（LPR），1年期LPR为3.0%，5年期以上LPR为3.5%，均与前次持平。"
+    },
+    {
+      "date": "2026-03-20",
+      "text": "3月20日，中国人民银行、国家外汇管理局发布《境内企业境外放款管理办法》（银发〔2026〕63号），进一步支持和规范境内企业开展境外放款业务。"
+    },
+    {
+      "date": "2026-03-26",
+      "text": "3月26日，中国人民银行货币政策委员会召开2026年第一季度例会。"
+    },
+    {
+      "date": "2026-04-11",
+      "text": "4月11日，中国人民银行、国家外汇管理局发布《关于调整银行业金融机构境外贷款业务有关事宜的通知》（银发〔2026〕72号）。"
+    },
+    {
+      "date": "2026-04-16",
+      "text": "4月16日，中国人民银行向全国人大财经委员会汇报2026年一季度货币政策执行情况。"
+    },
+    {
+      "date": "2026-04-20",
+      "text": "4月20日，中国人民银行授权全国银行间同业拆借中心公布贷款市场报价利率（LPR），1年期LPR为3.0%，5年期以上LPR为3.5%，均与前次持平。"
+    },
+    {
+      "date": "2026-04-29",
+      "text": "4月29日，中国人民银行联合国家发展改革委、财政部印发《关于扩大科技创新和技术改造贷款投放 进一步支持设备更新的通知》（银发〔2026〕82号）。"
+    },
+    {
+      "date": "2026-05-20",
+      "text": "5月20日，中国人民银行授权全国银行间同业拆借中心公布贷款市场报价利率（LPR），1年期LPR为3.0%，5年期以上LPR为3.5%，均与前次持平。"
+    },
+    {
+      "date": "2026-05-28",
+      "text": "5月28日，中国人民银行与塞尔维亚国家银行再次签署规模为50亿元人民币/740亿塞尔维亚第纳尔的双边本币互换协议。"
+    },
+    {
+      "date": "2026-06-03",
+      "text": "6月3日，中国人民银行与埃及中央银行续签规模为300亿元人民币/2030亿埃及镑的双边本币互换协议。"
+    },
+    {
+      "date": "2026-06-08",
+      "text": "6月8日，中国人民银行与老挝人民民主共和国银行续签规模为60亿元人民币/19.5万亿老挝基普的双边本币互换协议。"
+    },
+    {
+      "date": "2026-06-11",
+      "text": "6月11日，中国人民银行与印度尼西亚银行签署在印度尼西亚建立人民币清算安排的合作备忘录。"
+    },
+    {
+      "date": "2026-06-15",
+      "text": "6月15日，中国人民银行联合金融监管总局、全国妇联印发《关于进一步加强金融支持妇女就业发展的实施意见》（银发〔2026〕123号）。"
+    },
+    {
+      "date": "2026-06-17",
+      "text": "6月17日，中国人民银行发布公告，优化公开市场临时正、逆回购操作要素，操作时间调整为15:00-15:30，操作利率调整为7天期逆回购利率减25个基点和加25个基点，并进一步明确工具触发条件。"
+    },
+    {
+      "date": "2026-06-17",
+      "text": "6月17日，中国人民银行发布公告，为支持我国金融市场高水平对外开放，便利境外央行类机构人民币流动性管理，将通过境外央行类机构回购工具，向符合条件的境外央行类机构提供人民币流动性。"
+    },
+    {
+      "date": "2026-06-22",
+      "text": "6月22日，中国人民银行授权全国银行间同业拆借中心公布贷款市场报价利率（LPR），1年期LPR为3.0%，5年期以上LPR为3.5%，均与前次持平。"
+    },
+    {
+      "date": "2026-06-25",
+      "text": "6月25日，中国人民银行决定授权南非标准银行有限公司和中国工商银行股份有限公司担任非洲人民币联合清算行。"
+    },
+    {
+      "date": "2026-06-25",
+      "text": "6月25日，中国人民银行决定授权中国银行（香港）有限公司雅加达分行担任印度尼西亚人民币清算行。"
+    },
+    {
+      "date": "2026-06-26",
+      "text": "6月26日，中国人民银行与蒙古银行续签规模为150亿元人民币/7.85万亿蒙古图格里克的双边本币互换协议。"
+    },
+    {
+      "date": "2026-06-29",
+      "text": "6月29日，中国人民银行首次在公开市场操作中增加隔夜逆回购操作品种，采用固定利率、数量招标。"
+    },
+    {
+      "date": "2026-07-04",
+      "text": "7月4日，中国人民银行货币政策委员会召开2026年第二季度例会。"
+    }
+  ],
+  "h1_entry_count": 38,
+  "h1_rrr_entry_count": 0,
+  "h1_claimed_period": [
+    "2026-01-01",
+    "2026-06-30"
+  ],
+  "h1_last_listed_event_date": "2026-07-04",
+  "news_title_entries": [
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026090414583025333/index.html",
+      "title": "中国人民银行召开树立和践行正确政绩观学习教育总结会议",
+      "listed_date": "2026-09-04"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026090314250952275/index.html",
+      "title": "2026年2季度末金融业机构总资产562.2万亿元",
+      "listed_date": "2026-09-03"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026090214474837364/index.html",
+      "title": "中国人民银行行长潘功胜会见国际金融机构负责人和相关国家财长及央行行长",
+      "listed_date": "2026-09-02"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026090214465859469/index.html",
+      "title": "中国人民银行行长潘功胜出席二十国集团财长和央行行长会议",
+      "listed_date": "2026-09-02"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082816463825521/index.html",
+      "title": "中国人民银行有关部门负责人就《关于改革完善房地产信贷管理 推动加快构建房地产发展新模式的意见》答记者问",
+      "listed_date": "2026-08-28"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082809193480410/index.html",
+      "title": "中国人民银行公告﹝2026﹞第22号",
+      "listed_date": "2026-08-28"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082717370314545/index.html",
+      "title": "中国人民银行新增西藏自治区分行支农支小再贷款额度50亿元 支持救灾及灾后重建",
+      "listed_date": "2026-08-27"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082717390451589/index.html",
+      "title": "中国人民银行副行长陆磊出席第十五届中国支付清算论坛",
+      "listed_date": "2026-08-27"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082118245286995/index.html",
+      "title": "2026年7月金融市场运行情况",
+      "listed_date": "2026-08-24"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081919184870631/index.html",
+      "title": "中国人民银行行长潘功胜会见澳门银行公会代表团",
+      "listed_date": "2026-08-19"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081915294182128/index.html",
+      "title": "中澳（大利亚）两国央行续签双边本币互换协议",
+      "listed_date": "2026-08-19"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081714114337358/index.html",
+      "title": "中国人民银行新增8家数字人民币业务运营机构",
+      "listed_date": "2026-08-17"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081417014187625/index.html",
+      "title": "中国人民银行公告﹝2026﹞第21号",
+      "listed_date": "2026-08-14"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081410142217598/index.html",
+      "title": "中国人民银行 国家外汇管理局发布《关于跨国公司本外币跨境资金集中运营业务有关事宜的通知》",
+      "listed_date": "2026-08-14"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081414193264304/index.html",
+      "title": "2026年7月金融统计数据报告",
+      "listed_date": "2026-08-14"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081410062044799/index.html",
+      "title": "中国人民银行副行长邹澜出席金砖国家财长和央行行长会议",
+      "listed_date": "2026-08-14"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081218034520348/index.html",
+      "title": "2026年第二季度中国货币政策执行报告",
+      "listed_date": "2026-08-12"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081218065921908/index.html",
+      "title": "2026年上半年中国货币政策大事记",
+      "listed_date": "2026-08-12"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081018132329141/index.html",
+      "title": "中国人民银行印发《中国人民银行“十五五”改革发展规划》",
+      "listed_date": "2026-08-10"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081015473613597/index.html",
+      "title": "中国人民银行公告〔2026〕第20号",
+      "listed_date": "2026-08-10"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026080708481628617/index.html",
+      "title": "中国人民银行与马来西亚国家银行续签双边本币互换协议",
+      "listed_date": "2026-08-07"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026080614361480356/index.html",
+      "title": "中阿（根廷）两国央行续签双边本币互换协议",
+      "listed_date": "2026-08-06"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026080209562668921/index.html",
+      "title": "中国人民银行召开2026年下半年工作会议",
+      "listed_date": "2026-08-02"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026073110395678929/index.html",
+      "title": "金融监管总局 中国人民银行 中国证监会 财政部关于健全金融机构治理的实施意见",
+      "listed_date": "2026-07-31"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026073016573896571/index.html",
+      "title": "中国人民银行行长潘功胜会见哈萨克斯坦国家银行行长苏莱曼诺夫、金融市场监管和发展署署长阿贝尔卡瑟莫娃",
+      "listed_date": "2026-07-30"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026073016322513308/index.html",
+      "title": "中国人民银行副行长宣昌能会见印度尼西亚银行副行长托马斯·吉万多诺",
+      "listed_date": "2026-07-30"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072915223955058/index.html",
+      "title": "中国人民银行等九部门联合印发《关于加强科技金融领域数据开发利用的通知》",
+      "listed_date": "2026-07-29"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072719364116939/index.html",
+      "title": "2026年二季度金融机构贷款投向统计报告",
+      "listed_date": "2026-07-28"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072318165563100/index.html",
+      "title": "中国人民银行副行长、国家外汇管理局局长朱鹤新出席东亚及太平洋中央银行行长会议组织第31届行长会",
+      "listed_date": "2026-07-23"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072216185718113/index.html",
+      "title": "中国人民银行副行长宣昌能会见加拿大养老基金投资公司总裁兼首席执行官约翰·格雷厄姆",
+      "listed_date": "2026-07-22"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072214590478488/index.html",
+      "title": "2026年6月金融市场运行情况",
+      "listed_date": "2026-07-22"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072208461796389/index.html",
+      "title": "中国人民银行公告﹝2026﹞第18号",
+      "listed_date": "2026-07-22"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072118270241573/index.html",
+      "title": "中国人民银行新增支农支小再贷款额度1000亿元 支持部分地区防汛救灾及灾后重建",
+      "listed_date": "2026-07-21"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072016370956377/index.html",
+      "title": "中国人民银行副行长宣昌能与欧盟委员会金融稳定、金融服务和资本市场联盟总司长约翰·贝里根通话",
+      "listed_date": "2026-07-20"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071814542725789/index.html",
+      "title": "中国人民银行副行长宣昌能会见布基纳法索经济财政部部长阿布巴卡尔·纳卡纳博一行",
+      "listed_date": "2026-07-18"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071714315618324/index.html",
+      "title": "中国人民银行行长潘功胜会见利比亚央行行长纳吉·伊萨·贝尔卡西姆",
+      "listed_date": "2026-07-17"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071518015458230/index.html",
+      "title": "国新办举行新闻发布会 介绍2026年上半年货币政策执行和金融统计数据情况",
+      "listed_date": "2026-07-15"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071512340454869/index.html",
+      "title": "2026年上半年金融统计数据报告",
+      "listed_date": "2026-07-15"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071112383673328/index.html",
+      "title": "中国人民银行举办专题讲座",
+      "listed_date": "2026-07-11"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026070818273311767/index.html",
+      "title": "中国人民银行货币政策委员会召开2026年第二季度例会",
+      "listed_date": "2026-07-08"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026070815104519914/index.html",
+      "title": "中国人民银行副行长宣昌能会见法国农业信贷银行集团首席执行官奥利弗·加瓦达",
+      "listed_date": "2026-07-08"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026070717111423148/index.html",
+      "title": "中国人民银行、香港金融管理局、香港证券及期货事务监察委员会关于在港建设交易平台的联合公告",
+      "listed_date": "2026-07-07"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026070716444295922/index.html",
+      "title": "中国人民银行行长潘功胜在香港货币与固定收益峰会上的致辞",
+      "listed_date": "2026-07-07"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026070718303026756/index.html",
+      "title": "中国人民银行行长潘功胜出席香港货币与固定收益峰会并致辞",
+      "listed_date": "2026-07-07"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026063020002759897/index.html",
+      "title": "中国人民银行优秀共产党员、优秀党务工作者、先进基层党组织表彰名单",
+      "listed_date": "2026-06-30"
+    }
+  ],
+  "news_title_count": 45,
+  "news_titles_in_2026_07_01_to_08_28": 40,
+  "unread_generic_announcements": [
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082809193480410/index.html",
+      "title": "中国人民银行公告﹝2026﹞第22号",
+      "listed_date": "2026-08-28"
+    },
+    {
+      "list_page": 1,
+      "source_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081417014187625/index.html",
+      "title": "中国人民银行公告﹝2026﹞第21号",
+      "listed_date": "2026-08-14"
+    },
+    {
+      "list_page": 2,
+      "source_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081015473613597/index.html",
+      "title": "中国人民银行公告〔2026〕第20号",
+      "listed_date": "2026-08-10"
+    },
+    {
+      "list_page": 3,
+      "source_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072208461796389/index.html",
+      "title": "中国人民银行公告﹝2026﹞第18号",
+      "listed_date": "2026-07-22"
+    }
+  ],
+  "pdf_page_count": 58,
+  "pdf_keyword_counts_two_extractors_agree": {
+    "降准": 0,
+    "准备金": 4,
+    "存款准备金率": 0,
+    "超额准备金率": 1
+  },
+  "pdf_reserve_keyword_pages": [
+    8,
+    21,
+    25
+  ],
+  "pdf_text_verification_limit": "Default stdlib validates source hash and both stored extraction derivatives; it does not independently decode PDF text.",
+  "legacy_regex_wrong_year_counterexample": {
+    "raw_article_year": 2025,
+    "requested_period": "2026-05",
+    "observed_fallback_effective_date": "2026-05-15",
+    "required_result": "reject year mismatch; never create this 2026 event"
+  },
+  "coverage_result": "no RRR event listed in reviewed H1 chronology; interval event completeness unknown, not proven no-event"
+}

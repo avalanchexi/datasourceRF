@@ -118,7 +118,7 @@ def test_context_formula_dispatch_is_bound_to_the_model_manifest(
     v2 = build_context_projection(
         repository,
         as_of=cutoff,
-        model_manifest=analytical_model_v0002_manifest(),
+        model_manifest=_v2_manifest(*certified_ids),
     )
 
     v1_policy = v1.macro["policy_action"]["evidence"]  # type: ignore[index]
@@ -1028,7 +1028,7 @@ def test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     repository = EvidenceRepository(paths.database)
-    certified_ids = {"CN_SF_TOTAL", "CN_GDP"}
+    certified_ids = {"CN_SF_TOTAL", "CN_GDP", "CN_CREDIT_IMPULSE"}
 
     def certified_definition(  # type: ignore[no-untyped-def]
         metric_id: str,
@@ -1218,7 +1218,7 @@ def test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     repository = EvidenceRepository(paths.database)
-    certified_ids = {"CN_SF_TOTAL", "CN_GDP"}
+    certified_ids = {"CN_SF_TOTAL", "CN_GDP", "CN_CREDIT_IMPULSE"}
 
     def certified_definition(  # type: ignore[no-untyped-def]
         metric_id: str,

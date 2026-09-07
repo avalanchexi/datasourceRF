@@ -1,0 +1,9 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_omo_maturity_does_not_use_an_uncertified_model_calendar[False] ______
+tests/integration/test_context_model_certification.py:325: in test_omo_maturity_does_not_use_an_uncertified_model_calendar
+    assert not net
+E   AssertionError: assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_omo_maturity_does_not_use_an_uncertified_model_calendar[False]
+1 failed, 1 passed, 21 deselected in 1.13s

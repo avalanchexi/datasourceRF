@@ -1,0 +1,19 @@
+.FFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[CN_SF_TOTAL] _
+tests/integration/test_context_model_certification.py:258: in test_credit_impulse_requires_model_certification_for_gdp_and_social_financing
+    assert impulse["value"] is None
+E   assert 6.0 is None
+_ test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[CN_GDP] _
+tests/integration/test_context_model_certification.py:258: in test_credit_impulse_requires_model_certification_for_gdp_and_social_financing
+    assert impulse["value"] is None
+E   assert 6.0 is None
+_ test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[CN_CREDIT_IMPULSE] _
+tests/integration/test_context_model_certification.py:258: in test_credit_impulse_requires_model_certification_for_gdp_and_social_financing
+    assert impulse["value"] is None
+E   assert 6.0 is None
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[CN_SF_TOTAL]
+FAILED tests/integration/test_context_model_certification.py::test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[CN_GDP]
+FAILED tests/integration/test_context_model_certification.py::test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[CN_CREDIT_IMPULSE]
+3 failed, 1 passed, 14 deselected in 1.93s

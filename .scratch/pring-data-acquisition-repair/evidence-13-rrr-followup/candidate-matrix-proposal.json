@@ -1,0 +1,54 @@
+{
+  "kind": "reviewable research proposal, not an import or certification",
+  "window": ["2026-03-09", "2026-08-28"],
+  "rows": [
+    {
+      "metric_id": "CN_RRR_EVENT",
+      "candidate_role": "known predecessor fact; not proven latest predecessor",
+      "effective_date": "2025-05-15",
+      "measure": "rrr_change",
+      "scope": "excluding_5_percent_institutions",
+      "value": -0.5,
+      "unit": "percentage_points",
+      "source_sha256": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+      "source_document_time_local": "2025-11-11 17:00:09",
+      "original_announcement_at": null,
+      "historical_latest_event_status": "unproven",
+      "certification": "not_granted_in_this_research",
+      "model_adoption": "not_performed"
+    },
+    {
+      "metric_id": "CN_RRR_EVENT",
+      "candidate_role": "second scoped component omitted by legacy fallback",
+      "effective_date": "2025-05-15",
+      "measure": "rrr_change",
+      "scope_semantics": "汽车金融公司和金融租赁公司",
+      "canonical_scope_code": null,
+      "value": -5.0,
+      "unit": "percentage_points",
+      "source_sha256": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+      "post_change_rate_percent": null,
+      "released_funds_100m": null,
+      "source_document_time_local": "2025-11-11 17:00:09",
+      "original_announcement_at": null,
+      "certification": "not_granted_in_this_research",
+      "model_adoption": "not_performed"
+    },
+    {
+      "metric_id": "CN_RRR_EVENT",
+      "candidate_role": "coverage evidence only; never scalar zero",
+      "window": ["2026-03-09", "2026-08-28"],
+      "new_event_rows": 0,
+      "complete_no_event": null,
+      "status": "reviewed H1 chronology has no RRR entry; Q2 report and partial news body review do not establish full event census",
+      "minimum_next_evidence": [
+        "Four generic July-August announcement bodies already linked in source-inspection.json",
+        "Authoritative RRR policy register and any targeted-institution circulars for full target interval; preserve source coverage and omissions",
+        "Evidence closing 2025-10-01 to 2026-03-08 predecessor sequence before treating 2025-05-15 as the latest baseline",
+        "Original 2025 announcement if original first-publication chronology is required; existing November retrospect is sufficient only for a pre-window known-fact timestamp"
+      ],
+      "source_local_time_interpretation": "Use existing source Asia/Shanghai contract only as declared interpretation; raw visible page clock has no explicit offset.",
+      "historical_system_availability": "New September acquisition cannot be backfilled into March-August SYSTEM."
+    }
+  ]
+}

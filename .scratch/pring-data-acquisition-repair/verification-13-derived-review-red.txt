@@ -1,0 +1,24 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_only_enabled_formulas_require_their_model_input_definitions[False] ____
+tests/integration/test_context_model_certification.py:37: in test_only_enabled_formulas_require_their_model_input_definitions
+    context = build_context_projection(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/context_projection.py:326: in build_context_projection
+    if any(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/context_projection.py:327: in <genexpr>
+    definitions[metric_id].certification_status != "certified"
+    ^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'CN_GDP'
+____ test_only_enabled_formulas_require_their_model_input_definitions[True] ____
+tests/integration/test_context_model_certification.py:33: in test_only_enabled_formulas_require_their_model_input_definitions
+    build_context_projection(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/context_projection.py:326: in build_context_projection
+    if any(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/context_projection.py:327: in <genexpr>
+    definitions[metric_id].certification_status != "certified"
+    ^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'CN_GDP'
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_only_enabled_formulas_require_their_model_input_definitions[False]
+FAILED tests/integration/test_context_model_certification.py::test_only_enabled_formulas_require_their_model_input_definitions[True]
+2 failed, 23 deselected in 1.12s

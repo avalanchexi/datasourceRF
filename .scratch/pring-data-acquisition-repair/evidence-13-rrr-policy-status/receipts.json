@@ -1,0 +1,44 @@
+[
+  {
+    "method": "GET",
+    "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071518015458230/index.html",
+    "started_at": "2026-09-07T14:16:09.410943+00:00",
+    "automatic_redirects": false,
+    "status": 200,
+    "final_url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026071518015458230/index.html",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 14:16:09 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "59959",
+      "Last-Modified": "Wed, 15 Jul 2026 10:49:19 GMT",
+      "ETag": "\"6a5765af-ea37\""
+    },
+    "bytes": 59959,
+    "sha256": "1223082d38efc5039ef7febabbeaebecc92853222b0a18d8c0bfa91e8a08d415",
+    "local_file": "1223082d38efc5039ef7febabbeaebecc92853222b0a18d8c0bfa91e8a08d415",
+    "truncated": false,
+    "received_at": "2026-09-07T14:16:09.548101+00:00",
+    "public_available_at": null
+  },
+  {
+    "method": "GET",
+    "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026080209562668921/index.html",
+    "started_at": "2026-09-07T14:16:09.639022+00:00",
+    "automatic_redirects": false,
+    "status": 200,
+    "final_url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026080209562668921/index.html",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 14:16:09 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "34996",
+      "Last-Modified": "Sun, 02 Aug 2026 07:00:24 GMT",
+      "ETag": "\"6a6eeb08-88b4\""
+    },
+    "bytes": 34996,
+    "sha256": "dff58ae83cae68b5839fbeb75c5c8298c16eba1c7901631b2cb347ac36488c52",
+    "local_file": "dff58ae83cae68b5839fbeb75c5c8298c16eba1c7901631b2cb347ac36488c52",
+    "truncated": false,
+    "received_at": "2026-09-07T14:16:09.779041+00:00",
+    "public_available_at": null
+  }
+]

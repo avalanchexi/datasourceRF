@@ -1,0 +1,19 @@
+....FFF                                                                  [100%]
+=================================== FAILURES ===================================
+_ test_treasury_spread_requires_both_inputs_and_output_certified_by_model[UST2Y_NOMINAL_YIELD] _
+tests/integration/test_context_model_certification.py:136: in test_treasury_spread_requires_both_inputs_and_output_certified_by_model
+    assert spread["value"] is None
+E   assert 41.000000000000014 is None
+_ test_treasury_spread_requires_both_inputs_and_output_certified_by_model[UST10Y_NOMINAL_YIELD] _
+tests/integration/test_context_model_certification.py:136: in test_treasury_spread_requires_both_inputs_and_output_certified_by_model
+    assert spread["value"] is None
+E   assert 41.000000000000014 is None
+_ test_treasury_spread_requires_both_inputs_and_output_certified_by_model[UST_2S10S_SPREAD] _
+tests/integration/test_context_model_certification.py:136: in test_treasury_spread_requires_both_inputs_and_output_certified_by_model
+    assert spread["value"] is None
+E   assert 41.000000000000014 is None
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_treasury_spread_requires_both_inputs_and_output_certified_by_model[UST2Y_NOMINAL_YIELD]
+FAILED tests/integration/test_context_model_certification.py::test_treasury_spread_requires_both_inputs_and_output_certified_by_model[UST10Y_NOMINAL_YIELD]
+FAILED tests/integration/test_context_model_certification.py::test_treasury_spread_requires_both_inputs_and_output_certified_by_model[UST_2S10S_SPREAD]
+3 failed, 4 passed in 1.82s

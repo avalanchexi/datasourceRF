@@ -1,0 +1,21 @@
+{
+  "scope": "Read old research-13, its existing RRR raw, imports, receipts, legacy read matrix and history verification before requesting new URLs.",
+  "existing_rrr_url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/5896228/index.html",
+  "existing_rrr_sha256": "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+  "existing_rrr_bytes": 31945,
+  "existing_rrr_document": "2025年前三季度中国货币政策大事记",
+  "existing_rrr_page_timestamp": "2025-11-11 17:00:09",
+  "legacy_claim_acquired_at": "2026-08-31T05:30:10.973949+00:00",
+  "existing_evidence_imported_at": "2026-09-06T16:22:45.280038+00:00",
+  "import_time_is_new_source_acquisition": false,
+  "old_history_record_count": 270,
+  "old_history_has_rrr_family": false,
+  "existing_rrr_raw_refetched": false,
+  "new_network_request_count": 6,
+  "new_request_urls_were_not_old_rrr_attempts": true,
+  "local_setup_failures": [
+    "First invocation of copied capture script retained BSE hostname guard and stopped at assertion before any HTTP request; guard was fixed before first GET. This is not a seventh network request.",
+    "PowerShell native -c argument quoting produced NameError and SyntaxError in local inspection/setup snippets; no HTTP request or source mutation occurred in those snippets."
+  ],
+  "old_issue_status_or_certification_is_not_new_acceptance": true
+}

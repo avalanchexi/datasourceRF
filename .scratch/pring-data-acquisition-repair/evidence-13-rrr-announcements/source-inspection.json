@@ -1,0 +1,178 @@
+{
+  "network_requests": 4,
+  "http_2xx": 4,
+  "http_failures": 0,
+  "raw_bytes": 106823,
+  "valid_article_bodies": 4,
+  "rrr_event_notices": 0,
+  "candidate_body_identity_resolved": 4,
+  "candidate_rejected_as_non_rrr": 4,
+  "search_calls": 0,
+  "new_directory_reads": 0,
+  "attachment_downloads": 0,
+  "tavily_or_exa_requests": 0,
+  "database_reads_or_writes": 0,
+  "certifications_or_model_adoptions": 0,
+  "whole_rrr_interval_no_event_proven": false,
+  "source_timezone_note": "No explicit offset in visible HTML clock; Asia/Shanghai remains existing project convention, not new official proof.",
+  "old_delivery_paths_verified": 20,
+  "rows": [
+    {
+      "sha256": "28a9f4cbde775f247aadcf57cb00bfd61a2d6cf2b143fd89135cb1a74c6287c8",
+      "bytes": 28544,
+      "title": "中国人民银行公告﹝2026﹞第18号",
+      "topic": "北京中轴线金银纪念币发行",
+      "identity_phrase": "北京中轴线金银纪念币一套",
+      "document_date": "2026-07-16",
+      "visible_published_local": "2026-07-22 09:12:23",
+      "coin_issuance_date": "2026-07-27",
+      "number": 18,
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026072208461796389/index.html",
+      "listed_date": "2026-07-22",
+      "started_at": "2026-09-07T14:07:53.578921+00:00",
+      "received_at": "2026-09-07T14:07:53.770912+00:00",
+      "source_list_sha256": "451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0",
+      "body_text": "中国人民银行定于2026年7月27日发行北京中轴线金银纪念币一套。该套金银纪念币共6枚，其中金质纪念币1枚，银质纪念币5枚，均为中华人民共和国法定货币。 一、纪念币图案 （一）正面图案。 该套金银纪念币正面图案均为中华人民共和国国徽，并刊国名、年号。 （二）背面图案。 150克长方形金质纪念币背面图案为北京中轴线区域概貌，并刊“北京中轴线”字样及面额。 30克长方形银质纪念币背面图案为钟鼓楼、万宁桥及相关元素组合设计，并刊“北京中轴线”字样及面额。 30克长方形银质纪念币背面图案为景山、故宫、太庙、社稷坛典型建筑及相关元素组合设计，并刊“北京中轴线”字样及面额。 30克长方形银质纪念币背面图案为天安门、外金水桥、端门及相关元素组合设计，并刊“北京中轴线”字样及面额。 30克长方形银质纪念币背面图案为天安门广场、人民英雄纪念碑、毛主席纪念堂、中国国家博物馆、人民大会堂及相关元素组合设计，并刊“北京中轴线”字样及面额。 30克长方形银质纪念币背面图案为正阳门、天坛、先农坛、永定门典型建筑及相关元素组合设计，并刊“北京中轴线”字样及面额。 二、纪念币规格及发行量 150克长方形金质纪念币为精制币，含纯金150克，规格80毫米×50毫米，面额2000元，成色99.9%，最大发行量500枚。 30克长方形银质纪念币为精制币，含纯银30克，规格42毫米×27.5毫米，面额10元，成色99.9%，最大发行量5×10000枚。 三、铸造单位及销售渠道 该套金银纪念币由深圳国宝造币有限公司铸造，中国金币集团有限公司总经销。 销售渠道详见中国金币网（www.chngc.net/qd）或“中国金币”微信公众号（chinagoldcoin_cgci）。 附件：北京中轴线金银纪念币图案 中国人民银行 2026年7月16日 附件： 北京中轴线金银纪念币图案",
+      "body_dates_in_source_order": [
+        "2026-07-27",
+        "2026-07-16"
+      ],
+      "body_rrr_keyword_counts": {
+        "降准": 0,
+        "准备金": 0,
+        "存款准备金率": 0
+      },
+      "rrr_relevance": "not_an_rrr_policy_notice",
+      "rrr_effective_date": null,
+      "rrr_change_pp": null,
+      "rrr_scope": null,
+      "rrr_model_public_available_at": null,
+      "rrr_new_event_count": 0,
+      "attachment_links_not_requested": []
+    },
+    {
+      "sha256": "94c9c9fa851bd92b46dd7400fe1f629c0dcafb6b3567b19fdb57f704d95bef1f",
+      "bytes": 23564,
+      "title": "中国人民银行公告〔2026〕第20号",
+      "topic": "授权德意志银行股份有限公司担任法兰克福人民币清算行",
+      "identity_phrase": "授权德意志银行股份有限公司担任法兰克福人民币清算行",
+      "document_date": "2026-08-07",
+      "visible_published_local": "2026-08-10 17:05:44",
+      "coin_issuance_date": null,
+      "number": 20,
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081015473613597/index.html",
+      "listed_date": "2026-08-10",
+      "started_at": "2026-09-07T14:07:53.973261+00:00",
+      "received_at": "2026-09-07T14:07:54.148219+00:00",
+      "source_list_sha256": "580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702",
+      "body_text": "根据《中国人民银行与德意志联邦银行备忘录》，中国人民银行决定授权德意志银行股份有限公司担任法兰克福人民币清算行。 中国人民银行 2026年8月7日",
+      "body_dates_in_source_order": [
+        "2026-08-07"
+      ],
+      "body_rrr_keyword_counts": {
+        "降准": 0,
+        "准备金": 0,
+        "存款准备金率": 0
+      },
+      "rrr_relevance": "not_an_rrr_policy_notice",
+      "rrr_effective_date": null,
+      "rrr_change_pp": null,
+      "rrr_scope": null,
+      "rrr_model_public_available_at": null,
+      "rrr_new_event_count": 0,
+      "attachment_links_not_requested": []
+    },
+    {
+      "sha256": "8ae204fb99e40f561274234dae37bc960e409ca523cf21afb58a6d1878ce13f7",
+      "bytes": 27812,
+      "title": "中国人民银行公告﹝2026﹞第21号",
+      "topic": "江泽民诞辰100周年纪念币发行",
+      "identity_phrase": "江泽民诞辰100周年纪念币",
+      "document_date": "2026-08-14",
+      "visible_published_local": "2026-08-14 18:10:08",
+      "coin_issuance_date": "2026-08-17",
+      "number": 21,
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026081417014187625/index.html",
+      "listed_date": "2026-08-14",
+      "started_at": "2026-09-07T14:07:54.340355+00:00",
+      "received_at": "2026-09-07T14:07:54.500170+00:00",
+      "source_list_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "body_text": "中国人民银行定于2026年8月17日起陆续发行江泽民诞辰100周年纪念币。江泽民诞辰100周年纪念币共4枚，其中普通纪念币1枚，金质纪念币2枚，银质纪念币1枚，均为中华人民共和国法定货币。 一、普通纪念币 （一）普通纪念币图案（附件1）。 1.正面图案。 江泽民诞辰100周年普通纪念币正面图案为中华人民共和国国徽，并刊国名、年号。 2.背面图案。 背面图案为江泽民同志头像，并刊“江泽民诞辰100周年”“1926-2026”字样及面额。 （二）普通纪念币面额、规格、材质和发行数量。 江泽民诞辰100周年普通纪念币面额为1元，直径为25毫米，材质为钢芯镀镍，发行数量为1000万枚。各省、自治区、直辖市分配数量见附件2。 （三）发行方式。 江泽民诞辰100周年普通纪念币采取预约兑换方式发行。具体工作安排见附件3。 （四）江泽民诞辰100周年普通纪念币公众防伪特征见附件4。 （五）江泽民诞辰100周年普通纪念币与现行流通人民币职能相同，与同面额人民币等值流通。 二、金银纪念币 （一）金银纪念币图案（附件5）。 1.正面图案。 金银纪念币正面图案均为中华人民共和国国徽，并刊国名、年号。 2.背面图案。 30克圆形金质纪念币背面图案为江泽民同志肖像，并刊“江泽民诞辰100周年”“1926-2026”字样及面额。 8克圆形金质纪念币背面图案为江泽民同志1947年在上海交通大学的毕业照片，并刊“江泽民诞辰100周年”“1926-2026”字样及面额。 30克圆形银质纪念币背面图案为江泽民同志2000年在广东省高州市领导干部“三讲”教育会议上讲话的照片，并刊“江泽民诞辰100周年”“1926-2026”字样及面额。 （二）金银纪念币规格及发行量。 30克圆形金质纪念币为精制币，含纯金30克，直径32毫米，面额500元，成色99.9%，最大发行量1000枚。 8克圆形金质纪念币为精制币，含纯金8克，直径22毫米，面额100元，成色99.9%，最大发行量10000枚。 30克圆形银质纪念币为精制币，含纯银30克，直径40毫米，面额10元，成色99.9%，最大发行量20000枚。 （三）金银纪念币铸造单位及销售渠道。 金银纪念币由沈阳造币有限公司、上海造币有限公司和深圳国宝造币有限公司铸造，中国金币集团有限公司总经销。 销售渠道详见中国金币网（www.chngc.net/qd）或“中国金币”微信公众号（chinagoldcoin_cgci）。 附件： 1.江泽民诞辰100周年普通纪念币图案.pdf 2.江泽民诞辰100周年普通纪念币分配数量.pdf 3.江泽民诞辰100周年普通纪念币发行工作安排.pdf 4.江泽民诞辰100周年普通纪念币公众防伪特征.pdf 5.江泽民诞辰100周年金银纪念币图案.pdf 中国人民银行 2026年8月14日",
+      "body_dates_in_source_order": [
+        "2026-08-17",
+        "2026-08-14"
+      ],
+      "body_rrr_keyword_counts": {
+        "降准": 0,
+        "准备金": 0,
+        "存款准备金率": 0
+      },
+      "rrr_relevance": "not_an_rrr_policy_notice",
+      "rrr_effective_date": null,
+      "rrr_change_pp": null,
+      "rrr_scope": null,
+      "rrr_model_public_available_at": null,
+      "rrr_new_event_count": 0,
+      "attachment_links_not_requested": [
+        {
+          "url": "https://www.pbc.gov.cn/goutongjiaoliu/attachDir/2026/08/2026081417192459941.pdf",
+          "text": "1.江泽民诞辰100周年普通纪念币图案.pdf",
+          "downloaded": false
+        },
+        {
+          "url": "https://www.pbc.gov.cn/goutongjiaoliu/attachDir/2026/08/2026081417194386174.pdf",
+          "text": "2.江泽民诞辰100周年普通纪念币分配数量.pdf",
+          "downloaded": false
+        },
+        {
+          "url": "https://www.pbc.gov.cn/goutongjiaoliu/attachDir/2026/08/2026081417200158497.pdf",
+          "text": "3.江泽民诞辰100周年普通纪念币发行工作安排.pdf",
+          "downloaded": false
+        },
+        {
+          "url": "https://www.pbc.gov.cn/goutongjiaoliu/attachDir/2026/08/2026081417202067718.pdf",
+          "text": "4.江泽民诞辰100周年普通纪念币公众防伪特征.pdf",
+          "downloaded": false
+        },
+        {
+          "url": "https://www.pbc.gov.cn/goutongjiaoliu/attachDir/2026/08/2026081417204229556.pdf",
+          "text": "5.江泽民诞辰100周年金银纪念币图案.pdf",
+          "downloaded": false
+        }
+      ]
+    },
+    {
+      "sha256": "08ef3d75785d478189ad533ff82575e8f2770a27df3f6ea950c4757cc2d5ad15",
+      "bytes": 26903,
+      "title": "中国人民银行公告﹝2026﹞第22号",
+      "topic": "科创未来（人工智能）金银纪念币发行",
+      "identity_phrase": "科创未来（人工智能）金银纪念币一套",
+      "document_date": "2026-08-22",
+      "visible_published_local": "2026-08-28 11:00:00",
+      "coin_issuance_date": "2026-09-04",
+      "number": 22,
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2026082809193480410/index.html",
+      "listed_date": "2026-08-28",
+      "started_at": "2026-09-07T14:07:54.844853+00:00",
+      "received_at": "2026-09-07T14:07:55.065067+00:00",
+      "source_list_sha256": "91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d",
+      "body_text": "中国人民银行定于2026年9月4日发行科创未来（人工智能）金银纪念币一套。该套金银纪念币共3枚，其中金质纪念币1枚，银质纪念币2枚，均为中华人民共和国法定货币。 一、纪念币图案 （一）正面图案。 该套金银纪念币正面图案均为中华人民共和国国徽，并刊国名、年号。 （二）背面图案。 5克正方形金质纪念币背面图案为芯片、脑形电路纹理、数字0和1等图形组合设计，并刊“科创未来·人工智能”字样及面额。 15克圆形银质纪念币背面图案为人侧面头像、电路纹理、螺旋点阵等图形组合设计，并刊“科创未来·人工智能”字样及面额。 15克圆形银质纪念币背面图案为钥匙、人工智能领域元素符号等图形组合设计，并刊“科创未来·人工智能”字样及面额。 二、纪念币规格及发行量 5克正方形金质纪念币为精制币，含纯金5克，规格18毫米×18毫米，面额80元，成色99.9%，最大发行量10000枚。 15克圆形银质纪念币为精制币，含纯银15克，直径33毫米，面额5元，成色99.9%，最大发行量2×20000枚。 三、铸造单位及销售渠道 该套金银纪念币由上海造币有限公司和深圳国宝造币有限公司铸造，中国金币集团有限公司总经销。 销售渠道详见中国金币网（www.chngc.net/qd）或“中国金币”微信公众号（chinagoldcoin_cgci）。 附件：科创未来（人工智能）金银纪念币图案 中国人民银行 2026年8月22日 附件： 科创未来（人工智能）金银纪念币图案",
+      "body_dates_in_source_order": [
+        "2026-09-04",
+        "2026-08-22"
+      ],
+      "body_rrr_keyword_counts": {
+        "降准": 0,
+        "准备金": 0,
+        "存款准备金率": 0
+      },
+      "rrr_relevance": "not_an_rrr_policy_notice",
+      "rrr_effective_date": null,
+      "rrr_change_pp": null,
+      "rrr_scope": null,
+      "rrr_model_public_available_at": null,
+      "rrr_new_event_count": 0,
+      "attachment_links_not_requested": []
+    }
+  ]
+}

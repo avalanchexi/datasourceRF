@@ -1,0 +1,11 @@
+evidence-13-rrr-original-notices/capture_get.py
+evidence-13-rrr-original-notices/d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846
+evidence-13-rrr-original-notices/delivery-files.txt
+evidence-13-rrr-original-notices/delivery-verification.json
+evidence-13-rrr-original-notices/f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83
+evidence-13-rrr-original-notices/receipts.json
+evidence-13-rrr-original-notices/source-boundaries.json
+evidence-13-rrr-original-notices/source-inspection.json
+evidence-13-rrr-original-notices/verify_delivery.py
+evidence-13-rrr-original-notices/web-discovery.json
+rrr-original-notices-followup.md

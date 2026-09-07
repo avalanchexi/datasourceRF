@@ -1,0 +1,14 @@
+....FF                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[None-CN_SF_TOTAL] _
+tests/integration/test_context_model_certification.py:265: in test_credit_impulse_requires_model_certification_for_gdp_and_social_financing
+    assert impulse["public_available_at"] is None
+E   AssertionError: assert '2026-08-28T10:00:00+00:00' is None
+_ test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[None-CN_GDP] _
+tests/integration/test_context_model_certification.py:265: in test_credit_impulse_requires_model_certification_for_gdp_and_social_financing
+    assert impulse["public_available_at"] is None
+E   AssertionError: assert '2026-08-28T10:00:00+00:00' is None
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[None-CN_SF_TOTAL]
+FAILED tests/integration/test_context_model_certification.py::test_credit_impulse_requires_model_certification_for_gdp_and_social_financing[None-CN_GDP]
+2 failed, 4 passed, 14 deselected in 2.31s

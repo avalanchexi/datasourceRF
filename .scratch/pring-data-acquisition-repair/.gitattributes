@@ -4,6 +4,15 @@ research-08.md -text
 research-11.md -text
 research-13.md -text whitespace=cr-at-eol
 research-14.md -text
+rrr-followup.md -text whitespace=cr-at-eol
+rrr-announcements-followup.md -text whitespace=cr-at-eol
+rrr-policy-status-followup.md -text whitespace=cr-at-eol
+rrr-original-notices-followup.md -text whitespace=cr-at-eol
+evidence-13-rrr-followup/* -text whitespace=cr-at-eol
+evidence-13-rrr-announcements/* -text whitespace=cr-at-eol
+evidence-13-rrr-policy-status/* -text whitespace=cr-at-eol
+evidence-13-rrr-original-notices/* -text whitespace=cr-at-eol
+verification-13-derived-*.txt whitespace=-blank-at-eol
 research-pp-followup.md -text whitespace=cr-at-eol
 verification-17-pytest*.txt whitespace=-blank-at-eol
 verification-14-*.txt whitespace=-blank-at-eol
@@ -39,3 +48,17 @@ evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48
 evidence-14-eia-followup/afe161077442b488b7382cf856f192528f7b741d0f97b8096ed14a6676f4c6a1 -diff
 evidence-14-live-official/a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa -diff
 evidence-14-live-official/60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915 -diff
+evidence-13-rrr-followup/07f1f13795c95d9d842993abd1d83ed8c8726aa59ec48da03208d30cc6dd309c -diff
+evidence-13-rrr-followup/451ce1150b5599b4f3a4ad5c0ac0544b6f147a84f1a519f1b45317c87a44cdf0 -diff
+evidence-13-rrr-followup/580e0aa3241ab862f07ff7e67f9ca1b33aa6343699a3e0367cfc0804cec6b702 -diff
+evidence-13-rrr-followup/91d014730e6553d4ce14b22b23204d906c5474d3916d4ab5d3fa58995878040d -diff
+evidence-13-rrr-followup/b20eba89a6549be9d746b936f59594adc45bd2e94c25eac8552ca5c8b142bf8a -diff
+evidence-13-rrr-followup/d8d6c21c65be39471a7ff075bc09b3de85eac3a97dfb4f94785834776167404f -diff
+evidence-13-rrr-announcements/08ef3d75785d478189ad533ff82575e8f2770a27df3f6ea950c4757cc2d5ad15 -diff
+evidence-13-rrr-announcements/28a9f4cbde775f247aadcf57cb00bfd61a2d6cf2b143fd89135cb1a74c6287c8 -diff
+evidence-13-rrr-announcements/8ae204fb99e40f561274234dae37bc960e409ca523cf21afb58a6d1878ce13f7 -diff
+evidence-13-rrr-announcements/94c9c9fa851bd92b46dd7400fe1f629c0dcafb6b3567b19fdb57f704d95bef1f -diff
+evidence-13-rrr-policy-status/1223082d38efc5039ef7febabbeaebecc92853222b0a18d8c0bfa91e8a08d415 -diff
+evidence-13-rrr-policy-status/dff58ae83cae68b5839fbeb75c5c8298c16eba1c7901631b2cb347ac36488c52 -diff
+evidence-13-rrr-original-notices/d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846 -diff
+evidence-13-rrr-original-notices/f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83 -diff

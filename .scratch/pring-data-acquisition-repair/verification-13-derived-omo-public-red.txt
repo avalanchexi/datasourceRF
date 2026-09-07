@@ -1,0 +1,10 @@
+.......F                                                                 [100%]
+=================================== FAILURES ===================================
+_____ test_macro_derived_rows_do_not_bypass_model_certification[None-True] _____
+tests/integration/test_context_model_certification.py:214: in test_macro_derived_rows_do_not_bypass_model_certification
+    assert all(row["public_available_at"] is None for row in derived)
+E   assert False
+E    +  where False = all(<generator object test_macro_derived_rows_do_not_bypass_model_certification.<locals>.<genexpr> at 0x74429eeb9d80>)
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_model_certification.py::test_macro_derived_rows_do_not_bypass_model_certification[None-True]
+1 failed, 7 passed, 13 deselected in 2.10s
