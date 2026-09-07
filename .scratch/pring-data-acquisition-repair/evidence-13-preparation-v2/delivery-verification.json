@@ -1,0 +1,28 @@
+{
+  "preparation_sha256": "92f44dbb435ea56fd1b08813373f4abf4749d76db33f364547098e290fb58034",
+  "preparation_bytes": 3189072,
+  "old_preparation_unchanged": true,
+  "raw_artifacts": 250,
+  "raw_bytes": 20069217,
+  "bound_audit_reports": 11,
+  "metric_count": 18,
+  "scalar_count": 1858,
+  "literal_matching_scalars": 1857,
+  "source_mapping_pending": 1,
+  "changed_scalars": [
+    [
+      "pbc_money",
+      "2026-02",
+      "m2",
+      3492200.0000000005,
+      3492200.0
+    ]
+  ],
+  "initial_reparse_seconds": 4.877879344,
+  "independent_read_only_reparse_seconds": 5.095091265999997,
+  "independent_read_only_reparse_exit_code": 0,
+  "network_requests": 0,
+  "database_operations": 0,
+  "certifications": 0,
+  "model_adoptions": 0
+}

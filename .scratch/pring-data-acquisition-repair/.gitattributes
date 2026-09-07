@@ -94,3 +94,4 @@ verification-money-units-*.txt whitespace=-blank-at-eol
 verification-official-parsing*.txt whitespace=-blank-at-eol
 verification-official-parsing/*.txt whitespace=-blank-at-eol
 p1-omo-full-value-audit.md -text whitespace=cr-at-eol,-blank-at-eof
+a18-certification-next-boundary.md -text whitespace=cr-at-eol,-blank-at-eof

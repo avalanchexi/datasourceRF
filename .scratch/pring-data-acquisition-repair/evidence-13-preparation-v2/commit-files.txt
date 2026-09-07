@@ -1,0 +1,14 @@
+.scratch/pring-data-acquisition-repair/.gitattributes
+.scratch/pring-data-acquisition-repair/a18-certification-next-boundary.md
+.scratch/pring-data-acquisition-repair/continuation-status.md
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/.gitattributes
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/boundary-verification.json
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/commit-files.txt
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/delivery-verification.json
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/preparation.json
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/prepare.py
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/review.md
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/verify_boundary.py
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/verify_delivery.py
+.scratch/pring-data-acquisition-repair/evidence-13-preparation-v2/verify_staged.py
+.scratch/pring-data-acquisition-repair/p1-official-preparation-v2.md
