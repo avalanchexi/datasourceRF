@@ -1,0 +1,123 @@
+{
+  "validation": "passed",
+  "new_get_attempts": 3,
+  "new_get_failures": 0,
+  "new_original_count": 3,
+  "new_original_bytes": 1031854,
+  "reused_original_count": 3,
+  "reused_original_bytes": 1493435,
+  "verified_originals": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8",
+      "bytes": 458376,
+      "sha256": "f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+      "bytes": 519108,
+      "sha256": "526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746",
+      "bytes": 54370,
+      "sha256": "0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+      "bytes": 621023,
+      "sha256": "f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+      "bytes": 472309,
+      "sha256": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+      "bytes": 400103,
+      "sha256": "43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99"
+    }
+  ],
+  "all_original_bytes": 2525289,
+  "csv_rows_recomputed": 9266,
+  "ohlc_anomalies_recomputed": 47,
+  "normalized_rows_sha256": "b21433cf62da6bbf456975632298a95997294e1a63c03f923e25c67f07af2e4a",
+  "old_report_sha256_unchanged": "1bad5c100b8996dfa1286da712c723211b9640d8cc98a1e24cdec8647bedf82b",
+  "report_local_links_checked": [
+    "research-14.md",
+    "evidence-14/f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+    "evidence-14/9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+    "evidence-14-vix-followup/source-inspection.json",
+    "evidence-14-vix-followup/verify_delivery.py",
+    "../../docs/adr/0006-dual-as-of-and-immutable-evidence-vintages.md",
+    "evidence-14/43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+    "evidence-14-vix-followup/526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+    "evidence-14-vix-followup/code-inspection.json",
+    "spec.md",
+    "evidence-14-vix-followup/web-discovery.json",
+    "evidence-14-vix-followup/local-attempts.json",
+    "evidence-14-vix-followup/receipts.json",
+    "evidence-14-vix-followup/delivery-files.txt",
+    "evidence-14-vix-followup/delivery-verification.json"
+  ],
+  "delivery_path_count": 12,
+  "files": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746",
+      "bytes": 54370,
+      "sha256": "0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+      "bytes": 519108,
+      "sha256": "526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/code-inspection.json",
+      "bytes": 826,
+      "sha256": "228bcf06f3a09cd7b8ea343e8cc266f63002eeb8ef2577ca0f9d55fdd62bcbeb"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/delivery-files.txt",
+      "bytes": 1128,
+      "sha256": "13dd835808aabe2fe43709f56c1c0a9c8e7b01687990f05267d9720bad46a78e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8",
+      "bytes": 458376,
+      "sha256": "f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/local-attempts.json",
+      "bytes": 315,
+      "sha256": "5c8021056b8573a705f387d6ed868ee5ecc24ca9247f6a0cc7e685b0c39fb03c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/receipts.json",
+      "bytes": 2115,
+      "sha256": "c93ad758e64d395cea79a89553bb263f2bcde221e743a0e222b108b83ef2a7b3"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/source-inspection.json",
+      "bytes": 20680,
+      "sha256": "f5a4cd336d5b39b4ab5b4546379bc931e6755105140931462e351cc3bb08afe1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/verify_delivery.py",
+      "bytes": 9874,
+      "sha256": "27e3f971084affd96f06dac035b9814995e1f76aac573f73a598ca9b47de1d59"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/web-discovery.json",
+      "bytes": 1206,
+      "sha256": "156b5bf22572a67bb3230d6dbf99572dc7b2acf48983f547262ef38144bbdf96"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/vix-followup.md",
+      "bytes": 14828,
+      "sha256": "27b909452c342e91798d381569a8766d3ab8c4bebe275d7c927d2a8feb9bbfa4"
+    }
+  ],
+  "manifest_self_hash_excluded": true,
+  "network_requests_during_verification": 0
+}

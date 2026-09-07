@@ -1,0 +1,75 @@
+[
+  {
+    "url": "https://www.chinamoney.com.cn/chinese/mtdexdaily/?tab=4",
+    "method": "GET",
+    "started_at": "2026-09-07T09:47:18.258454+00:00",
+    "status": 200,
+    "final_url": "https://www.chinamoney.com.cn/chinese/mtdexdaily/?tab=4",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 09:47:18 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "18064",
+      "Last-Modified": "Sat, 25 Jul 2026 10:59:26 GMT",
+      "ETag": "\"4690-6576d61e95f80\""
+    },
+    "sha256": "e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a",
+    "bytes": 18064,
+    "local_file": "e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a",
+    "truncated": false,
+    "received_at": "2026-09-07T09:47:18.523248+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/html/currency/daily-pledged-repo.html",
+    "method": "GET",
+    "started_at": "2026-09-07T09:47:42.043093+00:00",
+    "status": 200,
+    "final_url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/html/currency/daily-pledged-repo.html",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 09:47:42 GMT",
+      "Content-Type": "text/html",
+      "Content-Length": "10948",
+      "Last-Modified": "Sat, 14 Aug 2021 14:14:23 GMT",
+      "Etag": "\"2ac4-5c98595b42dc0\""
+    },
+    "sha256": "b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96",
+    "bytes": 10948,
+    "local_file": "b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96",
+    "truncated": false,
+    "received_at": "2026-09-07T09:47:42.455336+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.chinamoney.com.cn/dqs/rest/cm-u-dlrp/PrDlyBltnExcel?lang=cn&searchDate=2026-08-28&publishedTime=2200",
+    "method": "GET",
+    "started_at": "2026-09-07T09:48:25.035420+00:00",
+    "status": 403,
+    "final_url": "https://www.chinamoney.com.cn/dqs/rest/cm-u-dlrp/PrDlyBltnExcel?lang=cn&searchDate=2026-08-28&publishedTime=2200",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 09:48:24 GMT"
+    },
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0,
+    "local_file": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "truncated": false,
+    "received_at": "2026-09-07T09:48:25.316092+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.chinamoney.com.cn/ags/ms/cm-u-dlrp/PrDlyBltn?lang=en&indexType=markInterBankVOList&searchDate=2026-08-28&publishedTime=2200",
+    "method": "GET",
+    "started_at": "2026-09-07T09:49:01.841811+00:00",
+    "status": 200,
+    "final_url": "https://www.chinamoney.com.cn/ags/ms/cm-u-dlrp/PrDlyBltn?lang=en&indexType=markInterBankVOList&searchDate=2026-08-28&publishedTime=2200",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 09:49:01 GMT",
+      "Content-Type": "application/json;charset=UTF-8"
+    },
+    "sha256": "d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d",
+    "bytes": 1425,
+    "local_file": "d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d",
+    "truncated": false,
+    "received_at": "2026-09-07T09:49:02.036536+00:00",
+    "public_available_at": null
+  }
+]

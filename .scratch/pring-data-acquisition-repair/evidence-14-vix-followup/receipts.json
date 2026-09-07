@@ -1,0 +1,55 @@
+[
+  {
+    "url": "https://www.cboe.com/tradable-products/vix/faqs",
+    "method": "GET",
+    "started_at": "2026-09-07T08:45:48.843017+00:00",
+    "status": 200,
+    "final_url": "https://www.cboe.com/tradable-products/vix/faqs",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 08:45:50 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "ETag": "\"4iqul5jtln9tis\""
+    },
+    "sha256": "f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8",
+    "bytes": 458376,
+    "local_file": "f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8",
+    "truncated": false,
+    "received_at": "2026-09-07T08:45:51.914730+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://www.cboe.com/us/indices/accessing-index-data/",
+    "method": "GET",
+    "started_at": "2026-09-07T08:45:51.915174+00:00",
+    "status": 200,
+    "final_url": "https://www.cboe.com/data/global-indices-feed/",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 08:45:55 GMT",
+      "Content-Type": "text/html; charset=utf-8",
+      "ETag": "\"2uhu25n4j4b4e2\""
+    },
+    "sha256": "526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+    "bytes": 519108,
+    "local_file": "526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+    "truncated": false,
+    "received_at": "2026-09-07T08:45:58.351906+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://datashop.cboe.com/vix-index-eod-calculation-inputs",
+    "method": "GET",
+    "started_at": "2026-09-07T08:47:07.321909+00:00",
+    "status": 200,
+    "final_url": "https://datashop.cboe.com/vix-index-eod-calculation-inputs",
+    "headers": {
+      "Date": "Mon, 07 Sep 2026 08:47:10 GMT",
+      "Content-Type": "text/html; charset=utf-8"
+    },
+    "sha256": "0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746",
+    "bytes": 54370,
+    "local_file": "0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746",
+    "truncated": false,
+    "received_at": "2026-09-07T08:47:10.713164+00:00",
+    "public_available_at": null
+  }
+]

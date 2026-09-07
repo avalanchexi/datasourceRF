@@ -1,0 +1,12 @@
+.scratch/pring-data-acquisition-repair/dr007-followup.md
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/delivery-files.txt
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/delivery-verification.json
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/prior-attempts.json
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/receipts.json
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/source-inspection.json
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/verify_delivery.py
+.scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/web-discovery.json

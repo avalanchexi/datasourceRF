@@ -1,0 +1,21 @@
+{
+  "validation": "passed",
+  "real_cli_commands": 1,
+  "real_http_requests": 1,
+  "source_days": 10,
+  "candidate_claims": 20,
+  "trace_links_verified": 20,
+  "missing_calendar_cells": 0,
+  "artifacts": {
+    "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5": 13961,
+    "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f": 3194
+  },
+  "reference_values_match": true,
+  "unknown_public_time_preserved": true,
+  "system_time_not_backfilled": true,
+  "source_certification_grants": 0,
+  "model_adoptions": 0,
+  "production_writes": 0,
+  "verification_network_requests": 0,
+  "result_sha256": "14c07886dc93d8869441483ef0c03cf52c217a310900c4cb59332250f40578f4"
+}

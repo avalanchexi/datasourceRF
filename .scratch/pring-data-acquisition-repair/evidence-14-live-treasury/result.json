@@ -1,0 +1,1273 @@
+{
+  "scope": "one real public CLI and HTTP; isolated candidate runtime",
+  "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-live-treasury-20260907a",
+  "command_arguments": [
+    "treasury-csv-refresh",
+    "--runtime-root",
+    "/home/tywin/.cache/pring-cycle/verification/repair-14-live-treasury-20260907a",
+    "--start",
+    "2026-08-24",
+    "--end",
+    "2026-09-04",
+    "--definition-version",
+    "metric-catalog-v0002",
+    "--json"
+  ],
+  "definition_version": "metric-catalog-v0002",
+  "production_writes": 0,
+  "model_activations": 0,
+  "source_certification_grants": 0,
+  "model_adoptions": 0,
+  "api_keys_used": 0,
+  "result": {
+    "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+    "claim_ids": [
+      "012731ae20b983d98929a34e7fd8fdd892bbc67599e083c0a26cc4573111c1c7",
+      "b7a40ea939a1e0d64fd7df1ff221e6ff3e4ec742a8039fe6f4245ce9640c81ad",
+      "33355d581bdb3823fa3f511ed950e7378d91c63369d26e6ad0f09a6106e4725a",
+      "f1ad907b8e2932bb9558f1f7c942ae8d4d055aac87b81c53c41371d37636badb",
+      "3aade0cf8c0b96dafa9c7170e3c6324fbb27ef6aef6c262fef3d6916ca057832",
+      "eebfab3193639a86cc2965bc3f8d02e57a39850daf54393402a1b4e6dd117638",
+      "1dc5f27d7ac3d93792e8067729cac9351f0ee83831acef562d86f8f05fa45238",
+      "0da201101b02584058f434117db064f0784616613aad09f87fe45e0adc603753",
+      "e7faf58a09d1613c62cb280e516231ac3274f378c434399a4c2187c9c281f1df",
+      "50431b705e7313eb009e9558df42d1369f6c53797a1f78794b74043c7b3d839a",
+      "d66857e380447f2148abc6723495dbbf6aeb04518fb93a63e83bb89ac2145869",
+      "6c966c7c8c1aa35a3295fc908ad032a9f0be32e5968759819442092970ce218a",
+      "3049b5f655ed3c5b827c443c1fbd99d84bd9b5f8c93c847f8b7cf30f66f4bbd7",
+      "f4d84302497b77ef5e3bb75f082adfe37606e1532163725b8dacb79b37075df2",
+      "1a5641a37ebf0baad439aa1555e7c266091afd11607efbecb2cc4754a448a316",
+      "681e403288be716b4837b9f3a379bacbeb919d70624ff1e5e78d24bd4f53924a",
+      "dc27c08d075021b9287bd7170ea38d6dfa96e5888fc94bd73720167f692fda24",
+      "085c47b9f82821d1e418269c9522d53d278c57f32119afa9220e3e71363ca27f",
+      "1682e9b2b01fd0954a8e0fdcd3922df2aeb0be0ed181ca387fc71a4e0cdc1da6",
+      "925dc6530f973cb482512ca354f02ccbfc474336a0e9e0f71e4b24f4842cabb3"
+    ],
+    "condition": null,
+    "missing_cell_count": 0,
+    "observation_count": 20,
+    "observation_ids": [
+      "56472d8acd02e133100bd315169c7dd32a9ca41525235aa2e4b6d762b86d4ec3",
+      "091b6fd366632d71d5375b5ec95f871e08b7ba72ac3dd3a0884909426fa12598",
+      "b5402a6de798bb731e673888bc916a80ec7df62a19171e46d9d35047ed53720b",
+      "e04981b389aa9320436662a1bdbcf0ccb44160e33003478bea23176420d94492",
+      "286a5b01aefde64078b0c845ee120863cea1d75a9141fd4896513039d34ececd",
+      "307a3b46f70dbde42c0aebebb6e31667c7a77d30ef7bd3102f2f13700844382f",
+      "e40e29f55013f5219035c34ccc5b4b5694833987f6e57822343dbbccc105eed6",
+      "97e501b3dabd3917849d0c9648d4f3fb7e551dc0b4d15ddf68356554c1fe391b",
+      "2b10d774eb4b34f1718cd7c05ed6731a4b1304b1afac2113f19e5bdc0be079b2",
+      "4e37fd9c02d5459f1697318b9b2331460befb5ccde91ff55093b95f5d7d99a10",
+      "8f58c66a93ec779f4322c32d4f090a8153d79c55b5ab0947929c3f0e6f5c45e4",
+      "23be31efa50a3d9310ba764ad4bf3ca25ac1ad86dc74cdbedbfbc9715f075be8",
+      "f50ed4581c241005a0550433325e739f3f52e7622e22426cf219f846a1cd67fd",
+      "a635a454165b2919995d75a354c7ce64637164dc403ee57e1105eb9e91087c7a",
+      "b780a76f5aae495b7979ff3fe820a4508fe5a308ffc84223bf48a39e516b1c96",
+      "4a50760eca3cda844163f5a0e7309aca5c26b00e61b63ee5489874142d187665",
+      "4a1d042a711b240b96387217bfe6682c6ad775714a9fc68e68db760a6f7d8916",
+      "e586c288ae2c2cfb1f786103ff217264858a8f02fb4216ebb5cb8a0eae2153b3",
+      "6d2ef3b8b984a109b05d76eb9f940ca921a4857acbf045f1392bcb54768a15d9",
+      "81b4f3426b89d023ace629935f558345361c3656a3d0653125f141bdf7e21f2b"
+    ],
+    "status": "stored_candidate"
+  },
+  "receipts": [
+    {
+      "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+      "provider": "U.S. Department of the Treasury",
+      "api_name": "treasury_nominal_yields_csv",
+      "parameters": {
+        "definition_version": "metric-catalog-v0002",
+        "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+        "period": "2026-09-04",
+        "source_year": "2026",
+        "start_date": "2026-08-24"
+      },
+      "fields": "Date,2 Yr,10 Yr",
+      "parser_version": "treasury-nominal-csv-parser-v0001",
+      "started_at": "2026-09-07 09:42:26.757515+00:00",
+      "received_at": "2026-09-07 09:42:28.124070+00:00",
+      "validated_at": "2026-09-07 09:42:28.166537+00:00",
+      "state": "validated",
+      "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+      "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+      "error_type": null
+    }
+  ],
+  "metrics": {
+    "UST2Y_NOMINAL_YIELD": {
+      "traces": [
+        {
+          "observation_id": "091b6fd366632d71d5375b5ec95f871e08b7ba72ac3dd3a0884909426fa12598",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-24",
+          "period_end": "2026-08-24",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "b7a40ea939a1e0d64fd7df1ff221e6ff3e4ec742a8039fe6f4245ce9640c81ad",
+          "selected_value": 4.24,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "b7a40ea939a1e0d64fd7df1ff221e6ff3e4ec742a8039fe6f4245ce9640c81ad",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.24,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-24",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "e04981b389aa9320436662a1bdbcf0ccb44160e33003478bea23176420d94492",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-25",
+          "period_end": "2026-08-25",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "f1ad907b8e2932bb9558f1f7c942ae8d4d055aac87b81c53c41371d37636badb",
+          "selected_value": 4.17,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "f1ad907b8e2932bb9558f1f7c942ae8d4d055aac87b81c53c41371d37636badb",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.17,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-25",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "307a3b46f70dbde42c0aebebb6e31667c7a77d30ef7bd3102f2f13700844382f",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-26",
+          "period_end": "2026-08-26",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "eebfab3193639a86cc2965bc3f8d02e57a39850daf54393402a1b4e6dd117638",
+          "selected_value": 4.19,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "eebfab3193639a86cc2965bc3f8d02e57a39850daf54393402a1b4e6dd117638",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.19,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-26",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "97e501b3dabd3917849d0c9648d4f3fb7e551dc0b4d15ddf68356554c1fe391b",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-27",
+          "period_end": "2026-08-27",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "0da201101b02584058f434117db064f0784616613aad09f87fe45e0adc603753",
+          "selected_value": 4.2,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "0da201101b02584058f434117db064f0784616613aad09f87fe45e0adc603753",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.2,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-27",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "4e37fd9c02d5459f1697318b9b2331460befb5ccde91ff55093b95f5d7d99a10",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-28",
+          "period_end": "2026-08-28",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "50431b705e7313eb009e9558df42d1369f6c53797a1f78794b74043c7b3d839a",
+          "selected_value": 4.34,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "50431b705e7313eb009e9558df42d1369f6c53797a1f78794b74043c7b3d839a",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.34,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-28",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "23be31efa50a3d9310ba764ad4bf3ca25ac1ad86dc74cdbedbfbc9715f075be8",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-31",
+          "period_end": "2026-08-31",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "6c966c7c8c1aa35a3295fc908ad032a9f0be32e5968759819442092970ce218a",
+          "selected_value": 4.34,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "6c966c7c8c1aa35a3295fc908ad032a9f0be32e5968759819442092970ce218a",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.34,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-31",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "a635a454165b2919995d75a354c7ce64637164dc403ee57e1105eb9e91087c7a",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-01",
+          "period_end": "2026-09-01",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "f4d84302497b77ef5e3bb75f082adfe37606e1532163725b8dacb79b37075df2",
+          "selected_value": 4.39,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "f4d84302497b77ef5e3bb75f082adfe37606e1532163725b8dacb79b37075df2",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.39,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-01",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "4a50760eca3cda844163f5a0e7309aca5c26b00e61b63ee5489874142d187665",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-02",
+          "period_end": "2026-09-02",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "681e403288be716b4837b9f3a379bacbeb919d70624ff1e5e78d24bd4f53924a",
+          "selected_value": 4.39,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "681e403288be716b4837b9f3a379bacbeb919d70624ff1e5e78d24bd4f53924a",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.39,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-02",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "e586c288ae2c2cfb1f786103ff217264858a8f02fb4216ebb5cb8a0eae2153b3",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-03",
+          "period_end": "2026-09-03",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "085c47b9f82821d1e418269c9522d53d278c57f32119afa9220e3e71363ca27f",
+          "selected_value": 4.34,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "085c47b9f82821d1e418269c9522d53d278c57f32119afa9220e3e71363ca27f",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.34,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-03",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "81b4f3426b89d023ace629935f558345361c3656a3d0653125f141bdf7e21f2b",
+          "metric_id": "UST2Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-04",
+          "period_end": "2026-09-04",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "925dc6530f973cb482512ca354f02ccbfc474336a0e9e0f71e4b24f4842cabb3",
+          "selected_value": 4.37,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "925dc6530f973cb482512ca354f02ccbfc474336a0e9e0f71e4b24f4842cabb3",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.37,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-04",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        }
+      ],
+      "latest_attempt": {
+        "retrieval_attempt_id": "711221ce44d996cc0179d384e63219a320e7f9dce51f204bd78a557fa82e175e",
+        "metric_id": "UST2Y_NOMINAL_YIELD",
+        "channel": "treasury_csv_candidate",
+        "outcome": "verified_candidate",
+        "fetched_at": "2026-09-07 09:42:28.196455+00:00",
+        "safe_metadata": {
+          "acquisition_ids": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+          "definition_version": "metric-catalog-v0002",
+          "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+          "latest_source_period": "2026-09-04",
+          "missing_cells": "0",
+          "observations": "10",
+          "period": "2026-09-04",
+          "response_final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+          "response_http_status": "200",
+          "response_media_type": "text/csv; charset=UTF-8",
+          "source_timezone": "America/New_York",
+          "source_year": "2026",
+          "start_date": "2026-08-24"
+        }
+      },
+      "public_points": 0
+    },
+    "UST10Y_NOMINAL_YIELD": {
+      "traces": [
+        {
+          "observation_id": "56472d8acd02e133100bd315169c7dd32a9ca41525235aa2e4b6d762b86d4ec3",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-24",
+          "period_end": "2026-08-24",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "012731ae20b983d98929a34e7fd8fdd892bbc67599e083c0a26cc4573111c1c7",
+          "selected_value": 4.7,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "012731ae20b983d98929a34e7fd8fdd892bbc67599e083c0a26cc4573111c1c7",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.7,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-24",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "b5402a6de798bb731e673888bc916a80ec7df62a19171e46d9d35047ed53720b",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-25",
+          "period_end": "2026-08-25",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "33355d581bdb3823fa3f511ed950e7378d91c63369d26e6ad0f09a6106e4725a",
+          "selected_value": 4.64,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "33355d581bdb3823fa3f511ed950e7378d91c63369d26e6ad0f09a6106e4725a",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.64,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-25",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "286a5b01aefde64078b0c845ee120863cea1d75a9141fd4896513039d34ececd",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-26",
+          "period_end": "2026-08-26",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "3aade0cf8c0b96dafa9c7170e3c6324fbb27ef6aef6c262fef3d6916ca057832",
+          "selected_value": 4.66,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "3aade0cf8c0b96dafa9c7170e3c6324fbb27ef6aef6c262fef3d6916ca057832",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.66,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-26",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "e40e29f55013f5219035c34ccc5b4b5694833987f6e57822343dbbccc105eed6",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-27",
+          "period_end": "2026-08-27",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "1dc5f27d7ac3d93792e8067729cac9351f0ee83831acef562d86f8f05fa45238",
+          "selected_value": 4.67,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "1dc5f27d7ac3d93792e8067729cac9351f0ee83831acef562d86f8f05fa45238",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.67,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-27",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "2b10d774eb4b34f1718cd7c05ed6731a4b1304b1afac2113f19e5bdc0be079b2",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-28",
+          "period_end": "2026-08-28",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "e7faf58a09d1613c62cb280e516231ac3274f378c434399a4c2187c9c281f1df",
+          "selected_value": 4.73,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "e7faf58a09d1613c62cb280e516231ac3274f378c434399a4c2187c9c281f1df",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.73,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-28",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "8f58c66a93ec779f4322c32d4f090a8153d79c55b5ab0947929c3f0e6f5c45e4",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-31",
+          "period_end": "2026-08-31",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "d66857e380447f2148abc6723495dbbf6aeb04518fb93a63e83bb89ac2145869",
+          "selected_value": 4.75,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "d66857e380447f2148abc6723495dbbf6aeb04518fb93a63e83bb89ac2145869",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.75,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-08-31",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "f50ed4581c241005a0550433325e739f3f52e7622e22426cf219f846a1cd67fd",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-01",
+          "period_end": "2026-09-01",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "3049b5f655ed3c5b827c443c1fbd99d84bd9b5f8c93c847f8b7cf30f66f4bbd7",
+          "selected_value": 4.79,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "3049b5f655ed3c5b827c443c1fbd99d84bd9b5f8c93c847f8b7cf30f66f4bbd7",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.79,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-01",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "b780a76f5aae495b7979ff3fe820a4508fe5a308ffc84223bf48a39e516b1c96",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-02",
+          "period_end": "2026-09-02",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "1a5641a37ebf0baad439aa1555e7c266091afd11607efbecb2cc4754a448a316",
+          "selected_value": 4.79,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "1a5641a37ebf0baad439aa1555e7c266091afd11607efbecb2cc4754a448a316",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.79,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-02",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "4a1d042a711b240b96387217bfe6682c6ad775714a9fc68e68db760a6f7d8916",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-03",
+          "period_end": "2026-09-03",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "dc27c08d075021b9287bd7170ea38d6dfa96e5888fc94bd73720167f692fda24",
+          "selected_value": 4.77,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "dc27c08d075021b9287bd7170ea38d6dfa96e5888fc94bd73720167f692fda24",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.77,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-03",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "6d2ef3b8b984a109b05d76eb9f940ca921a4857acbf045f1392bcb54768a15d9",
+          "metric_id": "UST10Y_NOMINAL_YIELD",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-04",
+          "period_end": "2026-09-04",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 09:42:28.255912+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "1682e9b2b01fd0954a8e0fdcd3922df2aeb0be0ed181ca387fc71a4e0cdc1da6",
+          "selected_value": 4.78,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "1682e9b2b01fd0954a8e0fdcd3922df2aeb0be0ed181ca387fc71a4e0cdc1da6",
+              "provider": "U.S. Department of the Treasury",
+              "value": 4.78,
+              "value_state": "reported_value",
+              "unit": "percent",
+              "source_reference": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv#date=2026-09-04",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 09:42:28.124070+00:00",
+              "available_at": "2026-09-07 09:42:28.183640+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+              "provider": "U.S. Department of the Treasury",
+              "api_name": "treasury_nominal_yields_csv",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+                "period": "2026-09-04",
+                "source_year": "2026",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Date,2 Yr,10 Yr",
+              "parser_version": "treasury-nominal-csv-parser-v0001",
+              "started_at": "2026-09-07 09:42:26.757515+00:00",
+              "received_at": "2026-09-07 09:42:28.124070+00:00",
+              "validated_at": "2026-09-07 09:42:28.166537+00:00",
+              "state": "validated",
+              "raw_hash": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+              "normalized_hash": "e6c3fb3d34c90f5fa115971f32dc755020a11d9d8983b65e29c72d61d4d7d10f",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        }
+      ],
+      "latest_attempt": {
+        "retrieval_attempt_id": "40d748adcc325bf35f995058db1e0289fcec0f4bb98d16c06ba1428467ed743f",
+        "metric_id": "UST10Y_NOMINAL_YIELD",
+        "channel": "treasury_csv_candidate",
+        "outcome": "verified_candidate",
+        "fetched_at": "2026-09-07 09:42:28.204358+00:00",
+        "safe_metadata": {
+          "acquisition_ids": "acquisition-696f99c3f6a3410db32ea60fc4c435bf",
+          "definition_version": "metric-catalog-v0002",
+          "endpoint": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+          "latest_source_period": "2026-09-04",
+          "missing_cells": "0",
+          "observations": "10",
+          "period": "2026-09-04",
+          "response_final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+          "response_http_status": "200",
+          "response_media_type": "text/csv; charset=UTF-8",
+          "source_timezone": "America/New_York",
+          "source_year": "2026",
+          "start_date": "2026-08-24"
+        }
+      },
+      "public_points": 0
+    }
+  },
+  "recorded_at": "2026-09-07 09:42:28.255912+00:00"
+}

@@ -1,0 +1,9 @@
+[
+  {
+    "operation": "read previously stored HTML and print selected terms",
+    "result": "UnicodeEncodeError on default GBK stdout at registered trademark character",
+    "network_requests": 0,
+    "files_written_by_failed_attempt": 0,
+    "resolution": "configure stdout UTF-8; reread succeeds"
+  }
+]

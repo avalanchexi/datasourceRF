@@ -1,0 +1,202 @@
+{
+  "scope": "research-13.md and evidence-13/receipts.json; unrelated old warrants and TuShare documents omitted",
+  "old_gets_total": 15,
+  "related_prior_attempts": [
+    {
+      "url": "https://www.shibor.org/chinese/bkshibor/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:16:57.102767+00:00",
+      "error_type": "URLError",
+      "error": "<urlopen error timed out>",
+      "received_at": "2026-09-06T16:17:20.078742+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/chinese/bkfrr/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:17:20.094839+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/chinese/bkfrr/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:17:19 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "31994",
+        "Last-Modified": "Sat, 25 Jul 2026 10:53:46 GMT",
+        "ETag": "\"7cfa-6576d4da56280\""
+      },
+      "sha256": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01",
+      "bytes": 31994,
+      "local_file": "d690518c827730cbd7b306a714cbcf495b1ba4430415b26b163825a7c3116b01",
+      "truncated": false,
+      "received_at": "2026-09-06T16:17:20.362732+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/chinese/dssjfwgl/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:17:20.394397+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/chinese/dssjfwgl/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:17:20 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "89404",
+        "Last-Modified": "Fri, 14 Aug 2026 01:21:40 GMT",
+        "ETag": "\"15d3c-658f7a47bb100\""
+      },
+      "sha256": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+      "bytes": 89404,
+      "local_file": "1732c0c0fe89a07456d80ffdaef80aa483fba7b3af7de903a6e2767a288ccf50",
+      "truncated": false,
+      "received_at": "2026-09-06T16:17:20.799006+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/english/bmkshb/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:22:44.434527+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/english/bmkshb/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:22:42 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "19845",
+        "Last-Modified": "Sat, 25 Jul 2026 10:52:18 GMT",
+        "ETag": "\"4d85-6576d48669c80\""
+      },
+      "sha256": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399",
+      "bytes": 19845,
+      "local_file": "a1de7d3239e93686bca0f863e103a74bbc8c87afcff57168f861d5387ee46399",
+      "truncated": false,
+      "received_at": "2026-09-06T16:22:44.747721+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/chinese/bkshibor/",
+      "method": "GET",
+      "started_at": "2026-09-06T16:22:44.750179+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/chinese/bkshibor/",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:22:42 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "49650",
+        "Last-Modified": "Sat, 25 Jul 2026 10:53:21 GMT",
+        "ETag": "\"c1f2-6576d4c27ea40\""
+      },
+      "sha256": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9",
+      "bytes": 49650,
+      "local_file": "043ae07820bc91ae91b00fd4468cc4f7938eb911ae2d1f75efc5237407c13ae9",
+      "truncated": false,
+      "received_at": "2026-09-06T16:22:44.926754+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://tushare.pro/document/2?doc_id=256",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:55.192859+00:00",
+      "status": 200,
+      "final_url": "https://tushare.pro/document/2?doc_id=256",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:54 GMT",
+        "Content-Type": "text/html; charset=UTF-8",
+        "Content-Length": "36098",
+        "Etag": "\"234dea46ef31d3cefc6dd86146d06e959cbcde96\""
+      },
+      "sha256": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34",
+      "bytes": 36098,
+      "local_file": "c639f227d6ebcc9bc9c5859c160675102846242db23041f3f97b49b6ddb87b34",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.350583+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/html/shibor/shibor-his-cn.html",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:57.494582+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/html/shibor/shibor-his-cn.html",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:55 GMT",
+        "Content-Type": "text/html",
+        "Content-Length": "6832",
+        "Last-Modified": "Sat, 14 Aug 2021 14:14:13 GMT",
+        "Etag": "\"1ab0-5c985951b9740\""
+      },
+      "sha256": "42c40867c9f2c1c254f091e605ef7171b4f50f20315961c234775843b56dace3",
+      "bytes": 6832,
+      "local_file": "42c40867c9f2c1c254f091e605ef7171b4f50f20315961c234775843b56dace3",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.798561+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125957/4883187/1f14dbe28ec4408cbf45cee06f86808a/2023112817393565251.pdf",
+      "method": "GET",
+      "started_at": "2026-09-06T16:23:57.800155+00:00",
+      "status": 200,
+      "final_url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125957/4883187/1f14dbe28ec4408cbf45cee06f86808a/2023112817393565251.pdf",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:23:55 GMT",
+        "Content-Type": "application/pdf",
+        "Content-Length": "1283558",
+        "Last-Modified": "Tue, 08 Jul 2025 11:52:40 GMT",
+        "ETag": "\"686d0688-1395e6\""
+      },
+      "sha256": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "bytes": 1283558,
+      "local_file": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "truncated": false,
+      "received_at": "2026-09-06T16:23:57.940884+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/assets/js/cm-basic.js",
+      "method": "GET",
+      "started_at": "2026-09-06T16:25:34.319186+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/r/cms/chinese/chinamoney/assets/js/cm-basic.js",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:25:32 GMT",
+        "Content-Type": "text/javascript",
+        "Content-Length": "423245",
+        "Last-Modified": "Sat, 25 Jul 2026 10:01:25 GMT",
+        "Etag": "\"6754d-6576c926d8740\""
+      },
+      "sha256": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "bytes": 423245,
+      "local_file": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "truncated": false,
+      "received_at": "2026-09-06T16:25:34.428957+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.chinamoney.com.cn/ags/ms/cm-u-bk-shibor/ShiborHis?lang=cn&startDate=2026-08-28&endDate=2026-08-28",
+      "method": "GET",
+      "started_at": "2026-09-06T16:26:28.561782+00:00",
+      "status": 200,
+      "final_url": "https://www.chinamoney.com.cn/ags/ms/cm-u-bk-shibor/ShiborHis?lang=cn&startDate=2026-08-28&endDate=2026-08-28",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:26:26 GMT",
+        "Content-Type": "application/json;charset=UTF-8"
+      },
+      "sha256": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "bytes": 2112,
+      "local_file": "365f18b1a160570e6d0762040bf6af670379be2946bec553593d2cbae3881f62",
+      "truncated": false,
+      "received_at": "2026-09-06T16:26:29.038467+00:00",
+      "public_available_at": null
+    }
+  ],
+  "new_paths_not_present_in_old_receipts": true,
+  "prior_failed_related_requests": [
+    "https://www.shibor.org/chinese/bkshibor/"
+  ],
+  "no_prior_dr007_day_query_record_in_scoped_receipts": true,
+  "skipped_repetitions": [
+    "Shibor origin timeout not retried",
+    "FR/FDR, Shibor values and issuer DR contracts not reused as DR007 day-value or publication proof",
+    "cm-basic.js reused by hash, no repeat GET"
+  ],
+  "research13_sha256": "dcbdf9a07095e5bfb2110ff2f3a51e9049dc1bece87b3859207df1ece0f973e1"
+}

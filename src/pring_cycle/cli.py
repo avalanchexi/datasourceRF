@@ -43,6 +43,7 @@ _MUTATING_COMMANDS = {
     "official-context-smoke",
     "eia-smoke",
     "eia-html-refresh",
+    "treasury-csv-refresh",
     "lpr-smoke",
     "core-history-refresh",
 }
@@ -199,6 +200,17 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             refresh_eia_history(
                 paths,
                 series_id=namespace.series,
+                start_date=date.fromisoformat(namespace.start),
+                end_date=date.fromisoformat(namespace.end),
+                definition_version=namespace.definition_version,
+            )
+        )
+    if namespace.command == "treasury-csv-refresh":
+        from pring_cycle.treasury_context import refresh_treasury_yields
+
+        return asdict(
+            refresh_treasury_yields(
+                paths,
                 start_date=date.fromisoformat(namespace.start),
                 end_date=date.fromisoformat(namespace.end),
                 definition_version=namespace.definition_version,
@@ -748,6 +760,10 @@ def _parser() -> argparse.ArgumentParser:
     eia_html.add_argument("--start", required=True)
     eia_html.add_argument("--end", required=True)
     eia_html.add_argument("--definition-version", default="metric-catalog-v0001")
+    treasury_csv = _runtime_parser(subparsers, "treasury-csv-refresh")
+    treasury_csv.add_argument("--start", required=True)
+    treasury_csv.add_argument("--end", required=True)
+    treasury_csv.add_argument("--definition-version", default="metric-catalog-v0001")
     eia_contract = _runtime_parser(subparsers, "eia-contract")
     eia_contract.add_argument("--input", type=Path, required=True)
     eia_contract.add_argument("--start", required=True)

@@ -1,0 +1,130 @@
+{
+  "validation": "passed",
+  "new_get_attempts": 4,
+  "http_200": 3,
+  "http_403": 1,
+  "new_response_artifacts_including_empty_failure": 4,
+  "new_response_bytes": 30437,
+  "valid_target_value_responses": 1,
+  "official_dr007_20260828_percent": "1.3859",
+  "target_value_matches_legacy": true,
+  "public_available_at": null,
+  "verified_new_response_artifacts": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a",
+      "bytes": 18064,
+      "sha256": "e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96",
+      "bytes": 10948,
+      "sha256": "b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d",
+      "bytes": 1425,
+      "sha256": "d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d"
+    }
+  ],
+  "reused_evidence": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13/4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "bytes": 423245,
+      "sha256": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13/60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "bytes": 1283558,
+      "sha256": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13/readonly-checks.json",
+      "bytes": 1868241,
+      "sha256": "8bd95b88c106b8bee6eac44bf1b74d6a12ebcbb827dfab659362c0cefd3090ed"
+    }
+  ],
+  "old_report_sha256_unchanged": "dcbdf9a07095e5bfb2110ff2f3a51e9049dc1bece87b3859207df1ece0f973e1",
+  "report_local_links_checked": [
+    "research-13.md",
+    "issues/13-remaining-p1-evidence.md",
+    "evidence-13-dr007-followup/prior-attempts.json",
+    "evidence-13-dr007-followup/e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a",
+    "evidence-13-dr007-followup/b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96",
+    "evidence-13-dr007-followup/receipts.json",
+    "evidence-13-dr007-followup/web-discovery.json",
+    "evidence-13-dr007-followup/d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d",
+    "evidence-13/60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+    "evidence-13/readonly-checks.json",
+    "evidence-13-dr007-followup/source-inspection.json",
+    "../../docs/adr/0006-dual-as-of-and-immutable-evidence-vintages.md",
+    "../../docs/adr/0013-tushare-delivery-with-official-sampling.md",
+    "evidence-13-dr007-followup/delivery-files.txt",
+    "evidence-13-dr007-followup/delivery-verification.json",
+    "evidence-13-dr007-followup/verify_delivery.py"
+  ],
+  "delivery_path_count": 12,
+  "files": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/dr007-followup.md",
+      "bytes": 11885,
+      "sha256": "8c8776372ecd26ca849275680d8368b73980678d3d5da9504f178a707ae9b462"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96",
+      "bytes": 10948,
+      "sha256": "b3a07aac8d979104bd53b5c6f7ad0bd50dfe78e26f723307c644bdb130cb6c96"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d",
+      "bytes": 1425,
+      "sha256": "d0a4ce808d3e022625c97a22b774d0387b2108f56f584c6b626c7effc9a0978d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/delivery-files.txt",
+      "bytes": 1196,
+      "sha256": "ac7d8108f1dabbf330e53ccfc0322476e3e35b95cc53eb2a863e315d89f956ff"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a",
+      "bytes": 18064,
+      "sha256": "e678ff47ec2de3537b05f631b4917c3ba0e53a9eac29f566865e998c40bd3f6a"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/prior-attempts.json",
+      "bytes": 8729,
+      "sha256": "7cc60b51960e28b86df30f61ad43d3d6104d0e177f6cafee41f9526fde0e01b3"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/receipts.json",
+      "bytes": 3277,
+      "sha256": "0b3ff3a02081e9dbb2727d6adebb27b178bf6c49aa18b2aab1ee70ca775014aa"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/source-inspection.json",
+      "bytes": 5497,
+      "sha256": "b712ea78e467d75e188a0617c3ef6046141778e5ce002de31d68d58d551c5ee4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/verify_delivery.py",
+      "bytes": 9890,
+      "sha256": "3197008f92bfd995abd4c40658d5b36ca24afa8591c09e03a208ca5558a0764f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13-dr007-followup/web-discovery.json",
+      "bytes": 882,
+      "sha256": "eb169a2243b170e28d8e7cd7e8195bd9037648035e926bcd9f95f972996b59c0"
+    }
+  ],
+  "manifest_self_hash_excluded": true,
+  "network_requests_during_verification": 0
+}

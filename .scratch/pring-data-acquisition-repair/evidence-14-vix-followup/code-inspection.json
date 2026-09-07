@@ -1,0 +1,28 @@
+{
+  "scope": "src/pring_cycle/**/*.py",
+  "pattern": "CBOE_VIX|VIX_History|cboe.com",
+  "matching_files": [
+    {
+      "file": "src/pring_cycle/catalog.py",
+      "sha256": "59fcac0c8279c4b1acfe7bac4eab1688088571745ef539fc41728c3acd0eb83a",
+      "bytes": 25699,
+      "matches": [
+        {
+          "line": 101,
+          "text": "    \"CBOE_VIX_INDEX\","
+        },
+        {
+          "line": 453,
+          "text": "    if metric_id in {\"CBOE_VIX_INDEX\", \"NASDAQ_SOX_INDEX\"}:"
+        },
+        {
+          "line": 484,
+          "text": "    if metric_id in {\"CBOE_VIX_INDEX\", \"NASDAQ_SOX_INDEX\"}:"
+        }
+      ]
+    }
+  ],
+  "application_imports": 0,
+  "db_reads": 0,
+  "note": "Read-only source search snapshot; not current production observation or certification status."
+}

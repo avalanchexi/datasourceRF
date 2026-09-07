@@ -1,0 +1,28 @@
+{
+  "tool": "web.run search_query",
+  "calls": 2,
+  "query_count": 5,
+  "purpose": "Discover official VIX calculation, use boundaries and EOD inputs; only primary Cboe content used.",
+  "queries": [
+    "site.cboe.com VIX personal non-commercial",
+    "site.cboe.com VIX 4:15 Eastern dissemination",
+    "site.cboe.com Index Data Non-Display license",
+    "VIX Index calculated 3:15 p.m. CT 8:30 methodology (cboe.com domain)",
+    "VIX methodology pdf recalculation policy (cboe.com domain)"
+  ],
+  "selected_official_links": [
+    "https://www.cboe.com/tradable-products/vix/faqs",
+    "https://datashop.cboe.com/vix-index-eod-calculation-inputs"
+  ],
+  "excluded": [
+    "Cboe Europe index licence does not establish VIX public CSV conditions",
+    "Nasdaq and other exchanges policies do not establish Cboe CSV rights",
+    "Third-party personal licence descriptions are not Cboe permission",
+    "VIX options and futures trading or settlement schedules are not daily spot CSV publication times"
+  ],
+  "raw_http_bytes_available_for_search_results": false,
+  "direct_get_receipts": "receipts.json",
+  "new_value_files_downloaded": 0,
+  "tavily_calls": 0,
+  "exa_calls": 0
+}

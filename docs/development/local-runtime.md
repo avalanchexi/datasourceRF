@@ -290,6 +290,22 @@ pring-cycle eia-html-refresh --runtime-root /home/tywin/.cache/pring-cycle/eia-h
 目前完整 Worker 的自动 EIA 渠道仍使用配置 key 的 API；HTML命令用于新候选证据准备，后续
 来源认证及模型采纳另行验收。字段/时间依据见[接入契约](../../.scratch/pring-data-acquisition-repair/eia-html-contract.md)。
 
+美国财政部名义曲线可通过 `treasury-csv-refresh` 显式取得同日2Y、10Y候选，无需账户。
+每次读取一个来源年度CSV，再保存所选窗口；跨年窗口应分年调用。以下在独立候选库执行：
+
+```bash
+pring-cycle init --runtime-root /home/tywin/.cache/pring-cycle/treasury-csv-candidate --json
+pring-cycle treasury-csv-refresh --runtime-root /home/tywin/.cache/pring-cycle/treasury-csv-candidate \
+  --start 2026-08-24 --end 2026-09-04 --definition-version metric-catalog-v0002 --json
+```
+
+数值以百分数保存，`4.37`代表4.37%；零值与缺失分开，N/A或空格不生成数值声明。
+返回数值条数、缺值格数和请求身份；保存原件、各指标最新源有值日期及真实SYSTEM时间。
+新快照缺值时，旧声明仍保留原取得时间，本次缺值回执另记，不能计为本次新取得值。
+历史逐日PUBLIC保持未知，所有候选待认证；Worker现有TuShare渠道仍按配置运行。
+通常18:00美东时间前可用是发布预期，不能填成实际发布时间。字段/时间依据见
+[官方契约](../../.scratch/pring-data-acquisition-repair/treasury-followup.md)。
+
 TuShare 的 PMI、CPI/PPI、货币、社融、仓单、GDP、美债和资金市场 schema family 使用一条
 显式、只输出身份/时点/数量/哈希的汇总 smoke；它不会保存来源正文或回显 token，只登记脱敏
 结果制品：

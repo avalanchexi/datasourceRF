@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_requested_historical_window_keeps_the_newer_reported_source_period ____
+tests/integration/test_treasury_csv_acquisition.py:142: in test_requested_historical_window_keeps_the_newer_reported_source_period
+    assert batch["latest_reported_periods"] == {
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'latest_reported_periods'
+=========================== short test summary info ============================
+FAILED tests/integration/test_treasury_csv_acquisition.py::test_requested_historical_window_keeps_the_newer_reported_source_period
+1 failed, 2 deselected in 1.79s

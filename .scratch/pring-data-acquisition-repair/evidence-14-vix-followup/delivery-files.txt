@@ -1,0 +1,12 @@
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/code-inspection.json
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/delivery-files.txt
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/delivery-verification.json
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/local-attempts.json
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/receipts.json
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/source-inspection.json
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/verify_delivery.py
+.scratch/pring-data-acquisition-repair/evidence-14-vix-followup/web-discovery.json
+.scratch/pring-data-acquisition-repair/vix-followup.md

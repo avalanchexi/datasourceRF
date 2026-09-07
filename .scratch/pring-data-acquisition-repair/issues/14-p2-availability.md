@@ -32,6 +32,8 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-07：Treasury官方CSV候选接口及CLI完成，真实1次GET生成10个来源日、20条待认证值，原件/标准化/20条血缘/真实SYSTEM独立复核通过。27项针对测试、639项全套（800.47秒）、Ruff、mypy81、Spec/Standards均通过，见[实施记录](../implementation-14-treasury.md)及[最终收据](../verification-14-treasury/final.json)。[VIX增量补证](../vix-followup.md)独立校验通过：CLOSE字段可核对，早期未使用OPEN异常保留；公共CSV历史PUBLIC和持续生产使用范围未获新认证。整票14继续in-progress，取得、认证和模型采纳仍分开验收。
+
 - 2026-09-07：C盘空间恢复，WSL启动及两候选库/8份原生制品完整性验证通过。EIA本批全套重跑612通过、0失败、768.67秒，见[最终收据](../verification-14-eia/final.json)。42项针对测试、mypy80、Ruff、Spec/Standards均通过，旧失败记录保留。EIA候选入口代码完成；整票14仍in-progress，下一步Treasury官方CSV接入与源日历/认证按各自证据推进。
 
 - 2026-09-07：WSL不可用期间完成[Treasury增量补证](../treasury-followup.md)：3个官方GET均200，3份新原件173,051字节，CSV/旧HTML171日×2字段342/342相符；根代理在Windows标准库独立重跑[校验](../evidence-14-treasury-followup/delivery-verification.json)通过，9条交付路径及旧研究SHA均核对。官方ET、通常18:00前可用但可能延迟，只支持发布预期，历史逐日真实PUBLIC仍未知。官方CSV候选适配、认证及源日历鲜度仍待实施；没有WSL、数据库或模型变更。

@@ -1,0 +1,174 @@
+{
+  "target_metric": "CN_DR007",
+  "target_period": "2026-08-28",
+  "official_instrument": "DR007",
+  "official_field": "wghtdAvgRepoRate",
+  "official_unit": "percent",
+  "official_value": "1.3859",
+  "official_target_record": {
+    "instrmntCd": "DR007",
+    "openRepoRate": "1.3700",
+    "clsngRepoRate": "1.3806",
+    "wghtdAvgRepoRate": "1.3859",
+    "wghtdAvgRepoDebtRate": "1.3859",
+    "avgPrd": "5.76",
+    "dlNo": "275",
+    "trdVol": "1420.8644",
+    "sortNo": 7
+  },
+  "response_record_count": 6,
+  "response_instruments": [
+    "DR001",
+    "DR007",
+    "DR014",
+    "DR1M",
+    "DR2M",
+    "DR6M"
+  ],
+  "official_table_headers": [
+    {
+      "field": "instrmntCd",
+      "label": "品种"
+    },
+    {
+      "field": "openRepoRate",
+      "label": "开盘利率(%)"
+    },
+    {
+      "field": "clsngRepoRate",
+      "label": "收盘利率(%)"
+    },
+    {
+      "field": "wghtdAvgRepoRate",
+      "label": "加权利率(%)"
+    },
+    {
+      "field": "wghtdAvgRepoDebtRate",
+      "label": "加权平均利率(利率债)(%)"
+    },
+    {
+      "field": "avgPrd",
+      "label": "平均回购期限(天)"
+    },
+    {
+      "field": "dlNo",
+      "label": "成交笔数(笔)"
+    },
+    {
+      "field": "trdVol",
+      "label": "成交量(亿元)"
+    }
+  ],
+  "legacy_read_at": "2026-09-06T16:31:11.779927+00:00",
+  "legacy_evidence_snapshot": {
+    "available_at": "2026-08-31T07:34:51.368551+00:00",
+    "certification_status": "certified",
+    "claim_ids": [
+      "4100461ce76a9defaaa25ad6a4f8206753496212e2ba3717cd6676b9df8f43be"
+    ],
+    "claims": [
+      {
+        "available_at": "2026-08-31T07:34:51.368551+00:00",
+        "certification_status": "certified",
+        "claim_id": "4100461ce76a9defaaa25ad6a4f8206753496212e2ba3717cd6676b9df8f43be",
+        "provider": "tushare",
+        "public_available_at": "2026-08-28T03:00:00+00:00",
+        "quality_status": "validated",
+        "selected": true,
+        "source_reference": "tushare:repo_daily:weight:2026-08-28",
+        "unit": "percent",
+        "value": 1.3859,
+        "value_state": "reported_value"
+      }
+    ],
+    "dimensions": {},
+    "direction": "down",
+    "metric_id": "CN_DR007",
+    "observation_id": "3f08ef3ea22366c4e106d0a6e832c7856d30753304abe9d63a0878d5372a62d1",
+    "period_start": "2026-08-28",
+    "period": "2026-08-28",
+    "public_available_at": "2026-08-28T03:00:00+00:00",
+    "quality_status": "validated",
+    "selected_claim_id": "4100461ce76a9defaaa25ad6a4f8206753496212e2ba3717cd6676b9df8f43be",
+    "source_reference": "tushare:repo_daily:weight:2026-08-28",
+    "status": "current",
+    "unit": "percent",
+    "value": 1.3859,
+    "value_state": "reported_value"
+  },
+  "comparison": {
+    "target_fields_compared": 1,
+    "matched": 1,
+    "source": "Old TuShare observation snapshot vs newly fetched official CFETS weighted rate; no new DB read or certification."
+  },
+  "conditional_spread_basis_points": "-1.4100",
+  "wrong_close_field_spread_basis_points": "-1.9400",
+  "official_response_query": {
+    "lang": [
+      "en"
+    ],
+    "indexType": [
+      "markInterBankVOList"
+    ],
+    "searchDate": [
+      "2026-08-28"
+    ],
+    "publishedTime": [
+      "2200"
+    ]
+  },
+  "official_response_head": {
+    "version": "2.0",
+    "provider": "CWAP",
+    "req_code": "",
+    "rep_code": "200",
+    "rep_message": "",
+    "ts": 1788774541797,
+    "producer": "",
+    "tstext": "2026-09-07 17:49:01"
+  },
+  "official_response_data": {
+    "endDate": "2026-09-06",
+    "lastDateEn": "28 Aug 2026",
+    "startDate": "2026-08-24",
+    "lastDate": "2026-08-28"
+  },
+  "publication": {
+    "release_at": null,
+    "public_available_at": null,
+    "reason": "lastDate is observation date; head.tstext is current response time; publishedTime=2200 is a request parameter from reused official JS, not historical release evidence; no row-level release timestamp supplied."
+  },
+  "channel_method": {
+    "official_page_uses": "POST for JSON and GET anchor for Excel",
+    "this_research_used": "GET only; JSON endpoint accepted documented read parameters with GET; no POST/auth/challenge bypass"
+  },
+  "history_coverage": {
+    "certified_120_chinese_days": false,
+    "observed_startDate": "2026-08-24",
+    "observed_endDate": "2026-09-06",
+    "queried_dates": [
+      "2026-08-28"
+    ],
+    "remaining": "One official sample does not establish 120-day channel history or publication vintages; do not expand family sampling into mandatory daily dual-source matching."
+  },
+  "reused_evidence_hashes": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13/4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9",
+      "bytes": 423245,
+      "sha256": "4e0479941d0c9f754528b020ae2725998679eebd4f7ddd40f0e01fae3ace9af9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13/60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455",
+      "bytes": 1283558,
+      "sha256": "60ad3e29e905a9f405e70733cb1ddeffa41fdcc6b9dcbe962e462b2422a2d455"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-13/readonly-checks.json",
+      "bytes": 1868241,
+      "sha256": "8bd95b88c106b8bee6eac44bf1b74d6a12ebcbb827dfab659362c0cefd3090ed"
+    }
+  ],
+  "new_certifications": 0,
+  "production_mutations": 0,
+  "db_reads": 0
+}

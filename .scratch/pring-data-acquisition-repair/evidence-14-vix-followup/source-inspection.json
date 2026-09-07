@@ -1,0 +1,809 @@
+{
+  "csv_original": {
+    "path": ".scratch/pring-data-acquisition-repair/evidence-14/9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+    "bytes": 472309,
+    "sha256": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72"
+  },
+  "reused_original_receipts": [
+    {
+      "url": "https://www.cboe.com/tradable_products/vix/vix_historical_data",
+      "method": "GET",
+      "started_at": "2026-09-06T16:57:27.422143+00:00",
+      "status": 200,
+      "final_url": "https://www.cboe.com/tradable_products/vix/vix_historical_data",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 16:57:26 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "Last-Modified": "Sun, 06 Sep 2026 16:57:26 GMT"
+      },
+      "sha256": "f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+      "bytes": 621023,
+      "local_file": "f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+      "truncated": false,
+      "received_at": "2026-09-06T16:57:29.654589+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+      "method": "GET",
+      "started_at": "2026-09-06T17:04:38.398755+00:00",
+      "status": 200,
+      "final_url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 17:04:37 GMT",
+        "Content-Type": "text/csv",
+        "Content-Length": "472309",
+        "last-modified": "Sat, 05 Sep 2026 19:00:50 GMT",
+        "etag": "\"77e3616af4a24ce1f0c81267b2c36c93\""
+      },
+      "sha256": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+      "bytes": 472309,
+      "local_file": "9258a25814fb936e7df32a96bcf3914fdbf342afb33cdf8759cdfbc8064ddb72",
+      "truncated": false,
+      "received_at": "2026-09-06T17:04:40.473099+00:00",
+      "public_available_at": null
+    },
+    {
+      "url": "https://www.cboe.com/terms",
+      "method": "GET",
+      "started_at": "2026-09-06T17:07:07.176287+00:00",
+      "status": 200,
+      "final_url": "https://www.cboe.com/terms",
+      "headers": {
+        "Date": "Sun, 06 Sep 2026 17:07:05 GMT",
+        "Content-Type": "text/html; charset=utf-8",
+        "ETag": "\"6wmvkszm778kld\""
+      },
+      "sha256": "43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+      "bytes": 400103,
+      "local_file": "43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+      "truncated": false,
+      "received_at": "2026-09-06T17:07:09.127868+00:00",
+      "public_available_at": null
+    }
+  ],
+  "fieldnames": [
+    "DATE",
+    "OPEN",
+    "HIGH",
+    "LOW",
+    "CLOSE"
+  ],
+  "target_metric": "CBOE_VIX_INDEX",
+  "target_field": "CLOSE",
+  "catalog_unit": "index_points",
+  "source_date_format": "%m/%d/%Y",
+  "row_count": 9266,
+  "date_range": [
+    "1990-01-02",
+    "2026-09-04"
+  ],
+  "duplicate_dates": 0,
+  "date_order": "ascending",
+  "weekend_rows": 0,
+  "window_20260309_to_20260904": 129,
+  "value_classification": {
+    "OPEN": {
+      "positive": 9266,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    },
+    "HIGH": {
+      "positive": 9266,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    },
+    "LOW": {
+      "positive": 9266,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    },
+    "CLOSE": {
+      "positive": 9266,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    }
+  },
+  "ohlc_envelope_anomaly_count": 47,
+  "ohlc_envelope_anomalies": [
+    {
+      "period": "1992-02-11",
+      "DATE": "02/11/1992",
+      "OPEN": "19.240000",
+      "HIGH": "18.570000",
+      "LOW": "17.610000",
+      "CLOSE": "17.700000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-02-19",
+      "DATE": "02/19/1992",
+      "OPEN": "17.790000",
+      "HIGH": "17.690000",
+      "LOW": "16.850000",
+      "CLOSE": "17.160000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-08-24",
+      "DATE": "08/24/1992",
+      "OPEN": "13.740000",
+      "HIGH": "16.480000",
+      "LOW": "15.210000",
+      "CLOSE": "16.190000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-08-27",
+      "DATE": "08/27/1992",
+      "OPEN": "14.050000",
+      "HIGH": "13.860000",
+      "LOW": "12.880000",
+      "CLOSE": "13.660000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-09-16",
+      "DATE": "09/16/1992",
+      "OPEN": "11.530000",
+      "HIGH": "14.860000",
+      "LOW": "13.520000",
+      "CLOSE": "14.720000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-10-09",
+      "DATE": "10/09/1992",
+      "OPEN": "19.570000",
+      "HIGH": "21.000000",
+      "LOW": "19.670000",
+      "CLOSE": "20.510000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-11-09",
+      "DATE": "11/09/1992",
+      "OPEN": "15.660000",
+      "HIGH": "15.140000",
+      "LOW": "14.060000",
+      "CLOSE": "14.230000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-11-20",
+      "DATE": "11/20/1992",
+      "OPEN": "14.980000",
+      "HIGH": "14.200000",
+      "LOW": "13.440000",
+      "CLOSE": "13.670000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-12-09",
+      "DATE": "12/09/1992",
+      "OPEN": "10.290000",
+      "HIGH": "13.340000",
+      "LOW": "10.930000",
+      "CLOSE": "12.580000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-12-21",
+      "DATE": "12/21/1992",
+      "OPEN": "12.030000",
+      "HIGH": "11.970000",
+      "LOW": "11.200000",
+      "CLOSE": "11.650000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1992-12-23",
+      "DATE": "12/23/1992",
+      "OPEN": "10.570000",
+      "HIGH": "11.900000",
+      "LOW": "11.270000",
+      "CLOSE": "11.510000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-03-19",
+      "DATE": "03/19/1993",
+      "OPEN": "14.330000",
+      "HIGH": "13.890000",
+      "LOW": "13.110000",
+      "CLOSE": "13.230000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-04-19",
+      "DATE": "04/19/1993",
+      "OPEN": "11.110000",
+      "HIGH": "12.350000",
+      "LOW": "11.390000",
+      "CLOSE": "12.060000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-04-28",
+      "DATE": "04/28/1993",
+      "OPEN": "15.390000",
+      "HIGH": "13.780000",
+      "LOW": "11.280000",
+      "CLOSE": "13.120000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-06-01",
+      "DATE": "06/01/1993",
+      "OPEN": "13.210000",
+      "HIGH": "14.630000",
+      "LOW": "13.640000",
+      "CLOSE": "13.670000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-07-13",
+      "DATE": "07/13/1993",
+      "OPEN": "9.180000",
+      "HIGH": "11.810000",
+      "LOW": "10.270000",
+      "CLOSE": "11.020000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-07-14",
+      "DATE": "07/14/1993",
+      "OPEN": "9.180000",
+      "HIGH": "11.670000",
+      "LOW": "10.040000",
+      "CLOSE": "10.780000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-09-15",
+      "DATE": "09/15/1993",
+      "OPEN": "13.490000",
+      "HIGH": "13.430000",
+      "LOW": "12.470000",
+      "CLOSE": "12.700000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-10-15",
+      "DATE": "10/15/1993",
+      "OPEN": "12.350000",
+      "HIGH": "11.630000",
+      "LOW": "10.440000",
+      "CLOSE": "10.870000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-10-27",
+      "DATE": "10/27/1993",
+      "OPEN": "10.040000",
+      "HIGH": "12.310000",
+      "LOW": "11.640000",
+      "CLOSE": "12.010000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-10-29",
+      "DATE": "10/29/1993",
+      "OPEN": "11.950000",
+      "HIGH": "11.800000",
+      "LOW": "10.800000",
+      "CLOSE": "11.460000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-11-23",
+      "DATE": "11/23/1993",
+      "OPEN": "16.200000",
+      "HIGH": "14.860000",
+      "LOW": "13.860000",
+      "CLOSE": "14.270000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-11-24",
+      "DATE": "11/24/1993",
+      "OPEN": "16.200000",
+      "HIGH": "13.890000",
+      "LOW": "13.190000",
+      "CLOSE": "13.510000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1993-11-30",
+      "DATE": "11/30/1993",
+      "OPEN": "13.390000",
+      "HIGH": "14.630000",
+      "LOW": "13.480000",
+      "CLOSE": "13.760000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-01-05",
+      "DATE": "01/05/1994",
+      "OPEN": "12.870000",
+      "HIGH": "11.470000",
+      "LOW": "10.370000",
+      "CLOSE": "10.940000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-01-31",
+      "DATE": "01/31/1994",
+      "OPEN": "9.860000",
+      "HIGH": "11.200000",
+      "LOW": "10.010000",
+      "CLOSE": "10.630000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-02-07",
+      "DATE": "02/07/1994",
+      "OPEN": "10.710000",
+      "HIGH": "15.370000",
+      "LOW": "13.860000",
+      "CLOSE": "13.960000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-02-23",
+      "DATE": "02/23/1994",
+      "OPEN": "14.950000",
+      "HIGH": "14.140000",
+      "LOW": "11.810000",
+      "CLOSE": "13.910000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-03-08",
+      "DATE": "03/08/1994",
+      "OPEN": "12.200000",
+      "HIGH": "16.390000",
+      "LOW": "16.070000",
+      "CLOSE": "16.230000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-03-10",
+      "DATE": "03/10/1994",
+      "OPEN": "14.680000",
+      "HIGH": "16.930000",
+      "LOW": "16.080000",
+      "CLOSE": "16.550000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-03-14",
+      "DATE": "03/14/1994",
+      "OPEN": "14.770000",
+      "HIGH": "17.480000",
+      "LOW": "16.520000",
+      "CLOSE": "16.610000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-04-04",
+      "DATE": "04/04/1994",
+      "OPEN": "18.500000",
+      "HIGH": "28.300000",
+      "LOW": "23.610000",
+      "CLOSE": "23.870000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-09-20",
+      "DATE": "09/20/1994",
+      "OPEN": "12.890000",
+      "HIGH": "14.450000",
+      "LOW": "13.350000",
+      "CLOSE": "14.450000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1994-12-19",
+      "DATE": "12/19/1994",
+      "OPEN": "12.870000",
+      "HIGH": "13.670000",
+      "LOW": "13.020000",
+      "CLOSE": "13.020000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1995-02-21",
+      "DATE": "02/21/1995",
+      "OPEN": "11.440000",
+      "HIGH": "12.520000",
+      "LOW": "12.050000",
+      "CLOSE": "12.050000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1995-10-10",
+      "DATE": "10/10/1995",
+      "OPEN": "14.610000",
+      "HIGH": "16.470000",
+      "LOW": "14.970000",
+      "CLOSE": "14.970000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1996-01-08",
+      "DATE": "01/08/1996",
+      "OPEN": "14.020000",
+      "HIGH": "13.220000",
+      "LOW": "12.440000",
+      "CLOSE": "13.110000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1996-02-13",
+      "DATE": "02/13/1996",
+      "OPEN": "14.530000",
+      "HIGH": "15.420000",
+      "LOW": "14.610000",
+      "CLOSE": "14.940000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1996-04-08",
+      "DATE": "04/08/1996",
+      "OPEN": "16.150000",
+      "HIGH": "20.780000",
+      "LOW": "18.150000",
+      "CLOSE": "18.720000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1998-01-12",
+      "DATE": "01/12/1998",
+      "OPEN": "25.790000",
+      "HIGH": "31.080000",
+      "LOW": "28.020000",
+      "CLOSE": "28.020000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1998-04-27",
+      "DATE": "04/27/1998",
+      "OPEN": "20.280000",
+      "HIGH": "27.470000",
+      "LOW": "24.950000",
+      "CLOSE": "26.090000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1998-11-20",
+      "DATE": "11/20/1998",
+      "OPEN": "26.100000",
+      "HIGH": "24.010000",
+      "LOW": "22.430000",
+      "CLOSE": "22.470000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "1999-04-01",
+      "DATE": "04/01/1999",
+      "OPEN": "22.030000",
+      "HIGH": "22.870000",
+      "LOW": "22.060000",
+      "CLOSE": "22.060000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "2002-09-11",
+      "DATE": "09/11/2002",
+      "OPEN": "35.980000",
+      "HIGH": "34.810000",
+      "LOW": "33.720000",
+      "CLOSE": "34.810000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "2004-10-26",
+      "DATE": "10/26/2004",
+      "OPEN": "19.540000",
+      "HIGH": "16.870000",
+      "LOW": "15.970000",
+      "CLOSE": "16.390000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "2004-11-08",
+      "DATE": "11/08/2004",
+      "OPEN": "2.580000",
+      "HIGH": "14.480000",
+      "LOW": "13.680000",
+      "CLOSE": "13.800000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    },
+    {
+      "period": "2006-02-08",
+      "DATE": "02/08/2006",
+      "OPEN": "41.600000",
+      "HIGH": "13.610000",
+      "LOW": "12.760000",
+      "CLOSE": "12.830000",
+      "reasons": [
+        "OPEN_outside_low_high"
+      ]
+    }
+  ],
+  "ohlc_anomaly_date_range": [
+    "1992-02-11",
+    "2006-02-08"
+  ],
+  "all_ohlc_equal_row_count": 506,
+  "samples": [
+    {
+      "period": "1990-01-02",
+      "OPEN": "17.240000",
+      "HIGH": "17.240000",
+      "LOW": "17.240000",
+      "CLOSE": "17.240000"
+    },
+    {
+      "period": "2004-11-08",
+      "OPEN": "2.580000",
+      "HIGH": "14.480000",
+      "LOW": "13.680000",
+      "CLOSE": "13.800000"
+    },
+    {
+      "period": "2020-03-16",
+      "OPEN": "57.830000",
+      "HIGH": "83.560000",
+      "LOW": "57.830000",
+      "CLOSE": "82.690000"
+    },
+    {
+      "period": "2026-08-28",
+      "OPEN": "14.570000",
+      "HIGH": "14.840000",
+      "LOW": "14.130000",
+      "CLOSE": "14.430000"
+    },
+    {
+      "period": "2026-09-04",
+      "OPEN": "14.150000",
+      "HIGH": "14.580000",
+      "LOW": "13.800000",
+      "CLOSE": "14.530000"
+    }
+  ],
+  "extrema": {
+    "OPEN": {
+      "min": {
+        "period": "2004-11-08",
+        "OPEN": "2.580000",
+        "HIGH": "14.480000",
+        "LOW": "13.680000",
+        "CLOSE": "13.800000"
+      },
+      "max": {
+        "period": "2020-03-17",
+        "OPEN": "82.690000",
+        "HIGH": "84.830000",
+        "LOW": "70.370000",
+        "CLOSE": "75.910000"
+      }
+    },
+    "HIGH": {
+      "min": {
+        "period": "2018-01-04",
+        "OPEN": "9.010000",
+        "HIGH": "9.310000",
+        "LOW": "8.920000",
+        "CLOSE": "9.220000"
+      },
+      "max": {
+        "period": "2008-10-24",
+        "OPEN": "67.800000",
+        "HIGH": "89.530000",
+        "LOW": "67.800000",
+        "CLOSE": "79.130000"
+      }
+    },
+    "LOW": {
+      "min": {
+        "period": "2017-11-24",
+        "OPEN": "9.820000",
+        "HIGH": "9.960000",
+        "LOW": "8.560000",
+        "CLOSE": "9.670000"
+      },
+      "max": {
+        "period": "2008-11-20",
+        "OPEN": "74.260000",
+        "HIGH": "81.480000",
+        "LOW": "72.760000",
+        "CLOSE": "80.860000"
+      }
+    },
+    "CLOSE": {
+      "min": {
+        "period": "2017-11-03",
+        "OPEN": "9.830000",
+        "HIGH": "9.910000",
+        "LOW": "8.990000",
+        "CLOSE": "9.140000"
+      },
+      "max": {
+        "period": "2020-03-16",
+        "OPEN": "57.830000",
+        "HIGH": "83.560000",
+        "LOW": "57.830000",
+        "CLOSE": "82.690000"
+      }
+    }
+  },
+  "normalized_rows_serialization": "UTF-8 json.dumps(list[dict], ensure_ascii=False, separators=(',',':')); key order period,OPEN,HIGH,LOW,CLOSE; source ascending order",
+  "normalized_rows_sha256": "b21433cf62da6bbf456975632298a95997294e1a63c03f923e25c67f07af2e4a",
+  "official_claim_anchor_offsets": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+      "bytes": 621023,
+      "sha256": "f4e6c655412ebd198fa83ebf4dc0758e7ce4df6173338d9accc2b8e1c5fa8a83",
+      "utf8_byte_offsets": {
+        "daily closing values": 597099,
+        "Updated Daily": 598046,
+        "VIX_History.csv": 597364
+      }
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+      "bytes": 400103,
+      "sha256": "43ab8dce9352bff8d2ed155ad03ab0b2757eda12f7342911baefbcbb508a6f99",
+      "utf8_byte_offsets": {
+        "personal non-commercial use": 149270,
+        "one copy": 149235,
+        "electronic retrieval system": 149535,
+        "derivative work": 149612,
+        "verify or correct": 149694,
+        "prior written consent": 149869
+      }
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8",
+      "bytes": 458376,
+      "sha256": "f066507ce9d468651ab1488db5240899c002e88eb13413a0175928a1181667b8",
+      "utf8_byte_offsets": {
+        "every 15 seconds": 243437,
+        "4:15 p.m. ET": 243817,
+        "Originally posted": 242260
+      }
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+      "bytes": 519108,
+      "sha256": "526efeacade3a160d48fdca7857565f8e2e8e73194eff276f436469f980de060",
+      "utf8_byte_offsets": {
+        "Index Data License Request Form": 191588,
+        "Market_Data_Policies.pdf": 199705
+      }
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-vix-followup/0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746",
+      "bytes": 54370,
+      "sha256": "0f768bfe2860c7b2975dd6dbe92a5c5f8af567a370fedf645d2fb80e1cac3746",
+      "utf8_byte_offsets": {
+        "16:35-19:00": 23456,
+        "On early close days": 23484,
+        "SFTP": 12313
+      }
+    }
+  ],
+  "source_publication": {
+    "index_calculation_timezone": "Eastern Time",
+    "daily_csv_publication_timezone": null,
+    "daily_csv_release_at": null,
+    "historical_row_public_available_at": null
+  },
+  "verification_network_requests": 0,
+  "new_csv_gets": 0,
+  "new_certifications": 0,
+  "production_mutations": 0
+}

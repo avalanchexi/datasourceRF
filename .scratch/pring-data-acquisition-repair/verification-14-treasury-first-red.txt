@@ -1,0 +1,9 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_official_csv_creates_two_traceable_candidates_with_unknown_public_time __
+.scratch/pring-data-acquisition-repair/draft-tests/test_treasury_csv_acquisition.py:14: in test_official_csv_creates_two_traceable_candidates_with_unknown_public_time
+    from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
+E   ModuleNotFoundError: No module named 'pring_cycle.treasury_context'
+=========================== short test summary info ============================
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_treasury_csv_acquisition.py::test_official_csv_creates_two_traceable_candidates_with_unknown_public_time
+1 failed in 3.53s

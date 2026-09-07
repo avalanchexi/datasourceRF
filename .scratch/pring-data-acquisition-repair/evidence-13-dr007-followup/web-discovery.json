@@ -1,0 +1,29 @@
+{
+  "tool": "web.run search_query",
+  "calls": 1,
+  "queries": [
+    {
+      "q": "2026年8月28日 DR007",
+      "domains": [
+        "chinamoney.com.cn",
+        "pbc.gov.cn"
+      ]
+    },
+    {
+      "q": "存款类机构质押式回购加权利率 历史 查询 DR007",
+      "domains": [
+        "chinamoney.com.cn"
+      ]
+    }
+  ],
+  "selected_official_entry": "https://www.chinamoney.com.cn/chinese/mtdexdaily/?tab=4",
+  "excluded": [
+    "2022 issuer contract saying daily 17:00 is not proof of actual 2026-08-28 publication",
+    "FR007/FDR007 pages describe fixing rather than DR007 all-day weighted rate",
+    "third party or search-snippet numbers not admitted as official target evidence"
+  ],
+  "search_result_raw_http_bytes": false,
+  "direct_get_attempts_recorded_separately": "receipts.json",
+  "tavily_calls": 0,
+  "exa_calls": 0
+}

@@ -1,0 +1,11 @@
+{
+  "base_commit": "abbeb0195ca8cf7baa20d5278e3eb18766221b55",
+  "ruff": {"status": "passed", "scope": "src tests"},
+  "mypy": {"status": "passed", "source_files": 81},
+  "installed_source": {"status": "passed", "matched_files": 81, "fingerprint": "code-fingerprint.json", "comparison": "CRLF normalized to LF"},
+  "targeted": {"passed": 27, "failed": 0, "duration_seconds": 17.06, "log": "../verification-14-treasury-final-targeted.txt"},
+  "spec_review": {"findings": 0, "reviewer": "spec_review", "note": "Initial N/A withdrawal concern withdrawn after ticket 14 requirement review; old value and new missing receipt regression added without source change."},
+  "standards_review": {"findings": 0, "reviewer": "standards_review"},
+  "application_source_changed_after_review": false,
+  "whole_ticket_14_complete": false
+}

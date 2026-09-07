@@ -1,0 +1,317 @@
+<div class="section-pg" id="page-daily-bulletin-interbank-lending">
+<div class="section-h">
+        <div class="section-h-title">
+		<span>质押式回购日报</span>
+		<span class="san-icon san-icon-calendar m-l-10 m-r-10"></span>
+		<span class="IBLOCK m-l-0" id="title-pr-dly-bltn-date"></span>	
+        <span class="san-icon san-icon-notes hidden-xl hidden-l hidden-m" id="tips-ibl-dly-zyshgrb"></span>
+		</div>
+</div>
+<!--section-h end-->
+<div class="section-fo">
+        <div class="san-form-inline AR">
+            <div class="san-input-pair">
+                <input type="text" class="san-input-text san-input-text-inline san-input-text-date" id="pr-dly-bltn-search-date" name="" value="" readonly />
+                <a class="san-btn san-btn-primary m-l-5 resp-mark-1" href="javascript:void(0);" id="pr-excel">导出Excel</a>
+            </div>
+        </div>
+</div>
+<!--section-h end-->
+
+<div class="section-a">
+   
+	<div class="section-a-head">
+            <div class="san-row">
+                <div class="san-col-6">
+                    <div class="section-a-title">各期限品种成交情况</div>
+                </div>
+                <div class="san-col-6 AR">
+                </div>
+            </div>
+    </div>
+	
+		<div class="section-a-body">
+
+            <div class="san-datasheet" id="pr-dly-bltn-mark">
+                <div class="san-sheet">
+                    <table>
+                        <colgroup></colgroup>
+                        <thead>
+                            <tr>
+                                <td class="cell cell-first" data-name="instrmntCd">品种</td>
+                                <td class="cell AC" data-name="openRepoRate">开盘利率(%)</td>
+                                <td class="cell AC" data-name="clsngRepoRate">收盘利率(%)</td>
+                                <td class="cell AC" data-name="wghtdAvgRepoRate">加权利率(%)</td>
+                                <td class="cell AC" data-name="wghtdAvgRepoDebtRate">加权平均利率(利率债)(%)</td>
+                                <td class="cell AC" data-name="avgPrd">平均回购期限(天)</td>
+                                <td class="cell AC" data-name="dlNo">成交笔数(笔)</td>
+                                <td class="cell AC" data-name="trdVol">成交量(亿元)</td>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+</div>  
+<!--section-a end-->
+
+<div class="section-a">
+        <div class="section-a-head section-a-head-bdr-none">
+            <div class="san-row">
+                <div class="san-col-6"><div class="san-col-inner">
+                    <div class="section-a-title">各期限品种成交情况</div>
+                </div></div>
+                <div class="san-col-6"><div class="san-col-inner AR">
+                </div></div>
+            </div>
+        </div>
+    
+        <div class="section-a-body">
+
+            <div class="san-datasheet" id="pr-dly-bltn-term">
+                <div class="san-sheet">
+                    <table>
+						<colgroup></colgroup>
+                        <thead>
+                            <tr>
+                                <td class="cell cell-first" data-name="instrmntCd">品种</td>
+                                <td class="cell AC" data-name="openRepoRate">开盘利率(%)</td>
+                                <td class="cell AC" data-name="clsngRepoRate">收盘利率(%)</td>
+                                <td class="cell AC" data-name="wghtdAvgRepoRate">加权利率(%)</td>
+                                <td class="cell AC" data-name="wghtdAvgRepoDebtRate">加权平均利率(利率债)(%)</td>
+                                <td class="cell AC" data-name="avgPrd">平均回购期限(天)</td>
+                                <td class="cell AC" data-name="dlNo">成交笔数(笔)</td>
+                                <td class="cell AC" data-name="trdVol">成交量(亿元)</td>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+</div> 
+<!--section-a end-->
+
+<div class="section-fo">
+	<div class="text-notes hidden-s hidden-xs" id="notes-dly-zyshgrb"></div>
+	
+    <!-- san-row end -->
+</div>
+</div>
+<script type="text/javascript">
+$(function(){
+    $('#pr-dly-bltn-search-date').datepicker({
+        onSelect: function(dateText, inst){
+            $('#title-pr-dly-bltn-date').text(dateText);
+            doSearchPr();
+        }
+    });
+
+    $('#pr-dly-bltn-mark').sanDatasheet({
+        url: DURL+'currency/pr-dly-bltn-mark.json',
+        dataHandler: function(data){
+        	$('#title-pr-dly-bltn-date').text(data['data']['lastDate']);
+        	$('#pr-dly-bltn-search-date').datepicker('option', 'maxDate', data.data.endDate);
+			$('#pr-dly-bltn-search-date').datepicker('option', 'minDate', data.data.startDate);
+			$('#pr-dly-bltn-search-date').val(data.data.lastDate);
+			$('#pr-excel').attr("href",DQSURL + "cm-u-dlrp/PrDlyBltnExcel?lang=cn&searchDate="+data.data.lastDate+"&publishedTime="+PR_PUBLISHED_TIME);
+			var d = data['data']['updateDate'];
+            var $sheet = this;
+            return _example_dataFormatter($sheet, d, data['records']);
+        },
+		mediaListening: true,
+		onMediaChange: function(){
+			// 通过滚动条滚动，并固定首列
+			if (MEDIA_CASE != 'XL') {
+				var sheetSet = getsheetWidthCase($('#pr-dly-bltn-mark'), setSheetWidth($('#pr-dly-bltn-mark'))),
+					rw = sheetSet.width,
+					strCol = sheetSet.colHtml;
+				$('#pr-dly-bltn-mark').find('colgroup').html(strCol);
+			} else {
+				$('#pr-dly-bltn-mark').find('colgroup').empty();
+			}
+			return {
+				'XL': {
+					fixedLayout: false
+				},
+				'default': {
+					fixedLayout: true,
+					fixedLayoutType: 'column',
+					fixedBodyWidth: rw,
+					fixedColNumber: 1
+				}
+			}
+		}
+    });
+    
+    $('#pr-dly-bltn-term').sanDatasheet({
+        url: DURL+'currency/pr-dly-bltn-interbank-mark.json',
+        dataHandler: function(data){
+        	$('#title-pr-dly-bltn-date').text(data['data']['lastDate']);
+        	$('#pr-dly-bltn-search-date').datepicker('option', 'maxDate', data.data.endDate);
+			$('#pr-dly-bltn-search-date').datepicker('option', 'minDate', data.data.startDate);
+			$('#pr-dly-bltn-search-date').val(data.data.lastDate);
+			$('#pr-excel').attr("href",DQSURL + "cm-u-dlrp/PrDlyBltnExcel?lang=cn&searchDate="+data.data.lastDate+"&publishedTime="+PR_PUBLISHED_TIME);
+            var $sheet = this;
+            return _example_dataFormatter($sheet, data['data']['updateDate'], data['records']);
+        },
+        mediaListening: true,
+        onMediaChange: function(){
+        	// 通过滚动条滚动，并固定首列
+			if (MEDIA_CASE != 'XL') {
+				var sheetSet = getsheetWidthCase($('#pr-dly-bltn-term'), setSheetWidth($('#pr-dly-bltn-term'))),
+					rw = sheetSet.width,
+					strCol = sheetSet.colHtml;
+				$('#pr-dly-bltn-term').find('colgroup').html(strCol);
+			} else {
+				$('#pr-dly-bltn-term').find('colgroup').empty();
+			}
+			return {
+				'XL': {
+					fixedLayout: false
+				},
+				'default': {
+					fixedLayout: true,
+					fixedLayoutType: 'column',
+					fixedBodyWidth: rw,
+					fixedColNumber: 1
+				}
+			}
+        }
+    });
+	
+	//备注
+	notesSetup('#tips-ibl-dly-zyshgrb', 'notes-dly-zyshgrb', DURL+'note/note-2062.json');
+});
+
+
+function doSearchPr(){
+	var searchDate = $('#pr-dly-bltn-search-date').val();
+	prMarkList(searchDate);
+	prTermList(searchDate);
+}
+
+
+function prMarkList(searchDate){	
+	$.ajax({
+		type: "POST",
+		    async:false,
+			url:BK_URL + 'cm-u-dlrp/PrDlyBltn',
+			data:{
+				lang : "cn",
+				indexType : "markVOList",
+				searchDate : searchDate,
+				publishedTime : PR_PUBLISHED_TIME
+			},
+			dataType:'json'					
+		}).done(function(data){
+			$('#pr-dly-bltn-search-date').datepicker('option', 'maxDate', data.data.endDate);
+			$('#pr-dly-bltn-search-date').datepicker('option', 'minDate', data.data.startDate);
+$('#pr-dly-bltn-search-date').val(data.data.lastDate);
+			$('#pr-dly-bltn-mark').sanDatasheet({
+				url:data,
+				dataSource: 'local',
+				dataHandler: function(data){
+					$('#pr-excel').attr("href",DQSURL + "cm-u-dlrp/PrDlyBltnExcel?lang=cn&searchDate="+searchDate+"&publishedTime="+PR_PUBLISHED_TIME);
+					var d = data['data']['updateDate'];
+					var $sheet = this;
+					return _example_dataFormatter($sheet, d, data['records']);
+				},
+				mediaListening: true,
+				onMediaChange: function(){
+					// 通过滚动条滚动，并固定首列
+					if (MEDIA_CASE != 'XL') {
+						var sheetSet = getsheetWidthCase($('#pr-dly-bltn-mark'), setSheetWidth($('#pr-dly-bltn-mark'))),
+							rw = sheetSet.width,
+							strCol = sheetSet.colHtml;
+						$('#pr-dly-bltn-mark').find('colgroup').html(strCol);
+					} else {
+						$('#pr-dly-bltn-mark').find('colgroup').empty();
+					}
+					return {
+						'XL': {
+							fixedLayout: false
+						},
+						'default': {
+							fixedLayout: true,
+							fixedLayoutType: 'column',
+							fixedBodyWidth: rw,
+							fixedColNumber: 1
+						}
+					}
+				}
+			});
+		})	
+}
+
+function prTermList(searchDate){
+	$.ajax({
+		type: "POST",
+		    async:false,
+			url:BK_URL + 'cm-u-dlrp/PrDlyBltn',
+			data:{
+				lang : "en",
+				indexType : "markInterBankVOList",
+				searchDate : searchDate,
+				publishedTime : PR_PUBLISHED_TIME
+			},
+			dataType:'json'					
+		}).done(function(data){
+			$('#pr-dly-bltn-search-date').datepicker('option', 'maxDate', data.data.endDate);
+			$('#pr-dly-bltn-search-date').datepicker('option', 'minDate', data.data.startDate);
+$('#pr-dly-bltn-search-date').val(data.data.lastDate);
+			$('#pr-dly-bltn-term').sanDatasheet({
+				url:data,
+				dataSource: 'local',
+				dataHandler: function(data){
+					var $sheet = this;
+					return _example_dataFormatter($sheet, '', data['records']);
+				},
+				mediaListening: true,
+				onMediaChange: function(){
+					// 通过滚动条滚动，并固定首列
+					if (MEDIA_CASE != 'XL') {
+						var sheetSet = getsheetWidthCase($('#pr-dly-bltn-term'), setSheetWidth($('#pr-dly-bltn-term'))),
+							rw = sheetSet.width,
+							strCol = sheetSet.colHtml;
+						$('#pr-dly-bltn-term').find('colgroup').html(strCol);
+					} else {
+						$('#pr-dly-bltn-term').find('colgroup').empty();
+					}
+					return {
+						'XL': {
+							fixedLayout: false
+						},
+						'default': {
+							fixedLayout: true,
+							fixedLayoutType: 'column',
+							fixedBodyWidth: rw,
+							fixedColNumber: 1
+						}
+					}
+				}
+			});
+		})	
+}
+function setSheetWidth($sheet) {
+    var $tr = $sheet.find('thead:eq(0)>tr').children(),
+        // 各列宽度
+        w = [], _w;
+    $tr.each(function(i){
+        switch (i) {
+            case 0:
+                _w = 80;
+                break;
+            case 5:
+                _w = 130;
+                break;
+            default:
+                _w =120;
+                break;
+        }
+        w.push(_w);
+    });
+    return w;
+}
+</script>
