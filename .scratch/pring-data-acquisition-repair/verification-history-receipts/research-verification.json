@@ -1,0 +1,13 @@
+{
+  "report_sha256": "fad9efd185f74c14c12ab93cff5a09c8dc8f2d3a0c2510074bcc4dca98cdf55b",
+  "bytes": 18569,
+  "local_links": 25,
+  "git_baseline": "a569fd757c7d19a4ae95b980bd2b1c0c51cba973",
+  "matched_git_input_fingerprints": 16,
+  "exact_fixtures": 2,
+  "fixture_bytes": 347521,
+  "ticket19_report_sha256": "fe43b6c3766779524b86a3629ecb3f72a74abc957239b20968cb0050c082e5bc",
+  "ticket19_report_bytes": 10142,
+  "ticket19_local_links": 25,
+  "ticket19_matched_git_inputs": 13
+}

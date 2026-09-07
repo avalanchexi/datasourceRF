@@ -1,0 +1,90 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_history_threaded_fetch_errors_retain_response_and_run_owner _______
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-threaded-red-20260908-a/test_history_threaded_fetch_er0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7749347cb2f0>
+
+    def test_history_threaded_fetch_errors_retain_response_and_run_owner(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        models = ModelRepository(paths.database)
+        models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+        models.activate("model-v0001", explicitly_approved=True)
+        run = RunRepository(paths.database).submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="history-transport-fixture",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        requests: list[str] = []
+        body = b"<html>history document unavailable</html>"
+    
+        def transport(request: Request, *, timeout: int) -> Reply:
+            requests.append(request.full_url)
+            if not request.full_url.endswith("/index.html"):
+                return Reply(request.full_url, b"<html><body>No links</body></html>")
+            raise HTTPError(request.full_url, 503, "unavailable", Message(), BytesIO(body))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", transport)
+        monkeypatch.setattr("pring_cycle.official_context.urlopen", transport)
+        with own_acquisitions(paths.database, run.run_id, "source_history"):
+            with pytest.raises(HTTPError):
+>               smoke_source_history(paths, target_business_date="2026-08-28")
+
+tests/adapters/test_source_history_acquisition.py:91: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:100: in smoke_source_history
+    _smoke_document_from_fetched(paths, future.result(), target=target)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:168: in _smoke_document_from_fetched
+    parsed_families = tuple(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:169: in <genexpr>
+    parse_official_context_document(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+content = b'<html><body>No links</body></html>'
+
+    def parse_official_context_document(
+        content: bytes,
+        *,
+        family: str,
+        source_url: str,
+        expected_period: str,
+        fetched_at: datetime,
+        parser_text_limit: int | None = None,
+    ) -> ParsedOfficialContextRelease:
+        provider = _validate_source_identity(family, source_url)
+        if fetched_at.tzinfo is None:
+            raise ValueError("official_context_fetched_at_must_be_timezone_aware")
+        if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
+            raise ValueError("official_context_document_size_invalid")
+        document = _decode_document(content)
+        parser = _OfficialHtmlParser()
+        parser.feed(document)
+        text = _normalized_text(" ".join(parser.parts))
+        if parser_text_limit is not None and len(text) > parser_text_limit:
+            raise ValueError("official_parser_fragment_too_large")
+        source_timezone = ZoneInfo("Asia/Shanghai")
+        published = _release_timestamp(text)
+        release_at, public_at = publication_times(published, source_timezone)
+        if release_at is not None:
+            release_at = release_at.astimezone(ZoneInfo("Asia/Shanghai"))
+            public_at = release_at
+        if release_at is not None and fetched_at < release_at:
+            raise ValueError("official_context_fetched_before_release")
+        if (
+            published is not None
+            and not isinstance(published, datetime)
+            and fetched_at.astimezone(source_timezone).date() < published
+        ):
+            raise ValueError("official_context_fetched_before_release")
+        if not _period_is_identified(text, expected_period):
+>           raise ValueError("official_context_period_identity_mismatch")
+E           ValueError: official_context_period_identity_mismatch
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:215: ValueError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_threaded_fetch_errors_retain_response_and_run_owner
+1 failed, 1 passed in 2.72s

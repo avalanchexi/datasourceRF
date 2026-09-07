@@ -4,15 +4,18 @@ import hashlib
 import json
 import re
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from contextvars import copy_context
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import Request
 from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.artifacts import store_artifact
+from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.official_context import (
     _fetch_official_context_document,
     ingest_official_context_document,
@@ -71,7 +74,7 @@ def smoke_source_history(
     browser_capture_root: Path | None = None,
 ) -> dict[str, object]:
     target = date.fromisoformat(target_business_date)
-    records, discovery_requests = _historical_records(target)
+    records, discovery_requests = _historical_records(paths, target)
     browser_capture_records = sum(
         1
         for record in records
@@ -85,8 +88,11 @@ def smoke_source_history(
         remaining = iter(records)
         pending = {
             executor.submit(
-                _fetch_record,
+                copy_context().run,
+                _smoke_record,
+                paths,
                 record,
+                target=target,
                 browser_capture_root=browser_capture_root,
             )
             for record in (next(remaining, None) for _ in range(max_workers))
@@ -95,24 +101,23 @@ def smoke_source_history(
         while pending:
             done, pending = wait(pending, return_when=FIRST_COMPLETED)
             for future in done:
-                documents.append(
-                    _smoke_document_from_fetched(paths, future.result(), target=target)
-                )
+                documents.append(future.result())
                 record = next(remaining, None)
                 if record is not None:
                     pending.add(
                         executor.submit(
-                            _fetch_record,
+                            copy_context().run,
+                            _smoke_record,
+                            paths,
                             record,
+                            target=target,
                             browser_capture_root=browser_capture_root,
                         )
                     )
     documents.sort(key=lambda item: (str(item["period"]), str(item["source_url"])))
     coverage = _validate_coverage(tuple(documents), target=target)
     digest = hashlib.sha256(
-        "\x1f".join(
-            f"{item['source_url']}:{item['artifact_hash']}" for item in documents
-        ).encode()
+        "\x1f".join(f"{item['source_url']}:{item['artifact_hash']}" for item in documents).encode()
     ).hexdigest()
     return {
         "browser_capture_records": browser_capture_records,
@@ -136,11 +141,93 @@ def smoke_source_history(
     }
 
 
+def _smoke_record(
+    paths: RuntimePaths,
+    record: HistoricalSourceRecord,
+    *,
+    target: date,
+    browser_capture_root: Path | None,
+) -> dict[str, object]:
+    repository = AcquisitionRepository(paths.database, paths.artifacts)
+    fetched: _FetchedRecord | None = None
+    acquisition_id = ""
+    capture_path = (
+        browser_capture_root / f"{record.families[0]}--{record.period}.eval.txt"
+        if browser_capture_root is not None
+        and record.families
+        and record.families[0].startswith("nbs_")
+        else None
+    )
+
+    def started(value: str) -> None:
+        nonlocal acquisition_id
+        acquisition_id = value
+
+    def fetch() -> bytes:
+        nonlocal fetched
+        if capture_path is not None:
+            _validate_official_url(record.source_url)
+            return capture_path.read_bytes()
+        fetched = _fetch_record(record)
+        return fetched.content
+
+    def parse(content: bytes) -> dict[str, object]:
+        received_at = repository.get(acquisition_id).received_at
+        if received_at is None:
+            raise ValueError("source_history_acquisition_identity_invalid")
+        if capture_path is not None:
+            document = _FetchedRecord(
+                record,
+                _decode_browser_capture(content),
+                "text/html; charset=utf-8",
+                record.source_url,
+                200,
+            )
+        elif fetched is not None and fetched.content == content:
+            document = fetched
+        else:
+            raise ValueError("source_history_acquisition_identity_invalid")
+        return _smoke_document_from_fetched(paths, document, target=target, fetched_at=received_at)
+
+    parameters = {
+        "source_url": record.source_url,
+        "period": record.period,
+        "families": ",".join(record.families),
+        "target_business_date": target.isoformat(),
+        "transport": "browser_capture_import" if capture_path is not None else "http_get",
+    }
+    if capture_path is not None:
+        parameters["capture_path"] = str(capture_path)
+    else:
+        parameters["response_read_limit_bytes"] = "4000001"
+    acquired = repository.capture(
+        provider="official_history",
+        api_name="history_document",
+        parameters=parameters,
+        fields="official_history_document",
+        parser_version="source-history-document-v0001",
+        fetch=fetch,
+        parse=parse,
+        normalize=lambda document: document,
+        on_started=started,
+        max_error_body_bytes=4_000_001,
+    )
+    receipt = acquired.receipt
+    return {
+        **acquired.value,
+        "acquisition_id": receipt.acquisition_id,
+        "started_at": receipt.started_at.isoformat(),
+        "received_at": receipt.received_at.isoformat() if receipt.received_at else None,
+        "validated_at": receipt.validated_at.isoformat() if receipt.validated_at else None,
+    }
+
+
 def _smoke_document_from_fetched(
     paths: RuntimePaths,
     item: _FetchedRecord,
     *,
     target: date,
+    fetched_at: datetime,
 ) -> dict[str, object]:
     if item.final_url != item.record.source_url or item.http_status != 200:
         raise ValueError("source_history_fetch_identity_invalid")
@@ -158,7 +245,7 @@ def _smoke_document_from_fetched(
             item.content,
             source_url=item.record.source_url,
             expected_period=item.record.period,
-            fetched_at=datetime.now(UTC),
+            fetched_at=fetched_at,
         )
         metric_ids: tuple[str, ...] = ("CN_LPR_1Y_5Y",)
         release_at = parsed.release_at
@@ -170,7 +257,7 @@ def _smoke_document_from_fetched(
                 family=family,
                 source_url=item.record.source_url,
                 expected_period=item.record.period,
-                fetched_at=datetime.now(UTC),
+                fetched_at=fetched_at,
             )
             for family in item.record.families
         )
@@ -272,15 +359,17 @@ def refresh_source_history(
     }
 
 
-def _historical_records(target: date) -> tuple[tuple[HistoricalSourceRecord, ...], int]:
+def _historical_records(
+    paths: RuntimePaths, target: date
+) -> tuple[tuple[HistoricalSourceRecord, ...], int]:
     records = [
         *_nbs_records(),
         *_tool_liquidity_records(),
         *_lpr_records(),
         *_pbc_migrated_january_2025_records(),
     ]
-    financial, financial_requests = _discover_pbc_financial_reports(target)
-    omo, omo_requests = _discover_omo_notices(target)
+    financial, financial_requests = _discover_pbc_financial_reports(paths, target)
+    omo, omo_requests = _discover_omo_notices(paths, target)
     records.extend(financial)
     records.extend(omo)
     unique = {
@@ -292,29 +381,8 @@ def _historical_records(target: date) -> tuple[tuple[HistoricalSourceRecord, ...
     )
 
 
-def _fetch_record(
-    record: HistoricalSourceRecord,
-    *,
-    browser_capture_root: Path | None = None,
-) -> _FetchedRecord:
+def _fetch_record(record: HistoricalSourceRecord) -> _FetchedRecord:
     _validate_official_url(record.source_url)
-    if (
-        browser_capture_root is not None
-        and record.families
-        and record.families[0].startswith("nbs_")
-    ):
-        content = _read_browser_capture(
-            browser_capture_root,
-            family=record.families[0],
-            period=record.period,
-        )
-        return _FetchedRecord(
-            record,
-            content,
-            "text/html; charset=utf-8",
-            record.source_url,
-            200,
-        )
     if record.lpr:
         request = Request(
             record.source_url,
@@ -341,18 +409,15 @@ def _fetch_record(
 
 
 def _discover_pbc_financial_reports(
+    paths: RuntimePaths,
     target: date,
 ) -> tuple[tuple[HistoricalSourceRecord, ...], int]:
     base = "https://www.pbc.gov.cn"
     records: dict[str, HistoricalSourceRecord] = {}
     requests = 0
     for page in range(1, 6):
-        url = (
-            base
-            + "/diaochatongjisi/116219/116225/"
-            + f"11871-{page}.html"
-        )
-        anchors = _fetch_anchors(url, expected_host="www.pbc.gov.cn")
+        url = base + "/diaochatongjisi/116219/116225/" + f"11871-{page}.html"
+        anchors = _fetch_anchors(paths, url, expected_host="www.pbc.gov.cn", target=target)
         requests += 1
         for href, title in anchors:
             report = _financial_report_identity(title)
@@ -399,6 +464,7 @@ def _pbc_migrated_january_2025_records() -> tuple[HistoricalSourceRecord, ...]:
 
 
 def _discover_omo_notices(
+    paths: RuntimePaths,
     target: date,
 ) -> tuple[tuple[HistoricalSourceRecord, ...], int]:
     base = "https://www.pbc.gov.cn"
@@ -406,12 +472,8 @@ def _discover_omo_notices(
     records: dict[str, HistoricalSourceRecord] = {}
     requests = 0
     for page in range(1, 10):
-        url = (
-            base
-            + "/zhengcehuobisi/125207/125213/125431/125475/"
-            + f"17081-{page}.html"
-        )
-        anchors = _fetch_anchors(url, expected_host="www.pbc.gov.cn")
+        url = base + "/zhengcehuobisi/125207/125213/125431/125475/" + f"17081-{page}.html"
+        anchors = _fetch_anchors(paths, url, expected_host="www.pbc.gov.cn", target=target)
         requests += 1
         for href, title in anchors:
             if "公开市场业务交易公告" not in title:
@@ -435,9 +497,8 @@ def _discover_omo_notices(
     return tuple(records.values()), requests
 
 
-def _read_browser_capture(root: Path, *, family: str, period: str) -> bytes:
-    capture_path = root / f"{family}--{period}.eval.txt"
-    document = capture_path.read_text(encoding="utf-8-sig")
+def _decode_browser_capture(raw: bytes) -> bytes:
+    document = raw.decode("utf-8-sig").replace("\r\n", "\n")
     prefix = "### Result\n"
     suffix = "\n### Ran Playwright code"
     if not document.startswith(prefix) or suffix not in document:
@@ -449,7 +510,9 @@ def _read_browser_capture(root: Path, *, family: str, period: str) -> bytes:
     return content.encode()
 
 
-def _fetch_anchors(url: str, *, expected_host: str) -> tuple[tuple[str, str], ...]:
+def _fetch_anchors(
+    paths: RuntimePaths, url: str, *, expected_host: str, target: date
+) -> tuple[tuple[str, str], ...]:
     parsed = urlsplit(url)
     if parsed.scheme != "https" or parsed.hostname != expected_host:
         raise ValueError("source_history_listing_url_invalid")
@@ -458,13 +521,47 @@ def _fetch_anchors(url: str, *, expected_host: str) -> tuple[tuple[str, str], ..
         headers={"Accept": "text/html", "User-Agent": "pring-cycle/1.0 history-index"},
         method="GET",
     )
-    with urlopen(request, timeout=20) as response:  # noqa: S310 - validated official URL
-        content = response.read(1_000_001)
-        if response.geturl() != url or int(response.status) != 200:
+    final_url = ""
+    http_status = 0
+
+    def fetch() -> bytes:
+        nonlocal final_url, http_status
+        with urlopen(request, timeout=20) as response:  # noqa: S310 - validated official URL
+            content = response.read(1_000_001)
+            final_url, http_status = response.geturl(), int(response.status)
+        if not isinstance(content, bytes):
+            raise ValueError("source_history_listing_response_bytes_required")
+        return content
+
+    def parse(content: bytes) -> tuple[tuple[str, str], ...]:
+        if final_url != url or http_status != 200:
             raise ValueError("source_history_listing_fetch_invalid")
-    parser = _AnchorParser()
-    parser.feed(content.decode("utf-8", errors="replace"))
-    return tuple((href, re.sub(r"\s+", "", title)) for href, title in parser.anchors)
+        if not content or len(content) > 1_000_000:
+            raise ValueError("source_history_listing_size_invalid")
+        parser = _AnchorParser()
+        parser.feed(content.decode("utf-8", errors="replace"))
+        return tuple((href, re.sub(r"\s+", "", title)) for href, title in parser.anchors)
+
+    return (
+        AcquisitionRepository(paths.database, paths.artifacts)
+        .capture(
+            provider="official_history",
+            api_name="history_listing",
+            parameters={
+                "source_url": url,
+                "transport": "http_get",
+                "target_business_date": target.isoformat(),
+                "response_read_limit_bytes": "1000001",
+            },
+            fields="href,title",
+            parser_version="source-history-listing-v0001",
+            fetch=fetch,
+            parse=parse,
+            normalize=lambda anchors: anchors,
+            max_error_body_bytes=1_000_001,
+        )
+        .value
+    )
 
 
 def _validated_discovered_url(base: str, href: str, *, expected_host: str) -> str:
@@ -485,8 +582,7 @@ def _validate_official_url(source_url: str) -> None:
     parsed = urlsplit(source_url)
     if (
         parsed.scheme != "https"
-        or parsed.hostname
-        not in {"www.pbc.gov.cn", "www.stats.gov.cn", "www.chinamoney.com.cn"}
+        or parsed.hostname not in {"www.pbc.gov.cn", "www.stats.gov.cn", "www.chinamoney.com.cn"}
         or parsed.username is not None
         or parsed.password is not None
         or parsed.port is not None
@@ -513,9 +609,7 @@ def _financial_report_identity(title: str) -> tuple[str, str] | None:
             return None
         month = int(month_match.group("month"))
     report_kind = (
-        "social_financing"
-        if match.group("kind").startswith("社会融资规模")
-        else "financial"
+        "social_financing" if match.group("kind").startswith("社会融资规模") else "financial"
     )
     return f"{year}-{month:02d}", report_kind
 
@@ -568,10 +662,7 @@ def _validate_coverage(
     if not omo or omo[0] > "2026-02-27" or omo[-1] < target.isoformat():
         raise ValueError("source_history_coverage_incomplete:pbc_omo_notice")
     omo_dates = [date.fromisoformat(value) for value in omo]
-    if any(
-        (right - left).days > 10
-        for left, right in zip(omo_dates, omo_dates[1:], strict=False)
-    ):
+    if any((right - left).days > 10 for left, right in zip(omo_dates, omo_dates[1:], strict=False)):
         raise ValueError("source_history_coverage_gap:pbc_omo_notice")
     summary["pbc_omo_notice"] = {
         "first_period": omo[0],
@@ -637,8 +728,7 @@ def _nbs_records() -> tuple[HistoricalSourceRecord, ...]:
         ("nbs_capacity_utilization", "2026-Q2", "202607/t20260715_1964130.html"),
     )
     return tuple(
-        HistoricalSourceRecord(base + path, period, (family,))
-        for family, period, path in rows
+        HistoricalSourceRecord(base + path, period, (family,)) for family, period, path in rows
     )
 
 
@@ -677,10 +767,7 @@ def _lpr_records() -> tuple[HistoricalSourceRecord, ...]:
         ("2026-07", "20260720/3379021.html"),
         ("2026-08", "20260820/3399885.html"),
     )
-    return tuple(
-        HistoricalSourceRecord(base + path, period, lpr=True)
-        for period, path in rows
-    )
+    return tuple(HistoricalSourceRecord(base + path, period, lpr=True) for period, path in rows)
 
 
 def _string_list(value: object, error: str) -> list[str]:

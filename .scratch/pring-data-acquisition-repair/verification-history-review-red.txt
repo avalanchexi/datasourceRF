@@ -1,0 +1,188 @@
+F.........FFFF                                                           [100%]
+=================================== FAILURES ===================================
+__________ test_history_discovery_http_error_retains_failed_response ___________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-review-red-20260908-a/test_history_discovery_http_er0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7afcaa0505f0>
+
+    def test_history_discovery_http_error_retains_failed_response(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        requests: list[str] = []
+        body = b"<html>official listing unavailable</html>"
+    
+        def unavailable(request: Request, *, timeout: int) -> None:
+            requests.append(request.full_url)
+            raise HTTPError(request.full_url, 503, "unavailable", Message(), BytesIO(body))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", unavailable)
+        started = datetime.now(UTC)
+        with pytest.raises(HTTPError):
+            smoke_source_history(paths, target_business_date="2026-08-28")
+        completed = datetime.now(UTC)
+        assert requests == ["https://www.pbc.gov.cn/diaochatongjisi/116219/116225/11871-1.html"]
+        repository = AcquisitionRepository(paths.database, paths.artifacts)
+        receipts = repository.history()
+        assert len(receipts) == 1
+        receipt = receipts[0]
+        assert receipt.state == "failed" and receipt.error_type == "HTTPError"
+        assert receipt.received_at is not None
+        assert started <= receipt.started_at <= receipt.received_at <= completed
+        assert receipt.validated_at is None
+        assert repository.read_content(receipt.acquisition_id, "raw") == body
+        assert receipt.parameters["source_url"] == requests[0]
+>       assert receipt.parameters["target_business_date"] == "2026-08-28"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'target_business_date'
+
+tests/adapters/test_source_history_acquisition.py:51: KeyError
+________ test_history_redirect_does_not_make_a_second_physical_request _________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-review-red-20260908-a/test_history_redirect_does_not0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7afca8eca2a0>
+
+    def test_history_redirect_does_not_make_a_second_physical_request(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        calls: list[str] = []
+    
+        def https_response(handler: object, request: Request) -> addinfourl:
+            calls.append(request.full_url)
+            headers = Message()
+            headers["Location"] = "https://www.pbc.gov.cn/redirected"
+            status = 302 if len(calls) == 1 else 200
+            response = addinfourl(BytesIO(b"original redirect body"), headers, request.full_url, status)
+            response.msg = "Found" if status == 302 else "OK"
+            return response
+    
+        monkeypatch.setattr("urllib.request.HTTPSHandler.https_open", https_response)
+        with pytest.raises((HTTPError, ValueError)):
+            smoke_source_history(paths, target_business_date="2026-08-28")
+>       assert calls == ["https://www.pbc.gov.cn/diaochatongjisi/116219/116225/11871-1.html"]
+E       AssertionError: assert ['https://www...n/redirected'] == ['https://www...11871-1.html']
+E         
+E         Left contains one more item: 'https://www.pbc.gov.cn/redirected'
+E         Use -v to get more diff
+
+tests/adapters/test_source_history_acquisition.py:254: AssertionError
+______________ test_history_http_error_body_retention_is_bounded _______________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-review-red-20260908-a/test_history_http_error_body_r0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7afca8ebc1d0>
+
+    def test_history_http_error_body_retention_is_bounded(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        body = b"x" * 1_000_011
+    
+        def unavailable(request: Request, *, timeout: int) -> None:
+            raise HTTPError(request.full_url, 503, "unavailable", Message(), BytesIO(body))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", unavailable)
+        with pytest.raises(HTTPError):
+            smoke_source_history(paths, target_business_date="2026-08-28")
+        repository = AcquisitionRepository(paths.database, paths.artifacts)
+        (receipt,) = repository.history()
+>       assert repository.read_content(receipt.acquisition_id, "raw") == body[:1_000_001]
+E       AssertionError: assert b'xxxxxxxxxxx...xxxxxxxxxxxxx' == b'xxxxxxxxxxx...xxxxxxxxxxxxx'
+E         
+E         Use -v to get more diff
+
+tests/adapters/test_source_history_acquisition.py:276: AssertionError
+_ test_history_browser_import_preserves_wrapper_before_validation[invalid_wrapper] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-review-red-20260908-a/test_history_browser_import_pr0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7afca8f64a10>
+wrapper = 'invalid_wrapper'
+
+    @pytest.mark.parametrize("wrapper", ["invalid_wrapper", "valid_wrapper_invalid_html"])
+    def test_history_browser_import_preserves_wrapper_before_validation(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wrapper: str
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        captures = tmp_path / "captures"
+        captures.mkdir()
+        raw = (
+            b"invalid capture wrapper"
+            if wrapper == "invalid_wrapper"
+            else b'### Result\r\n"<html>invalid reporting period</html>"\r\n### Ran Playwright code'
+        )
+        (captures / "nbs_capacity_utilization--2025-Q4.eval.txt").write_bytes(raw)
+    
+        def transport(request: Request, *, timeout: int) -> Reply:
+            if request.full_url.rsplit("/", 1)[-1].startswith(("11871-", "17081-")):
+                return Reply(request.full_url, b"<html>No links</html>")
+            raise HTTPError(request.full_url, 503, "unavailable", Message(), BytesIO(b"failed"))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", transport)
+        monkeypatch.setattr("pring_cycle.official_context.urlopen", transport)
+        with pytest.raises((HTTPError, ValueError, FileNotFoundError)):
+            smoke_source_history(
+                paths, target_business_date="2026-08-28", browser_capture_root=captures
+            )
+        repository = AcquisitionRepository(paths.database, paths.artifacts)
+>       (receipt,) = [
+        ^^^^^^^^^^
+            r for r in repository.history()
+            if r.parameters.get("families") == "nbs_capacity_utilization"
+            and r.parameters.get("period") == "2025-Q4"
+        ]
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+tests/adapters/test_source_history_acquisition.py:308: ValueError
+_ test_history_browser_import_preserves_wrapper_before_validation[valid_wrapper_invalid_html] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-review-red-20260908-a/test_history_browser_import_pr1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7afca8ebae10>
+wrapper = 'valid_wrapper_invalid_html'
+
+    @pytest.mark.parametrize("wrapper", ["invalid_wrapper", "valid_wrapper_invalid_html"])
+    def test_history_browser_import_preserves_wrapper_before_validation(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wrapper: str
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        captures = tmp_path / "captures"
+        captures.mkdir()
+        raw = (
+            b"invalid capture wrapper"
+            if wrapper == "invalid_wrapper"
+            else b'### Result\r\n"<html>invalid reporting period</html>"\r\n### Ran Playwright code'
+        )
+        (captures / "nbs_capacity_utilization--2025-Q4.eval.txt").write_bytes(raw)
+    
+        def transport(request: Request, *, timeout: int) -> Reply:
+            if request.full_url.rsplit("/", 1)[-1].startswith(("11871-", "17081-")):
+                return Reply(request.full_url, b"<html>No links</html>")
+            raise HTTPError(request.full_url, 503, "unavailable", Message(), BytesIO(b"failed"))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", transport)
+        monkeypatch.setattr("pring_cycle.official_context.urlopen", transport)
+        with pytest.raises((HTTPError, ValueError, FileNotFoundError)):
+            smoke_source_history(
+                paths, target_business_date="2026-08-28", browser_capture_root=captures
+            )
+        repository = AcquisitionRepository(paths.database, paths.artifacts)
+>       (receipt,) = [
+        ^^^^^^^^^^
+            r for r in repository.history()
+            if r.parameters.get("families") == "nbs_capacity_utilization"
+            and r.parameters.get("period") == "2025-Q4"
+        ]
+E       ValueError: not enough values to unpack (expected 1, got 0)
+
+tests/adapters/test_source_history_acquisition.py:308: ValueError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_discovery_http_error_retains_failed_response
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_redirect_does_not_make_a_second_physical_request
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_http_error_body_retention_is_bounded
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_browser_import_preserves_wrapper_before_validation[invalid_wrapper]
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_browser_import_preserves_wrapper_before_validation[valid_wrapper_invalid_html]
+5 failed, 9 passed in 9.03s

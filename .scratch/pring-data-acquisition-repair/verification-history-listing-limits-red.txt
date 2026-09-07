@@ -1,0 +1,64 @@
+....F.                                                                   [100%]
+=================================== FAILURES ===================================
+____ test_invalid_history_listing_keeps_received_body_unvalidated[oversize] ____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-listing-limits-red-20260908-a/test_invalid_history_listing_k2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x76009e5b9190>
+failure = 'oversize'
+
+    @pytest.mark.parametrize("failure", ["redirect", "status", "oversize"])
+    def test_invalid_history_listing_keeps_received_body_unvalidated(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        body = b"x" * 1_000_001 if failure == "oversize" else b"<html>listing</html>"
+        calls: list[str] = []
+    
+        def transport(request: Request, *, timeout: int) -> Reply:
+            calls.append(request.full_url)
+            if len(calls) > 1:
+                raise RuntimeError("invalid listing was accepted")
+            return Reply(
+                request.full_url + "?redirected" if failure == "redirect" else request.full_url,
+                body,
+                503 if failure == "status" else 200,
+            )
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", transport)
+        with pytest.raises(ValueError, match="source_history_listing_"):
+>           smoke_source_history(paths, target_business_date="2026-08-28")
+
+tests/adapters/test_source_history_acquisition.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:76: in smoke_source_history
+    records, discovery_requests = _historical_records(paths, target)
+                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:350: in _historical_records
+    financial, financial_requests = _discover_pbc_financial_reports(paths, target)
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:423: in _discover_pbc_financial_reports
+    anchors = _fetch_anchors(paths, url, expected_host="www.pbc.gov.cn")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:548: in _fetch_anchors
+    return AcquisitionRepository(paths.database, paths.artifacts).capture(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:179: in capture
+    raw = fetch()
+          ^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_history.py:536: in fetch
+    with urlopen(request, timeout=20) as response:  # noqa: S310 - validated official URL
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+request = <urllib.request.Request object at 0x76009e5404d0>
+
+    def transport(request: Request, *, timeout: int) -> Reply:
+        calls.append(request.full_url)
+        if len(calls) > 1:
+>           raise RuntimeError("invalid listing was accepted")
+E           RuntimeError: invalid listing was accepted
+
+tests/adapters/test_source_history_acquisition.py:122: RuntimeError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_source_history_acquisition.py::test_invalid_history_listing_keeps_received_body_unvalidated[oversize]
+1 failed, 5 passed in 5.48s

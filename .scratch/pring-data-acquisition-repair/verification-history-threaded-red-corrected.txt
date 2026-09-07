@@ -1,0 +1,46 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_history_threaded_fetch_errors_retain_response_and_run_owner _______
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-threaded-red-20260908-b/test_history_threaded_fetch_er0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c2a0ee09790>
+
+    def test_history_threaded_fetch_errors_retain_response_and_run_owner(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        models = ModelRepository(paths.database)
+        models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+        models.activate("model-v0001", explicitly_approved=True)
+        run = RunRepository(paths.database).submit_manual_full(
+            target_business_date="2026-08-28",
+            client_request_id="history-transport-fixture",
+            model_version_id="model-v0001",
+            system_as_of=datetime.now(UTC),
+        )
+        requests: list[str] = []
+        body = b"<html>history document unavailable</html>"
+    
+        def transport(request: Request, *, timeout: int) -> Reply:
+            requests.append(request.full_url)
+            if request.full_url.rsplit("/", 1)[-1].startswith(("11871-", "17081-")):
+                return Reply(request.full_url, b"<html><body>No links</body></html>")
+            raise HTTPError(request.full_url, 503, "unavailable", Message(), BytesIO(body))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", transport)
+        monkeypatch.setattr("pring_cycle.official_context.urlopen", transport)
+        with own_acquisitions(paths.database, run.run_id, "source_history"):
+            with pytest.raises(HTTPError):
+                smoke_source_history(paths, target_business_date="2026-08-28")
+        repository = AcquisitionRepository(paths.database, paths.artifacts)
+        receipts = repository.history()
+>       assert len(receipts) == len(requests)
+E       AssertionError: assert 14 == 22
+E        +  where 14 = len((AcquisitionReceipt(acquisition_id='acquisition-2a0e3bd5d4e2455ba4b334cd75be6f5e', provider='official_history', api_na...0984407698', normalized_hash='4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945', error_type=None), ...))
+E        +  and   22 = len(['https://www.pbc.gov.cn/diaochatongjisi/116219/116225/11871-1.html', 'https://www.pbc.gov.cn/diaochatongjisi/116219/1...isi/116219/116225/11871-5.html', 'https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/17081-1.html', ...])
+
+tests/adapters/test_source_history_acquisition.py:94: AssertionError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_threaded_fetch_errors_retain_response_and_run_owner
+1 failed, 1 passed in 2.95s

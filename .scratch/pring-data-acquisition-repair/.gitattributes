@@ -95,3 +95,7 @@ verification-official-parsing*.txt whitespace=-blank-at-eol
 verification-official-parsing/*.txt whitespace=-blank-at-eol
 p1-omo-full-value-audit.md -text whitespace=cr-at-eol,-blank-at-eof
 a18-certification-next-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
+source-history-receipt-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
+ticket19-implementation-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
+verification-history-*.txt whitespace=-blank-at-eol
+verification-history-receipts/*.txt whitespace=-blank-at-eol

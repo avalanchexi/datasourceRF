@@ -1,0 +1,37 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_history_discovery_http_error_retains_failed_response ___________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-history-discovery-red-20260908-a/test_history_discovery_http_er0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x751085c837a0>
+
+    def test_history_discovery_http_error_retains_failed_response(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        requests: list[str] = []
+        body = b"<html>official listing unavailable</html>"
+    
+        def unavailable(request: Request, *, timeout: int) -> None:
+            requests.append(request.full_url)
+            raise HTTPError(request.full_url, 503, "unavailable", {}, BytesIO(body))
+    
+        monkeypatch.setattr("pring_cycle.source_history.urlopen", unavailable)
+        started = datetime.now(UTC)
+        with pytest.raises(HTTPError):
+            smoke_source_history(paths, target_business_date="2026-08-28")
+        completed = datetime.now(UTC)
+        assert requests == [
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/11871-1.html"
+        ]
+        repository = AcquisitionRepository(paths.database, paths.artifacts)
+        receipts = repository.history()
+>       assert len(receipts) == 1
+E       assert 0 == 1
+E        +  where 0 = len(())
+
+tests/adapters/test_source_history_acquisition.py:36: AssertionError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_source_history_acquisition.py::test_history_discovery_http_error_retains_failed_response
+1 failed in 1.81s

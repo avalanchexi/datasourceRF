@@ -135,7 +135,10 @@ class AcquisitionRepository:
         clock: Callable[[], datetime] = utc_now,
         defer_validation: bool = False,
         on_started: Callable[[str], None] | None = None,
+        max_error_body_bytes: int | None = None,
     ) -> Acquired[T]:
+        if max_error_body_bytes is not None and max_error_body_bytes <= 0:
+            raise ValueError("acquisition_error_body_limit_must_be_positive")
         acquisition_id = "acquisition-" + uuid4().hex
         started_at = clock()
         _check_time(started_at)
@@ -178,7 +181,12 @@ class AcquisitionRepository:
             try:
                 raw = fetch()
             except HTTPError as error:
-                self._receive(acquisition_id, error.read(), clock(), started_at)
+                raw_error = (
+                    error.read()
+                    if max_error_body_bytes is None
+                    else error.read(max_error_body_bytes)
+                )
+                self._receive(acquisition_id, raw_error, clock(), started_at)
                 raise
             received_at = clock()
             self._receive(acquisition_id, raw, received_at, started_at)
