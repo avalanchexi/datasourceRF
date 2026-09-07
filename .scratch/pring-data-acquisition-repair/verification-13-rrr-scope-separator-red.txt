@@ -1,0 +1,11 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_real_rrr_chronicle_preserves_both_institution_scopes[True] ________
+tests/adapters/test_rrr_context.py:31: in test_real_rrr_chronicle_preserves_both_institution_scopes
+    assert len(parsed.scalars) == 2
+E   AssertionError: assert 1 == 2
+E    +  where 1 = len((ContextScalar(metric_id='CN_RRR_EVENT', api_name='pbc_rrr_notice', source_field='rrr_change_pp', period_kind='event',...(2025, 11, 11, 17, 0, 9, tzinfo=zoneinfo.ZoneInfo(key='Asia/Shanghai')), definition_version=None, acquisition_ids=()),))
+E    +    where (ContextScalar(metric_id='CN_RRR_EVENT', api_name='pbc_rrr_notice', source_field='rrr_change_pp', period_kind='event',...(2025, 11, 11, 17, 0, 9, tzinfo=zoneinfo.ZoneInfo(key='Asia/Shanghai')), definition_version=None, acquisition_ids=()),) = ParsedOfficialContextRelease(family='pbc_rrr_notice', provider='中国人民银行', release_event_id='official:pbc_rrr_notice:202...2025, 11, 11, 17, 0, 9, tzinfo=zoneinfo.ZoneInfo(key='Asia/Shanghai')), definition_version=None, acquisition_ids=()),)).scalars
+=========================== short test summary info ============================
+FAILED tests/adapters/test_rrr_context.py::test_real_rrr_chronicle_preserves_both_institution_scopes[True]
+1 failed, 1 passed, 8 deselected in 1.01s

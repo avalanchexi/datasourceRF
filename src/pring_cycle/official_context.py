@@ -264,7 +264,7 @@ def ingest_official_context_document(
         api_name="document_import",
         parameters={"source_url": source_url, "period": expected_period, "family": family},
         fields="",
-        parser_version="official-context-parser-v0002",
+        parser_version="official-context-parser-v0003",
         fetch=lambda: content,
         parse=parse,
         normalize=asdict,
@@ -446,7 +446,7 @@ def refresh_official_context_document(
             api_name="official_http_get",
             parameters={"source_url": source_url, "period": expected_period, "family": family},
             fields="",
-            parser_version="official-context-parser-v0002",
+            parser_version="official-context-parser-v0003",
             fetch=fetch,
             parse=parse,
             normalize=asdict,
@@ -1344,7 +1344,7 @@ def _parse_rrr_notice(
         matches = re.findall(
             r"(?P<month>\d{1,2})月(?P<day>\d{1,2})日[^。；]{0,80}"
             r"下调金融机构存款准备金率\s*(?P<change>\d+(?:\.\d+)?)\s*个百分点"
-            r"(?P<scope>[^。；]*)",
+            r"(?P<scope>[^。]*)",
             text,
         )
         matching = [item for item in matches if int(item[0]) == month]
@@ -1352,12 +1352,24 @@ def _parse_rrr_notice(
             raise error
         matched_month, day, change, scope_text = matching[0]
         effective_date = date(year, int(matched_month), int(day)).isoformat()
+        scope_details = re.fullmatch(
+            r"\s*(?P<exclusion>[（(]不含已执行\s*5\s*%\s*存款准备金率的金融机构[）)])?\s*"
+            r"(?:[，,；;]\s*下调汽车金融公司和金融租赁公司存款准备金率"
+            r"\s*(?P<targeted_change>\d+(?:\.\d+)?)\s*个百分点)?\s*",
+            scope_text,
+        )
+        if scope_details is None:
+            raise ValueError("official_context_rrr_scope_incomplete") from None
         scope = (
             "excluding_5_percent_institutions"
-            if re.search(r"不含已执行\s*5\s*%", scope_text)
+            if scope_details.group("exclusion") is not None
             else "all_eligible_financial_institutions"
         )
-        return (
+        scope_changes = [(scope, change)]
+        targeted_change = scope_details.group("targeted_change")
+        if targeted_change is not None:
+            scope_changes.append(("auto_finance_and_financial_leasing_companies", targeted_change))
+        return tuple(
             _official_scalar(
                 "CN_RRR_EVENT",
                 "pbc_rrr_notice",
@@ -1365,11 +1377,12 @@ def _parse_rrr_notice(
                 "event",
                 effective_date,
                 effective_date,
-                {"scope": scope, "measure": "rrr_change"},
-                -_bounded_number(change, minimum=0, maximum=100),
+                {"scope": event_scope, "measure": "rrr_change"},
+                -_bounded_number(event_change, minimum=0, maximum=100),
                 "percentage_points",
                 release_at,
-            ),
+            )
+            for event_scope, event_change in scope_changes
         )
     matching = [row for row in rows[1:] if len(row) == len(header)]
     if len(matching) != 1:

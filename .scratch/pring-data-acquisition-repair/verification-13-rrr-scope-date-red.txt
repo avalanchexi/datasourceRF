@@ -1,0 +1,10 @@
+..F.                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[5\u670816\u65e5\u4e0b\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73875\u4e2a\u767e\u5206\u70b9] _
+tests/adapters/test_rrr_context.py:54: in test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes
+    with pytest.raises(ValueError, match="^official_context_rrr_scope_incomplete$"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_rrr_context.py::test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[5\u670816\u65e5\u4e0b\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73875\u4e2a\u767e\u5206\u70b9]
+1 failed, 3 passed, 5 deselected in 0.77s

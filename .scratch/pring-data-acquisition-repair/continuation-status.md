@@ -4,6 +4,8 @@
 
 ## 已实际完成的本轮交付
 
+最新代码批次从`ba596eb`继续：[RRR范围解析修复](implementation-13-rrr-scope.md)完成同日两个机构范围分别输出、完整分句校验和收据版本更新；真实原件修复前后一项/两项分别保存。**677全套通过、0失败、748.11秒**，66针对测试、Ruff、mypy82、两轴复审通过。[最终收据](verification-13-rrr-scope/final.json)。接下来是[库存输入错期](inventory-period-repair-boundary.md)：公开反例确认7月库存会与6月PPI组合成可用近似，尚未修复。此缺陷的draft测试不属于前一批默认测试范围，不因RRR全套通过而关闭。
+
 最新代码批次从`9199a5b`继续：[派生认证修复](implementation-13-derived-eligibility.md)完成7公式模型内输入/输出认证守门、未认证日历排除及任一输入PUBLIC未知的传播；关闭公式也不再引入其依赖。**664项全套通过、0失败、768.46秒**，57项针对测试、Ruff、mypy82与双轴复审通过；[最终收据](verification-13-derived/final.json)。其后工作从[RRR双范围解析RED](rrr-scope-repair-boundary.md)继续：真实2025原件的定向-5pp目前未输出。这个已知后续缺陷不在前一代码批次的默认测试范围内，不能因全套通过而标已修。
 
 新增RRR四批研究共14次官方GET、4,384,725字节；[回顾与目录](rrr-followup.md)、[四篇公告](rrr-announcements-followup.md)、[两篇政策材料](rrr-policy-status-followup.md)、[原公告补证](rrr-original-notices-followup.md)均经根代理只读校验。原始发布会明确特定机构5%降至0%与2025-05-07日期，但精确时刻、阶段期限、区间事件全集和最近前置状态仍未证明；CSRC/吉林域不能冒充PBC认证域。不计入Tavily/Exa配对检索分母。公开解析入口已证实拒绝2025原件的2026请求，局部regex的错年试算不能再当确定生产缺陷。

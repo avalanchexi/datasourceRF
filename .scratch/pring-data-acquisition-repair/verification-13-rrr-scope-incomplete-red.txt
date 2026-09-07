@@ -1,0 +1,22 @@
+.FFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[\u4e0b\u8c03\u5176\u4ed6\u91d1\u878d\u673a\u6784\u5b58\u6b3e\u51c6\u5907\u91d1\u73871\u4e2a\u767e\u5206\u70b9] _
+tests/adapters/test_rrr_context.py:46: in test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes
+    with pytest.raises(ValueError, match="^official_context_rrr_scope_incomplete$"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[\u4e0a\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73871\u4e2a\u767e\u5206\u70b9] _
+tests/adapters/test_rrr_context.py:46: in test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes
+    with pytest.raises(ValueError, match="^official_context_rrr_scope_incomplete$"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[\u4e0b\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73875\u4e2a\u767e\u5206\u70b9\uff0c\u4e0b\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73875\u4e2a\u767e\u5206\u70b9] _
+tests/adapters/test_rrr_context.py:46: in test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes
+    with pytest.raises(ValueError, match="^official_context_rrr_scope_incomplete$"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_rrr_context.py::test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[\u4e0b\u8c03\u5176\u4ed6\u91d1\u878d\u673a\u6784\u5b58\u6b3e\u51c6\u5907\u91d1\u73871\u4e2a\u767e\u5206\u70b9]
+FAILED tests/adapters/test_rrr_context.py::test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[\u4e0a\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73871\u4e2a\u767e\u5206\u70b9]
+FAILED tests/adapters/test_rrr_context.py::test_rrr_prose_rejects_unresolved_or_duplicate_scope_changes[\u4e0b\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73875\u4e2a\u767e\u5206\u70b9\uff0c\u4e0b\u8c03\u6c7d\u8f66\u91d1\u878d\u516c\u53f8\u548c\u91d1\u878d\u79df\u8d41\u516c\u53f8\u5b58\u6b3e\u51c6\u5907\u91d1\u73875\u4e2a\u767e\u5206\u70b9]
+3 failed, 1 passed in 0.81s

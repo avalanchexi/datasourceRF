@@ -13,6 +13,7 @@ evidence-13-rrr-announcements/* -text whitespace=cr-at-eol
 evidence-13-rrr-policy-status/* -text whitespace=cr-at-eol
 evidence-13-rrr-original-notices/* -text whitespace=cr-at-eol
 verification-13-derived-*.txt whitespace=-blank-at-eol
+verification-13-rrr-scope-*.txt whitespace=-blank-at-eol
 research-pp-followup.md -text whitespace=cr-at-eol
 verification-17-pytest*.txt whitespace=-blank-at-eol
 verification-14-*.txt whitespace=-blank-at-eol

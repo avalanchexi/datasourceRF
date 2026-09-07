@@ -1,0 +1,11 @@
+......F......................................................            [100%]
+=================================== FAILURES ===================================
+____ test_rrr_scope_revision_keeps_old_public_value_and_new_system_vintage _____
+tests/adapters/test_rrr_context.py:176: in test_rrr_scope_revision_keeps_old_public_value_and_new_system_vintage
+    assert len(targeted.claims) == 2
+E   AssertionError: assert 1 == 2
+E    +  where 1 = len((ClaimView(claim_id='77e94660bba99adfc57e408c55c76fa9bd50b1f67c14442f1b55ae5afb11a45d', provider='中国人民银行', value=-4.0,..., quality_status='validated', supersedes_claim_id='a104b95136d60f843a4d8bf9b46fc17e2325d313d239f4c941bf3cdcc66cb873'),))
+E    +    where (ClaimView(claim_id='77e94660bba99adfc57e408c55c76fa9bd50b1f67c14442f1b55ae5afb11a45d', provider='中国人民银行', value=-4.0,..., quality_status='validated', supersedes_claim_id='a104b95136d60f843a4d8bf9b46fc17e2325d313d239f4c941bf3cdcc66cb873'),) = EvidenceTrace(observation_id='cfda4b457cb583e9c7b549df2f5a01af6c0ad80d38e5f7b89af180bdd54b0542', metric_id='CN_RRR_EVE...sh='e4690e9cff840b72fa9d9efff2521a03322507dcd529bb9657be0f8ac384d2d7', error_type=None),), acquisition_status='linked').claims
+=========================== short test summary info ============================
+FAILED tests/adapters/test_rrr_context.py::test_rrr_scope_revision_keeps_old_public_value_and_new_system_vintage
+1 failed, 60 passed in 35.48s

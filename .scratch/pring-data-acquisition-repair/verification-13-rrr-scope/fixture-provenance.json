@@ -1,0 +1,10 @@
+{
+    "fixture":  "tests/fixtures/pbc_rrr_chronicle_2025.html",
+    "sha256":  "7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+    "byte_count":  31945,
+    "original":  ".scratch/pring-data-acquisition-repair/evidence-13/7c74949b8e34290d31b76c3fc11b70e783d8ccdd9c7fc321f6e38b4fd17285d5",
+    "source_url":  "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/5896228/index.html",
+    "synthetic_variants_are_not_official_samples":  true,
+    "new_http_requests":  0,
+    "production_writes":  0
+}

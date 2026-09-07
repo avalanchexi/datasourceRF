@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_rrr_scopes_share_original_and_record_actual_system_acquisition ______
+tests/adapters/test_rrr_context.py:86: in test_rrr_scopes_share_original_and_record_actual_system_acquisition
+    assert receipt.parser_version == "official-context-parser-v0003"
+E   AssertionError: assert 'official-con...-parser-v0002' == 'official-con...-parser-v0003'
+E     
+E     - official-context-parser-v0003
+E     ?                             ^
+E     + official-context-parser-v0002
+E     ?                             ^
+=========================== short test summary info ============================
+FAILED tests/adapters/test_rrr_context.py::test_rrr_scopes_share_original_and_record_actual_system_acquisition
+1 failed, 4 deselected in 1.94s
