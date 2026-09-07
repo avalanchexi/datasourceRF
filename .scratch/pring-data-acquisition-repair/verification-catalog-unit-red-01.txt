@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_lpr_parser_cannot_certify_an_incompatible_registered_contract[allowed_units] _
+tests/models/test_candidate_admission.py:728: in test_lpr_parser_cannot_certify_an_incompatible_registered_contract
+    with pytest.raises(ValueError, match="registered_lpr_source_contract_unsupported"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_lpr_parser_cannot_certify_an_incompatible_registered_contract[allowed_units]
+1 failed, 62 deselected in 4.48s

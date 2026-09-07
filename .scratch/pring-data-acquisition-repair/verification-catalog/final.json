@@ -1,0 +1,187 @@
+{
+  "status": "completed_code_and_acquisition_preparation_batch",
+  "base_commit": "0679a4758316bbeb520da9d79aafeb7572f5c6ce",
+  "full_passed": 819,
+  "full_failed": 0,
+  "full_test_exit_code": 0,
+  "full_duration_seconds": 852.83,
+  "full_suite_runs": 2,
+  "first_full_passed": 817,
+  "first_full_failed": 2,
+  "first_failures": [
+    "legacy schema test retained new table",
+    "one v1 test double lacked database_path"
+  ],
+  "new_regression_cases": 13,
+  "related_batch_passed": 126,
+  "subsequent_source_checks_passed": 5,
+  "migration_and_lifecycle_checks_passed": 34,
+  "installed_source_files": 84,
+  "mypy_checked_files": 85,
+  "expanded_legacy_type_errors": 29,
+  "new_legacy_type_errors": 0,
+  "spec_final_findings": 0,
+  "standards_final_findings": 0,
+  "real_lpr_document_imports": 9,
+  "real_lpr_values_verified": 18,
+  "research_network_gets": 2,
+  "tavily_exa_paired_samples": 0,
+  "bse_official_search_queries": 2,
+  "bse_new_document_reads": 0,
+  "bse_target_samples": 0,
+  "real_model_usable_search_completion_rate": null,
+  "source_certification_grants": 0,
+  "production_writes": 0,
+  "real_candidate_models": 0,
+  "model_activations": 0,
+  "actual_cutovers": 0,
+  "ticket_19_execution": "in-progress",
+  "goal_complete": false,
+  "evidence": [
+    {
+      "path": "verification-catalog-binding-red-01.txt",
+      "bytes": 2147,
+      "sha256": "224f426e56315c533192f8f183338b871b421fae882b28b792be57bc9bf595d7"
+    },
+    {
+      "path": "verification-catalog-focused-01.txt",
+      "bytes": 22842,
+      "sha256": "32c7bb0b22a94d4667be0a648176e36c0c0bd62291e2d9b1d883ff2172accb84"
+    },
+    {
+      "path": "verification-catalog-focused-02.txt",
+      "bytes": 25281,
+      "sha256": "17f13794ed5c58e70881c597f2b9155e789d0a8edfe1370b0549bc8777488258"
+    },
+    {
+      "path": "verification-catalog-focused-03.txt",
+      "bytes": 191,
+      "sha256": "4c9b8cb8623aded2ce2b5f6c5f570de974cef44c792b4e3c5636265e825d9c70"
+    },
+    {
+      "path": "verification-catalog-full-final-02.txt",
+      "bytes": 992,
+      "sha256": "be8a7f1ad4662c550d24621848a6d6bd98c883eb7a6dc25f47c1b10eacd9d6ae"
+    },
+    {
+      "path": "verification-catalog-full-final.txt",
+      "bytes": 7859,
+      "sha256": "9c03fcb5eb51cab2f9e5aadc1d188afddbe6d0fce5c2c9dc96d156f207607bd9"
+    },
+    {
+      "path": "verification-catalog-lpr-green-01.txt",
+      "bytes": 918,
+      "sha256": "6dd34c80223b21f9d8876dcbd9c912bb23654a26f7bd7e4d4f9299cff5d30b22"
+    },
+    {
+      "path": "verification-catalog-migration-green.txt",
+      "bytes": 100,
+      "sha256": "da961d4baf2f074b42524acb4f5b39d4c8a02b8420b986f8bc3d259488b2d049"
+    },
+    {
+      "path": "verification-catalog-migration-red-01.txt",
+      "bytes": 5870,
+      "sha256": "1ef2b300b688217ecb0cba1b6369fff7b8cb3e6250e8de16f1c3fe6cd03e1b92"
+    },
+    {
+      "path": "verification-catalog-mypy-01.txt",
+      "bytes": 44,
+      "sha256": "9ad320a85ca21c0eff33d60d04b500d1f61878a0511449d431cc57cbc0d0a44d"
+    },
+    {
+      "path": "verification-catalog-mypy-02.txt",
+      "bytes": 5945,
+      "sha256": "66c37157a91af3c5a4a7fe63cfffe619574647ca89621eee27970703148b0581"
+    },
+    {
+      "path": "verification-catalog-mypy-final.txt",
+      "bytes": 44,
+      "sha256": "9ad320a85ca21c0eff33d60d04b500d1f61878a0511449d431cc57cbc0d0a44d"
+    },
+    {
+      "path": "verification-catalog-red-01.txt",
+      "bytes": 1077,
+      "sha256": "2a989dc977491978e0a52106691dc1d51067021fdd1385f26d364b3c80b127cf"
+    },
+    {
+      "path": "verification-catalog-source-green-final.txt",
+      "bytes": 113,
+      "sha256": "ee7049a9e6570725dc211866d248d5435d42d57a2fa7b8001f598704d7f38bc2"
+    },
+    {
+      "path": "verification-catalog-source-red-01.txt",
+      "bytes": 1892,
+      "sha256": "2db411d3451e5332bc166b92393a920a80ceb8b814c6e3d9babb0e3ee09f6f19"
+    },
+    {
+      "path": "verification-catalog-unit-red-01.txt",
+      "bytes": 830,
+      "sha256": "62f6604ba736dc263f485a8be895205426f67e91255005d590bec555752e9933"
+    },
+    {
+      "path": "verification-catalog/checks-format.txt",
+      "bytes": 27,
+      "sha256": "5b9f70ad96522f492ef846065642c069b5627379aff2ab3f74acd2e3b9ecfe34"
+    },
+    {
+      "path": "verification-catalog/checks-legacy-final.txt",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "verification-catalog/checks-mypy.txt",
+      "bytes": 44,
+      "sha256": "9ad320a85ca21c0eff33d60d04b500d1f61878a0511449d431cc57cbc0d0a44d"
+    },
+    {
+      "path": "verification-catalog/checks-ruff.txt",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "verification-catalog/collection.txt",
+      "bytes": 105521,
+      "sha256": "36142ee5799c5fd9b5e20e3b8a503d700413f51a49f3c9b41ae5ee38045ac237"
+    },
+    {
+      "path": "verification-catalog/fingerprint-final-before.json",
+      "bytes": 13276,
+      "sha256": "95742693bef24268aacfd61b385aacfa61b190658ff268d9dda45321936f5e86"
+    },
+    {
+      "path": "verification-catalog/fingerprint-final-after.json",
+      "bytes": 13276,
+      "sha256": "95742693bef24268aacfd61b385aacfa61b190658ff268d9dda45321936f5e86"
+    },
+    {
+      "path": "verification-catalog/review.md",
+      "bytes": 1205,
+      "sha256": "420ab50e9431b2f0427f52f1d6736b181d0d8b71dd9a1c66afcda15bbe7a04da"
+    },
+    {
+      "path": "verification-catalog/legacy-typing.json",
+      "bytes": 23115,
+      "sha256": "cc7d5b5c52cbb2968418b50d0570878a87d4e0b2dd86248b50b1e6dbd635d84b"
+    },
+    {
+      "path": "verification-catalog/lpr-research-verification.json",
+      "bytes": 353,
+      "sha256": "c55a201c6adbabf183db5b93b9b980a1eccd3e6ce57ef3ffd51a87a5df6c31ac"
+    },
+    {
+      "path": "verification-catalog/lpr-import-verification.json",
+      "bytes": 335,
+      "sha256": "332e608b74e749f1b39b102eba69821571ae277c76d9eb2d3d31cd0a8966f729"
+    },
+    {
+      "path": "lpr-certification-gap-matrix.md",
+      "bytes": 21941,
+      "sha256": "b132c53abeb9a6653de37b84cd6001877a58a2cdfa7d893c5d7ee43341bd8c21"
+    },
+    {
+      "path": "evidence-lpr-import-20260908/receipts.json",
+      "bytes": 15463,
+      "sha256": "31e1572983801245e76e1b4c33f57616029ba14bc304d2a276b9c1d1977d2d22"
+    }
+  ]
+}

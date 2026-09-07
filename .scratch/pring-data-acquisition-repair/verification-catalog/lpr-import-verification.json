@@ -1,0 +1,12 @@
+{
+  "validated_imports": 9,
+  "literal_values": 18,
+  "raw_bytes": 92717,
+  "verified_exported_artifacts": 18,
+  "source_claims": 0,
+  "registered_catalogs": 0,
+  "receipt_bytes": 15463,
+  "receipt_sha256": "31e1572983801245e76e1b4c33f57616029ba14bc304d2a276b9c1d1977d2d22",
+  "network_requests": 0,
+  "read_only_verification": true
+}

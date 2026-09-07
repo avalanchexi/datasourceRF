@@ -1,0 +1,12 @@
+{
+  "inputs": 13,
+  "originals": 9,
+  "literal_values_verified": 18,
+  "original_bytes": 92717,
+  "local_links": 39,
+  "report_bytes": 21941,
+  "report_sha256": "b132c53abeb9a6653de37b84cd6001877a58a2cdfa7d893c5d7ee43341bd8c21",
+  "new_network_requests_by_root_verifier": 0,
+  "historical_first_publication_proven": false,
+  "certification_grants": 0
+}

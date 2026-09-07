@@ -9,6 +9,7 @@ from datetime import UTC, date
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
+from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS
@@ -42,9 +43,10 @@ class ModelInputSelector:
     def __init__(
         self, paths: RuntimePaths, run: RunRecord, *, mode: AsOfMode = AsOfMode.SYSTEM
     ) -> None:
-        self.version = str(
-            ModelRepository(paths.database).manifest(run.model_version_id)["metric_catalog_version"]
-        )
+        manifest = ModelRepository(paths.database).manifest(run.model_version_id)
+        require_registered_manifest(paths.database, manifest)
+        self.version = str(manifest["metric_catalog_version"])
+        self.database_path = paths.database
         self.evidence = TargetBoundEvidenceRepository(
             EvidenceRepository(paths.database), date.fromisoformat(run.target_business_date), {}
         )
@@ -84,7 +86,9 @@ class ModelInputSelector:
         selected_ids = []
         missing = []
         for metric_id in scope.metric_ids:
-            definition = metric_definition(metric_id, definition_version=self.version)
+            definition = metric_definition(
+                metric_id, definition_version=self.version, database_path=self.database_path
+            )
             expected = REQUIRED_DIMENSION_MEMBERS.get(metric_id)
             if expected is None:
                 if definition.dimensions:

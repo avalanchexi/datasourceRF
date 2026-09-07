@@ -1,0 +1,248 @@
+{
+  "baseline": "0679a4758316bbeb520da9d79aafeb7572f5c6ce",
+  "legacy_diagnostics_unchanged": true,
+  "baseline_result": {
+    "exit_code": 1,
+    "errors": [
+      [
+        "test_context_projection.py",
+        "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]"
+      ],
+      [
+        "test_context_projection.py",
+        "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]"
+      ],
+      [
+        "test_context_projection.py",
+        "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "No overload variant of \"dict\" matches argument type \"object\"  [call-overload]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Value of type \"object\" is not indexable  [index]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"EvidenceValueState\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime | None\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"tuple[str, ...]\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Module \"pring_cycle.evidence\" does not explicitly export attribute \"metric_definition\"  [attr-defined]"
+      ]
+    ],
+    "output": ".tmp/catalog-legacy-typing-20260908/test_point_in_time.py:57: error: Module \"pring_cycle.evidence\" does not explicitly export attribute \"metric_definition\"  [attr-defined]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"EvidenceValueState\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_point_in_time.py:292: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"tuple[str, ...]\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: error: Unused \"type: ignore\" comment  [unused-ignore]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: error: No overload variant of \"dict\" matches argument type \"object\"  [call-overload]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note: Error code \"call-overload\" not covered by \"type: ignore\" comment\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note: Possible overload variants:\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict() -> dict[_KT, _VT]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(**kwargs: _VT) -> dict[str, _VT]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(SupportsKeysAndGetItem[_KT, _VT], /) -> dict[_KT, _VT]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(SupportsKeysAndGetItem[str, _VT], /, **kwargs: _VT) -> dict[str, _VT]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[tuple[_KT, _VT]], /) -> dict[_KT, _VT]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[tuple[str, _VT]], /, **kwargs: _VT) -> dict[str, _VT]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[list[str]], /) -> dict[str, str]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[list[bytes]], /) -> dict[bytes, bytes]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:453: error: Unused \"type: ignore\" comment  [unused-ignore]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:453: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:453: note: Error code \"attr-defined\" not covered by \"type: ignore\" comment\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1179: error: Unused \"type: ignore\" comment  [unused-ignore]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1185: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1392: error: Unused \"type: ignore\" comment  [unused-ignore]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1392: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1392: note: Error code \"attr-defined\" not covered by \"type: ignore\" comment\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1609: error: Unused \"type: ignore\" comment  [unused-ignore]\n.tmp/catalog-legacy-typing-20260908/test_context_projection.py:1611: error: Value of type \"object\" is not indexable  [index]\nFound 29 errors in 2 files (checked 88 source files)\n"
+  },
+  "current_result": {
+    "exit_code": 1,
+    "errors": [
+      [
+        "test_context_projection.py",
+        "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]"
+      ],
+      [
+        "test_context_projection.py",
+        "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]"
+      ],
+      [
+        "test_context_projection.py",
+        "\"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]"
+      ],
+      [
+        "test_context_projection.py",
+        "No overload variant of \"dict\" matches argument type \"object\"  [call-overload]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Unused \"type: ignore\" comment  [unused-ignore]"
+      ],
+      [
+        "test_context_projection.py",
+        "Value of type \"object\" is not indexable  [index]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"EvidenceValueState\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime | None\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"tuple[str, ...]\"  [arg-type]"
+      ],
+      [
+        "test_point_in_time.py",
+        "Module \"pring_cycle.evidence\" does not explicitly export attribute \"metric_definition\"  [attr-defined]"
+      ]
+    ],
+    "output": "tests/evidence/test_point_in_time.py:57: error: Module \"pring_cycle.evidence\" does not explicitly export attribute \"metric_definition\"  [attr-defined]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"EvidenceValueState\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime | None\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"datetime\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]\ntests/evidence/test_point_in_time.py:296: error: Argument 2 to \"replace\" of \"SourceClaimInput\" has incompatible type \"**dict[str, object]\"; expected \"tuple[str, ...]\"  [arg-type]\ntests/integration/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]\ntests/integration/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]\ntests/integration/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]\ntests/integration/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]\ntests/integration/test_context_projection.py:37: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]\ntests/integration/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str\"  [arg-type]\ntests/integration/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"bool\"  [arg-type]\ntests/integration/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"str | None\"  [arg-type]\ntests/integration/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"float | None\"  [arg-type]\ntests/integration/test_context_projection.py:42: error: Argument 4 to \"EvidenceSignal\" has incompatible type \"**dict[str, object]\"; expected \"dict[str, str]\"  [arg-type]\ntests/integration/test_context_projection.py:69: error: Unused \"type: ignore\" comment  [unused-ignore]\ntests/integration/test_context_projection.py:69: error: No overload variant of \"dict\" matches argument type \"object\"  [call-overload]\ntests/integration/test_context_projection.py:69: note: Error code \"call-overload\" not covered by \"type: ignore\" comment\ntests/integration/test_context_projection.py:69: note: Possible overload variants:\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict() -> dict[_KT, _VT]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(**kwargs: _VT) -> dict[str, _VT]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(SupportsKeysAndGetItem[_KT, _VT], /) -> dict[_KT, _VT]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(SupportsKeysAndGetItem[str, _VT], /, **kwargs: _VT) -> dict[str, _VT]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[tuple[_KT, _VT]], /) -> dict[_KT, _VT]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[tuple[str, _VT]], /, **kwargs: _VT) -> dict[str, _VT]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[list[str]], /) -> dict[str, str]\ntests/integration/test_context_projection.py:69: note:     def [_KT, _VT] dict(Iterable[list[bytes]], /) -> dict[bytes, bytes]\ntests/integration/test_context_projection.py:465: error: Unused \"type: ignore\" comment  [unused-ignore]\ntests/integration/test_context_projection.py:465: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\ntests/integration/test_context_projection.py:465: note: Error code \"attr-defined\" not covered by \"type: ignore\" comment\ntests/integration/test_context_projection.py:1209: error: Unused \"type: ignore\" comment  [unused-ignore]\ntests/integration/test_context_projection.py:1215: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\ntests/integration/test_context_projection.py:1426: error: Unused \"type: ignore\" comment  [unused-ignore]\ntests/integration/test_context_projection.py:1426: error: \"object\" has no attribute \"__iter__\"; maybe \"__dir__\" or \"__str__\"? (not iterable)  [attr-defined]\ntests/integration/test_context_projection.py:1426: note: Error code \"attr-defined\" not covered by \"type: ignore\" comment\ntests/integration/test_context_projection.py:1649: error: Unused \"type: ignore\" comment  [unused-ignore]\ntests/integration/test_context_projection.py:1651: error: Value of type \"object\" is not indexable  [index]\nFound 29 errors in 2 files (checked 88 source files)\n"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "target": "/home/tywin/.cache/pring-cycle/verification/catalog-full-final",
+  "owned_by": "catalog-full-final pytest --basetemp command",
+  "terminal_result": "2 failed, 817 passed",
+  "active_use": false,
+  "file_count": 2340,
+  "bytes": 401319457,
+  "retained_failed_case": "/mnt/d/cursor/datasourceRF/.tmp/catalog-failed-full-01",
+  "time": "2026-09-07T20:59:39.983543+00:00",
+  "removed": true
+}

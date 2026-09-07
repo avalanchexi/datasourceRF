@@ -1,0 +1,24 @@
+.F.FF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_generic_model_creation_cannot_borrow_or_register_catalog[unregistered-context] _
+tests/models/test_candidate_admission.py:569: in test_generic_model_creation_cannot_borrow_or_register_catalog
+    with pytest.raises((KeyError, ValueError), match=expected):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (<class 'KeyError'>, <class 'ValueError'>)
+_ test_generic_model_creation_cannot_borrow_or_register_catalog[different_definitions-context] _
+tests/models/test_candidate_admission.py:569: in test_generic_model_creation_cannot_borrow_or_register_catalog
+    with pytest.raises((KeyError, ValueError), match=expected):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (<class 'KeyError'>, <class 'ValueError'>)
+____________ test_unrecognized_definition_fields_cannot_be_admitted ____________
+tests/models/test_candidate_admission.py:598: in test_unrecognized_definition_fields_cannot_be_admitted
+    with pytest.raises(SystemExit) as failure:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "216b9d70145c914ddaca83a16148acc5202f7d2fb2e4b1524cc3f5f2aaef6477", "model_version_id": "model-reviewed-f63124829424d334d660312d7fdea9c6c3b23a5e4b16c38d8b9cee120a5d918f", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_generic_model_creation_cannot_borrow_or_register_catalog[unregistered-context]
+FAILED tests/models/test_candidate_admission.py::test_generic_model_creation_cannot_borrow_or_register_catalog[different_definitions-context]
+FAILED tests/models/test_candidate_admission.py::test_unrecognized_definition_fields_cannot_be_admitted
+3 failed, 2 passed, 52 deselected in 4.86s

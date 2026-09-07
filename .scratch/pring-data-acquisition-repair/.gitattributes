@@ -102,3 +102,7 @@ verification-history-receipts/*.txt whitespace=-blank-at-eol
 verification-admission-*.txt whitespace=-blank-at-eol
 verification-admission/*.txt whitespace=-blank-at-eol
 candidate-catalog-consumption-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
+verification-catalog-*.txt whitespace=-blank-at-eol
+verification-catalog/*.txt whitespace=-blank-at-eol
+lpr-certification-gap-matrix.md -text whitespace=cr-at-eol,-blank-at-eof
+evidence-lpr-import-20260908/* -text -diff

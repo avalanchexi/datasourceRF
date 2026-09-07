@@ -1,0 +1,367 @@
+{
+  "status": "completed_acquisition_preparation",
+  "runtime": "/home/tywin/.cache/pring-cycle/verification/lpr-document-import-20260908",
+  "database": "/home/tywin/.cache/pring-cycle/verification/lpr-document-import-20260908/data/pring-cycle.sqlite3",
+  "started_at": "2026-09-07T20:46:12.417267+00:00",
+  "execution_fingerprint": {
+    "code_hash": "fb2dea66232948bec98e876152d5bd7bcde2b288cffdfecf1daab50ee009fb7f",
+    "configuration_version": "config-v0001",
+    "database_revision": "0019_registered_metric_catalog",
+    "dependency_hash": "28cdd2d2003f3235ab2bd8fcc8ec82c45c178d67e5f3fde16b1308ae8e0890b1"
+  },
+  "operation": "document_import_of_existing_originals",
+  "network_requests": 0,
+  "source_claims_created": 0,
+  "source_certification_grants": 0,
+  "historical_system_availability_restored": false,
+  "historical_public_certified": false,
+  "real_candidate_models_created": 0,
+  "activations": 0,
+  "production_writes": 0,
+  "receipts": [
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-040673720aea460cb710ba547e29323b",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/29/29b9ad8e5c806acc7acf3a7e7990ef5e69182ccd806d74ef1b677968b2b0cb7e",
+          "period": "2025-12",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20251222/3256124.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.432873+00:00",
+        "received_at": "2026-09-07 20:46:12.436699+00:00",
+        "validated_at": "2026-09-07 20:46:12.455244+00:00",
+        "state": "validated",
+        "raw_hash": "29b9ad8e5c806acc7acf3a7e7990ef5e69182ccd806d74ef1b677968b2b0cb7e",
+        "normalized_hash": "2eb9be19f44b1045513ffbe297d4fd3892ea24162c7284a36a06be87d8b96c68",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2025-12-22:29b9ad8e5c806acc7acf3a7e7990ef5e69182ccd806d74ef1b677968b2b0cb7e",
+        "period": "2025-12",
+        "release_at": "2025-12-22 09:00:00+08:00",
+        "public_available_at": "2025-12-22 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20251222/3256124.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-e1b2cc4e662f44dbae07f058d8b4f81c",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/56/56990bedd9bc26a666ffed41e48be8ae506f97088f353d04a31877aa5acdc0e7",
+          "period": "2026-01",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260120/3271248.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.483955+00:00",
+        "received_at": "2026-09-07 20:46:12.485659+00:00",
+        "validated_at": "2026-09-07 20:46:12.504963+00:00",
+        "state": "validated",
+        "raw_hash": "56990bedd9bc26a666ffed41e48be8ae506f97088f353d04a31877aa5acdc0e7",
+        "normalized_hash": "b68bc2f56e9c9e73db31870017593f740db09a13cb788cff72e63677f9cfa03e",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-01-20:56990bedd9bc26a666ffed41e48be8ae506f97088f353d04a31877aa5acdc0e7",
+        "period": "2026-01",
+        "release_at": "2026-01-20 09:00:00+08:00",
+        "public_available_at": "2026-01-20 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260120/3271248.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-5d97d5d5221742bfad0c1f6c94f82f3a",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/75/750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3",
+          "period": "2026-02",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260224/3285699.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.526537+00:00",
+        "received_at": "2026-09-07 20:46:12.529046+00:00",
+        "validated_at": "2026-09-07 20:46:12.546946+00:00",
+        "state": "validated",
+        "raw_hash": "750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3",
+        "normalized_hash": "29fde5c08cbc730ab30373af08ea49d344fa39f2418697012df299ae9f9d4ee6",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-02-24:750bfc2dcf52891998816f824b2e28606153347e1cbb9c500c4d5cb7334029f3",
+        "period": "2026-02",
+        "release_at": "2026-02-24 09:00:00+08:00",
+        "public_available_at": "2026-02-24 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260224/3285699.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-8c37de9e8b4045349fa2c40260e31b16",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/25/25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb",
+          "period": "2026-03",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260320/3301473.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.567046+00:00",
+        "received_at": "2026-09-07 20:46:12.568900+00:00",
+        "validated_at": "2026-09-07 20:46:12.585639+00:00",
+        "state": "validated",
+        "raw_hash": "25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb",
+        "normalized_hash": "85410f2a112aca3c941e50d1afe38413a87cf775c11b6b89b123a1bd2a52da08",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-03-20:25b64b21f0df5075f8d83cb98c3ca44791910a27c30df272926d3d6f6be673eb",
+        "period": "2026-03",
+        "release_at": "2026-03-20 09:00:00+08:00",
+        "public_available_at": "2026-03-20 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260320/3301473.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-652d3d16f3ca4db58f1aaab4b928a690",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/ee/eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780",
+          "period": "2026-04",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260420/3318431.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.603778+00:00",
+        "received_at": "2026-09-07 20:46:12.605819+00:00",
+        "validated_at": "2026-09-07 20:46:12.624987+00:00",
+        "state": "validated",
+        "raw_hash": "eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780",
+        "normalized_hash": "4619f0fdcb9749a83672624716d326a6a31bbc7de9a5147d13d84b8e02e2d9f8",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-04-20:eead5d88656bfcc10df6eb250457df9a60820a0681be230dc6c046107cd3f780",
+        "period": "2026-04",
+        "release_at": "2026-04-20 09:00:00+08:00",
+        "public_available_at": "2026-04-20 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260420/3318431.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-97eb08b7dc7940568e7422999a87b2b7",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/c3/c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad",
+          "period": "2026-05",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260520/3343089.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.651923+00:00",
+        "received_at": "2026-09-07 20:46:12.660480+00:00",
+        "validated_at": "2026-09-07 20:46:12.681873+00:00",
+        "state": "validated",
+        "raw_hash": "c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad",
+        "normalized_hash": "35ff467347ed53306cb008a8f72a4421bb1741e8e3116c9aab9e2822d07268cc",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-05-20:c39c33680a18f172d9e875758962732e4ef6fcd6feebcc7f9aba8b7ef3c1b9ad",
+        "period": "2026-05",
+        "release_at": "2026-05-20 09:00:00+08:00",
+        "public_available_at": "2026-05-20 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260520/3343089.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-180b80f8247f42739f8e9f233c63c97e",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/7a/7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f",
+          "period": "2026-06",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260622/3361525.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.704480+00:00",
+        "received_at": "2026-09-07 20:46:12.708098+00:00",
+        "validated_at": "2026-09-07 20:46:12.739478+00:00",
+        "state": "validated",
+        "raw_hash": "7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f",
+        "normalized_hash": "08b401f0801f87ef08b516c0567e3cf0eb8b9aa297d9ec5db4cba4ff6180a0e2",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-06-22:7a1cdcfb620910e1adaca66688375457925436d477dcf624bb8a3bb7e746357f",
+        "period": "2026-06",
+        "release_at": "2026-06-22 09:00:00+08:00",
+        "public_available_at": "2026-06-22 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260622/3361525.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-957e64d6668a4c7e9b07cb385abb8c9e",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/40/40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4",
+          "period": "2026-07",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260720/3379021.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.762721+00:00",
+        "received_at": "2026-09-07 20:46:12.770841+00:00",
+        "validated_at": "2026-09-07 20:46:12.802688+00:00",
+        "state": "validated",
+        "raw_hash": "40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4",
+        "normalized_hash": "a0ad215cc85d9f7d507aca91c8207b61da1300f5c2775e2acad82eb7e9ef9e23",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-07-20:40285435bd15e5e93edd0399301b52fa5b52aac3af4ad61d98477df13f22d2f4",
+        "period": "2026-07",
+        "release_at": "2026-07-20 09:00:00+08:00",
+        "public_available_at": "2026-07-20 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260720/3379021.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-c735a6924ce44727a3d437e9d9c3d395",
+        "provider": "中国货币网",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-13/5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+          "period": "2026-08",
+          "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
+        },
+        "fields": "1y,5y_plus",
+        "parser_version": "chinamoney-lpr-parser-v0002",
+        "started_at": "2026-09-07 20:46:12.841167+00:00",
+        "received_at": "2026-09-07 20:46:12.853297+00:00",
+        "validated_at": "2026-09-07 20:46:12.895537+00:00",
+        "state": "validated",
+        "raw_hash": "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+        "normalized_hash": "9d6ef8142a525532f533d7b78152d9dc1030662916f36eb0c1d2314d1e73a88a",
+        "error_type": null
+      },
+      "parsed_unreviewed_release": {
+        "release_event_id": "chinamoney-lpr:2026-08-20:5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5",
+        "period": "2026-08",
+        "release_at": "2026-08-20 09:00:00+08:00",
+        "public_available_at": "2026-08-20 09:00:00+08:00",
+        "source_url": "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+        "observations": [
+          {
+            "tenor": "1y",
+            "value": 3.0
+          },
+          {
+            "tenor": "5y_plus",
+            "value": 3.5
+          }
+        ]
+      }
+    }
+  ],
+  "literal_values_verified": 18,
+  "completed_at": "2026-09-07T20:46:12.941838+00:00"
+}

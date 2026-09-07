@@ -269,36 +269,54 @@ class ModelRepository:
         return repository
 
     def create_candidate(self, manifest: dict[str, Any]) -> ModelVersion:
+        with self._connect() as connection:
+            return self._store_candidate(connection, manifest)
+
+    def _create_admitted_candidate(self, manifest: dict[str, Any]) -> ModelVersion:
+        # Only the source-admission service calls this after reading and validating
+        # its formal review. Generic historical/fixture candidates never register.
+        from pring_cycle.catalog_registry import _register_admitted_catalog
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            candidate = self._store_candidate(connection, manifest)
+            _register_admitted_catalog(connection, manifest)
+        return candidate
+
+    def _store_candidate(
+        self,
+        connection: sqlite3.Connection,
+        manifest: dict[str, Any],
+    ) -> ModelVersion:
         model_version_id = str(manifest.get("model_version_id", ""))
         certified_replay_start = str(manifest.get("certified_replay_start", ""))
         if not model_version_id or not certified_replay_start:
             raise ValueError("invalid_model_manifest")
         manifest_json = _canonical_json(manifest)
         manifest_hash = hashlib.sha256(manifest_json.encode()).hexdigest()
-        with self._connect() as connection:
-            existing = connection.execute(
-                "SELECT * FROM model_version WHERE model_version_id = ?",
-                (model_version_id,),
-            ).fetchone()
-            if existing is not None:
-                if str(existing["manifest_hash"]) != manifest_hash:
-                    raise ValueError("model_version_is_immutable")
-                return _model_version(existing)
-            connection.execute(
-                """
+        existing = connection.execute(
+            "SELECT * FROM model_version WHERE model_version_id = ?",
+            (model_version_id,),
+        ).fetchone()
+        if existing is not None:
+            if str(existing["manifest_hash"]) != manifest_hash:
+                raise ValueError("model_version_is_immutable")
+            return _model_version(existing)
+        connection.execute(
+            """
                 INSERT INTO model_version(
                     model_version_id, manifest_hash, manifest_json, status,
                     certified_replay_start, created_at
                 ) VALUES (?, ?, ?, 'candidate', ?, ?)
                 """,
-                (
-                    model_version_id,
-                    manifest_hash,
-                    manifest_json,
-                    certified_replay_start,
-                    datetime.now(UTC).isoformat(),
-                ),
-            )
+            (
+                model_version_id,
+                manifest_hash,
+                manifest_json,
+                certified_replay_start,
+                datetime.now(UTC).isoformat(),
+            ),
+        )
         return ModelVersion(model_version_id, manifest_hash, "candidate", certified_replay_start)
 
     def record_acceptance(

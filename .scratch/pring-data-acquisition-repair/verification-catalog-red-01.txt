@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_same_catalog_version_cannot_name_different_reviewed_definitions _____
+tests/models/test_candidate_admission.py:476: in test_same_catalog_version_cannot_name_different_reviewed_definitions
+    with pytest.raises(SystemExit) as failure:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'SystemExit'>
+----------------------------- Captured stdout call -----------------------------
+{"certified_replay_start": "2026-03-09", "manifest_hash": "5ebf93296987554a8fcdd2dd234f51387dc2fd1986cd9697bea1d12b57863074", "model_version_id": "model-reviewed-a543ee2372c3568448b20097e34c9c32291cdc463a68d7baa300d5c285638508", "network_requests": 0, "status": "candidate"}
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_same_catalog_version_cannot_name_different_reviewed_definitions
+1 failed, 50 deselected in 2.32s

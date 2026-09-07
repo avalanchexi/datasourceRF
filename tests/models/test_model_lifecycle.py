@@ -679,8 +679,10 @@ def test_context_selection_combines_members_with_same_period_end_and_distinct_st
     monkeypatch.setattr(
         evidence_module,
         "metric_definition",
-        lambda metric_id, *, definition_version="metric-catalog-v0001": replace(
-            metric_definition(metric_id, definition_version=definition_version),
+        lambda metric_id, *, definition_version="metric-catalog-v0001", database_path=None: replace(
+            metric_definition(
+                metric_id, definition_version=definition_version, database_path=database_path
+            ),
             certification_status="certified",
         ),
     )

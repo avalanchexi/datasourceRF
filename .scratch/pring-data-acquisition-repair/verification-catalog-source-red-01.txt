@@ -1,0 +1,22 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_lpr_parser_cannot_certify_an_incompatible_registered_contract[source_codes] _
+tests/models/test_candidate_admission.py:721: in test_lpr_parser_cannot_certify_an_incompatible_registered_contract
+    with pytest.raises(ValueError, match="registered_lpr_source_contract_unsupported"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_lpr_parser_cannot_certify_an_incompatible_registered_contract[release_rule] _
+tests/models/test_candidate_admission.py:721: in test_lpr_parser_cannot_certify_an_incompatible_registered_contract
+    with pytest.raises(ValueError, match="registered_lpr_source_contract_unsupported"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+__________ test_registered_lpr_rejects_a_claim_from_another_provider ___________
+tests/models/test_candidate_admission.py:743: in test_registered_lpr_rejects_a_claim_from_another_provider
+    with pytest.raises(ValueError, match="registered_lpr_source_identity_mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_lpr_parser_cannot_certify_an_incompatible_registered_contract[source_codes]
+FAILED tests/models/test_candidate_admission.py::test_lpr_parser_cannot_certify_an_incompatible_registered_contract[release_rule]
+FAILED tests/models/test_candidate_admission.py::test_registered_lpr_rejects_a_claim_from_another_provider
+3 failed, 59 deselected in 4.71s

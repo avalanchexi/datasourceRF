@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass, replace
+from pathlib import Path
 
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILY_BY_METRIC
 
@@ -397,6 +398,7 @@ def metric_definition(
     metric_id: str,
     *,
     definition_version: str = METRIC_CATALOG_VERSION,
+    database_path: Path | None = None,
 ) -> MetricDefinition:
     catalog = {
         METRIC_CATALOG_V0001: _BY_ID_V0001,
@@ -405,6 +407,10 @@ def metric_definition(
         MARGIN_FINANCING_V0002: _MARGIN_FINANCING_V0002,
     }.get(definition_version)
     if catalog is None:
+        if database_path is not None:
+            from pring_cycle.catalog_registry import registered_metric_definition
+
+            return registered_metric_definition(database_path, definition_version, metric_id)
         raise KeyError("unknown_metric_definition_version")
     try:
         return catalog[metric_id]

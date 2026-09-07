@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -9,17 +10,23 @@ from typing import Any
 import pytest
 
 from pring_cycle.artifacts import store_artifact
+from pring_cycle.candidate_admission import admit_source_certified_candidate
 from pring_cycle.cli import main
+from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import CoreAssetState
+from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
     certified_120d_model_v0011_manifest,
 )
+from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.runtime_fingerprint import execution_fingerprint
+from pring_cycle.search_evidence import select_retrieval_input
 
 
 def encode(document: object) -> bytes:
@@ -452,3 +459,343 @@ def test_review_cannot_relabel_an_original_registered_to_another_source(
     assert failure.value.code == 2
     assert "certification_reference_unregistered" in capsys.readouterr().err
     assert ModelRepository(paths.database).list_versions() == versions_before
+
+
+def test_same_catalog_version_cannot_name_different_reviewed_definitions(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    first, _ = prepared_request(paths)
+    submit(paths, save(paths, first))
+    admitted = json.loads(capsys.readouterr().out)
+    versions_before = ModelRepository(paths.database).list_versions()
+    manifest_before = ModelRepository(paths.database).manifest(admitted["model_version_id"])
+
+    second, _ = prepared_request(paths)
+    definition = next(
+        item
+        for item in second["manifest"]["metric_definitions"]
+        if item["metric_id"] == "CN_LPR_1Y_5Y"
+    )
+    definition["name_cn"] = "a different, independently reviewed definition"
+    package_hash = second["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"]["CN_LPR_1Y_5Y"] = hashlib.sha256(encode(definition)).hexdigest()
+    bind_synthetic_review(paths, second, package)
+
+    with pytest.raises(SystemExit) as failure:
+        submit(paths, save(paths, second))
+
+    assert failure.value.code == 2
+    assert "metric_catalog_version_is_immutable" in capsys.readouterr().err
+    assert ModelRepository(paths.database).list_versions() == versions_before
+    assert ModelRepository(paths.database).manifest(admitted["model_version_id"]) == manifest_before
+
+
+def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    acquired_at = datetime(2026, 8, 20, 2, tzinfo=UTC)
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    ingested = ingest_lpr_document(
+        paths,
+        content,
+        source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+        fetched_at=acquired_at,
+        expected_period="2026-08",
+        definition_version=version,
+        clock=lambda: acquired_at,
+    )
+    repository = EvidenceRepository(paths.database)
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        points = repository.metric_series(
+            "CN_LPR_1Y_5Y", mode=mode, as_of=acquired_at, definition_version=version
+        )
+        assert {p.dimensions["tenor"]: p.selected_value for p in points} == {
+            "1y": 3.0,
+            "5y_plus": 3.5,
+        }
+        assert {p.selected_claim_id for p in points} == set(ingested.claim_ids)
+    before_acquisition = datetime(2026, 8, 20, 1, 30, tzinfo=UTC)
+    assert not repository.metric_series(
+        "CN_LPR_1Y_5Y", mode=AsOfMode.SYSTEM, as_of=before_acquisition, definition_version=version
+    )
+    assert (
+        len(
+            repository.metric_series(
+                "CN_LPR_1Y_5Y",
+                mode=AsOfMode.PUBLIC,
+                as_of=before_acquisition,
+                definition_version=version,
+            )
+        )
+        == 2
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="admitted-lpr",
+        model_version_id=model_id,
+        system_as_of=acquired_at,
+        release_event_id=ingested.release_event_id,
+        metric_ids=("CN_LPR_1Y_5Y",),
+        period="2026-08",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete
+    assert set(selection.selected_claim_ids) == set(ingested.claim_ids)
+    context = build_context_projection(repository, as_of=acquired_at, model_manifest=manifest)
+    rows = [
+        row
+        for row in context.macro["credit"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == "CN_LPR_1Y_5Y"
+    ]
+    assert {row["dimensions"]["tenor"]: row["value"] for row in rows} == {"1y": 3.0, "5y_plus": 3.5}
+    assert set(ingested.claim_ids) <= set(context.observation_version_ids)
+    with pytest.raises(LookupError, match="active_model_unavailable"):
+        ModelRepository(paths.database).active()
+
+
+@pytest.mark.parametrize("consumer", ["selection", "context"])
+@pytest.mark.parametrize("fault", ["unregistered", "different_definitions"])
+def test_generic_model_creation_cannot_borrow_or_register_catalog(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], consumer: str, fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    manifest = request["manifest"]
+    if fault == "different_definitions":
+        submit(paths, save(paths, request))
+        capsys.readouterr()
+        manifest["metric_definitions"][0]["name_cn"] = "unreviewed changed definition"
+    manifest["model_version_id"] = "generic-unreviewed-model"
+    ModelRepository(paths.database).create_candidate(manifest)
+    expected = (
+        "unknown_metric_definition_version"
+        if fault == "unregistered"
+        else "model_metric_catalog_binding_mismatch"
+    )
+    with pytest.raises((KeyError, ValueError), match=expected):
+        if consumer == "context":
+            build_context_projection(
+                EvidenceRepository(paths.database),
+                as_of=datetime(2026, 8, 28, tzinfo=UTC),
+                model_manifest=manifest,
+            )
+        else:
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date="2026-08-28",
+                client_request_id="unreviewed-lpr",
+                model_version_id=manifest["model_version_id"],
+                system_as_of=datetime(2026, 8, 28, tzinfo=UTC),
+                release_event_id="synthetic:lpr",
+                metric_ids=("CN_LPR_1Y_5Y",),
+                period="2026-08",
+            )
+            select_retrieval_input(paths, run)
+
+
+def test_unrecognized_definition_fields_cannot_be_admitted(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    definition = request["manifest"]["metric_definitions"][0]
+    definition["unsupported_rule"] = "cannot silently ignore a reviewed rule"
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    if definition["metric_id"] in package["definition_bindings"]:
+        package["definition_bindings"][definition["metric_id"]] = hashlib.sha256(
+            encode(definition)
+        ).hexdigest()
+    bind_synthetic_review(paths, request, package)
+    with pytest.raises(SystemExit) as failure:
+        submit(paths, save(paths, request))
+    assert failure.value.code == 2
+    assert "certification_definition_fields_unsupported" in capsys.readouterr().err
+
+
+def test_reviewed_models_can_share_identical_catalog_in_different_order(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    first_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    request["manifest"]["metric_definitions"].reverse()
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    second_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    assert first_id != second_id
+    for model_id in (first_id, second_id):
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=datetime(2026, 8, 28, tzinfo=UTC),
+            model_manifest=manifest,
+        )
+
+
+def test_concurrent_conflicting_admissions_leave_only_one_complete_candidate(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    requests = []
+    for label in ("first reviewed name", "second reviewed name"):
+        request, _ = prepared_request(paths)
+        definition = next(
+            item
+            for item in request["manifest"]["metric_definitions"]
+            if item["metric_id"] == "CN_LPR_1Y_5Y"
+        )
+        definition["name_cn"] = label
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        package["definition_bindings"]["CN_LPR_1Y_5Y"] = hashlib.sha256(
+            encode(definition)
+        ).hexdigest()
+        bind_synthetic_review(paths, request, package)
+        requests.append(save(paths, request))
+    before = ModelRepository(paths.database).list_versions()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(
+                admit_source_certified_candidate,
+                paths,
+                request_hash=request_hash,
+                target_business_date="2026-08-28",
+                personal_noncommercial_use_approved=True,
+            )
+            for request_hash in requests
+        ]
+        successes = []
+        failures = []
+        for future in futures:
+            try:
+                successes.append(future.result())
+            except ValueError as error:
+                failures.append(str(error))
+    assert len(successes) == 1
+    assert failures == ["metric_catalog_version_is_immutable:synthetic-metric-catalog-admission-v1"]
+    assert len(ModelRepository(paths.database).list_versions()) == len(before) + 1
+    build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=datetime(2026, 8, 28, tzinfo=UTC),
+        model_manifest=ModelRepository(paths.database).manifest(successes[0]["model_version_id"]),
+    )
+
+
+@pytest.mark.parametrize("field", ["source_codes", "release_rule", "allowed_units"])
+def test_lpr_parser_cannot_certify_an_incompatible_registered_contract(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], field: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    definition = next(
+        item
+        for item in request["manifest"]["metric_definitions"]
+        if item["metric_id"] == "CN_LPR_1Y_5Y"
+    )
+    definition[field] = {
+        "source_codes": ["different-certified-source"],
+        "release_rule": "different-release-rule",
+        "allowed_units": ["percent", "basis_points"],
+    }[field]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"]["CN_LPR_1Y_5Y"] = hashlib.sha256(encode(definition)).hexdigest()
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 20, 2, tzinfo=UTC)
+    if field == "allowed_units":
+        with pytest.raises(ValueError, match="registered_lpr_source_contract_unsupported"):
+            EvidenceRepository(paths.database).append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_LPR_1Y_5Y",
+                    definition_version=request["manifest"]["metric_catalog_version"],
+                    period_kind="month",
+                    period_start="2026-08-01",
+                    period_end="2026-08-31",
+                    dimensions={"tenor": "1y"},
+                    value=300.0,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="basis_points",
+                    provider="中国货币网",
+                    source_reference="synthetic:unsupported-unit",
+                    release_event_id="synthetic:lpr",
+                    release_at=now,
+                    public_available_at=now,
+                    fetched_at=now,
+                    available_at=now,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+    with pytest.raises(ValueError, match="registered_lpr_source_contract_unsupported"):
+        ingest_lpr_document(
+            paths,
+            (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes(),
+            source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+            fetched_at=now,
+            expected_period="2026-08",
+            clock=lambda: now,
+            definition_version=request["manifest"]["metric_catalog_version"],
+        )
+    assert not EvidenceRepository(paths.database).metric_series(
+        "CN_LPR_1Y_5Y",
+        mode=AsOfMode.SYSTEM,
+        as_of=now,
+        definition_version=request["manifest"]["metric_catalog_version"],
+    )
+
+
+def test_registered_lpr_rejects_a_claim_from_another_provider(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 20, 2, tzinfo=UTC)
+    with pytest.raises(ValueError, match="registered_lpr_source_identity_mismatch"):
+        EvidenceRepository(paths.database).append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_LPR_1Y_5Y",
+                definition_version=request["manifest"]["metric_catalog_version"],
+                period_kind="month",
+                period_start="2026-08-01",
+                period_end="2026-08-31",
+                dimensions={"tenor": "1y"},
+                value=3.0,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="percent",
+                provider="unreviewed provider",
+                source_reference="synthetic:wrong-provider",
+                release_event_id="synthetic:lpr",
+                release_at=now,
+                public_available_at=now,
+                fetched_at=now,
+                available_at=now,
+                certification_status="certified",
+                quality_status="validated",
+            )
+        )

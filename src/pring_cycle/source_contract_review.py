@@ -6,7 +6,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from pring_cycle.catalog import METRIC_CATALOG_V0003
+from pring_cycle.catalog import METRIC_CATALOG_V0003, MetricDefinition, metric_definition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 
 # This is a dated rejection of the frozen v3 certification contract, not a
 # replacement catalog or a modification of historical evidence. A corrected
@@ -93,6 +94,40 @@ def require_source_contract(definition_version: str, *, metric_id: str | None = 
         metric_id is None or metric_id in _AFFECTED_METRICS
     ):
         raise ValueError(f"source_certification_contract_unresolved:{definition_version}")
+
+
+def require_registered_source_contract(
+    definition: MetricDefinition,
+    *,
+    provider: str,
+    period_kind: str,
+    dimensions: Mapping[str, str],
+) -> None:
+    """New catalog identity alone does not certify an existing parser's output."""
+    if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+        return
+    if definition.metric_id != "CN_LPR_1Y_5Y":
+        raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+    supported = metric_definition("CN_LPR_1Y_5Y")
+    fields = (
+        "source_codes",
+        "dimensions",
+        "unit",
+        "frequency",
+        "release_event_family",
+        "release_rule",
+        "release_timezone",
+    )
+    if any(getattr(definition, field) != getattr(supported, field) for field in fields) or set(
+        definition.allowed_units or (definition.unit,)
+    ) != {"percent"}:
+        raise ValueError("registered_lpr_source_contract_unsupported")
+    if (
+        provider != "中国货币网"
+        or period_kind != "month"
+        or dimensions not in ({"tenor": "1y"}, {"tenor": "5y_plus"})
+    ):
+        raise ValueError("registered_lpr_source_identity_mismatch")
 
 
 def require_model_source_contract(manifest: Mapping[str, object]) -> None:

@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context ___
+tests/models/test_candidate_admission.py:548: in test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context
+    assert ModelRepository(paths.database).active() is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/models.py:796: in active
+    raise LookupError("active_model_unavailable")
+E   LookupError: active_model_unavailable
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context
+1 failed, 51 deselected in 3.58s

@@ -4,7 +4,7 @@ import hashlib
 import json
 import sqlite3
 from bisect import bisect_right
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
@@ -20,7 +20,11 @@ from pring_cycle.acquisition import (
     receipt_from_row,
 )
 from pring_cycle.catalog import metric_definition
-from pring_cycle.source_contract_review import require_source_contract
+from pring_cycle.catalog_registry import require_registered_manifest
+from pring_cycle.source_contract_review import (
+    require_registered_source_contract,
+    require_source_contract,
+)
 
 
 class AsOfMode(StrEnum):
@@ -237,6 +241,9 @@ class _PreloadedSeriesState:
 
 
 class EvidenceRepository:
+    def validate_model_catalog(self, manifest: Mapping[str, object]) -> None:
+        require_registered_manifest(self._database_path, manifest)
+
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
         self._preloaded_series_rows: dict[
@@ -267,7 +274,7 @@ class EvidenceRepository:
         if not claims:
             raise ValueError("evidence_claim_batch_required")
         for claim in claims:
-            _validate_claim(claim)
+            _validate_claim(claim, self._database_path)
             if claim.certification_status == "certified":
                 require_source_contract(claim.definition_version, metric_id=claim.metric_id)
         if availability_clock is not None:
@@ -1123,10 +1130,11 @@ def _select_claim_rows(
     )
 
 
-def _validate_claim(claim: SourceClaimInput) -> None:
+def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
     definition = metric_definition(
         claim.metric_id,
         definition_version=claim.definition_version,
+        database_path=database_path,
     )
     if claim.definition_version != definition.definition_version:
         raise ValueError("evidence_definition_version_mismatch")
@@ -1137,6 +1145,13 @@ def _validate_claim(claim: SourceClaimInput) -> None:
         raise ValueError("evidence_dimensions_mismatch")
     if claim.certification_status == "certified" and definition.certification_status != "certified":
         raise ValueError("evidence_source_not_certified_by_model")
+    if claim.certification_status == "certified":
+        require_registered_source_contract(
+            definition,
+            provider=claim.provider,
+            period_kind=claim.period_kind,
+            dimensions=claim.dimensions,
+        )
     if claim.certification_status not in {
         "certified",
         "awaiting_source_certification",

@@ -1,0 +1,251 @@
+............................................................FFFFFF..FFFF [ 79%]
+F.F.......FFFFFFFFF                                                      [100%]
+=================================== FAILURES ===================================
+_________ test_context_formula_dispatch_is_bound_to_the_model_manifest _________
+tests/integration/test_context_projection.py:101: in test_context_formula_dispatch_is_bound_to_the_model_manifest
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_context_formula_dispatch_is_bound_to_the_model_manifest.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+___ test_repo_net_injection_derives_maturity_from_certified_operation_ledger ___
+tests/integration/test_context_projection.py:156: in test_repo_net_injection_derives_maturity_from_certified_operation_ledger
+    operation_ids[period_end] = repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_repo_net_injection_derives_maturity_from_certified_operation_ledger.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+__________ test_repo_net_injection_v1_keeps_frozen_same_day_semantics __________
+tests/integration/test_context_projection.py:231: in test_repo_net_injection_v1_keeps_frozen_same_day_semantics
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_repo_net_injection_v1_keeps_frozen_same_day_semantics.<locals>.<lambda>() got an unexpected keyword argument 'database_path'
+______ test_repo_net_injection_emits_withdrawal_when_only_maturity_occurs ______
+tests/integration/test_context_projection.py:276: in test_repo_net_injection_emits_withdrawal_when_only_maturity_occurs
+    operation_id = repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_repo_net_injection_emits_withdrawal_when_only_maturity_occurs.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_______ test_reported_repo_net_injection_cannot_bypass_certified_formula _______
+tests/integration/test_context_projection.py:347: in test_reported_repo_net_injection_cannot_bypass_certified_formula
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_reported_repo_net_injection_cannot_bypass_certified_formula.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+______ test_reported_repo_net_injection_is_hidden_without_formula_inputs _______
+tests/integration/test_context_projection.py:394: in test_reported_repo_net_injection_is_hidden_without_formula_inputs
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_reported_repo_net_injection_is_hidden_without_formula_inputs.<locals>.<lambda>() got an unexpected keyword argument 'database_path'
+_______ test_historical_context_excludes_observations_after_target_date ________
+tests/integration/test_context_projection.py:490: in test_historical_context_excludes_observations_after_target_date
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_historical_context_excludes_observations_after_target_date.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+____ test_historical_context_excludes_period_ended_but_not_yet_public_claim ____
+tests/integration/test_context_projection.py:556: in test_historical_context_excludes_period_ended_but_not_yet_public_claim
+    repository.append_source_claims((earlier, late_public))
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_historical_context_excludes_period_ended_but_not_yet_public_claim.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+__ test_historical_context_reselects_same_provider_revision_visible_at_target __
+tests/integration/test_context_projection.py:617: in test_historical_context_reselects_same_provider_revision_visible_at_target
+    repository.append_source_claims(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_historical_context_reselects_same_provider_revision_visible_at_target.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_ test_target_bound_context_rejects_future_month_or_unknown_public_time[True] __
+tests/integration/test_context_projection.py:682: in test_target_bound_context_rejects_future_month_or_unknown_public_time
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_target_bound_context_rejects_future_month_or_unknown_public_time.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_ test_target_bound_context_rejects_future_month_or_unknown_public_time[False] _
+tests/integration/test_context_projection.py:682: in test_target_bound_context_rejects_future_month_or_unknown_public_time
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_target_bound_context_rejects_future_month_or_unknown_public_time.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+____ test_event_history_outside_the_visible_window_is_not_a_missing_source _____
+tests/integration/test_context_projection.py:765: in test_event_history_outside_the_visible_window_is_not_a_missing_source
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_event_history_outside_the_visible_window_is_not_a_missing_source.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+___ test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages ___
+tests/integration/test_context_projection.py:1056: in test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+____ test_policy_and_treasury_spreads_are_derived_with_exact_input_vintages ____
+tests/integration/test_context_projection.py:1160: in test_policy_and_treasury_spreads_are_derived_with_exact_input_vintages
+    inputs[name] = repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_policy_and_treasury_spreads_are_derived_with_exact_input_vintages.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_ test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[monthly_increment] _
+tests/integration/test_context_projection.py:1246: in test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp
+    claim = repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_ test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_increment] _
+tests/integration/test_context_projection.py:1246: in test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp
+    claim = repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+__ test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_gap] ___
+tests/integration/test_context_projection.py:1246: in test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp
+    claim = repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_ test_inventory_spreads_and_loan_change_are_derived_without_duplicate_observations _
+tests/integration/test_context_projection.py:1352: in test_inventory_spreads_and_loan_change_are_derived_without_duplicate_observations
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_inventory_spreads_and_loan_change_are_derived_without_duplicate_observations.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_______ test_policy_gross_rows_do_not_double_vote_against_net_tightening _______
+tests/integration/test_context_projection.py:1462: in test_policy_gross_rows_do_not_double_vote_against_net_tightening
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_policy_gross_rows_do_not_double_vote_against_net_tightening.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_______ test_first_rrr_event_uses_change_measures_not_level_differences ________
+tests/integration/test_context_projection.py:1523: in test_first_rrr_event_uses_change_measures_not_level_differences
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_first_rrr_event_uses_change_measures_not_level_differences.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+_________ test_real_inventory_uses_nominal_level_not_official_yoy_row __________
+tests/integration/test_context_projection.py:1583: in test_real_inventory_uses_nominal_level_not_official_yoy_row
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:263: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:274: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1131: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_real_inventory_uses_nominal_level_not_official_yoy_row.<locals>.certified_definition() got an unexpected keyword argument 'database_path'
+=========================== short test summary info ============================
+FAILED tests/integration/test_context_projection.py::test_context_formula_dispatch_is_bound_to_the_model_manifest
+FAILED tests/integration/test_context_projection.py::test_repo_net_injection_derives_maturity_from_certified_operation_ledger
+FAILED tests/integration/test_context_projection.py::test_repo_net_injection_v1_keeps_frozen_same_day_semantics
+FAILED tests/integration/test_context_projection.py::test_repo_net_injection_emits_withdrawal_when_only_maturity_occurs
+FAILED tests/integration/test_context_projection.py::test_reported_repo_net_injection_cannot_bypass_certified_formula
+FAILED tests/integration/test_context_projection.py::test_reported_repo_net_injection_is_hidden_without_formula_inputs
+FAILED tests/integration/test_context_projection.py::test_historical_context_excludes_observations_after_target_date
+FAILED tests/integration/test_context_projection.py::test_historical_context_excludes_period_ended_but_not_yet_public_claim
+FAILED tests/integration/test_context_projection.py::test_historical_context_reselects_same_provider_revision_visible_at_target
+FAILED tests/integration/test_context_projection.py::test_target_bound_context_rejects_future_month_or_unknown_public_time[True]
+FAILED tests/integration/test_context_projection.py::test_target_bound_context_rejects_future_month_or_unknown_public_time[False]
+FAILED tests/integration/test_context_projection.py::test_event_history_outside_the_visible_window_is_not_a_missing_source
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages
+FAILED tests/integration/test_context_projection.py::test_policy_and_treasury_spreads_are_derived_with_exact_input_vintages
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[monthly_increment]
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_increment]
+FAILED tests/integration/test_context_projection.py::test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp[ytd_gap]
+FAILED tests/integration/test_context_projection.py::test_inventory_spreads_and_loan_change_are_derived_without_duplicate_observations
+FAILED tests/integration/test_context_projection.py::test_policy_gross_rows_do_not_double_vote_against_net_tightening
+FAILED tests/integration/test_context_projection.py::test_first_rrr_event_uses_change_measures_not_level_differences
+FAILED tests/integration/test_context_projection.py::test_real_inventory_uses_nominal_level_not_official_yoy_row
+21 failed, 70 passed in 71.61s (0:01:11)

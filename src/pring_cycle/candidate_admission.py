@@ -69,7 +69,7 @@ def admit_source_certified_candidate(
     digest = _hash(manifest)
     manifest["model_version_id"] = f"model-reviewed-{digest}"
     return {
-        **asdict(ModelRepository(paths.database).create_candidate(manifest)),
+        **asdict(ModelRepository(paths.database)._create_admitted_candidate(manifest)),
         "network_requests": 0,
     }
 
@@ -104,6 +104,8 @@ def _validate_manifest(
     }
     for definition in rules.metric_definitions:
         baseline = expected[definition.metric_id]
+        if set(definitions[definition.metric_id]) != set(asdict(definition)):
+            raise ValueError(f"certification_definition_fields_unsupported:{definition.metric_id}")
         if definition.frequency not in {"daily", "monthly", "quarterly", "event"}:
             raise ValueError(f"certification_frequency_unsupported:{definition.metric_id}")
         if (definition.priority, definition.role) != (baseline.priority, baseline.role):

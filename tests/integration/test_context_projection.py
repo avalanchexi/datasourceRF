@@ -85,10 +85,12 @@ def test_context_formula_dispatch_is_bound_to_the_model_manifest(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -138,10 +140,12 @@ def test_repo_net_injection_derives_maturity_from_certified_operation_ledger(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -206,8 +210,10 @@ def test_repo_net_injection_v1_keeps_frozen_same_day_semantics(
     monkeypatch.setattr(
         evidence_module,
         "metric_definition",
-        lambda metric_id, *, definition_version="metric-catalog-v0002": replace(
-            metric_definition(metric_id, definition_version=definition_version),
+        lambda metric_id, *, definition_version="metric-catalog-v0002", database_path=None: replace(
+            metric_definition(
+                metric_id, definition_version=definition_version, database_path=database_path
+            ),
             certification_status=(
                 "certified"
                 if metric_id == "CN_OMO_7D_AMOUNT"
@@ -261,10 +267,12 @@ def test_repo_net_injection_emits_withdrawal_when_only_maturity_occurs(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -327,10 +335,12 @@ def test_reported_repo_net_injection_cannot_bypass_certified_formula(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -379,8 +389,10 @@ def test_reported_repo_net_injection_is_hidden_without_formula_inputs(
     monkeypatch.setattr(
         evidence_module,
         "metric_definition",
-        lambda metric_id, *, definition_version="metric-catalog-v0002": replace(
-            metric_definition(metric_id, definition_version=definition_version),
+        lambda metric_id, *, definition_version="metric-catalog-v0002", database_path=None: replace(
+            metric_definition(
+                metric_id, definition_version=definition_version, database_path=database_path
+            ),
             certification_status=(
                 "certified"
                 if metric_id == "CN_OMO_7D_AMOUNT"
@@ -474,10 +486,12 @@ def test_historical_context_excludes_observations_after_target_date(
         requested_metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             requested_metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -524,8 +538,11 @@ def test_historical_context_excludes_period_ended_but_not_yet_public_claim(
         requested_metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
-        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        definition = metric_definition(
+            requested_metric_id, definition_version=definition_version, database_path=database_path
+        )
         return (
             replace(definition, certification_status="certified")
             if requested_metric_id == metric_id
@@ -596,8 +613,11 @@ def test_historical_context_reselects_same_provider_revision_visible_at_target(
         requested_metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
-        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        definition = metric_definition(
+            requested_metric_id, definition_version=definition_version, database_path=database_path
+        )
         return (
             replace(definition, certification_status="certified")
             if requested_metric_id == metric_id
@@ -669,8 +689,11 @@ def test_target_bound_context_rejects_future_month_or_unknown_public_time(
         requested_metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
-        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        definition = metric_definition(
+            requested_metric_id, definition_version=definition_version, database_path=database_path
+        )
         return (
             replace(definition, certification_status="certified")
             if requested_metric_id == metric_id
@@ -753,8 +776,11 @@ def test_event_history_outside_the_visible_window_is_not_a_missing_source(
         requested_metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
-        definition = metric_definition(requested_metric_id, definition_version=definition_version)
+        definition = metric_definition(
+            requested_metric_id, definition_version=definition_version, database_path=database_path
+        )
         return (
             replace(definition, certification_status="certified")
             if requested_metric_id == metric_id
@@ -1034,10 +1060,12 @@ def test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -1136,10 +1164,12 @@ def test_policy_and_treasury_spreads_are_derived_with_exact_input_vintages(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -1224,10 +1254,12 @@ def test_credit_impulse_derives_quarter_levels_from_reported_ytd_gdp(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -1332,10 +1364,12 @@ def test_inventory_spreads_and_loan_change_are_derived_without_duplicate_observa
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -1428,10 +1462,12 @@ def test_policy_gross_rows_do_not_double_vote_against_net_tightening(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -1503,10 +1539,12 @@ def test_first_rrr_event_uses_change_measures_not_level_differences(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")
@@ -1564,10 +1602,12 @@ def test_real_inventory_uses_nominal_level_not_official_yoy_row(
         metric_id: str,
         *,
         definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
     ):
         definition = metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=database_path,
         )
         return (
             replace(definition, certification_status="certified")

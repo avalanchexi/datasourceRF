@@ -4,9 +4,13 @@
 
 ## 已实际完成的本轮交付
 
+从 `0679a475` 继续：[目录登记与 LPR 消费](implementation-19-catalog.md)代码批已验收：**819全套通过、0失败、852.83秒**；13新增、126关联、最后5项来源检查和34迁移/生命周期检查通过。第一轮817通过/2个旧测试兼容失败已修，应用源码未因这两处旧测试改变，失败日志与现场保留。84个安装Python文件前后匹配，mypy85、Ruff、两轴复审0；扩大检查的29条旧类型诊断与基点逐条一致。见[最终收据](verification-catalog/final.json)。
+
+实际来源材料另有进展：[LPR认证矩阵](lpr-certification-gap-matrix.md)已根核13输入/9真实原件/18值/39引用；在全新隔离库完成9份document_import收据，18导出hash及真实时钟再次独立核验，声明/认证/新目录/真实候选/生产写入均0。见[收据](evidence-lpr-import-20260908/receipts.json)。这补了本次取得记录，未恢复历史SYSTEM或完成PUBLIC认证。
+
 从 `1cd2c00` 继续：[票19正式包准入](implementation-19-admission.md)代码批完成：**806 全套/63 关联/50 新增通过，0 失败，860.32 秒**；mypy 83、Ruff/格式及双轴复审 0，82 个安装 Python 文件核对。请求/正式包/审查/登记原件的哈希与定义、规则、执行绑定均在候选写库前校验；坏包拒绝、合成幂等创建以及既有 active/发布投影保留已验收。[最终收据](verification-admission/final.json)。实际生产认证、新生产目录/候选、真实网络、激活/切换均 0。
 
-**当前立即续作：**[目录实际消费边界](candidate-catalog-consumption-boundary.md)已根复核 38 输入/114 引用。先在正式准入事务中登记 `catalog_version → 唯一不可变定义集合`，再接通 LPR 公开导入→PUBLIC/SYSTEM 查询→模型选值→上下文投影。当前仅有 embedded 模型清单，静态目录仍拒绝新版本；同版本异定义的跨模型冲突还需机器拒绝。保留正式 Worker 的 active 约束，不借激活候选或修改旧 v3 门解决采集。完整票 19 仍 in-progress。
+**当前立即续作：**继续LPR正式审查材料与实际用途依据、其余家族来源及对应消费者；9份新真实导入收据已准备，无需重复导入相同演练目录。新目录目前只接通LPR；其他家族 certified 输入明确未实施，不因完整61项登记而自动给旧解析器授予新定义认证。保留正式 Worker 的active约束和旧v3门。完整票19仍in-progress，真实检索/报告/120日重放及切换仍依原阻塞边推进。
 
 从`a569fd7`继续：[历史smoke收据补齐](implementation-history-receipts.md)完成，756全套/70关联/15新增通过，全套938.86秒，双轴复审0，Ruff/mypy82及81安装源指纹一致。目录/正文、线程owner、目标日、禁止自动重定向、错误体有界前缀和browser原包装转换血缘均验收。与03已修的history导入分别留证，不恢复过去SYSTEM或授予历史PUBLIC。
 

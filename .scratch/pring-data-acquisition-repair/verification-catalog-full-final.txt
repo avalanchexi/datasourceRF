@@ -1,0 +1,111 @@
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 43%]
+.............................F.......................................... [ 52%]
+........................................................................ [ 61%]
+........................................................................ [ 70%]
+........................................................................ [ 79%]
+........................................................................ [ 87%]
+......................F................................................. [ 96%]
+...........................                                              [100%]
+=================================== FAILURES ===================================
+__________ test_new_acquisition_preserves_old_release_and_claim_bytes __________
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlite3.OperationalError: table registered_metric_catalog already exists
+
+The above exception was the direct cause of the following exception:
+tests/integration/test_core_history_refresh.py:496: in test_new_acquisition_preserves_old_release_and_claim_bytes
+    initialize_runtime(paths)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/runtime.py:136: in initialize_runtime
+    migrate_database(paths.database)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/storage.py:37: in migrate_database
+    command.upgrade(configuration, "head")
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/command.py:487: in upgrade
+    script.run_env()
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/script/base.py:550: in run_env
+    util.load_python_file(self.dir, "env.py")
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py:114: in load_python_file
+    module = load_module_py(module_id, path)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/util/pyfiles.py:132: in load_module_py
+    spec.loader.exec_module(module)  # type: ignore
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+<frozen importlib._bootstrap_external>:999: in exec_module
+    ???
+<frozen importlib._bootstrap>:488: in _call_with_frames_removed
+    ???
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/migrations/env.py:16: in <module>
+    run_migrations_online()
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/migrations/env.py:13: in run_migrations_online
+    context.run_migrations()
+<string>:8: in run_migrations
+    ???
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/runtime/environment.py:967: in run_migrations
+    self.get_context().run_migrations(**kw)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/runtime/migration.py:621: in run_migrations
+    step.migration_fn(**kw)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/migrations/versions/0019_registered_metric_catalog.py:16: in upgrade
+    op.execute(CATALOG_REGISTRY_SCHEMA)
+<string>:8: in execute
+    ???
+<string>:3: in execute
+    ???
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/operations/ops.py:2645: in execute
+    return operations.invoke(op)
+           ^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/operations/base.py:448: in invoke
+    return fn(self, operation)
+           ^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/operations/toimpl.py:259: in execute_sql
+    operations.migration_context.impl.execute(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/ddl/impl.py:259: in execute
+    self._exec(sql, execution_options)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/alembic/ddl/impl.py:252: in _exec
+    return conn.execute(construct, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1421: in execute
+    return meth(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py:526: in _execute_on_connection
+    return connection._execute_clauseelement(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1643: in _execute_clauseelement
+    ret = self._execute_context(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1848: in _execute_context
+    return self._exec_single_context(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:2365: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py:1969: in _exec_single_context
+    self.dialect.do_execute(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py:952: in do_execute
+    cursor.execute(statement, parameters)
+E   sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) table registered_metric_catalog already exists
+E   [SQL: 
+E   CREATE TABLE registered_metric_catalog (
+E       catalog_version TEXT PRIMARY KEY,
+E       definitions_hash TEXT NOT NULL,
+E       definitions_json TEXT NOT NULL,
+E       admitted_by_model_id TEXT NOT NULL REFERENCES model_version(model_version_id)
+E   );
+E   ]
+E   (Background on this error at: https://sqlalche.me/e/20/e3q8)
+_ test_context_selection_combines_members_with_same_period_end_and_distinct_starts _
+tests/models/test_model_lifecycle.py:692: in test_context_selection_combines_members_with_same_period_end_and_distinct_starts
+    repository.append_source_claim(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:266: in append_source_claim
+    return self.append_source_claims((claim,))[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1134: in _validate_claim
+    definition = metric_definition(
+E   TypeError: test_context_selection_combines_members_with_same_period_end_and_distinct_starts.<locals>.<lambda>() got an unexpected keyword argument 'database_path'
+=========================== short test summary info ============================
+FAILED tests/integration/test_core_history_refresh.py::test_new_acquisition_preserves_old_release_and_claim_bytes
+FAILED tests/models/test_model_lifecycle.py::test_context_selection_combines_members_with_same_period_end_and_distinct_starts
+2 failed, 817 passed in 851.10s (0:14:11)

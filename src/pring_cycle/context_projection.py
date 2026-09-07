@@ -226,6 +226,7 @@ def build_context_projection(
     if as_of.tzinfo is None:
         raise ValueError("context_projection_as_of_must_be_timezone_aware")
     rules = ContextProjectionRules.from_manifest(model_manifest)
+    repository.validate_model_catalog(model_manifest)
     definitions = {item.metric_id: item for item in rules.metric_definitions}
     visible_repository: Any = repository
     if target_business_date is not None:

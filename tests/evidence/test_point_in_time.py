@@ -56,8 +56,12 @@ def repository(tmp_path: Path) -> EvidenceRepository:
 def _certify_cpi(monkeypatch: pytest.MonkeyPatch) -> None:
     original = evidence_module.metric_definition
 
-    def certified_definition(metric_id: str, *, definition_version: str):  # type: ignore[no-untyped-def]
-        definition = original(metric_id, definition_version=definition_version)
+    def certified_definition(  # type: ignore[no-untyped-def]
+        metric_id: str, *, definition_version: str, database_path: Path | None = None
+    ):
+        definition = original(
+            metric_id, definition_version=definition_version, database_path=database_path
+        )
         return replace(definition, certification_status="certified")
 
     monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)

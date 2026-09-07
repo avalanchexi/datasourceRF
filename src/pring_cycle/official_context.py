@@ -362,7 +362,9 @@ def ingest_acquired_official_release(
             fetched_at=receipt.received_at,
             available_at=receipt.validated_at,
             certification_status=metric_definition(
-                scalar.metric_id, definition_version=definition_version
+                scalar.metric_id,
+                definition_version=definition_version,
+                database_path=paths.database,
             ).certification_status,
             quality_status="validated",
             acquisition_id=receipt.acquisition_id,

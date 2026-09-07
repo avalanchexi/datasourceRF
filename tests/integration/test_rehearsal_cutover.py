@@ -409,8 +409,10 @@ def test_real_rehearsal_rejects_conflicted_or_unselected_certified_claims(
     initialize_runtime(paths)
     monkeypatch.setattr(
         "pring_cycle.evidence.metric_definition",
-        lambda metric_id, *, definition_version="metric-catalog-v0002": replace(
-            metric_definition(metric_id, definition_version=definition_version),
+        lambda metric_id, *, definition_version="metric-catalog-v0002", database_path=None: replace(
+            metric_definition(
+                metric_id, definition_version=definition_version, database_path=database_path
+            ),
             certification_status="certified",
         ),
     )
