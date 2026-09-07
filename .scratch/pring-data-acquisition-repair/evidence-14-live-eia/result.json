@@ -1,0 +1,925 @@
+{
+  "scope": "real public CLI and HTTP; isolated candidate runtime",
+  "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-live-eia-20260907a",
+  "start_date": "2026-08-24",
+  "end_date": "2026-09-04",
+  "definition_version": "metric-catalog-v0002",
+  "records": [
+    {
+      "series_id": "RBRTE",
+      "metric_id": "EIA_BRENT_RBRTE",
+      "command_arguments": [
+        "eia-html-refresh",
+        "--runtime-root",
+        "/home/tywin/.cache/pring-cycle/verification/repair-14-live-eia-20260907a",
+        "--series",
+        "RBRTE",
+        "--start",
+        "2026-08-24",
+        "--end",
+        "2026-09-04",
+        "--definition-version",
+        "metric-catalog-v0002",
+        "--json"
+      ],
+      "result": {
+        "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+        "claim_ids": [
+          "978244ca4057c78057083cce3f0d53deaaaf5d17b27ba5df6597d654d4c2d924",
+          "81e3b110dcd77522b154fa7119df8c145a45b54d12b104a135fe9ebbf4265401",
+          "31d7d5a84a75aee85b8f416d1bdbc63fe454d111836f2809917e2349afb19e8b",
+          "2c1baf0994375f3a50f8323dd0e5a055b495d8681045f09857e0d681fd6ac047",
+          "0ae327b57387292bb7edd33315c953a028539b51a5a71e33215f9b8b5004951a",
+          "704915cbd254eb958330fbd3b50e03cb34e33fca6a4732909901c97e8ca24e56"
+        ],
+        "condition": null,
+        "metric_id": "EIA_BRENT_RBRTE",
+        "missing_cell_count": 4,
+        "observation_count": 6,
+        "observation_ids": [
+          "1ef423fbddad73a4c56808d4b8766caf6fb58b2fa29799c812548f4dbb0eb6a6",
+          "aa12cc99d95983d20d781c9036cf8362e71c41d4de30a2a86bbc5afc6b612dd5",
+          "69f1a3cb9454405509f78bb73cebde2ff16bae6f8c82fe59e2701b1b06c3c0b3",
+          "121dde62e7173682d4d5ed58100ce55445e135cf68b4319646d81fb187d0afb2",
+          "f65c32c49f9a9d833d12a3da7e969b4cfa310ab52d52c9b52b58568e1700ce0d",
+          "54d77c464fc390e84174b9f1a69e261ec9b6c2d94cc1c05f6e901417f9888f7d"
+        ],
+        "status": "stored_candidate"
+      },
+      "receipts": [
+        {
+          "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+          "provider": "U.S. Energy Information Administration",
+          "api_name": "eia_history_html",
+          "parameters": {
+            "definition_version": "metric-catalog-v0002",
+            "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+            "period": "2026-09-04",
+            "series_id": "RBRTE",
+            "start_date": "2026-08-24"
+          },
+          "fields": "Mon,Tue,Wed,Thu,Fri",
+          "parser_version": "eia-history-html-parser-v0001",
+          "started_at": "2026-09-07 05:57:54.018082+00:00",
+          "received_at": "2026-09-07 05:58:10.102984+00:00",
+          "validated_at": "2026-09-07 05:58:10.530326+00:00",
+          "state": "validated",
+          "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+          "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+          "error_type": null
+        }
+      ],
+      "traces": [
+        {
+          "observation_id": "1ef423fbddad73a4c56808d4b8766caf6fb58b2fa29799c812548f4dbb0eb6a6",
+          "metric_id": "EIA_BRENT_RBRTE",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-24",
+          "period_end": "2026-08-24",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:10.582237+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "978244ca4057c78057083cce3f0d53deaaaf5d17b27ba5df6597d654d4c2d924",
+          "selected_value": 92.71,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "978244ca4057c78057083cce3f0d53deaaaf5d17b27ba5df6597d654d4c2d924",
+              "provider": "U.S. Energy Information Administration",
+              "value": 92.71,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm#date=2026-08-24",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:10.102984+00:00",
+              "available_at": "2026-09-07 05:58:10.535466+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+                "period": "2026-09-04",
+                "series_id": "RBRTE",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:57:54.018082+00:00",
+              "received_at": "2026-09-07 05:58:10.102984+00:00",
+              "validated_at": "2026-09-07 05:58:10.530326+00:00",
+              "state": "validated",
+              "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+              "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "aa12cc99d95983d20d781c9036cf8362e71c41d4de30a2a86bbc5afc6b612dd5",
+          "metric_id": "EIA_BRENT_RBRTE",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-25",
+          "period_end": "2026-08-25",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:10.582237+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "81e3b110dcd77522b154fa7119df8c145a45b54d12b104a135fe9ebbf4265401",
+          "selected_value": 88.24,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "81e3b110dcd77522b154fa7119df8c145a45b54d12b104a135fe9ebbf4265401",
+              "provider": "U.S. Energy Information Administration",
+              "value": 88.24,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm#date=2026-08-25",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:10.102984+00:00",
+              "available_at": "2026-09-07 05:58:10.535466+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+                "period": "2026-09-04",
+                "series_id": "RBRTE",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:57:54.018082+00:00",
+              "received_at": "2026-09-07 05:58:10.102984+00:00",
+              "validated_at": "2026-09-07 05:58:10.530326+00:00",
+              "state": "validated",
+              "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+              "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "69f1a3cb9454405509f78bb73cebde2ff16bae6f8c82fe59e2701b1b06c3c0b3",
+          "metric_id": "EIA_BRENT_RBRTE",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-26",
+          "period_end": "2026-08-26",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:10.582237+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "31d7d5a84a75aee85b8f416d1bdbc63fe454d111836f2809917e2349afb19e8b",
+          "selected_value": 87.77,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "31d7d5a84a75aee85b8f416d1bdbc63fe454d111836f2809917e2349afb19e8b",
+              "provider": "U.S. Energy Information Administration",
+              "value": 87.77,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm#date=2026-08-26",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:10.102984+00:00",
+              "available_at": "2026-09-07 05:58:10.535466+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+                "period": "2026-09-04",
+                "series_id": "RBRTE",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:57:54.018082+00:00",
+              "received_at": "2026-09-07 05:58:10.102984+00:00",
+              "validated_at": "2026-09-07 05:58:10.530326+00:00",
+              "state": "validated",
+              "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+              "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "121dde62e7173682d4d5ed58100ce55445e135cf68b4319646d81fb187d0afb2",
+          "metric_id": "EIA_BRENT_RBRTE",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-27",
+          "period_end": "2026-08-27",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:10.582237+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "2c1baf0994375f3a50f8323dd0e5a055b495d8681045f09857e0d681fd6ac047",
+          "selected_value": 90.18,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "2c1baf0994375f3a50f8323dd0e5a055b495d8681045f09857e0d681fd6ac047",
+              "provider": "U.S. Energy Information Administration",
+              "value": 90.18,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm#date=2026-08-27",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:10.102984+00:00",
+              "available_at": "2026-09-07 05:58:10.535466+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+                "period": "2026-09-04",
+                "series_id": "RBRTE",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:57:54.018082+00:00",
+              "received_at": "2026-09-07 05:58:10.102984+00:00",
+              "validated_at": "2026-09-07 05:58:10.530326+00:00",
+              "state": "validated",
+              "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+              "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "f65c32c49f9a9d833d12a3da7e969b4cfa310ab52d52c9b52b58568e1700ce0d",
+          "metric_id": "EIA_BRENT_RBRTE",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-28",
+          "period_end": "2026-08-28",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:10.582237+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "0ae327b57387292bb7edd33315c953a028539b51a5a71e33215f9b8b5004951a",
+          "selected_value": 89.75,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "0ae327b57387292bb7edd33315c953a028539b51a5a71e33215f9b8b5004951a",
+              "provider": "U.S. Energy Information Administration",
+              "value": 89.75,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm#date=2026-08-28",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:10.102984+00:00",
+              "available_at": "2026-09-07 05:58:10.535466+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+                "period": "2026-09-04",
+                "series_id": "RBRTE",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:57:54.018082+00:00",
+              "received_at": "2026-09-07 05:58:10.102984+00:00",
+              "validated_at": "2026-09-07 05:58:10.530326+00:00",
+              "state": "validated",
+              "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+              "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "54d77c464fc390e84174b9f1a69e261ec9b6c2d94cc1c05f6e901417f9888f7d",
+          "metric_id": "EIA_BRENT_RBRTE",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-01",
+          "period_end": "2026-09-01",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:10.582237+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "704915cbd254eb958330fbd3b50e03cb34e33fca6a4732909901c97e8ca24e56",
+          "selected_value": 96.02,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "704915cbd254eb958330fbd3b50e03cb34e33fca6a4732909901c97e8ca24e56",
+              "provider": "U.S. Energy Information Administration",
+              "value": 96.02,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm#date=2026-09-01",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:10.102984+00:00",
+              "available_at": "2026-09-07 05:58:10.535466+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+                "period": "2026-09-04",
+                "series_id": "RBRTE",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:57:54.018082+00:00",
+              "received_at": "2026-09-07 05:58:10.102984+00:00",
+              "validated_at": "2026-09-07 05:58:10.530326+00:00",
+              "state": "validated",
+              "raw_hash": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+              "normalized_hash": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        }
+      ],
+      "latest_attempt": {
+        "retrieval_attempt_id": "ad83341189593842b34984a5eace4c570b462101c3a2845c330606e3f916c940",
+        "metric_id": "EIA_BRENT_RBRTE",
+        "channel": "eia_html_candidate",
+        "outcome": "verified_candidate",
+        "fetched_at": "2026-09-07 05:58:10.541292+00:00",
+        "safe_metadata": {
+          "acquisition_ids": "acquisition-3322ebd43eb54613bb6cc7b32bfa0092",
+          "definition_version": "metric-catalog-v0002",
+          "endpoint": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+          "missing_cells": "4",
+          "next_release_date": "2026-09-10",
+          "observations": "6",
+          "period": "2026-09-04",
+          "release_date": "2026-09-02",
+          "release_timezone": "America/New_York",
+          "response_final_url": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+          "response_http_status": "200",
+          "response_media_type": "text/html",
+          "series_id": "RBRTE",
+          "start_date": "2026-08-24"
+        }
+      }
+    },
+    {
+      "series_id": "RWTC",
+      "metric_id": "EIA_WTI_RWTC",
+      "command_arguments": [
+        "eia-html-refresh",
+        "--runtime-root",
+        "/home/tywin/.cache/pring-cycle/verification/repair-14-live-eia-20260907a",
+        "--series",
+        "RWTC",
+        "--start",
+        "2026-08-24",
+        "--end",
+        "2026-09-04",
+        "--definition-version",
+        "metric-catalog-v0002",
+        "--json"
+      ],
+      "result": {
+        "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+        "claim_ids": [
+          "8dc3a641852815a24afeeaecd6cee3002b13de660c3449420d31919a46095daa",
+          "1b0fe5ccb4261aaab1b74faaced7ab11e710a1791d3f1d744fb45ac43c6092f4",
+          "f4469680238d47f18a8799b2e3522a5b337484ec51ab770997bb93b54e702247",
+          "61fab9fc365104afdfd29d7373d0d1282c2a76ab42f6a471d386faf2f98c0a49",
+          "a3c00f515ab10155ee649bcb5feaa7cfa0ae53da131216918094942b3b12cf05",
+          "c2c09bb33f095965cb5d9cf9e0842a1dd9f429950bb5c79d158023bf4efeb7b7",
+          "8a60f3ada0746e6691df3eff450a67198958448a6e3a6d3b39cb0e0ba83f386d"
+        ],
+        "condition": null,
+        "metric_id": "EIA_WTI_RWTC",
+        "missing_cell_count": 3,
+        "observation_count": 7,
+        "observation_ids": [
+          "ee6655930ae607b307eb6abb65653e2716a263fb6bdfce8ac37018cef00f6f1a",
+          "d49bf08b003fd0c4d5eb6052efd218b69a62ca24bf3a50b6c5054d84c926e3c8",
+          "9808d0655a0831ad9b60e9399973f535d682d897c686dd1cb3cd99ce64ec27d5",
+          "633c8e2524284fe7a2357461107b602c3efa4ce4ee09b1415a426385d77ea7ec",
+          "24bf2c97ad7b0b8c60885750d700c6d48adbb186ed2cbcaa589303ec9b2ee6d3",
+          "64a6bb1d5f63d02f27cf5b96c4ef8db5d3eee838b94cc8bf6902bbf27bef52ce",
+          "a9c2d892202a3ae687742bb8be01dbffd38c35c48e7bf19d55d552f5e03fad49"
+        ],
+        "status": "stored_candidate"
+      },
+      "receipts": [
+        {
+          "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+          "provider": "U.S. Energy Information Administration",
+          "api_name": "eia_history_html",
+          "parameters": {
+            "definition_version": "metric-catalog-v0002",
+            "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+            "period": "2026-09-04",
+            "series_id": "RWTC",
+            "start_date": "2026-08-24"
+          },
+          "fields": "Mon,Tue,Wed,Thu,Fri",
+          "parser_version": "eia-history-html-parser-v0001",
+          "started_at": "2026-09-07 05:58:10.654745+00:00",
+          "received_at": "2026-09-07 05:58:21.747828+00:00",
+          "validated_at": "2026-09-07 05:58:22.047098+00:00",
+          "state": "validated",
+          "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+          "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+          "error_type": null
+        }
+      ],
+      "traces": [
+        {
+          "observation_id": "ee6655930ae607b307eb6abb65653e2716a263fb6bdfce8ac37018cef00f6f1a",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-24",
+          "period_end": "2026-08-24",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "8dc3a641852815a24afeeaecd6cee3002b13de660c3449420d31919a46095daa",
+          "selected_value": 86.34,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "8dc3a641852815a24afeeaecd6cee3002b13de660c3449420d31919a46095daa",
+              "provider": "U.S. Energy Information Administration",
+              "value": 86.34,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-08-24",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "d49bf08b003fd0c4d5eb6052efd218b69a62ca24bf3a50b6c5054d84c926e3c8",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-25",
+          "period_end": "2026-08-25",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "1b0fe5ccb4261aaab1b74faaced7ab11e710a1791d3f1d744fb45ac43c6092f4",
+          "selected_value": 83.9,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "1b0fe5ccb4261aaab1b74faaced7ab11e710a1791d3f1d744fb45ac43c6092f4",
+              "provider": "U.S. Energy Information Administration",
+              "value": 83.9,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-08-25",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "9808d0655a0831ad9b60e9399973f535d682d897c686dd1cb3cd99ce64ec27d5",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-26",
+          "period_end": "2026-08-26",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "f4469680238d47f18a8799b2e3522a5b337484ec51ab770997bb93b54e702247",
+          "selected_value": 83.46,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "f4469680238d47f18a8799b2e3522a5b337484ec51ab770997bb93b54e702247",
+              "provider": "U.S. Energy Information Administration",
+              "value": 83.46,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-08-26",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "633c8e2524284fe7a2357461107b602c3efa4ce4ee09b1415a426385d77ea7ec",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-27",
+          "period_end": "2026-08-27",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "61fab9fc365104afdfd29d7373d0d1282c2a76ab42f6a471d386faf2f98c0a49",
+          "selected_value": 84.81,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "61fab9fc365104afdfd29d7373d0d1282c2a76ab42f6a471d386faf2f98c0a49",
+              "provider": "U.S. Energy Information Administration",
+              "value": 84.81,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-08-27",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "24bf2c97ad7b0b8c60885750d700c6d48adbb186ed2cbcaa589303ec9b2ee6d3",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-28",
+          "period_end": "2026-08-28",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "a3c00f515ab10155ee649bcb5feaa7cfa0ae53da131216918094942b3b12cf05",
+          "selected_value": 84.57,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "a3c00f515ab10155ee649bcb5feaa7cfa0ae53da131216918094942b3b12cf05",
+              "provider": "U.S. Energy Information Administration",
+              "value": 84.57,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-08-28",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "64a6bb1d5f63d02f27cf5b96c4ef8db5d3eee838b94cc8bf6902bbf27bef52ce",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-08-31",
+          "period_end": "2026-08-31",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "c2c09bb33f095965cb5d9cf9e0842a1dd9f429950bb5c79d158023bf4efeb7b7",
+          "selected_value": 87.03,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "c2c09bb33f095965cb5d9cf9e0842a1dd9f429950bb5c79d158023bf4efeb7b7",
+              "provider": "U.S. Energy Information Administration",
+              "value": 87.03,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-08-31",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        },
+        {
+          "observation_id": "a9c2d892202a3ae687742bb8be01dbffd38c35c48e7bf19d55d552f5e03fad49",
+          "metric_id": "EIA_WTI_RWTC",
+          "definition_version": "metric-catalog-v0002",
+          "period_kind": "business_day",
+          "period_start": "2026-09-01",
+          "period_end": "2026-09-01",
+          "dimensions": {},
+          "mode": "system_as_of",
+          "as_of": "2026-09-07 05:58:22.076010+00:00",
+          "selection_status": "selected",
+          "selected_claim_id": "8a60f3ada0746e6691df3eff450a67198958448a6e3a6d3b39cb0e0ba83f386d",
+          "selected_value": 91.48,
+          "value_state": "reported_value",
+          "claims": [
+            {
+              "claim_id": "8a60f3ada0746e6691df3eff450a67198958448a6e3a6d3b39cb0e0ba83f386d",
+              "provider": "U.S. Energy Information Administration",
+              "value": 91.48,
+              "value_state": "reported_value",
+              "unit": "usd_per_barrel",
+              "source_reference": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm#date=2026-09-01",
+              "release_at": null,
+              "public_available_at": null,
+              "fetched_at": "2026-09-07 05:58:21.747828+00:00",
+              "available_at": "2026-09-07 05:58:22.050421+00:00",
+              "certification_status": "awaiting_source_certification",
+              "quality_status": "validated",
+              "supersedes_claim_id": null
+            }
+          ],
+          "acquisitions": [
+            {
+              "acquisition_id": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+              "provider": "U.S. Energy Information Administration",
+              "api_name": "eia_history_html",
+              "parameters": {
+                "definition_version": "metric-catalog-v0002",
+                "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+                "period": "2026-09-04",
+                "series_id": "RWTC",
+                "start_date": "2026-08-24"
+              },
+              "fields": "Mon,Tue,Wed,Thu,Fri",
+              "parser_version": "eia-history-html-parser-v0001",
+              "started_at": "2026-09-07 05:58:10.654745+00:00",
+              "received_at": "2026-09-07 05:58:21.747828+00:00",
+              "validated_at": "2026-09-07 05:58:22.047098+00:00",
+              "state": "validated",
+              "raw_hash": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+              "normalized_hash": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+              "error_type": null
+            }
+          ],
+          "acquisition_status": "linked"
+        }
+      ],
+      "latest_attempt": {
+        "retrieval_attempt_id": "2fb580a7bde9a6e0b9b4b6d53df58c5a47db483bb528a3853360faa938e03efd",
+        "metric_id": "EIA_WTI_RWTC",
+        "channel": "eia_html_candidate",
+        "outcome": "verified_candidate",
+        "fetched_at": "2026-09-07 05:58:22.053894+00:00",
+        "safe_metadata": {
+          "acquisition_ids": "acquisition-d64af8a7ed4341f2b05c731799d93957",
+          "definition_version": "metric-catalog-v0002",
+          "endpoint": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+          "missing_cells": "3",
+          "next_release_date": "2026-09-10",
+          "observations": "7",
+          "period": "2026-09-04",
+          "release_date": "2026-09-02",
+          "release_timezone": "America/New_York",
+          "response_final_url": "https://www.eia.gov/dnav/pet/hist/RWTCD.htm",
+          "response_http_status": "200",
+          "response_media_type": "text/html",
+          "series_id": "RWTC",
+          "start_date": "2026-08-24"
+        }
+      }
+    }
+  ],
+  "production_writes": 0,
+  "model_activations": 0,
+  "source_certification_grants": 0,
+  "api_keys_used": 0,
+  "model_adoptions": 0,
+  "recorded_at": "2026-09-07 05:58:22.093926+00:00"
+}

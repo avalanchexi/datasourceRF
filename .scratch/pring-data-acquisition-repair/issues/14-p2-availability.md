@@ -32,6 +32,12 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-07：C盘空间恢复，WSL启动及两候选库/8份原生制品完整性验证通过。EIA本批全套重跑612通过、0失败、768.67秒，见[最终收据](../verification-14-eia/final.json)。42项针对测试、mypy80、Ruff、Spec/Standards均通过，旧失败记录保留。EIA候选入口代码完成；整票14仍in-progress，下一步Treasury官方CSV接入与源日历/认证按各自证据推进。
+
+- 2026-09-07：WSL不可用期间完成[Treasury增量补证](../treasury-followup.md)：3个官方GET均200，3份新原件173,051字节，CSV/旧HTML171日×2字段342/342相符；根代理在Windows标准库独立重跑[校验](../evidence-14-treasury-followup/delivery-verification.json)通过，9条交付路径及旧研究SHA均核对。官方ET、通常18:00前可用但可能延迟，只支持发布预期，历史逐日真实PUBLIC仍未知。官方CSV候选适配、认证及源日历鲜度仍待实施；没有WSL、数据库或模型变更。
+
+- 2026-09-07：EIA公开HTML候选接口与CLI已接通，真实2次GET保存13条待认证数值和7个空日期格；42项相关测试、Ruff、mypy80、Spec/Standards通过。首次全套因SQLite/Python连续I/O错误中断（347通过、1失败、529个setup/teardown错误）；当场C盘可用0字节、WSL停止且无法重启，保持in-progress、不提交或称验收完成。详见[本批记录](../implementation-14-eia.md)与[验证状态](../verification-14-eia/verification-state.json)。原始发布时间未知、来源认证和模型采纳不变；恢复环境后重跑全套。
+
 - 2026-09-07：本批代码最终580项全套通过，719.66秒；Ruff、mypy79、Spec/Standards均通过，见[最终收据](../verification-14/final.json)。EIA公开HTML接入契约与原件补证已完成，接续实施；本票整体来源认证及发布/鲜度状态仍开放。
 
 - 2026-09-07：本批实施GDP争议同比拒绝/P2获取结果分层/真实取得关联与完成时钟/纯P2失败非致命/缺字段状态/美债派生输入获取状态；两项增量复审0问题，最终全套正在运行，详见[实施记录](../implementation-14.md)。另通过正式获取接口真实GET中间价和GDP，两请求生成9条待认证候选，原件与SYSTEM时间可追溯，见[演练复核](../evidence-14-live-official/delivery-verification.json)。P2公开来源认证、日历/鲜度和新候选矩阵仍未完成，保持in-progress。

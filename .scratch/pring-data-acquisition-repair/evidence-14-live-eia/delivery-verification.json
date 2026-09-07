@@ -1,0 +1,16 @@
+{
+  "verified_at": "2026-09-07T14:25:27.313311+08:00",
+  "real_cli_commands": 2,
+  "real_http_requests": 2,
+  "verified_artifacts": 4,
+  "candidate_claims": 13,
+  "missing_calendar_cells": 7,
+  "trace_links_verified": 13,
+  "reference_values_match": true,
+  "unknown_public_time_preserved": true,
+  "system_time_not_backfilled": true,
+  "source_certification_grants": 0,
+  "model_adoptions": 0,
+  "production_writes": 0,
+  "verification_network_requests": 0
+}

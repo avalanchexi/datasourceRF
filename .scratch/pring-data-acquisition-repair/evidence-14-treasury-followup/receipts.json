@@ -1,0 +1,58 @@
+[
+  {
+    "url": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/treasury-yield-curve-methodology",
+    "method": "GET",
+    "started_at": "2026-09-07T06:37:50.229529+00:00",
+    "status": 200,
+    "final_url": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/treasury-yield-curve-methodology",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Last-Modified": "Wed, 26 Aug 2026 12:41:15 GMT",
+      "ETag": "W/\"ef24c9692d4d050bddc451a56c183d78\"",
+      "Date": "Mon, 07 Sep 2026 06:37:51 GMT"
+    },
+    "sha256": "f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e",
+    "bytes": 77037,
+    "local_file": "f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e",
+    "truncated": false,
+    "received_at": "2026-09-07T06:37:51.601374+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/interest-rates-frequently-asked-questions",
+    "method": "GET",
+    "started_at": "2026-09-07T06:37:51.601897+00:00",
+    "status": 200,
+    "final_url": "https://home.treasury.gov/policy-issues/financing-the-government/interest-rate-statistics/interest-rates-frequently-asked-questions",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Last-Modified": "Wed, 26 Aug 2026 12:41:15 GMT",
+      "ETag": "W/\"0571b59cfc21aed0517c0807b9a73dc8\"",
+      "Date": "Mon, 07 Sep 2026 06:37:52 GMT"
+    },
+    "sha256": "221d19478530d793b08c7b74b3e3f7eafe157c6f0cb67b388fcf2480388a31d1",
+    "bytes": 82053,
+    "local_file": "221d19478530d793b08c7b74b3e3f7eafe157c6f0cb67b388fcf2480388a31d1",
+    "truncated": false,
+    "received_at": "2026-09-07T06:37:52.713434+00:00",
+    "public_available_at": null
+  },
+  {
+    "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+    "method": "GET",
+    "started_at": "2026-09-07T06:37:52.714157+00:00",
+    "status": 200,
+    "final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/2026/all?type=daily_treasury_yield_curve&field_tdr_date_value=2026&page&_format=csv",
+    "headers": {
+      "Content-Type": "text/csv; charset=UTF-8",
+      "Date": "Mon, 07 Sep 2026 06:37:53 GMT",
+      "Content-Length": "13961"
+    },
+    "sha256": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+    "bytes": 13961,
+    "local_file": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+    "truncated": false,
+    "received_at": "2026-09-07T06:37:53.830242+00:00",
+    "public_available_at": null
+  }
+]

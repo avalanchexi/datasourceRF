@@ -1,0 +1,1937 @@
+{
+  "inspected_at": "2026-09-07T06:39:54.413874+00:00",
+  "python_executable": "C:\\Python313\\python.exe",
+  "wsl_invoked": false,
+  "new_get_attempts": 3,
+  "new_http_200": 3,
+  "get_failures": 0,
+  "new_raw_bytes": 173051,
+  "official_series_type": "daily_treasury_yield_curve",
+  "unit": "percent",
+  "yield_basis": "simple annualized bond-equivalent yield; semiannual coupon; nominal par constant maturity",
+  "old_html_receipt": {
+    "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?field_tdr_date_value=2026&type=daily_treasury_yield_curve",
+    "method": "GET",
+    "started_at": "2026-09-06T17:04:35.716903+00:00",
+    "status": 200,
+    "final_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?field_tdr_date_value=2026&type=daily_treasury_yield_curve",
+    "headers": {
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sun, 06 Sep 2026 17:04:34 GMT"
+    },
+    "sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+    "bytes": 1120481,
+    "local_file": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+    "truncated": false,
+    "received_at": "2026-09-06T17:04:38.396524+00:00",
+    "public_available_at": null
+  },
+  "csv_fieldnames": [
+    "Date",
+    "1 Mo",
+    "1.5 Month",
+    "2 Mo",
+    "3 Mo",
+    "4 Mo",
+    "6 Mo",
+    "1 Yr",
+    "2 Yr",
+    "3 Yr",
+    "5 Yr",
+    "7 Yr",
+    "10 Yr",
+    "20 Yr",
+    "30 Yr"
+  ],
+  "html_binding": {
+    "2 Yr": "view-field-bc-2year-table-column",
+    "10 Yr": "view-field-bc-10year-table-column"
+  },
+  "periods": {
+    "count": 171,
+    "first": "2026-01-02",
+    "last": "2026-09-04",
+    "source_order": "descending",
+    "duplicates": 0,
+    "window_20260309_20260904": 127
+  },
+  "value_classification": {
+    "2 Yr": {
+      "positive": 171,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    },
+    "10 Yr": {
+      "positive": 171,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    }
+  },
+  "comparison": {
+    "comparison_kind": "same publisher, separate HTML and CSV snapshots; not independent dual-source certification",
+    "field_comparisons": 342,
+    "matched": 342,
+    "date_sets_match": true
+  },
+  "samples": [
+    {
+      "period": "2026-09-04",
+      "2 Yr": "4.37",
+      "10 Yr": "4.78",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      },
+      "spread_bp": "41.00",
+      "html_time_attribute": {
+        "datetime": "2026-09-04T12:00:00Z",
+        "class": "datetime"
+      }
+    },
+    {
+      "period": "2026-08-28",
+      "2 Yr": "4.34",
+      "10 Yr": "4.73",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      },
+      "spread_bp": "39.00",
+      "html_time_attribute": {
+        "datetime": "2026-08-28T12:00:00Z",
+        "class": "datetime"
+      }
+    }
+  ],
+  "public_time": {
+    "timezone_supported_by_methodology": "Eastern Time",
+    "iana_zone_recommendation": "America/New_York",
+    "typical_available_by": "18:00 source-local trading day; delays explicitly possible",
+    "quote_sampling_time": "at or near 15:30; not publication",
+    "row_public_available_at": null,
+    "row_release_at": null,
+    "reason": "No per-row reliable publication record in acquired annual CSV or old annual HTML; expected schedule is not actual release."
+  },
+  "rows": [
+    {
+      "period": "2026-09-04",
+      "2 Yr": "4.37",
+      "10 Yr": "4.78",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-09-03",
+      "2 Yr": "4.34",
+      "10 Yr": "4.77",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-09-02",
+      "2 Yr": "4.39",
+      "10 Yr": "4.79",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-09-01",
+      "2 Yr": "4.39",
+      "10 Yr": "4.79",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-31",
+      "2 Yr": "4.34",
+      "10 Yr": "4.75",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-28",
+      "2 Yr": "4.34",
+      "10 Yr": "4.73",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-27",
+      "2 Yr": "4.20",
+      "10 Yr": "4.67",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-26",
+      "2 Yr": "4.19",
+      "10 Yr": "4.66",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-25",
+      "2 Yr": "4.17",
+      "10 Yr": "4.64",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-24",
+      "2 Yr": "4.24",
+      "10 Yr": "4.70",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-21",
+      "2 Yr": "4.24",
+      "10 Yr": "4.74",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-20",
+      "2 Yr": "4.19",
+      "10 Yr": "4.69",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-19",
+      "2 Yr": "4.19",
+      "10 Yr": "4.65",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-18",
+      "2 Yr": "4.19",
+      "10 Yr": "4.71",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-17",
+      "2 Yr": "4.19",
+      "10 Yr": "4.72",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-14",
+      "2 Yr": "4.17",
+      "10 Yr": "4.68",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-13",
+      "2 Yr": "4.15",
+      "10 Yr": "4.63",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-12",
+      "2 Yr": "4.20",
+      "10 Yr": "4.68",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-11",
+      "2 Yr": "4.22",
+      "10 Yr": "4.70",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-10",
+      "2 Yr": "4.25",
+      "10 Yr": "4.72",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-07",
+      "2 Yr": "4.19",
+      "10 Yr": "4.65",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-06",
+      "2 Yr": "4.25",
+      "10 Yr": "4.69",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-05",
+      "2 Yr": "4.18",
+      "10 Yr": "4.63",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-04",
+      "2 Yr": "4.20",
+      "10 Yr": "4.63",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-08-03",
+      "2 Yr": "4.25",
+      "10 Yr": "4.70",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-31",
+      "2 Yr": "4.28",
+      "10 Yr": "4.75",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-30",
+      "2 Yr": "4.23",
+      "10 Yr": "4.68",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-29",
+      "2 Yr": "4.22",
+      "10 Yr": "4.67",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-28",
+      "2 Yr": "4.26",
+      "10 Yr": "4.61",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-27",
+      "2 Yr": "4.31",
+      "10 Yr": "4.65",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-24",
+      "2 Yr": "4.33",
+      "10 Yr": "4.69",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-23",
+      "2 Yr": "4.37",
+      "10 Yr": "4.71",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-22",
+      "2 Yr": "4.31",
+      "10 Yr": "4.67",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-21",
+      "2 Yr": "4.26",
+      "10 Yr": "4.63",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-20",
+      "2 Yr": "4.21",
+      "10 Yr": "4.60",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-17",
+      "2 Yr": "4.18",
+      "10 Yr": "4.55",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-16",
+      "2 Yr": "4.16",
+      "10 Yr": "4.57",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-15",
+      "2 Yr": "4.13",
+      "10 Yr": "4.55",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-14",
+      "2 Yr": "4.18",
+      "10 Yr": "4.58",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-13",
+      "2 Yr": "4.26",
+      "10 Yr": "4.62",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-10",
+      "2 Yr": "4.21",
+      "10 Yr": "4.56",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-09",
+      "2 Yr": "4.16",
+      "10 Yr": "4.54",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-08",
+      "2 Yr": "4.21",
+      "10 Yr": "4.56",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-07",
+      "2 Yr": "4.19",
+      "10 Yr": "4.55",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-06",
+      "2 Yr": "4.13",
+      "10 Yr": "4.48",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-02",
+      "2 Yr": "4.14",
+      "10 Yr": "4.49",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-07-01",
+      "2 Yr": "4.17",
+      "10 Yr": "4.48",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-30",
+      "2 Yr": "4.14",
+      "10 Yr": "4.44",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-29",
+      "2 Yr": "4.10",
+      "10 Yr": "4.38",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-26",
+      "2 Yr": "4.07",
+      "10 Yr": "4.38",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-25",
+      "2 Yr": "4.09",
+      "10 Yr": "4.40",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-24",
+      "2 Yr": "4.11",
+      "10 Yr": "4.41",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-23",
+      "2 Yr": "4.16",
+      "10 Yr": "4.50",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-22",
+      "2 Yr": "4.24",
+      "10 Yr": "4.51",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-18",
+      "2 Yr": "4.19",
+      "10 Yr": "4.46",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-17",
+      "2 Yr": "4.20",
+      "10 Yr": "4.49",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-16",
+      "2 Yr": "4.05",
+      "10 Yr": "4.43",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-15",
+      "2 Yr": "4.07",
+      "10 Yr": "4.47",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-12",
+      "2 Yr": "4.09",
+      "10 Yr": "4.48",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-11",
+      "2 Yr": "4.05",
+      "10 Yr": "4.45",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-10",
+      "2 Yr": "4.13",
+      "10 Yr": "4.55",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-09",
+      "2 Yr": "4.13",
+      "10 Yr": "4.53",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-08",
+      "2 Yr": "4.15",
+      "10 Yr": "4.56",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-05",
+      "2 Yr": "4.17",
+      "10 Yr": "4.55",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-04",
+      "2 Yr": "4.05",
+      "10 Yr": "4.47",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-03",
+      "2 Yr": "4.08",
+      "10 Yr": "4.49",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-02",
+      "2 Yr": "4.05",
+      "10 Yr": "4.46",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-06-01",
+      "2 Yr": "4.05",
+      "10 Yr": "4.47",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-29",
+      "2 Yr": "3.98",
+      "10 Yr": "4.45",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-28",
+      "2 Yr": "3.99",
+      "10 Yr": "4.45",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-27",
+      "2 Yr": "4.00",
+      "10 Yr": "4.48",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-26",
+      "2 Yr": "4.01",
+      "10 Yr": "4.50",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-22",
+      "2 Yr": "4.13",
+      "10 Yr": "4.56",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-21",
+      "2 Yr": "4.08",
+      "10 Yr": "4.57",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-20",
+      "2 Yr": "4.04",
+      "10 Yr": "4.57",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-19",
+      "2 Yr": "4.13",
+      "10 Yr": "4.67",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-18",
+      "2 Yr": "4.07",
+      "10 Yr": "4.61",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-15",
+      "2 Yr": "4.09",
+      "10 Yr": "4.59",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-14",
+      "2 Yr": "4.00",
+      "10 Yr": "4.47",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-13",
+      "2 Yr": "3.98",
+      "10 Yr": "4.46",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-12",
+      "2 Yr": "4.00",
+      "10 Yr": "4.46",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-11",
+      "2 Yr": "3.95",
+      "10 Yr": "4.42",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-08",
+      "2 Yr": "3.90",
+      "10 Yr": "4.38",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-07",
+      "2 Yr": "3.92",
+      "10 Yr": "4.41",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-06",
+      "2 Yr": "3.87",
+      "10 Yr": "4.36",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-05",
+      "2 Yr": "3.93",
+      "10 Yr": "4.43",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-04",
+      "2 Yr": "3.95",
+      "10 Yr": "4.45",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-05-01",
+      "2 Yr": "3.88",
+      "10 Yr": "4.39",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-30",
+      "2 Yr": "3.88",
+      "10 Yr": "4.40",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-29",
+      "2 Yr": "3.92",
+      "10 Yr": "4.42",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-28",
+      "2 Yr": "3.84",
+      "10 Yr": "4.36",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-27",
+      "2 Yr": "3.78",
+      "10 Yr": "4.35",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-24",
+      "2 Yr": "3.78",
+      "10 Yr": "4.31",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-23",
+      "2 Yr": "3.83",
+      "10 Yr": "4.34",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-22",
+      "2 Yr": "3.79",
+      "10 Yr": "4.30",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-21",
+      "2 Yr": "3.78",
+      "10 Yr": "4.30",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-20",
+      "2 Yr": "3.72",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-17",
+      "2 Yr": "3.71",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-16",
+      "2 Yr": "3.78",
+      "10 Yr": "4.32",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-15",
+      "2 Yr": "3.76",
+      "10 Yr": "4.29",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-14",
+      "2 Yr": "3.76",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-13",
+      "2 Yr": "3.78",
+      "10 Yr": "4.30",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-10",
+      "2 Yr": "3.81",
+      "10 Yr": "4.31",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-09",
+      "2 Yr": "3.78",
+      "10 Yr": "4.29",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-08",
+      "2 Yr": "3.79",
+      "10 Yr": "4.29",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-07",
+      "2 Yr": "3.81",
+      "10 Yr": "4.33",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-06",
+      "2 Yr": "3.84",
+      "10 Yr": "4.34",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-03",
+      "2 Yr": "3.84",
+      "10 Yr": "4.35",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-02",
+      "2 Yr": "3.79",
+      "10 Yr": "4.31",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-04-01",
+      "2 Yr": "3.81",
+      "10 Yr": "4.33",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-31",
+      "2 Yr": "3.79",
+      "10 Yr": "4.30",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-30",
+      "2 Yr": "3.82",
+      "10 Yr": "4.35",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-27",
+      "2 Yr": "3.88",
+      "10 Yr": "4.44",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-26",
+      "2 Yr": "3.96",
+      "10 Yr": "4.42",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-25",
+      "2 Yr": "3.84",
+      "10 Yr": "4.33",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-24",
+      "2 Yr": "3.90",
+      "10 Yr": "4.39",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-23",
+      "2 Yr": "3.83",
+      "10 Yr": "4.34",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-20",
+      "2 Yr": "3.88",
+      "10 Yr": "4.39",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-19",
+      "2 Yr": "3.79",
+      "10 Yr": "4.25",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-18",
+      "2 Yr": "3.76",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-17",
+      "2 Yr": "3.68",
+      "10 Yr": "4.20",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-16",
+      "2 Yr": "3.68",
+      "10 Yr": "4.23",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-13",
+      "2 Yr": "3.73",
+      "10 Yr": "4.28",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-12",
+      "2 Yr": "3.76",
+      "10 Yr": "4.27",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-11",
+      "2 Yr": "3.64",
+      "10 Yr": "4.21",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-10",
+      "2 Yr": "3.57",
+      "10 Yr": "4.15",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-09",
+      "2 Yr": "3.56",
+      "10 Yr": "4.12",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-06",
+      "2 Yr": "3.56",
+      "10 Yr": "4.15",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-05",
+      "2 Yr": "3.57",
+      "10 Yr": "4.13",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-04",
+      "2 Yr": "3.54",
+      "10 Yr": "4.09",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-03",
+      "2 Yr": "3.51",
+      "10 Yr": "4.06",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-03-02",
+      "2 Yr": "3.47",
+      "10 Yr": "4.05",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-27",
+      "2 Yr": "3.38",
+      "10 Yr": "3.97",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-26",
+      "2 Yr": "3.42",
+      "10 Yr": "4.02",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-25",
+      "2 Yr": "3.45",
+      "10 Yr": "4.05",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-24",
+      "2 Yr": "3.43",
+      "10 Yr": "4.04",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-23",
+      "2 Yr": "3.43",
+      "10 Yr": "4.03",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-20",
+      "2 Yr": "3.48",
+      "10 Yr": "4.08",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-19",
+      "2 Yr": "3.47",
+      "10 Yr": "4.08",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-18",
+      "2 Yr": "3.47",
+      "10 Yr": "4.09",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-17",
+      "2 Yr": "3.43",
+      "10 Yr": "4.05",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-13",
+      "2 Yr": "3.40",
+      "10 Yr": "4.04",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-12",
+      "2 Yr": "3.47",
+      "10 Yr": "4.09",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-11",
+      "2 Yr": "3.52",
+      "10 Yr": "4.18",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-10",
+      "2 Yr": "3.45",
+      "10 Yr": "4.16",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-09",
+      "2 Yr": "3.48",
+      "10 Yr": "4.22",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-06",
+      "2 Yr": "3.50",
+      "10 Yr": "4.22",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-05",
+      "2 Yr": "3.47",
+      "10 Yr": "4.21",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-04",
+      "2 Yr": "3.57",
+      "10 Yr": "4.29",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-03",
+      "2 Yr": "3.57",
+      "10 Yr": "4.28",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-02-02",
+      "2 Yr": "3.57",
+      "10 Yr": "4.29",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-30",
+      "2 Yr": "3.52",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-29",
+      "2 Yr": "3.53",
+      "10 Yr": "4.24",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-28",
+      "2 Yr": "3.56",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-27",
+      "2 Yr": "3.53",
+      "10 Yr": "4.24",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-26",
+      "2 Yr": "3.56",
+      "10 Yr": "4.22",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-23",
+      "2 Yr": "3.60",
+      "10 Yr": "4.24",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-22",
+      "2 Yr": "3.61",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-21",
+      "2 Yr": "3.60",
+      "10 Yr": "4.26",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-20",
+      "2 Yr": "3.60",
+      "10 Yr": "4.30",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-16",
+      "2 Yr": "3.59",
+      "10 Yr": "4.24",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-15",
+      "2 Yr": "3.56",
+      "10 Yr": "4.17",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-14",
+      "2 Yr": "3.51",
+      "10 Yr": "4.15",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-13",
+      "2 Yr": "3.53",
+      "10 Yr": "4.18",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-12",
+      "2 Yr": "3.54",
+      "10 Yr": "4.19",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-09",
+      "2 Yr": "3.54",
+      "10 Yr": "4.18",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-08",
+      "2 Yr": "3.49",
+      "10 Yr": "4.19",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-07",
+      "2 Yr": "3.47",
+      "10 Yr": "4.15",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-06",
+      "2 Yr": "3.47",
+      "10 Yr": "4.18",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-05",
+      "2 Yr": "3.46",
+      "10 Yr": "4.17",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    },
+    {
+      "period": "2026-01-02",
+      "2 Yr": "3.47",
+      "10 Yr": "4.19",
+      "matches_old_html": {
+        "2 Yr": true,
+        "10 Yr": true
+      }
+    }
+  ],
+  "source_code_snapshot": [
+    {
+      "path": "src/pring_cycle/tushare_context.py",
+      "sha256": "e48f670b8f25b596cb4612cfb6e1f587727d59cf98747e9ceacc80c6fa6cb2bd",
+      "bytes": 68390,
+      "excerpts": [
+        {
+          "start_line": 76,
+          "end_line": 90,
+          "lines": [
+            "@dataclass(frozen=True)",
+            "class ContextScalar:",
+            "    metric_id: str",
+            "    api_name: str",
+            "    source_field: str",
+            "    period_kind: str",
+            "    period_start: str",
+            "    period_end: str",
+            "    dimensions: dict[str, str]",
+            "    value: float",
+            "    unit: str",
+            "    release_at: datetime | None = None",
+            "    public_available_at: datetime | None = None",
+            "    definition_version: str | None = None",
+            "    acquisition_ids: tuple[str, ...] = ()"
+          ]
+        },
+        {
+          "start_line": 567,
+          "end_line": 599,
+          "lines": [
+            "    def treasury_yields(",
+            "        self,",
+            "        *,",
+            "        start_date: date,",
+            "        end_date: date,",
+            "    ) -> tuple[ContextScalar, ...]:",
+            "        if end_date < start_date:",
+            "            raise ValueError(\"tushare_date_range_invalid\")",
+            "        rows = self._call(",
+            "            \"us_tycr\",",
+            "            {",
+            "                \"start_date\": start_date.strftime(\"%Y%m%d\"),",
+            "                \"end_date\": end_date.strftime(\"%Y%m%d\"),",
+            "            },",
+            "            (\"date\", \"y2\", \"y10\"),",
+            "        )",
+            "        return tuple(",
+            "            _daily_scalar(",
+            "                metric_id,",
+            "                \"us_tycr\",",
+            "                source_field,",
+            "                row,",
+            "                date_field=\"date\",",
+            "                dimensions={},",
+            "                unit=\"percent\",",
+            "            )",
+            "            for row in rows",
+            "            for metric_id, source_field in (",
+            "                (\"UST2Y_NOMINAL_YIELD\", \"y2\"),",
+            "                (\"UST10Y_NOMINAL_YIELD\", \"y10\"),",
+            "            )",
+            "            if _number(row.get(source_field)) is not None",
+            "        )"
+          ]
+        },
+        {
+          "start_line": 1265,
+          "end_line": 1322,
+          "lines": [
+            "        release_at: datetime | None",
+            "        public_available_at: datetime | None",
+            "        if margin_candidate:",
+            "            release_at = None",
+            "            public_available_at = None",
+            "            release_event_id = (",
+            "                base_event_id",
+            "                if physical_existing is None",
+            "                else _revision_event_id(base_event_id, fetched_at)",
+            "            )",
+            "        elif scalar.public_available_at is not None and (",
+            "            physical_existing is None or physical_same",
+            "        ):",
+            "            release_at = scalar.release_at",
+            "            public_available_at = scalar.public_available_at",
+            "            release_event_id = _schedule_event_id(",
+            "                base_event_id,",
+            "                release_at=release_at,",
+            "                public_available_at=public_available_at,",
+            "            )",
+            "        elif (",
+            "            existing is None",
+            "            and physical_same",
+            "            and physical_existing is not None",
+            "            and scalar.release_at == physical_existing.release_at",
+            "            and scalar.public_available_at == physical_existing.public_available_at",
+            "        ):",
+            "            release_event_id = physical_existing.release_event_id",
+            "            release_at = physical_existing.release_at",
+            "            public_available_at = physical_existing.public_available_at",
+            "        else:",
+            "            release_event_id = _revision_event_id(",
+            "                f\"unresolved-publication:{base_event_id}\", fetched_at",
+            "            )",
+            "            release_at = None",
+            "            public_available_at = None",
+            "        receipts = [receipt_by_id[identity] for identity in scalar.acquisition_ids]",
+            "        received_at = max((r.received_at for r in receipts if r.received_at), default=fetched_at)",
+            "        validated_at = max((r.validated_at for r in receipts if r.validated_at), default=fetched_at)",
+            "        claims.append(",
+            "            SourceClaimInput(",
+            "                metric_id=scalar.metric_id,",
+            "                definition_version=definition.definition_version,",
+            "                period_kind=scalar.period_kind,",
+            "                period_start=scalar.period_start,",
+            "                period_end=scalar.period_end,",
+            "                dimensions=scalar.dimensions,",
+            "                value=scalar.value,",
+            "                value_state=EvidenceValueState.REPORTED_VALUE,",
+            "                unit=scalar.unit,",
+            "                provider=\"tushare\",",
+            "                source_reference=source_reference,",
+            "                release_event_id=release_event_id,",
+            "                release_at=release_at,",
+            "                public_available_at=public_available_at,",
+            "                fetched_at=received_at,",
+            "                available_at=validated_at,",
+            "                certification_status=definition.certification_status,"
+          ]
+        },
+        {
+          "start_line": 1609,
+          "end_line": 1633,
+          "lines": [
+            "def _daily_scalar(",
+            "    metric_id: str,",
+            "    api_name: str,",
+            "    source_field: str,",
+            "    row: dict[str, object],",
+            "    *,",
+            "    date_field: str,",
+            "    dimensions: dict[str, str],",
+            "    unit: str,",
+            ") -> ContextScalar:",
+            "    business_date = _compact_date(row.get(date_field))",
+            "    value = _number(row.get(source_field))",
+            "    if value is None:",
+            "        raise ValueError(\"tushare_context_value_missing\")",
+            "    return ContextScalar(",
+            "        metric_id=metric_id,",
+            "        api_name=api_name,",
+            "        source_field=source_field,",
+            "        period_kind=\"business_day\",",
+            "        period_start=business_date.isoformat(),",
+            "        period_end=business_date.isoformat(),",
+            "        dimensions=dimensions,",
+            "        value=value,",
+            "        unit=unit,",
+            "    )"
+          ]
+        },
+        {
+          "start_line": 1799,
+          "end_line": 1810,
+          "lines": [
+            "def _number(value: object) -> float | None:",
+            "    if value is None:",
+            "        return None",
+            "    if isinstance(value, bool) or not isinstance(value, (int, float, str)):",
+            "        raise ValueError(\"tushare_context_value_invalid\")",
+            "    try:",
+            "        parsed = float(value)",
+            "    except ValueError as error:",
+            "        raise ValueError(\"tushare_context_value_invalid\") from error",
+            "    if not isfinite(parsed):",
+            "        raise ValueError(\"tushare_context_value_invalid\")",
+            "    return parsed"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/pring_cycle/context_projection.py",
+      "sha256": "950b08abfcbf6f4f50ba0fcfb5549322b24688a6d9042832d87260fb5c447349",
+      "bytes": 73763,
+      "excerpts": [
+        {
+          "start_line": 327,
+          "end_line": 344,
+          "lines": [
+            "    treasury_inputs = [",
+            "        {",
+            "            \"metric_id\": metric_id,",
+            "            \"acquisition_status\": row[\"acquisition_status\"],",
+            "            \"latest_acquisition\": row[\"latest_acquisition\"],",
+            "        }",
+            "        for metric_id in (\"UST2Y_NOMINAL_YIELD\", \"UST10Y_NOMINAL_YIELD\")",
+            "        for row in rows_by_metric[metric_id]",
+            "    ]",
+            "    rows_by_metric[\"UST_2S10S_SPREAD\"] = tuple(",
+            "        {",
+            "            **row,",
+            "            \"acquisition_status\": \"derived_from_inputs\",",
+            "            \"latest_acquisition\": None,",
+            "            \"input_acquisition\": treasury_inputs,",
+            "        }",
+            "        for row in rows_by_metric[\"UST_2S10S_SPREAD\"]",
+            "    )"
+          ]
+        },
+        {
+          "start_line": 737,
+          "end_line": 769,
+          "lines": [
+            "    ust2 = _certified_points_by_period(",
+            "        repository,",
+            "        \"UST2Y_NOMINAL_YIELD\",",
+            "        as_of=as_of,",
+            "        as_of_mode=as_of_mode,",
+            "        definition_version=definition_version,",
+            "    )",
+            "    ust10 = _certified_points_by_period(",
+            "        repository,",
+            "        \"UST10Y_NOMINAL_YIELD\",",
+            "        as_of=as_of,",
+            "        as_of_mode=as_of_mode,",
+            "        definition_version=definition_version,",
+            "    )",
+            "    common_periods = set(ust2) & set(ust10)",
+            "    ust_formula = formula_versions.get(\"ust_2s10s_spread\")",
+            "    if common_periods and ust_formula is not None:",
+            "        period = max(common_periods)",
+            "        derived_row, derived_versions = _difference_row(",
+            "            repository,",
+            "            metric_id=\"UST_2S10S_SPREAD\",",
+            "            formula_version=ust_formula,",
+            "            left=ust10[period],",
+            "            right=ust2[period],",
+            "            multiplier=100.0,",
+            "            dimensions={},",
+            "            unit=\"basis_points\",",
+            "            as_of=as_of,",
+            "            as_of_mode=as_of_mode,",
+            "            persist_derived=persist_derived,",
+            "        )",
+            "        rows[\"UST_2S10S_SPREAD\"] = (derived_row,)",
+            "        version_ids.extend(derived_versions)"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "src/pring_cycle/worker.py",
+      "sha256": "3dbb9e0bf0ebf4323c3d8d8b0ffb9ad53acfc9ea8045d71e5f9fb86b5825ea5e",
+      "bytes": 57660,
+      "excerpts": [
+        {
+          "start_line": 1437,
+          "end_line": 1445,
+          "lines": [
+            "        (",
+            "            \"treasury_yields\",",
+            "            (\"UST2Y_NOMINAL_YIELD\", \"UST10Y_NOMINAL_YIELD\"),",
+            "            lambda: adapter.treasury_yields(",
+            "                start_date=daily_start,",
+            "                end_date=target,",
+            "            ),",
+            "        ),",
+            "        ("
+          ]
+        }
+      ]
+    }
+  ],
+  "new_certifications": 0,
+  "production_mutations": 0,
+  "db_reads_this_followup": 0
+}

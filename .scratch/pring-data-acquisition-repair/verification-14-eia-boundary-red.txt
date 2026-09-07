@@ -1,0 +1,32 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_bad_official_history_is_retained_and_rejected_before_claims[http_charset] _
+tests/integration/test_eia_html_acquisition.py:225: in test_bad_official_history_is_retained_and_rejected_before_claims
+    with pytest.raises(ValueError, match="eia_history_"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_bad_official_history_is_retained_and_rejected_before_claims[meta_charset] _
+tests/integration/test_eia_html_acquisition.py:225: in test_bad_official_history_is_retained_and_rejected_before_claims
+    with pytest.raises(ValueError, match="eia_history_"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_empty_requested_window_reports_missing_values_without_zero_or_success[2026-08-31-1] _
+tests/integration/test_eia_html_acquisition.py:272: in test_empty_requested_window_reports_missing_values_without_zero_or_success
+    assert result.status == "missing_values"
+E   AssertionError: assert 'stored_candidate' == 'missing_values'
+E     
+E     - missing_values
+E     + stored_candidate
+_ test_empty_requested_window_reports_missing_values_without_zero_or_success[1900-01-01-0] _
+tests/integration/test_eia_html_acquisition.py:272: in test_empty_requested_window_reports_missing_values_without_zero_or_success
+    assert result.status == "missing_values"
+E   AssertionError: assert 'stored_candidate' == 'missing_values'
+E     
+E     - missing_values
+E     + stored_candidate
+=========================== short test summary info ============================
+FAILED tests/integration/test_eia_html_acquisition.py::test_bad_official_history_is_retained_and_rejected_before_claims[http_charset]
+FAILED tests/integration/test_eia_html_acquisition.py::test_bad_official_history_is_retained_and_rejected_before_claims[meta_charset]
+FAILED tests/integration/test_eia_html_acquisition.py::test_empty_requested_window_reports_missing_values_without_zero_or_success[2026-08-31-1]
+FAILED tests/integration/test_eia_html_acquisition.py::test_empty_requested_window_reports_missing_values_without_zero_or_success[1900-01-01-0]
+4 failed, 22 deselected in 5.09s

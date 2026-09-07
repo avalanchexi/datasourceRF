@@ -1,0 +1,61 @@
+{
+  "verified_at": "2026-09-07T08:45:28.967991+00:00",
+  "installed_package": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle",
+  "matched_source_files": 80,
+  "native_write_probe": "/home/tywin/.cache/pring-cycle/verification/repair-14-eia-recovery-probe-20260907a/write-probe.txt",
+  "candidate_stores": [
+    {
+      "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-live-eia-20260907a",
+      "sqlite_quick_check": [
+        "ok"
+      ],
+      "foreign_key_check": "passed",
+      "artifacts": [
+        {
+          "sha256": "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e",
+          "bytes": 1369
+        },
+        {
+          "sha256": "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5",
+          "bytes": 1383
+        },
+        {
+          "sha256": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+          "bytes": 472300
+        },
+        {
+          "sha256": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+          "bytes": 457442
+        }
+      ]
+    },
+    {
+      "runtime": "/home/tywin/.cache/pring-cycle/verification/repair-14-live-official-20260907a",
+      "sqlite_quick_check": [
+        "ok"
+      ],
+      "foreign_key_check": "passed",
+      "artifacts": [
+        {
+          "sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+          "bytes": 263170
+        },
+        {
+          "sha256": "a87d0e4db691a1a8cfe6bfef8217b616e59140daa68f92dfb2acefe4417f70aa",
+          "bytes": 28584
+        },
+        {
+          "sha256": "a89b4bcb01b4af1766cb092e03d5a06599facb10437bbd0c660782dc3037b778",
+          "bytes": 882
+        },
+        {
+          "sha256": "be795365600241c0be9c51f8b8d17f8a07f532ee9a7c7e09fa01ac376d3486ad",
+          "bytes": 3483
+        }
+      ]
+    }
+  ],
+  "network_requests": 0,
+  "candidate_database_writes": 0,
+  "production_database_access": false
+}

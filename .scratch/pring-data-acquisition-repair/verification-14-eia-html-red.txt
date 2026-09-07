@@ -1,0 +1,9 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_time[RBRTE-2026-08-31-2026-09-04-expected0-4] _
+tests/integration/test_eia_html_acquisition.py:46: in test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_time
+    from pring_cycle.eia_html import FetchedEiaHistory, refresh_eia_history
+E   ModuleNotFoundError: No module named 'pring_cycle.eia_html'
+=========================== short test summary info ============================
+FAILED tests/integration/test_eia_html_acquisition.py::test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_time[RBRTE-2026-08-31-2026-09-04-expected0-4]
+1 failed, 2 deselected in 0.73s

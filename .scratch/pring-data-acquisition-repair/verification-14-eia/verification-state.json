@@ -1,0 +1,73 @@
+{
+    "status":  "completed_code_batch_after_runtime_recovery",
+    "base_commit":  "b58d8a641b20f1f2bb2d7d34cddb2a6458cf07b1",
+    "targeted":  {
+                     "passed":  42,
+                     "duration_seconds":  49.20,
+                     "log":  "../verification-14-eia-final-targeted.txt"
+                 },
+    "full_suite":  {
+                       "exit_code":  1,
+                       "passed":  347,
+                       "failed":  1,
+                       "errors":  529,
+                       "duration_seconds":  198.05,
+                       "log":  "../verification-14-eia-pytest.txt",
+                       "first_failure":  "test_later_html_snapshot_preserves_prior_values_and_source_request_identity",
+                       "first_failure_boundary":  "initialize_runtime / SQLite migration before EIA refresh",
+                       "first_error":  "sqlite3.OperationalError: disk I/O error; OSError: [Errno 5] Input/output error",
+                       "error_count_note":  "pytest reports setup and teardown errors separately; 529 is not a count of unique failing cases",
+                       "runtime":  "/home/tywin/.cache/pring-cycle/verification/repair-14-eia-suite-20260907a",
+                       "interpreter":  "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python"
+                   },
+    "host_observation":  {
+                             "date":  "2026-09-07",
+                             "c_drive_free_bytes":  0,
+                             "d_drive_free_bytes":  265884774400,
+                             "ubuntu_22_04_state":  "Stopped",
+                             "docker_desktop_state":  "Stopped",
+                             "subsequent_wsl_probe":  [
+                                                          "Wsl/Service/E_UNEXPECTED",
+                                                          "Wsl/Service/CreateInstance/E_FAIL"
+                                                      ],
+                             "diagnosis":  "Host storage exhaustion coincides with widespread I/O failures; Linux df/dmesg could not run. Recovery and a fresh full suite are required."
+                         },
+    "static_checks":  "static-checks.json",
+    "installed_source_comparison_before_failure":  "code-fingerprint.json",
+    "real_acquisition_verification_before_failure":  "../evidence-14-live-eia/delivery-verification.json",
+    "post_failure_host_archive_verification":  "archive-verification.json",
+    "independent_research_while_runtime_unavailable":  "../evidence-14-treasury-followup/delivery-verification.json",
+    "remaining_spec_findings":  0,
+    "remaining_standards_findings":  0,
+    "full_suite_accepted":  true,
+    "source_certification_grants":  0,
+    "model_adoptions":  0,
+    "production_writes":  0,
+    "activation_or_cutover":  false,
+    "recovered_full_suite":  {
+                                 "status":  "completed_code_batch",
+                                 "base_commit":  "b58d8a641b20f1f2bb2d7d34cddb2a6458cf07b1",
+                                 "passed":  612,
+                                 "failed":  0,
+                                 "duration_seconds":  768.67,
+                                 "runtime":  "/home/tywin/.cache/pring-cycle/verification/repair-14-eia-recovery-20260907-164621",
+                                 "log":  ".scratch/pring-data-acquisition-repair/verification-14-eia-pytest-recovery-20260907-164621.txt",
+                                 "installed_source_files":  80,
+                                 "source_fingerprint":  "code-fingerprint.json",
+                                 "runtime_recovery":  "recovered-runtime.json",
+                                 "static_and_review_checks":  "static-checks.json",
+                                 "targeted_passed":  42,
+                                 "spec_findings":  0,
+                                 "standards_findings":  0,
+                                 "real_http_requests":  2,
+                                 "candidate_claims":  13,
+                                 "missing_cells":  7,
+                                 "source_certification_grants":  0,
+                                 "model_adoptions":  0,
+                                 "production_writes":  0,
+                                 "model_activations":  0,
+                                 "ticket_14_execution":  "in-progress",
+                                 "initial_storage_failure_preserved":  "../verification-14-eia-pytest.txt",
+                                 "finished_at":  "2026-09-07T17:13:50.5465986+08:00"
+                             }
+}

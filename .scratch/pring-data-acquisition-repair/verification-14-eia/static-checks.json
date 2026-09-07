@@ -1,0 +1,16 @@
+{
+  "evidence_kind": "record of completed tool outputs",
+  "mypy": {
+    "command": "python -m mypy src/pring_cycle",
+    "exit_code": 0,
+    "output": "Success: no issues found in 80 source files"
+  },
+  "ruff": {
+    "command": "python -m ruff check src/pring_cycle tests",
+    "exit_code": 0,
+    "output": "All checks passed!"
+  },
+  "installed_source_manifest": "code-fingerprint.json",
+  "spec_review_remaining": 0,
+  "standards_review_remaining": 0
+}

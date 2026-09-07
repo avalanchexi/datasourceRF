@@ -1,0 +1,22 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_bad_official_history_is_retained_and_rejected_before_claims[missing_week] _
+tests/integration/test_eia_html_acquisition.py:219: in test_bad_official_history_is_retained_and_rejected_before_claims
+    with pytest.raises(ValueError, match="eia_history_"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+__ test_bad_official_history_is_retained_and_rejected_before_claims[colspan] ___
+tests/integration/test_eia_html_acquisition.py:219: in test_bad_official_history_is_retained_and_rejected_before_claims
+    with pytest.raises(ValueError, match="eia_history_"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+__ test_bad_official_history_is_retained_and_rejected_before_claims[rowspan] ___
+tests/integration/test_eia_html_acquisition.py:219: in test_bad_official_history_is_retained_and_rejected_before_claims
+    with pytest.raises(ValueError, match="eia_history_"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/integration/test_eia_html_acquisition.py::test_bad_official_history_is_retained_and_rejected_before_claims[missing_week]
+FAILED tests/integration/test_eia_html_acquisition.py::test_bad_official_history_is_retained_and_rejected_before_claims[colspan]
+FAILED tests/integration/test_eia_html_acquisition.py::test_bad_official_history_is_retained_and_rejected_before_claims[rowspan]
+3 failed, 18 deselected in 4.06s

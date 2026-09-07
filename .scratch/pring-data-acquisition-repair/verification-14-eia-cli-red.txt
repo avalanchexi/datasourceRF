@@ -1,0 +1,47 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____________ test_public_cli_can_acquire_html_without_an_api_key ______________
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:1943: in _parse_known_args2
+    namespace, args = self._parse_known_args(args, namespace, intermixed)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2165: in _parse_known_args
+    positionals_end_index = consume_positionals(start_index)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2141: in consume_positionals
+    take_action(action, args)
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2003: in take_action
+    argument_values = self._get_values(action, argument_strings)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2523: in _get_values
+    self._check_value(action, value[0])
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2573: in _check_value
+    raise ArgumentError(action, msg % args)
+E   argparse.ArgumentError: argument command: invalid choice: 'eia-html-refresh' (choose from init, doctor, secrets-migrate, catalog, models, runs, projection, reports, stage-history, gap-notices, cleanup, rehearse-fixture-recovery, cutover-status, web, worker, test, verify, model-accept, core-history-refresh, model-activate, model-replay, model-source-certify, model-source-refresh, model-rollback, run-submit, run-resume, run-cancel, schedule, evidence-ingest, fixture-project, gap-notice, lpr-contract, official-context-contract, official-context-smoke, source-history-smoke, eia-contract, eia-smoke, lpr-refresh, lpr-smoke, release-calendar, evidence-query, report-generate, report-read, capacity, acceptance, rehearse-real, cutover-manifest, cutover-record, source-smoke, context-source-smoke, market-source-smoke)
+
+During handling of the above exception, another exception occurred:
+tests/integration/test_eia_html_acquisition.py:133: in test_public_cli_can_acquire_html_without_an_api_key
+    main([
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/cli.py:52: in main
+    namespace = parser.parse_args(arguments)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:1904: in parse_args
+    args, argv = self.parse_known_args(args, namespace)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:1914: in parse_known_args
+    return self._parse_known_args2(args, namespace, intermixed=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:1945: in _parse_known_args2
+    self.error(str(err))
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2650: in error
+    self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2637: in exit
+    _sys.exit(status)
+E   SystemExit: 2
+----------------------------- Captured stderr call -----------------------------
+usage: pring-cycle [-h]
+                   {init,doctor,secrets-migrate,catalog,models,runs,projection,reports,stage-history,gap-notices,cleanup,rehearse-fixture-recovery,cutover-status,web,worker,test,verify,model-accept,core-history-refresh,model-activate,model-replay,model-source-certify,model-source-refresh,model-rollback,run-submit,run-resume,run-cancel,schedule,evidence-ingest,fixture-project,gap-notice,lpr-contract,official-context-contract,official-context-smoke,source-history-smoke,eia-contract,eia-smoke,lpr-refresh,lpr-smoke,release-calendar,evidence-query,report-generate,report-read,capacity,acceptance,rehearse-real,cutover-manifest,cutover-record,source-smoke,context-source-smoke,market-source-smoke}
+                   ...
+pring-cycle: error: argument command: invalid choice: 'eia-html-refresh' (choose from init, doctor, secrets-migrate, catalog, models, runs, projection, reports, stage-history, gap-notices, cleanup, rehearse-fixture-recovery, cutover-status, web, worker, test, verify, model-accept, core-history-refresh, model-activate, model-replay, model-source-certify, model-source-refresh, model-rollback, run-submit, run-resume, run-cancel, schedule, evidence-ingest, fixture-project, gap-notice, lpr-contract, official-context-contract, official-context-smoke, source-history-smoke, eia-contract, eia-smoke, lpr-refresh, lpr-smoke, release-calendar, evidence-query, report-generate, report-read, capacity, acceptance, rehearse-real, cutover-manifest, cutover-record, source-smoke, context-source-smoke, market-source-smoke)
+=========================== short test summary info ============================
+FAILED tests/integration/test_eia_html_acquisition.py::test_public_cli_can_acquire_html_without_an_api_key
+1 failed, 3 deselected in 2.64s

@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_bad_official_history_is_retained_and_rejected_before_claims[wrong_host] _
+tests/integration/test_eia_html_acquisition.py:258: in test_bad_official_history_is_retained_and_rejected_before_claims
+    assert attempt.safe_metadata["response_final_url"] == (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'response_final_url'
+=========================== short test summary info ============================
+FAILED tests/integration/test_eia_html_acquisition.py::test_bad_official_history_is_retained_and_rejected_before_claims[wrong_host]
+1 failed, 25 deselected in 1.85s

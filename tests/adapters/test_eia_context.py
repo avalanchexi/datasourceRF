@@ -73,6 +73,41 @@ def test_eia_v2_contract_freezes_route_series_units_and_daily_identity() -> None
     }
 
 
+def test_eia_api_does_not_discard_a_signed_price_supported_by_the_official_history() -> None:
+    # Transport-shaped fixture; these two numbers are independently present in
+    # the archived EIA daily HTML for 2020-04-20. This is not a live API response.
+    response = {
+        "response": {
+            "frequency": "daily",
+            "data": [
+                {
+                    "period": "2020-04-20",
+                    "series": series,
+                    "series-description": description,
+                    "value": value,
+                    "units": "Dollars per Barrel",
+                }
+                for series, description, value in (
+                    ("RBRTE", "Europe Brent Spot Price FOB", "17.36"),
+                    ("RWTC", "Cushing, OK WTI Spot Price FOB", "-36.98"),
+                )
+            ],
+        },
+    }
+    adapter = EiaPetroleumAdapter("fixture-key", transport=lambda _: response)
+    prices = adapter.spot_prices(start_date=date(2020, 4, 20), end_date=date(2020, 4, 20))
+    assert {p.series_id: p.value for p in prices} == {"RBRTE": 17.36, "RWTC": -36.98}
+
+
+@pytest.mark.parametrize("invalid", [False, "NaN", "Infinity", "-Infinity"])
+def test_eia_api_rejects_boolean_and_nonfinite_values(invalid: object) -> None:
+    response = eia_response()
+    response["response"]["data"][1]["value"] = invalid
+    adapter = EiaPetroleumAdapter("fixture-key", transport=lambda _: response)
+    with pytest.raises(ValueError, match="eia_value_invalid"):
+        adapter.spot_prices(start_date=date(2026, 8, 27), end_date=date(2026, 8, 27))
+
+
 @pytest.mark.parametrize(
     ("mutate", "error"),
     [

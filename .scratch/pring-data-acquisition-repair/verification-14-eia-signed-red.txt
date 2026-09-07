@@ -1,0 +1,17 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_eia_api_does_not_discard_a_signed_price_supported_by_the_official_history _
+tests/adapters/test_eia_context.py:93: in test_eia_api_does_not_discard_a_signed_price_supported_by_the_official_history
+    prices = adapter.spot_prices(start_date=date(2020, 4, 20), end_date=date(2020, 4, 20))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/eia_context.py:129: in spot_prices
+    return parse(self._transport(parameters))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/eia_context.py:122: in parse
+    return _parse_spot_prices(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/eia_context.py:404: in _parse_spot_prices
+    raise ValueError("eia_value_invalid")
+E   ValueError: eia_value_invalid
+=========================== short test summary info ============================
+FAILED tests/adapters/test_eia_context.py::test_eia_api_does_not_discard_a_signed_price_supported_by_the_official_history
+1 failed, 10 deselected in 1.16s

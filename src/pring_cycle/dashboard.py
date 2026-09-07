@@ -1338,6 +1338,7 @@ def _state_label(value: object) -> str:
         "verified_candidate": "已取得候选数据",
         "partial_validation": "部分字段未通过校验",
         "missing_fields": "请求已完成，缺少所需字段",
+        "missing_values": "请求已完成，目标窗口无数值",
         "no_attempt_for_target": "未记录此目标日与定义的获取结果",
         "derived_from_inputs": "由输入证据计算",
     }.get(str(value).lower(), str(value))

@@ -1,0 +1,113 @@
+{
+  "validation": "passed",
+  "network_requests_during_verification": 0,
+  "new_get_attempts": 3,
+  "new_get_failures": 0,
+  "new_raw_count": 3,
+  "new_raw_bytes": 173051,
+  "verified_raw_including_reused_html": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14/54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+      "bytes": 1120481,
+      "sha256": "54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e",
+      "bytes": 77037,
+      "sha256": "f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/221d19478530d793b08c7b74b3e3f7eafe157c6f0cb67b388fcf2480388a31d1",
+      "bytes": 82053,
+      "sha256": "221d19478530d793b08c7b74b3e3f7eafe157c6f0cb67b388fcf2480388a31d1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+      "bytes": 13961,
+      "sha256": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5"
+    }
+  ],
+  "raw_bytes_including_reused_html": 1293532,
+  "csv_period_count": 171,
+  "window_period_count": 127,
+  "compared_fields": 342,
+  "matched_fields": 342,
+  "value_classification": {
+    "2 Yr": {
+      "positive": 171,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    },
+    "10 Yr": {
+      "positive": 171,
+      "zero": 0,
+      "negative": 0,
+      "blank": 0,
+      "special": 0
+    }
+  },
+  "old_report_sha256_unchanged": "1bad5c100b8996dfa1286da712c723211b9640d8cc98a1e24cdec8647bedf82b",
+  "report_local_links_checked": [
+    "research-14.md",
+    "evidence-14/54a2b1462c7a2116201b45eaf2dfdfe8fe3654cfd62fe46b6c2c09439c252330",
+    "evidence-14-treasury-followup/source-inspection.json",
+    "evidence-14-treasury-followup/a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+    "../../docs/adr/0006-dual-as-of-and-immutable-evidence-vintages.md",
+    "../../src/pring_cycle/tushare_context.py",
+    "../../src/pring_cycle/worker.py",
+    "../../src/pring_cycle/context_projection.py",
+    "evidence-14-treasury-followup/source-inspection.json",
+    "evidence-14/sample-comparison.json",
+    "../../docs/adr/0013-tushare-delivery-with-official-sampling.md",
+    "evidence-14-treasury-followup/receipts.json",
+    "evidence-14-treasury-followup/delivery-files.txt",
+    "evidence-14-treasury-followup/delivery-verification.json",
+    "evidence-14-treasury-followup/verify_delivery.py"
+  ],
+  "delivery_path_count": 9,
+  "files": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/221d19478530d793b08c7b74b3e3f7eafe157c6f0cb67b388fcf2480388a31d1",
+      "bytes": 82053,
+      "sha256": "221d19478530d793b08c7b74b3e3f7eafe157c6f0cb67b388fcf2480388a31d1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+      "bytes": 13961,
+      "sha256": "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/delivery-files.txt",
+      "bytes": 918,
+      "sha256": "2c9848b2bd8530a8fd5451d7f1ee7381b886555859a3359d11fc41d20d7c72ba"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e",
+      "bytes": 77037,
+      "sha256": "f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/receipts.json",
+      "bytes": 2863,
+      "sha256": "4ff9e447b81f50ce42ba4ba8d05334209339fb084f12e495c491581206198bd1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/source-inspection.json",
+      "bytes": 45993,
+      "sha256": "0a5b655cb41c6b8eedceff19e81d0ef5d2f4667418566c0f4ce43bceb0c3c25e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup/verify_delivery.py",
+      "bytes": 7756,
+      "sha256": "a8dacf238ec8e8e6075f9f8ef673aef0e95d7bd56c7755df392f7681a32b01d5"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/treasury-followup.md",
+      "bytes": 13974,
+      "sha256": "fb581c82729b523efdae919d33a05f1df9c77f9ab1eeaf359d58aafc00bb97c8"
+    }
+  ],
+  "manifest_self_hash_excluded": true
+}

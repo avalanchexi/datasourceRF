@@ -139,7 +139,7 @@ class EiaPetroleumAdapter:
             api_name="eia_spot_prices",
             parameters={k: str(v) for k, v in parameters.items() if k != "api_key"},
             fields="period,series,series-description,value,units",
-            parser_version="eia-spot-parser-v0002",
+            parser_version="eia-spot-parser-v0003",
             fetch=fetch,
             parse=parse,
             normalize=lambda prices: [asdict(p) for p in prices],
@@ -396,11 +396,14 @@ def _parse_spot_prices(
         if identity in identities:
             raise ValueError("eia_duplicate_observation")
         identities.add(identity)
+        raw_value = raw_row.get("value")
+        if isinstance(raw_value, bool):
+            raise ValueError("eia_value_invalid")
         try:
-            value = float(raw_row.get("value"))  # type: ignore[arg-type]
+            value = float(raw_value)  # type: ignore[arg-type]
         except (TypeError, ValueError) as error:
             raise ValueError("eia_value_invalid") from error
-        if not isfinite(value) or not 0 < value < 1000:
+        if not isfinite(value):
             raise ValueError("eia_value_invalid")
         prices.append(
             EiaSpotPrice(

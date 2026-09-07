@@ -42,6 +42,7 @@ _MUTATING_COMMANDS = {
     "market-source-smoke",
     "official-context-smoke",
     "eia-smoke",
+    "eia-html-refresh",
     "lpr-smoke",
     "core-history-refresh",
 }
@@ -190,6 +191,18 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             kind="source-history",
             result=result,
             target_scope={"target_business_date": namespace.target_date},
+        )
+    if namespace.command == "eia-html-refresh":
+        from pring_cycle.eia_html import refresh_eia_history
+
+        return asdict(
+            refresh_eia_history(
+                paths,
+                series_id=namespace.series,
+                start_date=date.fromisoformat(namespace.start),
+                end_date=date.fromisoformat(namespace.end),
+                definition_version=namespace.definition_version,
+            )
         )
     if namespace.command == "eia-contract":
         from pring_cycle.eia_context import EiaPetroleumAdapter
@@ -730,6 +743,11 @@ def _parser() -> argparse.ArgumentParser:
     source_history_smoke = _runtime_parser(subparsers, "source-history-smoke")
     source_history_smoke.add_argument("--target-date", required=True)
     source_history_smoke.add_argument("--browser-capture-root", type=Path)
+    eia_html = _runtime_parser(subparsers, "eia-html-refresh")
+    eia_html.add_argument("--series", choices=("RBRTE", "RWTC"), required=True)
+    eia_html.add_argument("--start", required=True)
+    eia_html.add_argument("--end", required=True)
+    eia_html.add_argument("--definition-version", default="metric-catalog-v0001")
     eia_contract = _runtime_parser(subparsers, "eia-contract")
     eia_contract.add_argument("--input", type=Path, required=True)
     eia_contract.add_argument("--start", required=True)

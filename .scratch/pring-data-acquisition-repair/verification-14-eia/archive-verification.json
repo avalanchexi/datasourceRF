@@ -1,0 +1,19 @@
+{
+  "verified_at": "2026-09-07T06:37:28.694091+00:00",
+  "scope": "saved D-drive archive and workspace source; no live database or installed package recheck",
+  "workspace_source_matches_pre_failure_manifest": 80,
+  "artifacts": {
+    "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e": 457442,
+    "0133deb10aff0426294110a6716abe1bbbbb97d95664240cfe8c48331746199e": 1369,
+    "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497": 472300,
+    "2b509ac1650fb69805e78dc07eafcdbf39c2dcc1fc6a6035ce0b05f2bbb2e6f5": 1383
+  },
+  "request_links": 2,
+  "candidate_claims": 13,
+  "missing_cells": 7,
+  "reference_values_match": true,
+  "unknown_public_time_preserved": true,
+  "requests_sent_by_this_verifier": 0,
+  "database_writes_by_this_verifier": 0,
+  "full_suite_accepted": false
+}

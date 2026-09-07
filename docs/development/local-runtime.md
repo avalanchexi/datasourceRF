@@ -273,6 +273,23 @@ pring-cycle eia-smoke --start YYYY-MM-DD --end YYYY-MM-DD --json
 key 时独立刷新 EIA；没有 TuShare token 也不会阻断 EIA。两条 P2 原油在真实 smoke 与来源
 认证前保持 `awaiting_source_certification`，绝不替换 NHII 商品核心。
 
+公开日历史 HTML 可通过 `eia-html-refresh` 显式取得候选，无需 API key。以下示例在独立候选
+运行库中执行，不激活模型；两项各请求一次官方完整日表，再选取指定窗口：
+
+```bash
+pring-cycle init --runtime-root /home/tywin/.cache/pring-cycle/eia-html-candidate --json
+pring-cycle eia-html-refresh --runtime-root /home/tywin/.cache/pring-cycle/eia-html-candidate \
+  --series RBRTE --start 2026-08-24 --end 2026-09-04 --definition-version metric-catalog-v0002 --json
+pring-cycle eia-html-refresh --runtime-root /home/tywin/.cache/pring-cycle/eia-html-candidate \
+  --series RWTC --start 2026-08-24 --end 2026-09-04 --definition-version metric-catalog-v0002 --json
+```
+
+结果分别给出数值条数、无数值日期格和 acquisition ID；空窗口返回 `missing_values` 及具体
+原因。原件、响应身份、解析版本和批次日期单独保留；日期格不左移，合法负值和数值零不当作
+缺失。历史逐日公开时间继续未知，SYSTEM按本次校验完成时间记录，候选始终待来源认证。
+目前完整 Worker 的自动 EIA 渠道仍使用配置 key 的 API；HTML命令用于新候选证据准备，后续
+来源认证及模型采纳另行验收。字段/时间依据见[接入契约](../../.scratch/pring-data-acquisition-repair/eia-html-contract.md)。
+
 TuShare 的 PMI、CPI/PPI、货币、社融、仓单、GDP、美债和资金市场 schema family 使用一条
 显式、只输出身份/时点/数量/哈希的汇总 smoke；它不会保存来源正文或回显 token，只登记脱敏
 结果制品：
@@ -298,8 +315,8 @@ pring-cycle run-submit --type report_generation --target-date YYYY-MM-DD --reque
 同一发布事件可重复 `--metric`，Worker 只按事件调用每个渠道一次，再由认证适配器拆分观测。
 若官方直连需要精确公告位置，另传 `--source-url OFFICIAL_HTTPS_URL`。检索顺序固定为有效本地
 证据、TuShare、认证官方直连、Tavily、Exa、受限 AI WebSearch；默认串行，P2 在 Exa 后
-停止。Tavily/Exa 只返回并保存候选 URL，不保存完整响应，也不能产生 certified claim 或清除
-原缺口。
+停止。Tavily/Exa保留请求审计与响应原件；候选URL进入下载、确定性解析及模型输入条件检查。
+搜索相关性不授予来源认证，只有满足目标模型条件的完整证据才能清除原缺口。
 
 付费渠道每个发布事件各最多一次；单运行 Tavily/Exa/AI 预算为 8/4/1，上海自然日预算为
 16/8/2。有效负缓存和未到预计窗口不会调用外部渠道；只有短暂传输错误在同一级最多再试两
