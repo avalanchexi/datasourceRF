@@ -69,3 +69,6 @@ evidence-13-rrr-policy-status/1223082d38efc5039ef7febabbeaebecc92853222b0a18d8c0
 evidence-13-rrr-policy-status/dff58ae83cae68b5839fbeb75c5c8298c16eba1c7901631b2cb347ac36488c52 -diff
 evidence-13-rrr-original-notices/d9dd4873a3005ca20a2985a36055f8b3a14f6d0b67977186351857cc4a011846 -diff
 evidence-13-rrr-original-notices/f1d24e69b5ef8bb4526534fa5cd32f0728a8ff0903b3ff5381d1acb03c06bf83 -diff
+p2-freshness-evidence-boundary.md -text whitespace=cr-at-eol
+p1-cpi-full-value-audit.md -text whitespace=cr-at-eol
+verification-derived-freshness-*.txt whitespace=-blank-at-eol

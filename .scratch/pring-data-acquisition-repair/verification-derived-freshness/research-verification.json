@@ -1,0 +1,29 @@
+{
+  "report_bytes": 9295,
+  "report_sha256": "eeadd850cc2035022ae0c25a9629d98fc6704e86fa02583a172731d15432895e",
+  "verified_local_links": [
+    "research-14.md",
+    "treasury-followup.md",
+    "eia-html-contract.md",
+    "evidence-14-treasury-followup/a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5",
+    "evidence-14-treasury-followup/receipts.json",
+    "../../src/pring_cycle/treasury_context.py",
+    "../../src/pring_cycle/context_projection.py",
+    "evidence-14-treasury-followup/f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e",
+    "evidence-14/b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+    "evidence-14/7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+    "evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9",
+    "../../src/pring_cycle/eia_html.py",
+    "../../src/pring_cycle/context_projection.py",
+    "../../src/pring_cycle/evidence.py"
+  ],
+  "verified_original_bytes": {
+    "evidence-14-treasury-followup/a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5": 13961,
+    "evidence-14-treasury-followup/f0043d5ea80ea54730c5b5ed5a8c8f105341afff6ed5edcc29f45a4ad039b23e": 77037,
+    "evidence-14/b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e": 457442,
+    "evidence-14/7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497": 472300,
+    "evidence-14-eia-followup/966a610f36397c815edc2ed6fcd3b857ea5725eb6ef6723dbea9a48990f02ae9": 54803
+  },
+  "network_requests": 0,
+  "production_writes": 0
+}

@@ -1,0 +1,244 @@
+................FFFF                                                     [100%]
+=================================== FAILURES ===================================
+_ test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2023-2024-stale-public_as_of] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-green-credit-20260908-a/test_credit_impulse_checks_bot2')
+mode = <AsOfMode.PUBLIC: 'public_as_of'>, social_start_year = 2023
+gdp_start_year = 2024, status = 'stale'
+
+    @pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
+    @pytest.mark.parametrize(
+        "social_start_year,gdp_start_year,status", [(2024, 2024, "current"), (2023, 2024, "stale"), (2024, 2023, "stale")]
+    )
+    def test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat(
+        tmp_path: Path, mode: AsOfMode, social_start_year: int, gdp_start_year: int, status: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        for metric, first_year, count, step in (
+            ("CN_SF_TOTAL", social_start_year, 24, 1),
+            ("CN_GDP", gdp_start_year, 8, 3),
+        ):
+            for index in range(count):
+                year, month0 = divmod(first_year * 12 + 6 + index * step, 12)
+                end_month = month0 + step
+                is_gdp = metric == "CN_GDP"
+                append_input(
+                    repository, metric,
+                    f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}",
+                    (25.0 if index < 4 else 30.0) if is_gdp else (2.0 if index < 12 else 3.0),
+                    start=f"{year}-{month0 + 1:02d}-01",
+                    dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"}
+                    if is_gdp else {"measure": "monthly_increment"},
+                    unit="hundred_million_cny", period_kind="quarter" if is_gdp else "month",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=fixture_manifest(), as_of_mode=mode
+        )
+        credit = cast(dict[str, object], context.macro["credit"])
+        rows = cast(list[dict[str, object]], credit["evidence"])
+        impulse = next(row for row in rows if row["metric_id"] == "CN_CREDIT_IMPULSE")
+        formula = cast(dict[str, object], credit["formula"])
+        # Worked example: 36/120 - 24/100 = 0.06, or 6 percentage points.
+        assert impulse["value"] == pytest.approx(6.0)
+        assert impulse["status"] == status
+        assert formula["status"] == ("available" if status == "current" else "stale_inputs")
+        assert impulse["period"] == f"{social_start_year + 2}-06-30"
+        assert formula["gdp_window"] == [f"{gdp_start_year}-07-01", f"{gdp_start_year + 2}-06-30"]
+        derived_id = str(impulse["derived_observation_id"])
+        trace = repository.derived_trace(derived_id, mode=mode, as_of=cutoff)
+        assert len(trace.input_observation_version_ids) == 32
+        assert derived_id in context.observation_version_ids
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        assert (derived_id in adopted) == (status == "current")
+        if status == "stale":
+>           assert credit["state"] == "unconfirmed"
+E           AssertionError: assert 'insufficient_data' == 'unconfirmed'
+E             
+E             - unconfirmed
+E             + insufficient_data
+
+tests/integration/test_derived_context_freshness.py:214: AssertionError
+_ test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2023-2024-stale-system_as_of] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-green-credit-20260908-a/test_credit_impulse_checks_bot3')
+mode = <AsOfMode.SYSTEM: 'system_as_of'>, social_start_year = 2023
+gdp_start_year = 2024, status = 'stale'
+
+    @pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
+    @pytest.mark.parametrize(
+        "social_start_year,gdp_start_year,status", [(2024, 2024, "current"), (2023, 2024, "stale"), (2024, 2023, "stale")]
+    )
+    def test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat(
+        tmp_path: Path, mode: AsOfMode, social_start_year: int, gdp_start_year: int, status: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        for metric, first_year, count, step in (
+            ("CN_SF_TOTAL", social_start_year, 24, 1),
+            ("CN_GDP", gdp_start_year, 8, 3),
+        ):
+            for index in range(count):
+                year, month0 = divmod(first_year * 12 + 6 + index * step, 12)
+                end_month = month0 + step
+                is_gdp = metric == "CN_GDP"
+                append_input(
+                    repository, metric,
+                    f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}",
+                    (25.0 if index < 4 else 30.0) if is_gdp else (2.0 if index < 12 else 3.0),
+                    start=f"{year}-{month0 + 1:02d}-01",
+                    dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"}
+                    if is_gdp else {"measure": "monthly_increment"},
+                    unit="hundred_million_cny", period_kind="quarter" if is_gdp else "month",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=fixture_manifest(), as_of_mode=mode
+        )
+        credit = cast(dict[str, object], context.macro["credit"])
+        rows = cast(list[dict[str, object]], credit["evidence"])
+        impulse = next(row for row in rows if row["metric_id"] == "CN_CREDIT_IMPULSE")
+        formula = cast(dict[str, object], credit["formula"])
+        # Worked example: 36/120 - 24/100 = 0.06, or 6 percentage points.
+        assert impulse["value"] == pytest.approx(6.0)
+        assert impulse["status"] == status
+        assert formula["status"] == ("available" if status == "current" else "stale_inputs")
+        assert impulse["period"] == f"{social_start_year + 2}-06-30"
+        assert formula["gdp_window"] == [f"{gdp_start_year}-07-01", f"{gdp_start_year + 2}-06-30"]
+        derived_id = str(impulse["derived_observation_id"])
+        trace = repository.derived_trace(derived_id, mode=mode, as_of=cutoff)
+        assert len(trace.input_observation_version_ids) == 32
+        assert derived_id in context.observation_version_ids
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        assert (derived_id in adopted) == (status == "current")
+        if status == "stale":
+>           assert credit["state"] == "unconfirmed"
+E           AssertionError: assert 'insufficient_data' == 'unconfirmed'
+E             
+E             - unconfirmed
+E             + insufficient_data
+
+tests/integration/test_derived_context_freshness.py:214: AssertionError
+_ test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2024-2023-stale-public_as_of] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-green-credit-20260908-a/test_credit_impulse_checks_bot4')
+mode = <AsOfMode.PUBLIC: 'public_as_of'>, social_start_year = 2024
+gdp_start_year = 2023, status = 'stale'
+
+    @pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
+    @pytest.mark.parametrize(
+        "social_start_year,gdp_start_year,status", [(2024, 2024, "current"), (2023, 2024, "stale"), (2024, 2023, "stale")]
+    )
+    def test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat(
+        tmp_path: Path, mode: AsOfMode, social_start_year: int, gdp_start_year: int, status: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        for metric, first_year, count, step in (
+            ("CN_SF_TOTAL", social_start_year, 24, 1),
+            ("CN_GDP", gdp_start_year, 8, 3),
+        ):
+            for index in range(count):
+                year, month0 = divmod(first_year * 12 + 6 + index * step, 12)
+                end_month = month0 + step
+                is_gdp = metric == "CN_GDP"
+                append_input(
+                    repository, metric,
+                    f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}",
+                    (25.0 if index < 4 else 30.0) if is_gdp else (2.0 if index < 12 else 3.0),
+                    start=f"{year}-{month0 + 1:02d}-01",
+                    dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"}
+                    if is_gdp else {"measure": "monthly_increment"},
+                    unit="hundred_million_cny", period_kind="quarter" if is_gdp else "month",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=fixture_manifest(), as_of_mode=mode
+        )
+        credit = cast(dict[str, object], context.macro["credit"])
+        rows = cast(list[dict[str, object]], credit["evidence"])
+        impulse = next(row for row in rows if row["metric_id"] == "CN_CREDIT_IMPULSE")
+        formula = cast(dict[str, object], credit["formula"])
+        # Worked example: 36/120 - 24/100 = 0.06, or 6 percentage points.
+        assert impulse["value"] == pytest.approx(6.0)
+        assert impulse["status"] == status
+        assert formula["status"] == ("available" if status == "current" else "stale_inputs")
+        assert impulse["period"] == f"{social_start_year + 2}-06-30"
+        assert formula["gdp_window"] == [f"{gdp_start_year}-07-01", f"{gdp_start_year + 2}-06-30"]
+        derived_id = str(impulse["derived_observation_id"])
+        trace = repository.derived_trace(derived_id, mode=mode, as_of=cutoff)
+        assert len(trace.input_observation_version_ids) == 32
+        assert derived_id in context.observation_version_ids
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        assert (derived_id in adopted) == (status == "current")
+        if status == "stale":
+>           assert credit["state"] == "unconfirmed"
+E           AssertionError: assert 'insufficient_data' == 'unconfirmed'
+E             
+E             - unconfirmed
+E             + insufficient_data
+
+tests/integration/test_derived_context_freshness.py:214: AssertionError
+_ test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2024-2023-stale-system_as_of] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-green-credit-20260908-a/test_credit_impulse_checks_bot5')
+mode = <AsOfMode.SYSTEM: 'system_as_of'>, social_start_year = 2024
+gdp_start_year = 2023, status = 'stale'
+
+    @pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
+    @pytest.mark.parametrize(
+        "social_start_year,gdp_start_year,status", [(2024, 2024, "current"), (2023, 2024, "stale"), (2024, 2023, "stale")]
+    )
+    def test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat(
+        tmp_path: Path, mode: AsOfMode, social_start_year: int, gdp_start_year: int, status: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        for metric, first_year, count, step in (
+            ("CN_SF_TOTAL", social_start_year, 24, 1),
+            ("CN_GDP", gdp_start_year, 8, 3),
+        ):
+            for index in range(count):
+                year, month0 = divmod(first_year * 12 + 6 + index * step, 12)
+                end_month = month0 + step
+                is_gdp = metric == "CN_GDP"
+                append_input(
+                    repository, metric,
+                    f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}",
+                    (25.0 if index < 4 else 30.0) if is_gdp else (2.0 if index < 12 else 3.0),
+                    start=f"{year}-{month0 + 1:02d}-01",
+                    dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"}
+                    if is_gdp else {"measure": "monthly_increment"},
+                    unit="hundred_million_cny", period_kind="quarter" if is_gdp else "month",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=fixture_manifest(), as_of_mode=mode
+        )
+        credit = cast(dict[str, object], context.macro["credit"])
+        rows = cast(list[dict[str, object]], credit["evidence"])
+        impulse = next(row for row in rows if row["metric_id"] == "CN_CREDIT_IMPULSE")
+        formula = cast(dict[str, object], credit["formula"])
+        # Worked example: 36/120 - 24/100 = 0.06, or 6 percentage points.
+        assert impulse["value"] == pytest.approx(6.0)
+        assert impulse["status"] == status
+        assert formula["status"] == ("available" if status == "current" else "stale_inputs")
+        assert impulse["period"] == f"{social_start_year + 2}-06-30"
+        assert formula["gdp_window"] == [f"{gdp_start_year}-07-01", f"{gdp_start_year + 2}-06-30"]
+        derived_id = str(impulse["derived_observation_id"])
+        trace = repository.derived_trace(derived_id, mode=mode, as_of=cutoff)
+        assert len(trace.input_observation_version_ids) == 32
+        assert derived_id in context.observation_version_ids
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        assert (derived_id in adopted) == (status == "current")
+        if status == "stale":
+>           assert credit["state"] == "unconfirmed"
+E           AssertionError: assert 'insufficient_data' == 'unconfirmed'
+E             
+E             - unconfirmed
+E             + insufficient_data
+
+tests/integration/test_derived_context_freshness.py:214: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_derived_context_freshness.py::test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2023-2024-stale-public_as_of]
+FAILED tests/integration/test_derived_context_freshness.py::test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2023-2024-stale-system_as_of]
+FAILED tests/integration/test_derived_context_freshness.py::test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2024-2023-stale-public_as_of]
+FAILED tests/integration/test_derived_context_freshness.py::test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat[2024-2023-stale-system_as_of]
+4 failed, 16 passed in 5.71s

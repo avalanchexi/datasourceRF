@@ -32,6 +32,8 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-08：[派生鲜度批](../implementation-derived-freshness.md)完成，UST旧值不再被利差派生洗成current，值与血缘保留；702全套通过，双轴0。[源时点研究](../p2-freshness-evidence-boundary.md)完成且根复核通过，但当前源最新期与EIA计划日仍不能自动改判历史目标鲜度。完整源日历及来源认证继续开放。
+
 - 2026-09-08：完成[P2来源期次/批次计划元数据传递与展示](../implementation-14-p2-source-timing.md)。同一条目标归属获取记录的5字段可读，取得前/错目标不可见，计划日与PUBLIC/认证不混用。69针对、682全套通过（742.99秒），81安装Python文件匹配，Ruff/mypy82及双轴审查0。源日历鲜度和正式来源认证仍独立开放，未把所有13项标可用。
 
 - 2026-09-07：Treasury官方CSV候选接口及CLI完成，真实1次GET生成10个来源日、20条待认证值，原件/标准化/20条血缘/真实SYSTEM独立复核通过。27项针对测试、639项全套（800.47秒）、Ruff、mypy81、Spec/Standards均通过，见[实施记录](../implementation-14-treasury.md)及[最终收据](../verification-14-treasury/final.json)。[VIX增量补证](../vix-followup.md)独立校验通过：CLOSE字段可核对，早期未使用OPEN异常保留；公共CSV历史PUBLIC和持续生产使用范围未获新认证。整票14继续in-progress，取得、认证和模型采纳仍分开验收。

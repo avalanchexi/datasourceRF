@@ -1,0 +1,466 @@
+...F.F.F.F.F.F                                                           [100%]
+=================================== FAILURES ===================================
+_ test_macro_derivation_cannot_refresh_old_terminal_periods[dr007-dr007-policy-spread-v0001-70.0-2025-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-macro-20260908-a/test_macro_derivation_cannot_r1')
+year = 2025, status = 'stale', family = 'dr007'
+formula = 'dr007-policy-spread-v0001', expected = 70.0
+
+    @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])
+    @pytest.mark.parametrize(
+        "family,formula,expected",
+        [
+            ("dr007", "dr007-policy-spread-v0001", 70.0),
+            ("pmi", "pmi-order-inventory-spread-v0001", 4.0),
+            ("pmi", "pmi-production-order-spread-v0001", -1.0),
+            ("loan", "loan-stock-monthly-change-v0001", 10.0),
+            ("omo", "repo-net-injection-v0001", 500.0),
+            ("omo", "repo-net-injection-trading-calendar-v0002", 500.0),
+        ],
+    )
+    def test_macro_derivation_cannot_refresh_old_terminal_periods(
+        tmp_path: Path, year: int, status: str, family: str, formula: str, expected: float
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        manifest = fixture_manifest()
+        formulas = cast(dict[str, str], manifest["derived_formula_versions"])
+        if family == "dr007":
+            append_input(repository, "CN_DR007", f"{year}-08-28", 2.2)
+            # An earlier effective policy rate is not the daily spread's terminal period.
+            append_input(repository, "CN_OMO_7D_RATE", "2024-08-28", 1.5)
+        elif family == "pmi":
+            formulas["order_inventory_spread"] = "pmi-order-inventory-spread-v0001"
+            formulas["production_order_spread"] = "pmi-production-order-spread-v0001"
+            for metric, series, value in (
+                ("CN_PMI_ACTIVITY", "new_orders", 52.0),
+                ("CN_PMI_ACTIVITY", "production", 51.0),
+                ("CN_PMI_INVENTORY", "finished_goods", 48.0),
+            ):
+                append_input(
+                    repository, metric, f"{year}-07-31", value,
+                    start=f"{year}-07-01", dimensions={"series": series, "measure": "level"},
+                    unit="diffusion_index_points", period_kind="month",
+                )
+        elif family == "loan":
+            for month, day, value in ((6, 30, 100.0), (7, 31, 110.0)):
+                append_input(
+                    repository, "CN_LOAN_STRUCTURE", f"{year}-{month:02d}-{day}", value,
+                    start=f"{year}-{month:02d}-01",
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                    unit="hundred_million_cny", period_kind="month",
+                )
+        else:
+            formulas["omo_net_injection"] = formula
+            for measure, value in (("injection", 3000.0), ("maturity", 2500.0)):
+                append_input(
+                    repository, "CN_OMO_7D_AMOUNT", f"{year}-08-28", value,
+                    dimensions={"measure": measure}, unit="hundred_million_cny",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        derived = [
+            row for row in documents(context.macro) + documents(context.inventory)
+            if row.get("formula_version") == formula and "derived_observation_id" in row
+        ]
+        assert derived
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        for row in derived:
+            assert row["value"] == pytest.approx(expected)
+            assert str(row["period"]).startswith(str(year))
+>           assert row["status"] == status
+E           AssertionError: assert 'current' == 'stale'
+E             
+E             - stale
+E             + current
+
+tests/integration/test_derived_context_freshness.py:159: AssertionError
+_ test_macro_derivation_cannot_refresh_old_terminal_periods[pmi-pmi-order-inventory-spread-v0001-4.0-2025-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-macro-20260908-a/test_macro_derivation_cannot_r3')
+year = 2025, status = 'stale', family = 'pmi'
+formula = 'pmi-order-inventory-spread-v0001', expected = 4.0
+
+    @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])
+    @pytest.mark.parametrize(
+        "family,formula,expected",
+        [
+            ("dr007", "dr007-policy-spread-v0001", 70.0),
+            ("pmi", "pmi-order-inventory-spread-v0001", 4.0),
+            ("pmi", "pmi-production-order-spread-v0001", -1.0),
+            ("loan", "loan-stock-monthly-change-v0001", 10.0),
+            ("omo", "repo-net-injection-v0001", 500.0),
+            ("omo", "repo-net-injection-trading-calendar-v0002", 500.0),
+        ],
+    )
+    def test_macro_derivation_cannot_refresh_old_terminal_periods(
+        tmp_path: Path, year: int, status: str, family: str, formula: str, expected: float
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        manifest = fixture_manifest()
+        formulas = cast(dict[str, str], manifest["derived_formula_versions"])
+        if family == "dr007":
+            append_input(repository, "CN_DR007", f"{year}-08-28", 2.2)
+            # An earlier effective policy rate is not the daily spread's terminal period.
+            append_input(repository, "CN_OMO_7D_RATE", "2024-08-28", 1.5)
+        elif family == "pmi":
+            formulas["order_inventory_spread"] = "pmi-order-inventory-spread-v0001"
+            formulas["production_order_spread"] = "pmi-production-order-spread-v0001"
+            for metric, series, value in (
+                ("CN_PMI_ACTIVITY", "new_orders", 52.0),
+                ("CN_PMI_ACTIVITY", "production", 51.0),
+                ("CN_PMI_INVENTORY", "finished_goods", 48.0),
+            ):
+                append_input(
+                    repository, metric, f"{year}-07-31", value,
+                    start=f"{year}-07-01", dimensions={"series": series, "measure": "level"},
+                    unit="diffusion_index_points", period_kind="month",
+                )
+        elif family == "loan":
+            for month, day, value in ((6, 30, 100.0), (7, 31, 110.0)):
+                append_input(
+                    repository, "CN_LOAN_STRUCTURE", f"{year}-{month:02d}-{day}", value,
+                    start=f"{year}-{month:02d}-01",
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                    unit="hundred_million_cny", period_kind="month",
+                )
+        else:
+            formulas["omo_net_injection"] = formula
+            for measure, value in (("injection", 3000.0), ("maturity", 2500.0)):
+                append_input(
+                    repository, "CN_OMO_7D_AMOUNT", f"{year}-08-28", value,
+                    dimensions={"measure": measure}, unit="hundred_million_cny",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        derived = [
+            row for row in documents(context.macro) + documents(context.inventory)
+            if row.get("formula_version") == formula and "derived_observation_id" in row
+        ]
+        assert derived
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        for row in derived:
+            assert row["value"] == pytest.approx(expected)
+            assert str(row["period"]).startswith(str(year))
+>           assert row["status"] == status
+E           AssertionError: assert 'current' == 'stale'
+E             
+E             - stale
+E             + current
+
+tests/integration/test_derived_context_freshness.py:159: AssertionError
+_ test_macro_derivation_cannot_refresh_old_terminal_periods[pmi-pmi-production-order-spread-v0001--1.0-2025-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-macro-20260908-a/test_macro_derivation_cannot_r5')
+year = 2025, status = 'stale', family = 'pmi'
+formula = 'pmi-production-order-spread-v0001', expected = -1.0
+
+    @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])
+    @pytest.mark.parametrize(
+        "family,formula,expected",
+        [
+            ("dr007", "dr007-policy-spread-v0001", 70.0),
+            ("pmi", "pmi-order-inventory-spread-v0001", 4.0),
+            ("pmi", "pmi-production-order-spread-v0001", -1.0),
+            ("loan", "loan-stock-monthly-change-v0001", 10.0),
+            ("omo", "repo-net-injection-v0001", 500.0),
+            ("omo", "repo-net-injection-trading-calendar-v0002", 500.0),
+        ],
+    )
+    def test_macro_derivation_cannot_refresh_old_terminal_periods(
+        tmp_path: Path, year: int, status: str, family: str, formula: str, expected: float
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        manifest = fixture_manifest()
+        formulas = cast(dict[str, str], manifest["derived_formula_versions"])
+        if family == "dr007":
+            append_input(repository, "CN_DR007", f"{year}-08-28", 2.2)
+            # An earlier effective policy rate is not the daily spread's terminal period.
+            append_input(repository, "CN_OMO_7D_RATE", "2024-08-28", 1.5)
+        elif family == "pmi":
+            formulas["order_inventory_spread"] = "pmi-order-inventory-spread-v0001"
+            formulas["production_order_spread"] = "pmi-production-order-spread-v0001"
+            for metric, series, value in (
+                ("CN_PMI_ACTIVITY", "new_orders", 52.0),
+                ("CN_PMI_ACTIVITY", "production", 51.0),
+                ("CN_PMI_INVENTORY", "finished_goods", 48.0),
+            ):
+                append_input(
+                    repository, metric, f"{year}-07-31", value,
+                    start=f"{year}-07-01", dimensions={"series": series, "measure": "level"},
+                    unit="diffusion_index_points", period_kind="month",
+                )
+        elif family == "loan":
+            for month, day, value in ((6, 30, 100.0), (7, 31, 110.0)):
+                append_input(
+                    repository, "CN_LOAN_STRUCTURE", f"{year}-{month:02d}-{day}", value,
+                    start=f"{year}-{month:02d}-01",
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                    unit="hundred_million_cny", period_kind="month",
+                )
+        else:
+            formulas["omo_net_injection"] = formula
+            for measure, value in (("injection", 3000.0), ("maturity", 2500.0)):
+                append_input(
+                    repository, "CN_OMO_7D_AMOUNT", f"{year}-08-28", value,
+                    dimensions={"measure": measure}, unit="hundred_million_cny",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        derived = [
+            row for row in documents(context.macro) + documents(context.inventory)
+            if row.get("formula_version") == formula and "derived_observation_id" in row
+        ]
+        assert derived
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        for row in derived:
+            assert row["value"] == pytest.approx(expected)
+            assert str(row["period"]).startswith(str(year))
+>           assert row["status"] == status
+E           AssertionError: assert 'current' == 'stale'
+E             
+E             - stale
+E             + current
+
+tests/integration/test_derived_context_freshness.py:159: AssertionError
+_ test_macro_derivation_cannot_refresh_old_terminal_periods[loan-loan-stock-monthly-change-v0001-10.0-2025-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-macro-20260908-a/test_macro_derivation_cannot_r7')
+year = 2025, status = 'stale', family = 'loan'
+formula = 'loan-stock-monthly-change-v0001', expected = 10.0
+
+    @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])
+    @pytest.mark.parametrize(
+        "family,formula,expected",
+        [
+            ("dr007", "dr007-policy-spread-v0001", 70.0),
+            ("pmi", "pmi-order-inventory-spread-v0001", 4.0),
+            ("pmi", "pmi-production-order-spread-v0001", -1.0),
+            ("loan", "loan-stock-monthly-change-v0001", 10.0),
+            ("omo", "repo-net-injection-v0001", 500.0),
+            ("omo", "repo-net-injection-trading-calendar-v0002", 500.0),
+        ],
+    )
+    def test_macro_derivation_cannot_refresh_old_terminal_periods(
+        tmp_path: Path, year: int, status: str, family: str, formula: str, expected: float
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        manifest = fixture_manifest()
+        formulas = cast(dict[str, str], manifest["derived_formula_versions"])
+        if family == "dr007":
+            append_input(repository, "CN_DR007", f"{year}-08-28", 2.2)
+            # An earlier effective policy rate is not the daily spread's terminal period.
+            append_input(repository, "CN_OMO_7D_RATE", "2024-08-28", 1.5)
+        elif family == "pmi":
+            formulas["order_inventory_spread"] = "pmi-order-inventory-spread-v0001"
+            formulas["production_order_spread"] = "pmi-production-order-spread-v0001"
+            for metric, series, value in (
+                ("CN_PMI_ACTIVITY", "new_orders", 52.0),
+                ("CN_PMI_ACTIVITY", "production", 51.0),
+                ("CN_PMI_INVENTORY", "finished_goods", 48.0),
+            ):
+                append_input(
+                    repository, metric, f"{year}-07-31", value,
+                    start=f"{year}-07-01", dimensions={"series": series, "measure": "level"},
+                    unit="diffusion_index_points", period_kind="month",
+                )
+        elif family == "loan":
+            for month, day, value in ((6, 30, 100.0), (7, 31, 110.0)):
+                append_input(
+                    repository, "CN_LOAN_STRUCTURE", f"{year}-{month:02d}-{day}", value,
+                    start=f"{year}-{month:02d}-01",
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                    unit="hundred_million_cny", period_kind="month",
+                )
+        else:
+            formulas["omo_net_injection"] = formula
+            for measure, value in (("injection", 3000.0), ("maturity", 2500.0)):
+                append_input(
+                    repository, "CN_OMO_7D_AMOUNT", f"{year}-08-28", value,
+                    dimensions={"measure": measure}, unit="hundred_million_cny",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        derived = [
+            row for row in documents(context.macro) + documents(context.inventory)
+            if row.get("formula_version") == formula and "derived_observation_id" in row
+        ]
+        assert derived
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        for row in derived:
+            assert row["value"] == pytest.approx(expected)
+            assert str(row["period"]).startswith(str(year))
+>           assert row["status"] == status
+E           AssertionError: assert 'current' == 'stale'
+E             
+E             - stale
+E             + current
+
+tests/integration/test_derived_context_freshness.py:159: AssertionError
+_ test_macro_derivation_cannot_refresh_old_terminal_periods[omo-repo-net-injection-v0001-500.0-2025-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-macro-20260908-a/test_macro_derivation_cannot_r9')
+year = 2025, status = 'stale', family = 'omo'
+formula = 'repo-net-injection-v0001', expected = 500.0
+
+    @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])
+    @pytest.mark.parametrize(
+        "family,formula,expected",
+        [
+            ("dr007", "dr007-policy-spread-v0001", 70.0),
+            ("pmi", "pmi-order-inventory-spread-v0001", 4.0),
+            ("pmi", "pmi-production-order-spread-v0001", -1.0),
+            ("loan", "loan-stock-monthly-change-v0001", 10.0),
+            ("omo", "repo-net-injection-v0001", 500.0),
+            ("omo", "repo-net-injection-trading-calendar-v0002", 500.0),
+        ],
+    )
+    def test_macro_derivation_cannot_refresh_old_terminal_periods(
+        tmp_path: Path, year: int, status: str, family: str, formula: str, expected: float
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        manifest = fixture_manifest()
+        formulas = cast(dict[str, str], manifest["derived_formula_versions"])
+        if family == "dr007":
+            append_input(repository, "CN_DR007", f"{year}-08-28", 2.2)
+            # An earlier effective policy rate is not the daily spread's terminal period.
+            append_input(repository, "CN_OMO_7D_RATE", "2024-08-28", 1.5)
+        elif family == "pmi":
+            formulas["order_inventory_spread"] = "pmi-order-inventory-spread-v0001"
+            formulas["production_order_spread"] = "pmi-production-order-spread-v0001"
+            for metric, series, value in (
+                ("CN_PMI_ACTIVITY", "new_orders", 52.0),
+                ("CN_PMI_ACTIVITY", "production", 51.0),
+                ("CN_PMI_INVENTORY", "finished_goods", 48.0),
+            ):
+                append_input(
+                    repository, metric, f"{year}-07-31", value,
+                    start=f"{year}-07-01", dimensions={"series": series, "measure": "level"},
+                    unit="diffusion_index_points", period_kind="month",
+                )
+        elif family == "loan":
+            for month, day, value in ((6, 30, 100.0), (7, 31, 110.0)):
+                append_input(
+                    repository, "CN_LOAN_STRUCTURE", f"{year}-{month:02d}-{day}", value,
+                    start=f"{year}-{month:02d}-01",
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                    unit="hundred_million_cny", period_kind="month",
+                )
+        else:
+            formulas["omo_net_injection"] = formula
+            for measure, value in (("injection", 3000.0), ("maturity", 2500.0)):
+                append_input(
+                    repository, "CN_OMO_7D_AMOUNT", f"{year}-08-28", value,
+                    dimensions={"measure": measure}, unit="hundred_million_cny",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        derived = [
+            row for row in documents(context.macro) + documents(context.inventory)
+            if row.get("formula_version") == formula and "derived_observation_id" in row
+        ]
+        assert derived
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        for row in derived:
+            assert row["value"] == pytest.approx(expected)
+            assert str(row["period"]).startswith(str(year))
+>           assert row["status"] == status
+E           AssertionError: assert 'current' == 'stale'
+E             
+E             - stale
+E             + current
+
+tests/integration/test_derived_context_freshness.py:159: AssertionError
+_ test_macro_derivation_cannot_refresh_old_terminal_periods[omo-repo-net-injection-trading-calendar-v0002-500.0-2025-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-macro-20260908-a/test_macro_derivation_cannot_r11')
+year = 2025, status = 'stale', family = 'omo'
+formula = 'repo-net-injection-trading-calendar-v0002', expected = 500.0
+
+    @pytest.mark.parametrize("year,status", [(2026, "current"), (2025, "stale")])
+    @pytest.mark.parametrize(
+        "family,formula,expected",
+        [
+            ("dr007", "dr007-policy-spread-v0001", 70.0),
+            ("pmi", "pmi-order-inventory-spread-v0001", 4.0),
+            ("pmi", "pmi-production-order-spread-v0001", -1.0),
+            ("loan", "loan-stock-monthly-change-v0001", 10.0),
+            ("omo", "repo-net-injection-v0001", 500.0),
+            ("omo", "repo-net-injection-trading-calendar-v0002", 500.0),
+        ],
+    )
+    def test_macro_derivation_cannot_refresh_old_terminal_periods(
+        tmp_path: Path, year: int, status: str, family: str, formula: str, expected: float
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        manifest = fixture_manifest()
+        formulas = cast(dict[str, str], manifest["derived_formula_versions"])
+        if family == "dr007":
+            append_input(repository, "CN_DR007", f"{year}-08-28", 2.2)
+            # An earlier effective policy rate is not the daily spread's terminal period.
+            append_input(repository, "CN_OMO_7D_RATE", "2024-08-28", 1.5)
+        elif family == "pmi":
+            formulas["order_inventory_spread"] = "pmi-order-inventory-spread-v0001"
+            formulas["production_order_spread"] = "pmi-production-order-spread-v0001"
+            for metric, series, value in (
+                ("CN_PMI_ACTIVITY", "new_orders", 52.0),
+                ("CN_PMI_ACTIVITY", "production", 51.0),
+                ("CN_PMI_INVENTORY", "finished_goods", 48.0),
+            ):
+                append_input(
+                    repository, metric, f"{year}-07-31", value,
+                    start=f"{year}-07-01", dimensions={"series": series, "measure": "level"},
+                    unit="diffusion_index_points", period_kind="month",
+                )
+        elif family == "loan":
+            for month, day, value in ((6, 30, 100.0), (7, 31, 110.0)):
+                append_input(
+                    repository, "CN_LOAN_STRUCTURE", f"{year}-{month:02d}-{day}", value,
+                    start=f"{year}-{month:02d}-01",
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "stock_end"},
+                    unit="hundred_million_cny", period_kind="month",
+                )
+        else:
+            formulas["omo_net_injection"] = formula
+            for measure, value in (("injection", 3000.0), ("maturity", 2500.0)):
+                append_input(
+                    repository, "CN_OMO_7D_AMOUNT", f"{year}-08-28", value,
+                    dimensions={"measure": measure}, unit="hundred_million_cny",
+                )
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        derived = [
+            row for row in documents(context.macro) + documents(context.inventory)
+            if row.get("formula_version") == formula and "derived_observation_id" in row
+        ]
+        assert derived
+        adopted = set(cast(list[str], context.macro["model_input_observation_version_ids"]))
+        for row in derived:
+            assert row["value"] == pytest.approx(expected)
+            assert str(row["period"]).startswith(str(year))
+>           assert row["status"] == status
+E           AssertionError: assert 'current' == 'stale'
+E             
+E             - stale
+E             + current
+
+tests/integration/test_derived_context_freshness.py:159: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_derived_context_freshness.py::test_macro_derivation_cannot_refresh_old_terminal_periods[dr007-dr007-policy-spread-v0001-70.0-2025-stale]
+FAILED tests/integration/test_derived_context_freshness.py::test_macro_derivation_cannot_refresh_old_terminal_periods[pmi-pmi-order-inventory-spread-v0001-4.0-2025-stale]
+FAILED tests/integration/test_derived_context_freshness.py::test_macro_derivation_cannot_refresh_old_terminal_periods[pmi-pmi-production-order-spread-v0001--1.0-2025-stale]
+FAILED tests/integration/test_derived_context_freshness.py::test_macro_derivation_cannot_refresh_old_terminal_periods[loan-loan-stock-monthly-change-v0001-10.0-2025-stale]
+FAILED tests/integration/test_derived_context_freshness.py::test_macro_derivation_cannot_refresh_old_terminal_periods[omo-repo-net-injection-v0001-500.0-2025-stale]
+FAILED tests/integration/test_derived_context_freshness.py::test_macro_derivation_cannot_refresh_old_terminal_periods[omo-repo-net-injection-trading-calendar-v0002-500.0-2025-stale]
+6 failed, 8 passed in 2.88s

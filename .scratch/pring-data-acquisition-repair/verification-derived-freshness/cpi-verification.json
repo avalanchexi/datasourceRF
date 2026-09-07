@@ -1,0 +1,12 @@
+{
+  "verified_cells": 46,
+  "conflicts": 0,
+  "originals": 8,
+  "original_bytes": 1850811,
+  "local_links": 13,
+  "report_bytes": 19071,
+  "report_sha256": "1f57b4ee4670e928364225944f685823ef30817a7968a42194892489d1c8c751",
+  "scope": "raw HTML cell line, identity, period, unit and literal vs report and saved preparation",
+  "network_requests": 0,
+  "application_parser_calls": 0
+}

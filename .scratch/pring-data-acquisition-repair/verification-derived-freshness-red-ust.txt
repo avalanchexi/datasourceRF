@@ -1,0 +1,34 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_treasury_spread_retains_old_value_without_adopting_it_as_current[2025-08-28-stale] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-derived-freshness-red-20260908-a/test_treasury_spread_retains_o1')
+period = '2025-08-28', status = 'stale'
+
+    @pytest.mark.parametrize("period,status", [("2026-08-28", "current"), ("2025-08-28", "stale")])
+    def test_treasury_spread_retains_old_value_without_adopting_it_as_current(
+        tmp_path: Path, period: str, status: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        inputs = {
+            append_input(repository, "UST2Y_NOMINAL_YIELD", period, 4.34),
+            append_input(repository, "UST10Y_NOMINAL_YIELD", period, 4.73),
+        }
+        cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=fixture_manifest(), as_of_mode=AsOfMode.PUBLIC
+        )
+        rows = cast(list[dict[str, object]], context.macro["international_context"])
+        spread = next(row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD")
+        assert spread["value"] == pytest.approx(39.0)
+        assert spread["period"] == period
+>       assert spread["status"] == status
+E       AssertionError: assert 'current' == 'stale'
+E         
+E         - stale
+E         + current
+
+tests/integration/test_derived_context_freshness.py:76: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_derived_context_freshness.py::test_treasury_spread_retains_old_value_without_adopting_it_as_current[2025-08-28-stale]
+1 failed, 1 passed in 1.35s

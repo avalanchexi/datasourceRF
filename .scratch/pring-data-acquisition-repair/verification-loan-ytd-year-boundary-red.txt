@@ -1,0 +1,123 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____________ test_january_loan_ytd_is_its_own_monthly_flow[None] ______________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-loan-ytd-red-20260908-a/test_january_loan_ytd_is_its_o0')
+previous_december = None
+
+    @pytest.mark.parametrize("previous_december", [None, 100.0])
+    def test_january_loan_ytd_is_its_own_monthly_flow(
+        tmp_path: Path, previous_december: float | None
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        timestamp = datetime(2026, 2, 2, tzinfo=UTC)
+        inputs = [("2026-01-01", "2026-01-31", 10.0)]
+        if previous_december is not None:
+            inputs.insert(0, ("2025-01-01", "2025-12-31", previous_december))
+        for start, end, value in inputs:
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_LOAN_STRUCTURE",
+                    definition_version="metric-catalog-v0003",
+                    period_kind="year_to_month",
+                    period_start=start,
+                    period_end=end,
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"},
+                    value=value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="hundred_million_cny",
+                    provider="isolated_fixture",
+                    source_reference=f"fixture:loan:{end}",
+                    release_event_id=f"fixture:loan:{end}",
+                    release_at=timestamp,
+                    public_available_at=timestamp,
+                    fetched_at=timestamp,
+                    available_at=timestamp,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+        manifest = analytical_model_v0002_manifest()
+        manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        manifest["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+        cast(dict[str, str], manifest["derived_formula_versions"])["loan_monthly_change"] = (
+            "loan-ytd-monthly-change-v0002"
+        )
+        context = build_context_projection(
+            repository, as_of=timestamp, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        credit = cast(dict[str, object], context.macro["credit"])
+        rows = cast(list[dict[str, object]], credit["evidence"])
+        monthly = [
+            row for row in rows
+            if row["metric_id"] == "CN_LOAN_STRUCTURE"
+            and row["dimensions"] == {"borrower": "enterprise", "tenor": "long_term", "measure": "monthly_change"}
+        ]
+>       assert len(monthly) == 1
+E       assert 0 == 1
+E        +  where 0 = len([])
+
+.scratch/pring-data-acquisition-repair/draft-tests/test_loan_ytd_year_boundary.py:64: AssertionError
+_____________ test_january_loan_ytd_is_its_own_monthly_flow[100.0] _____________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-loan-ytd-red-20260908-a/test_january_loan_ytd_is_its_o1')
+previous_december = 100.0
+
+    @pytest.mark.parametrize("previous_december", [None, 100.0])
+    def test_january_loan_ytd_is_its_own_monthly_flow(
+        tmp_path: Path, previous_december: float | None
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        timestamp = datetime(2026, 2, 2, tzinfo=UTC)
+        inputs = [("2026-01-01", "2026-01-31", 10.0)]
+        if previous_december is not None:
+            inputs.insert(0, ("2025-01-01", "2025-12-31", previous_december))
+        for start, end, value in inputs:
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_LOAN_STRUCTURE",
+                    definition_version="metric-catalog-v0003",
+                    period_kind="year_to_month",
+                    period_start=start,
+                    period_end=end,
+                    dimensions={"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"},
+                    value=value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="hundred_million_cny",
+                    provider="isolated_fixture",
+                    source_reference=f"fixture:loan:{end}",
+                    release_event_id=f"fixture:loan:{end}",
+                    release_at=timestamp,
+                    public_available_at=timestamp,
+                    fetched_at=timestamp,
+                    available_at=timestamp,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+        manifest = analytical_model_v0002_manifest()
+        manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        manifest["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+        cast(dict[str, str], manifest["derived_formula_versions"])["loan_monthly_change"] = (
+            "loan-ytd-monthly-change-v0002"
+        )
+        context = build_context_projection(
+            repository, as_of=timestamp, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        credit = cast(dict[str, object], context.macro["credit"])
+        rows = cast(list[dict[str, object]], credit["evidence"])
+        monthly = [
+            row for row in rows
+            if row["metric_id"] == "CN_LOAN_STRUCTURE"
+            and row["dimensions"] == {"borrower": "enterprise", "tenor": "long_term", "measure": "monthly_change"}
+        ]
+        assert len(monthly) == 1
+        assert monthly[0]["period"] == "2026-01-31"
+>       assert monthly[0]["value"] == 10.0
+E       assert -90.0 == 10.0
+
+.scratch/pring-data-acquisition-repair/draft-tests/test_loan_ytd_year_boundary.py:66: AssertionError
+=========================== short test summary info ============================
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_loan_ytd_year_boundary.py::test_january_loan_ytd_is_its_own_monthly_flow[None]
+FAILED .scratch/pring-data-acquisition-repair/draft-tests/test_loan_ytd_year_boundary.py::test_january_loan_ytd_is_its_own_monthly_flow[100.0]
+2 failed in 3.80s

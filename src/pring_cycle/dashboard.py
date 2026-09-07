@@ -1329,6 +1329,7 @@ def _state_label(value: object) -> str:
         "conflict": "矛盾",
         "conflicted": "矛盾",
         "insufficient_data": "数据不足",
+        "stale_inputs": "输入数据已陈旧",
         "upstream_pressure": "上游压力",
         "producer_diffusion": "向生产端扩散",
         "consumer_diffusion": "向消费端扩散",

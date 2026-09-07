@@ -356,7 +356,26 @@ def build_context_projection(
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
     )
+    terminal_period_metrics = {
+        "CN_DR007_POLICY_SPREAD": ("CN_DR007",),
+        "UST_2S10S_SPREAD": ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
+        "CN_ORDER_INVENTORY_SPREAD": ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY"),
+        "CN_PRODUCTION_ORDER_SPREAD": ("CN_PMI_ACTIVITY",),
+        "CN_LOAN_STRUCTURE": ("CN_LOAN_STRUCTURE",),
+        "CN_OMO_7D_AMOUNT": ("CN_OMO_7D_AMOUNT",),
+    }
     for metric_id, rows in market_derived_rows.items():
+        for row in rows:
+            # Age the terminal period, not earlier policy-effective or preheat inputs.
+            row["status"] = (
+                "stale"
+                if any(
+                    _period_freshness(definitions[parent], str(row["period"]), as_of=as_of)
+                    == "stale"
+                    for parent in terminal_period_metrics[metric_id]
+                )
+                else "current"
+            )
         existing = rows_by_metric[metric_id]
         rows_by_metric[metric_id] = (
             tuple(row for row in existing if not str(row["observation_id"]).startswith("gap:"))
@@ -385,6 +404,7 @@ def build_context_projection(
         as_of=as_of,
         configured_formula_version=formula_versions.get("credit_impulse"),
         definition_version=rules.metric_catalog_version,
+        definitions=definitions,
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
     )
@@ -1412,7 +1432,11 @@ def _evidence_status(
         return point.value_state.value if point.value_state is not None else "missing"
     if release_status is not None and release_status != "current":
         return release_status
-    period_date = date.fromisoformat(point.period_end)
+    return _period_freshness(definition, point.period_end, as_of=as_of)
+
+
+def _period_freshness(definition: MetricDefinition, period_end: str, *, as_of: datetime) -> str:
+    period_date = date.fromisoformat(period_end)
     age = (as_of.date() - period_date).days
     limit = (
         730
@@ -1734,6 +1758,7 @@ def _credit_impulse_proxy(
     as_of: datetime,
     configured_formula_version: str | None,
     definition_version: str,
+    definitions: Mapping[str, MetricDefinition],
     as_of_mode: AsOfMode,
     persist_derived: bool,
 ) -> tuple[dict[str, object] | None, dict[str, object], tuple[str, ...]]:
@@ -1910,6 +1935,13 @@ def _credit_impulse_proxy(
     public_available_at = (
         max(public_times) if public_times and len(public_times) == len(selected_claims) else None
     )
+    stale_inputs = any(
+        _period_freshness(definitions[metric_id], point.period_end, as_of=as_of) == "stale"
+        for metric_id, point in (
+            ("CN_SF_TOTAL", social_period_points[-1]),
+            ("CN_GDP", gdp_period_points[-1]),
+        )
+    )
     row: dict[str, object] = {
         "available_at": available_at.isoformat(),
         "certification_status": "derived_from_certified_inputs",
@@ -1927,7 +1959,7 @@ def _credit_impulse_proxy(
         "quality_status": "validated",
         "selected_claim_id": derived_id,
         "source_reference": f"formula:{formula_version}",
-        "status": "current",
+        "status": "stale" if stale_inputs else "current",
         "unit": "percentage_points",
         "value": value,
         "value_state": EvidenceValueState.REPORTED_VALUE.value,
@@ -1946,7 +1978,7 @@ def _credit_impulse_proxy(
                 social_period_points[0].period_start,
                 social_period_points[-1].period_end,
             ],
-            "status": "available",
+            "status": "stale_inputs" if stale_inputs else "available",
         }
     )
     return (
