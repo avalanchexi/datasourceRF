@@ -1,0 +1,184 @@
+..FFF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_known_invalid_omo_inputs_cannot_disappear_from_period_selection[invalid_maturity] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-omo-invalid-flow-related-red-20260908-a/test_known_invalid_omo_inputs_0')
+case = 'invalid_maturity'
+
+    @pytest.mark.parametrize("case", ["invalid_maturity", "invalid_preheat", "later_invalid_target"])
+    def test_known_invalid_omo_inputs_cannot_disappear_from_period_selection(
+        tmp_path: Path, case: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        timestamp = datetime(2026, 8, 28, 10, tzinfo=UTC)
+        if case == "invalid_maturity":
+            amounts = [("2026-08-21", "injection", 500.0), ("2026-08-28", "injection", 1000.0), ("2026-08-28", "maturity", None)]
+        elif case == "invalid_preheat":
+            amounts = [("2026-08-21", "injection", None), ("2026-08-28", "injection", 1000.0)]
+        else:
+            amounts = [("2026-08-21", "injection", 500.0), ("2026-08-21", "maturity", 300.0), ("2026-08-28", "injection", None)]
+        for period, measure, value in amounts:
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_OMO_7D_AMOUNT", definition_version="metric-catalog-v0003",
+                    period_kind="business_day", period_start=period, period_end=period,
+                    dimensions={"measure": measure}, value=value,
+                    value_state=EvidenceValueState.NOT_DISCLOSED if value is None else EvidenceValueState.REPORTED_VALUE,
+                    unit="hundred_million_cny", provider="isolated_fixture",
+                    source_reference=f"fixture:{period}:{measure}", release_event_id=f"fixture:{period}:{measure}",
+                    release_at=timestamp, public_available_at=timestamp, fetched_at=timestamp,
+                    available_at=timestamp, certification_status="certified", quality_status="validated",
+                )
+            )
+        if case != "later_invalid_target":
+            for period in ("2026-08-21", "2026-08-28"):
+                repository.append_source_claim(
+                    SourceClaimInput(
+                        metric_id="CN_EQUITY_CORE_000985", definition_version="metric-catalog-v0003",
+                        period_kind="business_day", period_start=period, period_end=period,
+                        dimensions={}, value=5000.0, value_state=EvidenceValueState.REPORTED_VALUE,
+                        unit="index_points", provider="isolated_fixture",
+                        source_reference=f"fixture:calendar:{period}", release_event_id=f"fixture:calendar:{period}",
+                        release_at=timestamp, public_available_at=timestamp, fetched_at=timestamp,
+                        available_at=timestamp, certification_status="certified", quality_status="validated",
+                    )
+                )
+        manifest = analytical_model_v0002_manifest()
+        manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        manifest["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+        cast(dict[str, str], manifest["derived_formula_versions"])["omo_net_injection"] = (
+            "repo-net-injection-trading-calendar-v0002"
+        )
+        context = build_context_projection(
+            repository, as_of=datetime(2026, 8, 29, tzinfo=UTC),
+            model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC,
+        )
+        policy = cast(dict[str, object], context.macro["policy_action"])
+        rows = cast(list[dict[str, object]], policy["evidence"])
+>       assert not [row for row in rows if row.get("dimensions") == {"measure": "net_injection"}]
+E       AssertionError: assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+
+tests/integration/test_omo_invalid_flow.py:114: AssertionError
+_ test_known_invalid_omo_inputs_cannot_disappear_from_period_selection[invalid_preheat] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-omo-invalid-flow-related-red-20260908-a/test_known_invalid_omo_inputs_1')
+case = 'invalid_preheat'
+
+    @pytest.mark.parametrize("case", ["invalid_maturity", "invalid_preheat", "later_invalid_target"])
+    def test_known_invalid_omo_inputs_cannot_disappear_from_period_selection(
+        tmp_path: Path, case: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        timestamp = datetime(2026, 8, 28, 10, tzinfo=UTC)
+        if case == "invalid_maturity":
+            amounts = [("2026-08-21", "injection", 500.0), ("2026-08-28", "injection", 1000.0), ("2026-08-28", "maturity", None)]
+        elif case == "invalid_preheat":
+            amounts = [("2026-08-21", "injection", None), ("2026-08-28", "injection", 1000.0)]
+        else:
+            amounts = [("2026-08-21", "injection", 500.0), ("2026-08-21", "maturity", 300.0), ("2026-08-28", "injection", None)]
+        for period, measure, value in amounts:
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_OMO_7D_AMOUNT", definition_version="metric-catalog-v0003",
+                    period_kind="business_day", period_start=period, period_end=period,
+                    dimensions={"measure": measure}, value=value,
+                    value_state=EvidenceValueState.NOT_DISCLOSED if value is None else EvidenceValueState.REPORTED_VALUE,
+                    unit="hundred_million_cny", provider="isolated_fixture",
+                    source_reference=f"fixture:{period}:{measure}", release_event_id=f"fixture:{period}:{measure}",
+                    release_at=timestamp, public_available_at=timestamp, fetched_at=timestamp,
+                    available_at=timestamp, certification_status="certified", quality_status="validated",
+                )
+            )
+        if case != "later_invalid_target":
+            for period in ("2026-08-21", "2026-08-28"):
+                repository.append_source_claim(
+                    SourceClaimInput(
+                        metric_id="CN_EQUITY_CORE_000985", definition_version="metric-catalog-v0003",
+                        period_kind="business_day", period_start=period, period_end=period,
+                        dimensions={}, value=5000.0, value_state=EvidenceValueState.REPORTED_VALUE,
+                        unit="index_points", provider="isolated_fixture",
+                        source_reference=f"fixture:calendar:{period}", release_event_id=f"fixture:calendar:{period}",
+                        release_at=timestamp, public_available_at=timestamp, fetched_at=timestamp,
+                        available_at=timestamp, certification_status="certified", quality_status="validated",
+                    )
+                )
+        manifest = analytical_model_v0002_manifest()
+        manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        manifest["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+        cast(dict[str, str], manifest["derived_formula_versions"])["omo_net_injection"] = (
+            "repo-net-injection-trading-calendar-v0002"
+        )
+        context = build_context_projection(
+            repository, as_of=datetime(2026, 8, 29, tzinfo=UTC),
+            model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC,
+        )
+        policy = cast(dict[str, object], context.macro["policy_action"])
+        rows = cast(list[dict[str, object]], policy["evidence"])
+>       assert not [row for row in rows if row.get("dimensions") == {"measure": "net_injection"}]
+E       AssertionError: assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+
+tests/integration/test_omo_invalid_flow.py:114: AssertionError
+_ test_known_invalid_omo_inputs_cannot_disappear_from_period_selection[later_invalid_target] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/repair-omo-invalid-flow-related-red-20260908-a/test_known_invalid_omo_inputs_2')
+case = 'later_invalid_target'
+
+    @pytest.mark.parametrize("case", ["invalid_maturity", "invalid_preheat", "later_invalid_target"])
+    def test_known_invalid_omo_inputs_cannot_disappear_from_period_selection(
+        tmp_path: Path, case: str
+    ) -> None:
+        repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+        timestamp = datetime(2026, 8, 28, 10, tzinfo=UTC)
+        if case == "invalid_maturity":
+            amounts = [("2026-08-21", "injection", 500.0), ("2026-08-28", "injection", 1000.0), ("2026-08-28", "maturity", None)]
+        elif case == "invalid_preheat":
+            amounts = [("2026-08-21", "injection", None), ("2026-08-28", "injection", 1000.0)]
+        else:
+            amounts = [("2026-08-21", "injection", 500.0), ("2026-08-21", "maturity", 300.0), ("2026-08-28", "injection", None)]
+        for period, measure, value in amounts:
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_OMO_7D_AMOUNT", definition_version="metric-catalog-v0003",
+                    period_kind="business_day", period_start=period, period_end=period,
+                    dimensions={"measure": measure}, value=value,
+                    value_state=EvidenceValueState.NOT_DISCLOSED if value is None else EvidenceValueState.REPORTED_VALUE,
+                    unit="hundred_million_cny", provider="isolated_fixture",
+                    source_reference=f"fixture:{period}:{measure}", release_event_id=f"fixture:{period}:{measure}",
+                    release_at=timestamp, public_available_at=timestamp, fetched_at=timestamp,
+                    available_at=timestamp, certification_status="certified", quality_status="validated",
+                )
+            )
+        if case != "later_invalid_target":
+            for period in ("2026-08-21", "2026-08-28"):
+                repository.append_source_claim(
+                    SourceClaimInput(
+                        metric_id="CN_EQUITY_CORE_000985", definition_version="metric-catalog-v0003",
+                        period_kind="business_day", period_start=period, period_end=period,
+                        dimensions={}, value=5000.0, value_state=EvidenceValueState.REPORTED_VALUE,
+                        unit="index_points", provider="isolated_fixture",
+                        source_reference=f"fixture:calendar:{period}", release_event_id=f"fixture:calendar:{period}",
+                        release_at=timestamp, public_available_at=timestamp, fetched_at=timestamp,
+                        available_at=timestamp, certification_status="certified", quality_status="validated",
+                    )
+                )
+        manifest = analytical_model_v0002_manifest()
+        manifest["metric_catalog_version"] = "metric-catalog-v0003"
+        manifest["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+        cast(dict[str, str], manifest["derived_formula_versions"])["omo_net_injection"] = (
+            "repo-net-injection-trading-calendar-v0002"
+        )
+        context = build_context_projection(
+            repository, as_of=datetime(2026, 8, 29, tzinfo=UTC),
+            model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC,
+        )
+        policy = cast(dict[str, object], context.macro["policy_action"])
+        rows = cast(list[dict[str, object]], policy["evidence"])
+>       assert not [row for row in rows if row.get("dimensions") == {"measure": "net_injection"}]
+E       AssertionError: assert not [{'available_at': '2026-08-28T10:00:00+00:00', 'certification_status': 'derived_from_certified_inputs', 'claim_ids': [], 'claims': [], ...}]
+
+tests/integration/test_omo_invalid_flow.py:114: AssertionError
+=========================== short test summary info ============================
+FAILED tests/integration/test_omo_invalid_flow.py::test_known_invalid_omo_inputs_cannot_disappear_from_period_selection[invalid_maturity]
+FAILED tests/integration/test_omo_invalid_flow.py::test_known_invalid_omo_inputs_cannot_disappear_from_period_selection[invalid_preheat]
+FAILED tests/integration/test_omo_invalid_flow.py::test_known_invalid_omo_inputs_cannot_disappear_from_period_selection[later_invalid_target]
+3 failed, 2 passed in 1.56s

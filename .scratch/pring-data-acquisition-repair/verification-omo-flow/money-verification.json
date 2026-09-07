@@ -1,0 +1,23 @@
+{
+  "strict_matches": 27,
+  "numeric_discrepancies": [
+    {
+      "period": "2026-02",
+      "field": "m2",
+      "expected": "3492200.00",
+      "prepared": "3492200.0000000005",
+      "difference": "5E-10"
+    }
+  ],
+  "unlocatable": 0,
+  "identities_units_periods_checked": 28,
+  "originals": 7,
+  "original_bytes": 312999,
+  "input_fingerprints": 5,
+  "local_links": 12,
+  "report_bytes": 16643,
+  "report_sha256": "44ea8fbc4d0c649343068b987921ea47463f5b8e5067fd39aec09f314cec5eda",
+  "network_requests": 0,
+  "application_parser_calls": 0,
+  "tolerance_applied": false
+}

@@ -663,16 +663,20 @@ def _derived_market_context_rows(
 ) -> tuple[dict[str, tuple[dict[str, object], ...]], tuple[str, ...]]:
     rows: dict[str, tuple[dict[str, object], ...]] = {}
     version_ids: list[str] = []
-    amount_points = [
+    reported_amount_points = repository.metric_series(
+        "CN_OMO_7D_AMOUNT",
+        mode=as_of_mode,
+        as_of=as_of,
+        definition_version=definition_version,
+    )
+    amount_points = [point for point in reported_amount_points if _certified_point(point)]
+    invalid_amount_points = [
         point
-        for point in repository.metric_series(
-            "CN_OMO_7D_AMOUNT",
-            mode=as_of_mode,
-            as_of=as_of,
-            definition_version=definition_version,
-        )
-        if _certified_point(point)
+        for point in reported_amount_points
+        if point.dimensions.get("measure") in {"injection", "maturity"}
+        and not _certified_point(point)
     ]
+    invalid_amount_periods = {point.period_end for point in invalid_amount_points}
     amount_by_period: dict[str, dict[str, MetricSeriesPoint]] = {}
     for point in amount_points:
         measure = point.dimensions.get("measure")
@@ -729,11 +733,26 @@ def _derived_market_context_rows(
             )
             if maturity_day is not None:
                 derived_maturities.setdefault(maturity_day, []).append(point)
-        target_dates = {
-            date.fromisoformat(point.period_end)
-            for point in amount_points
-            if point.dimensions.get("measure") in {"injection", "maturity"}
-        } | set(derived_maturities)
+        invalid_maturity_dates = {
+            maturity_day
+            for point in invalid_amount_points
+            if point.dimensions.get("measure") == "injection"
+            and (
+                maturity_day := _repo_maturity_trading_day(
+                    date.fromisoformat(point.period_end), trading_days
+                )
+            )
+            is not None
+        }
+        target_dates = (
+            {
+                date.fromisoformat(point.period_end)
+                for point in reported_amount_points
+                if point.dimensions.get("measure") in {"injection", "maturity"}
+            }
+            | set(derived_maturities)
+            | invalid_maturity_dates
+        )
         target_date = max(target_dates)
         target_period = target_date.isoformat()
         injection = amount_by_period.get(target_period, {}).get("injection")
@@ -748,7 +767,16 @@ def _derived_market_context_rows(
             maturity_points = tuple(derived_maturities.get(target_date, ()))
             calendar_points = (trading_points_by_day[target_date],)
             maturity_basis = "derived_7d_trading_calendar"
-        if maturity_basis is not None and (injection is not None or maturity_points):
+        invalid_maturity_inputs = (
+            maturity_basis == "derived_7d_trading_calendar"
+            and target_date in invalid_maturity_dates
+        )
+        if (
+            maturity_basis is not None
+            and (injection is not None or maturity_points)
+            and target_period not in invalid_amount_periods
+            and not invalid_maturity_inputs
+        ):
             derived_row, derived_versions = _repo_net_injection_row(
                 repository,
                 formula_version=omo_formula,

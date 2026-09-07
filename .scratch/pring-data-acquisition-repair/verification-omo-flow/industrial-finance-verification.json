@@ -1,0 +1,15 @@
+{
+  "verified_cells": 70,
+  "conflicts": 0,
+  "originals": 7,
+  "original_bytes": 3401593,
+  "local_links": 12,
+  "paragraph_fragments": 14,
+  "unit_conversions": 7,
+  "input_fingerprints": 5,
+  "report_bytes": 24950,
+  "report_sha256": "f14f4f98f8050386a7f9f9f0f3e4d84c75b56c6dffa743d8b47c6e2ed1d3ab7d",
+  "scope": "raw cell lines and paragraph literals, identity, units, periods, saved preparation",
+  "network_requests": 0,
+  "application_parser_calls": 0
+}

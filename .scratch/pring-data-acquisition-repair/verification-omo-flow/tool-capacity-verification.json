@@ -1,0 +1,22 @@
+{
+  "tool_liquidity": {
+    "literal_cells": 192,
+    "originals": 8,
+    "original_bytes": 357909,
+    "negative_values": 19,
+    "zero_values": 28,
+    "non_numeric_markers": 24,
+    "local_links": 12
+  },
+  "capacity": {
+    "literal_cells": 8,
+    "existing_alias_mapping_pending": 1,
+    "numeric_identity_checks": 9,
+    "originals": 3,
+    "original_bytes": 459969,
+    "local_links": 8
+  },
+  "network_requests": 0,
+  "application_parser_calls": 0,
+  "source_certification_grants": 0
+}

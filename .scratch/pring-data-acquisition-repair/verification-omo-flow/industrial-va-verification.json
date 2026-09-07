@@ -1,0 +1,14 @@
+{
+  "verified_cells": 20,
+  "conflicts": 0,
+  "originals": 7,
+  "original_bytes": 2664666,
+  "local_links": 12,
+  "input_fingerprints": 5,
+  "source_time_labels": 7,
+  "report_bytes": 16362,
+  "report_sha256": "ef2e599944f049fab8a7bcce34aede93ac29dd2c33c5cd0a2541faf4d0984406",
+  "scope": "raw HTML cell lines, identity, period, unit, literal and page time label",
+  "network_requests": 0,
+  "application_parser_calls": 0
+}

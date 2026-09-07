@@ -1,0 +1,28 @@
+from datetime import UTC, datetime
+
+import pytest
+
+from pring_cycle.official_context import parse_official_context_document
+
+
+def test_q2_capacity_row_missing_cumulative_columns_is_rejected() -> None:
+    content = """
+    <html><body>
+      <h1>2026年二季度全国规模以上工业产能利用率为73.0%</h1>
+      <p>2026/07/15 10:00</p>
+      <table>
+        <tr><th>行业</th><th>二季度</th><th>上半年</th></tr>
+        <tr><th>产能利用率（ % ）</th><th>比上年同期增减（百分点）</th>
+        <th>产能利用率（ % ）</th><th>比上年同期增减（百分点）</th></tr>
+        <tr><td>工业</td><td>73.0</td><td>-1.0</td></tr>
+      </table>
+    </body></html>
+    """.encode()
+    with pytest.raises(ValueError):
+        parse_official_context_document(
+            content,
+            family="nbs_capacity_utilization",
+            source_url="https://www.stats.gov.cn/sj/zxfbhjd/202607/t20260715_1964130.html",
+            expected_period="2026-Q2",
+            fetched_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
+        )
