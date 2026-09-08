@@ -70,3 +70,5 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-09：[三核心消费原件核验](../implementation-19-core-original-consumption.md)完成328关联通过、mypy87/Ruff/格式及86安装源码匹配，双轴0。新目录选值/逐日PUBLIC与Worker共享raw回执、哈希及原行核验；缺件、损坏、多关联中一坏均拒收，未可见修订不误伤早期，每次评价重新核验。新目录active Worker完整纵向及normalized消费完整性尚未覆盖；实际来源认证、完整候选及最终门仍开放，不关闭整票。
 
 - 2026-09-09：[候选字段与明细切片](../implementation-21-candidate-replay.md)342关联通过，含34新增；mypy89、Ruff/格式9文件、88安装源一致及双轴剩余0。新hardened v0002无候选明细不能通过，校准/回放存档与完整核心输入hash进入机验；旧记录保持not_recorded/null，新增0020迁移。实际完整候选、正式认证、active Worker完整纵向和normalized消费仍未验收，整票不关闭。
+
+- 2026-09-09：[上下文快照切片](../implementation-21-context-replay.md)432关联通过，含19新增，611.08秒；mypy92、Ruff/格式9文件、90安装源匹配及双轴剩余0。保存全部可见期次选值历史、逐日经济输出和完整身份hash；源/公式范围不可缩小，旧0020迁移及坏输入失败记录可读。已退出仓库旧坏点不作为当前资格门。融资注册来源合同仍拒绝未实现，完整实际候选、认证、active Worker及normalized消费仍未验收，不关闭整票。

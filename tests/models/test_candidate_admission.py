@@ -1037,6 +1037,179 @@ def test_registered_warrant_selection_requires_all_returned_warehouses(
 
 
 @pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("retired_warehouse", [False, True])
+def test_warrant_context_snapshot_binds_older_coverage_claims(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], retired_warehouse: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    periods = ("20260824", "20260825", "20260826", "20260827", "20260828")
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        symbol = str(payload["params"]["symbol"])
+        unit = "桶" if symbol == "SC" else "张" if symbol in {"CF", "PTA"} else "吨"
+        start, end = payload["params"]["start_date"], payload["params"]["end_date"]
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": [
+                        [period, symbol, "synthetic-warehouse", None, 100, None, unit, "synthetic"]
+                        for period in periods
+                        if start <= period <= end
+                    ],
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_FUTURES_WARRANTS")
+        # Public component verification only, not a complete model admission/replay.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        adapter.acquire_scalars(
+            paths,
+            lambda: tuple(
+                replace(s, release_at=public_at, public_available_at=public_at)
+                for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+                for s in adapter.futures_warrants(
+                    start_date=date(2026, 8, 24), end_date=date(2026, 8, 28), symbol=symbol
+                )
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    if retired_warehouse:
+        evidence = EvidenceRepository(paths.database)
+        current = next(
+            p
+            for p in evidence.metric_series(
+                "CN_FUTURES_WARRANTS",
+                mode=AsOfMode.PUBLIC,
+                as_of=public_at,
+                definition_version=manifests["candidate"]["metric_catalog_version"],
+            )
+            if p.period_end == "2026-08-24" and p.dimensions["symbol"] == "CU"
+        )
+        claim = current.claims[0]
+        evidence.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_FUTURES_WARRANTS",
+                definition_version=manifests["candidate"]["metric_catalog_version"],
+                period_kind="business_day",
+                period_start="2026-08-24",
+                period_end="2026-08-24",
+                dimensions={**current.dimensions, "warehouse": "synthetic-retired"},
+                value=100,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=claim.unit,
+                provider=claim.provider,
+                source_reference=claim.source_reference,
+                release_event_id="synthetic-retired-invalid",
+                release_at=public_at,
+                public_available_at=public_at,
+                fetched_at=datetime.now(UTC),
+                available_at=datetime.now(UTC),
+                certification_status="certified",
+                quality_status="invalid",
+            )
+        )
+        models = ModelRepository(paths.database)
+        for side, manifest in manifests.items():
+            # Save a component-only fixture under its own identity. The missing
+            # core/120-day evidence still prevents a passed model replay.
+            manifest["model_version_id"] = f"warrant-context-storage-{side}"
+            models.create_candidate(manifest)
+        evaluated = evaluate_context_replay(
+            paths.database,
+            manifests["candidate"],
+            manifests["comparison"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+        assert not evaluated.gaps, evaluated.gaps
+        document = evaluated.output_document
+        replay = models.record_replay(
+            manifests["candidate"]["model_version_id"],
+            compared_with=manifests["comparison"]["model_version_id"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+            quality_passed=True,
+            regression_passed=True,
+            performance_passed=True,
+            stage_differences=0,
+            core_state_differences=0,
+            gaps=(),
+            evaluated_trading_days=1,
+            calendar_hash=document["calendar_hash"],
+            context_output_differences=evaluated.context_output_differences,
+            context_output_document=document,
+            context_output_hash=hashlib.sha256(encode(document)).hexdigest(),
+        )
+        saved = models.replay_details(replay.replay_id)
+        assert not replay.passed and "core_candidate_outputs_incomplete" in replay.gaps
+        assert saved["context_output_status"] == "recorded"
+        points = saved["context_output_document"]["days"][0]["candidate"]["source_inputs"][
+            "CN_FUTURES_WARRANTS"
+        ]
+        old = next(p for p in points if p["dimensions"]["warehouse"] == "synthetic-retired")
+        assert old["claims"][0]["quality_status"] == "invalid"
+        return
+    revised_at = public_at + timedelta(hours=1)
+    adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=revised_at, public_available_at=revised_at)
+            for s in adapter.futures_warrants(
+                start_date=date(2026, 8, 24), end_date=date(2026, 8, 24), symbol="CU"
+            )
+        ),
+        definition_version=manifests["candidate"]["metric_catalog_version"],
+    )
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not after.gaps, after.gaps
+    assert before.context_output_differences == after.context_output_differences == 0
+    assert before.output_document != after.output_document
+    assert before.output_document is not None and after.output_document is not None
+    old = before.output_document["days"][0]["candidate"]["source_inputs"]["CN_FUTURES_WARRANTS"]
+    new = after.output_document["days"][0]["candidate"]["source_inputs"]["CN_FUTURES_WARRANTS"]
+    old_point = next(
+        p for p in old if p["period_end"] == "2026-08-24" and p["dimensions"]["symbol"] == "CU"
+    )
+    new_point = next(
+        p for p in new if p["period_end"] == "2026-08-24" and p["dimensions"]["symbol"] == "CU"
+    )
+    assert old_point["selected_value"] == new_point["selected_value"] == 100
+    assert old_point["selected_claim_id"] != new_point["selected_claim_id"]
+
+
+@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("missing_current", [False, True])
 @pytest.mark.parametrize("redeliver_old", [False, True])
 def test_warrant_same_day_revision_preserves_public_history_and_replaces_members(

@@ -381,6 +381,8 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             candidate_days_differences=evaluation.candidate_days_differences,
             core_output_hash=evaluation.core_output_hash,
             core_output_document=evaluation.core_output_document,
+            context_output_hash=evaluation.context_output_hash,
+            context_output_document=evaluation.context_output_document,
         )
         return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
     if namespace.command == "model-replay-show":

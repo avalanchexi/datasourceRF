@@ -1,5 +1,13 @@
 # 修复项目当前执行入口
 
+**2026-09-09 更新：**从`6662bc2`继续的[上下文逐日快照与输入版本绑定](implementation-21-context-replay.md)已完成**432项关联回归、0失败、611.08秒**，包含19项新增用例；mypy92、Ruff/格式9文件通过，90安装Python源匹配，Spec/Standards剩余均0。[本批检查点](verification-context/checkpoint.json)绑定源码及日志。LPR同值新版本、较早仓单版本、必需字段/成员/范围、旧0019/0020迁移、逐日PUBLIC、失败保留及退出仓库不混入当前输入均已验证。下文旧“尚未执行上下文RED”只反映前一批历史状态。
+
+**仍开放：**normalized消费完整性、新目录active Worker完整纵向、融资注册来源合同、真实来源与规则补证；实际完整候选/120中国交易日/合格AI/切换均未完成。业务规则与网络待答条件保持，不重复提问、不静默替换。
+
+**下一软件入口：**[标准化制品消费边界](normalized-consumption-boundary.md)及[五类源码映射](normalized-consumption-source-map.md)，先经已有注册来源采集/选值公开入口复现，不以单独read_content函数会报错冒充实际模型已校验。RRR已有raw/normalized重解析链，其他家族需按实际调用路径分别核验；本研究未运行新的反例。
+
+## 前批记录
+
 **2026-09-09 更新：**阶段仍为 implement + research，本批从已提交的`0c33710`继续。[PUBLIC候选字段及保存查询](implementation-21-candidate-replay.md)已完成**342项关联回归、0失败、550.74秒**，包含34项新增候选用例；mypy89、Ruff/格式9文件及88安装源码核对通过，两轴复审均0。新旧规则天数、逐日差异、校准/回放明细CLI/API、证据版本失配、旧0019迁移及缺末日失败记录已接通。见[检查点](verification-candidate/checkpoint.json)。真实完整候选、120日验收、合格AI报告及切换仍未完成。
 
 **下一软件切片：**[上下文逐日快照与输入版本绑定](context-replay-snapshot-boundary.md)静态定位显示上下文仍只保存差异数量，先通过公开反例核验是否会漏掉计数不变的P1版本变动；尚未执行其RED。normalized消费完整性和新目录active Worker完整纵向继续开放。业务规则、官方证据、真实检索模型资格和报告网络条件仍按下文处理。

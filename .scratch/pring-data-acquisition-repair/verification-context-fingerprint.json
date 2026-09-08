@@ -1,0 +1,367 @@
+﻿{
+  "scope": "all Python source; user-owned assets excluded",
+  "installed_package": "/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle",
+  "matched_source_files": 90,
+  "files": [
+    {
+      "path": "src/pring_cycle/__init__.py",
+      "lf_sha256": "dd509c1cac4cf43f991c77518b45586d450470193b4b5bfe44cc81b7be7b4a5d"
+    },
+    {
+      "path": "src/pring_cycle/__main__.py",
+      "lf_sha256": "90f07b3062f3e45cb95f285b21528798ca5c38b5d68566f4b87b797e15f7b55c"
+    },
+    {
+      "path": "src/pring_cycle/acceptance.py",
+      "lf_sha256": "5730e4be0293dbef0ab36624f1bb6bbf3ea40476298e27aad2900c42b210a719"
+    },
+    {
+      "path": "src/pring_cycle/acquisition.py",
+      "lf_sha256": "bcfb57f76f285e784991f218a45131cab3ed5a8f0732499794a2bf7d6d2e9e71"
+    },
+    {
+      "path": "src/pring_cycle/adapters.py",
+      "lf_sha256": "05e6856cd7bb8e382f17dc36f1f78c4a08cccf6ab7073689f82b23bb7a546ff0"
+    },
+    {
+      "path": "src/pring_cycle/artifacts.py",
+      "lf_sha256": "114427470f2c3f8140eb22d214465620e99a1b2a7baa8c3c1717b8ba4e750ea4"
+    },
+    {
+      "path": "src/pring_cycle/candidate_admission.py",
+      "lf_sha256": "681d108eaba822cb538dd828e459e74c64e8909c415f9d3a8f83f17135673bc4"
+    },
+    {
+      "path": "src/pring_cycle/catalog.py",
+      "lf_sha256": "fe8dd4e21d563448c31af535f3886fc7fb053133de6346d5d9c4a627a91e7c5c"
+    },
+    {
+      "path": "src/pring_cycle/catalog_registry.py",
+      "lf_sha256": "41ddb91573330a206e388b9b32665e511a286a22a6eb1eeff674803dabda0544"
+    },
+    {
+      "path": "src/pring_cycle/cli.py",
+      "lf_sha256": "5ddf9fc308266294ecc1cc9e3f1cf3bc6b332cdbe6730a48f4bd09b06722cfe3"
+    },
+    {
+      "path": "src/pring_cycle/context_projection.py",
+      "lf_sha256": "74338121490bee92c2d3f9834088118e9d047f18aa1d7019b72bed51ed9af820"
+    },
+    {
+      "path": "src/pring_cycle/context_replay_scope.py",
+      "lf_sha256": "588b5fc7e823334b1fdcc1d01e03a6659d10c652f96c7aeaccc288e1c762cb10"
+    },
+    {
+      "path": "src/pring_cycle/core_fixture.py",
+      "lf_sha256": "753866e32817a3b4237d4610f5f81bb20aa9e544caf57820f6fcf90853786f83"
+    },
+    {
+      "path": "src/pring_cycle/core_history.py",
+      "lf_sha256": "bca200e5d2bdaab71fe3f819e7d0183f6b27bd3b13e2acae17ed64b879764d13"
+    },
+    {
+      "path": "src/pring_cycle/cutover.py",
+      "lf_sha256": "0cefa785cfb658d9883ac9e71c4b8050c25a5bfa68e251d2fe438434c98d1854"
+    },
+    {
+      "path": "src/pring_cycle/dashboard.py",
+      "lf_sha256": "c20ed7f758341d0e197638bdd7eac66b4ab1e95e7a993966c961c142219c3040"
+    },
+    {
+      "path": "src/pring_cycle/domain/__init__.py",
+      "lf_sha256": "368e65aca5bf1c4589db3ffbb016a5ba58e80ce7286a399ede62ef94df5c9557"
+    },
+    {
+      "path": "src/pring_cycle/domain/macro.py",
+      "lf_sha256": "7023fa9aca5849ee2ab3c4b0f3aef759daa72fd2aba0e95b5dec0a681383c623"
+    },
+    {
+      "path": "src/pring_cycle/domain/market.py",
+      "lf_sha256": "769989f099ecc4026cf5b8eddb0174706190931abd2116ac29cf524e938db699"
+    },
+    {
+      "path": "src/pring_cycle/domain/stage.py",
+      "lf_sha256": "c2ae536eca1ec08484f3d7ad8521bb337a90951c905e3f33528fc5be4358ffac"
+    },
+    {
+      "path": "src/pring_cycle/domain/trend.py",
+      "lf_sha256": "bcbdec85dceefe2fea11bb9c565e319f124d8b1a86432aad9d4b326d99cad9cc"
+    },
+    {
+      "path": "src/pring_cycle/domain/types.py",
+      "lf_sha256": "8a006b95399bc66867a9024af6b9a908415320c1dcf6f7053c96de091aaf3e27"
+    },
+    {
+      "path": "src/pring_cycle/eia_context.py",
+      "lf_sha256": "a209fe8653bb5be45cf9c14b882690d410fd945933d98be62248798b3fa976e8"
+    },
+    {
+      "path": "src/pring_cycle/eia_html.py",
+      "lf_sha256": "949e72e139a3110eca795be415c3c5e2dfac983a2a77ca0b1aeed3ad9d7389e9"
+    },
+    {
+      "path": "src/pring_cycle/evidence.py",
+      "lf_sha256": "f3912683f0703dd7c67a44f87683740cda9ba24fb11adafaaf181e3de36ab26b"
+    },
+    {
+      "path": "src/pring_cycle/full_retrieval.py",
+      "lf_sha256": "d82a803a0b9e0bfad3498c2e11685585f980744ca8c655f30f0398d630a04969"
+    },
+    {
+      "path": "src/pring_cycle/full_run_requirements.py",
+      "lf_sha256": "5cd78ef07dcc138102457849cd0a5d06d2c7eae5603c9cdb5c30707c0404e2d8"
+    },
+    {
+      "path": "src/pring_cycle/health_types.py",
+      "lf_sha256": "e1d24a6033210871330ae8b15cb07cdeec683491027b7e40e64c45a4615ab6ed"
+    },
+    {
+      "path": "src/pring_cycle/http_transport.py",
+      "lf_sha256": "a3b1262f73a7a3f391eb1011f3727e05bd9bac501b1ac1e9b7ad39ac8176af19"
+    },
+    {
+      "path": "src/pring_cycle/logging.py",
+      "lf_sha256": "cc5d18ce9fe9667fdc21a764acd8b1fafd1c7015f024430520465ef3f91d1841"
+    },
+    {
+      "path": "src/pring_cycle/maintenance.py",
+      "lf_sha256": "38bca1b42b4219cd592c980812ea882e4c65a341bc8c93494016fe3aa9f92c29"
+    },
+    {
+      "path": "src/pring_cycle/market_breadth.py",
+      "lf_sha256": "2111ef96c201d445055dd3feb9981dbe4ec4ce71125beb93979363f4d4af9bd4"
+    },
+    {
+      "path": "src/pring_cycle/metric_contracts.py",
+      "lf_sha256": "b94d7b0e1da8ca282c53a12779b5bf738d8bf380950189f6569453d8ce598f66"
+    },
+    {
+      "path": "src/pring_cycle/migrations/env.py",
+      "lf_sha256": "86d3d3b16cf04660a7fc0fd72e51c33c689222748005db141facc9c30a533fee"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0001_runtime.py",
+      "lf_sha256": "9244e879ec08d4f572a0a9f7effed72072be4c41545c0a2d088639c305f3f1a9"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0002_v1_domain.py",
+      "lf_sha256": "bb9b05963e51457cf70ab7d362de2aa821462889e40453aa7913bd67cda26d98"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0003_cutover.py",
+      "lf_sha256": "46ba381dccd488d8e4ad10bb81550c8faa0cc83a790c5081f5f55b8dccb4ad91"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0004_evidence_extensions.py",
+      "lf_sha256": "f6d87a6cd83c33095ffba643f992d2c0db4bb45ef6661e14180a9cc63268340f"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0005_run_step_events.py",
+      "lf_sha256": "f4aa57e8b13164ab29c459e8c294c31fd94db459044e69975f66a1d0d2beb896"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0006_p0_assessment_history.py",
+      "lf_sha256": "65e5a713fa2d2369ed3db0fa8b25725652db1f4e65a425e799613e211e35d1b6"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0007_release_event_immutability.py",
+      "lf_sha256": "d97019375ba40ff9f9c0f043c6ad44f8e954a8889bfb7ff3a0c80e13bd10fb20"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0008_retrieval_run_ledger.py",
+      "lf_sha256": "1413387494ccbdd3a00013ceb003a72170fcd30ee6baf383d45340f65c0861ab"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0009_model_replay_context.py",
+      "lf_sha256": "5f1aa965d514db9d9173c824a5f2d9cbb154d6523402def0e10fa4c1fa49d6e6"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0010_context_replay_indexes.py",
+      "lf_sha256": "2e25e638cd774a819eb459db5861193fe7fa8797ad4a380c2bb62216317f9048"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0011_report_nullable_stage.py",
+      "lf_sha256": "08b95b1b127c84ec248f94cf89b92b7b2afd95248af619a7e1ac00ea4f138b71"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0012_model_replay_exact_calendar.py",
+      "lf_sha256": "2276f7ce84a1e454de99f7ae8dbff127f0e882a0d090c7dce648d0428bdcc0db"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0013_source_claim_provider_identity_index.py",
+      "lf_sha256": "1d7563177960894bc2bd46ac798cd0f0c3264ddcfe3c5cfa8a5bb677c02df4db"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0014_acquisition_receipts.py",
+      "lf_sha256": "7c45a716ae063e1968231ab20587e205d21de5b2cd52387e476c3ba5181da626"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0015_retrieval_physical_requests.py",
+      "lf_sha256": "1ea3ea2b3ab7378d564f344d7064ab57cf2cce9ddc6308d7868575df9063022c"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0016_search_candidate_validation.py",
+      "lf_sha256": "9eb7270231857684a8eb3904430b1ddd5d79585751b4452e7188fdeaed32b607"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0017_report_process_audit.py",
+      "lf_sha256": "696e13b12484daeaf319e5853386ccad9ef600b23de8a2c625a56ae1e9addcc1"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0018_full_run_retrieval.py",
+      "lf_sha256": "b0dd2f7c889c05cbb8da0e59856c98e6358547afff62f19b8723bc4e3283a65d"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0019_registered_metric_catalog.py",
+      "lf_sha256": "2e827460b7bb8dfe6c766d307c590d4ed89818e160b886cff3a4b237ab20ae69"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0020_model_evaluation_outputs.py",
+      "lf_sha256": "6442d4ccf58788447fd46eeb7e3e5aaebb462ee9cc584b2292c72c4d910d5ca2"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0021_context_replay_outputs.py",
+      "lf_sha256": "7c31cd044535ebcd0eae6c65421186b322b651b0f9bbe9ac5399ceb3aaa0a2ec"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "lf_sha256": "59185160160aa09e459e7df6a9f5e89f1db161d79170a36191d3f0967e4c05dd"
+    },
+    {
+      "path": "src/pring_cycle/model_outputs.py",
+      "lf_sha256": "f25ad15e92c3a760222ea2fdfad586b2979fb20fe878d990be09c60b37d5c5eb"
+    },
+    {
+      "path": "src/pring_cycle/models.py",
+      "lf_sha256": "4ee496ae3b9f7c6aad92de85da83e3288cdaebbb357911322502e23afc2d9fe8"
+    },
+    {
+      "path": "src/pring_cycle/navigation.py",
+      "lf_sha256": "a7203c94b1015896518725a3b0c9f78a173854beb39153a8d1f982d0b720e614"
+    },
+    {
+      "path": "src/pring_cycle/official_context.py",
+      "lf_sha256": "0e6f57ea5770e3d35b2dbbd3255a8df9e1237296f2c6b97c1d6e2d54dbc20252"
+    },
+    {
+      "path": "src/pring_cycle/official_lpr.py",
+      "lf_sha256": "2173c4ea5d3c16acd26fb58c9a9a04ae79e5519403be93bf8b46a94f22f290d1"
+    },
+    {
+      "path": "src/pring_cycle/p0.py",
+      "lf_sha256": "8cc460ce27e5820127af10e16feb11c4291f9c207240242674b86d2c801002c5"
+    },
+    {
+      "path": "src/pring_cycle/projections.py",
+      "lf_sha256": "d262f832e63a2567055c6d239e72e0ae4f760a86a6fa5c6ecfcb14c4c7dad6f1"
+    },
+    {
+      "path": "src/pring_cycle/published_events.py",
+      "lf_sha256": "b3463f972b2b500c7a867e865acfc45968360b9bd636cd7fd574631d203c7c62"
+    },
+    {
+      "path": "src/pring_cycle/rehearsals.py",
+      "lf_sha256": "492aac51500c810256366baa5e205998e66f9aec42b2866e3a2618bcfa690a1e"
+    },
+    {
+      "path": "src/pring_cycle/release_calendar.py",
+      "lf_sha256": "f0f2c97900298cecd79c8ec4c5fa62a729fd8df6146a702df30b6139f711c3f6"
+    },
+    {
+      "path": "src/pring_cycle/report_review.py",
+      "lf_sha256": "a42333e6ef83c7c3cd1e3fa375b5f91a952857b4f8ee21f57300138be16838c3"
+    },
+    {
+      "path": "src/pring_cycle/reports.py",
+      "lf_sha256": "03aa6bcf844205ae7c73b591bce757e4fc0f5b1286d259cb3be9cfbdd2bfc648"
+    },
+    {
+      "path": "src/pring_cycle/retrieval.py",
+      "lf_sha256": "d62159e50d31bd71ca5ad0ed2f665960c303dc7d42212cdd77d6287e27f439df"
+    },
+    {
+      "path": "src/pring_cycle/retrieval_ledger.py",
+      "lf_sha256": "058e21ac00333467175d97e76ce199f49fea4b1f4ec671b0d21bbff7e7a34d59"
+    },
+    {
+      "path": "src/pring_cycle/run_cutoffs.py",
+      "lf_sha256": "02f4d542a9b58500d2820188466b99d34f786b57fe479437cf4107fe1ac18f7c"
+    },
+    {
+      "path": "src/pring_cycle/runs.py",
+      "lf_sha256": "3d07bc98ead76624dd7e73d43ef445a121d652c927df7d245c5353a66e721a98"
+    },
+    {
+      "path": "src/pring_cycle/runtime.py",
+      "lf_sha256": "30ffd317f672cd948f519771b04e7fd5814d354e02eef72d6ae3a5895c4874ca"
+    },
+    {
+      "path": "src/pring_cycle/runtime_fingerprint.py",
+      "lf_sha256": "7f9db05f89439b4b120382e5ab35e08f9a2d346445bc555e96c554690e019d74"
+    },
+    {
+      "path": "src/pring_cycle/search_discovery.py",
+      "lf_sha256": "402f2cd11b9e0ef4298044c5605572f526c01453361fafd242e438f94d2feefa"
+    },
+    {
+      "path": "src/pring_cycle/search_evidence.py",
+      "lf_sha256": "332a9c5f8068320ca3a6bc72ed8118d5c89a16ef5896e7b281fdb36d12e42f36"
+    },
+    {
+      "path": "src/pring_cycle/secrets.py",
+      "lf_sha256": "95e6a7a39d2d7f249cb120f94e0382fe8447941c3220f9acea0410a6970bd7a5"
+    },
+    {
+      "path": "src/pring_cycle/source_adapters.py",
+      "lf_sha256": "c683b4872879ef23854a01d8541f9cf1ebcf47ceea0479181de49a662d79e6a0"
+    },
+    {
+      "path": "src/pring_cycle/source_certification.py",
+      "lf_sha256": "e585ce624de989ec6f9def5ff4f44130ebad22c449d6c8a1a2f0c9d64e44a963"
+    },
+    {
+      "path": "src/pring_cycle/source_contract_review.py",
+      "lf_sha256": "c26ee6a06e25dc7b9b3c4c102bc9ce3e780dbc538760ef9318409d28f5ab9772"
+    },
+    {
+      "path": "src/pring_cycle/source_families.py",
+      "lf_sha256": "420a241b90fc0ff63cafe5e9119f15a375e90617834cae2698e403ccbcaa5f6e"
+    },
+    {
+      "path": "src/pring_cycle/source_history.py",
+      "lf_sha256": "2a0009db28e46bb9786a72f36e186857e2e6801134f5a90919e0af2a1ed7fa29"
+    },
+    {
+      "path": "src/pring_cycle/storage.py",
+      "lf_sha256": "44388922004f6b8f8bdedaae0552a90ab0c5208cebf2feaef0d8149316a82bbc"
+    },
+    {
+      "path": "src/pring_cycle/targeted_context.py",
+      "lf_sha256": "3601a81cd1b505c38f4762cf2c885ee2214851ec8b5f3dd523eb35b124a5cdeb"
+    },
+    {
+      "path": "src/pring_cycle/treasury_context.py",
+      "lf_sha256": "0edc0376f9b9b4ab363e82249ef6513521d765ab33c373bc8df26160c960e585"
+    },
+    {
+      "path": "src/pring_cycle/tushare_context.py",
+      "lf_sha256": "f285d05d5f446b0e50f22d7f9b5ed993fe0c128f417f172adf614f7fbe5d5d22"
+    },
+    {
+      "path": "src/pring_cycle/verification.py",
+      "lf_sha256": "e12b4fb51073dc9d1108e077562e8ee60b4a6b3286bc2103f26b2208ecd917e1"
+    },
+    {
+      "path": "src/pring_cycle/warrant_inputs.py",
+      "lf_sha256": "7addf517d3b16752bd57c766ba0201fdaa2b9cc3408ab4f7c28143864f3e92f3"
+    },
+    {
+      "path": "src/pring_cycle/web.py",
+      "lf_sha256": "d9ca3215046a8082013ab622be39a18797a0dd897ff5870db1912bf300fea530"
+    },
+    {
+      "path": "src/pring_cycle/worker.py",
+      "lf_sha256": "34a9a9e332872269852a22d7b8f0798a6cb8ab610fd09a9644b4f6739732d96b"
+    }
+  ]
+}

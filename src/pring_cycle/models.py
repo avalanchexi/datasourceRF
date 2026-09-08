@@ -23,6 +23,7 @@ from pring_cycle.model_outputs import (
     model_output_hash,
     read_model_output,
     store_model_output,
+    validate_context_output,
     validate_history_output,
     validate_replay_output,
 )
@@ -79,6 +80,7 @@ class ReplayResult:
     candidate_state_differences: int | None = None
     candidate_days_differences: int | None = None
     core_output_hash: str | None = None
+    context_output_hash: str | None = None
 
 
 def certified_model_v0001_manifest() -> dict[str, Any]:
@@ -627,6 +629,8 @@ class ModelRepository:
         candidate_days_differences: int | None = None,
         core_output_hash: str | None = None,
         core_output_document: dict[str, Any] | None = None,
+        context_output_hash: str | None = None,
+        context_output_document: dict[str, Any] | None = None,
     ) -> ReplayResult:
         candidate = self.get(model_version_id)
         comparison = self.get(compared_with)
@@ -639,6 +643,22 @@ class ModelRepository:
             raise ValueError("certified_replay_range_empty")
         normalized_gaps = list(gaps)
         candidate_manifest = self.manifest(model_version_id)
+        if context_output_document is not None:
+            validate_context_output(
+                context_output_document,
+                candidate_manifest=candidate_manifest,
+                comparison_manifest=self.manifest(compared_with),
+                range_start=range_start,
+                range_end=requested_end,
+                calendar_hash=calendar_hash,
+                evaluated_days=evaluated_trading_days,
+                context_output_differences=context_output_differences,
+            )
+            if model_output_hash(context_output_document) != context_output_hash:
+                raise ValueError("context_output_hash_mismatch")
+            normalized_gaps.extend(context_output_document["gaps"])
+        elif context_output_hash is not None:
+            raise ValueError("context_output_document_required")
         if core_output_document is not None:
             validate_replay_output(
                 core_output_document,
@@ -669,6 +689,12 @@ class ModelRepository:
         if candidate_manifest.get("replay_acceptance_rule_version") == (
             "active-baseline-exact-120-v0001"
         ):
+            if (
+                context_output_document is None
+                and candidate_manifest["trend_rules"].get("candidate_duration_rule_version")
+                == "candidate-duration-v0002"
+            ):
+                normalized_gaps.append("context_outputs_not_recorded")
             if (
                 core_output_document is None
                 and candidate_manifest["trend_rules"].get("candidate_duration_rule_version")
@@ -703,6 +729,8 @@ class ModelRepository:
         with self._connect() as connection:
             if core_output_document is not None:
                 store_model_output(connection, core_output_document)
+            if context_output_document is not None:
+                store_model_output(connection, context_output_document)
             cursor = connection.execute(
                 """
                 INSERT INTO model_replay(
@@ -711,8 +739,9 @@ class ModelRepository:
                     stage_differences, core_state_differences,
                     context_output_differences, gaps_json, passed, created_at,
                     evaluated_trading_days, calendar_hash,
-                    candidate_state_differences, candidate_days_differences, core_output_hash
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    candidate_state_differences, candidate_days_differences, core_output_hash,
+                    context_output_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     model_version_id,
@@ -733,6 +762,7 @@ class ModelRepository:
                     candidate_state_differences,
                     candidate_days_differences,
                     core_output_hash,
+                    context_output_hash,
                 ),
             )
             if cursor.lastrowid is None:
@@ -754,6 +784,7 @@ class ModelRepository:
             candidate_state_differences=candidate_state_differences,
             candidate_days_differences=candidate_days_differences,
             core_output_hash=core_output_hash,
+            context_output_hash=context_output_hash,
         )
 
     def replay_details(self, replay_id: int) -> dict[str, Any]:
@@ -770,6 +801,12 @@ class ModelRepository:
             replay["gaps"] = json.loads(row["gaps_json"])
             digest = replay["core_output_hash"]
             document = read_model_output(connection, digest) if digest is not None else None
+            context_digest = replay["context_output_hash"]
+            context_document = (
+                read_model_output(connection, context_digest)
+                if context_digest is not None
+                else None
+            )
         if document is not None:
             validate_replay_output(
                 document,
@@ -786,10 +823,25 @@ class ModelRepository:
                 candidate_state_differences=replay["candidate_state_differences"],
                 candidate_days_differences=replay["candidate_days_differences"],
             )
+        if context_document is not None:
+            validate_context_output(
+                context_document,
+                candidate_manifest=self.manifest(replay["model_version_id"]),
+                comparison_manifest=self.manifest(replay["compared_with"]),
+                range_start=replay["range_start"],
+                range_end=replay["range_end"],
+                calendar_hash=replay["calendar_hash"],
+                evaluated_days=replay["evaluated_trading_days"],
+                context_output_differences=replay["context_output_differences"],
+            )
         return {
             "replay": replay,
             "core_output_status": "recorded" if document is not None else "not_recorded",
             "core_output_document": document,
+            "context_output_status": context_document["status"]
+            if context_document is not None
+            else "not_recorded",
+            "context_output_document": context_document,
         }
 
     def replay_matches_current_evidence(self, replay_id: int) -> bool:
@@ -800,6 +852,8 @@ class ModelRepository:
             details = self.replay_details(replay_id)
             saved = details["replay"]
             if not saved["passed"] or details["core_output_status"] != "recorded":
+                return False
+            if details["context_output_status"] not in {"recorded", "not_applicable"}:
                 return False
             evaluation = replay_models(
                 self._database_path,
@@ -827,6 +881,7 @@ class ModelRepository:
                         "candidate_state_differences",
                         "candidate_days_differences",
                         "core_output_hash",
+                        "context_output_hash",
                     )
                 )
             )
@@ -1229,6 +1284,7 @@ def _ensure_model_replay_context_column(connection: sqlite3.Connection) -> None:
         ("candidate_state_differences", "INTEGER"),
         ("candidate_days_differences", "INTEGER"),
         ("core_output_hash", "TEXT"),
+        ("context_output_hash", "TEXT"),
     ):
         if name not in columns:
             connection.execute(f"ALTER TABLE model_replay ADD COLUMN {name} {kind}")

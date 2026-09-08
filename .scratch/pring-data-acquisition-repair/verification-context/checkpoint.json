@@ -1,0 +1,277 @@
+{
+  "recorded_at": "2026-09-08T19:16:05.623377+00:00",
+  "base_commit": "6662bc2f5d7c8914fdedaab187a15aaea5f042c8",
+  "scope": "persisted daily PUBLIC context and visible source selection histories",
+  "software_slice_passed": true,
+  "associated_tests": 432,
+  "associated_duration_seconds": 611.08,
+  "new_tests_in_associated_scope": 19,
+  "mypy_source_files": 92,
+  "installed_python_sources": 90,
+  "uv_lock_sha256": "28cdd2d2003f3235ab2bd8fcc8ec82c45c178d67e5f3fde16b1308ae8e0890b1",
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "context_cli_api_persistence_verified": true,
+  "lpr_same_value_vintage_invalidates_saved_replay": true,
+  "older_warrant_vintage_changes_context_snapshot": true,
+  "retired_invalid_warehouse_preserved_without_current_input_adoption": true,
+  "old_0019_and_0020_runtime_migration_verified": true,
+  "failed_context_input_and_reasons_preserved": true,
+  "all_real_p1_p2_positive_consumption_verified": false,
+  "new_catalog_active_worker_end_to_end_verified": false,
+  "normalized_consumption_integrity_verified": false,
+  "real_source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_china_trading_day_replay": false,
+  "project_full_gate_passed": false,
+  "production_cutover": false,
+  "new_network_requests": 0,
+  "real_qualified_ai_outputs": 0,
+  "files": [
+    {
+      "path": "src/pring_cycle/cli.py",
+      "bytes": 39097,
+      "sha256": "5ddf9fc308266294ecc1cc9e3f1cf3bc6b332cdbe6730a48f4bd09b06722cfe3"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "bytes": 48050,
+      "sha256": "59185160160aa09e459e7df6a9f5e89f1db161d79170a36191d3f0967e4c05dd"
+    },
+    {
+      "path": "src/pring_cycle/model_outputs.py",
+      "bytes": 26725,
+      "sha256": "f25ad15e92c3a760222ea2fdfad586b2979fb20fe878d990be09c60b37d5c5eb"
+    },
+    {
+      "path": "src/pring_cycle/models.py",
+      "bytes": 53781,
+      "sha256": "4ee496ae3b9f7c6aad92de85da83e3288cdaebbb357911322502e23afc2d9fe8"
+    },
+    {
+      "path": "src/pring_cycle/storage.py",
+      "bytes": 6915,
+      "sha256": "44388922004f6b8f8bdedaae0552a90ab0c5208cebf2feaef0d8149316a82bbc"
+    },
+    {
+      "path": "src/pring_cycle/context_replay_scope.py",
+      "bytes": 3580,
+      "sha256": "588b5fc7e823334b1fdcc1d01e03a6659d10c652f96c7aeaccc288e1c762cb10"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0021_context_replay_outputs.py",
+      "bytes": 638,
+      "sha256": "7c31cd044535ebcd0eae6c65421186b322b651b0f9bbe9ac5399ceb3aaa0a2ec"
+    },
+    {
+      "path": "tests/models/test_candidate_replay.py",
+      "bytes": 38061,
+      "sha256": "f09a7ddd70cc00c506d7734f51214870ff531d859eecf5a9f88a1fac4eb99d8a"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "bytes": 170064,
+      "sha256": "f0c8a12e18cd18d7df9d1811f6c50d59fb5553192e636979c48d66b9facdbcea"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-21-context-replay.md",
+      "bytes": 5967,
+      "sha256": "a645b32e86bfbdde4d14d910ac2fbdcb89c13122ff1717f87ba268c1e84f9e01"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/continuation-status.md",
+      "bytes": 19779,
+      "sha256": "42496ecaf4b371c864a2b6a1223544c93d76ed957937ee2bbf15a21e813eb11f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/normalized-consumption-boundary.md",
+      "bytes": 2489,
+      "sha256": "9b6696d89c03292a5b906faa2b1cccb6c2910a3b55d88b8c6262c42bdfafe860"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/normalized-consumption-source-map.md",
+      "bytes": 3583,
+      "sha256": "1a7617c8561ca89d3d759c667379eda6ebf5a3a9406ea48ec3449623ab03d40a"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md",
+      "bytes": 11889,
+      "sha256": "deaa5d09db155bde753e6123a279c568f786201d5cc323e0db5ca64006078658"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md",
+      "bytes": 6197,
+      "sha256": "901b0e5c90eb65caae0667ea402517d806c3283089b6942284624dceb1f97360"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context/review.md",
+      "bytes": 1350,
+      "sha256": "b5fed577d6a6b5aa5e04734bd1a81aa54c728cd1e26688f8854033c8d44247f1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context/finalize.py",
+      "bytes": 4588,
+      "sha256": "cae212bf4ffe0c171312d4c1deb00fa1bf841e5b96e8ccd4c20187f710183bc2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-fingerprint.json",
+      "bytes": 14621,
+      "sha256": "721131b2970d1ab908b89c26f32f0ea9f013ebdf50566edc27cf136a0ab3838c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-associated-01.txt",
+      "bytes": 1040,
+      "sha256": "92fa338c3be58d16cd094a86f2069f55b4ada3b509b28ce5e7cb6af96bc443d9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-economic-green-01.txt",
+      "bytes": 232,
+      "sha256": "af63e91dbd17fbb50e5a2431f9777a347c04a93f3ddcb91ae4aa9aa819f5e78f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-economic-red-01.txt",
+      "bytes": 1522,
+      "sha256": "25a66dac451564870cac16c290cc08432ab0ebdec9d75f25b06e5a5d81293e36"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-failure-green-01.txt",
+      "bytes": 234,
+      "sha256": "f1e99b5ce05b15bb3708ea8ab580486844b2f25e455c802ebbb80c74910314df"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-failure-red-01.txt",
+      "bytes": 2690,
+      "sha256": "2dd0bbe725a4fd6427b8c5331602fe2926bfb6388e495d1dbab3854efefb7bf2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-format-final.txt",
+      "bytes": 56,
+      "sha256": "13313daced85c0f094f6b95b3cec949f389d0bab1d6909fbcd97ef2316a505ea"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-identity-green-01.txt",
+      "bytes": 232,
+      "sha256": "dcd9e8adb37e5721b087ae89d3f1e6f6ee753fc3a4605a5518ee02dd7bc08d4b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-identity-red-01.txt",
+      "bytes": 1622,
+      "sha256": "d2a280177f5b708c3e1f2101229dc46411a3aa437939d852531b7177b6465c36"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-members-green-01.txt",
+      "bytes": 232,
+      "sha256": "c5bbfff623bcd70fe67af3900b2ac7550df2736667de09d6eb5483faa31212a6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-members-red-01.txt",
+      "bytes": 276,
+      "sha256": "11f9e24a2a383c7e58e4276d00d1ff700d8e22c52cdb32f0e9fed6ba291ee779"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-members-red-02.txt",
+      "bytes": 3630,
+      "sha256": "8ce8746ef2ef14ca2a1b9780609cfa92805b6f83ad198491d2a1599369940eba"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-mypy-02.txt",
+      "bytes": 1014,
+      "sha256": "45f24261452c9f14510bacf783304587029f6cd2c7a1895dd2e4475a71fff34b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-mypy-final.txt",
+      "bytes": 92,
+      "sha256": "84c96559963461ade2a9bd24b68f98e37b1a0450052160ce80e05aa7216f3923"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-retired-green-01.txt",
+      "bytes": 238,
+      "sha256": "c9ff84958fd9488480b18d0c9d827bb6e932374497324b1aad8c084177b9935d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-retired-red-01.txt",
+      "bytes": 2372,
+      "sha256": "c3769459a394fa3bfd9602458e3ab06f221dba99043aad4be7bb0f5693383be4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-ruff-02.txt",
+      "bytes": 80,
+      "sha256": "c997d92ad0b6ac35fa45503c33f3e62c28acd8a23603436812461e798173f904"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-ruff-final.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-scope-green-01.txt",
+      "bytes": 388,
+      "sha256": "9adabe6fc724eff7e76c95ea696fdb06cc64182cacd41aab5e4002c1372cfaed"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-scope-red-01.txt",
+      "bytes": 1542,
+      "sha256": "7f94ab91ebcc31fe0d03930f48f8c315c10a386da7106ecb63d8ecef394c29b5"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-green-01.txt",
+      "bytes": 232,
+      "sha256": "aef363c34327fcede6ed9c903c97c14566ad8888c3319b12566c909b65a40032"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-inputs-green-01.txt",
+      "bytes": 232,
+      "sha256": "2412d43ffcdd348ef34ff95944a2c03829b54b909b4f5da9c1fda5c29aadf88c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-inputs-red-01.txt",
+      "bytes": 1518,
+      "sha256": "be6f72b557bb11d95788559345162e5f0087a3adfbbe5077b5fe24fa2f12b6ad"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-margin-red-01.txt",
+      "bytes": 2714,
+      "sha256": "2430097f5e7aeb278d2cce045af21da8d47d2a0ca10567fd6a743453e71b5ef1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-margin-red-02.txt",
+      "bytes": 3314,
+      "sha256": "6d65b00b6fc806f398f334f6047f2a4e9b0bf62faca84ce25b2ca8125d6fe31d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-models-01.txt",
+      "bytes": 3050,
+      "sha256": "dc822c6ebbb64596e10dddcc18a0fc6c6e23ee9a14f30f3c5b95a00cc91b30b4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-mypy-01.txt",
+      "bytes": 658,
+      "sha256": "0c43927b13a102173964bf4b43b1f935411396a7b6ba2be6c2b2dd97bb711d46"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-snapshot-red-01.txt",
+      "bytes": 2436,
+      "sha256": "53844e02021c47b51ac7b073bb2c0636ba2434c1466da34c23911044aa296e49"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-value-green-01.txt",
+      "bytes": 238,
+      "sha256": "1a6890a256c670b1b57eb66d0a386ddfa9bb909578b82b8e08dc2978d1ec0c79"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-value-red-01.txt",
+      "bytes": 1606,
+      "sha256": "5117c97d40c21159d51f327b12c8f5eea0e839e00a117f767f1e2523822b817b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-warrant-green-01.txt",
+      "bytes": 236,
+      "sha256": "5323d346b063b11d816d2b6dbadd3056dad4a0bf84317e3b36bc35f103a197cb"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-warrant-red-01.txt",
+      "bytes": 4366,
+      "sha256": "ef3ba8ef4409b44233e29f15de76eef57bce3c7ea7852dba6de5e8ab8482f547"
+    }
+  ]
+}

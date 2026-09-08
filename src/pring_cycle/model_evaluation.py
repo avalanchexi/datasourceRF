@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import (
     ContextProjectionRules,
@@ -20,6 +19,7 @@ from pring_cycle.context_projection import (
     build_context_projection,
     context_metric_ids,
 )
+from pring_cycle.context_replay_scope import CONTEXT_FORMULA_INPUTS, ContextReplayScope
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
 from pring_cycle.domain.trend import (
@@ -38,8 +38,11 @@ from pring_cycle.metric_contracts import (
 from pring_cycle.model_outputs import (
     HISTORY_OUTPUT_SCHEMA,
     REPLAY_OUTPUT_SCHEMA,
+    context_output_document,
     core_output_differences,
     model_output_hash,
+    model_output_json,
+    normalized_context_output,
     validate_replay_output,
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
@@ -96,6 +99,8 @@ class ParallelReplayEvaluation:
     candidate_days_differences: int | None = None
     core_output_hash: str | None = None
     core_output_document: dict[str, Any] | None = None
+    context_output_hash: str | None = None
+    context_output_document: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +109,7 @@ class ContextReplayEvaluation:
     evaluated_cutoffs: int
     duration_seconds: float
     gaps: tuple[str, ...]
+    output_document: dict[str, Any]
 
 
 def calibrate_model(
@@ -334,6 +340,8 @@ def replay_models(
         candidate_days_differences,
         core_output_hash,
         core_output_document,
+        model_output_hash(context_result.output_document),
+        context_result.output_document,
     )
 
 
@@ -626,21 +634,15 @@ def context_replay_gaps(
     candidate_manifest: dict[str, object],
     comparison_manifest: dict[str, object],
 ) -> tuple[str, ...]:
-    candidate = ContextProjectionRules.from_manifest(candidate_manifest)
-    comparison = ContextProjectionRules.from_manifest(comparison_manifest)
+    scope = ContextReplayScope.from_manifests(candidate_manifest, comparison_manifest)
+    candidate = scope.candidate
     candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
-    changed_metrics, changed_formulas = _context_changes(candidate, comparison)
-    changed_metrics |= _full_p1_replay_metric_ids(candidate_manifest, candidate)
-    if _source_certification_packages_changed(candidate_manifest, comparison_manifest):
-        changed_metrics |= _replay_metric_ids(candidate, comparison)
-    affected_formulas = _affected_context_formulas(changed_metrics, changed_formulas)
     formula_inputs = {
-        metric_id for key in affected_formulas for metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
+        metric_id for key in scope.formula_keys for metric_id in CONTEXT_FORMULA_INPUTS.get(key, ())
     }
-    requires_certification = (changed_metrics - _CONTEXT_DERIVED_OUTPUTS) | formula_inputs
     uncertified = sorted(
         metric_id
-        for metric_id in requires_certification
+        for metric_id in scope.requires_certification
         if (definition := candidate_definitions.get(metric_id)) is None
         or (
             (
@@ -670,30 +672,33 @@ def evaluate_context_replay(
     if start_date > end_date:
         raise ValueError("context_replay_range_empty")
     days = replay_days if replay_days is not None else _weekday_replay_days(start_date, end_date)
-    candidate = ContextProjectionRules.from_manifest(candidate_manifest)
-    comparison = ContextProjectionRules.from_manifest(comparison_manifest)
-    changed_metrics, changed_formulas = _context_changes(candidate, comparison)
-    changed_metrics |= _full_p1_replay_metric_ids(candidate_manifest, candidate)
-    if _source_certification_packages_changed(candidate_manifest, comparison_manifest):
-        changed_metrics |= _replay_metric_ids(candidate, comparison)
-    if not changed_metrics and not changed_formulas:
-        return ContextReplayEvaluation(0, 0, time.perf_counter() - started, ())
+    scope = ContextReplayScope.from_manifests(candidate_manifest, comparison_manifest)
+    candidate, comparison = scope.candidate, scope.comparison
+    if not scope.requires_replay:
+        return ContextReplayEvaluation(
+            0,
+            0,
+            time.perf_counter() - started,
+            (),
+            context_output_document(
+                candidate_manifest,
+                comparison_manifest,
+                range_start=requested_start,
+                range_end=requested_end,
+                expected_days=days,
+                days=[],
+                source_metrics=set(),
+                formula_keys=set(),
+                gaps=(),
+                not_applicable=True,
+            ),
+        )
 
     gaps = list(context_replay_gaps(candidate_manifest, comparison_manifest))
-    affected_formulas = _affected_context_formulas(changed_metrics, changed_formulas)
-    formula_inputs = {
-        metric_id for key in affected_formulas for metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
-    }
+    affected_formulas = scope.formula_keys
     candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
     comparison_definitions = {item.metric_id: item for item in comparison.metric_definitions}
-    source_metrics = {
-        metric_id
-        for metric_id in (changed_metrics | formula_inputs) - _CONTEXT_DERIVED_OUTPUTS
-        if (
-            (definition := candidate_definitions.get(metric_id)) is not None
-            and (definition.priority == "P1" or definition.certification_status == "certified")
-        )
-    }
+    source_metrics = scope.source_metrics
     evidence = EvidenceRepository(database)
     coverage_gaps: list[str] = []
     replay_sources = (
@@ -751,6 +756,17 @@ def evaluate_context_replay(
             evaluated_cutoffs=0,
             duration_seconds=time.perf_counter() - started,
             gaps=tuple(dict.fromkeys(gaps)),
+            output_document=context_output_document(
+                candidate_manifest,
+                comparison_manifest,
+                range_start=requested_start,
+                range_end=requested_end,
+                expected_days=days,
+                days=[],
+                source_metrics=source_metrics,
+                formula_keys=affected_formulas,
+                gaps=tuple(dict.fromkeys(gaps)),
+            ),
         )
 
     preload_metrics = {
@@ -784,6 +800,7 @@ def evaluate_context_replay(
         if requested_start <= day <= requested_end
     )
     output_differences = 0
+    output_days: list[dict[str, Any]] = []
     for cutoff in cutoffs:
         for side, definition_version, definitions in replay_sources:
             for metric_id in sorted(source_metrics):
@@ -840,7 +857,27 @@ def evaluate_context_replay(
             "macro": comparison_projection.macro,
             "inventory": comparison_projection.inventory,
         }
-        if _normalized_context(candidate_document) != _normalized_context(comparison_document):
+        output_days.append(
+            {
+                "business_date": cutoff.date().isoformat(),
+                "cutoff": cutoff.isoformat(),
+                "candidate": {
+                    **json.loads(model_output_json(asdict(candidate_projection))),
+                    "source_inputs": _context_source_snapshot(
+                        evidence, candidate, source_metrics, cutoff
+                    ),
+                },
+                "comparison": {
+                    **json.loads(model_output_json(asdict(comparison_projection))),
+                    "source_inputs": _context_source_snapshot(
+                        evidence, comparison, source_metrics, cutoff
+                    ),
+                },
+            }
+        )
+        if normalized_context_output(candidate_document) != normalized_context_output(
+            comparison_document
+        ):
             output_differences += 1
         for key, version in candidate_formula_versions.items():
             formula_documents = _formula_documents(candidate_document, version)
@@ -860,79 +897,90 @@ def evaluate_context_replay(
         evaluated_cutoffs=len(cutoffs),
         duration_seconds=time.perf_counter() - started,
         gaps=tuple(dict.fromkeys(gaps)),
+        output_document=context_output_document(
+            candidate_manifest,
+            comparison_manifest,
+            range_start=requested_start,
+            range_end=requested_end,
+            expected_days=days,
+            days=output_days,
+            source_metrics=source_metrics,
+            formula_keys=affected_formulas,
+            gaps=tuple(dict.fromkeys(gaps)),
+        ),
     )
 
 
-def _context_changes(
-    candidate: ContextProjectionRules,
-    comparison: ContextProjectionRules,
-) -> tuple[set[str], set[str]]:
-    candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
-    comparison_definitions = {item.metric_id: item for item in comparison.metric_definitions}
-    relevant = _replay_metric_ids(candidate, comparison)
-    changed_metrics = {
-        metric_id
-        for metric_id in relevant
-        if _definition_signature(candidate_definitions.get(metric_id))
-        != _definition_signature(comparison_definitions.get(metric_id))
-    }
-    changed_formulas = {
-        key
-        for key in candidate.formula_versions.keys() | comparison.formula_versions.keys()
-        if candidate.formula_versions.get(key) != comparison.formula_versions.get(key)
-    }
-    return changed_metrics, changed_formulas
-
-
-def _replay_metric_ids(
-    candidate: ContextProjectionRules,
-    comparison: ContextProjectionRules,
-) -> set[str]:
-    return {
-        item.metric_id
-        for item in (*candidate.metric_definitions, *comparison.metric_definitions)
-        if item.priority in {"P1", "P2"}
-    }
-
-
-def _source_certification_packages_changed(
-    candidate_manifest: dict[str, object],
-    comparison_manifest: dict[str, object],
-) -> bool:
-    return candidate_manifest.get("source_certification_packages") != comparison_manifest.get(
-        "source_certification_packages"
-    )
-
-
-def _full_p1_replay_metric_ids(
-    manifest: dict[str, object],
+def _context_source_snapshot(
+    evidence: EvidenceRepository,
     rules: ContextProjectionRules,
-) -> set[str]:
-    packages = manifest.get("source_certification_packages")
-    if not isinstance(packages, list) or not packages:
-        return set()
-    return {item.metric_id for item in rules.metric_definitions if item.priority == "P1"}
+    metric_ids: set[str],
+    cutoff: datetime,
+) -> dict[str, list[dict[str, Any]]]:
+    definitions = {item.metric_id: item for item in rules.metric_definitions}
+    bounded = TargetBoundEvidenceRepository(
+        evidence,
+        cutoff.astimezone(ZoneInfo("Asia/Shanghai")).date(),
+        {item.metric_id: item.frequency for item in rules.metric_definitions},
+    )
+    result: dict[str, list[dict[str, Any]]] = {}
+    for metric_id in sorted(metric_ids):
+        result[metric_id] = []
+        if metric_id not in definitions:
+            continue
+        series = bounded.metric_series(
+            metric_id,
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+            definition_version=rules.metric_catalog_version,
+        )
+        # Coverage and derived inputs can depend on older periods even when
+        # the current card and its direction are unchanged.
+        for point in sorted(
+            series,
+            key=lambda p: (
+                p.period_end,
+                p.period_start,
+                model_output_json(p.dimensions),
+                p.observation_id,
+            ),
+        ):
+            result[metric_id].append(
+                {
+                    "definition_version": rules.metric_catalog_version,
+                    "period_start": point.period_start,
+                    "period_end": point.period_end,
+                    "dimensions": point.dimensions,
+                    "observation_id": point.observation_id,
+                    "selected_claim_id": point.selected_claim_id,
+                    "selected_value": point.selected_value,
+                    "selection_status": point.selection_status,
+                    "value_state": point.value_state.value
+                    if point.value_state is not None
+                    else None,
+                    "claims": [
+                        {
+                            "claim_id": claim.claim_id,
+                            "provider": claim.provider,
+                            "value": claim.value,
+                            "unit": claim.unit,
+                            "public_available_at": claim.public_available_at.isoformat()
+                            if claim.public_available_at
+                            else None,
+                            "available_at": claim.available_at.isoformat(),
+                            "source_reference": claim.source_reference,
+                            "certification_status": claim.certification_status,
+                            "quality_status": claim.quality_status,
+                        }
+                        for claim in point.claims
+                    ],
+                }
+            )
+    return result
 
 
 def _china_business_day_end(day: date) -> datetime:
     return datetime.combine(day, clock_time.max, ZoneInfo("Asia/Shanghai"))
-
-
-def _definition_signature(definition: MetricDefinition | None) -> dict[str, object] | None:
-    if definition is None:
-        return None
-    document = asdict(definition)
-    document.pop("definition_version", None)
-    return document
-
-
-def _affected_context_formulas(
-    changed_metrics: set[str],
-    changed_formulas: set[str],
-) -> set[str]:
-    return changed_formulas | {
-        key for key, inputs in _CONTEXT_FORMULA_INPUTS.items() if changed_metrics & set(inputs)
-    }
 
 
 def _context_coverage_gaps(
@@ -1162,7 +1210,7 @@ def _metric_warmup_days(metric_id: str, affected_formulas: set[str]) -> int:
         (
             _CONTEXT_FORMULA_WARMUP_DAYS.get(key, 0)
             for key in affected_formulas
-            if metric_id in _CONTEXT_FORMULA_INPUTS.get(key, ())
+            if metric_id in CONTEXT_FORMULA_INPUTS.get(key, ())
         ),
         default=0,
     )
@@ -1176,39 +1224,6 @@ def _weekday_replay_days(start_date: date, end_date: date) -> tuple[str, ...]:
             days.append(current.isoformat())
         current += timedelta(days=1)
     return tuple(days)
-
-
-_CONTEXT_VOLATILE_KEYS = {
-    "available_at",
-    "claim_id",
-    "claim_ids",
-    "claims",
-    "derived_observation_id",
-    "direction_input_observation_version_ids",
-    "evidence_ids",
-    "input_observation_version_ids",
-    "latest_fetched_at",
-    "model_input_observation_version_ids",
-    "observation_id",
-    "public_available_at",
-    "selected_claim_id",
-    "source_reference",
-}
-
-
-def _normalized_context(value: object) -> str:
-    def normalize(item: object) -> object:
-        if isinstance(item, dict):
-            return {
-                str(key): normalize(child)
-                for key, child in sorted(item.items())
-                if key not in _CONTEXT_VOLATILE_KEYS
-            }
-        if isinstance(item, list):
-            return [normalize(child) for child in item]
-        return item
-
-    return json.dumps(normalize(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def _formula_documents(value: object, formula_version: str) -> list[dict[str, Any]]:
@@ -1226,17 +1241,6 @@ def _formula_documents(value: object, formula_version: str) -> list[dict[str, An
 
 _ASSETS = ("bond", "stock", "commodity")
 
-_CONTEXT_FORMULA_INPUTS = {
-    "credit_impulse": ("CN_SF_TOTAL", "CN_GDP"),
-    "dr007_policy_spread": ("CN_DR007", "CN_OMO_7D_RATE"),
-    "loan_monthly_change": ("CN_LOAN_STRUCTURE",),
-    "omo_net_injection": ("CN_OMO_7D_AMOUNT",),
-    "order_inventory_spread": ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY"),
-    "production_order_spread": ("CN_PMI_ACTIVITY",),
-    "real_inventory_approximation": ("CN_FINISHED_GOODS_INVENTORY", "CN_PPI"),
-    "ust_2s10s_spread": ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
-}
-
 _CONTEXT_FORMULA_WARMUP_DAYS = {
     "credit_impulse": 730,
     "dr007_policy_spread": 10,
@@ -1246,12 +1250,4 @@ _CONTEXT_FORMULA_WARMUP_DAYS = {
     "production_order_spread": 62,
     "real_inventory_approximation": 95,
     "ust_2s10s_spread": 10,
-}
-
-_CONTEXT_DERIVED_OUTPUTS = {
-    "CN_CREDIT_IMPULSE",
-    "CN_DR007_POLICY_SPREAD",
-    "CN_ORDER_INVENTORY_SPREAD",
-    "CN_PRODUCTION_ORDER_SPREAD",
-    "UST_2S10S_SPREAD",
 }

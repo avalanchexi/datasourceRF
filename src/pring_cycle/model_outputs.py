@@ -8,14 +8,19 @@ import re
 import sqlite3
 from collections.abc import Mapping
 from datetime import date, datetime, time
+from math import isfinite
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle.context_projection import ContextProjectionRules
+from pring_cycle.context_replay_scope import ContextReplayScope
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
+from pring_cycle.metric_contracts import required_dimension_members
 
 HISTORY_OUTPUT_SCHEMA = "core-history-output-v0001"
 REPLAY_OUTPUT_SCHEMA = "core-replay-output-v0001"
+CONTEXT_OUTPUT_SCHEMA = "context-replay-output-v0001"
 CORE_ASSETS = ("bond", "stock", "commodity")
 MODEL_OUTPUT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS model_evaluation_output (
@@ -274,3 +279,393 @@ def validate_replay_output(
     ):
         raise ValueError("model_output_difference_count_invalid")
     return document
+
+
+_CONTEXT_VOLATILE_KEYS = {
+    "available_at",
+    "claim_id",
+    "claim_ids",
+    "claims",
+    "derived_observation_id",
+    "direction_input_observation_version_ids",
+    "evidence_ids",
+    "input_observation_version_ids",
+    "latest_fetched_at",
+    "model_input_observation_version_ids",
+    "observation_id",
+    "public_available_at",
+    "selected_claim_id",
+    "source_reference",
+}
+
+
+def normalized_context_output(value: object) -> str:
+    def normalize(item: object) -> object:
+        if isinstance(item, dict):
+            return {
+                str(key): normalize(child)
+                for key, child in sorted(item.items())
+                if key not in _CONTEXT_VOLATILE_KEYS
+            }
+        if isinstance(item, list):
+            return [normalize(child) for child in item]
+        return item
+
+    return model_output_json(normalize(value))
+
+
+def context_output_document(
+    candidate_manifest: Mapping[str, Any],
+    comparison_manifest: Mapping[str, Any],
+    *,
+    range_start: str,
+    range_end: str,
+    expected_days: tuple[str, ...],
+    days: list[dict[str, Any]],
+    source_metrics: set[str],
+    formula_keys: set[str],
+    gaps: tuple[str, ...],
+    not_applicable: bool = False,
+) -> dict[str, Any]:
+    return {
+        "schema_version": CONTEXT_OUTPUT_SCHEMA,
+        "as_of_mode": "public_as_of",
+        "range_start": range_start,
+        "range_end": range_end,
+        "models": {
+            side: {
+                "model_version_id": manifest["model_version_id"],
+                "manifest_hash": model_output_hash(manifest),
+            }
+            for side, manifest in (
+                ("candidate", candidate_manifest),
+                ("comparison", comparison_manifest),
+            )
+        },
+        "expected_days": list(expected_days),
+        "calendar_hash": hashlib.sha256("\n".join(expected_days).encode()).hexdigest()
+        if expected_days
+        else "",
+        "source_metrics": sorted(source_metrics),
+        "formula_keys": sorted(formula_keys),
+        "status": "not_applicable" if not_applicable else "incomplete" if gaps else "recorded",
+        "gaps": list(gaps),
+        "days": days,
+    }
+
+
+def validate_context_output(
+    document: object,
+    *,
+    candidate_manifest: Mapping[str, Any],
+    comparison_manifest: Mapping[str, Any],
+    range_start: str,
+    range_end: str,
+    calendar_hash: str,
+    evaluated_days: int,
+    context_output_differences: int,
+) -> dict[str, Any]:
+    if not isinstance(document, dict) or document.get("schema_version") != CONTEXT_OUTPUT_SCHEMA:
+        raise ValueError("context_output_schema_invalid")
+    expected_models = {
+        side: {
+            "model_version_id": manifest["model_version_id"],
+            "manifest_hash": model_output_hash(manifest),
+        }
+        for side, manifest in (
+            ("candidate", candidate_manifest),
+            ("comparison", comparison_manifest),
+        )
+    }
+    if any(
+        document.get(key) != value
+        for key, value in {
+            "models": expected_models,
+            "as_of_mode": "public_as_of",
+            "range_start": range_start,
+            "range_end": range_end,
+            "calendar_hash": calendar_hash,
+        }.items()
+    ):
+        raise ValueError("context_output_identity_mismatch")
+    expected_days = document.get("expected_days")
+    if (
+        not isinstance(expected_days, list)
+        or type(evaluated_days) is not int
+        or len(expected_days) != evaluated_days
+    ):
+        raise ValueError("context_output_calendar_invalid")
+    if any(
+        not isinstance(day, str) or not range_start <= day <= range_end for day in expected_days
+    ):
+        raise ValueError("context_output_calendar_invalid")
+    if expected_days != sorted(set(expected_days)) or calendar_hash != (
+        hashlib.sha256("\n".join(expected_days).encode()).hexdigest() if expected_days else ""
+    ):
+        raise ValueError("context_output_calendar_invalid")
+    status, gaps, rows = document.get("status"), document.get("gaps"), document.get("days")
+    if (
+        status not in ("not_applicable", "recorded", "incomplete")
+        or not isinstance(gaps, list)
+        or not isinstance(rows, list)
+    ):
+        raise ValueError("context_output_status_invalid")
+    if any(not isinstance(gap, str) or not gap for gap in gaps) or (status == "incomplete") != bool(
+        gaps
+    ):
+        raise ValueError("context_output_status_invalid")
+    for key in ("source_metrics", "formula_keys"):
+        values = document.get(key)
+        if (
+            not isinstance(values, list)
+            or any(not isinstance(value, str) for value in values)
+            or values != sorted(set(values))
+        ):
+            raise ValueError("context_output_scope_invalid")
+    scope = ContextReplayScope.from_manifests(candidate_manifest, comparison_manifest)
+    if (
+        document["source_metrics"] != sorted(scope.source_metrics)
+        or document["formula_keys"] != sorted(scope.formula_keys)
+        or (status == "not_applicable") == scope.requires_replay
+        or (status == "not_applicable" and rows)
+    ):
+        raise ValueError("context_output_scope_invalid")
+    observed_days = []
+    differences = 0
+    for row in rows:
+        if not isinstance(row, dict) or set(row) != {
+            "business_date",
+            "cutoff",
+            "candidate",
+            "comparison",
+        }:
+            raise ValueError("context_output_day_invalid")
+        day = row["business_date"]
+        if day not in expected_days:
+            raise ValueError("context_output_day_invalid")
+        cutoff = datetime.combine(
+            date.fromisoformat(day), time.max, ZoneInfo("Asia/Shanghai")
+        ).isoformat()
+        if row["cutoff"] != cutoff:
+            raise ValueError("context_output_cutoff_invalid")
+        observed_days.append(day)
+        economic = []
+        for side in ("candidate", "comparison"):
+            output = row[side]
+            if not isinstance(output, dict) or any(
+                not isinstance(output.get(key), dict) for key in ("macro", "inventory")
+            ):
+                raise ValueError("context_output_fields_incomplete")
+            macro, inventory = output["macro"], output["inventory"]
+            if (
+                not {
+                    "policy_direction",
+                    "policy_action",
+                    "transmission",
+                    "credit_response",
+                    "credit",
+                    "overheat_state",
+                    "overheat",
+                    "price_pressure",
+                    "price_chain",
+                    "international_context",
+                    "score",
+                    "model_input_observation_version_ids",
+                }
+                <= macro.keys()
+                or not {
+                    "quadrant",
+                    "directions",
+                    "cards",
+                    "real_inventory_approximation",
+                    "semantics",
+                    "score",
+                }
+                <= inventory.keys()
+                or any(
+                    not isinstance(macro[key], dict)
+                    for key in (
+                        "policy_action",
+                        "transmission",
+                        "credit",
+                        "overheat",
+                        "price_chain",
+                    )
+                )
+                or any(
+                    not isinstance(macro[key], list)
+                    for key in ("international_context", "model_input_observation_version_ids")
+                )
+                or any(
+                    not isinstance(identity, str)
+                    for identity in macro["model_input_observation_version_ids"]
+                )
+                or not isinstance(inventory["cards"], list)
+                or any(
+                    not isinstance(inventory[key], dict)
+                    for key in ("directions", "real_inventory_approximation", "semantics")
+                )
+            ):
+                raise ValueError("context_output_fields_incomplete")
+            for key in ("observation_version_ids", "warnings"):
+                if not isinstance(output.get(key), list) or any(
+                    not isinstance(item, str) for item in output[key]
+                ):
+                    raise ValueError("context_output_fields_incomplete")
+            inputs = output.get("source_inputs")
+            if not isinstance(inputs, dict) or set(inputs) != set(document["source_metrics"]):
+                raise ValueError("context_output_inputs_incomplete")
+            _validate_context_inputs(
+                inputs,
+                scope.candidate if side == "candidate" else scope.comparison,
+                complete=status == "recorded",
+                cutoff=datetime.fromisoformat(cutoff),
+                model_input_ids=set(macro["model_input_observation_version_ids"]),
+            )
+            economic.append(
+                normalized_context_output({key: output[key] for key in ("macro", "inventory")})
+            )
+        differences += economic[0] != economic[1]
+    if observed_days != sorted(set(observed_days)) or (
+        status == "recorded" and observed_days != expected_days
+    ):
+        raise ValueError("context_output_coverage_invalid")
+    if type(context_output_differences) is not int or differences != context_output_differences:
+        raise ValueError("context_output_difference_count_invalid")
+    return document
+
+
+def _validate_context_inputs(
+    inputs: dict[str, Any],
+    rules: ContextProjectionRules,
+    *,
+    complete: bool,
+    cutoff: datetime,
+    model_input_ids: set[str],
+) -> None:
+    definitions = {item.metric_id: item for item in rules.metric_definitions}
+    for metric_id, points in inputs.items():
+        definition = definitions.get(metric_id)
+        required = (
+            complete and definition is not None and definition.certification_status == "certified"
+        )
+        if not isinstance(points, list) or (
+            required and not points and definition is not None and definition.frequency != "event"
+        ):
+            raise ValueError("context_output_inputs_incomplete")
+        for point in points:
+            if (
+                not isinstance(point, dict)
+                or not {
+                    "definition_version",
+                    "period_start",
+                    "period_end",
+                    "dimensions",
+                    "observation_id",
+                    "selected_claim_id",
+                    "selected_value",
+                    "selection_status",
+                    "value_state",
+                    "claims",
+                }
+                <= point.keys()
+            ):
+                raise ValueError("context_output_inputs_incomplete")
+            if (
+                point["definition_version"] != rules.metric_catalog_version
+                or not isinstance(point["observation_id"], str)
+                or not point["observation_id"]
+                or not isinstance(point["dimensions"], dict)
+                or not isinstance(point["claims"], list)
+                or any(not isinstance(claim, dict) for claim in point["claims"])
+            ):
+                raise ValueError("context_output_inputs_incomplete")
+            value = point["selected_value"]
+            if value is not None and (type(value) not in (int, float) or not isfinite(value)):
+                raise ValueError("context_output_inputs_incomplete")
+            selected = [
+                claim
+                for claim in point["claims"]
+                if claim.get("claim_id") == point["selected_claim_id"]
+            ]
+            if point["selection_status"] == "selected":
+                if (
+                    not point["selected_claim_id"]
+                    or len(selected) != 1
+                    or selected[0].get("value") != point["selected_value"]
+                ):
+                    raise ValueError("context_output_inputs_incomplete")
+                claim = selected[0]
+                try:
+                    public = datetime.fromisoformat(claim["public_available_at"])
+                    acquired = datetime.fromisoformat(claim["available_at"])
+                    period_start = date.fromisoformat(point["period_start"])
+                    period_end = date.fromisoformat(point["period_end"])
+                    valid = (
+                        public.tzinfo is not None
+                        and acquired.tzinfo is not None
+                        and public <= cutoff
+                        and period_start <= period_end
+                        and definition is not None
+                        and claim["unit"] in (definition.allowed_units or (definition.unit,))
+                    )
+                except (KeyError, TypeError, ValueError):
+                    valid = False
+                if not valid:
+                    raise ValueError("context_output_inputs_incomplete")
+        if required and points:
+            latest = max(point["period_end"] for point in points)
+            latest_by_dimensions: dict[str, dict[str, Any]] = {}
+            for point in points:
+                key = model_output_json(point["dimensions"])
+                if (
+                    key not in latest_by_dimensions
+                    or point["period_end"] > latest_by_dimensions[key]["period_end"]
+                ):
+                    latest_by_dimensions[key] = point
+            current_points = [
+                point
+                for point in latest_by_dimensions.values()
+                if (
+                    point["selected_claim_id"] in model_input_ids
+                    if metric_id == "CN_FUTURES_WARRANTS"
+                    else point["period_end"] == latest
+                )
+            ]
+            members = (
+                required_dimension_members(
+                    metric_id, definition_version=rules.metric_catalog_version, period=latest
+                )
+                or ()
+            )
+            if any(
+                not any(
+                    all(point["dimensions"].get(key) == value for key, value in member.items())
+                    for point in current_points
+                )
+                for member in members
+            ):
+                raise ValueError("context_output_inputs_incomplete")
+            for point in current_points:
+                if members and not any(
+                    all(point["dimensions"].get(key) == value for key, value in member.items())
+                    for member in members
+                ):
+                    continue
+                selected_claim = next(
+                    (
+                        claim
+                        for claim in point["claims"]
+                        if claim.get("claim_id") == point["selected_claim_id"]
+                    ),
+                    None,
+                )
+                if (
+                    point["selection_status"] != "selected"
+                    or selected_claim is None
+                    or point["selected_value"] is None
+                    or point["value_state"] != "reported_value"
+                    or selected_claim.get("certification_status") != "certified"
+                    or selected_claim.get("quality_status") != "validated"
+                ):
+                    raise ValueError("context_output_inputs_incomplete")
