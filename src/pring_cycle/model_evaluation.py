@@ -12,8 +12,10 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import (
     ContextProjectionRules,
+    TargetBoundEvidenceRepository,
     build_context_projection,
     context_metric_ids,
 )
@@ -28,6 +30,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.published_events import select_published_rrr_events
 
 CALIBRATION_END = "2026-08-19"
 CALIBRATION_INPUT_START = "2017-01-01"
@@ -601,6 +604,9 @@ def evaluate_context_replay(
                 model_manifest=candidate_manifest,
                 as_of_mode=AsOfMode.PUBLIC,
                 persist_derived=False,
+                target_business_date=cutoff.astimezone(ZoneInfo("Asia/Shanghai"))
+                .date()
+                .isoformat(),
             )
         except ValueError as error:
             gaps.append(f"candidate_context_projection_failed:{error}")
@@ -612,6 +618,9 @@ def evaluate_context_replay(
                 model_manifest=comparison_manifest,
                 as_of_mode=AsOfMode.PUBLIC,
                 persist_derived=False,
+                target_business_date=cutoff.astimezone(ZoneInfo("Asia/Shanghai"))
+                .date()
+                .isoformat(),
             )
         except ValueError as error:
             gaps.append(f"comparison_context_projection_failed:{error}")
@@ -829,7 +838,9 @@ def _context_selection_gaps(
     cutoff: datetime,
 ) -> tuple[str, ...]:
     frequency = evidence_frequency(metric_id, frequency)
-    series = repository.metric_series(
+    series = TargetBoundEvidenceRepository(
+        repository, cutoff.astimezone(ZoneInfo("Asia/Shanghai")).date(), {metric_id: frequency}
+    ).metric_series(
         metric_id,
         mode=AsOfMode.PUBLIC,
         as_of=cutoff,
@@ -842,6 +853,12 @@ def _context_selection_gaps(
         return (f"{side}_context_selection_missing:{metric_id}",)
     statuses: set[str] = set()
     current_points = [points[-1] for points in grouped.values()]
+    if metric_id == "CN_RRR_EVENT" and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        # Evaluate announcement membership before collapsing the event history:
+        # a later event for one scope must not erase another event's members.
+        publication = select_published_rrr_events(repository, series)
+        if any(p.selected_claim_id in publication.incomplete_claim_ids for p in current_points):
+            statuses.add("members_missing")
     latest_period_end = max(point.period_end for point in current_points)
     required_members = (
         required_dimension_members(
@@ -946,9 +963,11 @@ _CONTEXT_VOLATILE_KEYS = {
     "claim_ids",
     "claims",
     "derived_observation_id",
+    "direction_input_observation_version_ids",
     "evidence_ids",
     "input_observation_version_ids",
     "latest_fetched_at",
+    "model_input_observation_version_ids",
     "observation_id",
     "public_available_at",
     "selected_claim_id",

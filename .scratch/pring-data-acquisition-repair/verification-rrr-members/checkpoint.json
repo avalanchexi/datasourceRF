@@ -1,0 +1,213 @@
+{
+  "recorded_at": "2026-09-08T10:07:45.418505+00:00",
+  "base_commit": "40accaebde851181e94b82b5f761aa8c4858f347",
+  "scope": "registered RRR complete publication consumption and component replay",
+  "software_slice_passed": true,
+  "associated_tests_before_final_identity_exclusion": 246,
+  "final_focused_tests": 41,
+  "mypy_checked_files": 86,
+  "installed_python_sources_matched": 85,
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "project_full_gate_passed": false,
+  "real_certification_or_candidate_created": false,
+  "real_120_day_replay_executed": false,
+  "production_cutover": false,
+  "files": [
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-19-rrr-members.md",
+      "bytes": 4609,
+      "sha256": "328d91380a5e347f4dec2bc2888586d8be26f2392dbf5b949e91dc1752469998"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-associated-01.txt",
+      "bytes": 716,
+      "sha256": "e984aa09db8634a0c97938995142808ad9fa63408122e60ee437c1661fe23a52"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-cert-green-01.txt",
+      "bytes": 2256,
+      "sha256": "ce08acc55b480f5c3d25f30a08c1b0d4b22306b1ebec6af45b21695430370da4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-cert-red-01.txt",
+      "bytes": 1618,
+      "sha256": "cf13717227d77ddf11bfb78dfe25c99f4ab052f9c6edf6f2937dc12f3ea2eed5"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-combined-green-01.txt",
+      "bytes": 236,
+      "sha256": "566260314a7ad9a0230fd50e7b8e121f7eb3b28cda614437e7101c958d9abd33"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-completeness-01.txt",
+      "bytes": 276,
+      "sha256": "11f9e24a2a383c7e58e4276d00d1ff700d8e22c52cdb32f0e9fed6ba291ee779"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-diagnostics-01.txt",
+      "bytes": 4214,
+      "sha256": "95f187192bd775579a1da04f3944ba02a90d126323e350498ab71864a283b98e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-direction-identity-red-01.txt",
+      "bytes": 1670,
+      "sha256": "d150a1cb5cc9796161b761bf8f98cc95379108e46c2c13c77f957745cbafbe7e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-direction-red-01.txt",
+      "bytes": 2856,
+      "sha256": "aed8181e5dccdd729aa6f01cb760402be0bffb2bc63ed485c65c2a3bc184f54f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-effective-green-01.txt",
+      "bytes": 1714,
+      "sha256": "e7289fae901fb58dab7ac6c2e083fb476fb66da5592dd0d28f131df69ded9e2c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-effective-red-01.txt",
+      "bytes": 1692,
+      "sha256": "28a9ad0d52368cd7af345ec12cbc884580e3896403d6e9002f6964c754e80e2c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-final-01.txt",
+      "bytes": 258,
+      "sha256": "490ed2fea7eedd5bfae07af778ef2803f9b03b9071178a7effca5bdd523ed4c6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-fingerprint.json",
+      "bytes": 13778,
+      "sha256": "e54980a3902400cc685fef7f04cf8a74b22970c22accee31f670bd47e5634b8d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-green-01.txt",
+      "bytes": 234,
+      "sha256": "e8c5ad29bb7ce18ba2d52f4567cd7bb8ad16b767a724a2482f409027b98b3595"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-lineage-green-01.txt",
+      "bytes": 236,
+      "sha256": "9063f8a1b6b91e7213d7b5311f65fe694e2379bc22b351411ec643b5c9ac3586"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-lineage-red-01.txt",
+      "bytes": 1842,
+      "sha256": "75fe483c4875cb9445b2fa0b7584d3f1d4d7b779148951a0c3f5f3ca28e92ecb"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-mypy.txt",
+      "bytes": 92,
+      "sha256": "52156dc65fa1ecfd927961af189086508f1464ab81cb355fc9f7a4c5c40d58ce"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-normalized-green-01.txt",
+      "bytes": 23430,
+      "sha256": "6c46e50a51a24c4263bf8b568eb129f8c50db208a5e3a8ff27f02e252044da06"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-normalized-green-02.txt",
+      "bytes": 236,
+      "sha256": "f80173d826d5946b0ab83608d286d9315b576ac4619804fc41f06b7a14042c79"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-normalized-red-01.txt",
+      "bytes": 1726,
+      "sha256": "54e3915fd00de51fcade7e270667b2c5469cffdf4d043c93bc4e442e529cd212"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-output-identity-green-01.txt",
+      "bytes": 1664,
+      "sha256": "1d8c05e6e037d9ff8b804a9b785bbe7de7be88e163c621eab04dd14343a46fba"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-output-identity-red-01.txt",
+      "bytes": 1642,
+      "sha256": "1e9030fdcff20bbc0016645a8648185655b97c3816aa60f82562ff82646a8896"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-partial-green-01.txt",
+      "bytes": 234,
+      "sha256": "8a0d90eeecc00ac302d4ac10b6ba908ef00dde50255be251cd88634b16c9cffa"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-partial-red-01.txt",
+      "bytes": 2696,
+      "sha256": "2f1e9609ef68af379e3681764260713eeb97c5e25da1dda3169b5e3765afa6a7"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-partial-red-02.txt",
+      "bytes": 3598,
+      "sha256": "531c8bf4732188c78feae3ee0c8235c5f90f5be85822359ab6a396b38eaa1e28"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-red-01.txt",
+      "bytes": 1646,
+      "sha256": "ffa5a93e893918c5f6be6e14d1e17e41838e85aafc6f958f215de650b2080ce0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-replay-green-01.txt",
+      "bytes": 234,
+      "sha256": "05463ddaca9e5f18aaf735b5e7052ade6d29f46f13e871dc02ea46235f3b331c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-replay-red-01.txt",
+      "bytes": 1612,
+      "sha256": "251b1541d2253475a02d0ed991628a497cd057f818eac4e5a5194811fba55464"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-replay-red-02.txt",
+      "bytes": 1878,
+      "sha256": "88703c170ae0fe87d89dbdb2064d5caab1f52a6c2f8378d3fc2831313057c529"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-ruff.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-time-green-01.txt",
+      "bytes": 236,
+      "sha256": "6ad6c05698e147cb2eb2bbd1a0c39a7c19252bf3eeb5577f1d0acf8a377b551c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-members-time-red-01.txt",
+      "bytes": 3532,
+      "sha256": "0a576a867ef41b2643c1dee3970945f90c29a2c5776057cd997be8885f807dd5"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/warrants-consumption-next-slice.md",
+      "bytes": 10502,
+      "sha256": "6f89c0e383e24891733158c7b0950e1986c7bc2e9b4190f4aedc200d5881b629"
+    },
+    {
+      "path": "src/pring_cycle/context_projection.py",
+      "bytes": 79917,
+      "sha256": "3c1778806bbe15bb400c86d3babc30bc91c9f9595fa936c0f26bb3a51a423425"
+    },
+    {
+      "path": "src/pring_cycle/evidence.py",
+      "bytes": 55399,
+      "sha256": "1f928e83b308b7f5c897783d5eb14a7af2ae003b8343052df763fdde9e3eba67"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "bytes": 38688,
+      "sha256": "89d760cdbac6fce67cf583faddfdda45b56baf9a55cb89a0b7d098aafc6f4db9"
+    },
+    {
+      "path": "src/pring_cycle/published_events.py",
+      "bytes": 4171,
+      "sha256": "b3463f972b2b500c7a867e865acfc45968360b9bd636cd7fd574631d203c7c62"
+    },
+    {
+      "path": "src/pring_cycle/search_evidence.py",
+      "bytes": 15073,
+      "sha256": "82b742994b824a127fe43fc728e01aca40bd22069af2b5f97c76d60721394db5"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "bytes": 110898,
+      "sha256": "fc533b3426c3b6f00ce9218bc3b8bb16c7773c98a0d63e85566fd56465ab748e"
+    }
+  ]
+}

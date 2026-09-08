@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -17,12 +17,16 @@ from pring_cycle.cli import main
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.model_evaluation import evaluate_context_replay
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
     certified_120d_model_v0011_manifest,
 )
-from pring_cycle.official_context import ingest_official_context_document
+from pring_cycle.official_context import (
+    ingest_official_context_document,
+    parse_official_context_document,
+)
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -135,8 +139,9 @@ def cpi_document() -> bytes:
 
 
 @pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("incomplete_scope", [False, True])
 def test_registered_rrr_original_preserves_distinct_scopes_and_two_times(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], incomplete_scope: bool
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -200,6 +205,430 @@ def test_registered_rrr_original_preserves_distinct_scopes_and_two_times(
         )
         == raw
     )
+
+    if incomplete_scope:
+        point = points[0]
+        claim = point.claims[0]
+        evidence.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_RRR_EVENT",
+                definition_version=version,
+                period_kind="event",
+                period_start=point.period_start,
+                period_end=point.period_end,
+                dimensions=point.dimensions,
+                value=claim.value,
+                value_state=claim.value_state,
+                unit=claim.unit,
+                provider=claim.provider,
+                source_reference=claim.source_reference,
+                release_event_id=imported.release_event_id + ":synthetic-quality-review",
+                release_at=datetime(2025, 5, 8, 2, tzinfo=UTC),
+                public_available_at=datetime(2025, 5, 8, 2, tzinfo=UTC),
+                fetched_at=now,
+                available_at=now + timedelta(seconds=1),
+                certification_status="certified",
+                quality_status="invalid",
+                acquisition_id=receipt.acquisition_id,
+            )
+        )
+        now += timedelta(seconds=1)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="rrr-original-members",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id=imported.release_event_id,
+        metric_ids=("CN_RRR_EVENT",),
+        period="2025-05",
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        selection = select_retrieval_input(paths, run, mode=mode)
+        assert selection.complete is not incomplete_scope
+        assert set(selection.selected_claim_ids) == (
+            set() if incomplete_scope else set(imported.claim_ids)
+        )
+    context = build_context_projection(
+        evidence,
+        as_of=now,
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date="2026-08-28",
+    )
+    inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(inputs, list)
+    if incomplete_scope:
+        assert set(imported.claim_ids).isdisjoint(inputs)
+    else:
+        assert set(imported.claim_ids) <= set(inputs)
+
+
+def admitted_rrr_variant(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], side: str
+) -> dict[str, Any]:
+    request, _ = prepared_request(paths)
+    manifest = request["manifest"]
+    manifest["metric_catalog_version"] += "-" + side
+    for definition in manifest["metric_definitions"]:
+        definition["definition_version"] = manifest["metric_catalog_version"]
+        if side == "candidate" and definition["metric_id"] == "CN_RRR_EVENT":
+            definition["source_candidates"] = [
+                *definition["source_candidates"],
+                "https://www.pbc.gov.cn/synthetic-review",
+            ]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"] = {
+        d["metric_id"]: hashlib.sha256(encode(d)).hexdigest()
+        for d in manifest["metric_definitions"]
+        if d["metric_id"] in package["definition_bindings"]
+    }
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    return ModelRepository(paths.database).manifest(model_id)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "candidate_count,fault",
+    [
+        (1, "none"),
+        (2, "none"),
+        (2, "missing_lineage"),
+        (2, "uncertified"),
+        (2, "early_public"),
+        (1, "truncated_normalized"),
+    ],
+)
+def test_rrr_component_replay_requires_complete_publication(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    candidate_count: int,
+    fault: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    digest = "27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair"
+        / "evidence-search-preexperiment-20260908-n4-v1"
+        / digest
+    ).read_bytes()
+    now = datetime(2026, 9, 8, 6, tzinfo=UTC)
+    url = "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html"
+    parsed = parse_official_context_document(
+        raw, family="pbc_rrr_notice", source_url=url, expected_period="2025-05", fetched_at=now
+    )
+    assert len(parsed.scalars) == 2
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=parsed.provider,
+        api_name="document_import",
+        parameters={"source_url": url, "period": "2025-05", "family": "pbc_rrr_notice"},
+        fields="",
+        parser_version="official-context-parser-v0004",
+        fetch=lambda: raw,
+        parse=lambda body: parse_official_context_document(
+            body,
+            family="pbc_rrr_notice",
+            source_url=url,
+            expected_period="2025-05",
+            fetched_at=now,
+        ),
+        normalize=asdict,
+        clock=lambda: now,
+    )
+    manifests = {}
+    for side, count in (("comparison", 2), ("candidate", candidate_count)):
+        manifest = admitted_rrr_variant(paths, capsys, side)
+        model_id = manifest["model_version_id"]
+        manifests[side] = manifest
+        # Isolate the public component-replay seam. This does not execute the
+        # complete package's 27-input acceptance or mutate either stored model.
+        manifests[side].pop("source_certification_packages")
+        receipt = acquired.receipt
+        if side == "candidate" and fault == "truncated_normalized":
+            receipt = (
+                AcquisitionRepository(paths.database, paths.artifacts)
+                .capture(
+                    provider=parsed.provider,
+                    api_name="document_import",
+                    parameters={"source_url": url, "period": "2025-05", "family": "pbc_rrr_notice"},
+                    fields="",
+                    parser_version="official-context-parser-v0004",
+                    fetch=lambda: raw,
+                    parse=lambda body: parse_official_context_document(
+                        body,
+                        family="pbc_rrr_notice",
+                        source_url=url,
+                        expected_period="2025-05",
+                        fetched_at=now,
+                    ),
+                    normalize=lambda document: {
+                        **asdict(document),
+                        "scalars": [asdict(document.scalars[0])],
+                    },
+                    clock=lambda: now,
+                )
+                .receipt
+            )
+        stored = EvidenceRepository(paths.database).append_source_claims(
+            tuple(
+                SourceClaimInput(
+                    metric_id=s.metric_id,
+                    definition_version=manifest["metric_catalog_version"],
+                    period_kind=s.period_kind,
+                    period_start=s.period_start,
+                    period_end=s.period_end,
+                    dimensions=s.dimensions,
+                    value=s.value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit=s.unit,
+                    provider=parsed.provider,
+                    source_reference=f"{url}#sha256={digest}",
+                    release_event_id=parsed.release_event_id
+                    + (
+                        ":synthetic-early-public"
+                        if side == "candidate" and fault == "early_public"
+                        else ""
+                    ),
+                    release_at=(
+                        datetime(2025, 5, 6, 2, tzinfo=UTC)
+                        if side == "candidate" and fault == "early_public"
+                        else parsed.release_at
+                    ),
+                    public_available_at=(
+                        datetime(2025, 5, 6, 2, tzinfo=UTC)
+                        if side == "candidate" and fault == "early_public"
+                        else parsed.public_available_at
+                    ),
+                    fetched_at=now,
+                    available_at=now,
+                    certification_status=(
+                        "awaiting_source_certification"
+                        if side == "candidate" and fault == "uncertified"
+                        else "certified"
+                    ),
+                    quality_status="validated",
+                    acquisition_id=(
+                        None
+                        if side == "candidate" and fault == "missing_lineage" and index == 1
+                        else receipt.acquisition_id
+                    ),
+                )
+                for index, s in enumerate(parsed.scalars[:count])
+            )
+        )
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id="rrr-members-" + side,
+            model_version_id=model_id,
+            system_as_of=now,
+            release_event_id=parsed.release_event_id,
+            metric_ids=("CN_RRR_EVENT",),
+            period="2025-05",
+        )
+        selection = select_retrieval_input(paths, run)
+        complete = count == 2 and not (side == "candidate" and fault != "none")
+        assert selection.complete is complete
+        context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=now,
+            model_manifest=manifests[side],
+            target_business_date="2026-08-28",
+        )
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        ids = {item.claim_id for item in stored}
+        assert (ids <= set(inputs)) is complete
+        if side == "candidate" and fault == "uncertified":
+            policy = context.macro["policy_action"]
+            assert isinstance(policy, dict)
+            rows = [row for row in policy["evidence"] if row["metric_id"] == "CN_RRR_EVENT"]
+            assert len(rows) == 2
+            for row in rows:
+                assert row["status"] == "awaiting_source_certification"
+                assert row["value"] is None
+                assert all(claim["value"] is None for claim in row["claims"])
+    replay = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    if fault == "uncertified":
+        assert "candidate_context_evidence_missing:CN_RRR_EVENT" in replay.gaps
+    else:
+        assert ("candidate_context_selection_members_missing:CN_RRR_EVENT" in replay.gaps) is (
+            candidate_count == 1 or fault != "none"
+        )
+    if candidate_count == 2 and fault == "none":
+        assert not replay.gaps
+        assert replay.evaluated_cutoffs == 1
+        assert replay.context_output_differences == 0
+        # Synthetic later announcement in the same month, with a single scope.
+        # Before its effective date it must not change the public replay; after
+        # that date the earlier announcement must still retain both members.
+        later_raw = (
+            "<html><body><h1>2025年5月准备金公告</h1>"
+            "<p>发布时间：2025-05-20 10:00:00</p>"
+            "<p>5月25日，中国人民银行下调金融机构存款准备金率0.25个百分点"
+            "（不含已执行5%存款准备金率的金融机构）。</p></body></html>"
+        ).encode()
+        later = ingest_official_context_document(
+            paths,
+            later_raw,
+            family="pbc_rrr_notice",
+            source_url="https://www.pbc.gov.cn/synthetic-later-rrr-notice",
+            expected_period="2025-05",
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=manifests["candidate"]["metric_catalog_version"],
+        )
+        assert len(later.claim_ids) == 1
+        for replay_day, expected_differences in (("2025-05-21", 0), ("2025-05-26", 1)):
+            event_replay = evaluate_context_replay(
+                paths.database,
+                manifests["candidate"],
+                manifests["comparison"],
+                requested_start=replay_day,
+                requested_end=replay_day,
+            )
+            assert not event_replay.gaps
+            assert event_replay.evaluated_cutoffs == 1
+            assert event_replay.context_output_differences == expected_differences
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_rrr_direction_replay_compares_values_without_version_identity(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    now = datetime(2026, 9, 8, 6, tzinfo=UTC)
+    manifests = {}
+    for side in ("candidate", "comparison"):
+        manifests[side] = admitted_rrr_variant(paths, capsys, side)
+        # Public component replay only; stored candidates retain their packages.
+        manifests[side].pop("source_certification_packages")
+        for day, after_rate in (("01", "2.0"), ("15", "1.75")):
+            raw = (
+                "<html><body><h1>2025年5月准备金公告</h1>"
+                f"<p>发布时间：2025-05-{day} 10:00:00</p><table>"
+                "<tr><th>生效日期</th><th>调整（百分点）</th><th>机构范围</th>"
+                "<th>调整后准备金率（%）</th><th>释放资金（亿元）</th></tr>"
+                f"<tr><td>2025-05-{day}</td><td>-0.25</td><td>all</td>"
+                f"<td>{after_rate}</td><td>500</td></tr></table></body></html>"
+            ).encode()
+            ingest_official_context_document(
+                paths,
+                raw,
+                family="pbc_rrr_notice",
+                source_url=f"https://www.pbc.gov.cn/synthetic-rrr-rate-{day}",
+                expected_period="2025-05",
+                fetched_at=now,
+                clock=lambda: now,
+                definition_version=manifests[side]["metric_catalog_version"],
+            )
+    replay = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not replay.gaps
+    assert replay.evaluated_cutoffs == 1
+    assert replay.context_output_differences == 0
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_rrr_direction_excludes_incomplete_previous_publication(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    now = datetime(2026, 9, 8, 6, tzinfo=UTC)
+    evidence = EvidenceRepository(paths.database)
+    prior_ids: set[str] = set()
+    for day, after_rate in (("01", "2.0"), ("15", "1.75")):
+        # Synthetic table exercises the supported post-change-rate contract.
+        raw = (
+            "<html><body><h1>2025年5月准备金公告</h1>"
+            f"<p>发布时间：2025-05-{day} 10:00:00</p><table>"
+            "<tr><th>生效日期</th><th>调整（百分点）</th><th>机构范围</th>"
+            "<th>调整后准备金率（%）</th><th>释放资金（亿元）</th></tr>"
+            f"<tr><td>2025-05-{day}</td><td>-0.25</td><td>all</td>"
+            f"<td>{after_rate}</td><td>500</td></tr></table></body></html>"
+        ).encode()
+        imported = ingest_official_context_document(
+            paths,
+            raw,
+            family="pbc_rrr_notice",
+            source_url=f"https://www.pbc.gov.cn/synthetic-rrr-rate-{day}",
+            expected_period="2025-05",
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=version,
+        )
+        if day == "01":
+            prior_ids.update(imported.claim_ids)
+            points = evidence.metric_series(
+                "CN_RRR_EVENT", mode=AsOfMode.SYSTEM, as_of=now, definition_version=version
+            )
+            point = next(p for p in points if p.dimensions["measure"] == "released_funds")
+            claim = point.claims[0]
+            (receipt,) = AcquisitionRepository(paths.database, paths.artifacts).history()
+            evidence.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_RRR_EVENT",
+                    definition_version=version,
+                    period_kind="event",
+                    period_start=point.period_start,
+                    period_end=point.period_end,
+                    dimensions=point.dimensions,
+                    value=claim.value,
+                    value_state=claim.value_state,
+                    unit=claim.unit,
+                    provider=claim.provider,
+                    source_reference=claim.source_reference,
+                    release_event_id=imported.release_event_id + ":synthetic-quality-review",
+                    release_at=datetime(2025, 5, 2, 2, tzinfo=UTC),
+                    public_available_at=datetime(2025, 5, 2, 2, tzinfo=UTC),
+                    fetched_at=now,
+                    available_at=now + timedelta(seconds=1),
+                    certification_status="certified",
+                    quality_status="invalid",
+                    acquisition_id=receipt.acquisition_id,
+                )
+            )
+    context = build_context_projection(
+        evidence,
+        as_of=now + timedelta(seconds=1),
+        model_manifest=manifest,
+        target_business_date="2026-08-28",
+    )
+    inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(inputs, list)
+    assert prior_ids.isdisjoint(inputs)
+    policy = context.macro["policy_action"]
+    assert isinstance(policy, dict)
+    row = next(
+        row
+        for row in policy["evidence"]
+        if row["metric_id"] == "CN_RRR_EVENT" and row["dimensions"]["measure"] == "post_change_rrr"
+    )
+    assert row["value"] == 1.75
+    assert row["direction"] == "unknown"
+    assert row["direction_input_observation_version_ids"] == []
 
 
 @pytest.mark.parametrize(

@@ -9,6 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.domain.macro import (
     EvidenceSignal,
     SignatureCard,
@@ -26,6 +27,7 @@ from pring_cycle.evidence import (
     MetricSeriesPoint,
 )
 from pring_cycle.metric_contracts import evidence_max_age_days
+from pring_cycle.published_events import select_published_rrr_events
 
 _POLICY_ACTION = {
     "CN_OMO_7D_RATE": "policy_action",
@@ -1291,6 +1293,12 @@ def _metric_rows(
         as_of=as_of,
         definition_version=definition.definition_version,
     )
+    incomplete_event_claims = (
+        set(select_published_rrr_events(repository, series).incomplete_claim_ids)
+        if definition.metric_id == "CN_RRR_EVENT"
+        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+        else set()
+    )
     release_status = _release_status(
         repository,
         definition,
@@ -1315,7 +1323,8 @@ def _metric_rows(
             release_status = "no_event_in_visible_window"
         return (_gap_row(definition, release_status=release_status),)
     rows: list[dict[str, object]] = []
-    for points in grouped.values():
+    for dimensions_key in sorted(grouped):
+        points = grouped[dimensions_key]
         current = points[-1]
         previous = points[-2] if len(points) > 1 else None
         selected = next(
@@ -1329,11 +1338,19 @@ def _metric_rows(
             as_of=as_of,
             release_status=release_status,
         )
+        if (
+            current.selected_claim_id in incomplete_event_claims
+            and status != "awaiting_source_certification"
+        ):
+            status = "source_failed"
         candidate_value = current.selected_value
         value = None if status == "awaiting_source_certification" else candidate_value
         previous_value = (
             previous.selected_value
-            if value is not None and previous is not None and _certified_point(previous)
+            if value is not None
+            and previous is not None
+            and _certified_point(previous)
+            and previous.selected_claim_id not in incomplete_event_claims
             else None
         )
         direction_inputs = []

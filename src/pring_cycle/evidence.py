@@ -5,7 +5,7 @@ import json
 import sqlite3
 from bisect import bisect_right
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
 from math import isfinite
@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from pring_cycle.acquisition import (
     ACQUISITION_SCHEMA,
     AcquisitionReceipt,
+    AcquisitionRepository,
     acquisition_analysis_context,
     receipt_from_row,
 )
@@ -241,6 +242,56 @@ class _PreloadedSeriesState:
 
 
 class EvidenceRepository:
+    def source_claim_publication(self, claim_id: str) -> dict[str, Any] | None:
+        """Read the complete validated publication linked to this exact claim version."""
+        from pring_cycle.official_context import parse_official_context_document
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT request.*, claim.source_reference, claim.provider AS claim_provider
+                   FROM source_claim AS claim
+                   JOIN source_claim_acquisition AS link USING(claim_id)
+                   JOIN acquisition_request AS request USING(acquisition_id)
+                   WHERE claim.claim_id=? AND request.state='validated'""",
+                (claim_id,),
+            ).fetchall()
+        # RuntimePaths keeps the CAS beside the database in the same data directory.
+        acquisitions = AcquisitionRepository(
+            self._database_path, self._database_path.parent / "artifacts" / "sha256"
+        )
+        publications = []
+        for row in rows:
+            if row["parser_version"] != "official-context-parser-v0004":
+                continue
+            try:
+                raw = acquisitions.read_content(row["acquisition_id"], "raw")
+                document = json.loads(
+                    acquisitions.read_content(row["acquisition_id"], "normalized")
+                )
+                parameters = json.loads(row["parameters_json"])
+                if row["api_name"] not in {"document_import", "official_http_get"}:
+                    continue
+                parsed = parse_official_context_document(
+                    raw,
+                    family=parameters["family"],
+                    source_url=parameters["source_url"],
+                    expected_period=parameters["period"],
+                    fetched_at=_required_datetime(row["received_at"]),
+                )
+                if document != json.loads(json.dumps(asdict(parsed), default=str)):
+                    continue
+            except (LookupError, ValueError, TypeError, OSError):
+                continue
+            if (
+                isinstance(document, dict)
+                and document.get("provider") == row["claim_provider"] == row["provider"]
+                and f"{document.get('source_url')}#sha256={row['raw_hash']}"
+                == row["source_reference"]
+                and document not in publications
+            ):
+                publications.append(document)
+        return publications[0] if len(publications) == 1 else None
+
     def validate_model_catalog(self, manifest: Mapping[str, object]) -> None:
         require_registered_manifest(self._database_path, manifest)
 

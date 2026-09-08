@@ -9,7 +9,7 @@ from datetime import UTC, date
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
-from pring_cycle.catalog_registry import require_registered_manifest
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.metric_contracts import (
@@ -18,6 +18,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
+from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
@@ -87,12 +88,27 @@ class ModelInputSelector:
         return self._points[metric_id]
 
     def select(self, scope: RetrievalScope) -> ModelInputSelection:
-        selected_ids = []
+        selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
             definition = metric_definition(
                 metric_id, definition_version=self.version, database_path=self.database_path
             )
+            if metric_id == "CN_RRR_EVENT" and self.version not in BUILTIN_CATALOG_VERSIONS:
+                result = select_published_rrr_events(
+                    self.core_evidence,
+                    tuple(
+                        p
+                        for p in self.series(metric_id)
+                        if matches_retrieval_period(p.period_end, scope.period)
+                    ),
+                )
+                if definition.certification_status != "certified":
+                    missing.append("CN_RRR_EVENT:source_certification_required")
+                else:
+                    selected_ids.extend(result.selected_claim_ids)
+                    missing.extend(result.missing_members)
+                continue
             expected = required_dimension_members(
                 metric_id, definition_version=self.version, period=scope.period
             )
