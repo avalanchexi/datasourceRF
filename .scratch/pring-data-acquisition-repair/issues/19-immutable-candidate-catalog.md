@@ -32,6 +32,8 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-08：`0452aca`后[银行间消费切片](../implementation-19-interbank-consumption.md)完成：12新增/156关联通过，mypy85/Ruff/84安装源码及双轴复审通过。新目录DR007/Shibor采集、查询、PUBLIC/SYSTEM隔离及目标选值/上下文已接通；真实PUBLIC、实际正式来源认证仍未补齐。下一步RRR/仓单/搜索入口，全量最终门保持开放，不关闭整票。
+
 - 2026-09-08：本批检查点为855全套通过/1次CLI初始化60秒超时（3229.99秒），未改代码或超时阈值的单例复测1通过（6.20秒）；174时钟关联全通过，84安装源码前后匹配，双轴阻断0。见[检查点](../verification-official-consumer/checkpoint.json)。最终全量门明确未全绿，整票继续in-progress；下一步修复TuShare原始P1新目录查找及RRR/仓单消费者，不以重試抹去失败记录。
 
 - 2026-09-08：在395dde7工作树继续[CPI消费](../implementation-19-cpi-consumption.md)及[16项官方消费](../implementation-19-official-consumption.md)。10家族实际原件纵向通过；成员单位/期次、一月PPI与二月增加值缺列、社融24成员和分公告、Q1阻断、OMO最新事件与370日鲜度已加入公开回归。两轴阻断发现均已关闭，Ruff/mypy85通过；当前856项已收集，174项时钟关联正在执行，全套尚未通过本批版本。真实来源认证/完整候选仍依原阻塞边，不能把软件合成准入当作已创建真实模型。

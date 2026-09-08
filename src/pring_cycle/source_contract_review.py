@@ -114,7 +114,11 @@ def require_registered_source_contract(
     """New catalog identity alone does not certify an existing parser's output."""
     if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
         return
-    members = official_source_members(definition.metric_id, period_end)
+    members = (
+        None
+        if definition.metric_id in {"CN_DR007", "CN_SHIBOR_ON_1W_3M"}
+        else official_source_members(definition.metric_id, period_end)
+    )
     if members is not None:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
         family = OFFICIAL_CONTEXT_FAMILY_BY_METRIC[definition.metric_id]
@@ -172,11 +176,15 @@ def require_registered_source_contract(
         "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
         "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
         "CN_CORE_CPI": ("cpi", "国家统计局"),
+        "CN_DR007": ("interbank", "tushare"),
+        "CN_SHIBOR_ON_1W_3M": ("interbank", "tushare"),
     }
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
     supported = metric_definition(definition.metric_id)
+    if family == "interbank":
+        supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
         supported = replace(supported, release_event_family="nbs_core_cpi")
@@ -193,6 +201,27 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "interbank":
+        valid_dimensions = (
+            dimensions == {}
+            if definition.metric_id == "CN_DR007"
+            else dimensions in ({"tenor": "overnight"}, {"tenor": "1w"}, {"tenor": "3m"})
+        )
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or not valid_dimensions
+            or unit != "percent"
+        ):
+            raise ValueError("registered_interbank_source_identity_mismatch")
+        try:
+            start = date.fromisoformat(period_start)
+            end = date.fromisoformat(period_end)
+        except ValueError:
+            raise ValueError("registered_interbank_source_period_mismatch") from None
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_interbank_source_period_mismatch")
+        return
     if family == "lpr":
         valid_dimensions = dimensions in ({"tenor": "1y"}, {"tenor": "5y_plus"})
     else:

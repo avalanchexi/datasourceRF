@@ -125,3 +125,8 @@ verification-official-consumer/*.txt whitespace=-blank-at-eol
 verification-official-consumer/*.zip -text -diff
 verification-official-consumer-run.sh text eol=lf
 verification-official-consumer-*.txt whitespace=-blank-at-eol
+remaining-p1-source-consumers.md -text whitespace=cr-at-eol,-blank-at-eof
+verification-interbank-*.txt whitespace=-blank-at-eol
+verification-interbank/*.json -text whitespace=cr-at-eol
+verification-interbank/*.txt whitespace=-blank-at-eol
+verification-interbank/*.zip -text -diff

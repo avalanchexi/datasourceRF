@@ -12,7 +12,9 @@
 
 从 `1cd2c00` 继续：[票19正式包准入](implementation-19-admission.md)代码批完成：**806 全套/63 关联/50 新增通过，0 失败，860.32 秒**；mypy 83、Ruff/格式及双轴复审 0，82 个安装 Python 文件核对。请求/正式包/审查/登记原件的哈希与定义、规则、执行绑定均在候选写库前校验；坏包拒绝、合成幂等创建以及既有 active/发布投影保留已验收。[最终收据](verification-admission/final.json)。实际生产认证、新生产目录/候选、真实网络、激活/切换均 0。
 
-**当前立即续作：**在`395dde7`基础上完成[CPI](implementation-19-cpi-consumption.md)及[其余16项官方消费者](implementation-19-official-consumption.md)的实现与针对性回归，保持整体验收开放。本批856项全套为**855通过/1次CLI初始化60秒超时，3229.99秒**；保持同代码/同60秒上限，失败单例6.20秒复测通过，不能称856一次全绿。174项时钟关联全通过，103个函数显式测试时钟已复审；源84文件前后匹配，Ruff/mypy85通过，双轴阻断0。见[真实检查点](verification-official-consumer/checkpoint.json)，41份原始记录归档后转UTF8。下一步接通其余P1原始来源：DR007/Shibor/仓单的TuShare路径未传数据库目录，先报未知新版本；RRR来源守卫及仓单明细成员选择另核。全量最终门仍待后续统一清除。测试使用独立D盘ext4，生产路径未变；完整票19、真实认证、检索配对、报告、120日重放和切换仍开放。
+**当前立即续作：**宏观消费者已保存为`0452aca`检查点；接着完成[DR007/Shibor新目录消费](implementation-19-interbank-consumption.md)：12新增用例、156关联回归通过（244.16秒），84安装源码匹配，mypy85/Ruff及双轴复审0剩余。TuShare公共标量入口的数据库目录解析、两项provider/单位/期限/日期与API字段已绑定；未知PUBLIC仍无法进入历史目标日模型。见[银行间检查点](verification-interbank/checkpoint.json)。下一步RRR公告成员契约、仓单多仓库选择及搜索新目录解析；请求/原文层配对预实验可独立定位，不能充当模型可用率。
+
+上一宏观批856项全套为**855通过/1次CLI初始化60秒超时，3229.99秒**；同代码/同60秒上限单例6.20秒复测通过，不能称856一次全绿。174项时钟关联全通过，103个函数显式测试时钟已复审；见[原检查点](verification-official-consumer/checkpoint.json)。全量最终门待后续统一清除。测试使用独立D盘ext4，生产路径未变；完整票19、真实认证、检索配对、报告、120日重放和切换仍开放。
 
 从`a569fd7`继续：[历史smoke收据补齐](implementation-history-receipts.md)完成，756全套/70关联/15新增通过，全套938.86秒，双轴复审0，Ruff/mypy82及81安装源指纹一致。目录/正文、线程owner、目标日、禁止自动重定向、错误体有界前缀和browser原包装转换血缘均验收。与03已修的history导入分别留证，不恢复过去SYSTEM或授予历史PUBLIC。
 

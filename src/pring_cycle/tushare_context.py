@@ -14,6 +14,7 @@ from urllib.request import Request, build_opener
 from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import MARGIN_FINANCING_V0002, METRIC_CATALOG_VERSION, metric_definition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
@@ -1203,7 +1204,24 @@ def ingest_context_scalars(
         definition = metric_definition(
             scalar.metric_id,
             definition_version=definition_version,
+            database_path=paths.database,
         )
+        if definition_version not in BUILTIN_CATALOG_VERSIONS and scalar.metric_id in {
+            "CN_DR007",
+            "CN_SHIBOR_ON_1W_3M",
+        }:
+            expected_field = (
+                ("repo_daily", "weight")
+                if scalar.metric_id == "CN_DR007"
+                else (
+                    "shibor",
+                    {"overnight": "on", "1w": "1w", "3m": "3m"}.get(
+                        scalar.dimensions.get("tenor", "")
+                    ),
+                )
+            )
+            if (scalar.api_name, scalar.source_field) != expected_field:
+                raise ValueError("registered_interbank_source_field_mismatch")
         source_reference = f"tushare:{scalar.api_name}:{scalar.source_field}:{scalar.period_end}"
         base_event_id = f"tushare:{scalar.api_name}:{scalar.period_end}"
         if margin_candidate:

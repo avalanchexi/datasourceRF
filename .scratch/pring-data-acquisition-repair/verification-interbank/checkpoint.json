@@ -1,0 +1,86 @@
+{
+  "base_commit": "0452aca80ce601ee105c824d6cee3f707439c39b",
+  "status": "implementation_checkpoint_full_gate_open",
+  "goal_complete": false,
+  "related": {
+    "passed": 156,
+    "failed": 0,
+    "seconds": 244.16
+  },
+  "interbank_cases": {
+    "passed": 12,
+    "failed": 0,
+    "seconds": 40.94
+  },
+  "review_remaining": {
+    "spec": 0,
+    "standards": 0
+  },
+  "mypy": {
+    "checked_files": 85,
+    "exit_code": 0,
+    "evidence": "tool session 1169 final output: Success: no issues found in 85 source files"
+  },
+  "installed_source_matches": 84,
+  "full_gate_passed": false,
+  "actual_source_certifications": 0,
+  "actual_candidate_models": 0,
+  "actual_ai_outputs": 0,
+  "actual_cutovers": 0,
+  "production_writes": 0,
+  "paired_search_samples": 0,
+  "model_usable_search_completion_rate": null,
+  "archive_sha256": "3f3e6f4c6cbeff67a5bc48bfe6db65dfa5ab4f4edb7c8d25c5089ed31a390df6",
+  "records": [
+    {
+      "path": "verification-interbank-boundary-01.txt",
+      "original_sha256": "9a5111fe52ec1159b7200e1a557703f8770ad60c61e3bc1e9ec1ba44b62ffb5a",
+      "sha256": "d32f72f93f7e2df617573a77d04763c9c4f2ca050accddb9757563f6402a7ed1"
+    },
+    {
+      "path": "verification-interbank-focused-01.txt",
+      "original_sha256": "6430c7ccbae089666f5d16042c8c2a2eec2e3a455fbd6d71be62f1f67f30d6e9",
+      "sha256": "1ff995c71ba4beb9683b4fd01900ae80c0d1906736e8ae65ee1b4e89ab771f23"
+    },
+    {
+      "path": "verification-interbank-green-01.txt",
+      "original_sha256": "a8ccf45c369e6af315df66f16eb073367cb0da6f66dcae26ea4e115a23fa69fd",
+      "sha256": "41a6e682a361f24bc52e44cd12997ad47be74f9b998147843228e50ff1039df3"
+    },
+    {
+      "path": "verification-interbank-red-01.txt",
+      "original_sha256": "27ef2a5aa8548be7f05df3caa46b4fafac0421c4ba3371e3cae610cb41f2de23",
+      "sha256": "d11e5e72833b584dac0b6f68d2fb483d0fbcb60ed3472a91ab34e8dba7cd69b1"
+    },
+    {
+      "path": "verification-interbank-red-02.txt",
+      "original_sha256": "56bbf373af1a15a40a6627b8e54336b7b69fdcc185aae3f9846e4486c68e1e2d",
+      "sha256": "e221d40927b883104d6eca8363f989b9bf52170a6e45382935da4c26560bf276"
+    },
+    {
+      "path": "verification-interbank-red-03.txt",
+      "original_sha256": "2ab3a197c7429453192bdc7696f85c9c32d8fd2ff318083152f9ed4b377a2ce0",
+      "sha256": "e6f3e19662b68c43a41c2091e450c86f5d719616f500932233d38ac7d85110f3"
+    },
+    {
+      "path": "verification-interbank-related-01.txt",
+      "original_sha256": "0d1236e3957294d7089016e20f4931257aaf77163514b97db58a3bc59831540c",
+      "sha256": "080c780359791d3320993fe50f67c140818c922a8f8936244f3ddd0d10ae6621"
+    },
+    {
+      "path": "verification-interbank-review-green-01.txt",
+      "original_sha256": "8f10f1f59d8017d24bacf3cce16585e1bdf6dfc84f0700e75ae2a90706c5efa5",
+      "sha256": "5782f208f1d01e72754da83cb5392c5b53b80c39aa841ca12aac74644f0b89cc"
+    },
+    {
+      "path": "verification-interbank-review-red-01.txt",
+      "original_sha256": "f6fa44ecaa44ae184e9347eb64c1e9d60cd8bdc64e27923c6cd1a376cefa4aa6",
+      "sha256": "9df2c21d019ca562aef68b00b3cbeebba8c0c6e7a476486be32a55b8661b072b"
+    },
+    {
+      "path": "verification-interbank/ruff.txt",
+      "original_sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ]
+}

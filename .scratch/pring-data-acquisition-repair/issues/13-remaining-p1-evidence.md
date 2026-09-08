@@ -32,6 +32,8 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-08：[DR007/Shibor软件消费](../implementation-19-interbank-consumption.md)在新目录下通过12新增和156关联回归；公共采集保存合成transport原字节，CFETS独立数值用于软件校验，不冒充实际TuShare交付或历史PUBLIC。剩余真实认证/时间和RRR/仓单缺口仍依本票处理。
+
 - 2026-09-08：[CPI及16项官方消费者](../implementation-19-official-consumption.md)继续接通。10家族真实原件纵向通过，宏观消费者的成员—单位—期次及OMO事件鲜度已修并覆盖社融缺1/8项、两份公告补齐等边界；来源正式认证与1858格准备矩阵仍不因此整体验收。实际CPI新增8次document_import及46值复核见[CPI记录](../implementation-19-cpi-consumption.md)，历史SYSTEM未倒填；代码全套与真实模型验收仍开放。
 
 - 2026-09-08：完成[LPR逐期审查输入准备](../lpr-review-preparation.md)，9原件/18值、9个已登记获取原件引用、7段状态及固定窗口120目标日预期覆盖已复算；尚非PUBLIC查询、正式review或新模型采用。定义/清单绑定、用途和历史时间正式审查仍待收口，本票不关闭。

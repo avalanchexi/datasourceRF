@@ -1,0 +1,19 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_registered_interbank_acquisition_preserves_unknown_public_time ______
+tests/models/test_candidate_admission.py:164: in test_registered_interbank_acquisition_preserves_unknown_public_time
+    imported = adapter.acquire_scalars(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:207: in acquire_scalars
+    result = ingest_context_scalars(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1330: in ingest_context_scalars
+    repository.append_source_claims(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:177: in require_registered_source_contract
+    raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E   ValueError: registered_source_contract_not_implemented:CN_DR007
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_interbank_acquisition_preserves_unknown_public_time
+1 failed in 4.15s

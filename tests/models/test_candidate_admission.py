@@ -4,12 +4,13 @@ import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.candidate_admission import admit_source_certified_candidate
 from pring_cycle.cli import main
@@ -29,6 +30,7 @@ from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.runtime_fingerprint import execution_fingerprint
 from pring_cycle.search_evidence import select_retrieval_input
+from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
 
 
 def encode(document: object) -> bytes:
@@ -124,6 +126,248 @@ def cpi_document() -> bytes:
     <tr><td>不包括食品和能源</td><td>0.3</td><td>0.9</td><td>1.1</td></tr>
     </table></body></html>
     """.encode()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("public_known", [False, True])
+def test_registered_interbank_acquisition_preserves_public_boundary(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], public_known: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    # Synthetic TuShare transport, with independent CFETS 2026-08-28 values.
+    # The CFETS original is not a historical TuShare delivery receipt.
+    responses = {
+        "repo_daily": {
+            "code": 0,
+            "data": {
+                "fields": ["ts_code", "trade_date", "repo_maturity", "weight"],
+                "items": [["DR007.IB", "20260828", "DR007", 1.3859]],
+            },
+        },
+        "shibor": {
+            "code": 0,
+            "data": {
+                "fields": ["date", "on", "1w", "3m"],
+                "items": [["20260828", 1.339, 1.387, 1.43]],
+            },
+        },
+    }
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        return encode(responses[payload["api_name"]])
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    # This known publication instant tests software behavior only. The saved
+    # historical CFETS response does not prove the day's first publication.
+    public_at = datetime(2026, 8, 28, 8, tzinfo=UTC) if public_known else None
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        scalars = adapter.transmission(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+        if not public_known:
+            assert all(s.release_at is None and s.public_available_at is None for s in scalars)
+            return scalars
+        return tuple(
+            replace(scalar, release_at=public_at, public_available_at=public_at)
+            for scalar in scalars
+        )
+
+    imported = adapter.acquire_scalars(
+        paths,
+        retrieve,
+        definition_version=version,
+    )
+    assert len(imported.claim_ids) == 4
+    assert adapter.network_requests == 2
+    now = datetime.now(UTC)
+    repository = EvidenceRepository(paths.database)
+    expected = {
+        "CN_DR007": {None: 1.3859},
+        "CN_SHIBOR_ON_1W_3M": {
+            "overnight": 1.339,
+            "1w": 1.387,
+            "3m": 1.43,
+        },
+    }
+    for metric, values in expected.items():
+        points = repository.metric_series(
+            metric, mode=AsOfMode.SYSTEM, as_of=now, definition_version=version
+        )
+        assert {p.dimensions.get("tenor"): p.selected_value for p in points} == values
+        public_points = repository.metric_series(
+            metric, mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+        )
+        assert {p.dimensions.get("tenor"): p.selected_value for p in public_points} == (
+            values if public_known else {}
+        )
+        assert not repository.metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 7, tzinfo=UTC),
+            definition_version=version,
+        )
+        for point in points:
+            trace = repository.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=now)
+            claim = next(c for c in trace.claims if c.claim_id == point.selected_claim_id)
+            assert claim.unit == "percent"
+            assert claim.provider == "tushare"
+            assert claim.public_available_at == public_at
+            assert trace.acquisition_status == "linked"
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    assert len(receipts.history()) == 2
+    for receipt in receipts.history():
+        assert receipt.state == "validated"
+        assert (
+            json.loads(receipts.read_content(receipt.acquisition_id, "raw"))
+            == responses[receipt.api_name]
+        )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="interbank-unknown-public",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id="synthetic:interbank",
+        metric_ids=tuple(expected),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete is public_known
+    assert set(selection.selected_claim_ids) == (set(imported.claim_ids) if public_known else set())
+    assert len(selection.missing_members) == (0 if public_known else 4)
+    context = build_context_projection(
+        repository, as_of=now, target_business_date="2026-08-28", model_manifest=request["manifest"]
+    )
+    assert set(imported.claim_ids).intersection(context.observation_version_ids) == (
+        set(imported.claim_ids) if public_known else set()
+    )
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "provider",
+        "tenor",
+        "unit",
+        "period_kind",
+        "period_bounds",
+        "invalid_date",
+        "noncanonical_date",
+    ],
+)
+def test_registered_interbank_rejects_wrong_source_identity(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    claim = SourceClaimInput(
+        metric_id="CN_SHIBOR_ON_1W_3M",
+        definition_version=request["manifest"]["metric_catalog_version"],
+        period_kind="business_day",
+        period_start="2026-08-28",
+        period_end="2026-08-28",
+        dimensions={"tenor": "3m"},
+        value=1.43,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="percent",
+        provider="tushare",
+        source_reference="synthetic:shibor-identity",
+        release_event_id="synthetic:shibor",
+        release_at=now,
+        public_available_at=now,
+        fetched_at=now,
+        available_at=now,
+        certification_status="certified",
+        quality_status="validated",
+    )
+    if fault == "provider":
+        claim = replace(claim, provider="中国货币网")
+    elif fault == "tenor":
+        claim = replace(claim, dimensions={"tenor": "1m"})
+    elif fault == "unit":
+        claim = replace(claim, unit="basis_points")
+    elif fault == "period_kind":
+        claim = replace(claim, period_kind="month")
+    elif fault == "period_bounds":
+        claim = replace(claim, period_start="2026-08-27")
+    else:
+        invalid_date = "2026-08-99" if fault == "invalid_date" else "2026-8-28"
+        claim = replace(claim, period_start=invalid_date, period_end=invalid_date)
+    repository = EvidenceRepository(paths.database)
+    with pytest.raises(
+        ValueError,
+        match=(
+            "registered_interbank_source_identity_mismatch|registered_interbank_source_period_mismatch"
+            "|evidence_unit_mismatch"
+        ),
+    ):
+        repository.append_source_claim(claim)
+    assert not repository.metric_series(
+        claim.metric_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=now,
+        definition_version=claim.definition_version,
+    )
+
+
+@pytest.mark.parametrize("fault", ["dr_field", "dr_api", "shibor_field"])
+def test_registered_interbank_rejects_wrong_delivery_field_atomically(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    dr = ContextScalar(
+        metric_id="CN_DR007",
+        api_name="repo_daily",
+        source_field="weight",
+        period_kind="business_day",
+        period_start="2026-08-28",
+        period_end="2026-08-28",
+        dimensions={},
+        value=1.3859,
+        unit="percent",
+    )
+    shibor = replace(
+        dr,
+        metric_id="CN_SHIBOR_ON_1W_3M",
+        api_name="shibor",
+        source_field="3m",
+        dimensions={"tenor": "3m"},
+        value=1.43,
+    )
+    if fault == "dr_field":
+        dr = replace(dr, source_field="close")
+    elif fault == "dr_api":
+        dr = replace(dr, api_name="shibor")
+    else:
+        shibor = replace(shibor, source_field="1m")
+    with pytest.raises(ValueError, match="registered_interbank_source_field_mismatch"):
+        ingest_context_scalars(
+            paths,
+            (dr, shibor),
+            fetched_at=now,
+            definition_version=request["manifest"]["metric_catalog_version"],
+        )
+    repository = EvidenceRepository(paths.database)
+    for metric in ("CN_DR007", "CN_SHIBOR_ON_1W_3M"):
+        assert not repository.metric_series(
+            metric,
+            mode=AsOfMode.SYSTEM,
+            as_of=now,
+            definition_version=request["manifest"]["metric_catalog_version"],
+        )
 
 
 def test_registered_pmi_original_reaches_selection_and_context(

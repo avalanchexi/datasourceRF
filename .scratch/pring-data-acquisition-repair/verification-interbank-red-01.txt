@@ -1,0 +1,27 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_registered_interbank_acquisition_preserves_unknown_public_time ______
+tests/models/test_candidate_admission.py:164: in test_registered_interbank_acquisition_preserves_unknown_public_time
+    imported = adapter.acquire_scalars(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:166: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:166: in <lambda>
+    lambda: adapter.transmission(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)),
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:613: in transmission
+    repo_rows = self._call(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1149: in _call
+    return acquire(None)
+           ^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1128: in acquire
+    acquired = acquisitions.capture(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:182: in capture
+    raw = fetch()
+          ^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1122: in fetch
+    raise ValueError("acquisition_raw_response_bytes_required")
+E   ValueError: acquisition_raw_response_bytes_required
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_interbank_acquisition_preserves_unknown_public_time
+1 failed in 5.02s
