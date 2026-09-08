@@ -118,6 +118,28 @@ def core_response(payload: dict[str, Any]) -> bytes:
 
 
 @pytest.mark.usefixtures("runtime_clock")
+def test_unknown_core_catalog_is_rejected_before_any_request(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    calls: list[str] = []
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        calls.append(payload["api_name"])
+        return core_response(payload)
+
+    with pytest.raises(KeyError, match="unknown_metric_definition_version"):
+        refresh_core_history(
+            paths,
+            TushareCoreAdapter("fixture-secret", transport=transport),
+            start=date(2026, 8, 3),
+            end=date(2026, 8, 3),
+            definition_version="unregistered-core-catalog",
+        )
+    assert calls == []
+    assert AcquisitionRepository(paths.database, paths.artifacts).history() == ()
+
+
+@pytest.mark.usefixtures("runtime_clock")
 def test_core_refresh_keeps_unproven_publication_unknown(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -311,7 +333,27 @@ def test_trace_api_can_read_the_original_and_reject_unrelated_artifact_kinds(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_invalid_core_rows_keep_the_response_without_creating_claims(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("column", "value", "error"),
+    [
+        (2, 0, "nonpositive_core_price"),
+        (2, True, "core_number_invalid"),
+        (3, True, "core_number_invalid"),
+        (4, True, "core_number_invalid"),
+        (2, "NaN", "core_number_invalid"),
+        (3, "NaN", "core_number_invalid"),
+        (4, "NaN", "core_number_invalid"),
+        (2, "Infinity", "core_number_invalid"),
+        (3, "-Infinity", "core_number_invalid"),
+        (4, "Infinity", "core_number_invalid"),
+    ],
+)
+def test_invalid_core_rows_keep_the_response_without_creating_claims(
+    tmp_path: Path,
+    column: int,
+    value: object,
+    error: str,
+) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     bad_originals = []
@@ -319,12 +361,12 @@ def test_invalid_core_rows_keep_the_response_without_creating_claims(tmp_path: P
     def invalid_price(payload: dict[str, Any]) -> bytes:
         document = json.loads(core_response(payload))
         if payload["api_name"] != "trade_cal":
-            document["data"]["items"][0][2] = 0
+            document["data"]["items"][0][column] = value
         raw = json.dumps(document, indent=4).encode()
         bad_originals.append(raw)
         return raw
 
-    with pytest.raises(ValueError, match="nonpositive_core_price"):
+    with pytest.raises(ValueError, match=error):
         refresh_core_history(
             paths,
             TushareCoreAdapter("fixture-secret", transport=invalid_price),

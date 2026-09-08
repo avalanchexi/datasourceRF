@@ -3603,3 +3603,205 @@ def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
     assert coverage.is_ready(required) is (missing_days == 6)
     assert not coverage.is_ready(required[:-1])
     assert not coverage.is_ready((*required[:-1], required[-2]))
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_core_history_preserves_originals_and_unknown_public(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from pring_cycle.core_history import refresh_core_history
+    from pring_cycle.runs import RetrievalScope
+    from pring_cycle.search_evidence import ModelInputSelector
+    from pring_cycle.source_adapters import TushareCoreAdapter
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    identities = {
+        "CN_EQUITY_CORE_000985": ("index_daily", "000985.CSI"),
+        "CN_BOND_CORE_000012": ("index_daily", "000012.SH"),
+        "CN_COMMODITY_CORE_NHII": ("fut_index_daily", "NHII.NH"),
+    }
+    originals: dict[str, bytes] = {}
+    calls: list[str] = []
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        assert payload["params"]["start_date"] == payload["params"]["end_date"] == "20260828"
+        if payload["api_name"] == "trade_cal":
+            key = "calendar"
+            fields = ["cal_date", "is_open"]
+            rows = [["20260828", 1]]
+        else:
+            key = str(payload["params"]["ts_code"])
+            fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+            rows = [[key, "20260828", 101, 100, 0.01 if key == "NHII.NH" else 1]]
+        calls.append(key)
+        raw = encode({"code": 0, "data": {"fields": fields, "items": rows}})
+        originals[key] = raw
+        return raw
+
+    before = datetime.now(UTC)
+    result = refresh_core_history(
+        paths,
+        TushareCoreAdapter("synthetic-core-token", transport=transport),
+        start=date(2026, 8, 28),
+        end=date(2026, 8, 28),
+        definition_version=version,
+    )
+    assert result.status == "validated"
+    assert result.network_requests == 4
+    assert calls == ["calendar", "000985.CSI", "000012.SH", "NHII.NH"]
+    after = datetime.now(UTC)
+    evidence = EvidenceRepository(paths.database)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    selected_ids = set()
+    for metric_id, (api, code) in identities.items():
+        assert (
+            evidence.metric_series(
+                metric_id, mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+            )
+            == ()
+        )
+        assert (
+            evidence.metric_series(
+                metric_id, mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
+            )
+            == ()
+        )
+        (point,) = evidence.metric_series(
+            metric_id, mode=AsOfMode.SYSTEM, as_of=after, definition_version=version
+        )
+        assert point.selected_value == 101
+        (claim,) = point.claims
+        selected_ids.add(claim.claim_id)
+        assert claim.public_available_at is None and claim.release_at is None
+        assert claim.source_reference == f"tushare:{api}:{code}:2026-08-28"
+        (receipt,) = evidence.trace(
+            point.observation_id, mode=AsOfMode.SYSTEM, as_of=after
+        ).acquisitions
+        assert receipt.parameters["ts_code"] == code and receipt.api_name == api
+        assert receipt.state == "validated" and claim.fetched_at == receipt.received_at
+        assert receipt.validated_at is not None and claim.available_at >= receipt.validated_at
+        assert acquisitions.read_content(receipt.acquisition_id, "raw") == originals[code]
+        (normalized,) = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+        assert (normalized["close"], normalized["pre_close"], normalized["official_return"]) == (
+            101,
+            100,
+            0.01,
+        )
+        assert "synthetic-core-token" not in repr(receipt)
+    assert len(acquisitions.history()) == 4
+    # Isolated candidate input evaluation; no activation, publication or actual calibration.
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-new-core-inputs",
+        model_version_id=model_id,
+        system_as_of=after,
+        cutoff_mode="explicit",
+    )
+    scope = RetrievalScope("synthetic:core", tuple(identities), "2026-08-28", "P0", None)
+    system = ModelInputSelector(paths, run, mode=AsOfMode.SYSTEM).select(scope)
+    assert system.complete and set(system.selected_claim_ids) == selected_ids
+    public = ModelInputSelector(paths, run, mode=AsOfMode.PUBLIC).select(scope)
+    assert not public.complete and public.selected_claim_ids == ()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    ["missing_original", "wrong_original", "forged_value", "wrong_code", "missing_period_null"],
+)
+def test_registered_core_claim_requires_its_exact_original(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    fault: str,
+) -> None:
+    from pring_cycle.core_history import refresh_core_history
+    from pring_cycle.source_adapters import TushareCoreAdapter
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    version = request["manifest"]["metric_catalog_version"]
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        if payload["api_name"] == "trade_cal":
+            fields = ["cal_date", "is_open"]
+            rows = [["20260828", 1]]
+        else:
+            code = payload["params"]["ts_code"]
+            fields = ["ts_code", "trade_date", "close", "pre_close", "pct_chg"]
+            rows = [[code, "20260828", 101, 100, 0.01 if code == "NHII.NH" else 1]]
+        return encode({"code": 0, "data": {"fields": fields, "items": rows}})
+
+    refresh_core_history(
+        paths,
+        TushareCoreAdapter("synthetic-core-token", transport=transport),
+        start=date(2026, 8, 28),
+        end=date(2026, 8, 28),
+        definition_version=version,
+    )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    receipt = next(
+        r
+        for r in receipts
+        if r.parameters.get("ts_code")
+        == ("000012.SH" if fault == "wrong_original" else "000985.CSI")
+    )
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    expected = (
+        "registered_core_source_identity_mismatch"
+        if fault == "wrong_code"
+        else "registered_core_source_original_required"
+        if fault == "missing_original"
+        else "registered_core_source_original_mismatch"
+    )
+    evidence = EvidenceRepository(paths.database)
+    period = "2026-08-27" if fault == "missing_period_null" else "2026-08-28"
+    with pytest.raises(ValueError, match=expected):
+        evidence.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_EQUITY_CORE_000985",
+                definition_version=version,
+                period_kind="business_day",
+                period_start=period,
+                period_end=period,
+                dimensions={},
+                value=None
+                if fault == "missing_period_null"
+                else 999
+                if fault == "forged_value"
+                else 101,
+                value_state=EvidenceValueState.NOT_DISCLOSED
+                if fault == "missing_period_null"
+                else EvidenceValueState.REPORTED_VALUE,
+                unit="index_points",
+                provider="tushare",
+                source_reference=(
+                    "tushare:index_daily:000012CNY030.CSI:2026-08-28"
+                    if fault == "wrong_code"
+                    else f"tushare:index_daily:000985.CSI:{period}"
+                ),
+                release_event_id=f"synthetic:invalid-core:{fault}",
+                release_at=None,
+                public_available_at=None,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                certification_status="certified",
+                quality_status="validated",
+                acquisition_id=None if fault == "missing_original" else receipt.acquisition_id,
+            )
+        )
+    (point,) = evidence.metric_series(
+        "CN_EQUITY_CORE_000985",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=version,
+    )
+    assert point.selected_value == 101 and len(point.claims) == 1

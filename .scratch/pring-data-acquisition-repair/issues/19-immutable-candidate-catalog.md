@@ -64,3 +64,5 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-08：[仓单八品种定向取得](../implementation-19-warrants-targeted.md)完成91关联/最终3项通过、应用mypy86/Ruff/格式和安装源码核对，双轴各0项。成功/两次重试恢复/三次失败原件保留且零入库均通过；旧集成测试文件基点已有38项mypy错误，当前无新增，未称全文件类型通过。Worker历史密度进入下一切片，真实来源及新完整候选未验收，本票保持in-progress。
 
 - 2026-09-08：[仓单历史覆盖](../implementation-19-warrants-history.md)完成219关联通过，mypy87/Ruff/格式及86安装源码一致，双轴0项。按逐品种完整仓库日期执行120唯一交易日内95%门槛，114/113及不同品种错开缺口已验证；不代表真实120日回放。下一段[三核心新目录入口](../new-catalog-core-consumption-boundary.md)仍有目录查询及来源守卫两处软件拒绝，继续实施。本票保持in-progress。
+
+- 2026-09-08：[三核心新目录来源切片](../implementation-19-core-source.md)完成252关联/最终17项通过，应用及candidate测试mypy87、双轴剩余0；目录预检、三组交付身份、逐次原件日期/数值关联和布尔值拒绝已接通，PUBLIC未知保持。最终格式和安装源码以[检查点](../verification-new-core/checkpoint.json)为准。下一段核验消费时原件完整性及[回放晚修订边界](../core-replay-revision-boundary.md)，不把软件fixture称为实际完整候选或120日通过；整票仍in-progress。

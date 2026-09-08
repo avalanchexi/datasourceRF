@@ -5,10 +5,11 @@ import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
+from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
 
-from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.adapters import MarketBar, validate_core_market_bars
 from pring_cycle.evidence import MetricSeriesPoint
 
@@ -19,6 +20,43 @@ CORE_API_IDENTITIES = {
     "CN_BOND_CORE_000012": ("index_daily", "000012.SH"),
     "CN_COMMODITY_CORE_NHII": ("fut_index_daily", "NHII.NH"),
 }
+
+
+def parse_core_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+    *,
+    metric_id: str,
+) -> tuple[MarketBar, ...]:
+    """Rebuild the exact core bars described by a validated physical receipt."""
+    api, code = CORE_API_IDENTITIES[metric_id]
+    fields = "ts_code,trade_date,close,pre_close,pct_chg"
+    if (
+        receipt.state != "validated"
+        or receipt.provider != "tushare"
+        or receipt.api_name != api
+        or receipt.parser_version != "tushare-core-parser-v0002"
+        or receipt.fields != fields
+        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
+        or receipt.parameters.get("ts_code") != code
+    ):
+        raise ValueError("core_acquisition_identity_mismatch")
+    start = date.fromisoformat(receipt.parameters["start_date"])
+    end = date.fromisoformat(receipt.parameters["end_date"])
+    if (
+        start > end
+        or receipt.parameters["start_date"] != _compact(start)
+        or receipt.parameters["end_date"] != _compact(end)
+    ):
+        raise ValueError("core_acquisition_period_mismatch")
+    document = _response_document(raw)
+    data = document.get("data")
+    if not isinstance(data, dict) or data.get("fields") != fields.split(","):
+        raise ValueError("core_acquisition_fields_mismatch")
+    bars = _core_bars_response(document, metric_id, None)
+    if any(not start <= bar.business_date <= end for bar in bars):
+        raise ValueError("core_acquisition_period_mismatch")
+    return bars
 
 
 def selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bool:
@@ -229,9 +267,9 @@ def _core_bars_response(
                     metric_id=metric_id,
                     source_code=str(row["ts_code"]),
                     business_date=_trade_date(row["trade_date"]),
-                    close=float(row["close"]),
-                    pre_close=float(row["pre_close"]),
-                    official_return=float(row["pct_chg"]) / return_divisor,
+                    close=_core_number(row["close"]),
+                    pre_close=_core_number(row["pre_close"]),
+                    official_return=_core_number(row["pct_chg"]) / return_divisor,
                     unit="index_points",
                     certification_status="certified",
                 )
@@ -246,6 +284,18 @@ def _core_bars_response(
         expected_business_dates=expected_business_dates,
     )
     return bars
+
+
+def _core_number(value: object) -> float:
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+        raise ValueError("core_number_invalid")
+    try:
+        number = float(value)
+    except (OverflowError, ValueError) as error:
+        raise ValueError("core_number_invalid") from error
+    if not isfinite(number):
+        raise ValueError("core_number_invalid")
+    return number
 
 
 def _response_document(response: bytes | dict[str, Any]) -> dict[str, Any]:

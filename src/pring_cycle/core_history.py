@@ -62,6 +62,12 @@ def refresh_core_history(
         raise ValueError("core_history_range_invalid")
     if latest_observations is not None and latest_observations < 1:
         raise ValueError("core_history_observation_limit_invalid")
+    definitions = {
+        metric_id: metric_definition(
+            metric_id, definition_version=definition_version, database_path=paths.database
+        )
+        for metric_id in CORE_API_IDENTITIES
+    }
     calendars: list[date] = []
     collected: dict[str, list[MarketBar]] = {metric_id: [] for metric_id in CORE_API_IDENTITIES}
     network_requests = 0
@@ -125,10 +131,7 @@ def refresh_core_history(
     # TuShare core responses have no reliable publication field.
     release_at, public_at = publication_times(None, ZoneInfo("Asia/Shanghai"))
     for metric_id, bars in collected.items():
-        definition = metric_definition(
-            metric_id,
-            definition_version=definition_version,
-        )
+        definition = definitions[metric_id]
         claims.extend(
             SourceClaimInput(
                 metric_id=metric_id,

@@ -9,6 +9,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from pring_cycle.adapters import CORE_SOURCE_CODES
 from pring_cycle.catalog import METRIC_CATALOG_V0003, MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.metric_contracts import official_source_members
@@ -105,6 +106,7 @@ def require_registered_source_contract(
     definition: MetricDefinition,
     *,
     provider: str,
+    source_reference: str,
     period_kind: str,
     dimensions: Mapping[str, str],
     unit: str,
@@ -113,6 +115,40 @@ def require_registered_source_contract(
 ) -> None:
     """New catalog identity alone does not certify an existing parser's output."""
     if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+        return
+    if definition.metric_id in CORE_SOURCE_CODES:
+        # Deferred because the adapter's selected-claim checks also use Evidence types.
+        from pring_cycle.source_adapters import CORE_API_IDENTITIES
+
+        supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+        core_fields = (
+            "priority",
+            "role",
+            "source_codes",
+            "dimensions",
+            "unit",
+            "frequency",
+            "release_event_family",
+            "release_rule",
+            "release_timezone",
+        )
+        if any(
+            getattr(definition, field) != getattr(supported, field) for field in core_fields
+        ) or set(definition.allowed_units or (definition.unit,)) != {"index_points"}:
+            raise ValueError("registered_core_source_contract_unsupported")
+        api, code = CORE_API_IDENTITIES[definition.metric_id]
+        if (
+            provider != "tushare"
+            or period_kind != "business_day"
+            or dimensions != {}
+            or unit != "index_points"
+            or source_reference != f"tushare:{api}:{code}:{period_end}"
+        ):
+            raise ValueError("registered_core_source_identity_mismatch")
+        start = date.fromisoformat(period_start)
+        end = date.fromisoformat(period_end)
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_core_source_period_mismatch")
         return
     members = (
         None

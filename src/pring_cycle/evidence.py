@@ -21,7 +21,7 @@ from pring_cycle.acquisition import (
     receipt_from_row,
 )
 from pring_cycle.catalog import metric_definition
-from pring_cycle.catalog_registry import require_registered_manifest
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
 from pring_cycle.source_contract_review import (
     require_registered_source_contract,
     require_source_contract,
@@ -242,6 +242,41 @@ class _PreloadedSeriesState:
 
 
 class EvidenceRepository:
+    def _validate_core_originals(self, claims: tuple[SourceClaimInput, ...]) -> None:
+        from pring_cycle.source_adapters import CORE_API_IDENTITIES, parse_core_acquisition
+
+        originals: dict[tuple[str, str], dict[str, float]] = {}
+        acquisitions = AcquisitionRepository(
+            self._database_path, self._database_path.parent / "artifacts" / "sha256"
+        )
+        for claim in claims:
+            if (
+                claim.metric_id not in CORE_API_IDENTITIES
+                or claim.definition_version in BUILTIN_CATALOG_VERSIONS
+                or claim.certification_status != "certified"
+            ):
+                continue
+            identities = set(claim.acquisition_ids)
+            if claim.acquisition_id is not None:
+                identities.add(claim.acquisition_id)
+            if not identities:
+                raise ValueError("registered_core_source_original_required")
+            for identity in identities:
+                key = (claim.metric_id, identity)
+                if key not in originals:
+                    try:
+                        receipt = acquisitions.get(identity)
+                        raw = acquisitions.read_content(identity, "raw")
+                        bars = parse_core_acquisition(receipt, raw, metric_id=claim.metric_id)
+                    except (LookupError, OSError, TypeError, ValueError) as error:
+                        raise ValueError("registered_core_source_original_mismatch") from error
+                    originals[key] = {bar.business_date.isoformat(): bar.close for bar in bars}
+                if (
+                    claim.period_end not in originals[key]
+                    or originals[key][claim.period_end] != claim.value
+                ):
+                    raise ValueError("registered_core_source_original_mismatch")
+
     def source_claim_originals(self, claim_id: str) -> tuple[tuple[AcquisitionReceipt, bytes], ...]:
         """Return hash-checked originals attached to this exact immutable claim."""
         with self._connect() as connection:
@@ -351,6 +386,7 @@ class EvidenceRepository:
             _validate_claim(claim, self._database_path)
             if claim.certification_status == "certified":
                 require_source_contract(claim.definition_version, metric_id=claim.metric_id)
+        self._validate_core_originals(claims)
         if availability_clock is not None:
             available_at = availability_clock()
             if available_at.tzinfo is None or any(
@@ -1223,6 +1259,7 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
         require_registered_source_contract(
             definition,
             provider=claim.provider,
+            source_reference=claim.source_reference,
             period_kind=claim.period_kind,
             dimensions=claim.dimensions,
             unit=claim.unit,
