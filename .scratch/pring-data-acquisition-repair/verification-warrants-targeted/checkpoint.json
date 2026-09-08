@@ -1,0 +1,143 @@
+{
+  "recorded_at": "2026-09-08T14:43:32.199121+00:00",
+  "base_commit": "96964cf4433b8d001ed932890239aa402a1bc04f",
+  "scope": "targeted eight-symbol warrant retrieval and physical-request lineage",
+  "software_slice_passed": true,
+  "associated_tests": 91,
+  "final_focused_tests": 3,
+  "application_mypy_files": 86,
+  "installed_sources": 86,
+  "test_file_mypy_passed": false,
+  "test_file_mypy_baseline_errors": 38,
+  "test_file_mypy_current_errors": 38,
+  "test_file_mypy_new_errors": 0,
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "worker_120d_complete_member_density_verified": false,
+  "real_source_certification": false,
+  "real_candidate_or_120d_replay": false,
+  "project_full_gate_passed": false,
+  "production_cutover": false,
+  "files": [
+    {
+      "path": "src/pring_cycle/targeted_context.py",
+      "bytes": 6396,
+      "sha256": "3601a81cd1b505c38f4762cf2c885ee2214851ec8b5f3dd523eb35b124a5cdeb"
+    },
+    {
+      "path": "tests/integration/test_search_evidence.py",
+      "bytes": 43348,
+      "sha256": "26b99c0b7546b1a29ed2eaadf9ebea45ac9abaaf1b728264ddfc736b0b6c67c8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-19-warrants-targeted.md",
+      "bytes": 2660,
+      "sha256": "46a5f269770dc446f49d798575fc1028510e8b3fc6c16a33364ef4de77b4b5af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md",
+      "bytes": 9329,
+      "sha256": "99137aafa9713b88664658f2d823a3cc05f897c323c315f07836e958c6e7672f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted/review.md",
+      "bytes": 1225,
+      "sha256": "2e7980e6fbf593b05ea5a61795720f9ed03c06ddf0e80a4e34c3686012738c3e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted/finalize.py",
+      "bytes": 3289,
+      "sha256": "4c2e8c7cb073b3a2e8f4e099ca66af4fd2ee7d5d18016fce539225000dad137b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-associated-01.txt",
+      "bytes": 390,
+      "sha256": "a56a486914d42b0758e36df7f7f2e6c2a72a0fec8ddb2cb064cefd183edf72f8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-diagnostic-01.txt",
+      "bytes": 11212,
+      "sha256": "a9d0b3ed429c4ef2acefe0b0f08643289e62e0dd7dfa5ecfc6f4bd713867ac82"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-final-01.txt",
+      "bytes": 232,
+      "sha256": "ac240c5a69cc636d52b088d7eb605b8d432a1232e5bab234ac2d49920142e7eb"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-format-01.txt",
+      "bytes": 2958,
+      "sha256": "621a60a43c0ae894a99082fc98bc1020e0b54f3a36b8ccca364c92d4af67226d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-format-final.txt",
+      "bytes": 56,
+      "sha256": "1ba32d724ec0aa587aba7888f97338980bc34aae522616cf9f35d4e0b38e574d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-green-01.txt",
+      "bytes": 1306,
+      "sha256": "94a99537e2ee9f259967fccab1580ed5ef7820ec5422a450f77729c2e61653ef"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-green-02.txt",
+      "bytes": 232,
+      "sha256": "33f084be7ddce154caeab3c411b5d4d2b3a7fa37029929e4165aadd75adc8cff"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-mypy-01.txt",
+      "bytes": 9248,
+      "sha256": "8e51920050e1c6ba9ffacf46cd55a8742a4dbbb552d61e475f66a3a8b85fc034"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-mypy-02.txt",
+      "bytes": 9418,
+      "sha256": "b86bd2c610e6845b6b28505950a6f2f2a4aed760a51261d34f8d979941b12ef6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-mypy-03.txt",
+      "bytes": 9026,
+      "sha256": "f56839ac80ee3d63c97352c20fe3716693467f4fa1406b6c89bb56391a93377d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-mypy-app.txt",
+      "bytes": 92,
+      "sha256": "52156dc65fa1ecfd927961af189086508f1464ab81cb355fc9f7a4c5c40d58ce"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-mypy-baseline.txt",
+      "bytes": 11060,
+      "sha256": "44c321b82e90df31580f00068df5d8c9758c488cefa9eae2f5065931f7b978d9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-red-01.txt",
+      "bytes": 1620,
+      "sha256": "c33aad91e22eb18a0088568e3f28e4250965761acdd17047ccf0569f5dc63043"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-retry-01.txt",
+      "bytes": 232,
+      "sha256": "3cf4fc04cd18cc0a9d353714921f2f2b862855bdec301b1aaf086b6dc37b2e28"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-ruff-01.txt",
+      "bytes": 1456,
+      "sha256": "59734b6b6d278ef30092f185759fd51feb505fad09e0a4fd7c5062005e355507"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-ruff-02.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-ruff-final.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-targeted-fingerprint.json",
+      "bytes": 13932,
+      "sha256": "57c4c4becfcbb8c9f82482e0fcfc542760fbfb796126b2397b07fc48447266ec"
+    }
+  ]
+}

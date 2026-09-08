@@ -14,6 +14,7 @@ from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import select_retrieval_input
 from pring_cycle.tushare_context import (
+    WARRANT_SYMBOLS,
     ContextRequestOperation,
     ContextRows,
     ContextScalar,
@@ -58,6 +59,18 @@ def retrieve_tushare_context(
         )
     elif len(scope.period) == 10:
         day = date.fromisoformat(scope.period)
+        if metrics == {"CN_FUTURES_WARRANTS"}:
+
+            def retrieve_warrants() -> tuple[ContextScalar, ...]:
+                return tuple(
+                    scalar
+                    for symbol in sorted(WARRANT_SYMBOLS)
+                    for scalar in adapter.futures_warrants(
+                        start_date=day, end_date=day, symbol=symbol
+                    )
+                )
+
+            retrieve = retrieve_warrants
         daily_methods = (
             ({"CN_DR007", "CN_SHIBOR_ON_1W_3M"}, adapter.transmission),
             ({"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}, adapter.treasury_yields),

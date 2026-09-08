@@ -255,6 +255,168 @@ def test_search_candidate_rejections_and_discovery_bounds(
         assert validations[0]["outcome"] == "not_model_usable"
 
 
+@pytest.mark.parametrize("pp_failures", [0, 2, 3])
+@pytest.mark.usefixtures("runtime_clock")
+def test_targeted_warrants_records_each_of_eight_deliveries(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    pp_failures: int,
+) -> None:
+    from urllib.request import Request
+
+    from pring_cycle.evidence import EvidenceValueState, SourceClaimInput
+    from pring_cycle.models import analytical_model_v0002_manifest
+
+    paths, runs = prepare(tmp_path)
+    models = ModelRepository(paths.database)
+    models.create_candidate(analytical_model_v0002_manifest())
+    models.record_acceptance("model-v0002", CALIBRATION_BASELINE)
+    models.record_replay(
+        "model-v0002",
+        compared_with="model-v0001",
+        requested_start="2026-03-09",
+        requested_end="2026-08-28",
+        quality_passed=True,
+        regression_passed=True,
+        performance_passed=True,
+        stage_differences=0,
+        core_state_differences=0,
+        gaps=(),
+    )
+    models.activate("model-v0002", explicitly_approved=True)
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n")
+    now = datetime.now(UTC)
+    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    # This legacy harness exercises the task/Worker/request ledger seam only.
+    # Its synthetic quantities and units are not source certification.
+    EvidenceRepository(paths.database).append_source_claim(
+        SourceClaimInput(
+            metric_id="CN_FUTURES_WARRANTS",
+            definition_version="metric-catalog-v0002",
+            period_kind="business_day",
+            period_start="2026-08-28",
+            period_end="2026-08-28",
+            dimensions={
+                "symbol": "CU",
+                "warehouse": "publication-marker",
+                "exchange": "synthetic",
+                "measure": "registered_receipts",
+            },
+            value=None,
+            value_state=EvidenceValueState.NOT_DISCLOSED,
+            unit="tonne",
+            provider="synthetic-publisher",
+            source_reference="synthetic:known-warrant-publication",
+            release_event_id="synthetic:known-warrant-publication",
+            release_at=public_at,
+            public_available_at=public_at,
+            fetched_at=now,
+            available_at=now,
+            certification_status="awaiting_source_certification",
+            quality_status="validated",
+        )
+    )
+    calls: list[str] = []
+    originals: dict[str, bytes] = {}
+
+    class Response(BytesIO):
+        status = 200
+        headers = {"Content-Type": "application/json"}
+
+    class Opener:
+        def open(self, request: Request, **kwargs: object) -> Response:
+            assert isinstance(request.data, bytes)
+            payload = json.loads(request.data)
+            assert payload["api_name"] == "fut_wsr"
+            symbol = payload["params"]["symbol"]
+            assert payload["params"] == {
+                "symbol": symbol,
+                "start_date": "20260828",
+                "end_date": "20260828",
+            }
+            calls.append(symbol)
+            if symbol == "PP" and calls.count("PP") <= pp_failures:
+                raise TimeoutError("synthetic-warrants-transport-timeout")
+            rows = [["20260828", symbol, "synthetic-first", 90, 100, 10, "吨", "synthetic"]]
+            if symbol == "CU":
+                rows.append(["20260828", symbol, "synthetic-second", 20, 25, 5, "吨", "synthetic"])
+            raw = json.dumps(
+                {
+                    "code": 0,
+                    "data": {
+                        "fields": [
+                            "trade_date",
+                            "symbol",
+                            "warehouse",
+                            "pre_vol",
+                            "vol",
+                            "vol_chg",
+                            "unit",
+                            "exchange",
+                        ],
+                        "items": rows,
+                    },
+                },
+                ensure_ascii=False,
+            ).encode()
+            originals[symbol] = raw
+            return Response(raw)
+
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
+    submitted = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="targeted-eight-warrants",
+        model_version_id="model-v0002",
+        system_as_of=now + timedelta(days=1),
+        release_event_id="synthetic:warrants:2026-08-28",
+        metric_ids=("CN_FUTURES_WARRANTS",),
+        period="2026-08-28",
+    )
+    process_pending_run(paths, report_adapters=(), retrieval_now=now)
+    stored = runs.get(submitted.run_id)
+    if pp_failures == 3:
+        assert calls == ["CF", "CU", "PP", "PP", "PP"]
+    else:
+        assert calls == ["CF", "CU", *(["PP"] * (pp_failures + 1)), "RB", "RU", "SC", "SP", "PTA"]
+    assert stored.status == "action_required"  # Raw delivery cannot establish PUBLIC time.
+    physical = [r for r in stored.retrieval_ledger["requests"] if r["channel"] == "tushare"]
+    assert len(physical) == (5 if pp_failures == 3 else 8 + pp_failures)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    for item in physical:
+        receipt = acquisitions.get(item["acquisition_id"])
+        if receipt.raw_hash is not None:
+            assert receipt.state == ("failed" if pp_failures == 3 else "validated")
+            assert (
+                acquisitions.read_content(receipt.acquisition_id, "raw")
+                == originals[receipt.parameters["symbol"]]
+            )
+        else:
+            assert receipt.state == "failed"
+            assert item["classification"] == "transient_transport_error"
+    evidence = EvidenceRepository(paths.database)
+    points = [
+        p
+        for p in evidence.metric_series(
+            "CN_FUTURES_WARRANTS",
+            mode=AsOfMode.SYSTEM,
+            as_of=stored.system_as_of,
+            definition_version="metric-catalog-v0002",
+        )
+        if any(c.provider == "tushare" for c in p.claims)
+    ]
+    assert len(points) == (0 if pp_failures == 3 else 27)
+    for point in points:
+        assert all(c.public_available_at is None for c in point.claims)
+        (receipt,) = evidence.trace(
+            point.observation_id, mode=AsOfMode.SYSTEM, as_of=stored.system_as_of
+        ).acquisitions
+        assert receipt.parameters["symbol"] == (
+            "PTA" if point.dimensions["symbol"] == "TA" else point.dimensions["symbol"]
+        )
+    assert "fixture-secret" not in json.dumps(stored.retrieval_ledger)
+
+
 @pytest.mark.parametrize("ppi_failures", [0, 2])
 @pytest.mark.usefixtures("runtime_clock")
 def test_targeted_tushare_traces_each_physical_response_before_search_fallback(
