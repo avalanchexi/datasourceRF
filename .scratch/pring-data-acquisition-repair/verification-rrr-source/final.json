@@ -1,0 +1,80 @@
+{
+  "status": "source_ingestion_code_checkpoint_full_project_gate_open",
+  "goal_complete": false,
+  "related": {
+    "passed": 178,
+    "failed": 0,
+    "seconds": 377.38
+  },
+  "final_targeted": {
+    "passed": 8,
+    "failed": 0,
+    "seconds": 24.08
+  },
+  "mypy_files": 85,
+  "installed_source_matches": 84,
+  "review_remaining": {
+    "spec": 0,
+    "standards": 0
+  },
+  "dynamic_rrr_member_selection_implemented": false,
+  "actual_rrr_certifications": 0,
+  "actual_candidate_models": 0,
+  "full_gate_passed": false,
+  "preserved_logs": [
+    {
+      "path": "verification-rrr-source-final-focused-01.txt",
+      "sha256": "9662b7d4cec41d6a02908ae546d52fb80ca0c32503646199cd92e95e85d20e12"
+    },
+    {
+      "path": "verification-rrr-source-focused-01.txt",
+      "sha256": "d9e23be4e82ec9d7da158d046e6bf1d2a5b0bad74971d2703345243f0067041d"
+    },
+    {
+      "path": "verification-rrr-source-green-01.txt",
+      "sha256": "3b34ec575d5c93c39f086baa94c696e3ee1c8b973290851a1103eb4f96fafc6f"
+    },
+    {
+      "path": "verification-rrr-source-red-01.txt",
+      "sha256": "2f3acc88b48f88f8562d27df020809e0bacca8c6fbfb4883fc94e4eeac85aa25"
+    },
+    {
+      "path": "verification-rrr-source-related-01.txt",
+      "sha256": "9ddb5c161f1ee05a975d4406be60941c465bf33126240ee51a0465ae22c2988b"
+    },
+    {
+      "path": "verification-rrr-source-related-02.txt",
+      "sha256": "2f5a1acf5689c32491beb5d6fd776b5231aede7a741263e4f9e33aba4a9f2cb3"
+    },
+    {
+      "path": "verification-rrr-source/format-final.txt",
+      "sha256": "1ba32d724ec0aa587aba7888f97338980bc34aae522616cf9f35d4e0b38e574d"
+    },
+    {
+      "path": "verification-rrr-source/mypy-final.txt",
+      "sha256": "d17eae137eb9204aa86175716821216eb538ca559dc70175f0a8423da08bbc89"
+    },
+    {
+      "path": "verification-rrr-source/mypy.txt",
+      "sha256": "b5c306d8c1cb83eb0f0830d6a7a9d9773d7289fc2177d67c82890b3b415e9c29"
+    },
+    {
+      "path": "verification-rrr-source/ruff-final.txt",
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": "verification-rrr-source/ruff.txt",
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    }
+  ],
+  "source_files": [
+    {
+      "path": "src/pring_cycle/source_contract_review.py",
+      "sha256": "1b1a95adacd7bdba95f3a91d22b68f4a6aec948a93c7b2a6aa3e3a394b3655ac"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "sha256": "c47fbc0962fc8edb25eceda9d35bf1b424a3a772e96d10309b2455d9b6c0bd3c"
+    }
+  ]
+}

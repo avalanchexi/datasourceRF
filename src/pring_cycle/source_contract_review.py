@@ -176,6 +176,7 @@ def require_registered_source_contract(
         "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
         "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
         "CN_CORE_CPI": ("cpi", "国家统计局"),
+        "CN_RRR_EVENT": ("rrr", "中国人民银行"),
         "CN_DR007": ("interbank", "tushare"),
         "CN_SHIBOR_ON_1W_3M": ("interbank", "tushare"),
     }
@@ -183,7 +184,7 @@ def require_registered_source_contract(
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
     supported = metric_definition(definition.metric_id)
-    if family == "interbank":
+    if family in {"interbank", "rrr"}:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
@@ -201,6 +202,28 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "rrr":
+        units = {
+            "rrr_change": "percentage_points",
+            "post_change_rrr": "percent",
+            "released_funds": "hundred_million_cny",
+        }
+        if (
+            provider != supported_provider
+            or period_kind != "event"
+            or set(dimensions) != {"scope", "measure"}
+            or not dimensions.get("scope", "").strip()
+            or unit != units.get(dimensions.get("measure", ""))
+        ):
+            raise ValueError("registered_rrr_source_identity_mismatch")
+        try:
+            start = date.fromisoformat(period_start)
+            end = date.fromisoformat(period_end)
+        except ValueError:
+            raise ValueError("registered_rrr_source_period_mismatch") from None
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_rrr_source_period_mismatch")
+        return
     if family == "interbank":
         valid_dimensions = (
             dimensions == {}

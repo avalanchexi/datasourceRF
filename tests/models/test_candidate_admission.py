@@ -135,6 +135,129 @@ def cpi_document() -> bytes:
 
 
 @pytest.mark.usefixtures("runtime_clock")
+def test_registered_rrr_original_preserves_distinct_scopes_and_two_times(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    digest = "27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair"
+        / "evidence-search-preexperiment-20260908-n4-v1"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    # A new synthetic import clock; never the real pilot's acquisition timestamp.
+    now = datetime(2026, 9, 8, 6, tzinfo=UTC)
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="pbc_rrr_notice",
+        source_url="https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+        expected_period="2025-05",
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=version,
+    )
+    assert len(imported.claim_ids) == 2
+    evidence = EvidenceRepository(paths.database)
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        points = evidence.metric_series(
+            "CN_RRR_EVENT", mode=mode, as_of=now, definition_version=version
+        )
+        assert {(p.dimensions["scope"], p.selected_value) for p in points} == {
+            ("excluding_5_percent_institutions", -0.5),
+            ("auto_finance_and_financial_leasing_companies", -5.0),
+        }
+        for point in points:
+            assert point.period_start == point.period_end == "2025-05-15"
+            assert point.dimensions["measure"] == "rrr_change"
+            (claim,) = point.claims
+            assert claim.unit == "percentage_points"
+            assert claim.public_available_at == datetime(2025, 5, 7, 2, tzinfo=UTC)
+            assert claim.available_at >= now
+    assert not evidence.metric_series(
+        "CN_RRR_EVENT",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2025, 5, 7, 1, 59, 59, tzinfo=UTC),
+        definition_version=version,
+    )
+    assert not evidence.metric_series(
+        "CN_RRR_EVENT",
+        mode=AsOfMode.SYSTEM,
+        as_of=now - timedelta(seconds=1),
+        definition_version=version,
+    )
+    (receipt,) = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert (
+        AcquisitionRepository(paths.database, paths.artifacts).read_content(
+            receipt.acquisition_id, "raw"
+        )
+        == raw
+    )
+
+
+@pytest.mark.parametrize(
+    "fault",
+    ["provider", "scope", "measure", "unit", "period_kind", "period_bounds", "invalid_date"],
+)
+def test_registered_rrr_identity_rejection_keeps_whole_batch_empty(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 9, 8, 6, tzinfo=UTC)
+    claim = SourceClaimInput(
+        metric_id="CN_RRR_EVENT",
+        definition_version=request["manifest"]["metric_catalog_version"],
+        period_kind="event",
+        period_start="2025-05-15",
+        period_end="2025-05-15",
+        dimensions={"scope": "excluding_5_percent_institutions", "measure": "rrr_change"},
+        value=-0.5,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="percentage_points",
+        provider=OFFICIAL_CONTEXT_FAMILIES["pbc_rrr_notice"].provider,
+        source_reference="synthetic:rrr-identity",
+        release_event_id="synthetic:rrr-identity",
+        release_at=now,
+        public_available_at=now,
+        fetched_at=now,
+        available_at=now,
+        certification_status="certified",
+        quality_status="validated",
+    )
+    changes_by_fault: dict[str, dict[str, Any]] = {
+        "provider": {"provider": "synthetic:wrong-provider"},
+        "scope": {"dimensions": {"scope": " ", "measure": "rrr_change"}},
+        "measure": {"dimensions": {"scope": "all", "measure": "unknown"}},
+        "unit": {"unit": "percent"},
+        "period_kind": {"period_kind": "month"},
+        "period_bounds": {"period_start": "2025-05-01", "period_end": "2025-05-31"},
+        "invalid_date": {"period_start": "2025-05-99", "period_end": "2025-05-99"},
+    }
+    repository = EvidenceRepository(paths.database)
+    with pytest.raises(ValueError, match="registered_rrr_source_.*mismatch"):
+        repository.append_source_claims((claim, replace(claim, **changes_by_fault[fault])))
+    assert not repository.metric_series(
+        claim.metric_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=now,
+        definition_version=claim.definition_version,
+    )
+
+
+@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("public_known", [False, True])
 def test_registered_interbank_acquisition_preserves_public_boundary(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], public_known: bool

@@ -10,8 +10,9 @@
 - 修复后正例：1通过、118 deselected、3.65秒。
 - 针对回归：8通过、118 deselected、11.01秒。
 - Spec静态复审0；Standards指出的原件跟踪问题已由c062d76证据检查点解决，原件属性-text/-diff且hash一致，复审剩余0。
-- 关联回归未启动：WSL发行版挂载报0x80070070，C盘可用0字节。日志[保留](verification-rrr-source-related-01.txt)。未执行本切片Ruff/mypy及最终全量门；不能称完整验收。
+- 首次关联回归未启动：WSL发行版挂载报0x80070070，C盘可用0字节，原[失败日志](verification-rrr-source-related-01.txt)保留。空间恢复后新运行178项关联回归全部通过（377.38秒）。
+- 类型检查曾发现测试参数表推断为object，现使用显式嵌套字典标注；最终mypy85文件通过，8项针对回归24.08秒通过，Ruff/格式检查通过，84个已安装Python源码与工作区一致。应用语义未因测试类型标注改变。
 
 源代码此前通过的搜索/macro门不替代本切片验证。RRR动态公告成员、修订时点、完整窗口及阶段期限仍待独立推进；未创建实际候选、激活模型或切换。
 
-[本切片未完成检查点](verification-rrr-source/checkpoint.json)绑定8项针对回归、失败环境日志及两文件指纹。源码及测试保留工作区待恢复验证，未作为已验收代码提交。
+[早期未完成检查点](verification-rrr-source/checkpoint.json)保留当时环境失败状态；[最终代码切片检查点](verification-rrr-source/final.json)补充恢复后的验证。此切片可提交，不关闭整票19或项目全套最终门。
