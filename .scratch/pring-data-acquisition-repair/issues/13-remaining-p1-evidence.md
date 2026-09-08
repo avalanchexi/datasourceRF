@@ -32,6 +32,8 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 
 ## Comments
 
+- 2026-09-08：配对实验之后独立读取3条新的DCE候选地址，浏览工具均未取得正文，PP单位/目标日原表新增证据为0；旧失败细则已跳过。[失败记录](../pp-search-followup.md)不计入原8次Tavily/Exa配对分母，不推断源站状态或规则变更。
+
 - 2026-09-08：真实Tavily预实验取得此前缺失的PBC原通知（2025-05-07 10:00:00页头、2025-05-15生效、两范围-0.5/-5个百分点）；Exa另取得PBC发布会实录和上半年回顾。见[逐件核验](../search-preexperiment-document-review.md)。公开解析入口已复算两个scope及发布时间；不倒填SYSTEM，不授正式认证。完整RRR事件序列、最近前置及阶段期限仍缺；新目录RRR入库切片8项针对回归通过，动态成员选择仍待实现。
 
 - 2026-09-08：[DR007/Shibor软件消费](../implementation-19-interbank-consumption.md)在新目录下通过12新增和156关联回归；公共采集保存合成transport原字节，CFETS独立数值用于软件校验，不冒充实际TuShare交付或历史PUBLIC。剩余真实认证/时间和RRR/仓单缺口仍依本票处理。
