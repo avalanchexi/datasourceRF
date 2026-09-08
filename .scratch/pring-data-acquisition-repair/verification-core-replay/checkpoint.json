@@ -1,0 +1,200 @@
+{
+  "recorded_at": "2026-09-08T16:34:15.594462+00:00",
+  "base_commit": "4084834744b5d5514e0dd5952e847f0d37247c20",
+  "scope": "per-cutoff PUBLIC core revision selection and input path fingerprint",
+  "software_slice_passed": true,
+  "associated_tests": 269,
+  "final_tests": 23,
+  "application_and_changed_test_mypy_files": 88,
+  "installed_python_sources": 86,
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "synthetic_benchmark": {
+    "evaluated_days": 1995,
+    "evaluation_seconds": 40.56042481199984,
+    "evidence_hash": "b1c5bd496ccbb9a6b820116448ff7691286c5057ba74fef2f30b7b4920589fd1",
+    "historical_revisions": 1,
+    "input_days": 2338,
+    "real_china_calendar_or_full_parallel_replay_acceptance": false,
+    "scope": "synthetic weekdays, values, certification and publication times",
+    "source_claims": 7015
+  },
+  "real_source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_china_trading_day_replay": false,
+  "candidate_fields_replay_acceptance": false,
+  "project_full_gate_passed": false,
+  "production_cutover": false,
+  "runtime_core_original_loss_or_corruption_tested": false,
+  "core_original_research_inputs_verified_before_final_type_annotations": 16,
+  "core_original_research_links_verified": 27,
+  "network_model_requests": 0,
+  "real_qualified_ai_outputs": 0,
+  "files": [
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "bytes": 41618,
+      "sha256": "b922af5d02abcddfd516214754015dfa7e4ab1c487627e769b09f9349278f1d5"
+    },
+    {
+      "path": "tests/models/test_model_evaluation_regressions.py",
+      "bytes": 23867,
+      "sha256": "657f9647c19efd6e058c6545bf9c6121120864f36dc154a341eb43bd18ef6b98"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay/benchmark.py",
+      "bytes": 3498,
+      "sha256": "0205c45da424d86281f8657fb8154d26a8117f0b0290335bc9632d4f1b3ceac2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay/review.md",
+      "bytes": 1950,
+      "sha256": "76eecdc1edbc3982ab02b673d746a593ef09c0de8d078c13ed3c49bc58858c5f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay/finalize.py",
+      "bytes": 4413,
+      "sha256": "348f38df568645afffb9cfb662b5ddbd761d9c581293ad5af62ba3c5dd87e62a"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-21-core-public-replay.md",
+      "bytes": 4615,
+      "sha256": "c711fe52a70e6b4a7245c858a9d900d941ddc203753894828ea105f9a1a48c0c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md",
+      "bytes": 4345,
+      "sha256": "839811ba9a331433fdc4cd9a396596dd5d467c7c8e62c535edaaf8afa7139c16"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/18-report-cli-evidence.md",
+      "bytes": 4528,
+      "sha256": "33b0b406a9a6e5588c139a60496c8fea4b31147c379c91c72228ad0bfb0a13af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/core-original-consumption-boundary.md",
+      "bytes": 15372,
+      "sha256": "d27e012154b123c973568fbbb22a7f6c53d2bdc1da3eda1d845c5e085eb3b167"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-18-connectivity-20260909/listener.json",
+      "bytes": 194,
+      "sha256": "45bc998013c9eaa5b82955939736aad18607d9490af900274415dd9aa684e5ed"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-18-connectivity-20260909/review.md",
+      "bytes": 1116,
+      "sha256": "8c26653abc467012740017d3a476bd68ac462742352023254dd1c1b19fe754e4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-18-connectivity-20260909/windows-proxy.txt",
+      "bytes": 942,
+      "sha256": "f672ab6d0df682fde8ddfb967e4c2b1a0cc2484a016dd2d45b77a20c9da5577c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/evidence-18-connectivity-20260909/wsl-direct.txt",
+      "bytes": 956,
+      "sha256": "5f5622880e34efc3d2d67c2c62a9b722bddfbd4a8295ca882cdfe3e44e8da3a6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-all-missing-green-01.txt",
+      "bytes": 232,
+      "sha256": "1dd0a3929d85dc2d4cfa9e1d0b283342bb8590a48b8d6c46fe3f67425a874bd3"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-all-missing-red-01.txt",
+      "bytes": 2824,
+      "sha256": "27bcb5b95ff1aaa84d4122db5219124310cd84ff4cd7a1308aa0e36db8b3ea82"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-associated-01.txt",
+      "bytes": 716,
+      "sha256": "36d67d1e9e427a0633bad2ba5222fb03d080c8cbd483717a24977e64a80d22d6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-benchmark-01.txt",
+      "bytes": 774,
+      "sha256": "ac1bc8907d4a24e05086f21761ecf2a965435adca3bb4a1c1aa5e7503877d8ec"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-final-01.txt",
+      "bytes": 840,
+      "sha256": "bd5560712a94e188f254678e26cae595c2b99bd3f8dfac6d9b78f5cd46756220"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-format-final.txt",
+      "bytes": 56,
+      "sha256": "f8db66624dca1692f16e9e88db61386f2e7352235dac883aa085892fffc1a5ac"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-missing-green-01.txt",
+      "bytes": 230,
+      "sha256": "387d63916a1b91861edee79f69d43ec39cb1d7e80d5b778ae83d9fbb4fc3cad3"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-missing-red-01.txt",
+      "bytes": 2790,
+      "sha256": "c17251b6a7a2195deed6676cf71e080d11b4821c67370f32afea664dc96bab42"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-mypy-01.txt",
+      "bytes": 1440,
+      "sha256": "b21b2f0362b88b77b8e4af6511588eb7d34e8d57918de2d75d487b11dcdab42d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-mypy-final.txt",
+      "bytes": 92,
+      "sha256": "2fb97d20268e8a36315f1d8f9802fe95fcec3f43b391159917b698c3f78232de"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-path-green-01.txt",
+      "bytes": 206,
+      "sha256": "c1c3f2b44d969c3dc9d8d306b99f0b38221783228c24fa130132092133fada50"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-price-green-01.txt",
+      "bytes": 232,
+      "sha256": "c985dac94509de1bdc4361bc44b08cd1a7804068e968f74b1e559e0a231861f1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-price-red-01.txt",
+      "bytes": 2940,
+      "sha256": "9192009e96935287bbd606a52f9fde3769a34e12d745aea162fa65a0978bc0ad"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-quality-green-01.txt",
+      "bytes": 230,
+      "sha256": "24b57f1a82b5b289a32c965225bf7c1f8b0005d2203520a5a7da3572eb8fa30f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-quality-red-01.txt",
+      "bytes": 4122,
+      "sha256": "3267e504d1736b07ac48fa8413c9191d913849b82aa8a91a196650c810dad77f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-revision-green-01.txt",
+      "bytes": 230,
+      "sha256": "ac20c53f967e2c094d0eb96d8710112a8461464c323cb36ba60b8535b1d5a34c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-revision-red-01.txt",
+      "bytes": 1712,
+      "sha256": "35f4c6bdd94baac4de9aeedb05c055b7b814f4fa35b1fc9802551944f23c25f2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-ruff-final.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-segments-green-01.txt",
+      "bytes": 206,
+      "sha256": "3b5d3f02be7ed5d64cf96907227aaafb433dc0952449e482006807933da96289"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-core-replay-fingerprint.json",
+      "bytes": 13932,
+      "sha256": "d9d07617f4425b92100f1bd31bcd1e3ef138fd24a9cb4cd27fefa46eaa4663ae"
+    }
+  ]
+}

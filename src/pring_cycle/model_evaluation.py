@@ -21,7 +21,12 @@ from pring_cycle.context_projection import (
 )
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend_history
+from pring_cycle.domain.trend import (
+    PricePoint,
+    TrendHistoryPoint,
+    TrendRules,
+    evaluate_trend_history,
+)
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
 from pring_cycle.metric_contracts import (
     REQUIRED_DIMENSION_MEMBERS,
@@ -234,74 +239,110 @@ def evaluate_history(
     evidence = EvidenceRepository(database)
     evidence.preload_metric_series({(metric_id, definition_version) for metric_id in metric_ids})
     end_date = date.fromisoformat(requested_end) if requested_end is not None else date.max
-    final_cutoff = _china_business_day_end(end_date)
-    final_series = {
-        asset: evidence.metric_series(
-            metric_id,
-            mode=AsOfMode.PUBLIC,
-            as_of=final_cutoff,
-            definition_version=definition_version,
-        )
-        for asset, metric_id in zip(_ASSETS, metric_ids, strict=True)
-    }
-    all_common_days = sorted(
-        set.intersection(
-            *(set(point.period_end for point in final_series[asset]) for asset in _ASSETS)
-        )
+    # Discover expected recorded dates without hiding unknown or late PUBLIC claims.
+    # Vintage metadata contributes dates only; all prices are selected at daily cutoffs.
+    all_observed_days = sorted(
+        {
+            vintage.period_end
+            for metric_id in metric_ids
+            for vintage in evidence.source_claim_vintages(
+                metric_id, definition_version=definition_version
+            )
+        }
     )
     history_input_start = _history_input_start(manifest, requested_start)
     input_days = [
-        day for day in all_common_days if history_input_start <= day <= end_date.isoformat()
+        day for day in all_observed_days if history_input_start <= day <= end_date.isoformat()
     ]
     common_days = [day for day in input_days if requested_start <= day]
     if not input_days or not common_days:
         raise ValueError("calibration_evidence_incomplete")
-    points_by_asset = {
-        asset: {point.period_end: point for point in final_series[asset]} for asset in _ASSETS
-    }
-    if any(
-        points_by_asset[asset][day].selection_status != "selected"
-        or points_by_asset[asset][day].selected_value is None
-        for asset in _ASSETS
-        for day in input_days
-    ):
-        raise ValueError("calibration_evidence_incomplete")
-    evidence_hash = hashlib.sha256(
+    evidence_digest = hashlib.sha256(
         json.dumps(
             {
+                "schema_version": "core-public-input-path-v0001",
                 "definition_version": definition_version,
                 "input_range_end": input_days[-1],
                 "input_range_start": input_days[0],
                 "measurement_range_end": common_days[-1],
                 "measurement_range_start": common_days[0],
-                "series": {
-                    asset: [[day, points_by_asset[asset][day].selected_value] for day in input_days]
-                    for asset in _ASSETS
-                },
             },
             ensure_ascii=False,
             separators=(",", ":"),
             sort_keys=True,
         ).encode()
-    ).hexdigest()
-    trend_history = {}
-    for asset in _ASSETS:
-        points: list[PricePoint] = []
-        for day in input_days:
-            selected_value = points_by_asset[asset][day].selected_value
-            if selected_value is None:
-                raise ValueError("calibration_evidence_incomplete")
-            points.append(
-                PricePoint(
-                    date.fromisoformat(day),
-                    float(selected_value),
+    )
+    trend_by_day: dict[str, dict[str, TrendHistoryPoint]] = {}
+    for asset, metric_id in zip(_ASSETS, metric_ids, strict=True):
+        trend_by_day[asset] = {}
+        previous_points: list[PricePoint] = []
+        segment_start = 0
+        for index, day in enumerate(input_days):
+            cutoff = _china_business_day_end(date.fromisoformat(day))
+            visible = {
+                point.period_end: point
+                for point in evidence.metric_series(
+                    metric_id,
+                    mode=AsOfMode.PUBLIC,
+                    as_of=cutoff,
+                    definition_version=definition_version,
                 )
+                if history_input_start <= point.period_end <= day
+            }
+            prefix = input_days[: index + 1]
+            if any(
+                prior not in visible
+                or visible[prior].selection_status != "selected"
+                or (value := visible[prior].selected_value) is None
+                or value <= 0
+                for prior in prefix
+            ):
+                raise ValueError("calibration_evidence_incomplete")
+            selected = [visible[prior] for prior in prefix]
+            if any(
+                point.value_state is not EvidenceValueState.REPORTED_VALUE
+                or not any(
+                    claim.claim_id == point.selected_claim_id
+                    and claim.certification_status == "certified"
+                    and claim.quality_status == "validated"
+                    for claim in point.claims
+                )
+                for point in selected
+            ):
+                raise ValueError("calibration_evidence_incomplete")
+            evidence_digest.update(
+                json.dumps(
+                    {
+                        "asset": asset,
+                        "cutoff": cutoff.isoformat(),
+                        "inputs": [
+                            [
+                                point.period_end,
+                                point.observation_id,
+                                point.selected_claim_id,
+                                point.selected_value,
+                            ]
+                            for point in selected
+                        ],
+                    },
+                    separators=(",", ":"),
+                    sort_keys=True,
+                ).encode()
+                + b"\n"
             )
-        trend_history[asset] = evaluate_trend_history(points, rules)
-    trend_by_day = {
-        asset: {point.business_date.isoformat(): point for point in trend_history[asset]}
-        for asset in _ASSETS
-    }
+            points = [
+                PricePoint(date.fromisoformat(point.period_end), float(point.selected_value))
+                for point in selected
+                if point.selected_value is not None
+            ]
+            # Extending an unchanged positive price prefix cannot revise earlier trends.
+            # Recompute the full prefix only across actual historical price revisions,
+            # retaining outputs only for the cutoffs that selected that version.
+            if previous_points and points[:-1] != previous_points:
+                trend_by_day[asset].update(_trend_segment(previous_points, rules, segment_start))
+                segment_start = index
+            previous_points = points
+        trend_by_day[asset].update(_trend_segment(previous_points, rules, segment_start))
 
     states_by_day: dict[str, tuple[str | None, str | None, str | None]] = {}
     stages_by_day: dict[str, str | None] = {}
@@ -373,10 +414,21 @@ def evaluate_history(
         time.perf_counter() - started,
         states_by_day,
         stages_by_day,
-        evidence_hash,
+        evidence_digest.hexdigest(),
         len(input_days),
         input_days[0],
     )
+
+
+def _trend_segment(
+    points: list[PricePoint],
+    rules: TrendRules,
+    start_index: int,
+) -> dict[str, TrendHistoryPoint]:
+    return {
+        point.business_date.isoformat(): point
+        for point in evaluate_trend_history(points, rules)[start_index:]
+    }
 
 
 def _ma_position(distance_pct: float | None) -> CoreAssetState | None:
