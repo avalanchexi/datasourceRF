@@ -1,0 +1,34 @@
+{
+  "arm_id": "cny030-close-20260828:tavily",
+  "candidate_index": 0,
+  "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000012factsheet.pdf",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "received",
+  "http_status": 200,
+  "media_type": "application/pdf",
+  "bytes": 421982,
+  "validation": "manual_review_pending",
+  "elapsed_seconds": 0.4984856670000042,
+  "acquisition_ids": [
+    "acquisition-d732955fcb5243b4bba7f6ccd39f197d"
+  ],
+  "receipt": {
+    "acquisition_id": "acquisition-d732955fcb5243b4bba7f6ccd39f197d",
+    "provider": "official_preexperiment",
+    "api_name": "https_get",
+    "parameters": {
+      "arm_id": "cny030-close-20260828:tavily",
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000012factsheet.pdf"
+    },
+    "fields": "raw_document",
+    "parser_version": "pilot-document-capture-v1",
+    "started_at": "2026-09-08 05:50:10.560167+00:00",
+    "received_at": "2026-09-08 05:50:10.920395+00:00",
+    "validated_at": "2026-09-08 05:50:11.047281+00:00",
+    "state": "validated",
+    "raw_hash": "14a82215156890adfa3d819e71128444f7b4903bde26c1cd7c585214b747c43b",
+    "normalized_hash": "cd3f783615cbae52800e89132e65bee480a131a0ee90de1977d2dc47bef0e03c",
+    "error_type": null
+  }
+}

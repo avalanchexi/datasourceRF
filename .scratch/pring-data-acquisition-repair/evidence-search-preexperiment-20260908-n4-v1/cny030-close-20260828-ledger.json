@@ -1,0 +1,123 @@
+{
+  "gaps": [
+    {
+      "gap_id": "gap-96f4828582586ab2370fe4266ffb72edbbf2b03d6949ba80cc2f331d105a0bbf",
+      "as_of": "2026-09-08T05:49:47.514395+00:00",
+      "definition_version": "metric-catalog-v0001",
+      "dimensions": {},
+      "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+      "model_version_id": "model-v0001",
+      "period": "2026-08-28",
+      "target_business_date": "2026-08-28",
+      "release_event_key": "[\"cn_bond_full_price_cny030\", \"2026-08-28\"]",
+      "release_event_kind": "budget_family_period"
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "retrieval-request-5ffb20a5f17040b88091b3fa838d5703",
+      "run_id": "run-e0af0402abe681e7eef8",
+      "channel": "exa",
+      "provider_key": "exa",
+      "release_event_id": "pilot:cny030-close-20260828",
+      "state": "completed",
+      "started_at": "2026-09-08T05:49:53.006878+00:00",
+      "completed_at": "2026-09-08T05:49:54.533306+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-5053340eb9184c8ebe34eeb199f8056d",
+      "outcome": "candidate_source",
+      "classification": "unverified_candidate",
+      "http_status": 200,
+      "cache_expires_at": null,
+      "provider_cache": 0,
+      "provider_request_id": "eaf7ab42d8846d193e10f818b1e5faae",
+      "raw_hash": "b196703fc621853a0475b2b1db2714b5e4808a7c8670d441064ba17dd91ab692",
+      "provider": "exa",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:49:54.498717+00:00",
+      "cost": {
+        "amount": 0.007,
+        "unit": "USD",
+        "basis": "provider_estimate"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:49:54 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "raw_expires_at": "2026-10-08T05:49:54.498717+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-96f4828582586ab2370fe4266ffb72edbbf2b03d6949ba80cc2f331d105a0bbf"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    },
+    {
+      "request_id": "retrieval-request-93c75e1b57fe4695996671b04bc2325f",
+      "run_id": "run-e0af0402abe681e7eef8",
+      "channel": "tavily",
+      "provider_key": "tavily",
+      "release_event_id": "pilot:cny030-close-20260828",
+      "state": "completed",
+      "started_at": "2026-09-08T05:49:54.544222+00:00",
+      "completed_at": "2026-09-08T05:49:57.210096+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-88f27d8af5f64f709bc67f58331cc896",
+      "outcome": "candidate_source",
+      "classification": "unverified_candidate",
+      "http_status": 200,
+      "cache_expires_at": null,
+      "provider_cache": 0,
+      "provider_request_id": "2965af20-f557-45a8-acfd-b16c75459c82",
+      "raw_hash": "66b63b3efa34f61d6e172fada59c3d05462bb0a7b5b9a64fbb3325badeaae1ec",
+      "provider": "tavily",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:49:57.146011+00:00",
+      "cost": {
+        "amount": 1,
+        "unit": "credit",
+        "basis": "provider_usage"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:49:57 GMT",
+        "content-type": "application/json"
+      },
+      "raw_expires_at": "2026-10-08T05:49:57.146011+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-96f4828582586ab2370fe4266ffb72edbbf2b03d6949ba80cc2f331d105a0bbf"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    }
+  ],
+  "candidate_validations": [],
+  "queries": [
+    {
+      "query_id": "retrieval-query-766866c557ac4bd28cd11b571bc3c8f4",
+      "logical_query_id": "2c8f47e1fb30bbdb7bd4d1be58e267ba35a041eeaa1c0e49e461cea5749219be",
+      "run_id": "run-e0af0402abe681e7eef8",
+      "channel": "exa",
+      "query_text": "site:csindex.com.cn 000012CNY030 2026-08-28 国债指数 全价",
+      "attempted_at": "2026-09-08T05:49:53.006878+00:00",
+      "physical_request_id": "retrieval-request-5ffb20a5f17040b88091b3fa838d5703",
+      "classification": "unverified_candidate",
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    },
+    {
+      "query_id": "retrieval-query-76ed9f1526f14655b0e302ce0e32cc2f",
+      "logical_query_id": "b36447785fd19474163504e723a90b0dffc09703d76d973752f9b32f117f383f",
+      "run_id": "run-e0af0402abe681e7eef8",
+      "channel": "tavily",
+      "query_text": "site:csindex.com.cn 000012CNY030 2026-08-28 国债指数 全价",
+      "attempted_at": "2026-09-08T05:49:54.544222+00:00",
+      "physical_request_id": "retrieval-request-93c75e1b57fe4695996671b04bc2325f",
+      "classification": "unverified_candidate",
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    }
+  ]
+}

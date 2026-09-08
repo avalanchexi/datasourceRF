@@ -1,0 +1,34 @@
+{
+  "arm_id": "rrr-pbc-notice-20250515:exa",
+  "candidate_index": 1,
+  "url": "https://www.pbc.gov.cn/hanglingdao/128697/128734/128874/2025111717153324219/index.html",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "received",
+  "http_status": 200,
+  "media_type": "text/html",
+  "bytes": 78264,
+  "validation": "manual_review_pending",
+  "elapsed_seconds": 0.3110839169999977,
+  "acquisition_ids": [
+    "acquisition-00af7770287c4fe08c5aa9ec36da1e24"
+  ],
+  "receipt": {
+    "acquisition_id": "acquisition-00af7770287c4fe08c5aa9ec36da1e24",
+    "provider": "official_preexperiment",
+    "api_name": "https_get",
+    "parameters": {
+      "arm_id": "rrr-pbc-notice-20250515:exa",
+      "url": "https://www.pbc.gov.cn/hanglingdao/128697/128734/128874/2025111717153324219/index.html"
+    },
+    "fields": "raw_document",
+    "parser_version": "pilot-document-capture-v1",
+    "started_at": "2026-09-08 05:50:12.477543+00:00",
+    "received_at": "2026-09-08 05:50:12.650580+00:00",
+    "validated_at": "2026-09-08 05:50:12.772150+00:00",
+    "state": "validated",
+    "raw_hash": "f5c16c8269c89ebdad984252b18065e3e92e93e6e006b9faa7e45b1155429eba",
+    "normalized_hash": "3bfa4bfeefedd59bb2dfd86b487384c2f0dd859b29784b68b6284d2d21425be0",
+    "error_type": null
+  }
+}

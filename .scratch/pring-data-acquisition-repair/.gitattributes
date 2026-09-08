@@ -135,3 +135,27 @@ verification-search-catalog-*.txt whitespace=-blank-at-eol
 verification-search-catalog/*.txt whitespace=-blank-at-eol
 verification-search-catalog/*.json -text whitespace=cr-at-eol
 verification-search-catalog/*.zip -text -diff
+evidence-search-preexperiment-20260908-n4-v1/* -text whitespace=cr-at-eol
+search-preexperiment-plan.json -text whitespace=cr-at-eol
+search-preexperiment-design.md -text whitespace=cr-at-eol
+search-preexperiment-execution-boundary-invalid.txt -text
+run-search-preexperiment.py text eol=lf
+run-search-preexperiment.sh text eol=lf
+search-preexperiment-preflight.py text eol=lf
+verify-search-preexperiment.py text eol=lf
+verify-search-preexperiment.sh text eol=lf
+verify-search-provider-screening.py text eol=lf
+verify-search-provider-screening.sh text eol=lf
+verify-search-rrr-parser.py text eol=lf
+verification-rrr-source-*.txt -text whitespace=cr-at-eol
+evidence-search-preexperiment-20260908-n4-v1/14a82215156890adfa3d819e71128444f7b4903bde26c1cd7c585214b747c43b -text -diff
+evidence-search-preexperiment-20260908-n4-v1/27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9 -text -diff
+evidence-search-preexperiment-20260908-n4-v1/2ebbb79e89c57620ba765b869dad63932cb909489ce173db1fc4c522c4224893 -text -diff
+evidence-search-preexperiment-20260908-n4-v1/4ad377d14af081d938ba71251e9a3511712aced836e64c40ede7ba3d5fdf4892 -text -diff
+evidence-search-preexperiment-20260908-n4-v1/753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0 -text -diff
+evidence-search-preexperiment-20260908-n4-v1/7a17f27cd40d266cc20fa38c57c668fc5433e42a018d4c3789a03f03ab4572a3 -text -diff
+evidence-search-preexperiment-20260908-n4-v1/7aa34fd1ecca558f5702bd5d72c794a36602e5f0c587aedd7170c44a6988728f -text -diff
+evidence-search-preexperiment-20260908-n4-v1/c6ecf35cac9ab39754f934c7908722afc53ba0f7e5bbad607fa6a6a694e41fa7 -text -diff
+evidence-search-preexperiment-20260908-n4-v1/f5c16c8269c89ebdad984252b18065e3e92e93e6e006b9faa7e45b1155429eba -text -diff
+evidence-search-preexperiment-20260908-n4-v1/ff777bff43a6f422eea09213df1fdcb8e121bca1cebed57b98d3fe4e50384f19 -text -diff
+search-preexperiment-execution-01.txt -text -diff

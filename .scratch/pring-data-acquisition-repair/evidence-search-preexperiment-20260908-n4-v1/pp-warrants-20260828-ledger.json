@@ -1,0 +1,127 @@
+{
+  "gaps": [
+    {
+      "gap_id": "gap-368d8b5b512d6f3d8d313161c8826855b06c40fa4c73a736f8ff75a0d1e2d5f1",
+      "as_of": "2026-09-08T05:49:47.514395+00:00",
+      "definition_version": "metric-catalog-v0001",
+      "dimensions": {
+        "exchange": "*",
+        "symbol": "*",
+        "warehouse": "*"
+      },
+      "metric_id": "CN_FUTURES_WARRANTS",
+      "model_version_id": "model-v0001",
+      "period": "2026-08-28",
+      "target_business_date": "2026-08-28",
+      "release_event_key": "[\"cn_futures_warrants\", \"2026-08-28\"]",
+      "release_event_kind": "budget_family_period"
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "retrieval-request-6435bcf223e949db8964f1c09d546a23",
+      "run_id": "run-7f876a09ebd198cdc7f6",
+      "channel": "tavily",
+      "provider_key": "tavily",
+      "release_event_id": "pilot:pp-warrants-20260828",
+      "state": "completed",
+      "started_at": "2026-09-08T05:49:57.279878+00:00",
+      "completed_at": "2026-09-08T05:49:59.879272+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-928bb68569eb44428ecc1c29e5f22988",
+      "outcome": "not_found",
+      "classification": null,
+      "http_status": 200,
+      "cache_expires_at": "2026-09-08T11:49:59.879272+00:00",
+      "provider_cache": 0,
+      "provider_request_id": "30a5edaf-97f0-4108-ad8f-0b62523f9252",
+      "raw_hash": "0e232cce605b4641150dec710bccc5bad3e8d5267be8ec70e9a514c522edb070",
+      "provider": "tavily",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:49:59.726344+00:00",
+      "cost": {
+        "amount": 1,
+        "unit": "credit",
+        "basis": "provider_usage"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:49:59 GMT",
+        "content-type": "application/json"
+      },
+      "raw_expires_at": "2026-10-08T05:49:59.726344+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-368d8b5b512d6f3d8d313161c8826855b06c40fa4c73a736f8ff75a0d1e2d5f1"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    },
+    {
+      "request_id": "retrieval-request-86e0190bd75a4360822c67a8abd21528",
+      "run_id": "run-7f876a09ebd198cdc7f6",
+      "channel": "exa",
+      "provider_key": "exa",
+      "release_event_id": "pilot:pp-warrants-20260828",
+      "state": "completed",
+      "started_at": "2026-09-08T05:49:59.902535+00:00",
+      "completed_at": "2026-09-08T05:50:02.338855+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-ad0fd175364145abb521afdb14b6e63c",
+      "outcome": "not_found",
+      "classification": null,
+      "http_status": 200,
+      "cache_expires_at": "2026-09-08T11:50:02.338855+00:00",
+      "provider_cache": 0,
+      "provider_request_id": "f0bb2f2bf4652a2679a17efa878abc14",
+      "raw_hash": "45328c5086858a3b391a347f291170724c562fa72f1f6125a33a2e2dbedec911",
+      "provider": "exa",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:50:02.236884+00:00",
+      "cost": {
+        "amount": 0.007,
+        "unit": "USD",
+        "basis": "provider_estimate"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:50:01 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "raw_expires_at": "2026-10-08T05:50:02.236884+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-368d8b5b512d6f3d8d313161c8826855b06c40fa4c73a736f8ff75a0d1e2d5f1"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    }
+  ],
+  "candidate_validations": [],
+  "queries": [
+    {
+      "query_id": "retrieval-query-57bf72c715cb40ee96d80ea19c3671cd",
+      "logical_query_id": "3eae40481ea64e8f5264f1a2696d1ccd02e7f9b8257b70c75b5181ff6220ca6f",
+      "run_id": "run-7f876a09ebd198cdc7f6",
+      "channel": "tavily",
+      "query_text": "site:dce.com.cn 2026-08-28 聚丙烯 PP 仓单日报",
+      "attempted_at": "2026-09-08T05:49:57.279878+00:00",
+      "physical_request_id": "retrieval-request-6435bcf223e949db8964f1c09d546a23",
+      "classification": null,
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    },
+    {
+      "query_id": "retrieval-query-fe36a32a6286428f8efc03ac385ed901",
+      "logical_query_id": "6a5682b5518b319a69e22399130860b047758a14bf59c49893a119915a599826",
+      "run_id": "run-7f876a09ebd198cdc7f6",
+      "channel": "exa",
+      "query_text": "site:dce.com.cn 2026-08-28 聚丙烯 PP 仓单日报",
+      "attempted_at": "2026-09-08T05:49:59.902535+00:00",
+      "physical_request_id": "retrieval-request-86e0190bd75a4360822c67a8abd21528",
+      "classification": null,
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    }
+  ]
+}

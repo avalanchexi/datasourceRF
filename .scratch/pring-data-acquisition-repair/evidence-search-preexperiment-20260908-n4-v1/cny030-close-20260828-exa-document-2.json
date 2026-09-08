@@ -1,0 +1,34 @@
+{
+  "arm_id": "cny030-close-20260828:exa",
+  "candidate_index": 2,
+  "url": "https://www.csindex.com.cn/main#/",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "received",
+  "http_status": 200,
+  "media_type": "text/html",
+  "bytes": 19697,
+  "validation": "manual_review_pending",
+  "elapsed_seconds": 0.256674941,
+  "acquisition_ids": [
+    "acquisition-3ada9475ed79477cb251f69105d4263c"
+  ],
+  "receipt": {
+    "acquisition_id": "acquisition-3ada9475ed79477cb251f69105d4263c",
+    "provider": "official_preexperiment",
+    "api_name": "https_get",
+    "parameters": {
+      "arm_id": "cny030-close-20260828:exa",
+      "url": "https://www.csindex.com.cn/main#/"
+    },
+    "fields": "raw_document",
+    "parser_version": "pilot-document-capture-v1",
+    "started_at": "2026-09-08 05:50:10.265291+00:00",
+    "received_at": "2026-09-08 05:50:10.449235+00:00",
+    "validated_at": "2026-09-08 05:50:10.511398+00:00",
+    "state": "validated",
+    "raw_hash": "ff777bff43a6f422eea09213df1fdcb8e121bca1cebed57b98d3fe4e50384f19",
+    "normalized_hash": "16d8ab67b09772c0f268f055926c034a562613afecd84ab5344ad825ce2ffe82",
+    "error_type": null
+  }
+}

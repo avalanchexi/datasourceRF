@@ -1,0 +1,11 @@
+{
+  "arm_id": "bse-margin-20260828:tavily",
+  "candidate_index": 0,
+  "url": "https://www.bse.cn/jygl_list/200013680.html",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "known_prior_candidate",
+  "prior_evidence": [
+    "margin-bse-followup.md:14"
+  ]
+}

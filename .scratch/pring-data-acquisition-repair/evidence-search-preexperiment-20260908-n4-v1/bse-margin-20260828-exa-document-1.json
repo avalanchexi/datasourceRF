@@ -1,0 +1,9 @@
+{
+  "arm_id": "bse-margin-20260828:exa",
+  "candidate_index": 1,
+  "url": "https://bond.bse.cn/cbb/login",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "not_attempted",
+  "reason": "outside_frozen_official_hosts"
+}

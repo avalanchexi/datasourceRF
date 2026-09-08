@@ -1,0 +1,34 @@
+{
+  "arm_id": "rrr-pbc-notice-20250515:exa",
+  "candidate_index": 2,
+  "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/26885e06c8e744918ad3c47ab7c80ac1/index.html",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "received",
+  "http_status": 200,
+  "media_type": "text/html",
+  "bytes": 31702,
+  "validation": "manual_review_pending",
+  "elapsed_seconds": 0.28454291499999584,
+  "acquisition_ids": [
+    "acquisition-2b6fa6215b524c91b9b142e5e716f968"
+  ],
+  "receipt": {
+    "acquisition_id": "acquisition-2b6fa6215b524c91b9b142e5e716f968",
+    "provider": "official_preexperiment",
+    "api_name": "https_get",
+    "parameters": {
+      "arm_id": "rrr-pbc-notice-20250515:exa",
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/26885e06c8e744918ad3c47ab7c80ac1/index.html"
+    },
+    "fields": "raw_document",
+    "parser_version": "pilot-document-capture-v1",
+    "started_at": "2026-09-08 05:50:12.814071+00:00",
+    "received_at": "2026-09-08 05:50:12.988959+00:00",
+    "validated_at": "2026-09-08 05:50:13.089002+00:00",
+    "state": "validated",
+    "raw_hash": "7aa34fd1ecca558f5702bd5d72c794a36602e5f0c587aedd7170c44a6988728f",
+    "normalized_hash": "0222dc99fa2177576c92f4ac373446bf8e2a52a5c60782597a8a91b398d33b5c",
+    "error_type": null
+  }
+}

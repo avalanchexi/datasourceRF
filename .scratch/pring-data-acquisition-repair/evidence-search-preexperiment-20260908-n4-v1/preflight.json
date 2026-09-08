@@ -1,0 +1,48 @@
+{
+  "runtime": {
+    "artifacts": "/home/tywin/.local/share/pring-cycle/artifacts/sha256",
+    "cache": "/home/tywin/.cache/pring-cycle",
+    "config": "/home/tywin/.config/pring-cycle",
+    "data": "/home/tywin/.local/share/pring-cycle",
+    "database": "/home/tywin/.local/share/pring-cycle/pring-cycle.sqlite3",
+    "logs": "/home/tywin/.local/state/pring-cycle/logs",
+    "secrets": "/home/tywin/.config/pring-cycle/secrets.env",
+    "state": "/home/tywin/.local/state/pring-cycle"
+  },
+  "configured": {
+    "TAVILY_API_KEY": true,
+    "EXA_API_KEY": true
+  },
+  "network_requests": 0,
+  "production_writes": 0,
+  "observed_at": "2026-09-08T05:49:45.541896+00:00",
+  "active_or_queued_runs": 0,
+  "today_consumed": {
+    "tavily": 0,
+    "exa": 0,
+    "ai_websearch": 0
+  },
+  "budget_read_error": "no such column: a.physical_request_id",
+  "legacy_attempt_columns": [
+    "retrieval_attempt_id",
+    "run_id",
+    "release_event_id",
+    "sequence",
+    "channel",
+    "outcome",
+    "classification",
+    "latency_ms",
+    "remaining_run_budget",
+    "remaining_daily_budget",
+    "budget_charged",
+    "cache_hit",
+    "manual_budget_exemption",
+    "candidate_source",
+    "occurred_at"
+  ],
+  "request_tables": [
+    "retrieval_attempt",
+    "retrieval_negative_cache"
+  ],
+  "budget_basis": "conservative legacy attempt count; no schema changes"
+}

@@ -1,0 +1,9 @@
+{
+  "arm_id": "rrr-pbc-notice-20250515:tavily",
+  "candidate_index": 2,
+  "url": "https://camlmac.pbc.gov.cn/zhengcehuobisi/125207/125213/125434/125798/c342653773544ff6bda66daf0c4f1afd/index.html",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "not_attempted",
+  "reason": "outside_frozen_official_hosts"
+}

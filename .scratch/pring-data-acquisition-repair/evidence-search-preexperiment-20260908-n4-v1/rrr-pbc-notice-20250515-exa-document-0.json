@@ -1,0 +1,9 @@
+{
+  "arm_id": "rrr-pbc-notice-20250515:exa",
+  "candidate_index": 0,
+  "url": "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "not_attempted",
+  "reason": "outside_frozen_official_hosts"
+}

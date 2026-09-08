@@ -1,0 +1,123 @@
+{
+  "gaps": [
+    {
+      "gap_id": "gap-ff66bb787c1170d59cd1b94d6e7d28cea3ad0b73d2d959b6a2d2eb0208b80318",
+      "as_of": "2026-09-08T05:49:47.514395+00:00",
+      "definition_version": "metric-catalog-v0001",
+      "dimensions": {},
+      "metric_id": "CN_MARGIN_BALANCE",
+      "model_version_id": "model-v0001",
+      "period": "2026-08-28",
+      "target_business_date": "2026-08-28",
+      "release_event_key": "[\"cn_margin_balance\", \"2026-08-28\"]",
+      "release_event_kind": "budget_family_period"
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "retrieval-request-46537e8e45694956bdbeaa39853718d7",
+      "run_id": "run-7fd900033bfc30987fa8",
+      "channel": "tavily",
+      "provider_key": "tavily",
+      "release_event_id": "pilot:bse-margin-20260828",
+      "state": "completed",
+      "started_at": "2026-09-08T05:49:47.604230+00:00",
+      "completed_at": "2026-09-08T05:49:51.133359+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-9e75c95d31d945e0920612c606c15e21",
+      "outcome": "candidate_source",
+      "classification": "unverified_candidate",
+      "http_status": 200,
+      "cache_expires_at": null,
+      "provider_cache": 0,
+      "provider_request_id": "02c7c8a2-6d24-42a2-911d-4c1af736a043",
+      "raw_hash": "b452f1bb4414a06e77ab86eea4e9eadd2ae9f2ae06644e5cf69237b881f2452c",
+      "provider": "tavily",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:49:51.107060+00:00",
+      "cost": {
+        "amount": 1,
+        "unit": "credit",
+        "basis": "provider_usage"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:49:50 GMT",
+        "content-type": "application/json"
+      },
+      "raw_expires_at": "2026-10-08T05:49:51.107060+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-ff66bb787c1170d59cd1b94d6e7d28cea3ad0b73d2d959b6a2d2eb0208b80318"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    },
+    {
+      "request_id": "retrieval-request-b1267d3995d34fd481918502cd74b8a8",
+      "run_id": "run-7fd900033bfc30987fa8",
+      "channel": "exa",
+      "provider_key": "exa",
+      "release_event_id": "pilot:bse-margin-20260828",
+      "state": "completed",
+      "started_at": "2026-09-08T05:49:51.145951+00:00",
+      "completed_at": "2026-09-08T05:49:52.951132+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-436053b531f746f481f6f0a04e660df3",
+      "outcome": "candidate_source",
+      "classification": "unverified_candidate",
+      "http_status": 200,
+      "cache_expires_at": null,
+      "provider_cache": 0,
+      "provider_request_id": "3cb06a35ef4823afd924ce15c61f51e0",
+      "raw_hash": "0e00405fc22a92da82b794a54f3145109631178c49213845d25199914d20134a",
+      "provider": "exa",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:49:52.903209+00:00",
+      "cost": {
+        "amount": 0.007,
+        "unit": "USD",
+        "basis": "provider_estimate"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:49:52 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "raw_expires_at": "2026-10-08T05:49:52.903209+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-ff66bb787c1170d59cd1b94d6e7d28cea3ad0b73d2d959b6a2d2eb0208b80318"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    }
+  ],
+  "candidate_validations": [],
+  "queries": [
+    {
+      "query_id": "retrieval-query-6bfd0608a9914592a2cb1f484f9bff78",
+      "logical_query_id": "4ac9673be81d6c7898cd6c4c7b4532978cf5735247adb8487008893a0d15edba",
+      "run_id": "run-7fd900033bfc30987fa8",
+      "channel": "tavily",
+      "query_text": "site:bse.cn 2026-08-28 融资融券 融资余额",
+      "attempted_at": "2026-09-08T05:49:47.604230+00:00",
+      "physical_request_id": "retrieval-request-46537e8e45694956bdbeaa39853718d7",
+      "classification": "unverified_candidate",
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    },
+    {
+      "query_id": "retrieval-query-5503f52c99614b61990c18570a7fddbe",
+      "logical_query_id": "83b5e5620d276c862e13258526e5d45031d4dca0d9c24fc46a61088b6fd0e8fd",
+      "run_id": "run-7fd900033bfc30987fa8",
+      "channel": "exa",
+      "query_text": "site:bse.cn 2026-08-28 融资融券 融资余额",
+      "attempted_at": "2026-09-08T05:49:51.145951+00:00",
+      "physical_request_id": "retrieval-request-b1267d3995d34fd481918502cd74b8a8",
+      "classification": "unverified_candidate",
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    }
+  ]
+}

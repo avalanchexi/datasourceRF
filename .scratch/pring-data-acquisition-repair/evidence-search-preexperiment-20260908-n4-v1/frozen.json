@@ -1,0 +1,1546 @@
+{
+  "plan_sha256": "119c21080fa67df66bdb7e05264ef7c730a4fece92ef5f6039a442d8ea85d11d",
+  "executor_sha256": "4a394bcddcdb9b500cfcb5a54c03f6629bee45830f68b5d0926143ee8136bb5b",
+  "preflight_sha256": "47c04e7041f60aafe1fab25eb426a3fc232b97af4514b0dd4ed5a1693ff7043e",
+  "started_at": "2026-09-08 05:49:47.514395+00:00",
+  "runtime": {
+    "artifacts": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/data/artifacts/sha256",
+    "cache": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/cache",
+    "config": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/config",
+    "data": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/data",
+    "database": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/data/pring-cycle.sqlite3",
+    "logs": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/state/logs",
+    "secrets": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/config/secrets.env",
+    "state": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/search-preexperiment-20260908-n4-v1/state"
+  },
+  "bookkeeping_model_id": "model-v0001",
+  "bookkeeping_manifest": {
+    "certified_replay_start": "2018-06-01",
+    "core_metrics": {
+      "bond": "CN_BOND_CORE_000012",
+      "commodity": "CN_COMMODITY_CORE_NHII",
+      "stock": "CN_EQUITY_CORE_000985"
+    },
+    "derived_formula_versions": {
+      "credit_impulse": "credit-impulse-v0001",
+      "order_inventory_spread": "order-inventory-v0001",
+      "real_inventory_approximation": "inventory-ppi-v0001"
+    },
+    "metric_catalog_version": "metric-catalog-v0001",
+    "metric_definitions": [
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_TRADE_CALENDAR",
+        "name_cn": "CN_TRADE_CALENDAR",
+        "priority": "P0",
+        "release_event_family": "cn_trade_calendar",
+        "release_rule": "china_exchange_calendar",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_TRADE_CALENDAR"
+        ],
+        "source_codes": [
+          "CN_TRADE_CALENDAR"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "event",
+        "metric_id": "CN_RELEASE_SCHEDULE",
+        "name_cn": "CN_RELEASE_SCHEDULE",
+        "priority": "P0",
+        "release_event_family": "cn_release_schedule",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_RELEASE_SCHEDULE"
+        ],
+        "source_codes": [
+          "CN_RELEASE_SCHEDULE"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "SOURCE_OBSERVED_AVAILABILITY",
+        "name_cn": "SOURCE_OBSERVED_AVAILABILITY",
+        "priority": "P0",
+        "release_event_family": "source_observed_availability",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "SOURCE_OBSERVED_AVAILABILITY"
+        ],
+        "source_codes": [
+          "SOURCE_OBSERVED_AVAILABILITY"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQUITY_CORE_000985",
+        "name_cn": "中证全指",
+        "priority": "P0",
+        "release_event_family": "cn_equity_core_000985",
+        "release_rule": "china_trading_day_source_schedule",
+        "release_timezone": "Asia/Shanghai",
+        "role": "core_barometer",
+        "source_candidates": [
+          "000985.CSI"
+        ],
+        "source_codes": [
+          "000985.CSI"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_BOND_CORE_000012",
+        "name_cn": "上证国债指数",
+        "priority": "P0",
+        "release_event_family": "cn_bond_core_000012",
+        "release_rule": "china_trading_day_source_schedule",
+        "release_timezone": "Asia/Shanghai",
+        "role": "core_barometer",
+        "source_candidates": [
+          "000012.SH"
+        ],
+        "source_codes": [
+          "000012.SH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_CORE_NHII",
+        "name_cn": "南华工业品指数",
+        "priority": "P0",
+        "release_event_family": "cn_commodity_core_nhii",
+        "release_rule": "china_trading_day_source_schedule",
+        "release_timezone": "Asia/Shanghai",
+        "role": "core_barometer",
+        "source_candidates": [
+          "NHII.NH"
+        ],
+        "source_codes": [
+          "NHII.NH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_CSI300",
+        "name_cn": "CN_EQ_CSI300",
+        "priority": "P1",
+        "release_event_family": "cn_eq_csi300",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_CSI300"
+        ],
+        "source_codes": [
+          "CN_EQ_CSI300"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_CSI500",
+        "name_cn": "CN_EQ_CSI500",
+        "priority": "P1",
+        "release_event_family": "cn_eq_csi500",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_CSI500"
+        ],
+        "source_codes": [
+          "CN_EQ_CSI500"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_CSI1000",
+        "name_cn": "CN_EQ_CSI1000",
+        "priority": "P1",
+        "release_event_family": "cn_eq_csi1000",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_CSI1000"
+        ],
+        "source_codes": [
+          "CN_EQ_CSI1000"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_ADV_DEC",
+        "name_cn": "CN_EQ_ADV_DEC",
+        "priority": "P1",
+        "release_event_family": "cn_eq_adv_dec",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_ADV_DEC"
+        ],
+        "source_codes": [
+          "CN_EQ_ADV_DEC"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_AD_RATIO",
+        "name_cn": "CN_EQ_AD_RATIO",
+        "priority": "P1",
+        "release_event_family": "cn_eq_ad_ratio",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_AD_RATIO"
+        ],
+        "source_codes": [
+          "CN_EQ_AD_RATIO"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_NEW_HIGH_LOW_120",
+        "name_cn": "CN_EQ_NEW_HIGH_LOW_120",
+        "priority": "P1",
+        "release_event_family": "cn_eq_new_high_low_120",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_NEW_HIGH_LOW_120"
+        ],
+        "source_codes": [
+          "CN_EQ_NEW_HIGH_LOW_120"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_ABOVE_MA120",
+        "name_cn": "CN_EQ_ABOVE_MA120",
+        "priority": "P1",
+        "release_event_family": "cn_eq_above_ma120",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_ABOVE_MA120"
+        ],
+        "source_codes": [
+          "CN_EQ_ABOVE_MA120"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_EQ_ADV_AMOUNT_SHARE",
+        "name_cn": "CN_EQ_ADV_AMOUNT_SHARE",
+        "priority": "P1",
+        "release_event_family": "cn_eq_adv_amount_share",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_EQ_ADV_AMOUNT_SHARE"
+        ],
+        "source_codes": [
+          "CN_EQ_ADV_AMOUNT_SHARE"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_MARGIN_BALANCE",
+        "name_cn": "CN_MARGIN_BALANCE",
+        "priority": "P1",
+        "release_event_family": "cn_margin_balance",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_MARGIN_BALANCE"
+        ],
+        "source_codes": [
+          "CN_MARGIN_BALANCE"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_INDEX_VALUATION",
+        "name_cn": "CN_INDEX_VALUATION",
+        "priority": "P1",
+        "release_event_family": "cn_index_valuation",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_INDEX_VALUATION"
+        ],
+        "source_codes": [
+          "CN_INDEX_VALUATION"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+        "name_cn": "CN_BOND_FULL_PRICE_CNY030",
+        "priority": "P1",
+        "release_event_family": "cn_bond_full_price_cny030",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_BOND_FULL_PRICE_CNY030"
+        ],
+        "source_codes": [
+          "CN_BOND_FULL_PRICE_CNY030"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_BOND_10Y_930916",
+        "name_cn": "CN_BOND_10Y_930916",
+        "priority": "P1",
+        "release_event_family": "cn_bond_10y_930916",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_BOND_10Y_930916"
+        ],
+        "source_codes": [
+          "CN_BOND_10Y_930916"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_DR007",
+        "name_cn": "CN_DR007",
+        "priority": "P1",
+        "release_event_family": "cn_dr007",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_DR007"
+        ],
+        "source_codes": [
+          "CN_DR007"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_OMO_7D_RATE",
+        "name_cn": "CN_OMO_7D_RATE",
+        "priority": "P1",
+        "release_event_family": "cn_omo_7d_rate",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_OMO_7D_RATE"
+        ],
+        "source_codes": [
+          "CN_OMO_7D_RATE"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_OMO_7D_AMOUNT",
+        "name_cn": "CN_OMO_7D_AMOUNT",
+        "priority": "P1",
+        "release_event_family": "cn_omo_7d_amount",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_OMO_7D_AMOUNT"
+        ],
+        "source_codes": [
+          "CN_OMO_7D_AMOUNT"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "basis_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_DR007_POLICY_SPREAD",
+        "name_cn": "CN_DR007_POLICY_SPREAD",
+        "priority": "P1",
+        "release_event_family": "cn_dr007_policy_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_DR007_POLICY_SPREAD"
+        ],
+        "source_codes": [
+          "CN_DR007_POLICY_SPREAD"
+        ],
+        "unit": "basis_points"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "tenor"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_SHIBOR_ON_1W_3M",
+        "name_cn": "CN_SHIBOR_ON_1W_3M",
+        "priority": "P1",
+        "release_event_family": "cn_shibor_on_1w_3m",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_SHIBOR_ON_1W_3M"
+        ],
+        "source_codes": [
+          "CN_SHIBOR_ON_1W_3M"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "certified",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "tenor"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_LPR_1Y_5Y",
+        "name_cn": "CN_LPR_1Y_5Y",
+        "priority": "P1",
+        "release_event_family": "chinamoney_lpr",
+        "release_rule": "monthly_day_20_holiday_roll_0900_asia_shanghai",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "https://www.chinamoney.com.cn/chinese/bklpr/"
+        ],
+        "source_codes": [
+          "CHINAMONEY_LPR"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percentage_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "scope",
+          "measure"
+        ],
+        "frequency": "event",
+        "metric_id": "CN_RRR_EVENT",
+        "name_cn": "CN_RRR_EVENT",
+        "priority": "P1",
+        "release_event_family": "cn_rrr_event",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "policy_transmission",
+        "source_candidates": [
+          "CN_RRR_EVENT"
+        ],
+        "source_codes": [
+          "CN_RRR_EVENT"
+        ],
+        "unit": "percentage_points"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "tool",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_TOOL_LIQUIDITY_MONTHLY",
+        "name_cn": "CN_TOOL_LIQUIDITY_MONTHLY",
+        "priority": "P1",
+        "release_event_family": "cn_tool_liquidity_monthly",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_TOOL_LIQUIDITY_MONTHLY"
+        ],
+        "source_codes": [
+          "CN_TOOL_LIQUIDITY_MONTHLY"
+        ],
+        "unit": "hundred_million_cny"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_BROAD_NHCI",
+        "name_cn": "CN_COMMODITY_BROAD_NHCI",
+        "priority": "P1",
+        "release_event_family": "cn_commodity_broad_nhci",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "NHCI.NH"
+        ],
+        "source_codes": [
+          "NHCI.NH"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_EX_HOG_BASKET",
+        "name_cn": "CN_COMMODITY_EX_HOG_BASKET",
+        "priority": "P1",
+        "release_event_family": "cn_commodity_ex_hog_basket",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_COMMODITY_EX_HOG_BASKET"
+        ],
+        "source_codes": [
+          "CN_COMMODITY_EX_HOG_BASKET"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        "name_cn": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        "priority": "P1",
+        "release_event_family": "cn_commodity_sleeve_contribution",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_COMMODITY_SLEEVE_CONTRIBUTION"
+        ],
+        "source_codes": [
+          "CN_COMMODITY_SLEEVE_CONTRIBUTION"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "tonne",
+          "kilogram",
+          "sheet",
+          "lot"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "symbol",
+          "warehouse",
+          "exchange"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_FUTURES_WARRANTS",
+        "name_cn": "CN_FUTURES_WARRANTS",
+        "priority": "P1",
+        "release_event_family": "cn_futures_warrants",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_FUTURES_WARRANTS"
+        ],
+        "source_codes": [
+          "CN_FUTURES_WARRANTS"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "series",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PMI_ACTIVITY",
+        "name_cn": "CN_PMI_ACTIVITY",
+        "priority": "P1",
+        "release_event_family": "cn_pmi_activity",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PMI_ACTIVITY"
+        ],
+        "source_codes": [
+          "CN_PMI_ACTIVITY"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "series",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PMI_INVENTORY",
+        "name_cn": "CN_PMI_INVENTORY",
+        "priority": "P1",
+        "release_event_family": "cn_pmi_inventory",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_PMI_INVENTORY"
+        ],
+        "source_codes": [
+          "CN_PMI_INVENTORY"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "diffusion_index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "series",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PMI_PRICES",
+        "name_cn": "CN_PMI_PRICES",
+        "priority": "P1",
+        "release_event_family": "cn_pmi_prices",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PMI_PRICES"
+        ],
+        "source_codes": [
+          "CN_PMI_PRICES"
+        ],
+        "unit": "diffusion_index_points"
+      },
+      {
+        "allowed_units": [
+          "basis_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_ORDER_INVENTORY_SPREAD",
+        "name_cn": "CN_ORDER_INVENTORY_SPREAD",
+        "priority": "P1",
+        "release_event_family": "cn_order_inventory_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_ORDER_INVENTORY_SPREAD"
+        ],
+        "source_codes": [
+          "CN_ORDER_INVENTORY_SPREAD"
+        ],
+        "unit": "basis_points"
+      },
+      {
+        "allowed_units": [
+          "basis_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_PRODUCTION_ORDER_SPREAD",
+        "name_cn": "CN_PRODUCTION_ORDER_SPREAD",
+        "priority": "P1",
+        "release_event_family": "cn_production_order_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PRODUCTION_ORDER_SPREAD"
+        ],
+        "source_codes": [
+          "CN_PRODUCTION_ORDER_SPREAD"
+        ],
+        "unit": "basis_points"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure",
+          "category"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_CPI_HEADLINE",
+        "name_cn": "居民消费价格",
+        "priority": "P1",
+        "release_event_family": "cn_cpi_headline",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_CPI_HEADLINE"
+        ],
+        "source_codes": [
+          "CN_CPI_HEADLINE"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure",
+          "category"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_CORE_CPI",
+        "name_cn": "核心 CPI",
+        "priority": "P1",
+        "release_event_family": "cn_core_cpi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_CORE_CPI"
+        ],
+        "source_codes": [
+          "CN_CORE_CPI"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure",
+          "category"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_PPI",
+        "name_cn": "工业生产者价格",
+        "priority": "P1",
+        "release_event_family": "cn_ppi",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_PPI"
+        ],
+        "source_codes": [
+          "CN_PPI"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_INDUSTRIAL_VA",
+        "name_cn": "CN_INDUSTRIAL_VA",
+        "priority": "P1",
+        "release_event_family": "cn_industrial_va",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_INDUSTRIAL_VA"
+        ],
+        "source_codes": [
+          "CN_INDUSTRIAL_VA"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "item",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_INDUSTRIAL_FINANCE",
+        "name_cn": "CN_INDUSTRIAL_FINANCE",
+        "priority": "P1",
+        "release_event_family": "cn_industrial_finance",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_INDUSTRIAL_FINANCE"
+        ],
+        "source_codes": [
+          "CN_INDUSTRIAL_FINANCE"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+        "name_cn": "CN_FINISHED_GOODS_INVENTORY",
+        "priority": "P1",
+        "release_event_family": "cn_finished_goods_inventory",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_FINISHED_GOODS_INVENTORY"
+        ],
+        "source_codes": [
+          "CN_FINISHED_GOODS_INVENTORY"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "days",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_INVENTORY_TURNOVER",
+        "name_cn": "CN_INVENTORY_TURNOVER",
+        "priority": "P1",
+        "release_event_family": "cn_inventory_turnover",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "signature_card",
+        "source_candidates": [
+          "CN_INVENTORY_TURNOVER"
+        ],
+        "source_codes": [
+          "CN_INVENTORY_TURNOVER"
+        ],
+        "unit": "days"
+      },
+      {
+        "allowed_units": [
+          "percent",
+          "percentage_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "industry",
+          "measure"
+        ],
+        "frequency": "quarterly",
+        "metric_id": "CN_CAPACITY_UTILIZATION",
+        "name_cn": "CN_CAPACITY_UTILIZATION",
+        "priority": "P1",
+        "release_event_family": "cn_capacity_utilization",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_CAPACITY_UTILIZATION"
+        ],
+        "source_codes": [
+          "CN_CAPACITY_UTILIZATION"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "aggregate",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_M1_M2",
+        "name_cn": "CN_M1_M2",
+        "priority": "P1",
+        "release_event_family": "cn_m1_m2",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_M1_M2"
+        ],
+        "source_codes": [
+          "CN_M1_M2"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_SF_TOTAL",
+        "name_cn": "CN_SF_TOTAL",
+        "priority": "P1",
+        "release_event_family": "cn_sf_total",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_SF_TOTAL"
+        ],
+        "source_codes": [
+          "CN_SF_TOTAL"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "component",
+          "measure"
+        ],
+        "frequency": "monthly",
+        "metric_id": "CN_SF_COMPONENTS",
+        "name_cn": "CN_SF_COMPONENTS",
+        "priority": "P1",
+        "release_event_family": "cn_sf_components",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_SF_COMPONENTS"
+        ],
+        "source_codes": [
+          "CN_SF_COMPONENTS"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "borrower",
+          "tenor",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "CN_LOAN_STRUCTURE",
+        "name_cn": "CN_LOAN_STRUCTURE",
+        "priority": "P1",
+        "release_event_family": "cn_loan_structure",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_LOAN_STRUCTURE"
+        ],
+        "source_codes": [
+          "CN_LOAN_STRUCTURE"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "percentage_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_CREDIT_IMPULSE",
+        "name_cn": "CN_CREDIT_IMPULSE",
+        "priority": "P1",
+        "release_event_family": "cn_credit_impulse",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "credit_response",
+        "source_candidates": [
+          "CN_CREDIT_IMPULSE"
+        ],
+        "source_codes": [
+          "CN_CREDIT_IMPULSE"
+        ],
+        "unit": "percentage_points"
+      },
+      {
+        "allowed_units": [
+          "hundred_million_cny",
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "aggregate",
+          "measure"
+        ],
+        "frequency": "quarterly",
+        "metric_id": "CN_GDP",
+        "name_cn": "CN_GDP",
+        "priority": "P2",
+        "release_event_family": "cn_gdp",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_GDP"
+        ],
+        "source_codes": [
+          "CN_GDP"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_USDCNY_CENTRAL_PARITY",
+        "name_cn": "CN_USDCNY_CENTRAL_PARITY",
+        "priority": "P2",
+        "release_event_family": "cn_usdcny_central_parity",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_USDCNY_CENTRAL_PARITY"
+        ],
+        "source_codes": [
+          "CN_USDCNY_CENTRAL_PARITY"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_USDCNH_FXCM",
+        "name_cn": "CN_USDCNH_FXCM",
+        "priority": "P2",
+        "release_event_family": "cn_usdcnh_fxcm",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_USDCNH_FXCM"
+        ],
+        "source_codes": [
+          "CN_USDCNH_FXCM"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "scalar"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CN_USDCNY_CLOSE_1630",
+        "name_cn": "CN_USDCNY_CLOSE_1630",
+        "priority": "P2",
+        "release_event_family": "cn_usdcny_close_1630",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "Asia/Shanghai",
+        "role": "macro_confirmation",
+        "source_candidates": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "source_codes": [
+          "CN_USDCNY_CLOSE_1630"
+        ],
+        "unit": "scalar"
+      },
+      {
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "contract_month",
+          "measure",
+          "roll_chain_version"
+        ],
+        "frequency": "daily",
+        "metric_id": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "name_cn": "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "priority": "P2",
+        "release_event_family": "comex_gc_active_month_settlement_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "source_codes": [
+          "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT"
+        ],
+        "unit": "usd_per_troy_ounce"
+      },
+      {
+        "allowed_units": [
+          "usd_per_troy_ounce"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [
+          "fixing",
+          "measure"
+        ],
+        "frequency": "daily",
+        "metric_id": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "name_cn": "LBMA_GOLD_PRICE_PM_USD_OZT",
+        "priority": "P2",
+        "release_event_family": "lbma_gold_price_pm_usd_ozt",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "source_codes": [
+          "LBMA_GOLD_PRICE_PM_USD_OZT"
+        ],
+        "unit": "usd_per_troy_ounce"
+      },
+      {
+        "allowed_units": [
+          "usd_per_barrel"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "EIA_BRENT_RBRTE",
+        "name_cn": "EIA_BRENT_RBRTE",
+        "priority": "P2",
+        "release_event_family": "eia_brent_rbrte",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "RBRTE"
+        ],
+        "source_codes": [
+          "RBRTE"
+        ],
+        "unit": "usd_per_barrel"
+      },
+      {
+        "allowed_units": [
+          "usd_per_barrel"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "EIA_WTI_RWTC",
+        "name_cn": "EIA_WTI_RWTC",
+        "priority": "P2",
+        "release_event_family": "eia_wti_rwtc",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "RWTC"
+        ],
+        "source_codes": [
+          "RWTC"
+        ],
+        "unit": "usd_per_barrel"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "UST10Y_NOMINAL_YIELD",
+        "name_cn": "UST10Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "release_event_family": "ust10y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "us_tycr.y10"
+        ],
+        "source_codes": [
+          "us_tycr.y10"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "percent"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "UST2Y_NOMINAL_YIELD",
+        "name_cn": "UST2Y_NOMINAL_YIELD",
+        "priority": "P2",
+        "release_event_family": "ust2y_nominal_yield",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "us_tycr.y2"
+        ],
+        "source_codes": [
+          "us_tycr.y2"
+        ],
+        "unit": "percent"
+      },
+      {
+        "allowed_units": [
+          "basis_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "UST_2S10S_SPREAD",
+        "name_cn": "UST_2S10S_SPREAD",
+        "priority": "P2",
+        "release_event_family": "ust_2s10s_spread",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "UST_2S10S_SPREAD"
+        ],
+        "source_codes": [
+          "UST_2S10S_SPREAD"
+        ],
+        "unit": "basis_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "CBOE_VIX_INDEX",
+        "name_cn": "CBOE_VIX_INDEX",
+        "priority": "P2",
+        "release_event_family": "cboe_vix_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "CBOE_VIX_INDEX"
+        ],
+        "source_codes": [
+          "CBOE_VIX_INDEX"
+        ],
+        "unit": "index_points"
+      },
+      {
+        "allowed_units": [
+          "index_points"
+        ],
+        "certification_status": "awaiting_source_certification",
+        "definition_version": "metric-catalog-v0001",
+        "dimensions": [],
+        "frequency": "daily",
+        "metric_id": "NASDAQ_SOX_INDEX",
+        "name_cn": "NASDAQ_SOX_INDEX",
+        "priority": "P2",
+        "release_event_family": "nasdaq_sox_index",
+        "release_rule": "source_schedule_required",
+        "release_timezone": "source_local_timezone",
+        "role": "international_context",
+        "source_candidates": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "source_codes": [
+          "NASDAQ_SOX_INDEX"
+        ],
+        "unit": "index_points"
+      }
+    ],
+    "model_version_id": "model-v0001",
+    "selection_rule_version": "selection-v0001",
+    "source_certifications": {
+      "000012.SH": "certified",
+      "000985.CSI": "certified",
+      "NHII.NH": "certified_from_2018-06-01"
+    },
+    "stage_mapping": {
+      "bear,bear,bear": "stage_vi",
+      "bear,bear,bull": "stage_v",
+      "bear,bull,bull": "stage_iv",
+      "bull,bear,bear": "stage_i",
+      "bull,bull,bear": "stage_ii",
+      "bull,bull,bull": "stage_iii"
+    },
+    "trend_rules": {
+      "candidate_window_days": 30,
+      "noise_multiplier": 1.5,
+      "persistence_days": 8,
+      "rule_version": "trend-v0001",
+      "slope_days": 20,
+      "volatility_days": 20,
+      "window_days": 120
+    }
+  },
+  "definition_version": "metric-catalog-v0001",
+  "model_qualification_evaluated": false,
+  "model_usable_completion_rate": null,
+  "production_writes": 0,
+  "max_search_requests": 8,
+  "max_document_requests": 24
+}

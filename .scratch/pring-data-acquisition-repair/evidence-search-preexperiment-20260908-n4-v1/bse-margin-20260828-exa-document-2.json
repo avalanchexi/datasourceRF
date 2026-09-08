@@ -1,0 +1,33 @@
+{
+  "arm_id": "bse-margin-20260828:exa",
+  "candidate_index": 2,
+  "url": "https://www.bse.cn/qt/200025237.html",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "failed",
+  "error_type": "HTTPError",
+  "http_status": 302,
+  "location": "https://www.bse.cn/qt/200025237.html",
+  "elapsed_seconds": 0.1121716510000006,
+  "acquisition_ids": [
+    "acquisition-361398176af54c11ae9c6173b84c8fb6"
+  ],
+  "receipt": {
+    "acquisition_id": "acquisition-361398176af54c11ae9c6173b84c8fb6",
+    "provider": "official_preexperiment",
+    "api_name": "https_get",
+    "parameters": {
+      "arm_id": "bse-margin-20260828:exa",
+      "url": "https://www.bse.cn/qt/200025237.html"
+    },
+    "fields": "raw_document",
+    "parser_version": "pilot-document-capture-v1",
+    "started_at": "2026-09-08 05:50:08.124444+00:00",
+    "received_at": "2026-09-08 05:50:08.199290+00:00",
+    "validated_at": null,
+    "state": "failed",
+    "raw_hash": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "normalized_hash": null,
+    "error_type": "HTTPError"
+  }
+}

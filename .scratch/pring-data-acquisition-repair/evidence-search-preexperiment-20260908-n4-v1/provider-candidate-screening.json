@@ -1,0 +1,222 @@
+{
+  "network_requests": 0,
+  "model_evaluation": "not_evaluated",
+  "results": [
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-9e75c95d31d945e0920612c606c15e21",
+      "raw_hash": "b452f1bb4414a06e77ab86eea4e9eadd2ae9f2ae06644e5cf69237b881f2452c",
+      "provider_result_index": 0,
+      "url": "https://www.bse.cn/jygl_list/200013680.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-9e75c95d31d945e0920612c606c15e21",
+      "raw_hash": "b452f1bb4414a06e77ab86eea4e9eadd2ae9f2ae06644e5cf69237b881f2452c",
+      "provider_result_index": 1,
+      "url": "https://www.bse.cn/disclosure/2025/2025-08-26/2af7ab12c77f47a790368042d869a694.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-9e75c95d31d945e0920612c606c15e21",
+      "raw_hash": "b452f1bb4414a06e77ab86eea4e9eadd2ae9f2ae06644e5cf69237b881f2452c",
+      "provider_result_index": 2,
+      "url": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-436053b531f746f481f6f0a04e660df3",
+      "raw_hash": "0e00405fc22a92da82b794a54f3145109631178c49213845d25199914d20134a",
+      "provider_result_index": 0,
+      "url": "https://edu.bse.cn/neeqedu/bse/course/play.jspx?id=242",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-436053b531f746f481f6f0a04e660df3",
+      "raw_hash": "0e00405fc22a92da82b794a54f3145109631178c49213845d25199914d20134a",
+      "provider_result_index": 1,
+      "url": "https://bond.bse.cn/cbb/login",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-436053b531f746f481f6f0a04e660df3",
+      "raw_hash": "0e00405fc22a92da82b794a54f3145109631178c49213845d25199914d20134a",
+      "provider_result_index": 2,
+      "url": "https://www.bse.cn/qt/200025237.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-5053340eb9184c8ebe34eeb199f8056d",
+      "raw_hash": "b196703fc621853a0475b2b1db2714b5e4808a7c8670d441064ba17dd91ab692",
+      "provider_result_index": 0,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/930916factsheet.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-5053340eb9184c8ebe34eeb199f8056d",
+      "raw_hash": "b196703fc621853a0475b2b1db2714b5e4808a7c8670d441064ba17dd91ab692",
+      "provider_result_index": 1,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/931080factsheet.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-5053340eb9184c8ebe34eeb199f8056d",
+      "raw_hash": "b196703fc621853a0475b2b1db2714b5e4808a7c8670d441064ba17dd91ab692",
+      "provider_result_index": 2,
+      "url": "https://www.csindex.com.cn/main#/",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-88f27d8af5f64f709bc67f58331cc896",
+      "raw_hash": "66b63b3efa34f61d6e172fada59c3d05462bb0a7b5b9a64fbb3325badeaae1ec",
+      "provider_result_index": 0,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000012factsheet.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-88f27d8af5f64f709bc67f58331cc896",
+      "raw_hash": "66b63b3efa34f61d6e172fada59c3d05462bb0a7b5b9a64fbb3325badeaae1ec",
+      "provider_result_index": 1,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/932200factsheet.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-88f27d8af5f64f709bc67f58331cc896",
+      "raw_hash": "66b63b3efa34f61d6e172fada59c3d05462bb0a7b5b9a64fbb3325badeaae1ec",
+      "provider_result_index": 2,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-928bb68569eb44428ecc1c29e5f22988",
+      "raw_hash": "0e232cce605b4641150dec710bccc5bad3e8d5267be8ec70e9a514c522edb070",
+      "provider_result_index": 0,
+      "url": "http://www.dce.com.cn/dalianshangpin/fgfz/6142914/6142926/6146588/%E5%A4%A7%E8%BF%9E%E5%95%86%E5%93%81%E4%BA%A4%E6%98%93%E6%89%80%E8%81%9A%E4%B8%99%E7%83%AF%E6%9C%9F%E8%B4%A7%E4%B8%9A%E5%8A%A1%E7%BB%86%E5%88%99%EF%BC%88%E6%A0%B9%E6%8D%AE2024%E5%B9%B411%E6%9C%881%E6%97%A5%E3%80%942024%E3%80%95102%E5%8F%B7%E6%96%87%E4%BB%B6%E4%BF%AE%E6%94%B9%EF%BC%89.pdf",
+      "adapter_screening": "https_required"
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-928bb68569eb44428ecc1c29e5f22988",
+      "raw_hash": "0e232cce605b4641150dec710bccc5bad3e8d5267be8ec70e9a514c522edb070",
+      "provider_result_index": 1,
+      "url": "http://www.dce.com.cn/dalianshangpin/ywfw/ywzy/jyywzy/ywlcyzl26/8588664/index.html",
+      "adapter_screening": "https_required"
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-928bb68569eb44428ecc1c29e5f22988",
+      "raw_hash": "0e232cce605b4641150dec710bccc5bad3e8d5267be8ec70e9a514c522edb070",
+      "provider_result_index": 2,
+      "url": "http://www.dce.com.cn/dce/content/2025/ywggytz/18623631.html",
+      "adapter_screening": "https_required"
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-ad0fd175364145abb521afdb14b6e63c",
+      "raw_hash": "45328c5086858a3b391a347f291170724c562fa72f1f6125a33a2e2dbedec911",
+      "provider_result_index": 0,
+      "url": "http://www.dce.com.cn/dalianshangpin/resource/cms/2019/09/2019090619204236796.pdf",
+      "adapter_screening": "https_required"
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-ad0fd175364145abb521afdb14b6e63c",
+      "raw_hash": "45328c5086858a3b391a347f291170724c562fa72f1f6125a33a2e2dbedec911",
+      "provider_result_index": 1,
+      "url": "http://www.dce.com.cn/dalianshangpin/ywfw/jystz/ywtz/8582414/%E9%99%84%E4%BB%B66%EF%BC%9A%E6%95%B0%E5%AD%97%E4%BB%93%E5%8D%95%E7%B3%BB%E7%BB%9F%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C-%E9%93%B6%E8%A1%8C.pdf",
+      "adapter_screening": "https_required"
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "exa",
+      "acquisition_id": "acquisition-ad0fd175364145abb521afdb14b6e63c",
+      "raw_hash": "45328c5086858a3b391a347f291170724c562fa72f1f6125a33a2e2dbedec911",
+      "provider_result_index": 2,
+      "url": "http://www.dce.com.cn/dalianshangpin/resource/cms/article/499191/8580960/%E4%BA%A4%E6%98%93%E6%9C%88%E6%8A%A5202309.pdf",
+      "adapter_screening": "https_required"
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "exa",
+      "acquisition_id": "acquisition-1eccaf46cbd64b9a877553729fe0483a",
+      "raw_hash": "c511c8dd438c79a53a4f215a6895ba3f8be185f6440859cda1e70c1a35a15ff6",
+      "provider_result_index": 0,
+      "url": "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "exa",
+      "acquisition_id": "acquisition-1eccaf46cbd64b9a877553729fe0483a",
+      "raw_hash": "c511c8dd438c79a53a4f215a6895ba3f8be185f6440859cda1e70c1a35a15ff6",
+      "provider_result_index": 1,
+      "url": "https://www.pbc.gov.cn/hanglingdao/128697/128734/128874/2025111717153324219/index.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "exa",
+      "acquisition_id": "acquisition-1eccaf46cbd64b9a877553729fe0483a",
+      "raw_hash": "c511c8dd438c79a53a4f215a6895ba3f8be185f6440859cda1e70c1a35a15ff6",
+      "provider_result_index": 2,
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/26885e06c8e744918ad3c47ab7c80ac1/index.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-98fbe9082e444e8a852fd08ac96e28ec",
+      "raw_hash": "d2bc7bed4cb848438495bf35e16f6bd118e5b19621b5e1fa5cd7b4c7269da381",
+      "provider_result_index": 0,
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-98fbe9082e444e8a852fd08ac96e28ec",
+      "raw_hash": "d2bc7bed4cb848438495bf35e16f6bd118e5b19621b5e1fa5cd7b4c7269da381",
+      "provider_result_index": 1,
+      "url": "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "tavily",
+      "acquisition_id": "acquisition-98fbe9082e444e8a852fd08ac96e28ec",
+      "raw_hash": "d2bc7bed4cb848438495bf35e16f6bd118e5b19621b5e1fa5cd7b4c7269da381",
+      "provider_result_index": 2,
+      "url": "https://camlmac.pbc.gov.cn/zhengcehuobisi/125207/125213/125434/125798/c342653773544ff6bda66daf0c4f1afd/index.html",
+      "adapter_screening": "accepted_as_unverified_candidate"
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+{
+  "experiment_id": "search-preexperiment-20260908-n4-v1",
+  "target_business_date": "2026-08-28",
+  "target_as_of": "2026-08-28T23:59:59.999999+08:00",
+  "model_version_id": null,
+  "model_evaluation": "not_evaluated",
+  "samples": [
+    {
+      "sample_id": "bse-margin-20260828",
+      "metric_id": "CN_MARGIN_BALANCE",
+      "period": "2026-08-28",
+      "query": "site:bse.cn 2026-08-28 融资融券 融资余额",
+      "allowed_hosts": [
+        "www.bse.cn"
+      ],
+      "source_component": {
+        "exchange_id": "BSE",
+        "measure": "financing_balance"
+      }
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+      "period": "2026-08-28",
+      "query": "site:csindex.com.cn 000012CNY030 2026-08-28 国债指数 全价",
+      "allowed_hosts": [
+        "www.csindex.com.cn",
+        "oss-ch.csindex.com.cn"
+      ],
+      "source_component": {
+        "official_code": "000012CNY030",
+        "measure": "close"
+      }
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "metric_id": "CN_FUTURES_WARRANTS",
+      "period": "2026-08-28",
+      "query": "site:dce.com.cn 2026-08-28 聚丙烯 PP 仓单日报",
+      "allowed_hosts": [
+        "www.dce.com.cn"
+      ],
+      "source_component": {
+        "symbol": "PP",
+        "exchange": "DCE",
+        "measure": "registered_receipts"
+      }
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "metric_id": "CN_RRR_EVENT",
+      "period": "2025-05",
+      "query": "site:pbc.gov.cn 2025年5月15日 下调 金融机构 存款准备金率 汽车金融 金融租赁",
+      "allowed_hosts": [
+        "www.pbc.gov.cn"
+      ],
+      "source_component": {
+        "effective_date": "2025-05-15",
+        "measure": "rrr_change"
+      }
+    }
+  ],
+  "phase": "request_document_pilot_no_model_evaluation",
+  "sample_count": 4,
+  "search_requests_per_provider": 4,
+  "candidate_limit": 3,
+  "known_prior_candidates": {
+    "https://www.bse.cn/disclosure/rzrq_trans_list.html": [
+      "margin-bse-followup.md:13",
+      "margin-bse-followup.md:39",
+      "margin-bse-followup.md:48",
+      "margin-bse-browser-followup.md:3"
+    ],
+    "https://www.bse.cn/jygl_list/200013680.html": [
+      "margin-bse-followup.md:14"
+    ],
+    "https://www.bse.cn/uploads/6/file/public/202510/20251010190514_4qgms4u8gx.pdf": [
+      "margin-bse-followup.md:16"
+    ],
+    "https://www.bse.cn/myhead.html": [
+      "margin-bse-followup.md:24",
+      "margin-bse-followup.md:28"
+    ],
+    "https://www.bse.cn/jygl_list/200013679.html": [
+      "margin-bse-followup.md:24",
+      "margin-bse-followup.md:29"
+    ],
+    "https://www.csindex.com.cn/csindex-home/perf/get-derivative-index?indexCode=000012": [
+      "cny030-official-next-boundary.md:13"
+    ],
+    "https://www.csindex.com.cn/csindex-home/indexInfo/index-details-data?indexCode=000012&fileLang=2": [
+      "cny030-official-next-boundary.md:14"
+    ],
+    "https://www.csindex.com.cn/csindex-home/indexInfo/index-basic-info/000012CNY030?lang=zh_CN": [
+      "cny030-official-next-boundary.md:15"
+    ],
+    "https://www.csindex.com.cn/csindex-home/perf/index-perf?indexCode=000012CNY030&startDate=20250806&endDate=20260828&lang=zh_CN": [
+      "cny030-official-next-boundary.md:16"
+    ],
+    "https://www.dce.com.cn/dalianshangpin/resource/cms/2019/05/2019051410181769090.pdf": [
+      "research-pp-followup.md:13"
+    ],
+    "https://www.dce.com.cn/dalianshangpin/resource/cms/2020/11/2020111209380878948.pdf": [
+      "research-pp-followup.md:13"
+    ],
+    "https://www.dce.com.cn/dalianshangpin/resource/cms/article/489932/8507992/2022080208291768754.pdf": [
+      "research-pp-followup.md:13"
+    ],
+    "https://www.dce.com.cn/dalianshangpin/resource/cms/article/8523995/8524596/2022120916485655746.pdf": [
+      "research-pp-followup.md:14"
+    ],
+    "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/5896228/index.html": [
+      "remaining-p1-source-consumers.md:125"
+    ]
+  },
+  "prior_input_hashes": [
+    {
+      "path": "margin-bse-followup.md",
+      "sha256": "4b6690e908b3a92d71f502e94011f88b2bf634a423dd573cd9ddd9dfe5c58b62"
+    },
+    {
+      "path": "margin-bse-browser-followup.md",
+      "sha256": "930f82d984c0008f1a410cd6629f8a21486c4cc1a556a2a3f2bbd785183db6a4"
+    },
+    {
+      "path": "cny030-official-next-boundary.md",
+      "sha256": "cd983bcbdc398ad03d41a5f8c3190d01b5d40c538d8cf8137263d14377890f6f"
+    },
+    {
+      "path": "research-pp-followup.md",
+      "sha256": "750b63e4b7e163c8b94660f687c1e13ba3aba3fd3700ee063744a72e2ad8d7bc"
+    },
+    {
+      "path": "rrr-original-notices-followup.md",
+      "sha256": "b0128252a6b8bedf89cc607368a1370f39c6daacd74b62dbaaffa43480c74c22"
+    },
+    {
+      "path": "remaining-p1-source-consumers.md",
+      "sha256": "b29d4daf67fe06d1ddce2d21c38339152bdfff89f4e27f90bd09bb22d1fdf251"
+    }
+  ],
+  "design_sha256": "00bbd80e73199783e6da7baabd1f0d73e91b786e3270290523595537decff7f8",
+  "bookkeeping_note": "Unactivated built-in model-v0001 in an isolated initialized runtime; not a repaired candidate or qualification assessment",
+  "global_budget_note": "Both arms share one pilot ledger; default runtime consumption is rechecked and added before each call. This is read-only observed accounting, not an atomic cross-runtime reservation."
+}

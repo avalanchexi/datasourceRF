@@ -1,0 +1,33 @@
+{
+  "arm_id": "bse-margin-20260828:tavily",
+  "candidate_index": 2,
+  "url": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf",
+  "original_validity": "not_evaluated",
+  "model_evaluation": "not_evaluated",
+  "status": "failed",
+  "error_type": "HTTPError",
+  "http_status": 302,
+  "location": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf",
+  "elapsed_seconds": 0.1615455560000001,
+  "acquisition_ids": [
+    "acquisition-aad71699ca484062b1e1723f543ac86b"
+  ],
+  "receipt": {
+    "acquisition_id": "acquisition-aad71699ca484062b1e1723f543ac86b",
+    "provider": "official_preexperiment",
+    "api_name": "https_get",
+    "parameters": {
+      "arm_id": "bse-margin-20260828:tavily",
+      "url": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf"
+    },
+    "fields": "raw_document",
+    "parser_version": "pilot-document-capture-v1",
+    "started_at": "2026-09-08 05:50:07.941304+00:00",
+    "received_at": "2026-09-08 05:50:08.072348+00:00",
+    "validated_at": null,
+    "state": "failed",
+    "raw_hash": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+    "normalized_hash": null,
+    "error_type": "HTTPError"
+  }
+}

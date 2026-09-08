@@ -1,0 +1,716 @@
+{
+  "phase": "request_document_pilot_no_model_evaluation",
+  "search_arms": [
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "tavily",
+      "arm_id": "bse-margin-20260828:tavily",
+      "run_id": "run-7fd900033bfc30987fa8",
+      "query": "site:bse.cn 2026-08-28 融资融券 融资余额",
+      "candidate_sources": [
+        "https://www.bse.cn/jygl_list/200013680.html",
+        "https://www.bse.cn/disclosure/2025/2025-08-26/2af7ab12c77f47a790368042d869a694.pdf",
+        "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf"
+      ],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:49:47.627297+00:00",
+      "observed_http_status": 200,
+      "status": "candidate_source",
+      "classification": "unverified_candidate",
+      "physical_request_id": "retrieval-request-46537e8e45694956bdbeaa39853718d7",
+      "cache_hit": false,
+      "elapsed_seconds": 3.5357867439999993
+    },
+    {
+      "sample_id": "bse-margin-20260828",
+      "provider": "exa",
+      "arm_id": "bse-margin-20260828:exa",
+      "run_id": "run-7fd900033bfc30987fa8",
+      "query": "site:bse.cn 2026-08-28 融资融券 融资余额",
+      "candidate_sources": [
+        "https://edu.bse.cn/neeqedu/bse/course/play.jspx?id=242",
+        "https://bond.bse.cn/cbb/login",
+        "https://www.bse.cn/qt/200025237.html"
+      ],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 1,
+          "exa": 0,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:49:51.157818+00:00",
+      "observed_http_status": 200,
+      "status": "candidate_source",
+      "classification": "unverified_candidate",
+      "physical_request_id": "retrieval-request-b1267d3995d34fd481918502cd74b8a8",
+      "cache_hit": false,
+      "elapsed_seconds": 1.8121818600000008
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "exa",
+      "arm_id": "cny030-close-20260828:exa",
+      "run_id": "run-e0af0402abe681e7eef8",
+      "query": "site:csindex.com.cn 000012CNY030 2026-08-28 国债指数 全价",
+      "candidate_sources": [
+        "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/930916factsheet.pdf",
+        "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/931080factsheet.pdf",
+        "https://www.csindex.com.cn/main#/"
+      ],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 1,
+          "exa": 1,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:49:53.022862+00:00",
+      "observed_http_status": 200,
+      "status": "candidate_source",
+      "classification": "unverified_candidate",
+      "physical_request_id": "retrieval-request-5ffb20a5f17040b88091b3fa838d5703",
+      "cache_hit": false,
+      "elapsed_seconds": 1.5307283270000003
+    },
+    {
+      "sample_id": "cny030-close-20260828",
+      "provider": "tavily",
+      "arm_id": "cny030-close-20260828:tavily",
+      "run_id": "run-e0af0402abe681e7eef8",
+      "query": "site:csindex.com.cn 000012CNY030 2026-08-28 国债指数 全价",
+      "candidate_sources": [
+        "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000012factsheet.pdf",
+        "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/932200factsheet.pdf",
+        "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf"
+      ],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 1,
+          "exa": 2,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:49:54.556805+00:00",
+      "observed_http_status": 200,
+      "status": "candidate_source",
+      "classification": "unverified_candidate",
+      "physical_request_id": "retrieval-request-93c75e1b57fe4695996671b04bc2325f",
+      "cache_hit": false,
+      "elapsed_seconds": 2.6743802879999983
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "tavily",
+      "arm_id": "pp-warrants-20260828:tavily",
+      "run_id": "run-7f876a09ebd198cdc7f6",
+      "query": "site:dce.com.cn 2026-08-28 聚丙烯 PP 仓单日报",
+      "candidate_sources": [],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 2,
+          "exa": 2,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:49:57.307489+00:00",
+      "observed_http_status": 200,
+      "status": "not_found",
+      "classification": null,
+      "physical_request_id": "retrieval-request-6435bcf223e949db8964f1c09d546a23",
+      "cache_hit": false,
+      "elapsed_seconds": 2.6151895200000013
+    },
+    {
+      "sample_id": "pp-warrants-20260828",
+      "provider": "exa",
+      "arm_id": "pp-warrants-20260828:exa",
+      "run_id": "run-7f876a09ebd198cdc7f6",
+      "query": "site:dce.com.cn 2026-08-28 聚丙烯 PP 仓单日报",
+      "candidate_sources": [],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 3,
+          "exa": 2,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:49:59.943932+00:00",
+      "observed_http_status": 200,
+      "status": "not_found",
+      "classification": null,
+      "physical_request_id": "retrieval-request-86e0190bd75a4360822c67a8abd21528",
+      "cache_hit": false,
+      "elapsed_seconds": 2.478346762000001
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "exa",
+      "arm_id": "rrr-pbc-notice-20250515:exa",
+      "run_id": "run-5c2a3ac498f84e43abdc",
+      "query": "site:pbc.gov.cn 2025年5月15日 下调 金融机构 存款准备金率 汽车金融 金融租赁",
+      "candidate_sources": [
+        "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+        "https://www.pbc.gov.cn/hanglingdao/128697/128734/128874/2025111717153324219/index.html",
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/26885e06c8e744918ad3c47ab7c80ac1/index.html"
+      ],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 3,
+          "exa": 3,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:50:02.549227+00:00",
+      "observed_http_status": 200,
+      "status": "candidate_source",
+      "classification": "unverified_candidate",
+      "physical_request_id": "retrieval-request-5cb1ce3d173f432bafdae915d691f39c",
+      "cache_hit": false,
+      "elapsed_seconds": 1.5069187460000002
+    },
+    {
+      "sample_id": "rrr-pbc-notice-20250515",
+      "provider": "tavily",
+      "arm_id": "rrr-pbc-notice-20250515:tavily",
+      "run_id": "run-5c2a3ac498f84e43abdc",
+      "query": "site:pbc.gov.cn 2025年5月15日 下调 金融机构 存款准备金率 汽车金融 金融租赁",
+      "candidate_sources": [
+        "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+        "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+        "https://camlmac.pbc.gov.cn/zhengcehuobisi/125207/125213/125434/125798/c342653773544ff6bda66daf0c4f1afd/index.html"
+      ],
+      "budget_before": {
+        "default_runtime": {
+          "tavily": 0,
+          "exa": 0,
+          "ai_websearch": 0
+        },
+        "pilot": {
+          "tavily": 3,
+          "exa": 4,
+          "ai_websearch": 0
+        }
+      },
+      "transport_started_at": "2026-09-08T05:50:04.045529+00:00",
+      "observed_http_status": 200,
+      "status": "candidate_source",
+      "classification": "unverified_candidate",
+      "physical_request_id": "retrieval-request-ebc83743be5b40b99c82b96be6907be0",
+      "cache_hit": false,
+      "elapsed_seconds": 3.716554391999999
+    }
+  ],
+  "documents": [
+    {
+      "arm_id": "bse-margin-20260828:tavily",
+      "candidate_index": 0,
+      "url": "https://www.bse.cn/jygl_list/200013680.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "known_prior_candidate",
+      "prior_evidence": [
+        "margin-bse-followup.md:14"
+      ]
+    },
+    {
+      "arm_id": "bse-margin-20260828:tavily",
+      "candidate_index": 1,
+      "url": "https://www.bse.cn/disclosure/2025/2025-08-26/2af7ab12c77f47a790368042d869a694.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "failed",
+      "error_type": "HTTPError",
+      "http_status": 302,
+      "location": "https://www.bse.cn/disclosure/2025/2025-08-26/2af7ab12c77f47a790368042d869a694.pdf",
+      "elapsed_seconds": 0.15478404599999962,
+      "acquisition_ids": [
+        "acquisition-4910b77263084daabbaa910813035454"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-4910b77263084daabbaa910813035454",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "bse-margin-20260828:tavily",
+          "url": "https://www.bse.cn/disclosure/2025/2025-08-26/2af7ab12c77f47a790368042d869a694.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:07.765079+00:00",
+        "received_at": "2026-09-08 05:50:07.876841+00:00",
+        "validated_at": null,
+        "state": "failed",
+        "raw_hash": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+        "normalized_hash": null,
+        "error_type": "HTTPError"
+      }
+    },
+    {
+      "arm_id": "bse-margin-20260828:tavily",
+      "candidate_index": 2,
+      "url": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "failed",
+      "error_type": "HTTPError",
+      "http_status": 302,
+      "location": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf",
+      "elapsed_seconds": 0.1615455560000001,
+      "acquisition_ids": [
+        "acquisition-aad71699ca484062b1e1723f543ac86b"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-aad71699ca484062b1e1723f543ac86b",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "bse-margin-20260828:tavily",
+          "url": "https://www.bse.cn/disclosure/2025/2025-10-29/6a855dcebd32408eabb2141aab09e337.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:07.941304+00:00",
+        "received_at": "2026-09-08 05:50:08.072348+00:00",
+        "validated_at": null,
+        "state": "failed",
+        "raw_hash": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+        "normalized_hash": null,
+        "error_type": "HTTPError"
+      }
+    },
+    {
+      "arm_id": "bse-margin-20260828:exa",
+      "candidate_index": 0,
+      "url": "https://edu.bse.cn/neeqedu/bse/course/play.jspx?id=242",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "not_attempted",
+      "reason": "outside_frozen_official_hosts"
+    },
+    {
+      "arm_id": "bse-margin-20260828:exa",
+      "candidate_index": 1,
+      "url": "https://bond.bse.cn/cbb/login",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "not_attempted",
+      "reason": "outside_frozen_official_hosts"
+    },
+    {
+      "arm_id": "bse-margin-20260828:exa",
+      "candidate_index": 2,
+      "url": "https://www.bse.cn/qt/200025237.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "failed",
+      "error_type": "HTTPError",
+      "http_status": 302,
+      "location": "https://www.bse.cn/qt/200025237.html",
+      "elapsed_seconds": 0.1121716510000006,
+      "acquisition_ids": [
+        "acquisition-361398176af54c11ae9c6173b84c8fb6"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-361398176af54c11ae9c6173b84c8fb6",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "bse-margin-20260828:exa",
+          "url": "https://www.bse.cn/qt/200025237.html"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:08.124444+00:00",
+        "received_at": "2026-09-08 05:50:08.199290+00:00",
+        "validated_at": null,
+        "state": "failed",
+        "raw_hash": "753e0dd54f28c4f7009b9c0b18a68aed175416bd8b7d134858264586eaac56f0",
+        "normalized_hash": null,
+        "error_type": "HTTPError"
+      }
+    },
+    {
+      "arm_id": "cny030-close-20260828:exa",
+      "candidate_index": 0,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/930916factsheet.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "application/pdf",
+      "bytes": 424852,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.9683877169999988,
+      "acquisition_ids": [
+        "acquisition-2849526758de49c6ae055b5936fff10a"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-2849526758de49c6ae055b5936fff10a",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "cny030-close-20260828:exa",
+          "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/930916factsheet.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:08.249126+00:00",
+        "received_at": "2026-09-08 05:50:09.081114+00:00",
+        "validated_at": "2026-09-08 05:50:09.201331+00:00",
+        "state": "validated",
+        "raw_hash": "7a17f27cd40d266cc20fa38c57c668fc5433e42a018d4c3789a03f03ab4572a3",
+        "normalized_hash": "70ddaa24eb5a9dc903c65f4f109ab46145e76fe729a9f2491741133e99b1206a",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "cny030-close-20260828:exa",
+      "candidate_index": 1,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/931080factsheet.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "application/pdf",
+      "bytes": 426643,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.9363519719999971,
+      "acquisition_ids": [
+        "acquisition-cda73e6b48c942c8afc63d0aa45abdf3"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-cda73e6b48c942c8afc63d0aa45abdf3",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "cny030-close-20260828:exa",
+          "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/931080factsheet.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:09.309079+00:00",
+        "received_at": "2026-09-08 05:50:10.085190+00:00",
+        "validated_at": "2026-09-08 05:50:10.231873+00:00",
+        "state": "validated",
+        "raw_hash": "2ebbb79e89c57620ba765b869dad63932cb909489ce173db1fc4c522c4224893",
+        "normalized_hash": "ebf82ec0b57735ac470adb58f24b6dcd59c00316015c7a4d26b82c439a53869e",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "cny030-close-20260828:exa",
+      "candidate_index": 2,
+      "url": "https://www.csindex.com.cn/main#/",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "text/html",
+      "bytes": 19697,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.256674941,
+      "acquisition_ids": [
+        "acquisition-3ada9475ed79477cb251f69105d4263c"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-3ada9475ed79477cb251f69105d4263c",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "cny030-close-20260828:exa",
+          "url": "https://www.csindex.com.cn/main#/"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:10.265291+00:00",
+        "received_at": "2026-09-08 05:50:10.449235+00:00",
+        "validated_at": "2026-09-08 05:50:10.511398+00:00",
+        "state": "validated",
+        "raw_hash": "ff777bff43a6f422eea09213df1fdcb8e121bca1cebed57b98d3fe4e50384f19",
+        "normalized_hash": "16d8ab67b09772c0f268f055926c034a562613afecd84ab5344ad825ce2ffe82",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "cny030-close-20260828:tavily",
+      "candidate_index": 0,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000012factsheet.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "application/pdf",
+      "bytes": 421982,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.4984856670000042,
+      "acquisition_ids": [
+        "acquisition-d732955fcb5243b4bba7f6ccd39f197d"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-d732955fcb5243b4bba7f6ccd39f197d",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "cny030-close-20260828:tavily",
+          "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/000012factsheet.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:10.560167+00:00",
+        "received_at": "2026-09-08 05:50:10.920395+00:00",
+        "validated_at": "2026-09-08 05:50:11.047281+00:00",
+        "state": "validated",
+        "raw_hash": "14a82215156890adfa3d819e71128444f7b4903bde26c1cd7c585214b747c43b",
+        "normalized_hash": "cd3f783615cbae52800e89132e65bee480a131a0ee90de1977d2dc47bef0e03c",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "cny030-close-20260828:tavily",
+      "candidate_index": 1,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/932200factsheet.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "application/pdf",
+      "bytes": 421342,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.439433784000002,
+      "acquisition_ids": [
+        "acquisition-1b539abb34104d31b5b7f712c75f9e32"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-1b539abb34104d31b5b7f712c75f9e32",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "cny030-close-20260828:tavily",
+          "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/932200factsheet.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:11.094466+00:00",
+        "received_at": "2026-09-08 05:50:11.420742+00:00",
+        "validated_at": "2026-09-08 05:50:11.516762+00:00",
+        "state": "validated",
+        "raw_hash": "c6ecf35cac9ab39754f934c7908722afc53ba0f7e5bbad607fa6a6a694e41fa7",
+        "normalized_hash": "a2f731259a5f6d0c43470c94835c8f98cc60f4cfd0e8cd487a69f182f6a667eb",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "cny030-close-20260828:tavily",
+      "candidate_index": 2,
+      "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "application/pdf",
+      "bytes": 419176,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.8829205640000026,
+      "acquisition_ids": [
+        "acquisition-44352e57776049158dc2b23f9fe7a541"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-44352e57776049158dc2b23f9fe7a541",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "cny030-close-20260828:tavily",
+          "url": "https://oss-ch.csindex.com.cn/static/html/csindex/public/uploads/indices/detail/files/zh_CN/H11077factsheet.pdf"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:11.556479+00:00",
+        "received_at": "2026-09-08 05:50:12.286372+00:00",
+        "validated_at": "2026-09-08 05:50:12.428001+00:00",
+        "state": "validated",
+        "raw_hash": "4ad377d14af081d938ba71251e9a3511712aced836e64c40ede7ba3d5fdf4892",
+        "normalized_hash": "4cdec290f895b6a54021ab88f2fba5c3b4f514b7a14ab5abad27c724def9668d",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "rrr-pbc-notice-20250515:exa",
+      "candidate_index": 0,
+      "url": "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "not_attempted",
+      "reason": "outside_frozen_official_hosts"
+    },
+    {
+      "arm_id": "rrr-pbc-notice-20250515:exa",
+      "candidate_index": 1,
+      "url": "https://www.pbc.gov.cn/hanglingdao/128697/128734/128874/2025111717153324219/index.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "text/html",
+      "bytes": 78264,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.3110839169999977,
+      "acquisition_ids": [
+        "acquisition-00af7770287c4fe08c5aa9ec36da1e24"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-00af7770287c4fe08c5aa9ec36da1e24",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "rrr-pbc-notice-20250515:exa",
+          "url": "https://www.pbc.gov.cn/hanglingdao/128697/128734/128874/2025111717153324219/index.html"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:12.477543+00:00",
+        "received_at": "2026-09-08 05:50:12.650580+00:00",
+        "validated_at": "2026-09-08 05:50:12.772150+00:00",
+        "state": "validated",
+        "raw_hash": "f5c16c8269c89ebdad984252b18065e3e92e93e6e006b9faa7e45b1155429eba",
+        "normalized_hash": "3bfa4bfeefedd59bb2dfd86b487384c2f0dd859b29784b68b6284d2d21425be0",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "rrr-pbc-notice-20250515:exa",
+      "candidate_index": 2,
+      "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/26885e06c8e744918ad3c47ab7c80ac1/index.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "text/html",
+      "bytes": 31702,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.28454291499999584,
+      "acquisition_ids": [
+        "acquisition-2b6fa6215b524c91b9b142e5e716f968"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-2b6fa6215b524c91b9b142e5e716f968",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "rrr-pbc-notice-20250515:exa",
+          "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/26885e06c8e744918ad3c47ab7c80ac1/index.html"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:12.814071+00:00",
+        "received_at": "2026-09-08 05:50:12.988959+00:00",
+        "validated_at": "2026-09-08 05:50:13.089002+00:00",
+        "state": "validated",
+        "raw_hash": "7aa34fd1ecca558f5702bd5d72c794a36602e5f0c587aedd7170c44a6988728f",
+        "normalized_hash": "0222dc99fa2177576c92f4ac373446bf8e2a52a5c60782597a8a91b398d33b5c",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "rrr-pbc-notice-20250515:tavily",
+      "candidate_index": 0,
+      "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "received",
+      "http_status": 200,
+      "media_type": "text/html",
+      "bytes": 23481,
+      "validation": "manual_review_pending",
+      "elapsed_seconds": 0.25803557200000427,
+      "acquisition_ids": [
+        "acquisition-6ff5e536eb7349b5ac834df81912a89d"
+      ],
+      "receipt": {
+        "acquisition_id": "acquisition-6ff5e536eb7349b5ac834df81912a89d",
+        "provider": "official_preexperiment",
+        "api_name": "https_get",
+        "parameters": {
+          "arm_id": "rrr-pbc-notice-20250515:tavily",
+          "url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html"
+        },
+        "fields": "raw_document",
+        "parser_version": "pilot-document-capture-v1",
+        "started_at": "2026-09-08 05:50:13.123759+00:00",
+        "received_at": "2026-09-08 05:50:13.265004+00:00",
+        "validated_at": "2026-09-08 05:50:13.372569+00:00",
+        "state": "validated",
+        "raw_hash": "27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9",
+        "normalized_hash": "357dfbf152e443a957b2908c8932863acfe4d547bb8e6b1fe4aab8960aeb96a3",
+        "error_type": null
+      }
+    },
+    {
+      "arm_id": "rrr-pbc-notice-20250515:tavily",
+      "candidate_index": 1,
+      "url": "https://wuhan.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "not_attempted",
+      "reason": "outside_frozen_official_hosts"
+    },
+    {
+      "arm_id": "rrr-pbc-notice-20250515:tavily",
+      "candidate_index": 2,
+      "url": "https://camlmac.pbc.gov.cn/zhengcehuobisi/125207/125213/125434/125798/c342653773544ff6bda66daf0c4f1afd/index.html",
+      "original_validity": "not_evaluated",
+      "model_evaluation": "not_evaluated",
+      "status": "not_attempted",
+      "reason": "outside_frozen_official_hosts"
+    }
+  ],
+  "model_evaluation": "not_evaluated",
+  "model_usable_completion_rate": null,
+  "source_certification_grants": 0,
+  "model_activations": 0,
+  "production_writes": 0,
+  "finished_at": "2026-09-08 05:50:13.466181+00:00",
+  "elapsed_seconds": 25.936642218,
+  "search_originals": "Runtime CAS only; inspect through acquisition read_content before 30-day expiry"
+}

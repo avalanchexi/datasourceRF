@@ -1,0 +1,27 @@
+{
+  "sample_id": "pp-warrants-20260828",
+  "provider": "exa",
+  "arm_id": "pp-warrants-20260828:exa",
+  "run_id": "run-7f876a09ebd198cdc7f6",
+  "query": "site:dce.com.cn 2026-08-28 聚丙烯 PP 仓单日报",
+  "candidate_sources": [],
+  "budget_before": {
+    "default_runtime": {
+      "tavily": 0,
+      "exa": 0,
+      "ai_websearch": 0
+    },
+    "pilot": {
+      "tavily": 3,
+      "exa": 2,
+      "ai_websearch": 0
+    }
+  },
+  "transport_started_at": "2026-09-08T05:49:59.943932+00:00",
+  "observed_http_status": 200,
+  "status": "not_found",
+  "classification": null,
+  "physical_request_id": "retrieval-request-86e0190bd75a4360822c67a8abd21528",
+  "cache_hit": false,
+  "elapsed_seconds": 2.478346762000001
+}

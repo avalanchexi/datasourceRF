@@ -1,0 +1,54 @@
+{
+  "actual_network_requests": 0,
+  "new_claims": 0,
+  "new_certifications": 0,
+  "parsed": {
+    "family": "pbc_rrr_notice",
+    "provider": "中国人民银行",
+    "release_event_id": "official:pbc_rrr_notice:2025-05:27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9",
+    "period": "2025-05",
+    "release_at": "2025-05-07 10:00:00+08:00",
+    "public_available_at": "2025-05-07 10:00:00+08:00",
+    "source_url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html",
+    "scalars": [
+      {
+        "metric_id": "CN_RRR_EVENT",
+        "api_name": "pbc_rrr_notice",
+        "source_field": "rrr_change_pp",
+        "period_kind": "event",
+        "period_start": "2025-05-15",
+        "period_end": "2025-05-15",
+        "dimensions": {
+          "scope": "excluding_5_percent_institutions",
+          "measure": "rrr_change"
+        },
+        "value": -0.5,
+        "unit": "percentage_points",
+        "release_at": "2025-05-07 10:00:00+08:00",
+        "public_available_at": "2025-05-07 10:00:00+08:00",
+        "definition_version": null,
+        "acquisition_ids": []
+      },
+      {
+        "metric_id": "CN_RRR_EVENT",
+        "api_name": "pbc_rrr_notice",
+        "source_field": "rrr_change_pp",
+        "period_kind": "event",
+        "period_start": "2025-05-15",
+        "period_end": "2025-05-15",
+        "dimensions": {
+          "scope": "auto_finance_and_financial_leasing_companies",
+          "measure": "rrr_change"
+        },
+        "value": -5.0,
+        "unit": "percentage_points",
+        "release_at": "2025-05-07 10:00:00+08:00",
+        "public_available_at": "2025-05-07 10:00:00+08:00",
+        "definition_version": null,
+        "acquisition_ids": []
+      }
+    ]
+  },
+  "acquisition_id": "acquisition-6ff5e536eb7349b5ac834df81912a89d",
+  "raw_hash": "27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9"
+}

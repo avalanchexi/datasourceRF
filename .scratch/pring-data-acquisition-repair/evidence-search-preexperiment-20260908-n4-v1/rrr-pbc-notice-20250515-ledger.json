@@ -1,0 +1,126 @@
+{
+  "gaps": [
+    {
+      "gap_id": "gap-50a87ec1db980e8dcef67b098ca342be40ad486ac56b356aa07c43c3e3c979d5",
+      "as_of": "2026-09-08T05:49:47.514395+00:00",
+      "definition_version": "metric-catalog-v0001",
+      "dimensions": {
+        "measure": "*",
+        "scope": "*"
+      },
+      "metric_id": "CN_RRR_EVENT",
+      "model_version_id": "model-v0001",
+      "period": "2025-05",
+      "target_business_date": "2026-08-28",
+      "release_event_key": "[\"cn_rrr_event\", \"2025-05\"]",
+      "release_event_kind": "budget_family_period"
+    }
+  ],
+  "requests": [
+    {
+      "request_id": "retrieval-request-5cb1ce3d173f432bafdae915d691f39c",
+      "run_id": "run-5c2a3ac498f84e43abdc",
+      "channel": "exa",
+      "provider_key": "exa",
+      "release_event_id": "pilot:rrr-pbc-notice-20250515",
+      "state": "completed",
+      "started_at": "2026-09-08T05:50:02.491780+00:00",
+      "completed_at": "2026-09-08T05:50:03.983942+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-1eccaf46cbd64b9a877553729fe0483a",
+      "outcome": "candidate_source",
+      "classification": "unverified_candidate",
+      "http_status": 200,
+      "cache_expires_at": null,
+      "provider_cache": 0,
+      "provider_request_id": "78359facaaa5754de03d3c6559074e27",
+      "raw_hash": "c511c8dd438c79a53a4f215a6895ba3f8be185f6440859cda1e70c1a35a15ff6",
+      "provider": "exa",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:50:03.853129+00:00",
+      "cost": {
+        "amount": 0.007,
+        "unit": "USD",
+        "basis": "provider_estimate"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:50:03 GMT",
+        "content-type": "application/json; charset=utf-8"
+      },
+      "raw_expires_at": "2026-10-08T05:50:03.853129+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-50a87ec1db980e8dcef67b098ca342be40ad486ac56b356aa07c43c3e3c979d5"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    },
+    {
+      "request_id": "retrieval-request-ebc83743be5b40b99c82b96be6907be0",
+      "run_id": "run-5c2a3ac498f84e43abdc",
+      "channel": "tavily",
+      "provider_key": "tavily",
+      "release_event_id": "pilot:rrr-pbc-notice-20250515",
+      "state": "completed",
+      "started_at": "2026-09-08T05:50:04.010412+00:00",
+      "completed_at": "2026-09-08T05:50:07.710898+00:00",
+      "run_attempt": 1,
+      "acquisition_id": "acquisition-98fbe9082e444e8a852fd08ac96e28ec",
+      "outcome": "candidate_source",
+      "classification": "unverified_candidate",
+      "http_status": 200,
+      "cache_expires_at": null,
+      "provider_cache": 0,
+      "provider_request_id": "a98f4932-1784-411d-8fbc-868aab2d70bd",
+      "raw_hash": "d2bc7bed4cb848438495bf35e16f6bd118e5b19621b5e1fa5cd7b4c7269da381",
+      "provider": "tavily",
+      "api_name": "search",
+      "received_at": "2026-09-08T05:50:07.633271+00:00",
+      "cost": {
+        "amount": 1,
+        "unit": "credit",
+        "basis": "provider_usage"
+      },
+      "response_headers": {
+        "date": "Tue, 08 Sep 2026 05:50:07 GMT",
+        "content-type": "application/json"
+      },
+      "raw_expires_at": "2026-10-08T05:50:07.633271+00:00",
+      "billed_cost": null,
+      "gap_ids": [
+        "gap-50a87ec1db980e8dcef67b098ca342be40ad486ac56b356aa07c43c3e3c979d5"
+      ],
+      "charged_to_run": true,
+      "raw_status": "retained"
+    }
+  ],
+  "candidate_validations": [],
+  "queries": [
+    {
+      "query_id": "retrieval-query-d795f05be5474f97a45b009bbe4437c0",
+      "logical_query_id": "2625ac45d58a853fb63b31dd7e86a62fef45feb0577ed771272d4abd6c50069f",
+      "run_id": "run-5c2a3ac498f84e43abdc",
+      "channel": "exa",
+      "query_text": "site:pbc.gov.cn 2025年5月15日 下调 金融机构 存款准备金率 汽车金融 金融租赁",
+      "attempted_at": "2026-09-08T05:50:02.491780+00:00",
+      "physical_request_id": "retrieval-request-5cb1ce3d173f432bafdae915d691f39c",
+      "classification": "unverified_candidate",
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    },
+    {
+      "query_id": "retrieval-query-fd2fd4fedbfc41c5abfb87591ea9b98b",
+      "logical_query_id": "8cead26875a4ec67079265800fb6b3c14c9d6645a6edcec5856a75d9e23be317",
+      "run_id": "run-5c2a3ac498f84e43abdc",
+      "channel": "tavily",
+      "query_text": "site:pbc.gov.cn 2025年5月15日 下调 金融机构 存款准备金率 汽车金融 金融租赁",
+      "attempted_at": "2026-09-08T05:50:04.010412+00:00",
+      "physical_request_id": "retrieval-request-ebc83743be5b40b99c82b96be6907be0",
+      "classification": "unverified_candidate",
+      "next_eligible_at": "2026-09-09T00:00:00+08:00",
+      "cache_hit": 0,
+      "reused_request_id": null
+    }
+  ]
+}
