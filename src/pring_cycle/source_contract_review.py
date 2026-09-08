@@ -179,12 +179,13 @@ def require_registered_source_contract(
         "CN_RRR_EVENT": ("rrr", "中国人民银行"),
         "CN_DR007": ("interbank", "tushare"),
         "CN_SHIBOR_ON_1W_3M": ("interbank", "tushare"),
+        "CN_FUTURES_WARRANTS": ("warrant", "tushare"),
     }
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
     supported = metric_definition(definition.metric_id)
-    if family in {"interbank", "rrr"}:
+    if family in {"interbank", "rrr", "warrant"}:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
@@ -202,6 +203,31 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "warrant":
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or set(dimensions) != {"symbol", "warehouse", "exchange", "measure"}
+            or dimensions.get("symbol") not in {"CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA"}
+            or not dimensions.get("warehouse", "").strip()
+            or not dimensions.get("exchange", "").strip()
+            or dimensions.get("measure")
+            not in {
+                "previous_registered_receipts",
+                "registered_receipts",
+                "registered_receipts_change",
+            }
+            or unit not in supported.allowed_units
+        ):
+            raise ValueError("registered_warrant_source_identity_mismatch")
+        try:
+            start = date.fromisoformat(period_start)
+            end = date.fromisoformat(period_end)
+        except ValueError:
+            raise ValueError("registered_warrant_source_period_mismatch") from None
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_warrant_source_period_mismatch")
+        return
     if family == "rrr":
         units = {
             "rrr_change": "percentage_points",

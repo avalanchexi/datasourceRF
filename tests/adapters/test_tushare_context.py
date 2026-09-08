@@ -219,6 +219,26 @@ def test_futures_warrant_contract_preserves_three_measures_and_rejects_hog() -> 
         )
 
 
+@pytest.mark.parametrize("negative_field", ["pre_vol", "vol"])
+def test_futures_warrant_rejects_negative_reported_quantity(negative_field: str) -> None:
+    row = {
+        "trade_date": "20260828",
+        "symbol": "CU",
+        "warehouse": "synthetic-warehouse",
+        "pre_vol": 225,
+        "vol": 225,
+        "vol_chg": -10,
+        "unit": "吨",
+        "exchange": "SHFE",
+    }
+    row[negative_field] = -1
+    adapter = TushareContextAdapter("fixture-token", transport=lambda _: response([row]))
+    with pytest.raises(ValueError, match="tushare_warrant_quantity_negative"):
+        adapter.futures_warrants(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol="CU"
+        )
+
+
 def test_futures_warrant_contract_accepts_live_exchange_shape_variants() -> None:
     requested_symbols: list[str] = []
 
@@ -328,7 +348,7 @@ def test_futures_warrant_saturated_range_is_split_until_every_date_is_visible() 
         start = str(params["start_date"])
         end = str(params["end_date"])
         if start != end:
-            row = {
+            row: dict[str, object] = {
                 "trade_date": start,
                 "symbol": "PTA",
                 "warehouse": "郑州商品交易所",

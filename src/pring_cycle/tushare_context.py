@@ -167,12 +167,17 @@ class TushareContextAdapter:
             scalars = retrieve()
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
+            warrant_inputs = self._warrant_receipt_inputs()
             linked = []
             for scalar in scalars:
                 matching = [r for r in self._receipts if r.api_name == scalar.api_name]
                 # A derived family uses its complete captured input batch,
                 # including calendar and hidden warmup requests.
                 inputs = matching or self._receipts
+                if scalar.metric_id == "CN_FUTURES_WARRANTS" and scalar.api_name == "fut_wsr":
+                    inputs = warrant_inputs.get(_warrant_input_identity(scalar), [])
+                    if not inputs:
+                        raise ValueError("tushare_warrant_acquisition_member_missing")
                 linked.append(
                     replace(scalar, acquisition_ids=tuple(r.acquisition_id for r in inputs))
                 )
@@ -225,6 +230,39 @@ class TushareContextAdapter:
     @property
     def network_requests(self) -> int:
         return self._network_requests
+
+    def _warrant_receipt_inputs(
+        self,
+    ) -> dict[tuple[str, str, str, str, str, str, float], list[AcquisitionReceipt]]:
+        """Index only complete physical warrant responses by their actual scalar rows."""
+        result: dict[tuple[str, str, str, str, str, str, float], list[AcquisitionReceipt]] = {}
+        assert self._acquisitions is not None
+        for receipt in self._receipts:
+            if receipt.api_name != "fut_wsr":
+                continue
+            document = json.loads(self._acquisitions.read_content(receipt.acquisition_id, "raw"))
+            rows = _response_rows(document, required_fields=tuple(receipt.fields.split(",")))
+            if len(rows) >= _FUTURES_WARRANT_RESPONSE_LIMIT:
+                continue
+            for row in rows:
+                source_symbol = str(row["symbol"]).strip()
+                symbol = "TA" if source_symbol == "PTA" else source_symbol
+                unit = _WARRANT_UNITS[str(row["unit"]).strip()]
+                for field in ("pre_vol", "vol", "vol_chg"):
+                    value = _number(row.get(field))
+                    if value is None:
+                        continue
+                    identity = (
+                        symbol,
+                        _compact_date(row["trade_date"]).isoformat(),
+                        str(row["warehouse"]).strip(),
+                        str(row["exchange"]).strip(),
+                        field,
+                        unit,
+                        value,
+                    )
+                    result.setdefault(identity, []).append(receipt)
+        return result
 
     def pmi(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
         fields = (
@@ -428,6 +466,7 @@ class TushareContextAdapter:
             )
         )
         scalars: list[ContextScalar] = []
+        identities: set[tuple[date, str, str, str]] = set()
         for row in rows:
             row_symbol = _required_text(row.get("symbol"), "tushare_warrant_symbol_invalid")
             if row_symbol != source_symbol:
@@ -440,14 +479,21 @@ class TushareContextAdapter:
                 row.get("exchange"),
                 "tushare_warrant_exchange_missing",
             )
+            identity = (_compact_date(row.get("trade_date")), row_symbol, warehouse, exchange)
+            if identity in identities:
+                raise ValueError("tushare_warrant_duplicate_member")
+            identities.add(identity)
             source_unit = _required_text(row.get("unit"), "tushare_warrant_unit_missing")
             try:
                 unit = _WARRANT_UNITS[source_unit]
             except KeyError as error:
                 raise ValueError("tushare_warrant_unit_unknown") from error
             for source_field, measure in fields:
-                if _number(row.get(source_field)) is None:
+                value = _number(row.get(source_field))
+                if value is None:
                     continue
+                if source_field in {"pre_vol", "vol"} and value < 0:
+                    raise ValueError("tushare_warrant_quantity_negative")
                 scalars.append(
                     _daily_scalar(
                         "CN_FUTURES_WARRANTS",
@@ -1206,6 +1252,17 @@ def ingest_context_scalars(
             definition_version=definition_version,
             database_path=paths.database,
         )
+        if (
+            definition_version not in BUILTIN_CATALOG_VERSIONS
+            and scalar.metric_id == "CN_FUTURES_WARRANTS"
+        ):
+            expected_warrant_field = {
+                "previous_registered_receipts": "pre_vol",
+                "registered_receipts": "vol",
+                "registered_receipts_change": "vol_chg",
+            }.get(scalar.dimensions.get("measure", ""))
+            if (scalar.api_name, scalar.source_field) != ("fut_wsr", expected_warrant_field):
+                raise ValueError("registered_warrant_source_field_mismatch")
         if definition_version not in BUILTIN_CATALOG_VERSIONS and scalar.metric_id in {
             "CN_DR007",
             "CN_SHIBOR_ON_1W_3M",
@@ -1673,6 +1730,18 @@ def _business_day_scalar(
         dimensions=dimensions,
         value=value,
         unit=unit,
+    )
+
+
+def _warrant_input_identity(scalar: ContextScalar) -> tuple[str, str, str, str, str, str, float]:
+    return (
+        scalar.dimensions.get("symbol", ""),
+        scalar.period_end,
+        scalar.dimensions.get("warehouse", ""),
+        scalar.dimensions.get("exchange", ""),
+        scalar.source_field,
+        scalar.unit,
+        scalar.value,
     )
 
 

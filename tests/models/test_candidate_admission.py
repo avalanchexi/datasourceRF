@@ -687,6 +687,255 @@ def test_registered_rrr_identity_rejection_keeps_whole_batch_empty(
 
 
 @pytest.mark.usefixtures("runtime_clock")
+def test_registered_warrant_acquisition_preserves_sample_units_and_unknown_public(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    # Synthetic TuShare delivery shape, anchored to independent SHFE literals.
+    # These are not historical TuShare receipts or a new source certification.
+    raw_by_symbol = {
+        symbol: encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": [["20260828", symbol, warehouse, None, value, 0, unit, "SHFE"]],
+                },
+            }
+        )
+        for symbol, warehouse, value, unit in (
+            ("CU", "国储天威", 225, "吨"),
+            ("SC", "弘润油储", 1027000, "桶"),
+        )
+    }
+    requests: list[str] = []
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        assert payload["api_name"] == "fut_wsr"
+        symbol = str(payload["params"]["symbol"])
+        requests.append(symbol)
+        return raw_by_symbol[symbol]
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    imported = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            scalar
+            for symbol in ("CU", "SC")
+            for scalar in adapter.futures_warrants(
+                start_date=date(2026, 8, 28),
+                end_date=date(2026, 8, 28),
+                symbol=symbol,
+            )
+        ),
+        definition_version=version,
+    )
+    assert requests == ["CU", "SC"]
+    assert len(imported.claim_ids) == 4
+    evidence = EvidenceRepository(paths.database)
+    now = datetime.now(UTC)
+    points = evidence.metric_series(
+        "CN_FUTURES_WARRANTS", mode=AsOfMode.SYSTEM, as_of=now, definition_version=version
+    )
+    assert {
+        (p.dimensions["symbol"], p.selected_value, p.claims[0].unit)
+        for p in points
+        if p.dimensions["measure"] == "registered_receipts"
+    } == {("CU", 225, "tonne"), ("SC", 1027000, "barrel")}
+    assert all(p.dimensions["exchange"] == "SHFE" for p in points)
+    for point in points:
+        trace = evidence.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=now)
+        assert len(trace.acquisitions) == 1
+        (linked_receipt,) = trace.acquisitions
+        assert linked_receipt.parameters["symbol"] == point.dimensions["symbol"]
+    assert all(p.claims[0].public_available_at is None for p in points)
+    assert not evidence.metric_series(
+        "CN_FUTURES_WARRANTS", mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+    )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    assert len(acquisitions.history()) == 2
+    assert {
+        acquisitions.read_content(r.acquisition_id, "raw") for r in acquisitions.history()
+    } == set(raw_by_symbol.values())
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="warrant-two-sample-members",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id="synthetic:warrants",
+        metric_ids=("CN_FUTURES_WARRANTS",),
+        period="2026-08-28",
+    )
+    assert not select_retrieval_input(paths, run).complete
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_warrant_trace_uses_complete_leaf_requests(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    version = request["manifest"]["metric_catalog_version"]
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        start, end = payload["params"]["start_date"], payload["params"]["end_date"]
+        row = [
+            start,
+            "CU",
+            "synthetic-warehouse",
+            None,
+            224 if start == "20260827" else 225,
+            None,
+            "吨",
+            "SHFE",
+        ]
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": [row] * (1000 if start != end else 1),
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    imported = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.futures_warrants(
+            start_date=date(2026, 8, 27), end_date=date(2026, 8, 28), symbol="CU"
+        ),
+        definition_version=version,
+    )
+    assert len(imported.claim_ids) == 2
+    assert adapter.network_requests == 3
+    evidence = EvidenceRepository(paths.database)
+    now = datetime.now(UTC)
+    for point in evidence.metric_series(
+        "CN_FUTURES_WARRANTS", mode=AsOfMode.SYSTEM, as_of=now, definition_version=version
+    ):
+        (receipt,) = evidence.trace(
+            point.observation_id, mode=AsOfMode.SYSTEM, as_of=now
+        ).acquisitions
+        assert receipt.parameters["start_date"] == receipt.parameters["end_date"]
+        assert receipt.parameters["end_date"] == point.period_end.replace("-", "")
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    parent = next(
+        r for r in acquisitions.history() if r.parameters["start_date"] != r.parameters["end_date"]
+    )
+    assert json.loads(acquisitions.read_content(parent.acquisition_id, "normalized")) == []
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("fault", ["api", "field", "duplicate", "conflicting"])
+def test_registered_warrant_invalid_delivery_rejects_atomic_import(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    version = request["manifest"]["metric_catalog_version"]
+    rows = [["20260828", "CU", "synthetic-warehouse", 225, 225, 0, "吨", "SHFE"]]
+    if fault in {"duplicate", "conflicting"}:
+        rows.append(
+            [
+                "20260828",
+                "CU",
+                "synthetic-warehouse",
+                225,
+                226 if fault == "conflicting" else 225,
+                0,
+                "吨",
+                "SHFE",
+            ]
+        )
+    raw = encode(
+        {
+            "code": 0,
+            "data": {
+                "fields": [
+                    "trade_date",
+                    "symbol",
+                    "warehouse",
+                    "pre_vol",
+                    "vol",
+                    "vol_chg",
+                    "unit",
+                    "exchange",
+                ],
+                "items": rows,
+            },
+        }
+    )
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        scalars = adapter.futures_warrants(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol="CU"
+        )
+        if fault in {"duplicate", "conflicting"}:
+            return scalars
+        return tuple(
+            (
+                replace(s, api_name="synthetic_wrong_api")
+                if fault == "api"
+                else replace(s, source_field="pre_vol")
+            )
+            if s.source_field == "vol"
+            else s
+            for s in scalars
+        )
+
+    expected_error = (
+        "tushare_warrant_duplicate_member"
+        if fault in {"duplicate", "conflicting"}
+        else "registered_warrant_source_field_mismatch"
+    )
+    with pytest.raises(ValueError, match=expected_error):
+        adapter.acquire_scalars(paths, retrieve, definition_version=version)
+    assert not EvidenceRepository(paths.database).metric_series(
+        "CN_FUTURES_WARRANTS",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=version,
+    )
+    if fault in {"duplicate", "conflicting"}:
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        (receipt,) = acquisitions.history()
+        assert receipt.state == "failed"
+        assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+
+
+@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("public_known", [False, True])
 def test_registered_interbank_acquisition_preserves_public_boundary(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], public_known: bool
