@@ -16,6 +16,8 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import response_retention_deadline
 from pring_cycle.catalog import metric_definition
+from pring_cycle.catalog_registry import require_registered_manifest
+from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse
 
 if TYPE_CHECKING:
@@ -59,9 +61,15 @@ class RetrievalLedger:
         scope = run.retrieval_scope
         if scope is None:
             raise ValueError("retrieval_scope_required")
+        manifest = ModelRepository(self.database).manifest(run.model_version_id)
+        if manifest["metric_catalog_version"] != definition_version:
+            raise ValueError("retrieval_catalog_model_mismatch")
+        require_registered_manifest(self.database, manifest)
         with self._connect() as connection:
             for metric_id in scope.metric_ids:
-                definition = metric_definition(metric_id, definition_version=definition_version)
+                definition = metric_definition(
+                    metric_id, definition_version=definition_version, database_path=self.database
+                )
                 event_key = json.dumps([definition.release_event_family, scope.period])
                 identity = {
                     "model_version_id": run.model_version_id,
@@ -255,7 +263,11 @@ class RetrievalLedger:
                 "WHERE s.release_event_id=?",
                 (cached["release_event_id"],),
             ):
-                cached_keys.update(_legacy_event_keys(prior_scope, cached["metric_ids_json"]))
+                cached_keys.update(
+                    _legacy_event_keys(
+                        prior_scope, cached["metric_ids_json"], database_path=self.database
+                    )
+                )
             exact_legacy_identity = cached["release_event_id"] == release_event_id and set(
                 json.loads(cached["metric_ids_json"])
             ) & set(json.loads(row["metric_ids_json"]))
@@ -308,7 +320,7 @@ class RetrievalLedger:
         )
         for prior in legacy_requests:
             if prior["channel"] == channel:
-                for key in _legacy_event_keys(prior) & event_keys:
+                for key in _legacy_event_keys(prior, database_path=self.database) & event_keys:
                     event_counts[key] += 1
         if channel in LIMITS and any(count >= event_limit for count in event_counts.values()):
             blocked = "event_daily_limit"
@@ -805,13 +817,17 @@ def _legacy_requests(
     return [row for row in rows if start <= datetime.fromisoformat(row["occurred_at"]) < end]
 
 
-def _legacy_event_keys(row: sqlite3.Row, metric_ids_json: str | None = None) -> set[str]:
+def _legacy_event_keys(
+    row: sqlite3.Row, metric_ids_json: str | None = None, *, database_path: Path
+) -> set[str]:
     manifest = json.loads(row["manifest_json"])
     return {
         json.dumps(
             [
                 metric_definition(
-                    metric_id, definition_version=manifest["metric_catalog_version"]
+                    metric_id,
+                    definition_version=manifest["metric_catalog_version"],
+                    database_path=database_path,
                 ).release_event_family,
                 row["period"],
             ]

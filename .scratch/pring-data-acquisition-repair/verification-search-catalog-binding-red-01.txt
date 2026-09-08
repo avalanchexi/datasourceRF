@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_registered_search_gap_cannot_use_a_different_catalog_than_its_model ___
+tests/models/test_candidate_admission.py:557: in test_registered_search_gap_cannot_use_a_different_catalog_than_its_model
+    with pytest.raises(ValueError, match="retrieval_catalog_model_mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_search_gap_cannot_use_a_different_catalog_than_its_model
+1 failed in 3.46s

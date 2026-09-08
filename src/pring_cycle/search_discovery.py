@@ -4,6 +4,7 @@ import json
 import math
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, replace
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
@@ -42,12 +43,15 @@ def build_search_query(
     *,
     period: str,
     definition_version: str = METRIC_CATALOG_VERSION,
+    database_path: Path | None = None,
 ) -> str:
     if not metric_ids:
         raise ValueError("search_metric_ids_required")
     identities = []
     for metric_id in metric_ids:
-        definition = metric_definition(metric_id, definition_version=definition_version)
+        definition = metric_definition(
+            metric_id, definition_version=definition_version, database_path=database_path
+        )
         identities.append(
             " ".join((definition.metric_id, definition.name_cn, *definition.source_codes))
         )

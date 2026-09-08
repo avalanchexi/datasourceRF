@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses _
+tests/models/test_candidate_admission.py:395: in test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses
+    ledger.bind_run(run, version)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:64: in bind_run
+    definition = metric_definition(metric_id, definition_version=definition_version)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/catalog.py:414: in metric_definition
+    raise KeyError("unknown_metric_definition_version")
+E   KeyError: 'unknown_metric_definition_version'
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses
+1 failed in 3.53s

@@ -130,3 +130,8 @@ verification-interbank-*.txt whitespace=-blank-at-eol
 verification-interbank/*.json -text whitespace=cr-at-eol
 verification-interbank/*.txt whitespace=-blank-at-eol
 verification-interbank/*.zip -text -diff
+
+verification-search-catalog-*.txt whitespace=-blank-at-eol
+verification-search-catalog/*.txt whitespace=-blank-at-eol
+verification-search-catalog/*.json -text whitespace=cr-at-eol
+verification-search-catalog/*.zip -text -diff

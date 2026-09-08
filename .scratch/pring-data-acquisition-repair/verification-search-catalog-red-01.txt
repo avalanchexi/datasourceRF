@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses _
+tests/models/test_candidate_admission.py:381: in test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses
+    active_before = ModelRepository(paths.database).active().model_version_id
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/models.py:807: in active
+    raise LookupError("active_model_unavailable")
+E   LookupError: active_model_unavailable
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses
+1 failed in 3.09s

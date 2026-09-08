@@ -4,7 +4,7 @@ import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -26,9 +26,15 @@ from pring_cycle.official_context import ingest_official_context_document
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.runtime_fingerprint import execution_fingerprint
+from pring_cycle.search_discovery import (
+    SearchHttpResponse,
+    build_search_query,
+    search_discovery_adapter,
+)
 from pring_cycle.search_evidence import select_retrieval_input
 from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
 
@@ -368,6 +374,193 @@ def test_registered_interbank_rejects_wrong_delivery_field_atomically(
             as_of=now,
             definition_version=request["manifest"]["metric_catalog_version"],
         )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_catalog_search_binds_shared_gaps_and_preserves_both_responses(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    with pytest.raises(LookupError, match="active_model_unavailable"):
+        ModelRepository(paths.database).active()
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    metrics = ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES")
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="registered-search-pair",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:pmi-search",
+        metric_ids=metrics,
+        period="2026-07",
+    )
+    ledger = RetrievalLedger(paths.database)
+    ledger.bind_run(run, version)
+    query = build_search_query(
+        metrics, period="2026-07", definition_version=version, database_path=paths.database
+    )
+    assert all(metric in query for metric in metrics)
+    assert "2026-07" in query
+    original = encode(
+        {
+            "results": [
+                {
+                    "url": "https://www.stats.gov.cn/synthetic/pmi.html",
+                    "content": "synthetic unverified candidate",
+                }
+            ]
+        }
+    )
+
+    def transport(
+        _endpoint: str, _headers: dict[str, str], _payload: dict[str, object]
+    ) -> SearchHttpResponse:
+        return SearchHttpResponse(200, None, original)
+
+    for provider in ("tavily", "exa"):
+        response = search_discovery_adapter(
+            provider,
+            "synthetic-key",
+            query,
+            transport=transport,
+            paths=paths,
+            run_id=run.run_id,
+            ledger=ledger,
+        )("synthetic:pmi-search")
+        assert response.status == "candidate_source"
+        assert response.classification == "unverified_candidate"
+    recorded = ledger.for_run(run.run_id)
+    assert recorded is not None
+    assert len(recorded["gaps"]) == 3
+    assert {g["definition_version"] for g in recorded["gaps"]} == {version}
+    assert {g["model_version_id"] for g in recorded["gaps"]} == {model_id}
+    assert len(recorded["requests"]) == 2
+    assert {r["channel"] for r in recorded["requests"]} == {"tavily", "exa"}
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    for physical in recorded["requests"]:
+        assert acquisitions.read_content(physical["acquisition_id"], "raw") == original
+    assert recorded["candidate_validations"] == []
+    with pytest.raises(LookupError, match="active_model_unavailable"):
+        ModelRepository(paths.database).active()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("legacy_kind", ["cache", "budget"])
+def test_registered_catalog_retains_shared_family_legacy_search_limits(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], legacy_kind: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    now = datetime.now(UTC)
+    runs = RunRepository(paths.database)
+    old = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="registered-search-old",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id="synthetic:pmi-old",
+        metric_ids=("CN_PMI_ACTIVITY",),
+        period="2026-07",
+    )
+    if legacy_kind == "cache":
+        runs.store_negative_cache(
+            "synthetic:pmi-old",
+            ("CN_PMI_ACTIVITY",),
+            reason="unresolved",
+            expires_at=now + timedelta(minutes=30),
+            now=now,
+        )
+    else:
+        runs.record_retrieval_attempt(
+            old.run_id,
+            release_event_id="synthetic:pmi-old",
+            channel="tavily",
+            outcome="failed",
+            classification="transient_transport_error",
+            latency_ms=1,
+            remaining_run_budget=7,
+            remaining_daily_budget=15,
+            budget_charged=True,
+            cache_hit=False,
+            manual_budget_exemption=False,
+            candidate_source=None,
+            occurred_at=now,
+        )
+    runs.mark_action_required(old.run_id, "legacy-unresolved")
+    run = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="registered-search-new",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id="synthetic:pmi-new",
+        metric_ids=("CN_PMI_INVENTORY",),
+        period="2026-07",
+    )
+    ledger = RetrievalLedger(paths.database)
+    ledger.bind_run(run, version)
+    query = build_search_query(
+        ("CN_PMI_INVENTORY",),
+        period="2026-07",
+        definition_version=version,
+        database_path=paths.database,
+    )
+
+    def transport(
+        _endpoint: str, _headers: dict[str, str], _payload: dict[str, object]
+    ) -> SearchHttpResponse:
+        pytest.fail("shared family limit must prevent an external request")
+
+    response = search_discovery_adapter(
+        "tavily",
+        "synthetic-key",
+        query,
+        transport=transport,
+        paths=paths,
+        run_id=run.run_id,
+    )("synthetic:pmi-new")
+    assert response.status == "not_attempted"
+    assert response.classification == (
+        "negative_cache_active" if legacy_kind == "cache" else "event_daily_limit"
+    )
+    assert not AcquisitionRepository(paths.database, paths.artifacts).history()
+    recorded = ledger.for_run(run.run_id)
+    assert recorded is not None
+    assert recorded["requests"] == []
+
+
+def test_registered_search_gap_cannot_use_a_different_catalog_than_its_model(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="catalog-mismatch",
+        model_version_id=model_id,
+        system_as_of=datetime(2026, 9, 8, tzinfo=UTC),
+        release_event_id="synthetic:mismatch",
+        metric_ids=("CN_PMI_ACTIVITY",),
+        period="2026-07",
+    )
+    ledger = RetrievalLedger(paths.database)
+    with pytest.raises(ValueError, match="retrieval_catalog_model_mismatch"):
+        ledger.bind_run(run, "metric-catalog-v0001")
+    assert ledger.for_run(run.run_id) is None
 
 
 def test_registered_pmi_original_reaches_selection_and_context(
@@ -1736,7 +1929,7 @@ def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
         ModelRepository(paths.database).active()
 
 
-@pytest.mark.parametrize("consumer", ["selection", "context"])
+@pytest.mark.parametrize("consumer", ["selection", "context", "ledger"])
 @pytest.mark.parametrize("fault", ["unregistered", "different_definitions"])
 def test_generic_model_creation_cannot_borrow_or_register_catalog(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], consumer: str, fault: str
@@ -1774,7 +1967,12 @@ def test_generic_model_creation_cannot_borrow_or_register_catalog(
                 metric_ids=("CN_LPR_1Y_5Y",),
                 period="2026-08",
             )
-            select_retrieval_input(paths, run)
+            if consumer == "ledger":
+                RetrievalLedger(paths.database).bind_run(run, manifest["metric_catalog_version"])
+            else:
+                select_retrieval_input(paths, run)
+    if consumer == "ledger":
+        assert RetrievalLedger(paths.database).for_run(run.run_id) is None
 
 
 def test_unrecognized_definition_fields_cannot_be_admitted(

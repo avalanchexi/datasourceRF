@@ -1,0 +1,40 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_registered_catalog_retains_shared_family_legacy_search_limits[cache] ___
+tests/models/test_candidate_admission.py:496: in test_registered_catalog_retains_shared_family_legacy_search_limits
+    response = search_discovery_adapter(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/search_discovery.py:140: in retrieve
+    request_id = active_ledger.reserve(run_id, provider, release_event_id, query)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:94: in reserve
+    decision = self._decision(connection, run_id, channel, release_event_id, query, now)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:260: in _decision
+    cached_keys.update(_legacy_event_keys(prior_scope, cached["metric_ids_json"]))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:815: in _legacy_event_keys
+    metric_definition(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/catalog.py:414: in metric_definition
+    raise KeyError("unknown_metric_definition_version")
+E   KeyError: 'unknown_metric_definition_version'
+__ test_registered_catalog_retains_shared_family_legacy_search_limits[budget] __
+tests/models/test_candidate_admission.py:496: in test_registered_catalog_retains_shared_family_legacy_search_limits
+    response = search_discovery_adapter(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/search_discovery.py:140: in retrieve
+    request_id = active_ledger.reserve(run_id, provider, release_event_id, query)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:94: in reserve
+    decision = self._decision(connection, run_id, channel, release_event_id, query, now)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:313: in _decision
+    for key in _legacy_event_keys(prior) & event_keys:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/retrieval_ledger.py:815: in _legacy_event_keys
+    metric_definition(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/catalog.py:414: in metric_definition
+    raise KeyError("unknown_metric_definition_version")
+E   KeyError: 'unknown_metric_definition_version'
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_catalog_retains_shared_family_legacy_search_limits[cache]
+FAILED tests/models/test_candidate_admission.py::test_registered_catalog_retains_shared_family_legacy_search_limits[budget]
+2 failed, 113 deselected in 5.90s

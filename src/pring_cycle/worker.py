@@ -722,7 +722,10 @@ def _production_retrieval_adapters(
         from pring_cycle.search_evidence import verify_search_candidates
 
         query = build_search_query(
-            scope.metric_ids, period=scope.period, definition_version=definition_version
+            scope.metric_ids,
+            period=scope.period,
+            definition_version=definition_version,
+            database_path=paths.database,
         )
         if token := secrets.get("TAVILY_API_KEY"):
             adapters["tavily"] = search_discovery_adapter(

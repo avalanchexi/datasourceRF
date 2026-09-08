@@ -1,0 +1,10 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_generic_model_creation_cannot_borrow_or_register_catalog[different_definitions-ledger] _
+tests/models/test_candidate_admission.py:1952: in test_generic_model_creation_cannot_borrow_or_register_catalog
+    with pytest.raises((KeyError, ValueError), match=expected):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE any of (<class 'KeyError'>, <class 'ValueError'>)
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_generic_model_creation_cannot_borrow_or_register_catalog[different_definitions-ledger]
+1 failed, 1 passed, 116 deselected in 4.82s
