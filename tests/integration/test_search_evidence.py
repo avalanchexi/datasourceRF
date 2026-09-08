@@ -86,6 +86,7 @@ def test_unknown_publication_window_is_distinct_from_not_yet_released(
     assert stored.error_classification == "unknown_release_configuration"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_targeted_tushare_redirect_is_one_failed_physical_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -139,6 +140,7 @@ def test_targeted_tushare_redirect_is_one_failed_physical_request(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_tushare_numeric_failure_is_cached_after_raw_fields_parse(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -188,6 +190,7 @@ def test_tushare_numeric_failure_is_cached_after_raw_fields_parse(
 
 
 @pytest.mark.parametrize("failure", ["partial", "redirect", "fourth_candidate", "future_window"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_search_candidate_rejections_and_discovery_bounds(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -253,6 +256,7 @@ def test_search_candidate_rejections_and_discovery_bounds(
 
 
 @pytest.mark.parametrize("ppi_failures", [0, 2])
+@pytest.mark.usefixtures("runtime_clock")
 def test_targeted_tushare_traces_each_physical_response_before_search_fallback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -337,6 +341,7 @@ def test_targeted_tushare_traces_each_physical_response_before_search_fallback(
         ("targeted_refresh", 0, "search_receipt"),
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_resume_reuses_received_search_and_finishes_interrupted_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -468,6 +473,7 @@ def test_local_lpr_requires_both_reported_tenors(tmp_path: Path, values, expecte
 
 
 @pytest.mark.parametrize("checkpoint", ["candidate", "search_receipt"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_terminal_resume_does_not_permanently_reuse_old_interruption(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, checkpoint: str
 ) -> None:
@@ -550,6 +556,7 @@ def test_terminal_resume_does_not_permanently_reuse_old_interruption(
 
 
 @pytest.mark.parametrize("channel", ["local", "official"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_existing_channels_respect_complete_input_and_frozen_cutoff(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -601,6 +608,7 @@ def test_existing_channels_respect_complete_input_and_frozen_cutoff(
     assert calls == [URL]
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_unknown_publication_is_system_visible_but_not_target_model_input(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -664,6 +672,7 @@ def test_unknown_publication_is_system_visible_but_not_target_model_input(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_unknown_official_url_does_not_claim_old_period_is_unreleased(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -703,6 +712,7 @@ def test_unknown_official_url_does_not_claim_old_period_is_unreleased(
     assert stored.retrieval_ledger["gaps"][0]["release_event_kind"] == "budget_family_period"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_candidate_parser_limit_preserves_original_without_claiming_complete_fields(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -754,6 +764,7 @@ def test_candidate_parser_limit_preserves_original_without_claiming_complete_fie
     assert sum(len(s) for s in normalized["candidate_summaries"]) == 1800
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_wrong_period_then_duplicate_candidate_does_not_block_valid_exa_document(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -817,6 +828,7 @@ def test_wrong_period_then_duplicate_candidate_does_not_block_valid_exa_document
     assert validations[-1]["outcome"] == "model_usable"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_explicit_cutoff_does_not_move_to_adopt_new_search_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -860,6 +872,7 @@ def test_explicit_cutoff_does_not_move_to_adopt_new_search_evidence(
     assert validation["outcome"] == "not_model_usable"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_search_candidate_becomes_complete_model_input_with_original_trace(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

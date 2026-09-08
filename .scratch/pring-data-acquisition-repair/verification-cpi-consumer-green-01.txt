@@ -1,0 +1,78 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-consumer-green-01/test_admitted_catalog_consumes0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7b418918f5c0>
+
+    def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        acquired_at = datetime(2026, 8, 9, 2, tzinfo=UTC)
+>       ingested = ingest_official_context_document(
+            paths, cpi_document(), family="nbs_core_cpi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html",
+            expected_period="2026-07", fetched_at=acquired_at,
+            definition_version=version, clock=lambda: acquired_at,
+        )
+
+tests/models/test_candidate_admission.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_CPI_HEADLINE', name_cn='居民消费价格', priority='P1', role='macro_confirmation', unit='percen...lease_timezone='Asia/Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('percent',))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+            raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+        family, supported_provider = contracts[definition.metric_id]
+        supported = metric_definition(definition.metric_id)
+        fields = (
+            "source_codes",
+            "dimensions",
+            "unit",
+            "frequency",
+            "release_event_family",
+            "release_rule",
+            "release_timezone",
+        )
+        if any(getattr(definition, field) != getattr(supported, field) for field in fields) or set(
+            definition.allowed_units or (definition.unit,)
+        ) != {"percent"}:
+>           raise ValueError(f"registered_{family}_source_contract_unsupported")
+E           ValueError: registered_cpi_source_contract_unsupported
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:130: ValueError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times
+1 failed, 63 deselected in 2.94s

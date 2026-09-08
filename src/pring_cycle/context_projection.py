@@ -25,6 +25,7 @@ from pring_cycle.evidence import (
     EvidenceValueState,
     MetricSeriesPoint,
 )
+from pring_cycle.metric_contracts import evidence_max_age_days
 
 _POLICY_ACTION = {
     "CN_OMO_7D_RATE": "policy_action",
@@ -1472,14 +1473,7 @@ def _evidence_status(
 def _period_freshness(definition: MetricDefinition, period_end: str, *, as_of: datetime) -> str:
     period_date = date.fromisoformat(period_end)
     age = (as_of.date() - period_date).days
-    limit = (
-        730
-        if definition.metric_id == "CN_RRR_EVENT"
-        else {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
-            definition.frequency,
-            95,
-        )
-    )
+    limit = evidence_max_age_days(definition.metric_id, definition.frequency)
     return "stale" if age > limit else "current"
 
 

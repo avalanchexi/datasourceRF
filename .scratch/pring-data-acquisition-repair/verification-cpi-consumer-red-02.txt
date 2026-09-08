@@ -1,0 +1,45 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_cpi_january_does_not_require_an_unreported_cumulative_column _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-consumer-red-02/test_registered_cpi_january_do0')
+capsys = <_pytest.capture.CaptureFixture object at 0x74d6c6bb1b20>
+
+    def test_registered_cpi_january_does_not_require_an_unreported_cumulative_column(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        # January's official table has just the two change columns, no cumulative field.
+        content = """
+        <h1>2026年1月份居民消费价格</h1><p>发布时间：2026-02-11 09:30</p>
+        <table><tr><th></th><th>环比涨跌幅（%）</th><th>同比涨跌幅（%）</th></tr>
+        <tr><td>居民消费价格</td><td>0.2</td><td>0.1</td></tr>
+        <tr><td>不包括食品和能源</td><td>0.3</td><td>0.8</td></tr></table>
+        """.encode()
+        now = datetime(2026, 2, 11, 2, tzinfo=UTC)
+        ingested = ingest_official_context_document(
+            paths, content, family="nbs_core_cpi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202602/t20260211_1962588.html",
+            expected_period="2026-01", fetched_at=now, clock=lambda: now,
+            definition_version=request["manifest"]["metric_catalog_version"],
+        )
+        assert len(ingested.claim_ids) == 4
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh", target_business_date="2026-03-09",
+            client_request_id="admitted-cpi-january", model_version_id=model_id, system_as_of=now,
+            release_event_id=ingested.release_event_id,
+            metric_ids=("CN_CPI_HEADLINE", "CN_CORE_CPI"), period="2026-01",
+        )
+        selection = select_retrieval_input(paths, run)
+>       assert selection.complete
+E       assert False
+E        +  where False = ModelInputSelection(complete=False, selected_claim_ids=('37ddde4506c3cd7eef56228421d375d9e70b8aba423fb3a54c58568821a2c...asure": "cumulative_average_yoy"}', 'CN_CORE_CPI:{"category": "ex_food_energy", "measure": "cumulative_average_yoy"}')).complete
+
+tests/models/test_candidate_admission.py:211: AssertionError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_cpi_january_does_not_require_an_unreported_cumulative_column
+1 failed, 64 deselected in 1.98s

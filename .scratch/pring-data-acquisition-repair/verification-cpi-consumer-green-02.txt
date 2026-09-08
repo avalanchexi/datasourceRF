@@ -1,0 +1,60 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-consumer-green-02/test_admitted_catalog_consumes0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7082d4f23a40>
+
+    def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        acquired_at = datetime(2026, 8, 9, 2, tzinfo=UTC)
+        ingested = ingest_official_context_document(
+            paths, cpi_document(), family="nbs_core_cpi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html",
+            expected_period="2026-07", fetched_at=acquired_at,
+            definition_version=version, clock=lambda: acquired_at,
+        )
+        repository = EvidenceRepository(paths.database)
+        expected = {
+            "CN_CPI_HEADLINE": ("headline", {"mom": -0.1, "yoy": 0.5, "cumulative_average_yoy": 0.9}),
+            "CN_CORE_CPI": ("ex_food_energy", {"mom": 0.3, "yoy": 0.9, "cumulative_average_yoy": 1.1}),
+        }
+        selected = set()
+        for metric, (category, values) in expected.items():
+            public = repository.metric_series(
+                metric, mode=AsOfMode.PUBLIC,
+                as_of=datetime(2026, 8, 9, 1, 45, tzinfo=UTC), definition_version=version,
+            )
+            assert {point.dimensions["measure"]: point.selected_value for point in public} == values
+            assert {point.dimensions["category"] for point in public} == {category}
+            selected.update(point.selected_claim_id for point in public)
+            assert not repository.metric_series(
+                metric, mode=AsOfMode.SYSTEM,
+                as_of=datetime(2026, 8, 9, 1, 45, tzinfo=UTC), definition_version=version,
+            )
+            assert len(repository.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=acquired_at, definition_version=version,
+            )) == 3
+        assert selected == set(ingested.claim_ids)
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh", target_business_date="2026-08-28",
+            client_request_id="admitted-cpi", model_version_id=model_id, system_as_of=acquired_at,
+            release_event_id=ingested.release_event_id, metric_ids=tuple(expected), period="2026-07",
+        )
+        selection = select_retrieval_input(paths, run)
+>       assert selection.complete
+E       AssertionError: assert False
+E        +  where False = ModelInputSelection(complete=False, selected_claim_ids=(), missing_members=('CN_CPI_HEADLINE:dimension_contract_unavailable', 'CN_CORE_CPI:dimension_contract_unavailable')).complete
+
+tests/models/test_candidate_admission.py:173: AssertionError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times
+1 failed, 63 deselected in 4.26s

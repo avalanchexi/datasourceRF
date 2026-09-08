@@ -48,6 +48,7 @@ def original(series: str) -> bytes:
         ("RWTC", "1985-12-30", "1986-01-03", {"1986-01-02": 25.56, "1986-01-03": 26}, 3),
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_time(
     tmp_path: Path, series: str, start: str, end: str, expected: dict[str, float], missing: int
 ) -> None:
@@ -112,6 +113,7 @@ def test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_
         assert point.claims[0].available_at >= receipt.validated_at
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_public_cli_can_acquire_html_without_an_api_key(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -180,6 +182,7 @@ def test_public_cli_can_acquire_html_without_an_api_key(
         "meta_charset",
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_bad_official_history_is_retained_and_rejected_before_claims(
     tmp_path: Path, case: str
 ) -> None:
@@ -272,6 +275,7 @@ def test_bad_official_history_is_retained_and_rejected_before_claims(
 
 
 @pytest.mark.parametrize("day, missing", [("2026-08-31", 1), ("1900-01-01", 0)])
+@pytest.mark.usefixtures("runtime_clock")
 def test_empty_requested_window_reports_missing_values_without_zero_or_success(
     tmp_path: Path, day: str, missing: int
 ) -> None:
@@ -295,6 +299,7 @@ def test_empty_requested_window_reports_missing_values_without_zero_or_success(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_explicit_zero_and_four_missing_markers_keep_distinct_date_coordinates(
     tmp_path: Path,
 ) -> None:
@@ -337,6 +342,7 @@ def test_explicit_zero_and_four_missing_markers_keep_distinct_date_coordinates(
     ]
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_later_html_snapshot_preserves_prior_values_and_source_request_identity(
     tmp_path: Path,
 ) -> None:
@@ -377,6 +383,7 @@ def test_later_html_snapshot_preserves_prior_values_and_source_request_identity(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_html_source_failure_is_recorded_after_completion_without_fake_raw(tmp_path: Path) -> None:
     from pring_cycle.eia_html import refresh_eia_history
 
@@ -409,6 +416,7 @@ def test_html_source_failure_is_recorded_after_completion_without_fake_raw(tmp_p
     assert attempt.safe_metadata["acquisition_ids"] == receipt.acquisition_id
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_http_error_keeps_actual_status_identity_and_error_body(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

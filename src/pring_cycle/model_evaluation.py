@@ -21,7 +21,12 @@ from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend_history
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
-from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS, evidence_frequency
+from pring_cycle.metric_contracts import (
+    REQUIRED_DIMENSION_MEMBERS,
+    evidence_frequency,
+    evidence_max_age_days,
+    required_dimension_members,
+)
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 
 CALIBRATION_END = "2026-08-19"
@@ -539,19 +544,19 @@ def evaluate_context_replay(
         )
 
     preload_metrics = {
-            (metric_id, definition_version)
-            for definition_version, metric_ids in (
-                (
-                    candidate.metric_catalog_version,
-                    context_metric_ids(candidate),
-                ),
-                (
-                    comparison.metric_catalog_version,
-                    context_metric_ids(comparison),
-                ),
-            )
-            for metric_id in metric_ids
-        }
+        (metric_id, definition_version)
+        for definition_version, metric_ids in (
+            (
+                candidate.metric_catalog_version,
+                context_metric_ids(candidate),
+            ),
+            (
+                comparison.metric_catalog_version,
+                context_metric_ids(comparison),
+            ),
+        )
+        for metric_id in metric_ids
+    }
     for manifest, definition_version in (
         (candidate_manifest, candidate.metric_catalog_version),
         (comparison_manifest, comparison.metric_catalog_version),
@@ -733,9 +738,7 @@ def _context_coverage_gaps(
         and item.public_available_at is not None
     ]
     required_members = (
-        REQUIRED_DIMENSION_MEMBERS.get(metric_id, ())
-        if metric_id == "CN_FUTURES_WARRANTS"
-        else ()
+        REQUIRED_DIMENSION_MEMBERS.get(metric_id, ()) if metric_id == "CN_FUTURES_WARRANTS" else ()
     )
     if required_members:
         gaps: list[str] = []
@@ -795,14 +798,7 @@ def _single_context_coverage_gaps(
     gaps = []
     if earliest_period > required_start or earliest_public > start_date:
         gaps.append(f"{side}_context_coverage_start_missing:{metric_id}{suffix}")
-    freshness_days = (
-        730
-        if metric_id == "CN_RRR_EVENT"
-        else {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
-            frequency,
-            95,
-        )
-    )
+    freshness_days = evidence_max_age_days(metric_id, frequency)
     if (end_date - latest_period).days > freshness_days:
         gaps.append(f"{side}_context_coverage_end_missing:{metric_id}{suffix}")
     period_dates = sorted({date.fromisoformat(item.period_end) for item in valid})
@@ -845,9 +841,14 @@ def _context_selection_gaps(
     if not grouped:
         return (f"{side}_context_selection_missing:{metric_id}",)
     statuses: set[str] = set()
-    required_members = REQUIRED_DIMENSION_MEMBERS.get(metric_id, ())
     current_points = [points[-1] for points in grouped.values()]
     latest_period_end = max(point.period_end for point in current_points)
+    required_members = (
+        required_dimension_members(
+            metric_id, definition_version=definition_version, period=latest_period_end
+        )
+        or ()
+    )
     if metric_id == "CN_FUTURES_WARRANTS":
         validation_points: list[Any] = []
         for required in required_members:
@@ -861,15 +862,11 @@ def _context_selection_gaps(
                 continue
             member_latest_period_end = max(point.period_end for point in matching)
             validation_points.extend(
-                point
-                for point in matching
-                if point.period_end == member_latest_period_end
+                point for point in matching if point.period_end == member_latest_period_end
             )
     else:
         validation_points = [
-            point
-            for point in current_points
-            if point.period_end == latest_period_end
+            point for point in current_points if point.period_end == latest_period_end
         ]
         observed_dimensions = [point.dimensions for point in validation_points]
         if any(

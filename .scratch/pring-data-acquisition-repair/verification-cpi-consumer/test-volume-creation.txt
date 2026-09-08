@@ -1,0 +1,6 @@
+SOURCE     TARGET                                                                 FSTYPE OPTIONS
+/dev/loop0 /home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908 ext4   rw,nosuid,nodev,relatime
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop0       32G   24K   30G   1% /home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908
+NAME       BACK-FILE
+/dev/loop0 /mnt/d/cursor/datasourceRF/.tmp/pytest/cpi-native-volume-20260908.ext4

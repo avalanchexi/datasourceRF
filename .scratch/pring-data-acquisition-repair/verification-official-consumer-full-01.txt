@@ -1,0 +1,33 @@
+........................................................................ [  8%]
+........................................................................ [ 16%]
+........................................................................ [ 25%]
+.....................................F.................................. [ 33%]
+........................................................................ [ 42%]
+........................................................................ [ 50%]
+........................................................................ [ 58%]
+........................................................................ [ 67%]
+........................................................................ [ 75%]
+........................................................................ [ 84%]
+........................................................................ [ 92%]
+................................................................         [100%]
+=================================== FAILURES ===================================
+___________ test_user_can_initialize_and_diagnose_an_offline_runtime ___________
+tests/e2e/test_local_runtime_cli.py:116: in test_user_can_initialize_and_diagnose_an_offline_runtime
+    initialized = run_cli("init", "--runtime-root", str(runtime_root), "--json")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/e2e/test_local_runtime_cli.py:21: in run_cli
+    return subprocess.run(
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/subprocess.py:550: in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/subprocess.py:1209: in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/subprocess.py:2116: in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/subprocess.py:1253: in _check_timeout
+    raise TimeoutExpired(
+E   subprocess.TimeoutExpired: Command '['/home/tywin/.local/share/pring-cycle/dev-venv/bin/python', '-m', 'pring_cycle', 'init', '--runtime-root', '/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-full-01/test_user_can_initialize_and_d0/runtime', '--json']' timed out after 60 seconds
+=========================== short test summary info ============================
+FAILED tests/e2e/test_local_runtime_cli.py::test_user_can_initialize_and_diagnose_an_offline_runtime
+1 failed, 855 passed in 3229.99s (0:53:49)

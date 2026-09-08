@@ -1151,6 +1151,9 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
             provider=claim.provider,
             period_kind=claim.period_kind,
             dimensions=claim.dimensions,
+            unit=claim.unit,
+            period_start=claim.period_start,
+            period_end=claim.period_end,
         )
     if claim.certification_status not in {
         "certified",

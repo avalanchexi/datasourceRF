@@ -57,6 +57,7 @@ def historical_response(payload: dict[str, Any]) -> bytes:
     return json.dumps({"code": 0, "data": {"fields": fields, "items": items}}, indent=2).encode()
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_core_history_refresh_is_atomic_content_addressed_and_queryable(
     tmp_path: Path,
 ) -> None:
@@ -116,6 +117,7 @@ def core_response(payload: dict[str, Any]) -> bytes:
     return json.dumps(document, indent=2).encode()
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_core_refresh_keeps_unproven_publication_unknown(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -146,6 +148,7 @@ def test_core_refresh_keeps_unproven_publication_unknown(tmp_path: Path) -> None
     assert system[0].claims[0].public_available_at is None
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_core_claim_trace_retains_each_request_original(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -272,6 +275,7 @@ def test_manual_run_cannot_backdate_daily_core_availability(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_trace_api_can_read_the_original_and_reject_unrelated_artifact_kinds(
     tmp_path: Path,
 ) -> None:
@@ -306,6 +310,7 @@ def test_trace_api_can_read_the_original_and_reject_unrelated_artifact_kinds(
     assert routes["acquisition_artifact"].endpoint("missing-request", "raw").status_code == 404
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_invalid_core_rows_keep_the_response_without_creating_claims(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -351,6 +356,7 @@ def test_invalid_core_rows_keep_the_response_without_creating_claims(tmp_path: P
 
 
 @pytest.mark.parametrize("failure_phase", ["raw", "aggregate"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_artifact_storage_failure_never_leaves_unbacked_claims(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure_phase: str
 ) -> None:
@@ -394,6 +400,7 @@ def test_artifact_storage_failure_never_leaves_unbacked_claims(
 
 
 @pytest.mark.parametrize("days", [["20260804"], ["20260803", "20260803"]])
+@pytest.mark.usefixtures("runtime_clock")
 def test_acquired_calendar_rejects_wrong_period_or_duplicate_days(
     tmp_path: Path, days: list[str]
 ) -> None:
@@ -435,6 +442,7 @@ def test_acquired_calendar_rejects_wrong_period_or_duplicate_days(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_new_acquisition_preserves_old_release_and_claim_bytes(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)

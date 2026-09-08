@@ -108,3 +108,20 @@ lpr-certification-gap-matrix.md -text whitespace=cr-at-eol,-blank-at-eof
 evidence-lpr-import-20260908/* -text -diff
 verification-lpr-review/*.json -text
 lpr-usage-evidence-review.md -text whitespace=cr-at-eol,-blank-at-eof
+evidence-cpi-import-20260908/* -text -diff
+cpi-certification-next-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
+verification-cpi-consumer/*.json -text whitespace=cr-at-eol
+verification-cpi-consumer/*.sh text eol=lf
+verification-cpi-consumer/*.txt whitespace=-blank-at-eol
+verification-cpi-consumer-*.txt whitespace=-blank-at-eol
+verification-cpi-history-*.txt whitespace=-blank-at-eol
+cny030-official-next-boundary.md -text whitespace=cr-at-eol,-blank-at-eof
+verification-cpi-consumer/*.zip -text -diff
+remaining-official-consumption-contracts.md -text whitespace=cr-at-eol,-blank-at-eof
+evidence-official-consumer-edge/* -text -diff
+evidence-official-consumer-social/* -text -diff
+verification-official-consumer/*.json -text whitespace=cr-at-eol
+verification-official-consumer/*.txt whitespace=-blank-at-eol
+verification-official-consumer/*.zip -text -diff
+verification-official-consumer-run.sh text eol=lf
+verification-official-consumer-*.txt whitespace=-blank-at-eol

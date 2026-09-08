@@ -32,6 +32,7 @@ def cpi_document(publication: str, value: float = 1.0) -> bytes:
     </table></body></html>""".encode()
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_future_publication_date_is_rejected_and_raw_retained(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -52,6 +53,7 @@ def test_official_future_publication_date_is_rejected_and_raw_retained(tmp_path:
     assert receipts.read_content(receipt.acquisition_id, "raw") == content
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_revision_with_new_published_time_changes_public_at_that_time(
     tmp_path: Path,
 ) -> None:
@@ -94,6 +96,7 @@ def test_official_revision_with_new_published_time_changes_public_at_that_time(
         ("发布日期未提供", None, None),
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_document_preserves_publication_precision_and_receipt(
     tmp_path: Path,
     publication: str,
@@ -128,6 +131,7 @@ def test_official_document_preserves_publication_precision_and_receipt(
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_same_timestamp_revision_does_not_invent_publication_time(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -222,6 +226,7 @@ def test_eia_unknown_publication_does_not_become_public_at_fetch(tmp_path: Path)
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_lpr_document_import_links_both_tenors_to_original(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -250,6 +255,7 @@ def test_lpr_document_import_links_both_tenors_to_original(tmp_path: Path) -> No
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_eia_acquisition_retains_response_and_both_series(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -298,6 +304,7 @@ def test_eia_acquisition_retains_response_and_both_series(tmp_path: Path) -> Non
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explicit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -390,6 +397,7 @@ def test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explic
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_macro_wrong_period_is_rejected_before_claim_ingestion(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -445,6 +453,7 @@ def test_context_index_does_not_assume_fixed_close_publication_time() -> None:
     assert scalars and all(s.public_available_at is None and s.release_at is None for s in scalars)
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_macro_acquisition_links_all_dimensions_to_exact_response(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -501,6 +510,7 @@ def test_macro_acquisition_links_all_dimensions_to_exact_response(tmp_path: Path
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_context_invalid_scalar_keeps_failed_receipt_and_original(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -568,6 +578,7 @@ def test_new_official_revision_recovers_from_previous_unknown_time(tmp_path: Pat
         (b"2026-08-20 10:00", datetime(2026, 8, 20, 2, tzinfo=UTC)),
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_lpr_import_preserves_actual_publication_precision(
     tmp_path: Path, metadata: bytes, public_at: datetime | None
 ) -> None:
@@ -589,6 +600,7 @@ def test_lpr_import_preserves_actual_publication_precision(
         assert trace.acquisition_status == "linked"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_lpr_new_time_revision_has_independent_release_identity(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -619,6 +631,7 @@ def test_lpr_new_time_revision_has_independent_release_identity(tmp_path: Path) 
 
 
 @pytest.mark.parametrize("family", ["lpr", "nbs_core_cpi"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_http_oversize_retains_received_prefix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, family: str
 ) -> None:
@@ -694,6 +707,7 @@ def test_context_system_query_excludes_one_microsecond_before_validation(tmp_pat
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_lpr_explicit_timezone_metadata_retains_its_instant(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -727,6 +741,7 @@ def test_lpr_explicit_timezone_metadata_retains_its_instant(tmp_path: Path) -> N
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_system_series_respects_exact_secondary_public_cutoff(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)

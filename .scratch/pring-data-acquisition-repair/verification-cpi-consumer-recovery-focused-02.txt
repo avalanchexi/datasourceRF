@@ -1,0 +1,119 @@
+.F
+=================================== FAILURES ===================================
+_ test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times[compact] _
+
+arguments = ['model-source-certify', '--runtime-root', '/dev/shm/pring-cycle-cpi-recovery-focused-20260908-02/test_admitted_catalog_consumes0/runtime', '--target-date', '2026-08-28', '--candidate-request-hash', ...]
+
+    def main(arguments: Sequence[str] | None = None) -> None:
+        parser = _parser()
+        namespace = parser.parse_args(arguments)
+        document: Mapping[str, object]
+        try:
+            paths = RuntimePaths.discover(namespace.runtime_root)
+            if namespace.command == "init":
+                document = initialize_runtime(paths)
+            elif namespace.command == "doctor":
+                document = diagnose_runtime(paths)
+            elif namespace.command == "secrets-migrate":
+                from pring_cycle.secrets import migrate_data_source_secrets
+    
+                if not paths.database.is_file():
+                    raise RuntimeNotInitializedError("runtime_not_initialized")
+                document = migrate_data_source_secrets(namespace.source, paths.secrets)
+            elif namespace.command == "web":
+                from pring_cycle.web import run_web
+    
+                run_web(paths, namespace.port)
+                return
+            elif namespace.command == "worker":
+                from pring_cycle.worker import run_worker
+    
+                run_worker(paths)
+                return
+            elif namespace.command in {"test", "verify"}:
+                from pring_cycle.verification import VerificationError, verify_local_runtime
+    
+                try:
+                    document = verify_local_runtime(paths)
+                except VerificationError as error:
+                    raise ValueError(str(error)) from error
+            else:
+>               document = _v1_command(namespace, paths)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/cli.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+namespace = Namespace(command='model-source-certify', runtime_root=PosixPath('/dev/shm/pring-cycle-cpi-recovery-focused-20260908-0...63ea0e9cf9225fcd79e4d3939c01ff0e24c5cab9dd641835137e1ba1', source_smoke_hash=None, confirm_personal_noncommercial=True)
+paths = RuntimePaths(config=PosixPath('/dev/shm/pring-cycle-cpi-recovery-focused-20260908-02/test_admitted_catalog_consumes0/r...erride_root=PosixPath('/dev/shm/pring-cycle-cpi-recovery-focused-20260908-02/test_admitted_catalog_consumes0/runtime'))
+
+    def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[str, object]:
+        from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_catalog
+        from pring_cycle.evidence import AsOfMode, EvidenceRepository
+        from pring_cycle.maintenance import (
+            MaintenanceRepository,
+            capacity_state,
+            mutation_rejection,
+        )
+        from pring_cycle.models import ModelRepository
+        from pring_cycle.projections import ProjectionSetRepository
+        from pring_cycle.reports import (
+            CliReportAdapter,
+            ReportRepository,
+            ReportService,
+            evidence_bundle_from_projection,
+        )
+        from pring_cycle.runs import RunRepository
+    
+        if namespace.command in _MUTATING_COMMANDS:
+            rejection = mutation_rejection(
+                paths.database,
+                paths.data,
+                non_core_large_task=namespace.command
+                in {"report-generate", "model-replay", "rehearse-real"},
+            )
+            if rejection is not None:
+>               raise ValueError(rejection)
+E               ValueError: capacity_stops_worker_writes
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/cli.py:126: ValueError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = PosixPath('/dev/shm/pring-cycle-cpi-recovery-focused-20260908-02/test_admitted_catalog_consumes0')
+capsys = <_pytest.capture.CaptureFixture object at 0x79ef103aafc0>
+document_kind = 'compact'
+
+    @pytest.mark.parametrize("document_kind", ["compact", "official_original"])
+    def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], document_kind: str
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+>       submit(paths, save(paths, request))
+
+tests/models/test_candidate_admission.py:136: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/models/test_candidate_admission.py:101: in submit
+    main(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/cli.py:95: in main
+    parser.exit(2, f"error: {error}\n")
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = ArgumentParser(prog='pring-cycle', usage=None, description=None, formatter_class=<class 'argparse.HelpFormatter'>, conflict_handler='error', add_help=True)
+status = 2, message = 'error: capacity_stops_worker_writes\n'
+
+    def exit(self, status=0, message=None):
+        if message:
+            self._print_message(message, _sys.stderr)
+>       _sys.exit(status)
+E       SystemExit: 2
+
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/argparse.py:2637: SystemExit
+----------------------------- Captured stderr call -----------------------------
+error: capacity_stops_worker_writes
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times[compact]
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 1 passed, 63 deselected in 4.02s

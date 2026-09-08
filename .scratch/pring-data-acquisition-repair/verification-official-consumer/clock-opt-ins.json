@@ -1,0 +1,158 @@
+{
+  "operation": "explicit_function_scoped_test_clock_opt_ins",
+  "production_changes": 0,
+  "files": [
+    {
+      "path": "tests/adapters/test_source_history_acquisition.py",
+      "sha256_before": "d34fa745ce2b7c868270e190ddc3c6fe31becc90713bd3cd8c5c06842bd25b97",
+      "functions": [
+        "test_history_discovery_http_error_retains_failed_response",
+        "test_history_threaded_fetch_errors_retain_response_and_run_owner",
+        "test_invalid_history_listing_keeps_received_body_unvalidated",
+        "test_valid_listing_has_distinct_receipt_before_next_request_failure",
+        "test_history_document_validation_failure_retains_original",
+        "test_valid_audited_history_document_finishes_validation_when_peer_fails",
+        "test_history_redirect_does_not_make_a_second_physical_request",
+        "test_history_http_error_body_retention_is_bounded",
+        "test_history_browser_import_preserves_wrapper_before_validation"
+      ],
+      "sha256_after": "94c0d6368203e746125b59e81f4789c4bf36eabacb2b97377bf228d0edaa8630"
+    },
+    {
+      "path": "tests/integration/test_treasury_csv_acquisition.py",
+      "sha256_before": "f4789c2067f3a710b3882b62d55e6c3f083c1fab5629c15a1c17ef113f74a3db",
+      "functions": [
+        "test_official_csv_creates_two_traceable_candidates_with_unknown_public_time",
+        "test_public_cli_acquires_treasury_candidates_without_an_account",
+        "test_requested_historical_window_keeps_the_newer_reported_source_period",
+        "test_columns_and_missing_values_keep_each_tenors_own_evidence",
+        "test_invalid_source_response_is_retained_but_never_creates_a_claim",
+        "test_no_dates_in_requested_window_is_an_explicit_empty_candidate_result",
+        "test_later_missing_cell_retains_the_old_value_identity_and_new_missing_receipt",
+        "test_http_error_transport_retains_the_actual_error_body"
+      ],
+      "sha256_after": "fcf5056d5dca8fad7d5ca4a8a14c49529be595d0b0358f43a5f81042699d957c"
+    },
+    {
+      "path": "tests/integration/test_eia_html_acquisition.py",
+      "sha256_before": "db8274b77e78dfa71f65b9313b55e69ea99ab54ee0193089b90b8b06fe85b56a",
+      "functions": [
+        "test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_time",
+        "test_public_cli_can_acquire_html_without_an_api_key",
+        "test_bad_official_history_is_retained_and_rejected_before_claims",
+        "test_empty_requested_window_reports_missing_values_without_zero_or_success",
+        "test_explicit_zero_and_four_missing_markers_keep_distinct_date_coordinates",
+        "test_later_html_snapshot_preserves_prior_values_and_source_request_identity",
+        "test_html_source_failure_is_recorded_after_completion_without_fake_raw",
+        "test_http_error_keeps_actual_status_identity_and_error_body"
+      ],
+      "sha256_after": "e7ff983aae503d68ca0187c1e77028936e9e1b6624502671fce275897145678d"
+    },
+    {
+      "path": "tests/integration/test_core_history_refresh.py",
+      "sha256_before": "3524abad1d0ec83b916015b56fb54e59cbf545ba3e415046ed9182ce3c6e24a2",
+      "functions": [
+        "test_core_history_refresh_is_atomic_content_addressed_and_queryable",
+        "test_core_refresh_keeps_unproven_publication_unknown",
+        "test_core_claim_trace_retains_each_request_original",
+        "test_trace_api_can_read_the_original_and_reject_unrelated_artifact_kinds",
+        "test_invalid_core_rows_keep_the_response_without_creating_claims",
+        "test_artifact_storage_failure_never_leaves_unbacked_claims",
+        "test_acquired_calendar_rejects_wrong_period_or_duplicate_days",
+        "test_new_acquisition_preserves_old_release_and_claim_bytes"
+      ],
+      "sha256_after": "e1c9814612daecce4cf0e12ab10737761fe381afa573c74c81ad0133825624dc"
+    },
+    {
+      "path": "tests/integration/test_context_acquisition_receipts.py",
+      "sha256_before": "1f21eba65dd2888deb0ab08fd49ec80b7d94c5e531bec4764fcf0289d13d9639",
+      "functions": [
+        "test_official_future_publication_date_is_rejected_and_raw_retained",
+        "test_official_revision_with_new_published_time_changes_public_at_that_time",
+        "test_official_document_preserves_publication_precision_and_receipt",
+        "test_official_same_timestamp_revision_does_not_invent_publication_time",
+        "test_lpr_document_import_links_both_tenors_to_original",
+        "test_eia_acquisition_retains_response_and_both_series",
+        "test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explicit",
+        "test_macro_wrong_period_is_rejected_before_claim_ingestion",
+        "test_macro_acquisition_links_all_dimensions_to_exact_response",
+        "test_context_invalid_scalar_keeps_failed_receipt_and_original",
+        "test_lpr_import_preserves_actual_publication_precision",
+        "test_lpr_new_time_revision_has_independent_release_identity",
+        "test_official_http_oversize_retains_received_prefix",
+        "test_lpr_explicit_timezone_metadata_retains_its_instant",
+        "test_system_series_respects_exact_secondary_public_cutoff"
+      ],
+      "sha256_after": "31abadb76e743061ce4aded05d0e830e4fe712eb35f706e3d308a6aa995058b5"
+    },
+    {
+      "path": "tests/integration/test_gdp_semantics.py",
+      "sha256_before": "78c3ccef464635da684b4841e41c7921c6dcff45f7d349c88c619fad259891c9",
+      "functions": [
+        "test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy",
+        "test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns"
+      ],
+      "sha256_after": "76fae51ea96014cbc7f31cb82e4d332e447d531240d374514df714e73d9096a7"
+    },
+    {
+      "path": "tests/integration/test_futures_warrant_completeness.py",
+      "sha256_before": "a4a9198cf402ab0e3533bbcf13cf4c9d3bb92c22d30fcded556ce35d52ec5d7e",
+      "functions": [
+        "test_warrant_acquisition_recovers_rows_beyond_documented_1000_limit",
+        "test_saturated_single_day_warrant_response_remains_incomplete"
+      ],
+      "sha256_after": "7d64cc3f1946cebc03177ec55ccc9c701c17ce19651b4f3b89c33784c4e5a952"
+    },
+    {
+      "path": "tests/integration/test_p2_source_timing.py",
+      "sha256_before": "4e08fd6e15a5543acca5227d97405d520a204fa51cb4f37bba526a82e39ee6ad",
+      "functions": [
+        "test_acquired_source_timing_survives_public_context_projection"
+      ],
+      "sha256_after": "fb5060827a9bc013cdd9e18db53d60e1e2a924212fd952066dd503230053aa2e"
+    },
+    {
+      "path": "tests/adapters/test_source_history.py",
+      "sha256_before": "e2e3140226107c924be63fe15f0f3d5c89048c7f46b445ab9b2788791fe9d0cc",
+      "functions": [
+        "test_date_only_history_is_available_on_next_shanghai_day"
+      ],
+      "sha256_after": "e2c30aee5ad920791e9c5ea19179fa21e8847c616ea02baec517a8abb47f5881"
+    },
+    {
+      "path": "tests/adapters/test_official_context.py",
+      "sha256_before": "5eac49a556f07f0e3dbf7903a52b484a1f271ba16c48054f6e0b6e6f77e434d2",
+      "functions": [
+        "test_official_context_refresh_records_family_failure_without_storing_values"
+      ],
+      "sha256_after": "2ce28bec11a9095996045dfd673ccb187f85e56d62e0542b4fe9b5dbefe0de31"
+    },
+    {
+      "path": "tests/integration/test_full_run_retrieval.py",
+      "sha256_before": "1ba8a5575edc09cae27492a54ff9785fecbbf6ed2a3339054657261e7ed17fc3",
+      "functions": [
+        "test_p2_projection_separates_acquisition_condition_from_certification",
+        "test_full_run_searches_real_gap_and_publishes_traceable_adoption",
+        "test_newly_acquired_historical_publication_fact_can_open_full_run_search",
+        "test_full_run_shares_hard_search_budget_across_periods",
+        "test_failed_direct_request_is_bound_before_http_and_visible_in_run_audit",
+        "test_resume_rechecks_unknown_release_without_mutating_initial_plan",
+        "test_joint_publication_shares_one_request_for_multiple_full_run_gaps",
+        "test_cancel_during_tavily_stops_following_physical_requests",
+        "test_resumed_run_uses_verified_calendar_response_independent_of_prices"
+      ],
+      "sha256_after": "ebaaaca5469d534f7873127946da76e9cadadffbc709122024c5ca35c7738761"
+    },
+    {
+      "path": "tests/integration/test_worker_execution.py",
+      "sha256_before": "76707f7aca0ed4207cd0a8702438622f434d9c006d847d8b1aba8d43db089d39",
+      "functions": [
+        "test_context_refresh_ingests_eia_independently_of_tushare",
+        "test_worker_classifies_optional_eia_failures",
+        "test_worker_fails_closed_and_classifies_context_validation_failures",
+        "test_targeted_official_context_refresh_keeps_uncertified_result_as_candidate"
+      ],
+      "sha256_after": "d9f485be66763f1a4e8bcd00b9b0243abad19e02a7dff6fd94cd7aed719d7905"
+    }
+  ]
+}

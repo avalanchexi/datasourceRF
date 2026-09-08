@@ -12,6 +12,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_warrant_acquisition_recovers_rows_beyond_documented_1000_limit(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -69,6 +70,7 @@ def test_warrant_acquisition_recovers_rows_beyond_documented_1000_limit(tmp_path
     assert all(p.claims[0].public_available_at is None for p in points)
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_saturated_single_day_warrant_response_remains_incomplete(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)

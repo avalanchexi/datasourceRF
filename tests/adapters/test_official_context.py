@@ -297,6 +297,7 @@ def test_official_context_smoke_returns_sanitized_contract_evidence() -> None:
     assert not hasattr(result, "content")
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_context_refresh_records_family_failure_without_storing_values(
     tmp_path: Path,
 ) -> None:

@@ -15,6 +15,7 @@ from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasu
 
 
 @pytest.mark.parametrize("source", ["treasury", "eia"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_acquired_source_timing_survives_public_context_projection(
     tmp_path: Path, source: str
 ) -> None:

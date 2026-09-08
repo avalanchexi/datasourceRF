@@ -1,0 +1,11 @@
+{
+  "target": "/home/tywin/.cache/pring-cycle/verification/catalog-full-final-02",
+  "owner": "terminal catalog-full-final-02 pytest --basetemp",
+  "terminal_result": "819 passed",
+  "process_cmdline_target_matches": 0,
+  "fd_and_cwd_scan_performed": false,
+  "bytes": 401929733,
+  "file_count": 2349,
+  "retained_log": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/verification-catalog-full-final-02.txt",
+  "cleaned_at": "2026-09-07T21:46:03.433705+00:00"
+}

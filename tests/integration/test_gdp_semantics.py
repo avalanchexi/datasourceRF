@@ -21,6 +21,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -87,6 +88,7 @@ def test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy(tmp_p
 
 
 @pytest.mark.parametrize("later_failure", [None, "http", "parse"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
     tmp_path: Path, later_failure: str | None
 ) -> None:

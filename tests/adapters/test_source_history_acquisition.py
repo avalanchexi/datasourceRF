@@ -1,4 +1,5 @@
 import json
+from collections.abc import Callable
 from datetime import UTC, datetime
 from email.message import Message
 from io import BytesIO
@@ -20,6 +21,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_history import smoke_source_history
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_history_discovery_http_error_retains_failed_response(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -66,6 +68,7 @@ class RedirectReply(addinfourl):
     msg: str
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_history_threaded_fetch_errors_retain_response_and_run_owner(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -115,6 +118,7 @@ def test_history_threaded_fetch_errors_retain_response_and_run_owner(
 
 
 @pytest.mark.parametrize("failure", ["redirect", "status", "oversize"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_invalid_history_listing_keeps_received_body_unvalidated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
 ) -> None:
@@ -143,6 +147,7 @@ def test_invalid_history_listing_keeps_received_body_unvalidated(
     assert repository.read_content(receipt.acquisition_id, "raw") == body
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_valid_listing_has_distinct_receipt_before_next_request_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -173,6 +178,7 @@ def test_valid_listing_has_distinct_receipt_before_next_request_failure(
 
 
 @pytest.mark.parametrize("failure", ["redirect", "status", "invalid_document"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_history_document_validation_failure_retains_original(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: str
 ) -> None:
@@ -202,6 +208,7 @@ def test_history_document_validation_failure_retains_original(
         assert repository.read_content(receipt.acquisition_id, "raw") == body
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_valid_audited_history_document_finishes_validation_when_peer_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -236,6 +243,7 @@ def test_valid_audited_history_document_finishes_validation_when_peer_fails(
     assert normalized["source_url"] == url
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_history_redirect_does_not_make_a_second_physical_request(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -264,6 +272,7 @@ def test_history_redirect_does_not_make_a_second_physical_request(
     assert repository.read_content(receipt.acquisition_id, "raw") == b"original redirect body"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_history_http_error_body_retention_is_bounded(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -285,6 +294,7 @@ def test_history_http_error_body_retention_is_bounded(
 
 
 @pytest.mark.parametrize("wrapper", ["invalid_wrapper", "valid_wrapper_invalid_html"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_history_browser_import_preserves_wrapper_before_validation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, wrapper: str
 ) -> None:
@@ -324,8 +334,9 @@ def test_history_browser_import_preserves_wrapper_before_validation(
 
 
 def test_valid_history_browser_wrapper_links_original_to_decoded_html(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, acquisition_clock: Callable[[], datetime]
 ) -> None:
+    before = acquisition_clock()
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     captures = tmp_path / "captures"
@@ -357,6 +368,8 @@ def test_valid_history_browser_wrapper_links_original_to_decoded_html(
         if r.parameters.get("families") == "nbs_gdp" and r.parameters.get("period") == "2023-Q4"
     ]
     assert receipt.state == "validated" and receipt.validated_at is not None
+    assert receipt.received_at is not None
+    assert before <= receipt.started_at <= receipt.received_at <= receipt.validated_at
     assert repository.read_content(receipt.acquisition_id, "raw") == raw
     normalized = json.loads(repository.read_content(receipt.acquisition_id, "normalized"))
     html_sha = "7f583c54493030fb019cbd09de3c0a4323691125b3d72fc8627ab5425d2b6861"

@@ -1,0 +1,54 @@
+{
+  "files": [
+    {
+      "path": "tests/integration/test_search_evidence.py",
+      "functions": [
+        "test_targeted_tushare_redirect_is_one_failed_physical_request",
+        "test_tushare_numeric_failure_is_cached_after_raw_fields_parse",
+        "test_search_candidate_rejections_and_discovery_bounds",
+        "test_targeted_tushare_traces_each_physical_response_before_search_fallback",
+        "test_resume_reuses_received_search_and_finishes_interrupted_candidate",
+        "test_terminal_resume_does_not_permanently_reuse_old_interruption",
+        "test_existing_channels_respect_complete_input_and_frozen_cutoff",
+        "test_unknown_publication_is_system_visible_but_not_target_model_input",
+        "test_unknown_official_url_does_not_claim_old_period_is_unreleased",
+        "test_candidate_parser_limit_preserves_original_without_claiming_complete_fields",
+        "test_wrong_period_then_duplicate_candidate_does_not_block_valid_exa_document",
+        "test_explicit_cutoff_does_not_move_to_adopt_new_search_evidence",
+        "test_search_candidate_becomes_complete_model_input_with_original_trace"
+      ],
+      "sha256_before": "3f7df7d005a7f6d70010cf04a1121c98094d84ac885d5a8738d2222e33889b97",
+      "sha256_after": "c1e50a66e1c3ab1e586d72cb0b6421ef946e6ce83c25f68ac0e2b69ff4546a22"
+    },
+    {
+      "path": "tests/integration/test_retrieval_ledger.py",
+      "functions": [
+        "test_official_provider_cache_isolated_by_source_host",
+        "test_legacy_shared_release_family_is_bound_to_original_catalog",
+        "test_legacy_retries_preserve_run_limit_after_day_rollover",
+        "test_manual_search_respects_daily_limit_across_runs",
+        "test_different_caller_event_labels_do_not_repeat_same_release",
+        "test_targeted_search_reserves_request_before_http_and_retains_original",
+        "test_interrupted_search_is_charged_and_not_silently_repeated_on_resume",
+        "test_failed_response_keeps_receipt_cache_and_next_attempt_gates",
+        "test_search_usage_preserves_units_and_does_not_claim_estimate_as_bill",
+        "test_expired_search_response_keeps_audit_identity_without_promising_body",
+        "test_dead_worker_lease_marks_inflight_request_unknown_before_resume",
+        "test_same_release_links_new_frozen_gap_to_prior_request_without_new_charge",
+        "test_official_http_request_is_linked_to_gap_even_when_document_fails_validation",
+        "test_explicit_resume_keeps_run_cap_across_daily_resets",
+        "test_p2_empty_response_waits_24_hours_and_stops_after_exa",
+        "test_explicit_manual_deep_search_uses_accepted_second_event_request_only",
+        "test_official_rate_limit_keeps_http_status_and_retry_after",
+        "test_legacy_day_consumption_is_preserved_before_new_physical_ledger_requests",
+        "test_response_received_before_completion_interruption_still_expires",
+        "test_official_short_transport_retries_register_each_physical_request",
+        "test_search_redirect_cannot_issue_an_unregistered_second_http_request",
+        "test_manual_next_eligible_time_matches_remaining_event_allowance"
+      ],
+      "sha256_before": "d676ea87d577f2f6d04e51fdfccb0f0df2f2f7c97e42c67f53acfbea169d3aec",
+      "sha256_after": "125291ced5052223c358f0bfd4a7dc698b38abfc2e40cacc658ccec69230636c"
+    }
+  ],
+  "production_changes": 0
+}

@@ -1,0 +1,32 @@
+F
+=================================== FAILURES ===================================
+______ test_valid_history_browser_wrapper_links_original_to_decoded_html _______
+
+tmp_path = PosixPath('/mnt/d/cursor/datasourceRF/.tmp/pytest/cpi-recovery-focused-20260908-01/test_valid_history_browser_wra0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7eee654d6cf0>
+
+    def test_valid_history_browser_wrapper_links_original_to_decoded_html(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+>       paths = RuntimePaths.discover(tmp_path / "runtime")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/adapters/test_source_history_acquisition.py:329: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/runtime.py:50: in discover
+    paths.ensure_wsl_native()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = RuntimePaths(config=PosixPath('/mnt/d/cursor/datasourceRF/.tmp/pytest/cpi-recovery-focused-20260908-01/test_valid_hist...ath('/mnt/d/cursor/datasourceRF/.tmp/pytest/cpi-recovery-focused-20260908-01/test_valid_history_browser_wra0/runtime'))
+
+    def ensure_wsl_native(self) -> None:
+        for path in (self.config, self.data, self.state, self.cache):
+            if _find_project_root(path) is not None:
+>               raise RuntimePolicyError("runtime_must_be_outside_source_tree")
+E               pring_cycle.runtime.RuntimePolicyError: runtime_must_be_outside_source_tree
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/runtime.py:76: RuntimePolicyError
+=========================== short test summary info ============================
+FAILED tests/adapters/test_source_history_acquisition.py::test_valid_history_browser_wrapper_links_original_to_decoded_html
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 63 deselected in 2.19s

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from pring_cycle.models import (
     ModelRepository,
     certified_120d_model_v0011_manifest,
 )
+from pring_cycle.official_context import ingest_official_context_document
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -109,6 +111,931 @@ def submit(paths: RuntimePaths, request_hash: str) -> None:
             "--json",
         ]
     )
+
+
+def cpi_document() -> bytes:
+    # Compact synthetic rendering of the six independently audited July literals.
+    # Actual original: a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49.
+    return """
+    <html><body><h1>2026年7月份居民消费价格</h1>
+    <p>发布时间：2026-08-09 09:30</p><table>
+    <tr><th>指标</th><th>环比（%）</th><th>同比（%）</th><th>累计平均同比（%）</th></tr>
+    <tr><td>居民消费价格</td><td>-0.1</td><td>0.5</td><td>0.9</td></tr>
+    <tr><td>不包括食品和能源</td><td>0.3</td><td>0.9</td><td>1.1</td></tr>
+    </table></body></html>
+    """.encode()
+
+
+def test_registered_pmi_original_reaches_selection_and_context(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    digest = "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6"
+    content = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert hashlib.sha256(content).hexdigest() == digest
+    now = datetime(2026, 8, 1, tzinfo=UTC)
+    imported = ingest_official_context_document(
+        paths,
+        content,
+        family="nbs_pmi",
+        source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+        expected_period="2026-07",
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=version,
+    )
+    # Independently audited July table cells, not parser-derived expectations.
+    expected = {
+        "CN_PMI_ACTIVITY": {
+            "manufacturing": 49.2,
+            "production": 49.9,
+            "new_orders": 48.5,
+            "purchase_volume": 49.4,
+        },
+        "CN_PMI_INVENTORY": {"raw_materials": 48.3, "finished_goods": 48.6},
+        "CN_PMI_PRICES": {"purchase_prices": 53.2, "output_prices": 47.8},
+    }
+    repository = EvidenceRepository(paths.database)
+    for metric, values in expected.items():
+        for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+            points = repository.metric_series(
+                metric, mode=mode, as_of=now, definition_version=version
+            )
+            assert {p.dimensions["series"]: p.selected_value for p in points} == values
+            assert all(p.dimensions["measure"] == "level" for p in points)
+            assert all(
+                c.unit == "diffusion_index_points"
+                for p in points
+                for c in p.claims
+                if c.claim_id == p.selected_claim_id
+            )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="admitted-pmi",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id=imported.release_event_id,
+        metric_ids=tuple(expected),
+        period="2026-07",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete
+    assert set(selection.selected_claim_ids) == set(imported.claim_ids)
+    context = build_context_projection(repository, as_of=now, model_manifest=manifest)
+    assert set(imported.claim_ids) <= set(context.observation_version_ids)
+
+
+@pytest.mark.parametrize(
+    ("family", "digest", "url", "period", "count", "anchors"),
+    [
+        (
+            "nbs_ppi",
+            "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+            "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html",
+            "2026-07",
+            9,
+            {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")},
+        ),
+        (
+            "nbs_industrial_value_added",
+            "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+            "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html",
+            "2026-07",
+            3,
+            {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")},
+        ),
+        (
+            "nbs_industrial_finance",
+            "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+            "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html",
+            "2026-07",
+            10,
+            {
+                "CN_INDUSTRIAL_FINANCE": (
+                    {"item": "revenue", "measure": "ytd_level"},
+                    809230.7,
+                    "hundred_million_cny",
+                ),
+                "CN_FINISHED_GOODS_INVENTORY": (
+                    {"measure": "nominal_end_level"},
+                    72700,
+                    "hundred_million_cny",
+                ),
+                "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days"),
+            },
+        ),
+        (
+            "nbs_capacity_utilization",
+            "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+            "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html",
+            "2026-Q2",
+            3,
+            {
+                "CN_CAPACITY_UTILIZATION": (
+                    {"industry": "all_industry", "measure": "yoy_change"},
+                    -1.0,
+                    "percentage_points",
+                )
+            },
+        ),
+        (
+            "pbc_money",
+            "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html",
+            "2026-07",
+            4,
+            {
+                "CN_M1_M2": (
+                    {"aggregate": "m1", "measure": "balance"},
+                    1154600,
+                    "hundred_million_cny",
+                )
+            },
+        ),
+        (
+            "pbc_social_financing",
+            "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html",
+            "2026-07",
+            27,
+            {
+                "CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+                "CN_SF_COMPONENTS": (
+                    {"component": "government_bonds", "measure": "ytd_increment"},
+                    77600,
+                    "hundred_million_cny",
+                ),
+            },
+        ),
+        (
+            "pbc_loan_structure",
+            "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html",
+            "2026-07",
+            9,
+            {
+                "CN_LOAN_STRUCTURE": (
+                    {"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"},
+                    53200,
+                    "hundred_million_cny",
+                )
+            },
+        ),
+        (
+            "pbc_tool_liquidity_monthly",
+            "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html",
+            "2026-07",
+            24,
+            {
+                "CN_TOOL_LIQUIDITY_MONTHLY": (
+                    {"tool": "7天期逆回购", "measure": "net_injection"},
+                    -2495,
+                    "hundred_million_cny",
+                )
+            },
+        ),
+        (
+            "pbc_omo_notice",
+            "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html",
+            "2026-08-28",
+            2,
+            {
+                "CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+                "CN_OMO_7D_RATE": ({}, 1.4, "percent"),
+            },
+        ),
+    ],
+    ids=[
+        "ppi",
+        "industrial-va",
+        "industrial-finance",
+        "capacity-q2",
+        "money",
+        "social-financing",
+        "loans",
+        "tools",
+        "omo",
+    ],
+)
+def test_registered_official_original_reaches_selection_and_context(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    family: str,
+    digest: str,
+    url: str,
+    period: str,
+    count: int,
+    anchors: dict[str, tuple[dict[str, str], float, str]],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family=family,
+        source_url=url,
+        expected_period=period,
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=version,
+    )
+    assert len(imported.claim_ids) == count
+    repository = EvidenceRepository(paths.database)
+    for metric, (dimensions, value, unit) in anchors.items():
+        for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+            points = repository.metric_series(
+                metric, mode=mode, as_of=now, definition_version=version
+            )
+            (point,) = (p for p in points if p.dimensions == dimensions)
+            assert point.selected_value == value
+            (claim,) = (c for c in point.claims if c.claim_id == point.selected_claim_id)
+            assert claim.unit == unit
+            assert claim.source_reference == f"{url}#sha256={digest}"
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="admitted-official",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id=imported.release_event_id,
+        metric_ids=tuple(anchors),
+        period=period,
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete, selection.missing_members
+    assert set(selection.selected_claim_ids) <= set(imported.claim_ids)
+    context = build_context_projection(repository, as_of=now, model_manifest=manifest)
+    assert set(imported.claim_ids) <= set(context.observation_version_ids)
+
+
+@pytest.mark.parametrize(
+    ("family", "digest", "url", "period", "metric", "values"),
+    [
+        (
+            "nbs_ppi",
+            "e7e65eb8ae0656afae92ab36bcb8a6c261be5af0422352fadbecf45c4a0e2943",
+            "https://www.stats.gov.cn/sj/zxfb/202602/t20260211_1962587.html",
+            "2026-01",
+            "CN_PPI",
+            {"mom", "yoy"},
+        ),
+        (
+            "nbs_industrial_value_added",
+            "2115d7cc67a22dd15a88c93101be752711a72e7f41534b01b1e8f7528f341f8e",
+            "https://www.stats.gov.cn/sj/zxfb/202603/t20260316_1962782.html",
+            "2026-02",
+            "CN_INDUSTRIAL_VA",
+            {"mom_seasonally_adjusted", "ytd_real_yoy"},
+        ),
+    ],
+    ids=["january-ppi", "february-industrial-va"],
+)
+def test_registered_official_legitimate_missing_columns_are_complete(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    family: str,
+    digest: str,
+    url: str,
+    period: str,
+    metric: str,
+    values: set[str],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-official-consumer-edge"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    result = ingest_official_context_document(
+        paths,
+        raw,
+        family=family,
+        source_url=url,
+        expected_period=period,
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=version,
+    )
+    points = EvidenceRepository(paths.database).metric_series(
+        metric,
+        mode=AsOfMode.SYSTEM,
+        as_of=now,
+        definition_version=version,
+    )
+    assert {p.dimensions["measure"] for p in points} == values
+    if metric == "CN_INDUSTRIAL_VA":
+        assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+            "mom_seasonally_adjusted": 0.83,
+            "ytd_real_yoy": 6.3,
+        }
+    else:
+        assert len(points) == 6
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="missing-columns",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id=result.release_event_id,
+        metric_ids=(metric,),
+        period=period,
+    )
+    assert select_retrieval_input(paths, run).complete
+
+
+@pytest.mark.parametrize("fault", ["provider", "member", "unit", "period_kind", "period_bounds"])
+def test_registered_official_claim_rejects_wrong_member_identity(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    fault: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    claim = SourceClaimInput(
+        metric_id="CN_INVENTORY_TURNOVER",
+        definition_version=request["manifest"]["metric_catalog_version"],
+        period_kind="year_to_month",
+        period_start="2026-01-01",
+        period_end="2026-07-31",
+        dimensions={"measure": "official_yoy_change"},
+        value=0.6,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="days",
+        provider="国家统计局",
+        source_reference="synthetic:turnover-identity",
+        release_event_id="synthetic:turnover",
+        release_at=now,
+        public_available_at=now,
+        fetched_at=now,
+        available_at=now,
+        certification_status="certified",
+        quality_status="validated",
+    )
+    changes: dict[str, dict[str, Any]] = {
+        "provider": {"provider": "TuShare"},
+        "member": {"dimensions": {"measure": "yoy"}},
+        "unit": {"unit": "percent"},
+        "period_kind": {"period_kind": "month"},
+        "period_bounds": {"period_start": "2026-07-01"},
+    }
+    with pytest.raises(ValueError, match="registered_official_source_(identity|period)_mismatch"):
+        EvidenceRepository(paths.database).append_source_claim(replace(claim, **changes[fault]))
+
+
+@pytest.mark.parametrize(
+    ("latest_invalid", "event_age"), [(False, 1), (True, 1), (False, 11), (False, 371)]
+)
+def test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    latest_invalid: bool,
+    event_age: int,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    now = datetime(2026, 6, 3, 2, tzinfo=UTC)
+    digest = "632b1709e4c27aac9b2fd9135394f11efb530321c8a1960577f8a0a562ec65b0"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-official-consumer-edge"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="pbc_omo_notice",
+        source_url="https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026060308521286488/index.html",
+        expected_period="2026-06-03",
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=version,
+    )
+    assert len(imported.claim_ids) == 1  # Actual zero amount, with no rate cell.
+    repository = EvidenceRepository(paths.database)
+    selected_event = None
+    latest_day = {1: "2026-06-02", 11: "2026-05-23", 371: "2025-05-28"}[event_age]
+    for day, value in (("2025-04-01", 1.4), (latest_day, 1.5), ("2026-06-04", 1.6)):
+        # Synthetic events isolate selection semantics, without certifying historical rates.
+        event = repository.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_OMO_7D_RATE",
+                definition_version=version,
+                period_kind="business_day",
+                period_start=day,
+                period_end=day,
+                dimensions={},
+                value=value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="percent",
+                provider="中国人民银行",
+                source_reference=f"synthetic:omo:{day}",
+                release_event_id=f"synthetic:omo:{day}",
+                release_at=now,
+                public_available_at=now,
+                fetched_at=now,
+                available_at=now,
+                certification_status="certified",
+                quality_status="invalid" if latest_invalid and day == latest_day else "validated",
+            )
+        )
+        if day == latest_day:
+            selected_event = event.claim_id
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-06-03",
+        client_request_id="zero-omo",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id=imported.release_event_id,
+        metric_ids=("CN_OMO_7D_AMOUNT", "CN_OMO_7D_RATE"),
+        period="2026-06-03",
+    )
+    selection = select_retrieval_input(paths, run)
+    eligible = not latest_invalid and event_age <= 370
+    context = build_context_projection(
+        repository,
+        as_of=now,
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date="2026-06-03",
+    )
+    inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(inputs, list)
+    assert (selected_event in inputs) is eligible
+    assert selection.complete is eligible
+    if eligible:
+        assert set(selection.selected_claim_ids) == {*imported.claim_ids, selected_event}
+    assert not any(
+        p.period_end == "2026-06-03"
+        for p in repository.metric_series(
+            "CN_OMO_7D_RATE",
+            mode=AsOfMode.SYSTEM,
+            as_of=now,
+            definition_version=version,
+        )
+    )
+
+
+@pytest.mark.parametrize("missing_count", [1, 8])
+def test_registered_social_components_require_all_eight_stock_growth_members(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    missing_count: int,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    public_at = datetime(2026, 8, 14, 9, tzinfo=UTC)
+    repository = EvidenceRepository(paths.database)
+    components = (
+        "renminbi_loans",
+        "foreign_currency_loans_rmb",
+        "entrusted_loans",
+        "trust_loans",
+        "undiscounted_bank_acceptances",
+        "corporate_bonds",
+        "government_bonds",
+        "nonfinancial_enterprise_equity",
+    )
+    for index, component in enumerate(components):
+        for measure in ("stock_end", "ytd_increment", "stock_yoy"):
+            if measure == "stock_yoy" and index < missing_count:
+                continue
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_SF_COMPONENTS",
+                    definition_version=version,
+                    period_kind="year_to_month" if measure == "ytd_increment" else "month",
+                    period_start="2026-01-01" if measure == "ytd_increment" else "2026-07-01",
+                    period_end="2026-07-31",
+                    dimensions={"component": component, "measure": measure},
+                    value=10,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percent" if measure == "stock_yoy" else "hundred_million_cny",
+                    provider="中国人民银行",
+                    source_reference="synthetic:partial-sf",
+                    release_event_id="synthetic:partial-sf",
+                    release_at=public_at,
+                    public_available_at=public_at,
+                    fetched_at=now,
+                    available_at=now,
+                    certification_status="certified",
+                    quality_status="validated",
+                )
+            )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="partial-sf",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id="synthetic:partial-sf",
+        metric_ids=("CN_SF_COMPONENTS",),
+        period="2026-07",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert not selection.complete
+    assert len(selection.selected_claim_ids) == 24 - missing_count
+    assert len(selection.missing_members) == missing_count
+    assert all('"measure": "stock_yoy"' in missing for missing in selection.missing_members)
+
+
+def test_registered_social_financing_completes_only_after_both_original_announcements(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    repository = EvidenceRepository(paths.database)
+    selected_counts = []
+    receipts = []
+    for index, (digest, code) in enumerate(
+        (
+            (
+                "42312d6054e2df029dfeeba68c7c60fc4bc45934cb72bdd739c143e1c9f02243",
+                "29d3365dfab04cc0a1e50bf0df41bae4",
+            ),
+            (
+                "d0ae83ced9ad510a057a853f51b185e729ed81c9cd5e958fa988c7b10a676d9d",
+                "d3cea9a15135428c8ecb623c90117476",
+            ),
+        )
+    ):
+        now = datetime(2026, 8, 29, index, tzinfo=UTC)
+
+        def fixed_clock(instant: datetime = now) -> datetime:
+            return instant
+
+        raw = (
+            Path(__file__).parents[2]
+            / ".scratch/pring-data-acquisition-repair/evidence-official-consumer-social"
+            / digest
+        ).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        url = f"https://www.pbc.gov.cn/diaochatongjisi/116219/116225/{code}/index.html"
+        result = ingest_official_context_document(
+            paths,
+            raw,
+            family="pbc_social_financing",
+            source_url=url,
+            expected_period="2024-01",
+            fetched_at=now,
+            clock=fixed_clock,
+            definition_version=version,
+        )
+        receipts.append(result)
+        assert len(result.claim_ids) == (18 if index == 0 else 9)
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id=f"split-sf-{index}",
+            model_version_id=model_id,
+            system_as_of=now,
+            release_event_id=result.release_event_id,
+            metric_ids=("CN_SF_TOTAL", "CN_SF_COMPONENTS"),
+            period="2024-01",
+        )
+        selection = select_retrieval_input(paths, run)
+        selected_counts.append(len(selection.selected_claim_ids))
+        assert selection.complete is (index == 1)
+        if index == 0:
+            assert len(selection.missing_members) == 9
+            assert all("ytd_increment" in member for member in selection.missing_members)
+    assert selected_counts == [17, 26]
+    points = repository.metric_series(
+        "CN_SF_TOTAL",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 8, 29, 1, tzinfo=UTC),
+        definition_version=version,
+    )
+    assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+        "stock_end": 3842900,
+        "stock_yoy": 9.5,
+        "ytd_increment": 65000,
+    }
+    claims = [c for p in points for c in p.claims]
+    assert len({c.source_reference for c in claims}) == 2
+    assert len({c.public_available_at for c in claims}) == 2
+    assert {c.fetched_at.hour for c in claims} == {0, 1}
+    assert not set(receipts[0].claim_ids) & set(receipts[1].claim_ids)
+    earlier = repository.metric_series(
+        "CN_SF_TOTAL",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        definition_version=version,
+    )
+    assert {p.dimensions["measure"] for p in earlier} == {"stock_end", "stock_yoy"}
+
+
+def test_registered_capacity_q1_does_not_certify_an_unresolved_reused_cell(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    version = request["manifest"]["metric_catalog_version"]
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    digest = "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-official-consumer-edge"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    with pytest.raises(ValueError, match="registered_capacity_q1_mapping_unresolved"):
+        ingest_official_context_document(
+            paths,
+            raw,
+            family="nbs_capacity_utilization",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202604/t20260416_1963322.html",
+            expected_period="2026-Q1",
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=version,
+        )
+    assert not EvidenceRepository(paths.database).metric_series(
+        "CN_CAPACITY_UTILIZATION",
+        mode=AsOfMode.SYSTEM,
+        as_of=now,
+        definition_version=version,
+    )
+
+
+@pytest.mark.parametrize("document_kind", ["compact", "official_original"])
+def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], document_kind: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    acquired_at = datetime(2026, 8, 9, 2, tzinfo=UTC)
+    content = cpi_document()
+    if document_kind == "official_original":
+        digest = "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49"
+        content = (
+            Path(__file__).parents[2]
+            / ".scratch/pring-data-acquisition-repair/evidence-13"
+            / digest
+        ).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == digest
+    ingested = ingest_official_context_document(
+        paths,
+        content,
+        family="nbs_core_cpi",
+        source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html",
+        expected_period="2026-07",
+        fetched_at=acquired_at,
+        definition_version=version,
+        clock=lambda: acquired_at,
+    )
+    repository = EvidenceRepository(paths.database)
+    expected = {
+        "CN_CPI_HEADLINE": ("headline", {"mom": -0.1, "yoy": 0.5, "cumulative_average_yoy": 0.9}),
+        "CN_CORE_CPI": ("ex_food_energy", {"mom": 0.3, "yoy": 0.9, "cumulative_average_yoy": 1.1}),
+    }
+    selected: set[str | None] = set()
+    for metric, (category, values) in expected.items():
+        public = repository.metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 9, 1, 45, tzinfo=UTC),
+            definition_version=version,
+        )
+        assert {point.dimensions["measure"]: point.selected_value for point in public} == values
+        assert {point.dimensions["category"] for point in public} == {category}
+        selected.update(point.selected_claim_id for point in public)
+        assert not repository.metric_series(
+            metric,
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime(2026, 8, 9, 1, 45, tzinfo=UTC),
+            definition_version=version,
+        )
+        assert (
+            len(
+                repository.metric_series(
+                    metric,
+                    mode=AsOfMode.SYSTEM,
+                    as_of=acquired_at,
+                    definition_version=version,
+                )
+            )
+            == 3
+        )
+    assert selected == set(ingested.claim_ids)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="admitted-cpi",
+        model_version_id=model_id,
+        system_as_of=acquired_at,
+        release_event_id=ingested.release_event_id,
+        metric_ids=tuple(expected),
+        period="2026-07",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete
+    assert set(selection.selected_claim_ids) == set(ingested.claim_ids)
+    context = build_context_projection(repository, as_of=acquired_at, model_manifest=manifest)
+    assert set(ingested.claim_ids) <= set(context.observation_version_ids)
+    with pytest.raises(LookupError, match="active_model_unavailable"):
+        ModelRepository(paths.database).active()
+
+
+@pytest.mark.parametrize("month", [1, 7])
+def test_registered_cpi_requires_cumulative_only_outside_january(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], month: int
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    # Four January literals from the independently audited table. The July
+    # variation is deliberately incomplete synthetic data, not an official page.
+    release_day = 11 if month == 1 else 9
+    period = f"2026-{month:02d}"
+    content = f"""
+    <h1>2026年{month}月份居民消费价格</h1>
+    <p>发布时间：2026-{month + 1:02d}-{release_day:02d} 09:30</p>
+    <table><tr><th></th><th>环比涨跌幅（%）</th><th>同比涨跌幅（%）</th></tr>
+    <tr><td>居民消费价格</td><td>0.2</td><td>0.2</td></tr>
+    <tr><td>不包括食品和能源</td><td>0.3</td><td>0.8</td></tr></table>
+    """.encode()
+    now = datetime(2026, month + 1, release_day, 2, tzinfo=UTC)
+    ingested = ingest_official_context_document(
+        paths,
+        content,
+        family="nbs_core_cpi",
+        source_url=(
+            "https://www.stats.gov.cn/sj/zxfb/202602/t20260211_1962588.html"
+            if month == 1
+            else "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html"
+        ),
+        expected_period=period,
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=request["manifest"]["metric_catalog_version"],
+    )
+    assert len(ingested.claim_ids) == 4
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-03-09" if month == 1 else "2026-08-28",
+        client_request_id="admitted-cpi-january",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id=ingested.release_event_id,
+        metric_ids=("CN_CPI_HEADLINE", "CN_CORE_CPI"),
+        period=period,
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete is (month == 1)
+    if month == 7:
+        assert len(selection.missing_members) == 2
+        assert all("cumulative_average_yoy" in member for member in selection.missing_members)
+    assert set(selection.selected_claim_ids) == set(ingested.claim_ids)
+
+
+@pytest.mark.parametrize("fault", ["provider", "category", "measure", "period_kind", "unit"])
+def test_registered_cpi_rejects_claims_outside_its_supported_source_identity(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 9, 2, tzinfo=UTC)
+    claim = SourceClaimInput(
+        metric_id="CN_CORE_CPI",
+        definition_version=request["manifest"]["metric_catalog_version"],
+        period_kind="month",
+        period_start="2026-07-01",
+        period_end="2026-07-31",
+        dimensions={"category": "ex_food_energy", "measure": "yoy"},
+        value=0.9,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="percent",
+        provider="国家统计局",
+        source_reference="synthetic:cpi-identity",
+        release_event_id="synthetic:cpi",
+        release_at=now,
+        public_available_at=now,
+        fetched_at=now,
+        available_at=now,
+        certification_status="certified",
+        quality_status="validated",
+    )
+    if fault == "provider":
+        claim = replace(claim, provider="TuShare")
+    elif fault == "category":
+        claim = replace(claim, dimensions={"category": "headline", "measure": "yoy"})
+    elif fault == "measure":
+        claim = replace(claim, dimensions={"category": "ex_food_energy", "measure": "level"})
+    elif fault == "period_kind":
+        claim = replace(claim, period_kind="day")
+    else:
+        claim = replace(claim, unit="index_points")
+    repository = EvidenceRepository(paths.database)
+    with pytest.raises(
+        ValueError, match="registered_cpi_source_identity_mismatch|evidence_unit_mismatch"
+    ):
+        repository.append_source_claim(claim)
+    assert not repository.metric_series(
+        "CN_CORE_CPI",
+        mode=AsOfMode.SYSTEM,
+        as_of=now,
+        definition_version=request["manifest"]["metric_catalog_version"],
+    )
+
+
+@pytest.mark.parametrize("field", ["source_codes", "release_event_family", "allowed_units"])
+def test_cpi_parser_rejects_an_incompatible_registered_contract(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], field: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    definition = next(
+        item
+        for item in request["manifest"]["metric_definitions"]
+        if item["metric_id"] == "CN_CPI_HEADLINE"
+    )
+    definition[field] = {
+        "source_codes": ["another-reviewed-source"],
+        "release_event_family": "another-review-family",
+        "allowed_units": ["percent", "index_points"],
+    }[field]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"]["CN_CPI_HEADLINE"] = hashlib.sha256(
+        encode(definition)
+    ).hexdigest()
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    now = datetime(2026, 8, 9, 2, tzinfo=UTC)
+    with pytest.raises(ValueError, match="registered_cpi_source_contract_unsupported"):
+        ingest_official_context_document(
+            paths,
+            cpi_document(),
+            family="nbs_core_cpi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html",
+            expected_period="2026-07",
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=request["manifest"]["metric_catalog_version"],
+        )
 
 
 @pytest.mark.parametrize("artifact_kind", ["request", "package", "review", "original"])

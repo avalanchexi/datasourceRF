@@ -1,0 +1,10 @@
+.......F.                                                                [100%]
+=================================== FAILURES ===================================
+_ test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim[False] _
+tests/models/test_candidate_admission.py:508: in test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim
+    assert selection.complete is (not latest_invalid)
+E   AssertionError: assert False is not False
+E    +  where False = ModelInputSelection(complete=False, selected_claim_ids=('bc0ea0e6c5a5ac9bdb86cfd425482691fc689fb965b6f26428d11498e3b2d230',), missing_members=('CN_OMO_7D_RATE:{}',)).complete
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim[False]
+1 failed, 8 passed, 85 deselected in 12.16s

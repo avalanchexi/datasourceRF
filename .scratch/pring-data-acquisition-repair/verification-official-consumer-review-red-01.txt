@@ -1,0 +1,16 @@
+...FF                                                                    [100%]
+=================================== FAILURES ===================================
+_ test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim[False-371] _
+tests/models/test_candidate_admission.py:590: in test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim
+    assert selection.complete is eligible
+E   AssertionError: assert True is False
+E    +  where True = ModelInputSelection(complete=True, selected_claim_ids=('bc0ea0e6c5a5ac9bdb86cfd425482691fc689fb965b6f26428d11498e3b2d230', '9ea34309ecd283589ee69ef5281eedbfaf2e5954670d2ffe8d42c5593ecec72d'), missing_members=()).complete
+___ test_registered_social_components_require_all_eight_stock_growth_members ___
+tests/models/test_candidate_admission.py:638: in test_registered_social_components_require_all_eight_stock_growth_members
+    assert not selection.complete
+E   AssertionError: assert not True
+E    +  where True = ModelInputSelection(complete=True, selected_claim_ids=('55a9681405ab61e128b33c27e3b01e5352cafbf6c88dec4ede861afb58d2a7...9d074667df18f42c74be6c7923d2', '78d0a9b0e053696697386eb5532b96ebf7d6810cf91686532dab79ece7b9735f'), missing_members=()).complete
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim[False-371]
+FAILED tests/models/test_candidate_admission.py::test_registered_social_components_require_all_eight_stock_growth_members
+2 failed, 3 passed, 93 deselected in 6.99s

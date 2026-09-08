@@ -236,6 +236,7 @@ def test_core_readiness_ignores_observations_after_historical_target(
     assert future_ids.isdisjoint(adoption["referenced_observation_version_ids"])
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_context_refresh_ingests_eia_independently_of_tushare(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -312,6 +313,7 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
         (ValueError("fixture validation failure"), "validation_failed"),
     ),
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_worker_classifies_optional_eia_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -444,6 +446,7 @@ def test_worker_completes_a_valid_noncanonical_projection_and_report(
     assert runs.next_queued() is None
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_worker_fails_closed_and_classifies_context_validation_failures(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -792,6 +795,7 @@ def test_targeted_refresh_runs_serial_retrieval_and_persists_auditable_attempts(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_targeted_official_context_refresh_keeps_uncertified_result_as_candidate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

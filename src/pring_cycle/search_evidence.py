@@ -12,7 +12,11 @@ from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
-from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS
+from pring_cycle.metric_contracts import (
+    EFFECTIVE_UNTIL_CHANGED_METRICS,
+    evidence_max_age_days,
+    required_dimension_members,
+)
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
@@ -89,7 +93,9 @@ class ModelInputSelector:
             definition = metric_definition(
                 metric_id, definition_version=self.version, database_path=self.database_path
             )
-            expected = REQUIRED_DIMENSION_MEMBERS.get(metric_id)
+            expected = required_dimension_members(
+                metric_id, definition_version=self.version, period=scope.period
+            )
             if expected is None:
                 if definition.dimensions:
                     missing.append(f"{metric_id}:dimension_contract_unavailable")
@@ -97,14 +103,33 @@ class ModelInputSelector:
                 expected = ({},)
             points = self.series(metric_id)
             for member in expected:
+                event_metric = metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS
+                event_limit = (
+                    f"{scope.period[:4]}-{int(scope.period[-1]) * 3:02d}"
+                    if "-Q" in scope.period
+                    else scope.period
+                )
                 matches = [
                     p
                     for p in points
                     if (
-                        matches_retrieval_period(p.period_end, scope.period)
+                        (
+                            p.period_end[: len(event_limit)] <= event_limit
+                            if event_metric
+                            else matches_retrieval_period(p.period_end, scope.period)
+                        )
                         and p.dimensions == member
                     )
                 ]
+                if event_metric and matches:
+                    # Pick the latest known event before checking quality. A bad
+                    # newer event must not silently resurrect an older rate.
+                    latest = max(p.period_end for p in matches)
+                    matches = [p for p in matches if p.period_end == latest]
+                    if (
+                        date.fromisoformat(self.target_business_date) - date.fromisoformat(latest)
+                    ).days > evidence_max_age_days(metric_id, definition.frequency):
+                        matches = []
                 accepted = []
                 for point in matches:
                     claim = next(

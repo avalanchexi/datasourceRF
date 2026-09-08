@@ -1,0 +1,72 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_registered_pmi_original_reaches_selection_and_context __________
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-pmi-red-01/test_registered_pmi_original_r0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7f0f67183c50>
+
+    def test_registered_pmi_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        digest = "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6"
+        content = (
+            Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+        ).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == digest
+        now = datetime(2026, 8, 1, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths,
+            content,
+            family="nbs_pmi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+            expected_period="2026-07",
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_PMI_ACTIVITY', name_cn='CN_PMI_ACTIVITY', priority='P1', role='macro_confirmation', uni...'Asia/Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('diffusion_index_points',))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_PMI_ACTIVITY
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:116: ValueError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_pmi_original_reaches_selection_and_context
+1 failed, 75 deselected in 4.22s

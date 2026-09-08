@@ -1,0 +1,949 @@
+FFFFFFFFF                                                                [100%]
+=================================== FAILURES ===================================
+_____ test_registered_official_original_reaches_selection_and_context[ppi] _____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi0')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475bbad1760>
+family = 'nbs_ppi'
+digest = 'b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09'
+url = 'https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html'
+period = '2026-07', count = 9
+anchors = {'CN_PPI': ({'category': 'headline', 'measure': 'yoy'}, 3.5, 'percent')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_PPI', name_cn='工业生产者价格', priority='P1', role='macro_confirmation', unit='percent', freq...lease_timezone='Asia/Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('percent',))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_PPI
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+_ test_registered_official_original_reaches_selection_and_context[industrial-va] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi1')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba7b8f20>
+family = 'nbs_industrial_value_added'
+digest = 'd8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609'
+url = 'https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html'
+period = '2026-07', count = 3
+anchors = {'CN_INDUSTRIAL_VA': ({'measure': 'current_month_real_yoy'}, 4.5, 'percent')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_INDUSTRIAL_VA', name_cn='CN_INDUSTRIAL_VA', priority='P1', role='macro_confirmation', u...lease_timezone='Asia/Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('percent',))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_INDUSTRIAL_VA
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+_ test_registered_official_original_reaches_selection_and_context[industrial-finance] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi2')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba7ba3f0>
+family = 'nbs_industrial_finance'
+digest = '28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986'
+url = 'https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html'
+period = '2026-07', count = 10
+anchors = {'CN_FINISHED_GOODS_INVENTORY': ({'measure': 'nominal_end_level'}, 72700, 'hundred_million_cny'), 'CN_INDUSTRIAL_FINAN..._level'}, 809230.7, 'hundred_million_cny'), 'CN_INVENTORY_TURNOVER': ({'measure': 'official_yoy_change'}, 0.6, 'days')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_INDUSTRIAL_FINANCE', name_cn='CN_INDUSTRIAL_FINANCE', priority='P1', role='macro_confir...hanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('hundred_million_cny', 'percent'))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_INDUSTRIAL_FINANCE
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+_ test_registered_official_original_reaches_selection_and_context[capacity-q2] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi3')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba835010>
+family = 'nbs_capacity_utilization'
+digest = '8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8'
+url = 'https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html'
+period = '2026-Q2', count = 3
+anchors = {'CN_CAPACITY_UTILIZATION': ({'industry': 'all_industry', 'measure': 'yoy_change'}, -1.0, 'percentage_points')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_CAPACITY_UTILIZATION', name_cn='CN_CAPACITY_UTILIZATION', priority='P1', role='macro_co.../Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('percent', 'percentage_points'))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_CAPACITY_UTILIZATION
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+____ test_registered_official_original_reaches_selection_and_context[money] ____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi4')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba61a600>
+family = 'pbc_money'
+digest = '933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef'
+url = 'https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html'
+period = '2026-07', count = 4
+anchors = {'CN_M1_M2': ({'aggregate': 'm1', 'measure': 'balance'}, 1154600, 'hundred_million_cny')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_M1_M2', name_cn='CN_M1_M2', priority='P1', role='credit_response', unit='hundred_millio...hanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('hundred_million_cny', 'percent'))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_M1_M2
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+_ test_registered_official_original_reaches_selection_and_context[social-financing] _
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi5')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba618fb0>
+family = 'pbc_social_financing'
+digest = '933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef'
+url = 'https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html'
+period = '2026-07', count = 27
+anchors = {'CN_SF_COMPONENTS': ({'component': 'government_bonds', 'measure': 'ytd_increment'}, 77600, 'hundred_million_cny'), 'CN_SF_TOTAL': ({'measure': 'stock_end'}, 4632700, 'hundred_million_cny')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_SF_TOTAL', name_cn='CN_SF_TOTAL', priority='P1', role='credit_response', unit='hundred_...hanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('hundred_million_cny', 'percent'))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_SF_TOTAL
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+____ test_registered_official_original_reaches_selection_and_context[loans] ____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi6')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba6fac30>
+family = 'pbc_loan_structure'
+digest = '933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef'
+url = 'https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html'
+period = '2026-07', count = 9
+anchors = {'CN_LOAN_STRUCTURE': ({'borrower': 'enterprise', 'measure': 'ytd_increment', 'tenor': 'long_term'}, 53200, 'hundred_million_cny')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_LOAN_STRUCTURE', name_cn='CN_LOAN_STRUCTURE', priority='P1', role='credit_response', un...hanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('hundred_million_cny', 'percent'))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_LOAN_STRUCTURE
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+____ test_registered_official_original_reaches_selection_and_context[tools] ____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi7')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba6f8560>
+family = 'pbc_tool_liquidity_monthly'
+digest = '10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0'
+url = 'https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html'
+period = '2026-07', count = 24
+anchors = {'CN_TOOL_LIQUIDITY_MONTHLY': ({'measure': 'net_injection', 'tool': '7天期逆回购'}, -2495, 'hundred_million_cny')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_TOOL_LIQUIDITY_MONTHLY', name_cn='CN_TOOL_LIQUIDITY_MONTHLY', priority='P1', role='macr...ne='Asia/Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('hundred_million_cny',))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_TOOL_LIQUIDITY_MONTHLY
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+_____ test_registered_official_original_reaches_selection_and_context[omo] _____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-families-red-01/test_registered_official_origi8')
+capsys = <_pytest.capture.CaptureFixture object at 0x7475ba7fa060>
+family = 'pbc_omo_notice'
+digest = 'ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a'
+url = 'https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html'
+period = '2026-08-28', count = 2
+anchors = {'CN_OMO_7D_AMOUNT': ({'measure': 'injection'}, 200, 'hundred_million_cny'), 'CN_OMO_7D_RATE': ({}, 1.4, 'percent')}
+
+    @pytest.mark.parametrize(
+        ("family", "digest", "url", "period", "count", "anchors"),
+        [
+            ("nbs_ppi", "b323261248c08ecba00a96cf4401654896fd8a5709ce9bf81c2e38f7d5fbef09",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965007.html", "2026-07", 9,
+             {"CN_PPI": ({"category": "headline", "measure": "yoy"}, 3.5, "percent")}),
+            ("nbs_industrial_value_added", "d8a9cc4305ea657b6d9eeecc8633afcf6934bc05f7da72c9969c89e465833609",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260817_1965055.html", "2026-07", 3,
+             {"CN_INDUSTRIAL_VA": ({"measure": "current_month_real_yoy"}, 4.5, "percent")}),
+            ("nbs_industrial_finance", "28388ca9b78a83ea1fe39c0b3d943ad982d34c7dd4e26fee96d78a18b7a7f986",
+             "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html", "2026-07", 10,
+             {"CN_INDUSTRIAL_FINANCE": ({"item": "revenue", "measure": "ytd_level"}, 809230.7, "hundred_million_cny"),
+              "CN_FINISHED_GOODS_INVENTORY": ({"measure": "nominal_end_level"}, 72700, "hundred_million_cny"),
+              "CN_INVENTORY_TURNOVER": ({"measure": "official_yoy_change"}, 0.6, "days")}),
+            ("nbs_capacity_utilization", "8d1eadceb1259df2a86975d3565de90488c8d9b0f14992ec14fd7f8f49ab70e8",
+             "https://www.stats.gov.cn/sj/zxfb/202607/t20260715_1964130.html", "2026-Q2", 3,
+             {"CN_CAPACITY_UTILIZATION": ({"industry": "all_industry", "measure": "yoy_change"}, -1.0, "percentage_points")}),
+            ("pbc_money", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 4,
+             {"CN_M1_M2": ({"aggregate": "m1", "measure": "balance"}, 1154600, "hundred_million_cny")}),
+            ("pbc_social_financing", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 27,
+             {"CN_SF_TOTAL": ({"measure": "stock_end"}, 4632700, "hundred_million_cny"),
+              "CN_SF_COMPONENTS": ({"component": "government_bonds", "measure": "ytd_increment"}, 77600, "hundred_million_cny")}),
+            ("pbc_loan_structure", "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+             "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html", "2026-07", 9,
+             {"CN_LOAN_STRUCTURE": ({"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"}, 53200, "hundred_million_cny")}),
+            ("pbc_tool_liquidity_monthly", "10ed3fb5822bcc74dd429325d8196b7bbda9ed2e732eaa957914cbe95d2452f0",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026080416515912098/index.html", "2026-07", 24,
+             {"CN_TOOL_LIQUIDITY_MONTHLY": ({"tool": "7天期逆回购", "measure": "net_injection"}, -2495, "hundred_million_cny")}),
+            ("pbc_omo_notice", "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+             "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html", "2026-08-28", 2,
+             {"CN_OMO_7D_AMOUNT": ({"measure": "injection"}, 200, "hundred_million_cny"),
+              "CN_OMO_7D_RATE": ({}, 1.4, "percent")}),
+        ],
+        ids=["ppi", "industrial-va", "industrial-finance", "capacity-q2", "money", "social-financing", "loans", "tools", "omo"],
+    )
+    def test_registered_official_original_reaches_selection_and_context(
+        tmp_path: Path, capsys: pytest.CaptureFixture[str], family: str, digest: str,
+        url: str, period: str, count: int, anchors: dict[str, tuple[dict[str, str], float, str]],
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        request, _ = prepared_request(paths)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        raw = (Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        now = datetime(2026, 8, 29, tzinfo=UTC)
+>       imported = ingest_official_context_document(
+            paths, raw, family=family, source_url=url, expected_period=period,
+            fetched_at=now, clock=lambda: now, definition_version=version,
+        )
+
+tests/models/test_candidate_admission.py:242: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:274: in ingest_official_context_document
+    return ingest_acquired_official_release(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/official_context.py:374: in ingest_acquired_official_release
+    stored = repository.append_source_claims(claims, availability_clock=clock)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:277: in append_source_claims
+    _validate_claim(claim, self._database_path)
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:1149: in _validate_claim
+    require_registered_source_contract(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+definition = MetricDefinition(metric_id='CN_OMO_7D_RATE', name_cn='CN_OMO_7D_RATE', priority='P1', role='policy_transmission', unit...lease_timezone='Asia/Shanghai', definition_version='synthetic-metric-catalog-admission-v1', allowed_units=('percent',))
+
+    def require_registered_source_contract(
+        definition: MetricDefinition,
+        *,
+        provider: str,
+        period_kind: str,
+        dimensions: Mapping[str, str],
+    ) -> None:
+        """New catalog identity alone does not certify an existing parser's output."""
+        if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+            return
+        contracts = {
+            "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+            "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+            "CN_CORE_CPI": ("cpi", "国家统计局"),
+            "CN_PMI_ACTIVITY": ("pmi", "国家统计局"),
+            "CN_PMI_INVENTORY": ("pmi", "国家统计局"),
+            "CN_PMI_PRICES": ("pmi", "国家统计局"),
+        }
+        if definition.metric_id not in contracts:
+>           raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
+E           ValueError: registered_source_contract_not_implemented:CN_OMO_7D_RATE
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_contract_review.py:120: ValueError
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[ppi]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[industrial-va]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[industrial-finance]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[capacity-q2]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[money]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[social-financing]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[loans]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[tools]
+FAILED tests/models/test_candidate_admission.py::test_registered_official_original_reaches_selection_and_context[omo]
+9 failed, 76 deselected in 25.46s

@@ -1,0 +1,1135 @@
+{
+  "status": "completed_acquisition_preparation",
+  "runtime": "/home/tywin/.cache/pring-cycle/verification/cpi-document-import-20260908",
+  "database": "/home/tywin/.cache/pring-cycle/verification/cpi-document-import-20260908/data/pring-cycle.sqlite3",
+  "started_at": "2026-09-07T22:02:31.120479+00:00",
+  "execution_fingerprint": {
+    "code_hash": "78f9c702b9344de5bdba09dfa5115963a53f9e3304bbf40ff3465d70a38ed84b",
+    "configuration_version": "config-v0001",
+    "database_revision": "0019_registered_metric_catalog",
+    "dependency_hash": "28cdd2d2003f3235ab2bd8fcc8ec82c45c178d67e5f3fde16b1308ae8e0890b1"
+  },
+  "source_claims_created": 0,
+  "source_certification_grants": 0,
+  "production_writes": 0,
+  "historical_system_availability_restored": false,
+  "real_candidate_models_created": 0,
+  "network_attempts": 1,
+  "receipts": [
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-b1b2a08cf4a14667a5174b690aa213ca",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/02/029d16d76ba6c207b46be0cf4a13ca2c88ae431540aec335778644e97830da7f",
+          "period": "2025-12",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202601/t20260109_1962273.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.150806+00:00",
+        "received_at": "2026-09-07 22:02:31.158109+00:00",
+        "validated_at": "2026-09-07 22:02:31.220559+00:00",
+        "state": "validated",
+        "raw_hash": "029d16d76ba6c207b46be0cf4a13ca2c88ae431540aec335778644e97830da7f",
+        "normalized_hash": "93bdfec1eb076175e2341cccc9dd3ed871ea538505fffd1525834885feb340a7",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2025-12:029d16d76ba6c207b46be0cf4a13ca2c88ae431540aec335778644e97830da7f",
+        "period": "2025-12",
+        "release_at": "2026-01-09 09:30:00+08:00",
+        "public_available_at": "2026-01-09 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202601/t20260109_1962273.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2025-12-01",
+            "period_end": "2025-12-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": 0.2,
+            "unit": "percent",
+            "release_at": "2026-01-09 09:30:00+08:00",
+            "public_available_at": "2026-01-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2025-12-01",
+            "period_end": "2025-12-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 0.8,
+            "unit": "percent",
+            "release_at": "2026-01-09 09:30:00+08:00",
+            "public_available_at": "2026-01-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2025-12-01",
+            "period_end": "2025-12-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 0.0,
+            "unit": "percent",
+            "release_at": "2026-01-09 09:30:00+08:00",
+            "public_available_at": "2026-01-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2025-12-01",
+            "period_end": "2025-12-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": 0.2,
+            "unit": "percent",
+            "release_at": "2026-01-09 09:30:00+08:00",
+            "public_available_at": "2026-01-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2025-12-01",
+            "period_end": "2025-12-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-01-09 09:30:00+08:00",
+            "public_available_at": "2026-01-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2025-12-01",
+            "period_end": "2025-12-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 0.7,
+            "unit": "percent",
+            "release_at": "2026-01-09 09:30:00+08:00",
+            "public_available_at": "2026-01-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-47e1b3703fd94d78a46d678a812fd398",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/f6/f65b52d3c2418f40a43e0991d041e0295e56941ca7d9bc9bad76e0d5d0cab964",
+          "period": "2026-01",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202602/t20260211_1962588.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.245468+00:00",
+        "received_at": "2026-09-07 22:02:31.249871+00:00",
+        "validated_at": "2026-09-07 22:02:31.318045+00:00",
+        "state": "validated",
+        "raw_hash": "f65b52d3c2418f40a43e0991d041e0295e56941ca7d9bc9bad76e0d5d0cab964",
+        "normalized_hash": "ed3981aa236a90f1d7ec84427f6779cef73f784242c1c7d28bc9e65a2a703090",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-01:f65b52d3c2418f40a43e0991d041e0295e56941ca7d9bc9bad76e0d5d0cab964",
+        "period": "2026-01",
+        "release_at": "2026-02-11 09:30:00+08:00",
+        "public_available_at": "2026-02-11 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202602/t20260211_1962588.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": 0.2,
+            "unit": "percent",
+            "release_at": "2026-02-11 09:30:00+08:00",
+            "public_available_at": "2026-02-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 0.2,
+            "unit": "percent",
+            "release_at": "2026-02-11 09:30:00+08:00",
+            "public_available_at": "2026-02-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": 0.3,
+            "unit": "percent",
+            "release_at": "2026-02-11 09:30:00+08:00",
+            "public_available_at": "2026-02-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-01-01",
+            "period_end": "2026-01-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 0.8,
+            "unit": "percent",
+            "release_at": "2026-02-11 09:30:00+08:00",
+            "public_available_at": "2026-02-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-aea205e3403f413eadf31bf98af7be8e",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/32/321b7693d1e112a92c83fc16293cc115429b0dee88e4201f115668850cf97043",
+          "period": "2026-02",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202603/t20260309_1962732.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.342109+00:00",
+        "received_at": "2026-09-07 22:02:31.352831+00:00",
+        "validated_at": "2026-09-07 22:02:31.478380+00:00",
+        "state": "validated",
+        "raw_hash": "321b7693d1e112a92c83fc16293cc115429b0dee88e4201f115668850cf97043",
+        "normalized_hash": "81950481837d1a593997f83b937e46b179277dbe151639e0f5e972d266e89679",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-02:321b7693d1e112a92c83fc16293cc115429b0dee88e4201f115668850cf97043",
+        "period": "2026-02",
+        "release_at": "2026-03-09 09:30:00+08:00",
+        "public_available_at": "2026-03-09 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202603/t20260309_1962732.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-02-01",
+            "period_end": "2026-02-28",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": 1.0,
+            "unit": "percent",
+            "release_at": "2026-03-09 09:30:00+08:00",
+            "public_available_at": "2026-03-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-02-01",
+            "period_end": "2026-02-28",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 1.3,
+            "unit": "percent",
+            "release_at": "2026-03-09 09:30:00+08:00",
+            "public_available_at": "2026-03-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-02-01",
+            "period_end": "2026-02-28",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 0.8,
+            "unit": "percent",
+            "release_at": "2026-03-09 09:30:00+08:00",
+            "public_available_at": "2026-03-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-02-01",
+            "period_end": "2026-02-28",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": 0.7,
+            "unit": "percent",
+            "release_at": "2026-03-09 09:30:00+08:00",
+            "public_available_at": "2026-03-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-02-01",
+            "period_end": "2026-02-28",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.8,
+            "unit": "percent",
+            "release_at": "2026-03-09 09:30:00+08:00",
+            "public_available_at": "2026-03-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-02-01",
+            "period_end": "2026-02-28",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.3,
+            "unit": "percent",
+            "release_at": "2026-03-09 09:30:00+08:00",
+            "public_available_at": "2026-03-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-2f555aac2be340a88e7eed2af47f3447",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/ac/acaf1bd86124b1aca4c7ed1cee26560d0fe24c665d614ca4ca2b10c2601a811a",
+          "period": "2026-03",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202604/t20260410_1963264.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.505054+00:00",
+        "received_at": "2026-09-07 22:02:31.510327+00:00",
+        "validated_at": "2026-09-07 22:02:31.585868+00:00",
+        "state": "validated",
+        "raw_hash": "acaf1bd86124b1aca4c7ed1cee26560d0fe24c665d614ca4ca2b10c2601a811a",
+        "normalized_hash": "d7d12722c18a5d4cac1bb376f341a0570803bbe3b8963738cdc33bd8e751831b",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-03:acaf1bd86124b1aca4c7ed1cee26560d0fe24c665d614ca4ca2b10c2601a811a",
+        "period": "2026-03",
+        "release_at": "2026-04-10 09:30:00+08:00",
+        "public_available_at": "2026-04-10 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202604/t20260410_1963264.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-03-01",
+            "period_end": "2026-03-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": -0.7,
+            "unit": "percent",
+            "release_at": "2026-04-10 09:30:00+08:00",
+            "public_available_at": "2026-04-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-03-01",
+            "period_end": "2026-03-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 1.0,
+            "unit": "percent",
+            "release_at": "2026-04-10 09:30:00+08:00",
+            "public_available_at": "2026-04-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-03-01",
+            "period_end": "2026-03-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 0.9,
+            "unit": "percent",
+            "release_at": "2026-04-10 09:30:00+08:00",
+            "public_available_at": "2026-04-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-03-01",
+            "period_end": "2026-03-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": -0.7,
+            "unit": "percent",
+            "release_at": "2026-04-10 09:30:00+08:00",
+            "public_available_at": "2026-04-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-03-01",
+            "period_end": "2026-03-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.1,
+            "unit": "percent",
+            "release_at": "2026-04-10 09:30:00+08:00",
+            "public_available_at": "2026-04-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-03-01",
+            "period_end": "2026-03-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-04-10 09:30:00+08:00",
+            "public_available_at": "2026-04-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-a27af27e7a514879b08485ffe8395432",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/5b/5b35264f5e63c0776701fb2586ffd8511f28fdc4360547a791de51e2cc7750c4",
+          "period": "2026-04",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202605/t20260511_1963659.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.629422+00:00",
+        "received_at": "2026-09-07 22:02:31.635007+00:00",
+        "validated_at": "2026-09-07 22:02:31.705488+00:00",
+        "state": "validated",
+        "raw_hash": "5b35264f5e63c0776701fb2586ffd8511f28fdc4360547a791de51e2cc7750c4",
+        "normalized_hash": "d815c31b513926e794550740dc46c49948b76faa54c2c301ac8c973335132d1d",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-04:5b35264f5e63c0776701fb2586ffd8511f28fdc4360547a791de51e2cc7750c4",
+        "period": "2026-04",
+        "release_at": "2026-05-11 09:30:00+08:00",
+        "public_available_at": "2026-05-11 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202605/t20260511_1963659.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-04-01",
+            "period_end": "2026-04-30",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": 0.3,
+            "unit": "percent",
+            "release_at": "2026-05-11 09:30:00+08:00",
+            "public_available_at": "2026-05-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-04-01",
+            "period_end": "2026-04-30",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-05-11 09:30:00+08:00",
+            "public_available_at": "2026-05-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-04-01",
+            "period_end": "2026-04-30",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 0.9,
+            "unit": "percent",
+            "release_at": "2026-05-11 09:30:00+08:00",
+            "public_available_at": "2026-05-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-04-01",
+            "period_end": "2026-04-30",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": 0.2,
+            "unit": "percent",
+            "release_at": "2026-05-11 09:30:00+08:00",
+            "public_available_at": "2026-05-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-04-01",
+            "period_end": "2026-04-30",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-05-11 09:30:00+08:00",
+            "public_available_at": "2026-05-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-04-01",
+            "period_end": "2026-04-30",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-05-11 09:30:00+08:00",
+            "public_available_at": "2026-05-11 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-3c25f8412bf840e298b7aa2857a920c7",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/f0/f021e838ebf280e92cde9f4d965cf6b40d4efba391ff4225970731662493559f",
+          "period": "2026-05",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202606/t20260610_1963923.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.731892+00:00",
+        "received_at": "2026-09-07 22:02:31.736411+00:00",
+        "validated_at": "2026-09-07 22:02:31.812648+00:00",
+        "state": "validated",
+        "raw_hash": "f021e838ebf280e92cde9f4d965cf6b40d4efba391ff4225970731662493559f",
+        "normalized_hash": "f41760e995f0cc945feb397bf52f335da004abb4bda462eabf0aec6c6e8e585c",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-05:f021e838ebf280e92cde9f4d965cf6b40d4efba391ff4225970731662493559f",
+        "period": "2026-05",
+        "release_at": "2026-06-10 09:30:00+08:00",
+        "public_available_at": "2026-06-10 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202606/t20260610_1963923.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": -0.1,
+            "unit": "percent",
+            "release_at": "2026-06-10 09:30:00+08:00",
+            "public_available_at": "2026-06-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-06-10 09:30:00+08:00",
+            "public_available_at": "2026-06-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 1.0,
+            "unit": "percent",
+            "release_at": "2026-06-10 09:30:00+08:00",
+            "public_available_at": "2026-06-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": -0.1,
+            "unit": "percent",
+            "release_at": "2026-06-10 09:30:00+08:00",
+            "public_available_at": "2026-06-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.1,
+            "unit": "percent",
+            "release_at": "2026-06-10 09:30:00+08:00",
+            "public_available_at": "2026-06-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-06-10 09:30:00+08:00",
+            "public_available_at": "2026-06-10 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-0605616e10f94039ab5bff16f95b6d69",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/57/57665164e369235239d22d66d37d19f86172b2ac20a5e755c72199ad7a953d84",
+          "period": "2026-06",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1964084.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.842025+00:00",
+        "received_at": "2026-09-07 22:02:31.846724+00:00",
+        "validated_at": "2026-09-07 22:02:31.940322+00:00",
+        "state": "validated",
+        "raw_hash": "57665164e369235239d22d66d37d19f86172b2ac20a5e755c72199ad7a953d84",
+        "normalized_hash": "e5851c555578a9b654946caf202818fae31b6054c045ff0922969c1bfea4db09",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-06:57665164e369235239d22d66d37d19f86172b2ac20a5e755c72199ad7a953d84",
+        "period": "2026-06",
+        "release_at": "2026-07-09 09:30:00+08:00",
+        "public_available_at": "2026-07-09 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1964084.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": -0.3,
+            "unit": "percent",
+            "release_at": "2026-07-09 09:30:00+08:00",
+            "public_available_at": "2026-07-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 1.0,
+            "unit": "percent",
+            "release_at": "2026-07-09 09:30:00+08:00",
+            "public_available_at": "2026-07-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 1.0,
+            "unit": "percent",
+            "release_at": "2026-07-09 09:30:00+08:00",
+            "public_available_at": "2026-07-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": -0.1,
+            "unit": "percent",
+            "release_at": "2026-07-09 09:30:00+08:00",
+            "public_available_at": "2026-07-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.0,
+            "unit": "percent",
+            "release_at": "2026-07-09 09:30:00+08:00",
+            "public_available_at": "2026-07-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.2,
+            "unit": "percent",
+            "release_at": "2026-07-09 09:30:00+08:00",
+            "public_available_at": "2026-07-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-9c89643914db4f5ab9506a065c96189b",
+        "provider": "国家统计局",
+        "api_name": "document_import",
+        "parameters": {
+          "imported_from": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-13/a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49",
+          "period": "2026-07",
+          "source_url": "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html"
+        },
+        "fields": "headline,ex_food_energy:mom,yoy,cumulative_average_yoy",
+        "parser_version": "official-context-parser-v0004",
+        "started_at": "2026-09-07 22:02:31.993545+00:00",
+        "received_at": "2026-09-07 22:02:32.011364+00:00",
+        "validated_at": "2026-09-07 22:02:32.102713+00:00",
+        "state": "validated",
+        "raw_hash": "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49",
+        "normalized_hash": "f8e6e879bc91a4f6b825bf14f59efe3c9271b0e8678ea0ec65a00462501e58d0",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "family": "nbs_core_cpi",
+        "provider": "国家统计局",
+        "release_event_id": "official:nbs_core_cpi:2026-07:a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49",
+        "period": "2026-07",
+        "release_at": "2026-08-09 09:30:00+08:00",
+        "public_available_at": "2026-08-09 09:30:00+08:00",
+        "source_url": "https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html",
+        "scalars": [
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "headline"
+            },
+            "value": -0.1,
+            "unit": "percent",
+            "release_at": "2026-08-09 09:30:00+08:00",
+            "public_available_at": "2026-08-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "headline"
+            },
+            "value": 0.5,
+            "unit": "percent",
+            "release_at": "2026-08-09 09:30:00+08:00",
+            "public_available_at": "2026-08-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CPI_HEADLINE",
+            "api_name": "nbs_core_cpi",
+            "source_field": "headline_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "headline"
+            },
+            "value": 0.9,
+            "unit": "percent",
+            "release_at": "2026-08-09 09:30:00+08:00",
+            "public_available_at": "2026-08-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_mom_pct",
+            "period_kind": "month",
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "dimensions": {
+              "measure": "mom",
+              "category": "ex_food_energy"
+            },
+            "value": 0.3,
+            "unit": "percent",
+            "release_at": "2026-08-09 09:30:00+08:00",
+            "public_available_at": "2026-08-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "dimensions": {
+              "measure": "yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 0.9,
+            "unit": "percent",
+            "release_at": "2026-08-09 09:30:00+08:00",
+            "public_available_at": "2026-08-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          },
+          {
+            "metric_id": "CN_CORE_CPI",
+            "api_name": "nbs_core_cpi",
+            "source_field": "core_cpi_ytd_avg_yoy_pct",
+            "period_kind": "month",
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "dimensions": {
+              "measure": "cumulative_average_yoy",
+              "category": "ex_food_energy"
+            },
+            "value": 1.1,
+            "unit": "percent",
+            "release_at": "2026-08-09 09:30:00+08:00",
+            "public_available_at": "2026-08-09 09:30:00+08:00",
+            "definition_version": null,
+            "acquisition_ids": []
+          }
+        ]
+      }
+    },
+    {
+      "receipt": {
+        "acquisition_id": "acquisition-282e8ca009d24cd485cf168683c58e00",
+        "provider": "国家统计局",
+        "api_name": "official_http_get",
+        "parameters": {
+          "source_url": "https://www.stats.gov.cn/wzgl/202302/t20230217_1912857.html"
+        },
+        "fields": "data_use_terms",
+        "parser_version": "nbs-terms-evidence-check-v0001",
+        "started_at": "2026-09-07 22:02:32.133692+00:00",
+        "received_at": "2026-09-07 22:02:32.721262+00:00",
+        "validated_at": "2026-09-07 22:02:32.754616+00:00",
+        "state": "validated",
+        "raw_hash": "fcb330d080046d9700e53c9a6416b3a97ca52a5cea770e7d467c2ea98589b5fe",
+        "normalized_hash": "0f568d8de53b16c8351b999a72b02c91689e3cb8fd1397db17f46dc5f1ec78c8",
+        "error_type": null
+      },
+      "normalized_unreviewed": {
+        "source_url": "https://www.stats.gov.cn/wzgl/202302/t20230217_1912857.html",
+        "http": {
+          "status": 200,
+          "final_url": "https://www.stats.gov.cn/wzgl/202302/t20230217_1912857.html",
+          "media_type": "text/html"
+        },
+        "finding": "NBS statistical data download/use terms captured for formal review",
+        "review_status": "raw_preparation_not_certification"
+      }
+    }
+  ],
+  "literal_values_verified": 46,
+  "completed_at": "2026-09-07T22:02:32.770477+00:00"
+}

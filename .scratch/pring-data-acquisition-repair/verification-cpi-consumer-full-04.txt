@@ -1,0 +1,59 @@
+SOURCE     TARGET                                                                 FSTYPE OPTIONS
+/dev/loop0 /home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908 ext4   rw,nosuid,nodev,relatime
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop0       32G  510M   30G   2% /home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908
+.................                                                        [100%]
+17 passed, 63 deselected in 115.70s (0:01:55)
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 25%]
+........................................................................ [ 34%]
+........................................................................ [ 43%]
+...................F
+=================================== FAILURES ===================================
+_____ test_core_history_refresh_is_atomic_content_addressed_and_queryable ______
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/full-04/test_core_history_refresh_is_a0')
+
+    def test_core_history_refresh_is_atomic_content_addressed_and_queryable(
+        tmp_path: Path,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+    
+>       result = refresh_core_history(
+            paths,
+            TushareCoreAdapter("fixture-token", transport=historical_response),
+            start=date(2025, 12, 30),
+            end=date(2026, 1, 2),
+            definition_version="metric-catalog-v0001",
+        )
+
+tests/integration/test_core_history_refresh.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/core_history.py:87: in refresh_core_history
+    acquired = adapter.acquire_core_bars(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_adapters.py:99: in acquire_core_bars
+    return self._acquire(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/source_adapters.py:130: in _acquire
+    return repository.capture(
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:197: in capture
+    else self.complete_validation(acquisition_id, normalize(value), clock=clock)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:241: in complete_validation
+    _check_time(validated_at, receipt.received_at)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+value = datetime.datetime(2026, 9, 7, 23, 18, 15, 976978, tzinfo=datetime.timezone.utc)
+previous = datetime.datetime(2026, 9, 7, 23, 18, 16, 301826, tzinfo=datetime.timezone.utc)
+
+    def _check_time(value: datetime, previous: datetime | None = None) -> None:
+        if value.tzinfo is None or (previous is not None and value < previous):
+>           raise ValueError("acquisition_time_invalid")
+E           ValueError: acquisition_time_invalid
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:328: ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_core_history_refresh.py::test_core_history_refresh_is_atomic_content_addressed_and_queryable
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 379 passed in 276.36s (0:04:36)

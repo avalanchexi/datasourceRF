@@ -14,6 +14,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_provider_cache_isolated_by_source_host(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -64,6 +65,7 @@ def test_official_provider_cache_isolated_by_source_host(
 
 
 @pytest.mark.parametrize("legacy_kind", ["budget", "cache"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_legacy_shared_release_family_is_bound_to_original_catalog(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -159,6 +161,7 @@ def test_legacy_shared_release_family_is_bound_to_original_catalog(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_legacy_retries_preserve_run_limit_after_day_rollover(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -273,6 +276,7 @@ def prepared_runtime(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     return paths, RunRepository(paths.database)
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_manual_search_respects_daily_limit_across_runs(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -311,6 +315,7 @@ def test_manual_search_respects_daily_limit_across_runs(
     assert last.retrieval_ledger["queries"][-1]["next_eligible_at"] is not None
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_different_caller_event_labels_do_not_repeat_same_release(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -348,6 +353,7 @@ def test_different_caller_event_labels_do_not_repeat_same_release(
     assert ledger["queries"][-1]["physical_request_id"] is None
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_targeted_search_reserves_request_before_http_and_retains_original(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -408,6 +414,7 @@ def test_targeted_search_reserves_request_before_http_and_retains_original(
     assert stored.status == "action_required"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_interrupted_search_is_charged_and_not_silently_repeated_on_resume(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -465,6 +472,7 @@ def test_interrupted_search_is_charged_and_not_silently_repeated_on_resume(
         (403, b'{"error":"forbidden"}', {}, "forbidden_unknown", 600),
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_failed_response_keeps_receipt_cache_and_next_attempt_gates(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -546,6 +554,7 @@ def test_failed_response_keeps_receipt_cache_and_next_attempt_gates(
         ("tavily", {"usage": {"credits": 10**400}}, None),
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_search_usage_preserves_units_and_does_not_claim_estimate_as_bill(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -587,6 +596,7 @@ def test_search_usage_preserves_units_and_does_not_claim_estimate_as_bill(
     assert ledger["requests"][0]["state"] == "completed"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_expired_search_response_keeps_audit_identity_without_promising_body(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -631,6 +641,7 @@ def test_expired_search_response_keeps_audit_identity_without_promising_body(
     assert not (paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash).exists()
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_dead_worker_lease_marks_inflight_request_unknown_before_resume(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -664,6 +675,7 @@ def test_dead_worker_lease_marks_inflight_request_unknown_before_resume(
     assert observed[0].consumed_budget["tavily"] == 1
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_same_release_links_new_frozen_gap_to_prior_request_without_new_charge(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -704,6 +716,7 @@ def test_same_release_links_new_frozen_gap_to_prior_request_without_new_charge(
     assert not ledger["requests"][0]["charged_to_run"]
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_http_request_is_linked_to_gap_even_when_document_fails_validation(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -755,6 +768,7 @@ def test_official_http_request_is_linked_to_gap_even_when_document_fails_validat
 
 
 @pytest.mark.parametrize(("provider", "limit"), [("tavily", 8), ("exa", 4)])
+@pytest.mark.usefixtures("runtime_clock")
 def test_explicit_resume_keeps_run_cap_across_daily_resets(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -804,6 +818,7 @@ def test_explicit_resume_keeps_run_cap_across_daily_resets(
     assert stored.retrieval_ledger["queries"][-1]["next_eligible_at"] is None
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_p2_empty_response_waits_24_hours_and_stops_after_exa(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -850,6 +865,7 @@ def test_p2_empty_response_waits_24_hours_and_stops_after_exa(
     assert not any(item["channel"] == "ai_websearch" for item in stored.retrieval_attempts)
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_explicit_manual_deep_search_uses_accepted_second_event_request_only(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -888,6 +904,7 @@ def test_explicit_manual_deep_search_uses_accepted_second_event_request_only(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_rate_limit_keeps_http_status_and_retry_after(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -927,6 +944,7 @@ def test_official_rate_limit_keeps_http_status_and_retry_after(
 
 
 @pytest.mark.parametrize(("record_count", "charge_stride", "allowed"), [(16, 1, 0), (15, 3, 1)])
+@pytest.mark.usefixtures("runtime_clock")
 def test_legacy_day_consumption_is_preserved_before_new_physical_ledger_requests(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1045,6 +1063,7 @@ def test_existing_unexpired_negative_cache_survives_new_ledger(
     assert datetime.fromisoformat(query["next_eligible_at"]) == cutoff + timedelta(minutes=30)
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_response_received_before_completion_interruption_still_expires(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1095,6 +1114,7 @@ def test_response_received_before_completion_interruption_still_expires(
         repository.read_content(stored["acquisition_id"], "raw")
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_short_transport_retries_register_each_physical_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1142,6 +1162,7 @@ def test_official_short_transport_retries_register_each_physical_request(
     assert all(item["state"] == "completed" for item in ledger["requests"])
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_search_redirect_cannot_issue_an_unregistered_second_http_request(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1189,6 +1210,7 @@ def test_search_redirect_cannot_issue_an_unregistered_second_http_request(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_manual_next_eligible_time_matches_remaining_event_allowance(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

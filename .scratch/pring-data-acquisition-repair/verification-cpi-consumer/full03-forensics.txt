@@ -1,0 +1,13 @@
+wsl : Traceback (most recent call last):
+At line:2 char:1
++ wsl -d Ubuntu-22.04 -u root --cd /mnt/d/cursor/datasourceRF --exec /b ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteE 
+   xception
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/verification-cpi-consumer/
+inspect_full03.py", line 14, in <module>
+    run = connection.execute(
+          ^^^^^^^^^^^^^^^^^^^
+sqlite3.OperationalError: unable to open database file

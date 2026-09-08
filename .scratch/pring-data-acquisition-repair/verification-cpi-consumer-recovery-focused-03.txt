@@ -1,0 +1,35 @@
+E
+==================================== ERRORS ====================================
+_ ERROR at setup of test_valid_history_browser_wrapper_links_original_to_decoded_html _
+
+self = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/focused-03')
+
+    def exists(self, *, follow_symlinks=True):
+        """
+        Whether this path exists.
+    
+        This method normally follows symlinks; to check whether a symlink exists,
+        add the argument follow_symlinks=False.
+        """
+        try:
+>           self.stat(follow_symlinks=follow_symlinks)
+
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:860: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/focused-03')
+
+    def stat(self, *, follow_symlinks=True):
+        """
+        Return the result of the stat() system call on this path, like
+        os.stat() does.
+        """
+>       return os.stat(self, follow_symlinks=follow_symlinks)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       PermissionError: [Errno 13] Permission denied: '/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/focused-03'
+
+/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:840: PermissionError
+=========================== short test summary info ============================
+ERROR tests/adapters/test_source_history_acquisition.py::test_valid_history_browser_wrapper_links_original_to_decoded_html
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+63 deselected, 1 error in 1.18s

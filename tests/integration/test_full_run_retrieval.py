@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -29,6 +30,7 @@ def prepare(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
 @pytest.mark.parametrize(
     "failure", [None, OSError("fixture offline"), ValueError("fixture schema")]
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_p2_projection_separates_acquisition_condition_from_certification(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failure: Exception | None
 ) -> None:
@@ -102,7 +104,10 @@ def test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time(
 
 @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
 def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    case: str,
+    runtime_clock: Callable[[], datetime],
 ) -> None:
     paths, runs = prepare(tmp_path)
     seed_core_history(paths)
@@ -169,7 +174,7 @@ def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
         target_business_date="2026-08-28",
         client_request_id=case,
         model_version_id="model-v0001",
-        system_as_of=datetime.now(UTC),
+        system_as_of=runtime_clock(),
     )
     process_pending_run(paths, report_adapters=())
     stored = runs.get(run.run_id)
@@ -353,6 +358,7 @@ def seed_core_history(
             )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_full_run_searches_real_gap_and_publishes_traceable_adoption(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -440,6 +446,7 @@ def test_full_run_plan_includes_missing_historical_daily_members(
     assert min(item["period"] for item in dr007) == "2026-03-16"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_newly_acquired_historical_publication_fact_can_open_full_run_search(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -601,6 +608,7 @@ def test_upgrade_resumes_verified_evidence_at_original_cutoff(tmp_path: Path) ->
     assert stored.consumed_budget == {"tavily": 0, "exa": 0, "ai_websearch": 0}
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_full_run_shares_hard_search_budget_across_periods(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -666,6 +674,7 @@ def test_full_run_shares_hard_search_budget_across_periods(
     assert all(gap["complete"] for gap in core)
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_failed_direct_request_is_bound_before_http_and_visible_in_run_audit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -712,6 +721,7 @@ def test_failed_direct_request_is_bound_before_http_and_visible_in_run_audit(
 
 
 @pytest.mark.parametrize("prior_release", [False, True])
+@pytest.mark.usefixtures("runtime_clock")
 def test_resume_rechecks_unknown_release_without_mutating_initial_plan(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, prior_release: bool
 ) -> None:
@@ -875,6 +885,7 @@ def test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot(
         assert prior_ids.isdisjoint(adoption["selected_claim_ids"])
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -963,6 +974,7 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     assert stored.consumed_budget["ai_websearch"] == 0
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_cancel_during_tavily_stops_following_physical_requests(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1039,6 +1051,7 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
 
 
 @pytest.mark.parametrize("case", ["reuse", "cancel", "before_cutoff", "conflict"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_resumed_run_uses_verified_calendar_response_independent_of_prices(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
 ) -> None:

@@ -1,0 +1,11 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_registered_social_components_require_all_eight_stock_growth_members ___
+tests/models/test_candidate_admission.py:635: in test_registered_social_components_require_all_eight_stock_growth_members
+    assert len(selection.selected_claim_ids) == 16
+E   assert 0 == 16
+E    +  where 0 = len(())
+E    +    where () = ModelInputSelection(complete=False, selected_claim_ids=(), missing_members=('CN_SF_COMPONENTS:{"component": "renminbi_...asure": "stock_end"}', 'CN_SF_COMPONENTS:{"component": "nonfinancial_enterprise_equity", "measure": "ytd_increment"}')).selected_claim_ids
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_social_components_require_all_eight_stock_growth_members
+1 failed, 1 passed, 94 deselected in 6.89s

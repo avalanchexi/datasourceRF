@@ -1,0 +1,20 @@
+﻿{
+  "checked_at": "2026-09-07T22:30:33.305286+00:00",
+  "read_only": true,
+  "results": [
+    {
+      "family": "cpi",
+      "database": "/home/tywin/.cache/pring-cycle/verification/cpi-document-import-20260908/data/pring-cycle.sqlite3",
+      "quick_check": "ok",
+      "requests": 9,
+      "artifact_hashes_checked": 18
+    },
+    {
+      "family": "lpr",
+      "database": "/home/tywin/.cache/pring-cycle/verification/lpr-document-import-20260908/data/pring-cycle.sqlite3",
+      "quick_check": "ok",
+      "requests": 9,
+      "artifact_hashes_checked": 18
+    }
+  ]
+}

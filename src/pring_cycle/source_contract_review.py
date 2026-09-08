@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from calendar import monthrange
 from collections.abc import Mapping
+from dataclasses import replace
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from pring_cycle.catalog import METRIC_CATALOG_V0003, MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
+from pring_cycle.metric_contracts import official_source_members
+from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES, OFFICIAL_CONTEXT_FAMILY_BY_METRIC
 
 # This is a dated rejection of the frozen v3 certification contract, not a
 # replacement catalog or a modification of historical evidence. A corrected
@@ -102,13 +107,79 @@ def require_registered_source_contract(
     provider: str,
     period_kind: str,
     dimensions: Mapping[str, str],
+    unit: str,
+    period_start: str,
+    period_end: str,
 ) -> None:
     """New catalog identity alone does not certify an existing parser's output."""
     if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
         return
-    if definition.metric_id != "CN_LPR_1Y_5Y":
+    members = official_source_members(definition.metric_id, period_end)
+    if members is not None:
+        supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+        family = OFFICIAL_CONTEXT_FAMILY_BY_METRIC[definition.metric_id]
+        fields = (
+            "source_codes",
+            "dimensions",
+            "unit",
+            "frequency",
+            "release_event_family",
+            "release_rule",
+            "release_timezone",
+        )
+        if any(getattr(definition, field) != getattr(supported, field) for field in fields) or set(
+            definition.allowed_units or (definition.unit,)
+        ) != set(supported.allowed_units):
+            raise ValueError("registered_official_source_contract_unsupported")
+        if provider != OFFICIAL_CONTEXT_FAMILIES[family].provider or not any(
+            member.dimensions == dimensions
+            and member.unit == unit
+            and member.period_kind == period_kind
+            for member in members
+        ):
+            raise ValueError("registered_official_source_identity_mismatch")
+        end = date.fromisoformat(period_end)
+        start = date.fromisoformat(period_start)
+        if period_kind == "business_day":
+            valid_period = start == end
+        else:
+            start_month = (end.month - 1) // 3 * 3 + 1 if period_kind == "quarter" else end.month
+            if period_kind.startswith("year_to_"):
+                start_month = 1
+            valid_period = (
+                start == date(end.year, start_month, 1)
+                and end.day == monthrange(end.year, end.month)[1]
+            )
+            if period_kind in {"quarter", "year_to_quarter"}:
+                valid_period = valid_period and end.month % 3 == 0
+        if not valid_period:
+            raise ValueError("registered_official_source_period_mismatch")
+        if end.month == 1 and definition.metric_id in {
+            "CN_INDUSTRIAL_VA",
+            "CN_INDUSTRIAL_FINANCE",
+            "CN_FINISHED_GOODS_INVENTORY",
+            "CN_INVENTORY_TURNOVER",
+        }:
+            raise ValueError("registered_official_source_unreported_month")
+        if (
+            definition.metric_id == "CN_CAPACITY_UTILIZATION"
+            and end.month == 3
+            and dimensions.get("measure") == "ytd_rate"
+        ):
+            raise ValueError("registered_capacity_q1_mapping_unresolved")
+        return
+    contracts = {
+        "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
+        "CN_CPI_HEADLINE": ("cpi", "国家统计局"),
+        "CN_CORE_CPI": ("cpi", "国家统计局"),
+    }
+    if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
-    supported = metric_definition("CN_LPR_1Y_5Y")
+    family, supported_provider = contracts[definition.metric_id]
+    supported = metric_definition(definition.metric_id)
+    if family == "cpi":
+        # Headline and core values are fields of the same NBS publication.
+        supported = replace(supported, release_event_family="nbs_core_cpi")
     fields = (
         "source_codes",
         "dimensions",
@@ -120,14 +191,18 @@ def require_registered_source_contract(
     )
     if any(getattr(definition, field) != getattr(supported, field) for field in fields) or set(
         definition.allowed_units or (definition.unit,)
-    ) != {"percent"}:
-        raise ValueError("registered_lpr_source_contract_unsupported")
-    if (
-        provider != "中国货币网"
-        or period_kind != "month"
-        or dimensions not in ({"tenor": "1y"}, {"tenor": "5y_plus"})
-    ):
-        raise ValueError("registered_lpr_source_identity_mismatch")
+    ) != set(supported.allowed_units or (supported.unit,)):
+        raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "lpr":
+        valid_dimensions = dimensions in ({"tenor": "1y"}, {"tenor": "5y_plus"})
+    else:
+        category = "headline" if definition.metric_id == "CN_CPI_HEADLINE" else "ex_food_energy"
+        valid_dimensions = any(
+            dimensions == {"category": category, "measure": measure}
+            for measure in ("mom", "yoy", "cumulative_average_yoy")
+        )
+    if provider != supported_provider or period_kind != "month" or not valid_dimensions:
+        raise ValueError(f"registered_{family}_source_identity_mismatch")
 
 
 def require_model_source_contract(manifest: Mapping[str, object]) -> None:

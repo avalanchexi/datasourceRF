@@ -1,0 +1,32 @@
+{
+  "operation": "local_copy_of_previously_audited_originals",
+  "network_requests": 0,
+  "acquisitions": 0,
+  "records": [
+    {
+      "source": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\e7\\e7e65eb8ae0656afae92ab36bcb8a6c261be5af0422352fadbecf45c4a0e2943",
+      "sha256": "e7e65eb8ae0656afae92ab36bcb8a6c261be5af0422352fadbecf45c4a0e2943",
+      "bytes": 218312
+    },
+    {
+      "source": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\21\\2115d7cc67a22dd15a88c93101be752711a72e7f41534b01b1e8f7528f341f8e",
+      "sha256": "2115d7cc67a22dd15a88c93101be752711a72e7f41534b01b1e8f7528f341f8e",
+      "bytes": 282785
+    },
+    {
+      "source": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\37\\377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc",
+      "sha256": "377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc",
+      "bytes": 44639
+    },
+    {
+      "source": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\63\\632b1709e4c27aac9b2fd9135394f11efb530321c8a1960577f8a0a562ec65b0",
+      "sha256": "632b1709e4c27aac9b2fd9135394f11efb530321c8a1960577f8a0a562ec65b0",
+      "bytes": 29677
+    },
+    {
+      "source": "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\0c\\0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "sha256": "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "bytes": 128195
+    }
+  ]
+}

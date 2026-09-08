@@ -1,0 +1,56 @@
+{
+  "original_fixture_files": [
+    {
+      "file": "pring-cycle.sqlite3",
+      "bytes": 1454080,
+      "sha256": "9493a74c65291234c40daa38c3b0cb7462dfc72209d36211fe9cdf8f5d1ab687"
+    }
+  ],
+  "run": [
+    {
+      "run_id": "run-0ae0169a3b06c71914fd",
+      "status": "action_required",
+      "error_classification": "worker_failure:ValueError:acquisition_time_invalid",
+      "projection_set_id": null,
+      "system_as_of": "2026-09-07T23:02:22.662606+00:00"
+    }
+  ],
+  "acquisitions": [
+    {
+      "provider": "tushare",
+      "api_name": "trade_cal",
+      "state": "validated",
+      "error_type": null,
+      "started_at": "2026-09-07T23:02:22.745554+00:00",
+      "received_at": "2026-09-07T23:02:22.758158+00:00",
+      "validated_at": "2026-09-07T23:02:22.810373+00:00"
+    },
+    {
+      "provider": "tushare",
+      "api_name": "index_daily",
+      "state": "validated",
+      "error_type": null,
+      "started_at": "2026-09-07T23:02:22.818275+00:00",
+      "received_at": "2026-09-07T23:02:22.851016+00:00",
+      "validated_at": "2026-09-07T23:02:22.930891+00:00"
+    },
+    {
+      "provider": "tushare",
+      "api_name": "index_daily",
+      "state": "validated",
+      "error_type": null,
+      "started_at": "2026-09-07T23:02:22.939399+00:00",
+      "received_at": "2026-09-07T23:02:22.950416+00:00",
+      "validated_at": "2026-09-07T23:02:23.007321+00:00"
+    },
+    {
+      "provider": "tushare",
+      "api_name": "fut_index_daily",
+      "state": "failed",
+      "error_type": "ValueError",
+      "started_at": "2026-09-07T23:02:23.014832+00:00",
+      "received_at": "2026-09-07T23:02:23.023659+00:00",
+      "validated_at": null
+    }
+  ]
+}

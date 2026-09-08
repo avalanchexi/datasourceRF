@@ -27,7 +27,11 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
-from pring_cycle.metric_contracts import REQUIRED_DIMENSION_MEMBERS, evidence_frequency
+from pring_cycle.metric_contracts import (
+    evidence_frequency,
+    evidence_max_age_days,
+    required_dimension_members,
+)
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
@@ -1107,7 +1111,14 @@ def _direct_metric_is_ready(
         if previous is None or point.period_end > previous.period_end:
             latest_by_dimensions[key] = point
     current_points = tuple(latest_by_dimensions.values())
-    required_members = REQUIRED_DIMENSION_MEMBERS.get(definition.metric_id, ())
+    required_members = (
+        required_dimension_members(
+            definition.metric_id,
+            definition_version=definition.definition_version,
+            period=max(point.period_end for point in current_points),
+        )
+        or ()
+    )
     validation_points: list[MetricSeriesPoint] = []
     if required_members and definition.metric_id == "CN_FUTURES_WARRANTS":
         for required in required_members:
@@ -1223,12 +1234,7 @@ def _point_is_current_for_target(
             return False
         if not _point_known_by_target(point, target_business_date):
             return False
-    max_age = {
-        "daily": 10,
-        "monthly": 95,
-        "quarterly": 190,
-        "event": 730 if definition.metric_id == "CN_RRR_EVENT" else 370,
-    }.get(effective_frequency, 95)
+    max_age = evidence_max_age_days(definition.metric_id, definition.frequency)
     return (target - min(target, period)).days <= max_age
 
 

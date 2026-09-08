@@ -1,0 +1,9 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim[False-11] _
+tests/models/test_candidate_admission.py:596: in test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim
+    assert (selected_event in inputs) is eligible
+E   AssertionError: assert ('9e278e6ee1d08228d7915b565d60340774653ebc1561ee7ca3e0849240d92e55' in ['bc0ea0e6c5a5ac9bdb86cfd425482691fc689fb965b6f26428d11498e3b2d230']) is True
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_claim[False-11]
+1 failed, 97 deselected in 3.59s

@@ -1,0 +1,76 @@
+SOURCE     TARGET                                                                 FSTYPE OPTIONS
+/dev/loop0 /home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908 ext4   rw,nosuid,nodev,relatime
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop0       32G   24K   30G   1% /home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908
+.............                                                            [100%]
+13 passed, 63 deselected in 39.00s
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 25%]
+........................................................................ [ 34%]
+........................................................................ [ 43%]
+........................................................................ [ 51%]
+........................................................................ [ 60%]
+........................................................................ [ 69%]
+..........................................F
+=================================== FAILURES ===================================
+____ test_later_snapshot_and_failed_request_preserve_prior_treasury_values _____
+
+tmp_path = PosixPath('/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/full-02/test_later_snapshot_and_failed0')
+
+    def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_path: Path) -> None:
+        from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
+    
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        raw = source_csv()
+        original = raw
+    
+        def fetch(url: str) -> FetchedTreasuryYieldCsv:
+            return FetchedTreasuryYieldCsv(raw, url, 200, "text/csv")
+    
+>       first = refresh_treasury_yields(
+            paths,
+            start_date=date(2026, 9, 4),
+            end_date=date(2026, 9, 4),
+            definition_version="metric-catalog-v0002",
+            fetcher=fetch,
+        )
+
+tests/integration/test_treasury_csv_acquisition.py:364: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/treasury_context.py:270: in refresh_treasury_yields
+    repository.append_source_claims(claims, availability_clock=utc_now) if claims else ()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <pring_cycle.evidence.EvidenceRepository object at 0x771f25059490>
+claims = (SourceClaimInput(metric_id='UST10Y_NOMINAL_YIELD', definition_version='metric-catalog-v0002', period_kind='business_d...ation', quality_status='validated', acquisition_id='acquisition-190e77391e404c7a8a75f5c00c3a37bb', acquisition_ids=()))
+
+    def append_source_claims(
+        self,
+        claims: tuple[SourceClaimInput, ...],
+        *,
+        availability_clock: Callable[[], datetime] | None = None,
+    ) -> tuple[StoredSourceClaim, ...]:
+        if not claims:
+            raise ValueError("evidence_claim_batch_required")
+        for claim in claims:
+            _validate_claim(claim, self._database_path)
+            if claim.certification_status == "certified":
+                require_source_contract(claim.definition_version, metric_id=claim.metric_id)
+        if availability_clock is not None:
+            available_at = availability_clock()
+            if available_at.tzinfo is None or any(
+                not (claim.acquisition_id or claim.acquisition_ids)
+                or available_at < claim.available_at
+                for claim in claims
+            ):
+>               raise ValueError("acquisition_availability_time_invalid")
+E               ValueError: acquisition_availability_time_invalid
+
+/home/tywin/.local/share/pring-cycle/dev-venv/lib/python3.12/site-packages/pring_cycle/evidence.py:287: ValueError
+=========================== short test summary info ============================
+FAILED tests/integration/test_treasury_csv_acquisition.py::test_later_snapshot_and_failed_request_preserve_prior_treasury_values
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed, 618 passed in 1314.88s (0:21:54)

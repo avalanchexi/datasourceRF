@@ -2,11 +2,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.official_context import ingest_official_context_document
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_date_only_history_is_available_on_next_shanghai_day(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)

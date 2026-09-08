@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+from collections.abc import Callable
 from datetime import UTC, date, datetime
 from io import BytesIO, StringIO
 from pathlib import Path
@@ -14,6 +15,7 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_official_csv_creates_two_traceable_candidates_with_unknown_public_time(
     tmp_path: Path,
 ) -> None:
@@ -78,6 +80,7 @@ def test_official_csv_creates_two_traceable_candidates_with_unknown_public_time(
         )
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_public_cli_acquires_treasury_candidates_without_an_account(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -125,6 +128,7 @@ def test_public_cli_acquires_treasury_candidates_without_an_account(
     assert len(AcquisitionRepository(paths.database, paths.artifacts).history()) == 1
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_requested_historical_window_keeps_the_newer_reported_source_period(tmp_path: Path) -> None:
     from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
 
@@ -184,6 +188,7 @@ def csv_bytes(rows: list[list[str]]) -> bytes:
 
 
 @pytest.mark.parametrize("case", ["reordered", "zero", "missing_2y"])
+@pytest.mark.usefixtures("runtime_clock")
 def test_columns_and_missing_values_keep_each_tenors_own_evidence(
     tmp_path: Path, case: str
 ) -> None:
@@ -264,6 +269,7 @@ def test_columns_and_missing_values_keep_each_tenors_own_evidence(
         "header_only",
     ],
 )
+@pytest.mark.usefixtures("runtime_clock")
 def test_invalid_source_response_is_retained_but_never_creates_a_claim(
     tmp_path: Path, case: str
 ) -> None:
@@ -350,7 +356,9 @@ def test_invalid_source_response_is_retained_but_never_creates_a_claim(
         assert attempt.safe_metadata["response_media_type"] == media
 
 
-def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_path: Path) -> None:
+def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(
+    tmp_path: Path, acquisition_clock: Callable[[], datetime]
+) -> None:
     from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -368,7 +376,7 @@ def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_pa
         definition_version="metric-catalog-v0002",
         fetcher=fetch,
     )
-    before_revision = datetime.now(UTC)
+    before_revision = acquisition_clock()
     rows = list(csv.reader(StringIO(raw.decode())))
     rows[1][rows[0].index("10 Yr")] = "4.80"
     raw = csv_bytes(rows)
@@ -381,7 +389,7 @@ def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_pa
     )
     assert first.acquisition_id != second.acquisition_id
     evidence = EvidenceRepository(paths.database)
-    for cutoff, expected in ((before_revision, 4.78), (datetime.now(UTC), 4.80)):
+    for cutoff, expected in ((before_revision, 4.78), (acquisition_clock(), 4.80)):
         points = evidence.metric_series(
             "UST10Y_NOMINAL_YIELD",
             mode=AsOfMode.SYSTEM,
@@ -391,7 +399,7 @@ def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_pa
         assert points[0].claims[0].value == expected
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     assert acquisitions.read_content(first.acquisition_id, "raw") == original
-    before_failure = datetime.now(UTC)
+    before_failure = acquisition_clock()
 
     def fail(url):
         raise OSError("source unavailable")
@@ -410,7 +418,7 @@ def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_pa
         attempt = evidence.latest_retrieval_attempt(
             metric,
             period="2026-09-04",
-            as_of=datetime.now(UTC),
+            as_of=acquisition_clock(),
             definition_version="metric-catalog-v0002",
         )
         assert attempt.outcome == "source_failed" and attempt.fetched_at >= before_failure
@@ -423,6 +431,7 @@ def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(tmp_pa
         assert previous.outcome == "verified_candidate"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_no_dates_in_requested_window_is_an_explicit_empty_candidate_result(tmp_path: Path) -> None:
     from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
 
@@ -439,6 +448,7 @@ def test_no_dates_in_requested_window_is_an_explicit_empty_candidate_result(tmp_
     assert result.condition == "no_source_dates_in_requested_window"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_later_missing_cell_retains_the_old_value_identity_and_new_missing_receipt(
     tmp_path: Path,
 ) -> None:
@@ -500,6 +510,7 @@ def test_later_missing_cell_retains_the_old_value_identity_and_new_missing_recei
     assert attempt.safe_metadata["observations"] == "0"
 
 
+@pytest.mark.usefixtures("runtime_clock")
 def test_http_error_transport_retains_the_actual_error_body(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
