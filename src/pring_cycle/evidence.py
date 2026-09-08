@@ -242,6 +242,29 @@ class _PreloadedSeriesState:
 
 
 class EvidenceRepository:
+    def source_claim_originals(self, claim_id: str) -> tuple[tuple[AcquisitionReceipt, bytes], ...]:
+        """Return hash-checked originals attached to this exact immutable claim."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT request.* FROM source_claim_acquisition AS link
+                   JOIN acquisition_request AS request USING(acquisition_id)
+                   WHERE link.claim_id=? ORDER BY request.started_at, request.acquisition_id""",
+                (claim_id,),
+            ).fetchall()
+        acquisitions = AcquisitionRepository(
+            self._database_path, self._database_path.parent / "artifacts" / "sha256"
+        )
+        originals = []
+        for row in rows:
+            if row["state"] != "validated":
+                return ()
+            try:
+                raw = acquisitions.read_content(row["acquisition_id"], "raw")
+            except (LookupError, ValueError, OSError):
+                return ()
+            originals.append((receipt_from_row(row), raw))
+        return tuple(originals)
+
     def source_claim_publication(self, claim_id: str) -> dict[str, Any] | None:
         """Read the complete validated publication linked to this exact claim version."""
         from pring_cycle.official_context import parse_official_context_document

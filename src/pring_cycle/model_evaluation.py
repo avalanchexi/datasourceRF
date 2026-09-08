@@ -31,6 +31,7 @@ from pring_cycle.metric_contracts import (
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.published_events import select_published_rrr_events
+from pring_cycle.warrant_inputs import select_warrant_inputs
 
 CALIBRATION_END = "2026-08-19"
 CALIBRATION_INPUT_START = "2017-01-01"
@@ -860,14 +861,28 @@ def _context_selection_gaps(
         if any(p.selected_claim_id in publication.incomplete_claim_ids for p in current_points):
             statuses.add("members_missing")
     latest_period_end = max(point.period_end for point in current_points)
+    warrant_selection = None
+    if metric_id == "CN_FUTURES_WARRANTS" and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        warrant_selection = select_warrant_inputs(
+            repository, series, period=latest_period_end, mode=AsOfMode.PUBLIC
+        )
+        if warrant_selection.missing_members:
+            statuses.add("members_missing")
     required_members = (
         required_dimension_members(
             metric_id, definition_version=definition_version, period=latest_period_end
         )
         or ()
     )
-    if metric_id == "CN_FUTURES_WARRANTS":
-        validation_points: list[Any] = []
+    validation_points: list[Any]
+    if warrant_selection is not None:
+        validation_points = [
+            point
+            for point in current_points
+            if point.selected_claim_id in warrant_selection.selected_claim_ids
+        ]
+    elif metric_id == "CN_FUTURES_WARRANTS":
+        validation_points = []
         for required in required_members:
             matching = [
                 point

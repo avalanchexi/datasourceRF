@@ -24,6 +24,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES, selected_core_claim_is_valid
+from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,16 @@ class ModelInputSelector:
             definition = metric_definition(
                 metric_id, definition_version=self.version, database_path=self.database_path
             )
+            if metric_id == "CN_FUTURES_WARRANTS" and self.version not in BUILTIN_CATALOG_VERSIONS:
+                warrants = select_warrant_inputs(
+                    self.core_evidence, self.series(metric_id), period=scope.period, mode=self.mode
+                )
+                if definition.certification_status != "certified":
+                    missing.append("CN_FUTURES_WARRANTS:source_certification_required")
+                else:
+                    selected_ids.extend(warrants.selected_claim_ids)
+                    missing.extend(warrants.missing_members)
+                continue
             if metric_id == "CN_RRR_EVENT" and self.version not in BUILTIN_CATALOG_VERSIONS:
                 result = select_published_rrr_events(
                     self.core_evidence,

@@ -465,52 +465,7 @@ class TushareContextAdapter:
                 requested_fields=requested_fields,
             )
         )
-        scalars: list[ContextScalar] = []
-        identities: set[tuple[date, str, str, str]] = set()
-        for row in rows:
-            row_symbol = _required_text(row.get("symbol"), "tushare_warrant_symbol_invalid")
-            if row_symbol != source_symbol:
-                raise ValueError("tushare_warrant_symbol_mismatch")
-            warehouse = _required_text(
-                row.get("warehouse"),
-                "tushare_warrant_warehouse_missing",
-            )
-            exchange = _required_text(
-                row.get("exchange"),
-                "tushare_warrant_exchange_missing",
-            )
-            identity = (_compact_date(row.get("trade_date")), row_symbol, warehouse, exchange)
-            if identity in identities:
-                raise ValueError("tushare_warrant_duplicate_member")
-            identities.add(identity)
-            source_unit = _required_text(row.get("unit"), "tushare_warrant_unit_missing")
-            try:
-                unit = _WARRANT_UNITS[source_unit]
-            except KeyError as error:
-                raise ValueError("tushare_warrant_unit_unknown") from error
-            for source_field, measure in fields:
-                value = _number(row.get(source_field))
-                if value is None:
-                    continue
-                if source_field in {"pre_vol", "vol"} and value < 0:
-                    raise ValueError("tushare_warrant_quantity_negative")
-                scalars.append(
-                    _daily_scalar(
-                        "CN_FUTURES_WARRANTS",
-                        "fut_wsr",
-                        source_field,
-                        row,
-                        date_field="trade_date",
-                        dimensions={
-                            "symbol": normalized_symbol,
-                            "warehouse": warehouse,
-                            "exchange": exchange,
-                            "measure": measure,
-                        },
-                        unit=unit,
-                    )
-                )
-        return tuple(scalars)
+        return _warrant_scalars(rows, normalized_symbol, source_symbol, fields)
 
     def _complete_futures_warrant_range(
         self,
@@ -1731,6 +1686,118 @@ def _business_day_scalar(
         value=value,
         unit=unit,
     )
+
+
+@dataclass(frozen=True)
+class WarrantAcquisition:
+    symbol: str
+    scalars: tuple[ContextScalar, ...]
+    current_member_count: int
+
+
+def parse_warrant_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes, *, period: str
+) -> WarrantAcquisition:
+    """Reparse one complete physical delivery, including its warehouse denominator."""
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "fut_wsr"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or set(receipt.parameters) != {"start_date", "end_date", "symbol"}
+    ):
+        raise ValueError("tushare_warrant_acquisition_contract_invalid")
+    source_symbol = receipt.parameters["symbol"]
+    symbol = "TA" if source_symbol == "PTA" else source_symbol
+    if symbol not in WARRANT_SYMBOLS or source_symbol == "TA":
+        raise ValueError("tushare_warrant_symbol_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(
+        document,
+        required_fields=(
+            "trade_date",
+            "symbol",
+            "warehouse",
+            "pre_vol",
+            "vol",
+            "vol_chg",
+            "unit",
+            "exchange",
+        ),
+    )
+    _validate_response_periods(rows, receipt.parameters)
+    if len(rows) >= _FUTURES_WARRANT_RESPONSE_LIMIT:
+        raise ValueError("tushare_warrant_response_truncated")
+    scalars = _warrant_scalars(
+        rows,
+        symbol,
+        source_symbol,
+        (
+            ("pre_vol", "previous_registered_receipts"),
+            ("vol", "registered_receipts"),
+            ("vol_chg", "registered_receipts_change"),
+        ),
+    )
+    return WarrantAcquisition(
+        symbol,
+        tuple(scalar for scalar in scalars if scalar.period_end == period),
+        sum(_compact_date(row.get("trade_date")).isoformat() == period for row in rows),
+    )
+
+
+def _warrant_scalars(
+    rows: ContextRows,
+    normalized_symbol: str,
+    source_symbol: str,
+    fields: tuple[tuple[str, str], ...],
+) -> tuple[ContextScalar, ...]:
+    scalars: list[ContextScalar] = []
+    identities: set[tuple[date, str, str, str]] = set()
+    for row in rows:
+        row_symbol = _required_text(row.get("symbol"), "tushare_warrant_symbol_invalid")
+        if row_symbol != source_symbol:
+            raise ValueError("tushare_warrant_symbol_mismatch")
+        warehouse = _required_text(
+            row.get("warehouse"),
+            "tushare_warrant_warehouse_missing",
+        )
+        exchange = _required_text(
+            row.get("exchange"),
+            "tushare_warrant_exchange_missing",
+        )
+        identity = (_compact_date(row.get("trade_date")), row_symbol, warehouse, exchange)
+        if identity in identities:
+            raise ValueError("tushare_warrant_duplicate_member")
+        identities.add(identity)
+        source_unit = _required_text(row.get("unit"), "tushare_warrant_unit_missing")
+        try:
+            unit = _WARRANT_UNITS[source_unit]
+        except KeyError as error:
+            raise ValueError("tushare_warrant_unit_unknown") from error
+        for source_field, measure in fields:
+            value = _number(row.get(source_field))
+            if value is None:
+                continue
+            if source_field in {"pre_vol", "vol"} and value < 0:
+                raise ValueError("tushare_warrant_quantity_negative")
+            scalars.append(
+                _daily_scalar(
+                    "CN_FUTURES_WARRANTS",
+                    "fut_wsr",
+                    source_field,
+                    row,
+                    date_field="trade_date",
+                    dimensions={
+                        "symbol": normalized_symbol,
+                        "warehouse": warehouse,
+                        "exchange": exchange,
+                        "measure": measure,
+                    },
+                    unit=unit,
+                )
+            )
+    return tuple(scalars)
 
 
 def _warrant_input_identity(scalar: ContextScalar) -> tuple[str, str, str, str, str, str, float]:

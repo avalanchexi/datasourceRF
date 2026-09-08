@@ -263,15 +263,19 @@ def test_registered_rrr_original_preserves_distinct_scopes_and_two_times(
         assert set(imported.claim_ids) <= set(inputs)
 
 
-def admitted_rrr_variant(
-    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], side: str
+def admitted_source_variant(
+    paths: RuntimePaths,
+    capsys: pytest.CaptureFixture[str],
+    side: str,
+    *,
+    metric_id: str = "CN_RRR_EVENT",
 ) -> dict[str, Any]:
     request, _ = prepared_request(paths)
     manifest = request["manifest"]
     manifest["metric_catalog_version"] += "-" + side
     for definition in manifest["metric_definitions"]:
         definition["definition_version"] = manifest["metric_catalog_version"]
-        if side == "candidate" and definition["metric_id"] == "CN_RRR_EVENT":
+        if side == "candidate" and definition["metric_id"] == metric_id:
             definition["source_candidates"] = [
                 *definition["source_candidates"],
                 "https://www.pbc.gov.cn/synthetic-review",
@@ -341,7 +345,7 @@ def test_rrr_component_replay_requires_complete_publication(
     )
     manifests = {}
     for side, count in (("comparison", 2), ("candidate", candidate_count)):
-        manifest = admitted_rrr_variant(paths, capsys, side)
+        manifest = admitted_source_variant(paths, capsys, side)
         model_id = manifest["model_version_id"]
         manifests[side] = manifest
         # Isolate the public component-replay seam. This does not execute the
@@ -511,7 +515,7 @@ def test_rrr_direction_replay_compares_values_without_version_identity(
     now = datetime(2026, 9, 8, 6, tzinfo=UTC)
     manifests = {}
     for side in ("candidate", "comparison"):
-        manifests[side] = admitted_rrr_variant(paths, capsys, side)
+        manifests[side] = admitted_source_variant(paths, capsys, side)
         # Public component replay only; stored candidates retain their packages.
         manifests[side].pop("source_certification_packages")
         for day, after_rate in (("01", "2.0"), ("15", "1.75")):
@@ -782,6 +786,506 @@ def test_registered_warrant_acquisition_preserves_sample_units_and_unknown_publi
         period="2026-08-28",
     )
     assert not select_retrieval_input(paths, run).complete
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "complete",
+        "missing_current",
+        "invalid_receipt",
+        "prior_missing",
+        "warehouse_removed",
+        "forged_optional",
+    ],
+)
+def test_registered_warrant_selection_requires_all_returned_warehouses(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    scenario: str,
+) -> None:
+    missing_current = scenario == "missing_current"
+    invalid_receipt = scenario == "invalid_receipt"
+    prior_missing = scenario == "prior_missing"
+    warehouse_removed = scenario == "warehouse_removed"
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    # All eight deliveries, units and publication times in this test are synthetic.
+    # The fixture proves software completeness, not missing PP/CF/TA certification.
+    symbols = ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        symbol = str(payload["params"]["symbol"])
+        unit = "桶" if symbol == "SC" else "张" if symbol in {"CF", "PTA"} else "吨"
+        exchange = "CZCE" if symbol in {"CF", "PTA"} else "DCE" if symbol == "PP" else "SHFE"
+        rows = [["20260828", symbol, "synthetic-first", None, 100, None, unit, exchange]]
+        if symbol == "CU":
+            rows.append(
+                [
+                    "20260828",
+                    symbol,
+                    "synthetic-second",
+                    None,
+                    None if missing_current else 25,
+                    None,
+                    unit,
+                    exchange,
+                ]
+            )
+        if prior_missing:
+            rows = [
+                [
+                    "20260827",
+                    *row[1:4],
+                    None if symbol == "CU" and row[2] == "synthetic-second" else 80,
+                    *row[5:],
+                ]
+                for row in rows
+            ] + rows
+        elif warehouse_removed:
+            rows = [["20260827", *row[1:]] for row in rows] + [
+                row for row in rows if row[2] != "synthetic-second"
+            ]
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": rows,
+                },
+            }
+        )
+
+    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    imported = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(scalar, release_at=public_at, public_available_at=public_at)
+            for symbol in symbols
+            for scalar in adapter.futures_warrants(
+                start_date=date(2026, 8, 27 if prior_missing or warehouse_removed else 28),
+                end_date=date(2026, 8, 28),
+                symbol=symbol,
+            )
+        ),
+        definition_version=version,
+    )
+    assert adapter.network_requests == 8
+    assert len(imported.claim_ids) == (
+        17 if prior_missing or warehouse_removed else 8 if missing_current else 9
+    )
+    current_ids = {
+        p.selected_claim_id
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_FUTURES_WARRANTS",
+            mode=AsOfMode.PUBLIC,
+            as_of=public_at,
+            definition_version=version,
+        )
+        if p.period_end == "2026-08-28"
+    }
+    forged_ids: tuple[str, ...] = ()
+    if scenario == "forged_optional":
+        forged_ids = ingest_context_scalars(
+            paths,
+            (
+                ContextScalar(
+                    metric_id="CN_FUTURES_WARRANTS",
+                    api_name="fut_wsr",
+                    source_field="pre_vol",
+                    period_kind="business_day",
+                    period_start="2026-08-28",
+                    period_end="2026-08-28",
+                    dimensions={
+                        "symbol": "CU",
+                        "warehouse": "synthetic-first",
+                        "exchange": "SHFE",
+                        "measure": "previous_registered_receipts",
+                    },
+                    value=9001,
+                    unit="tonne",
+                    release_at=public_at,
+                    public_available_at=public_at,
+                ),
+            ),
+            fetched_at=datetime.now(UTC),
+            definition_version=version,
+        ).claim_ids
+    if invalid_receipt:
+        evidence = EvidenceRepository(paths.database)
+        point = next(
+            p
+            for p in evidence.metric_series(
+                "CN_FUTURES_WARRANTS",
+                mode=AsOfMode.PUBLIC,
+                as_of=public_at,
+                definition_version=version,
+            )
+            if p.dimensions["symbol"] == "CU" and p.dimensions["warehouse"] == "synthetic-first"
+        )
+        claim = next(c for c in point.claims if c.claim_id == point.selected_claim_id)
+        (original,) = evidence.source_claim_originals(claim.claim_id)
+        receipt, raw = original
+        malformed = (
+            AcquisitionRepository(paths.database, paths.artifacts)
+            .capture(
+                provider="tushare",
+                api_name="fut_wsr",
+                parameters=receipt.parameters,
+                fields=receipt.fields,
+                parser_version="synthetic-invalid-parser",
+                fetch=lambda: raw,
+                parse=json.loads,
+                normalize=lambda document: document,
+                clock=lambda: claim.fetched_at,
+            )
+            .receipt
+        )
+        revision = evidence.latest_provider_claim(
+            metric_id="CN_FUTURES_WARRANTS",
+            definition_version=version,
+            period_kind="business_day",
+            period_start=point.period_start,
+            period_end=point.period_end,
+            dimensions=point.dimensions,
+            provider="tushare",
+            source_reference=claim.source_reference,
+        )
+        assert revision is not None
+        linked = evidence.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_FUTURES_WARRANTS",
+                definition_version=version,
+                period_kind="business_day",
+                period_start=point.period_start,
+                period_end=point.period_end,
+                dimensions=point.dimensions,
+                value=claim.value,
+                value_state=claim.value_state,
+                unit=claim.unit,
+                provider=claim.provider,
+                source_reference=claim.source_reference,
+                release_event_id=revision.release_event_id,
+                release_at=claim.release_at,
+                public_available_at=claim.public_available_at,
+                fetched_at=claim.fetched_at,
+                available_at=claim.available_at,
+                certification_status=claim.certification_status,
+                quality_status=claim.quality_status,
+                acquisition_id=malformed.acquisition_id,
+            )
+        )
+        assert linked.claim_id == claim.claim_id
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="warrant-all-warehouses",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:warrant-all-warehouses",
+        metric_ids=("CN_FUTURES_WARRANTS",),
+        period="2026-08-28",
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        selection = select_retrieval_input(paths, run, mode=mode)
+        assert selection.complete is not (missing_current or invalid_receipt)
+        if not (missing_current or invalid_receipt):
+            assert set(selection.selected_claim_ids) == current_ids
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=public_at,
+        as_of_mode=AsOfMode.PUBLIC,
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date="2026-08-28",
+    )
+    inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(inputs, list)
+    assert set(forged_ids).isdisjoint(inputs)
+    if missing_current or invalid_receipt:
+        assert set(imported.claim_ids).isdisjoint(inputs)
+    else:
+        assert current_ids <= set(inputs)
+        if prior_missing:
+            assert (set(imported.claim_ids) - current_ids).isdisjoint(inputs)
+        if warehouse_removed:
+            removed_ids = {
+                p.selected_claim_id
+                for p in EvidenceRepository(paths.database).metric_series(
+                    "CN_FUTURES_WARRANTS",
+                    mode=AsOfMode.PUBLIC,
+                    as_of=public_at,
+                    definition_version=version,
+                )
+                if p.dimensions["warehouse"] == "synthetic-second"
+            }
+            assert removed_ids.isdisjoint(inputs)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("missing_current", [False, True])
+@pytest.mark.parametrize("redeliver_old", [False, True])
+def test_warrant_same_day_revision_preserves_public_history_and_replaces_members(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], missing_current: bool, redeliver_old: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    old_public = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    new_public = datetime(2026, 8, 28, 10, tzinfo=UTC)
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        symbol = payload["params"]["symbol"]
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": [
+                        ["20260828", symbol, "synthetic-old", 90, 100, 10, "吨", "synthetic"]
+                    ],
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    original = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=old_public, public_available_at=old_public)
+            for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+            for s in adapter.futures_warrants(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=symbol
+            )
+        ),
+        definition_version=version,
+    )
+    evidence = EvidenceRepository(paths.database)
+    old_cu_ids = {
+        p.selected_claim_id
+        for p in evidence.metric_series(
+            "CN_FUTURES_WARRANTS",
+            mode=AsOfMode.PUBLIC,
+            as_of=old_public,
+            definition_version=version,
+        )
+        if p.dimensions["symbol"] == "CU"
+    }
+    revision_adapter = TushareContextAdapter(
+        "synthetic-token",
+        transport=lambda payload: encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": [
+                        [
+                            "20260828",
+                            "CU",
+                            "synthetic-new",
+                            20,
+                            None if missing_current else 25,
+                            None,
+                            "吨",
+                            "synthetic",
+                        ]
+                    ],
+                },
+            }
+        ),
+    )
+    revision = revision_adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=new_public, public_available_at=new_public)
+            for s in revision_adapter.futures_warrants(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol="CU"
+            )
+        ),
+        definition_version=version,
+    )
+    revision_acquired_at = datetime.now(UTC)
+    if redeliver_old:
+        original = adapter.acquire_scalars(
+            paths,
+            lambda: tuple(
+                replace(s, release_at=old_public, public_available_at=old_public)
+                for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+                for s in adapter.futures_warrants(
+                    start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=symbol
+                )
+            ),
+            definition_version=version,
+        )
+        old_cu_ids = {
+            p.selected_claim_id
+            for p in evidence.metric_series(
+                "CN_FUTURES_WARRANTS",
+                mode=AsOfMode.PUBLIC,
+                as_of=old_public,
+                definition_version=version,
+            )
+            if p.dimensions["symbol"] == "CU"
+        }
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="warrant-same-day-revision",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:warrant-same-day-revision",
+        metric_ids=("CN_FUTURES_WARRANTS",),
+        period="2026-08-28",
+    )
+    for cutoff in (old_public, new_public):
+        selection = select_retrieval_input(
+            paths, replace(run, system_as_of=cutoff, cutoffs_frozen=True), mode=AsOfMode.PUBLIC
+        )
+        assert selection.complete is not (cutoff == new_public and missing_current)
+        context = build_context_projection(
+            evidence,
+            as_of=cutoff,
+            as_of_mode=AsOfMode.PUBLIC,
+            model_manifest=ModelRepository(paths.database).manifest(model_id),
+            target_business_date="2026-08-28",
+        )
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        if cutoff == old_public:
+            assert set(original.claim_ids) <= set(inputs)
+            assert set(revision.claim_ids).isdisjoint(inputs)
+        elif missing_current:
+            assert set((*original.claim_ids, *revision.claim_ids)).isdisjoint(inputs)
+        else:
+            assert old_cu_ids.isdisjoint(inputs)
+            assert (set(original.claim_ids) - old_cu_ids) | set(revision.claim_ids) <= set(inputs)
+    if redeliver_old:
+        before = select_retrieval_input(
+            paths,
+            replace(run, system_as_of=revision_acquired_at, cutoffs_frozen=True),
+            mode=AsOfMode.SYSTEM,
+        )
+        assert before.complete is not missing_current
+        if not missing_current:
+            assert set(revision.claim_ids) <= set(before.selected_claim_ids)
+        after = select_retrieval_input(paths, run, mode=AsOfMode.SYSTEM)
+        assert after.complete
+        assert set(after.selected_claim_ids) == set(original.claim_ids)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("missing_current", [False, True])
+def test_warrant_component_replay_requires_every_returned_warehouse(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], missing_current: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_FUTURES_WARRANTS")
+        # Isolate the public component replay. Stored candidate packages are unchanged.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+
+        def transport(payload: dict[str, Any], *, side: str = side) -> bytes:
+            symbol = str(payload["params"]["symbol"])
+            unit = "桶" if symbol == "SC" else "张" if symbol in {"CF", "PTA"} else "吨"
+            rows = [["20260828", symbol, "synthetic-first", None, 100, None, unit, "synthetic"]]
+            if symbol == "CU":
+                rows.append(
+                    [
+                        "20260828",
+                        symbol,
+                        "synthetic-second",
+                        None,
+                        None if side == "candidate" and missing_current else 25,
+                        None,
+                        unit,
+                        "synthetic",
+                    ]
+                )
+            return encode(
+                {
+                    "code": 0,
+                    "data": {
+                        "fields": [
+                            "trade_date",
+                            "symbol",
+                            "warehouse",
+                            "pre_vol",
+                            "vol",
+                            "vol_chg",
+                            "unit",
+                            "exchange",
+                        ],
+                        "items": rows,
+                    },
+                }
+            )
+
+        adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+        def retrieve(adapter: TushareContextAdapter = adapter) -> tuple[ContextScalar, ...]:
+            return tuple(
+                replace(s, release_at=public_at, public_available_at=public_at)
+                for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+                for s in adapter.futures_warrants(
+                    start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=symbol
+                )
+            )
+
+        adapter.acquire_scalars(
+            paths, retrieve, definition_version=manifest["metric_catalog_version"]
+        )
+    replay = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    if missing_current:
+        assert "candidate_context_selection_members_missing:CN_FUTURES_WARRANTS" in replay.gaps
+    else:
+        assert not replay.gaps
+        assert replay.evaluated_cutoffs == 1
+        assert replay.context_output_differences == 0
 
 
 @pytest.mark.usefixtures("runtime_clock")

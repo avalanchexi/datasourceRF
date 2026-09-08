@@ -28,6 +28,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.metric_contracts import evidence_max_age_days
 from pring_cycle.published_events import select_published_rrr_events
+from pring_cycle.warrant_inputs import select_warrant_inputs
 
 _POLICY_ACTION = {
     "CN_OMO_7D_RATE": "policy_action",
@@ -1293,12 +1294,27 @@ def _metric_rows(
         as_of=as_of,
         definition_version=definition.definition_version,
     )
-    incomplete_event_claims = (
+    incomplete_source_claims = (
         set(select_published_rrr_events(repository, series).incomplete_claim_ids)
         if definition.metric_id == "CN_RRR_EVENT"
         and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
         else set()
     )
+    warrant_latest_period = None
+    if (
+        definition.metric_id == "CN_FUTURES_WARRANTS"
+        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
+        warrant_latest_period = max((point.period_end for point in series), default=None)
+        for period in {point.period_end for point in series}:
+            selection = select_warrant_inputs(repository, series, period=period, mode=as_of_mode)
+            incomplete_source_claims.update(selection.incomplete_claim_ids)
+            if selection.missing_members:
+                incomplete_source_claims.update(
+                    point.selected_claim_id
+                    for point in series
+                    if point.period_end == period and point.selected_claim_id is not None
+                )
     release_status = _release_status(
         repository,
         definition,
@@ -1339,7 +1355,13 @@ def _metric_rows(
             release_status=release_status,
         )
         if (
-            current.selected_claim_id in incomplete_event_claims
+            warrant_latest_period is not None
+            and current.period_end != warrant_latest_period
+            and status == "current"
+        ):
+            status = "stale"
+        if (
+            current.selected_claim_id in incomplete_source_claims
             and status != "awaiting_source_certification"
         ):
             status = "source_failed"
@@ -1350,7 +1372,7 @@ def _metric_rows(
             if value is not None
             and previous is not None
             and _certified_point(previous)
-            and previous.selected_claim_id not in incomplete_event_claims
+            and previous.selected_claim_id not in incomplete_source_claims
             else None
         )
         direction_inputs = []
