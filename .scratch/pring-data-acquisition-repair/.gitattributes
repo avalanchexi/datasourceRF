@@ -148,6 +148,7 @@ verify-search-provider-screening.py text eol=lf
 verify-search-provider-screening.sh text eol=lf
 verify-search-rrr-parser.py text eol=lf
 verification-rrr-source-*.txt -text whitespace=cr-at-eol
+verification-rrr-source/*.json -text whitespace=cr-at-eol
 evidence-search-preexperiment-20260908-n4-v1/14a82215156890adfa3d819e71128444f7b4903bde26c1cd7c585214b747c43b -text -diff
 evidence-search-preexperiment-20260908-n4-v1/27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9 -text -diff
 evidence-search-preexperiment-20260908-n4-v1/2ebbb79e89c57620ba765b869dad63932cb909489ce173db1fc4c522c4224893 -text -diff

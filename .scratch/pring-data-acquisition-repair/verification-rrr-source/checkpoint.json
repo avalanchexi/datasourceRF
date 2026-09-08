@@ -1,0 +1,63 @@
+{
+  "status": "targeted_passed_related_not_started_environment_blocked",
+  "goal_complete": false,
+  "base_commit": "7a7e384d120a170864eb6f3dfcc5c71fbc40a945",
+  "evidence_commit": "c062d760",
+  "recorded_at": "2026-09-08T06:12:25.826292+00:00",
+  "targeted": {
+    "passed": 8,
+    "failed": 0,
+    "deselected": 118,
+    "seconds": 11.01
+  },
+  "related": {
+    "started": false,
+    "passed": null,
+    "reason": "Wsl/Service/CreateInstance/MountDisk/HCS/0x80070070"
+  },
+  "mypy_completed": false,
+  "ruff_completed": false,
+  "full_gate_passed": false,
+  "review_remaining": {
+    "spec": 0,
+    "standards": 0
+  },
+  "C_free_bytes": 0,
+  "actual_rrr_source_certifications": 0,
+  "actual_candidate_models": 0,
+  "model_activations": 0,
+  "actual_cutovers": 0,
+  "dynamic_rrr_member_selection_implemented": false,
+  "files": [
+    {
+      "path": "src/pring_cycle/source_contract_review.py",
+      "bytes": 11799,
+      "sha256": "1b1a95adacd7bdba95f3a91d22b68f4a6aec948a93c7b2a6aa3e3a394b3655ac"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "bytes": 91893,
+      "sha256": "f74ab56004d62c66c666006cfda60a01e2afa5a1fcbe12c610f3361f38c7a1fe"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-source-focused-01.txt",
+      "bytes": 236,
+      "sha256": "d9e23be4e82ec9d7da158d046e6bf1d2a5b0bad74971d2703345243f0067041d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-source-green-01.txt",
+      "bytes": 234,
+      "sha256": "3b34ec575d5c93c39f086baa94c696e3ee1c8b973290851a1103eb4f96fafc6f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-source-red-01.txt",
+      "bytes": 3644,
+      "sha256": "2f3acc88b48f88f8562d27df020809e0bacca8c6fbfb4883fc94e4eeac85aa25"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-rrr-source-related-01.txt",
+      "bytes": 780,
+      "sha256": "9ddb5c161f1ee05a975d4406be60941c465bf33126240ee51a0465ae22c2988b"
+    }
+  ]
+}
