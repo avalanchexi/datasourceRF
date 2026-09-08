@@ -36,6 +36,7 @@ from pring_cycle.metric_contracts import (
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.published_events import select_published_rrr_events
+from pring_cycle.source_adapters import CoreInputValidator
 from pring_cycle.warrant_inputs import select_warrant_inputs
 
 CALIBRATION_END = "2026-08-19"
@@ -241,15 +242,14 @@ def evaluate_history(
     end_date = date.fromisoformat(requested_end) if requested_end is not None else date.max
     # Discover expected recorded dates without hiding unknown or late PUBLIC claims.
     # Vintage metadata contributes dates only; all prices are selected at daily cutoffs.
-    all_observed_days = sorted(
-        {
-            vintage.period_end
-            for metric_id in metric_ids
-            for vintage in evidence.source_claim_vintages(
-                metric_id, definition_version=definition_version
-            )
-        }
+    vintages = tuple(
+        vintage
+        for metric_id in metric_ids
+        for vintage in evidence.source_claim_vintages(
+            metric_id, definition_version=definition_version
+        )
     )
+    all_observed_days = sorted({vintage.period_end for vintage in vintages})
     history_input_start = _history_input_start(manifest, requested_start)
     input_days = [
         day for day in all_observed_days if history_input_start <= day <= end_date.isoformat()
@@ -257,6 +257,15 @@ def evaluate_history(
     common_days = [day for day in input_days if requested_start <= day]
     if not input_days or not common_days:
         raise ValueError("calibration_evidence_incomplete")
+    core_inputs = CoreInputValidator(
+        evidence,
+        tuple(
+            vintage.claim_id
+            for vintage in vintages
+            if definition_version not in BUILTIN_CATALOG_VERSIONS
+            and history_input_start <= vintage.period_end <= input_days[-1]
+        ),
+    )
     evidence_digest = hashlib.sha256(
         json.dumps(
             {
@@ -310,6 +319,10 @@ def evaluate_history(
                 for point in selected
             ):
                 raise ValueError("calibration_evidence_incomplete")
+            if definition_version not in BUILTIN_CATALOG_VERSIONS and any(
+                not core_inputs.is_valid(metric_id, point) for point in selected
+            ):
+                raise ValueError("calibration_core_original_invalid")
             evidence_digest.update(
                 json.dumps(
                     {

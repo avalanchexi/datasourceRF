@@ -1,5 +1,11 @@
 # 修复项目当前执行入口
 
+**2026-09-09 更新：**当前已提交到 `dd744ff`，阶段仍为 implement + research。[三核心新目录采集](implementation-19-core-source.md)已完成252关联/最终17项回归；[逐日 PUBLIC 修订回放](implementation-21-core-public-replay.md)已完成269关联/最终23项回归。仓单完整成员、八品种定向取得和历史覆盖也已提交。真实完整候选、120日验收、合格AI报告及切换仍未完成。
+
+**最新完成的软件批：**[三核心消费原件核验](implementation-19-core-original-consumption.md)已复现并修复选值/回放使用丢失或损坏原件的问题，已接共享 Worker 校验；**328关联回归通过，530.37秒**，包含8项公开入口用例，mypy87/Ruff/格式及86安装源核对通过，Spec/Standards均0，见[最终检查点](verification-core-original/checkpoint.json)。新目录 active Worker 完整纵向和 normalized 消费核验尚未覆盖。下一软件切片为[逐日候选字段/持续天数回放](core-candidate-replay-boundary.md)，研究14输入/38链接已核对；业务规则、官方证据和实际验收保持原阻塞条件。
+
+**实际检索与报告：**四困难缺口预实验的原文层补齐为 Tavily 1/4、Exa 0/4，模型可用率仍 N/A；不能外推总体命中率。9月9日[网络复查](evidence-18-connectivity-20260909/review.md)仍超时，真实合格 AI 输出为0。下文为各历史批次原记录，不能把旧“下一步”或旧全套通过当作当前整体完成。
+
 最新搜索增量：新目录查询、缺口绑定及旧预算/缓存解析已修，213 项关联回归、6 项新增用例、mypy85/Ruff/84源码指纹和双轴复审通过，见[搜索检查点](verification-search-catalog/checkpoint.json)，提交7a7e384。真实四缺口配对预实验已完成8次搜索和12次GET，原文目标补齐Tavily1/4、Exa0/4，模型资格未评估；见[实测报告](search-preexperiment-report.md)。新取得PBC原通知两scope及页头时间已独立复核。
 
 运行条件已恢复：C盘已观测到约12.8GB可用，WSL可启动。原0x80070070失败记录保留。[RRR来源入库切片](implementation-19-rrr-source.md)已完成178项关联、最终8项针对回归、mypy85/Ruff/格式及84源码核对；下一步动态RRR公告成员选择与仓单消费者。正式来源认证、业务规则、真实模型资格检索、报告、120日重放和切换仍开放。

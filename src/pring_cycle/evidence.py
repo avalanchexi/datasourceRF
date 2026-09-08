@@ -279,26 +279,54 @@ class EvidenceRepository:
 
     def source_claim_originals(self, claim_id: str) -> tuple[tuple[AcquisitionReceipt, bytes], ...]:
         """Return hash-checked originals attached to this exact immutable claim."""
+        return self.source_claim_originals_many((claim_id,))[claim_id]
+
+    def source_claim_originals_many(
+        self, claim_ids: tuple[str, ...]
+    ) -> dict[str, tuple[tuple[AcquisitionReceipt, bytes], ...]]:
+        """Read each physical receipt once in this batch, preserving exact claim links."""
+        identities = tuple(dict.fromkeys(claim_ids))
+        rows = []
         with self._connect() as connection:
-            rows = connection.execute(
-                """SELECT request.* FROM source_claim_acquisition AS link
-                   JOIN acquisition_request AS request USING(acquisition_id)
-                   WHERE link.claim_id=? ORDER BY request.started_at, request.acquisition_id""",
-                (claim_id,),
-            ).fetchall()
+            for offset in range(0, len(identities), 500):
+                batch = identities[offset : offset + 500]
+                placeholders = ",".join("?" for _ in batch)
+                rows.extend(
+                    connection.execute(
+                        f"""SELECT link.claim_id, request.* FROM source_claim_acquisition AS link
+                            JOIN acquisition_request AS request USING(acquisition_id)
+                            WHERE link.claim_id IN ({placeholders})
+                            ORDER BY link.claim_id, request.started_at, request.acquisition_id""",
+                        batch,
+                    ).fetchall()
+                )
         acquisitions = AcquisitionRepository(
             self._database_path, self._database_path.parent / "artifacts" / "sha256"
         )
-        originals = []
+        checked: dict[str, tuple[AcquisitionReceipt, bytes] | None] = {}
+        originals: dict[str, list[tuple[AcquisitionReceipt, bytes]]] = {
+            claim_id: [] for claim_id in identities
+        }
+        invalid: set[str] = set()
         for row in rows:
-            if row["state"] != "validated":
-                return ()
-            try:
-                raw = acquisitions.read_content(row["acquisition_id"], "raw")
-            except (LookupError, ValueError, OSError):
-                return ()
-            originals.append((receipt_from_row(row), raw))
-        return tuple(originals)
+            acquisition_id = row["acquisition_id"]
+            if acquisition_id not in checked:
+                checked[acquisition_id] = None
+                if row["state"] == "validated":
+                    try:
+                        raw = acquisitions.read_content(acquisition_id, "raw")
+                        checked[acquisition_id] = (receipt_from_row(row), raw)
+                    except (LookupError, ValueError, OSError):
+                        pass
+            original = checked[acquisition_id]
+            if original is None:
+                invalid.add(row["claim_id"])
+            else:
+                originals[row["claim_id"]].append(original)
+        return {
+            claim_id: () if claim_id in invalid else tuple(items)
+            for claim_id, items in originals.items()
+        }
 
     def source_claim_publication(self, claim_id: str) -> dict[str, Any] | None:
         """Read the complete validated publication linked to this exact claim version."""

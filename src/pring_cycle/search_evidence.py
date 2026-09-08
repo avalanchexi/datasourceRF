@@ -23,7 +23,11 @@ from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_pe
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.source_adapters import CORE_API_IDENTITIES, selected_core_claim_is_valid
+from pring_cycle.source_adapters import (
+    CORE_API_IDENTITIES,
+    CoreInputValidator,
+    selected_core_claim_is_valid,
+)
 from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
@@ -89,6 +93,17 @@ class ModelInputSelector:
         return self._points[metric_id]
 
     def select(self, scope: RetrievalScope) -> ModelInputSelection:
+        core_inputs = CoreInputValidator(
+            self.core_evidence,
+            tuple(
+                point.selected_claim_id
+                for metric_id in scope.metric_ids
+                if metric_id in CORE_API_IDENTITIES and self.version not in BUILTIN_CATALOG_VERSIONS
+                for point in self.series(metric_id)
+                if point.selected_claim_id is not None
+                and matches_retrieval_period(point.period_end, scope.period)
+            ),
+        )
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -173,6 +188,11 @@ class ModelInputSelector:
                         and (
                             metric_id not in CORE_API_IDENTITIES
                             or selected_core_claim_is_valid(metric_id, point)
+                        )
+                        and (
+                            metric_id not in CORE_API_IDENTITIES
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or core_inputs.is_valid(metric_id, point)
                         )
                     ):
                         accepted.append(claim.claim_id)

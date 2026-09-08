@@ -3606,9 +3606,11 @@ def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
 
 
 @pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("fault", ["changed", "missing"])
 def test_registered_core_history_preserves_originals_and_unknown_public(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
+    fault: str,
 ) -> None:
     from pring_cycle.core_history import refresh_core_history
     from pring_cycle.runs import RetrievalScope
@@ -3704,10 +3706,31 @@ def test_registered_core_history_preserves_originals_and_unknown_public(
         cutoff_mode="explicit",
     )
     scope = RetrievalScope("synthetic:core", tuple(identities), "2026-08-28", "P0", None)
-    system = ModelInputSelector(paths, run, mode=AsOfMode.SYSTEM).select(scope)
+    selector = ModelInputSelector(paths, run, mode=AsOfMode.SYSTEM)
+    system = selector.select(scope)
     assert system.complete and set(system.selected_claim_ids) == selected_ids
     public = ModelInputSelector(paths, run, mode=AsOfMode.PUBLIC).select(scope)
     assert not public.complete and public.selected_claim_ids == ()
+
+    (stock,) = evidence.metric_series(
+        "CN_EQUITY_CORE_000985", mode=AsOfMode.SYSTEM, as_of=after, definition_version=version
+    )
+    assert stock.selected_claim_id is not None
+    ((receipt, _),) = evidence.source_claim_originals(stock.selected_claim_id)
+    assert receipt.raw_hash is not None
+    artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
+    if fault == "changed":
+        artifact.write_bytes(b"damaged after admission")
+    else:
+        artifact.unlink()
+    assert evidence.source_claim_originals(stock.selected_claim_id) == ()
+    # Every new public selection must recheck originals, even on the same selector.
+    for current in (selector, ModelInputSelector(paths, run, mode=AsOfMode.SYSTEM)):
+        rejected = current.select(scope)
+        assert not rejected.complete
+        assert set(rejected.selected_claim_ids) == selected_ids - {stock.selected_claim_id}
+    artifact.write_bytes(originals["000985.CSI"])
+    assert selector.select(scope).complete
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -3805,3 +3828,203 @@ def test_registered_core_claim_requires_its_exact_original(
         definition_version=version,
     )
     assert point.selected_value == 101 and len(point.claims) == 1
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("fault", ["changed", "missing"])
+@pytest.mark.parametrize("original_case", ["base", "late_revision", "one_of_two"])
+def test_registered_core_public_replay_rechecks_selected_originals(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    fault: str,
+    original_case: str,
+) -> None:
+    from pring_cycle.model_evaluation import evaluate_history
+    from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    days: list[date] = []
+    current = date(2026, 1, 5)
+    while len(days) < 168:
+        if current.weekday() < 5:
+            days.append(current)
+        current += timedelta(days=1)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    evidence = EvidenceRepository(paths.database)
+    claims: list[SourceClaimInput] = []
+    damaged_hash = ""
+    tracked_originals: set[Path] = set()
+    late_revision = original_case == "late_revision"
+    # Synthetic PUBLIC declarations and weekday calendar; no real source is certified.
+    for metric_id, (api, code) in CORE_API_IDENTITIES.items():
+        raw = encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["ts_code", "trade_date", "close", "pre_close", "pct_chg"],
+                    "items": [
+                        [code, day.strftime("%Y%m%d"), 100 + i, 99 + i, 0]
+                        for i, day in enumerate(days)
+                    ],
+                },
+            }
+        )
+
+        def core_response(payload: dict[str, Any], body: bytes = raw) -> bytes:
+            return body
+
+        acquired = TushareCoreAdapter("synthetic-token", transport=core_response).acquire_core_bars(
+            acquisitions,
+            metric_id,
+            start=days[0],
+            end=days[-1],
+            expected_business_dates=tuple(days),
+        )
+        receipt = acquired.receipt
+        assert receipt.received_at is not None and receipt.validated_at is not None
+        assert receipt.raw_hash is not None
+        fetched_at = receipt.received_at
+        tracked_originals.add(paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash)
+        if metric_id == "CN_BOND_CORE_000012":
+            assert receipt.raw_hash is not None
+            damaged_hash = receipt.raw_hash
+        extra_ids: tuple[str, ...] = ()
+        if metric_id == "CN_BOND_CORE_000012" and original_case == "one_of_two":
+            # Two distinct physical deliveries support each claim; both must stay valid.
+            def second_response(payload: dict[str, Any], body: bytes = raw) -> bytes:
+                return body + b"\n"
+
+            extra = (
+                TushareCoreAdapter("synthetic-token", transport=second_response)
+                .acquire_core_bars(
+                    acquisitions,
+                    metric_id,
+                    start=days[0],
+                    end=days[-1],
+                    expected_business_dates=tuple(days),
+                )
+                .receipt
+            )
+            assert extra.raw_hash is not None and extra.validated_at is not None
+            assert extra.received_at is not None
+            fetched_at = extra.received_at
+            extra_ids = (extra.acquisition_id,)
+            damaged_hash = extra.raw_hash
+            tracked_originals.add(paths.artifacts / extra.raw_hash[:2] / extra.raw_hash)
+        for i, day in enumerate(days):
+            published = datetime(day.year, day.month, day.day, 8, tzinfo=UTC)
+            claims.append(
+                SourceClaimInput(
+                    metric_id=metric_id,
+                    definition_version=version,
+                    period_kind="business_day",
+                    period_start=day.isoformat(),
+                    period_end=day.isoformat(),
+                    dimensions={},
+                    value=100 + i,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="index_points",
+                    provider="tushare",
+                    source_reference=f"tushare:{api}:{code}:{day.isoformat()}",
+                    release_event_id=f"synthetic:core-public:{metric_id}:{day.isoformat()}",
+                    release_at=published,
+                    public_available_at=published,
+                    fetched_at=fetched_at,
+                    available_at=datetime.now(UTC),
+                    certification_status="certified",
+                    quality_status="validated",
+                    acquisition_id=receipt.acquisition_id,
+                    acquisition_ids=extra_ids,
+                )
+            )
+    evidence.append_source_claims(tuple(claims))
+    if late_revision:
+        revised = next(
+            c
+            for c in claims
+            if c.metric_id == "CN_BOND_CORE_000012" and c.period_end == days[20].isoformat()
+        )
+        raw = encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["ts_code", "trade_date", "close", "pre_close", "pct_chg"],
+                    "items": [["000012.SH", days[20].strftime("%Y%m%d"), 100000, 119, 0]],
+                },
+            }
+        )
+        receipt = (
+            TushareCoreAdapter("synthetic-token", transport=lambda payload: raw)
+            .acquire_core_bars(
+                acquisitions,
+                revised.metric_id,
+                start=days[20],
+                end=days[20],
+                expected_business_dates=(days[20],),
+            )
+            .receipt
+        )
+        assert receipt.raw_hash is not None
+        assert receipt.received_at is not None and receipt.validated_at is not None
+        damaged_hash = receipt.raw_hash
+        tracked_originals.add(paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash)
+        published = datetime(days[-1].year, days[-1].month, days[-1].day, 8, tzinfo=UTC)
+        evidence.append_source_claim(
+            replace(
+                revised,
+                value=100000,
+                release_event_id="synthetic:core-public:late-revision",
+                release_at=published,
+                public_available_at=published,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                acquisition_id=receipt.acquisition_id,
+            )
+        )
+    reads = dict.fromkeys(tracked_originals, 0)
+    real_read = Path.read_bytes
+
+    def observed_read(path: Path) -> bytes:
+        content = real_read(path)
+        if path in reads:
+            reads[path] += 1
+        return content
+
+    # Transparent filesystem counting; the actual bytes and parser still run.
+    with monkeypatch.context() as boundary:
+        boundary.setattr(Path, "read_bytes", observed_read)
+        before = evaluate_history(
+            paths.database,
+            model_id,
+            requested_start=days[-2].isoformat(),
+            requested_end=days[-1].isoformat(),
+        )
+    assert before.evaluated_days == 2 and before.input_days == 168
+    assert set(reads.values()) == {1}
+    assert before.core_states_by_day[days[-2].isoformat()] == ("bull", "bull", "bull")
+    artifact = paths.artifacts / damaged_hash[:2] / damaged_hash
+    if fault == "changed":
+        artifact.write_bytes(b"damaged after admission")
+    else:
+        artifact.unlink()
+    if late_revision:
+        earlier = evaluate_history(
+            paths.database,
+            model_id,
+            requested_start=days[-2].isoformat(),
+            requested_end=days[-2].isoformat(),
+        )
+        assert earlier.core_states_by_day[days[-2].isoformat()] == ("bull", "bull", "bull")
+    with pytest.raises(ValueError, match="calibration_core_original_invalid"):
+        evaluate_history(
+            paths.database,
+            model_id,
+            requested_start=days[-2].isoformat(),
+            requested_end=days[-1].isoformat(),
+        )

@@ -11,7 +11,7 @@ from urllib.request import Request, build_opener
 
 from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.adapters import MarketBar, validate_core_market_bars
-from pring_cycle.evidence import MetricSeriesPoint
+from pring_cycle.evidence import EvidenceRepository, MetricSeriesPoint
 
 TUSHARE_ENDPOINT = "https://api.tushare.pro"
 
@@ -73,6 +73,45 @@ def selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bo
         and selected.certification_status == "certified"
         and selected.quality_status == "validated"
     )
+
+
+class CoreInputValidator:
+    """Verify selected core originals within one consumer evaluation."""
+
+    def __init__(self, evidence: EvidenceRepository, claim_ids: tuple[str, ...]) -> None:
+        self._originals = evidence.source_claim_originals_many(claim_ids)
+        self._prices: dict[tuple[str, str], dict[str, float]] = {}
+        self._valid: dict[tuple[str, str], bool] = {}
+
+    def is_valid(self, metric_id: str, point: MetricSeriesPoint) -> bool:
+        if not selected_core_claim_is_valid(metric_id, point):
+            return False
+        claim_id = point.selected_claim_id
+        if claim_id is None:
+            return False
+        key = (metric_id, claim_id)
+        if key not in self._valid:
+            originals = self._originals.get(claim_id, ())
+            valid = bool(originals)
+            for receipt, raw in originals:
+                source = (metric_id, receipt.acquisition_id)
+                if source not in self._prices:
+                    try:
+                        bars = parse_core_acquisition(receipt, raw, metric_id=metric_id)
+                        self._prices[source] = {
+                            bar.business_date.isoformat(): bar.close for bar in bars
+                        }
+                    except (ValueError, TypeError, KeyError):
+                        self._prices[source] = {}
+                prices = self._prices[source]
+                if (
+                    point.period_end not in prices
+                    or prices[point.period_end] != point.selected_value
+                ):
+                    valid = False
+                    break
+            self._valid[key] = valid
+        return self._valid[key]
 
 
 @dataclass(frozen=True)

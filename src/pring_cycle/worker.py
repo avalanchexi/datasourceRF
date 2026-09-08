@@ -54,6 +54,7 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import (
+    CoreInputValidator,
     TushareCoreAdapter,
     selected_core_claim_is_valid,
 )
@@ -900,6 +901,15 @@ def _core_readiness(
             )
             if point.period_end <= run.target_business_date
         )
+        core_inputs = CoreInputValidator(
+            evidence,
+            tuple(
+                point.selected_claim_id
+                for point in series
+                if definition_version not in BUILTIN_CATALOG_VERSIONS
+                and point.selected_claim_id is not None
+            ),
+        )
         reason = "validated"
         state = None
         candidate_state = None
@@ -923,6 +933,10 @@ def _core_readiness(
             for item in series
         ):
             reason = "nonnumeric_core_observation"
+        elif definition_version not in BUILTIN_CATALOG_VERSIONS and any(
+            not core_inputs.is_valid(metric_id, point) for point in series
+        ):
+            reason = "source_original_invalid"
         else:
             points = [
                 PricePoint(date.fromisoformat(item.period_end), float(item.selected_value))
