@@ -366,8 +366,8 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         replay = ModelRepository(paths.database).record_replay(
             namespace.model,
             compared_with=namespace.compared_with,
-            requested_start=evaluation.evaluated_range_start,
-            requested_end=evaluation.evaluated_range_end,
+            requested_start=namespace.start,
+            requested_end=namespace.end,
             quality_passed=evaluation.quality_passed,
             regression_passed=evaluation.regression_passed,
             performance_passed=evaluation.performance_passed,
@@ -377,8 +377,18 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             gaps=evaluation.gaps,
             evaluated_trading_days=evaluation.evaluated_trading_days,
             calendar_hash=evaluation.calendar_hash,
+            candidate_state_differences=evaluation.candidate_state_differences,
+            candidate_days_differences=evaluation.candidate_days_differences,
+            core_output_hash=evaluation.core_output_hash,
+            core_output_document=evaluation.core_output_document,
         )
         return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
+    if namespace.command == "model-replay-show":
+        return ModelRepository(paths.database).replay_details(namespace.replay_id)
+    if namespace.command == "model-acceptance-show":
+        return ModelRepository(paths.database).acceptance_details(
+            namespace.model, namespace.result_hash
+        )
     if namespace.command == "model-source-certify":
         if namespace.candidate_request_hash is not None:
             from pring_cycle.candidate_admission import admit_source_certified_candidate
@@ -691,6 +701,11 @@ def _parser() -> argparse.ArgumentParser:
     model_replay.add_argument("--compared-with", required=True)
     model_replay.add_argument("--start", required=True)
     model_replay.add_argument("--end", required=True)
+    replay_show = _runtime_parser(subparsers, "model-replay-show")
+    replay_show.add_argument("--replay-id", required=True, type=int)
+    acceptance_show = _runtime_parser(subparsers, "model-acceptance-show")
+    acceptance_show.add_argument("--model", required=True)
+    acceptance_show.add_argument("--result-hash", required=True)
     model_source_certify = _runtime_parser(subparsers, "model-source-certify")
     model_source_certify.add_argument("--target-date", required=True)
     certification_input = model_source_certify.add_mutually_exclusive_group(required=True)

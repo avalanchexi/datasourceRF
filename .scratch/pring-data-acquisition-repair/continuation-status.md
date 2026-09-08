@@ -1,8 +1,10 @@
 # 修复项目当前执行入口
 
-**2026-09-09 更新：**当前已提交到 `dd744ff`，阶段仍为 implement + research。[三核心新目录采集](implementation-19-core-source.md)已完成252关联/最终17项回归；[逐日 PUBLIC 修订回放](implementation-21-core-public-replay.md)已完成269关联/最终23项回归。仓单完整成员、八品种定向取得和历史覆盖也已提交。真实完整候选、120日验收、合格AI报告及切换仍未完成。
+**2026-09-09 更新：**阶段仍为 implement + research，本批从已提交的`0c33710`继续。[PUBLIC候选字段及保存查询](implementation-21-candidate-replay.md)已完成**342项关联回归、0失败、550.74秒**，包含34项新增候选用例；mypy89、Ruff/格式9文件及88安装源码核对通过，两轴复审均0。新旧规则天数、逐日差异、校准/回放明细CLI/API、证据版本失配、旧0019迁移及缺末日失败记录已接通。见[检查点](verification-candidate/checkpoint.json)。真实完整候选、120日验收、合格AI报告及切换仍未完成。
 
-**最新完成的软件批：**[三核心消费原件核验](implementation-19-core-original-consumption.md)已复现并修复选值/回放使用丢失或损坏原件的问题，已接共享 Worker 校验；**328关联回归通过，530.37秒**，包含8项公开入口用例，mypy87/Ruff/格式及86安装源核对通过，Spec/Standards均0，见[最终检查点](verification-core-original/checkpoint.json)。新目录 active Worker 完整纵向和 normalized 消费核验尚未覆盖。下一软件切片为[逐日候选字段/持续天数回放](core-candidate-replay-boundary.md)，研究14输入/38链接已核对；业务规则、官方证据和实际验收保持原阻塞条件。
+**下一软件切片：**[上下文逐日快照与输入版本绑定](context-replay-snapshot-boundary.md)静态定位显示上下文仍只保存差异数量，先通过公开反例核验是否会漏掉计数不变的P1版本变动；尚未执行其RED。normalized消费完整性和新目录active Worker完整纵向继续开放。业务规则、官方证据、真实检索模型资格和报告网络条件仍按下文处理。
+
+**上一已提交的软件批：**`0c33710`的[三核心消费原件核验](implementation-19-core-original-consumption.md)修复选值/回放使用丢失或损坏原件的问题，已接共享Worker校验；328关联回归通过，530.37秒。其[候选字段研究](core-candidate-replay-boundary.md)已由上方本批实现推进，旧研究与旧日志保留历史状态，不以它们覆盖最新结果。
 
 **实际检索与报告：**四困难缺口预实验的原文层补齐为 Tavily 1/4、Exa 0/4，模型可用率仍 N/A；不能外推总体命中率。9月9日[网络复查](evidence-18-connectivity-20260909/review.md)仍超时，真实合格 AI 输出为0。下文为各历史批次原记录，不能把旧“下一步”或旧全套通过当作当前整体完成。
 

@@ -18,6 +18,14 @@ from pring_cycle.catalog import (
     metric_catalog_v0001,
     metric_catalog_v0003,
 )
+from pring_cycle.model_outputs import (
+    MODEL_OUTPUT_SCHEMA,
+    model_output_hash,
+    read_model_output,
+    store_model_output,
+    validate_history_output,
+    validate_replay_output,
+)
 from pring_cycle.source_contract_review import require_model_source_contract
 
 CALIBRATION_BASELINE: dict[str, int] = {
@@ -51,6 +59,7 @@ class CalibrationAcceptance:
     evaluated_days: int = 0
     input_range_start: str = "unspecified"
     input_days: int = 0
+    core_output_hash: str | None = None
 
 
 @dataclass(frozen=True)
@@ -67,6 +76,9 @@ class ReplayResult:
     gaps: tuple[str, ...]
     evaluated_trading_days: int = 0
     calendar_hash: str = ""
+    candidate_state_differences: int | None = None
+    candidate_days_differences: int | None = None
+    core_output_hash: str | None = None
 
 
 def certified_model_v0001_manifest() -> dict[str, Any]:
@@ -265,6 +277,7 @@ class ModelRepository:
         repository = cls(database_path)
         with repository._connect() as connection:
             connection.executescript(_MODEL_SCHEMA)
+            connection.executescript(MODEL_OUTPUT_SCHEMA)
             _ensure_model_replay_context_column(connection)
         return repository
 
@@ -322,7 +335,7 @@ class ModelRepository:
     def record_acceptance(
         self, model_version_id: str, results: Mapping[str, object]
     ) -> CalibrationAcceptance:
-        self.get(model_version_id)
+        model = self.get(model_version_id)
         manifest = self.manifest(model_version_id)
         normalized = {key: _acceptance_integer(results[key]) for key in CALIBRATION_BASELINE}
         evidence_hash = str(results.get("evidence_hash", "unspecified"))
@@ -339,6 +352,24 @@ class ModelRepository:
             "range_end": range_end,
             "range_start": range_start,
         }
+        output_document = results.get("core_output_document")
+        output_hash = None
+        if output_document is not None:
+            output_document = validate_history_output(
+                output_document,
+                manifest=manifest,
+                manifest_hash=model.manifest_hash,
+                range_start=range_start,
+                range_end=range_end,
+                evidence_hash=evidence_hash,
+                evaluated_days=evaluated_days,
+            )
+            output_hash = model_output_hash(output_document)
+            if results.get("core_output_hash") != output_hash:
+                raise ValueError("model_output_hash_mismatch")
+            metadata["core_output_hash"] = output_hash
+        elif results.get("core_output_hash") is not None:
+            raise ValueError("model_output_document_required")
         machine_result = any(key in results for key in metadata)
         metadata_complete = (
             len(evidence_hash) == 64
@@ -354,10 +385,20 @@ class ModelRepository:
         passed = normalized == CALIBRATION_BASELINE and (
             metadata_complete or (not machine_result and not hardened)
         )
+        if (
+            hardened
+            and manifest["trend_rules"].get("candidate_duration_rule_version")
+            == ("candidate-duration-v0002")
+            and output_hash is None
+        ):
+            passed = False
         result_document = {**normalized, **metadata}
         result_json = _canonical_json(result_document)
         result_hash = hashlib.sha256(result_json.encode()).hexdigest()
         with self._connect() as connection:
+            if output_document is not None:
+                assert isinstance(output_document, dict)
+                store_model_output(connection, output_document)
             connection.execute(
                 """
                 INSERT OR IGNORE INTO model_acceptance(
@@ -386,7 +427,43 @@ class ModelRepository:
             evaluated_days=evaluated_days,
             input_range_start=input_range_start,
             input_days=input_days,
+            core_output_hash=output_hash,
         )
+
+    def acceptance_details(self, model_version_id: str, result_hash: str) -> dict[str, Any]:
+        model = self.get(model_version_id)
+        manifest = self.manifest(model_version_id)
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM model_acceptance WHERE model_version_id=? AND result_hash=?",
+                (model_version_id, result_hash),
+            ).fetchone()
+            if row is None:
+                raise LookupError("model_acceptance_not_found")
+            content = str(row["results_json"])
+            if hashlib.sha256(content.encode()).hexdigest() != result_hash:
+                raise ValueError("model_acceptance_hash_mismatch")
+            results = json.loads(content)
+            output_hash = results.get("core_output_hash")
+            output = None if output_hash is None else read_model_output(connection, output_hash)
+        if output is not None:
+            validate_history_output(
+                output,
+                manifest=manifest,
+                manifest_hash=model.manifest_hash,
+                range_start=results["range_start"],
+                range_end=results["range_end"],
+                evidence_hash=results["evidence_hash"],
+                evaluated_days=results["evaluated_days"],
+            )
+        return {
+            "model_version_id": model_version_id,
+            "result_hash": result_hash,
+            "passed": bool(row["passed"]),
+            "results": results,
+            "core_output_status": "not_recorded" if output is None else "recorded",
+            "core_output_document": output,
+        }
 
     def activate(self, model_version_id: str, *, explicitly_approved: bool) -> ModelVersion:
         model = self.get(model_version_id)
@@ -428,7 +505,7 @@ class ModelRepository:
                 if hardened:
                     replay_rows = connection.execute(
                         """
-                        SELECT range_start, range_end, stage_differences,
+                        SELECT replay_id, range_start, range_end, stage_differences,
                                core_state_differences, context_output_differences,
                                evaluated_trading_days, calendar_hash
                         FROM model_replay
@@ -458,21 +535,7 @@ class ModelRepository:
                             )
                             and _hardened_machine_replay_matches(
                                 self._database_path,
-                                model_version_id=model_version_id,
-                                compared_with=str(current[0]),
-                                range_start=str(row["range_start"]),
-                                range_end=str(row["range_end"]),
-                                stage_differences=int(row["stage_differences"]),
-                                core_state_differences=int(
-                                    row["core_state_differences"]
-                                ),
-                                context_output_differences=int(
-                                    row["context_output_differences"]
-                                ),
-                                evaluated_trading_days=int(
-                                    row["evaluated_trading_days"]
-                                ),
-                                calendar_hash=str(row["calendar_hash"]),
+                                replay_id=int(row["replay_id"]),
                             )
                         ),
                         None,
@@ -560,6 +623,10 @@ class ModelRepository:
         context_output_differences: int = 0,
         evaluated_trading_days: int = 0,
         calendar_hash: str = "",
+        candidate_state_differences: int | None = None,
+        candidate_days_differences: int | None = None,
+        core_output_hash: str | None = None,
+        core_output_document: dict[str, Any] | None = None,
     ) -> ReplayResult:
         candidate = self.get(model_version_id)
         comparison = self.get(compared_with)
@@ -572,9 +639,42 @@ class ModelRepository:
             raise ValueError("certified_replay_range_empty")
         normalized_gaps = list(gaps)
         candidate_manifest = self.manifest(model_version_id)
+        if core_output_document is not None:
+            validate_replay_output(
+                core_output_document,
+                candidate_manifest=candidate_manifest,
+                comparison_manifest=self.manifest(compared_with),
+                candidate_manifest_hash=candidate.manifest_hash,
+                comparison_manifest_hash=comparison.manifest_hash,
+                range_start=range_start,
+                range_end=requested_end,
+                evaluated_days=evaluated_trading_days,
+                calendar_hash=calendar_hash,
+                stage_differences=stage_differences,
+                core_state_differences=core_state_differences,
+                candidate_state_differences=candidate_state_differences,
+                candidate_days_differences=candidate_days_differences,
+            )
+            if model_output_hash(core_output_document) != core_output_hash:
+                raise ValueError("model_output_hash_mismatch")
+        elif any(
+            value is not None
+            for value in (
+                core_output_hash,
+                candidate_state_differences,
+                candidate_days_differences,
+            )
+        ):
+            raise ValueError("model_output_document_required")
         if candidate_manifest.get("replay_acceptance_rule_version") == (
             "active-baseline-exact-120-v0001"
         ):
+            if (
+                core_output_document is None
+                and candidate_manifest["trend_rules"].get("candidate_duration_rule_version")
+                == "candidate-duration-v0002"
+            ):
+                normalized_gaps.append("core_candidate_outputs_incomplete")
             try:
                 active_model = self.active()
             except LookupError:
@@ -599,13 +699,10 @@ class ModelRepository:
                 ):
                     normalized_gaps.append("certified_replay_calendar_invalid")
         normalized_gaps = list(dict.fromkeys(normalized_gaps))
-        passed = (
-            quality_passed
-            and regression_passed
-            and performance_passed
-            and not normalized_gaps
-        )
+        passed = quality_passed and regression_passed and performance_passed and not normalized_gaps
         with self._connect() as connection:
+            if core_output_document is not None:
+                store_model_output(connection, core_output_document)
             cursor = connection.execute(
                 """
                 INSERT INTO model_replay(
@@ -613,8 +710,9 @@ class ModelRepository:
                     quality_passed, regression_passed, performance_passed,
                     stage_differences, core_state_differences,
                     context_output_differences, gaps_json, passed, created_at,
-                    evaluated_trading_days, calendar_hash
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    evaluated_trading_days, calendar_hash,
+                    candidate_state_differences, candidate_days_differences, core_output_hash
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     model_version_id,
@@ -632,6 +730,9 @@ class ModelRepository:
                     datetime.now(UTC).isoformat(),
                     evaluated_trading_days,
                     calendar_hash,
+                    candidate_state_differences,
+                    candidate_days_differences,
+                    core_output_hash,
                 ),
             )
             if cursor.lastrowid is None:
@@ -650,7 +751,87 @@ class ModelRepository:
             gaps=tuple(normalized_gaps),
             evaluated_trading_days=evaluated_trading_days,
             calendar_hash=calendar_hash,
+            candidate_state_differences=candidate_state_differences,
+            candidate_days_differences=candidate_days_differences,
+            core_output_hash=core_output_hash,
         )
+
+    def replay_details(self, replay_id: int) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM model_replay WHERE replay_id=?", (replay_id,)
+            ).fetchone()
+            if row is None:
+                raise LookupError("model_replay_not_found")
+            replay = {
+                name: row[name] for name in ReplayResult.__dataclass_fields__ if name != "gaps"
+            }
+            replay["passed"] = bool(row["passed"])
+            replay["gaps"] = json.loads(row["gaps_json"])
+            digest = replay["core_output_hash"]
+            document = read_model_output(connection, digest) if digest is not None else None
+        if document is not None:
+            validate_replay_output(
+                document,
+                candidate_manifest=self.manifest(replay["model_version_id"]),
+                comparison_manifest=self.manifest(replay["compared_with"]),
+                candidate_manifest_hash=self.get(replay["model_version_id"]).manifest_hash,
+                comparison_manifest_hash=self.get(replay["compared_with"]).manifest_hash,
+                range_start=replay["range_start"],
+                range_end=replay["range_end"],
+                evaluated_days=replay["evaluated_trading_days"],
+                calendar_hash=replay["calendar_hash"],
+                stage_differences=replay["stage_differences"],
+                core_state_differences=replay["core_state_differences"],
+                candidate_state_differences=replay["candidate_state_differences"],
+                candidate_days_differences=replay["candidate_days_differences"],
+            )
+        return {
+            "replay": replay,
+            "core_output_status": "recorded" if document is not None else "not_recorded",
+            "core_output_document": document,
+        }
+
+    def replay_matches_current_evidence(self, replay_id: int) -> bool:
+        """Revalidate a saved result without rewriting its historical output."""
+        from pring_cycle.model_evaluation import replay_models
+
+        try:
+            details = self.replay_details(replay_id)
+            saved = details["replay"]
+            if not saved["passed"] or details["core_output_status"] != "recorded":
+                return False
+            evaluation = replay_models(
+                self._database_path,
+                saved["model_version_id"],
+                saved["compared_with"],
+                requested_start=saved["range_start"],
+                requested_end=saved["range_end"],
+            )
+            return (
+                evaluation.quality_passed
+                and evaluation.regression_passed
+                and evaluation.performance_passed
+                and not evaluation.gaps
+                and evaluation.evaluated_range_start == saved["range_start"]
+                and evaluation.evaluated_range_end == saved["range_end"]
+                and evaluation.core_output_hash is not None
+                and all(
+                    getattr(evaluation, name) == saved[name]
+                    for name in (
+                        "stage_differences",
+                        "core_state_differences",
+                        "context_output_differences",
+                        "evaluated_trading_days",
+                        "calendar_hash",
+                        "candidate_state_differences",
+                        "candidate_days_differences",
+                        "core_output_hash",
+                    )
+                )
+            )
+        except (KeyError, LookupError, TypeError, ValueError):
+            return False
 
     def record_first_publication(self, model_version_id: str, target_business_date: str) -> None:
         if self.active().model_version_id != model_version_id:
@@ -839,9 +1020,7 @@ def _hardened_machine_acceptance_matches(
 
     try:
         results = calibrate_model(database_path, model_version_id)
-        normalized = {
-            key: _acceptance_integer(results[key]) for key in CALIBRATION_BASELINE
-        }
+        normalized = {key: _acceptance_integer(results[key]) for key in CALIBRATION_BASELINE}
         metadata = {
             "evidence_hash": str(results["evidence_hash"]),
             "evaluated_days": _acceptance_integer(results["evaluated_days"]),
@@ -849,12 +1028,11 @@ def _hardened_machine_acceptance_matches(
             "input_range_start": str(results["input_range_start"]),
             "range_end": str(results["range_end"]),
             "range_start": str(results["range_start"]),
+            "core_output_hash": str(results["core_output_hash"]),
         }
     except (KeyError, LookupError, TypeError, ValueError):
         return False
-    expected_hash = hashlib.sha256(
-        _canonical_json({**normalized, **metadata}).encode()
-    ).hexdigest()
+    expected_hash = hashlib.sha256(_canonical_json({**normalized, **metadata}).encode()).hexdigest()
     with sqlite3.connect(database_path) as connection:
         row = connection.execute(
             """
@@ -863,47 +1041,21 @@ def _hardened_machine_acceptance_matches(
             """,
             (model_version_id, expected_hash),
         ).fetchone()
-    return row is not None
+    if row is None:
+        return False
+    try:
+        details = ModelRepository(database_path).acceptance_details(model_version_id, expected_hash)
+    except (KeyError, LookupError, TypeError, ValueError):
+        return False
+    return bool(details["core_output_status"] == "recorded")
 
 
 def _hardened_machine_replay_matches(
     database_path: Path,
     *,
-    model_version_id: str,
-    compared_with: str,
-    range_start: str,
-    range_end: str,
-    stage_differences: int,
-    core_state_differences: int,
-    context_output_differences: int,
-    evaluated_trading_days: int,
-    calendar_hash: str,
+    replay_id: int,
 ) -> bool:
-    from pring_cycle.model_evaluation import replay_models
-
-    try:
-        evaluation = replay_models(
-            database_path,
-            model_version_id,
-            compared_with,
-            requested_start=range_start,
-            requested_end=range_end,
-        )
-    except (LookupError, TypeError, ValueError):
-        return False
-    return (
-        evaluation.quality_passed
-        and evaluation.regression_passed
-        and evaluation.performance_passed
-        and not evaluation.gaps
-        and evaluation.evaluated_range_start == range_start
-        and evaluation.evaluated_range_end == range_end
-        and evaluation.stage_differences == stage_differences
-        and evaluation.core_state_differences == core_state_differences
-        and evaluation.context_output_differences == context_output_differences
-        and evaluation.evaluated_trading_days == evaluated_trading_days
-        and evaluation.calendar_hash == calendar_hash
-    )
+    return ModelRepository(database_path).replay_matches_current_evidence(replay_id)
 
 
 def _hardened_replay_calendar_matches(
@@ -974,11 +1126,7 @@ def _canonical_public_core_days(
                 ):
                     continue
                 selected = next(
-                    (
-                        claim
-                        for claim in point.claims
-                        if claim.claim_id == point.selected_claim_id
-                    ),
+                    (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
                     None,
                 )
                 if (
@@ -1071,10 +1219,16 @@ def _ensure_model_replay_context_column(connection: sqlite3.Connection) -> None:
         )
     if "evaluated_trading_days" not in columns:
         connection.execute(
-            "ALTER TABLE model_replay "
-            "ADD COLUMN evaluated_trading_days INTEGER NOT NULL DEFAULT 0"
+            "ALTER TABLE model_replay ADD COLUMN evaluated_trading_days INTEGER NOT NULL DEFAULT 0"
         )
     if "calendar_hash" not in columns:
         connection.execute(
             "ALTER TABLE model_replay ADD COLUMN calendar_hash TEXT NOT NULL DEFAULT ''"
         )
+    for name, kind in (
+        ("candidate_state_differences", "INTEGER"),
+        ("candidate_days_differences", "INTEGER"),
+        ("core_output_hash", "TEXT"),
+    ):
+        if name not in columns:
+            connection.execute(f"ALTER TABLE model_replay ADD COLUMN {name} {kind}")

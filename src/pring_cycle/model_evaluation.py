@@ -4,7 +4,8 @@ import hashlib
 import json
 import statistics
 import time
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
 from datetime import time as clock_time
 from pathlib import Path
@@ -34,6 +35,13 @@ from pring_cycle.metric_contracts import (
     evidence_max_age_days,
     required_dimension_members,
 )
+from pring_cycle.model_outputs import (
+    HISTORY_OUTPUT_SCHEMA,
+    REPLAY_OUTPUT_SCHEMA,
+    core_output_differences,
+    model_output_hash,
+    validate_replay_output,
+)
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.source_adapters import CoreInputValidator
@@ -43,6 +51,15 @@ CALIBRATION_END = "2026-08-19"
 CALIBRATION_INPUT_START = "2017-01-01"
 CALIBRATION_EXPECTED_DAYS = 1995
 CALIBRATION_EXPECTED_INPUT_DAYS = 2338
+
+
+@dataclass(frozen=True)
+class CoreReplayPoint:
+    stable_state: str | None
+    candidate_state: str | None
+    actual_candidate_days: int
+    candidate_days: int
+    confirmation_threshold_days: int
 
 
 @dataclass(frozen=True)
@@ -58,6 +75,8 @@ class HistoricalEvaluation:
     evidence_hash: str = ""
     input_days: int = 0
     input_range_start: str = ""
+    core_outputs_by_day: dict[str, dict[str, CoreReplayPoint]] = field(default_factory=dict)
+    candidate_duration_rule_version: str = "candidate-duration-v0001"
 
 
 @dataclass(frozen=True)
@@ -73,6 +92,10 @@ class ParallelReplayEvaluation:
     calendar_hash: str
     evaluated_range_start: str
     evaluated_range_end: str
+    candidate_state_differences: int | None = None
+    candidate_days_differences: int | None = None
+    core_output_hash: str | None = None
+    core_output_document: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -89,7 +112,7 @@ def calibrate_model(
     *,
     requested_start: str | None = None,
     requested_end: str | None = None,
-) -> dict[str, int | str]:
+) -> dict[str, Any]:
     models = ModelRepository(database)
     model = models.get(model_version_id)
     manifest = models.manifest(model_version_id)
@@ -110,9 +133,7 @@ def calibrate_model(
         )
     ):
         raise ValueError("calibration_evidence_incomplete")
-    results: dict[str, int | str] = {
-        key: int(getattr(evaluated, key)) for key in CALIBRATION_BASELINE
-    }
+    results: dict[str, Any] = {key: int(getattr(evaluated, key)) for key in CALIBRATION_BASELINE}
     results.update(
         {
             "evidence_hash": evaluated.evidence_hash,
@@ -123,7 +144,51 @@ def calibrate_model(
             "range_start": requested_start or calibration_start,
         }
     )
+    output = history_output_document(
+        evaluated,
+        manifest,
+        manifest_hash=model.manifest_hash,
+        range_start=str(results["range_start"]),
+        range_end=str(results["range_end"]),
+    )
+    results["core_output_document"] = output
+    results["core_output_hash"] = model_output_hash(output)
     return results
+
+
+def history_output_document(
+    evaluated: HistoricalEvaluation,
+    manifest: Mapping[str, Any],
+    *,
+    manifest_hash: str,
+    range_start: str,
+    range_end: str,
+) -> dict[str, Any]:
+    days = sorted(evaluated.core_outputs_by_day)
+    return {
+        "schema_version": HISTORY_OUTPUT_SCHEMA,
+        "model_version_id": manifest["model_version_id"],
+        "manifest_hash": manifest_hash,
+        "candidate_duration_rule_version": evaluated.candidate_duration_rule_version,
+        "as_of_mode": "public_as_of",
+        "range_start": range_start,
+        "range_end": range_end,
+        "evidence_hash": evaluated.evidence_hash,
+        "calendar_hash": hashlib.sha256("\n".join(days).encode()).hexdigest(),
+        "asset_days": len(days) * 3,
+        "days": [
+            {
+                "business_date": day,
+                "cutoff": _china_business_day_end(date.fromisoformat(day)).isoformat(),
+                "assets": {
+                    asset: asdict(point)
+                    for asset, point in evaluated.core_outputs_by_day[day].items()
+                },
+                "stage": evaluated.stages_by_day[day],
+            }
+            for day in days
+        ],
+    }
 
 
 def replay_models(
@@ -192,6 +257,56 @@ def replay_models(
             strict=True,
         )
     )
+    core_output_document = None
+    core_output_hash = None
+    candidate_state_differences = None
+    candidate_days_differences = None
+    try:
+        candidate_output = history_output_document(
+            candidate_result,
+            candidate_manifest,
+            manifest_hash=candidate.manifest_hash,
+            range_start=range_start,
+            range_end=requested_end,
+        )
+        comparison_output = history_output_document(
+            comparison_result,
+            comparison_manifest,
+            manifest_hash=comparison.manifest_hash,
+            range_start=range_start,
+            range_end=requested_end,
+        )
+        differences = core_output_differences(candidate_output, comparison_output)
+        state_count = sum(item["field"] == "candidate_state" for item in differences)
+        days_count = sum(item["field"] == "candidate_days" for item in differences)
+        core_output_document = validate_replay_output(
+            {
+                "schema_version": REPLAY_OUTPUT_SCHEMA,
+                "range_start": range_start,
+                "range_end": requested_end,
+                "calendar_hash": calendar_hash,
+                "candidate": candidate_output,
+                "comparison": comparison_output,
+                "differences": differences,
+            },
+            candidate_manifest=candidate_manifest,
+            comparison_manifest=comparison_manifest,
+            candidate_manifest_hash=candidate.manifest_hash,
+            comparison_manifest_hash=comparison.manifest_hash,
+            range_start=range_start,
+            range_end=requested_end,
+            evaluated_days=len(days),
+            calendar_hash=calendar_hash,
+            stage_differences=stage_differences,
+            core_state_differences=core_state_differences,
+            candidate_state_differences=state_count,
+            candidate_days_differences=days_count,
+        )
+        core_output_hash = model_output_hash(core_output_document)
+        candidate_state_differences = state_count
+        candidate_days_differences = days_count
+    except (KeyError, TypeError, ValueError):
+        gaps.append("core_candidate_outputs_incomplete")
     quality_passed = bool(days) and not gaps
     regression_passed = (
         quality_passed
@@ -215,6 +330,10 @@ def replay_models(
         calendar_hash,
         days[0] if days else range_start,
         days[-1] if days else requested_end,
+        candidate_state_differences,
+        candidate_days_differences,
+        core_output_hash,
+        core_output_document,
     )
 
 
@@ -359,6 +478,7 @@ def evaluate_history(
 
     states_by_day: dict[str, tuple[str | None, str | None, str | None]] = {}
     stages_by_day: dict[str, str | None] = {}
+    core_outputs_by_day: dict[str, dict[str, CoreReplayPoint]] = {}
     previous_states: dict[str, CoreAssetState | None] = {asset: None for asset in _ASSETS}
     last_change_index: dict[str, int] = {}
     crossing_onset: dict[tuple[str, CoreAssetState], int] = {}
@@ -400,6 +520,19 @@ def evaluate_history(
         if not in_measurement_range:
             continue
 
+        core_outputs_by_day[day_text] = {}
+        for asset in _ASSETS:
+            trend = trend_by_day[asset][day_text]
+            core_outputs_by_day[day_text][asset] = CoreReplayPoint(
+                stable_state=trend.stable_state.value if trend.stable_state is not None else None,
+                candidate_state=trend.candidate_state.value
+                if trend.candidate_state is not None
+                else None,
+                actual_candidate_days=trend.candidate_days,
+                candidate_days=rules.candidate_days_for_output(trend),
+                confirmation_threshold_days=rules.persistence_days,
+            )
+
         bond, stock, commodity = daily_states
         stage = derive_formal_stage(
             bond=bond,
@@ -430,6 +563,8 @@ def evaluate_history(
         evidence_digest.hexdigest(),
         len(input_days),
         input_days[0],
+        core_outputs_by_day,
+        rules.candidate_duration_rule_version,
     )
 
 
@@ -467,6 +602,11 @@ def _rules(manifest: dict[str, object]) -> TrendRules:
     document = manifest.get("trend_rules")
     if not isinstance(document, dict):
         raise ValueError("model_trend_rules_missing")
+    duration_version = str(
+        document.get("candidate_duration_rule_version", "candidate-duration-v0001")
+    )
+    if duration_version not in {"candidate-duration-v0001", "candidate-duration-v0002"}:
+        raise ValueError("candidate_duration_rule_version_unsupported")
     try:
         return TrendRules(
             window_days=int(document["window_days"]),
@@ -476,6 +616,7 @@ def _rules(manifest: dict[str, object]) -> TrendRules:
             persistence_days=int(document["persistence_days"]),
             candidate_window_days=int(document["candidate_window_days"]),
             rule_version=str(document["rule_version"]),
+            candidate_duration_rule_version=duration_version,
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("model_trend_rules_invalid") from error

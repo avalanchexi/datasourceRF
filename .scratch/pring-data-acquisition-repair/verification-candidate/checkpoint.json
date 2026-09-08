@@ -1,0 +1,230 @@
+{
+  "recorded_at": "2026-09-08T18:01:40.493981+00:00",
+  "base_commit": "0c33710842f3b68e92ed207c0a94ec472424a811",
+  "scope": "public candidate fields and durable core replay outputs",
+  "software_slice_passed": true,
+  "associated_tests": 342,
+  "associated_duration_seconds": 550.74,
+  "new_candidate_tests_in_associated_scope": 34,
+  "application_and_changed_test_mypy_files": 89,
+  "installed_python_sources": 88,
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "core_candidate_cli_api_and_persistence_verified": true,
+  "core_input_vintage_change_detected_with_identical_counts": true,
+  "old_0019_runtime_migration_verified": true,
+  "requested_range_failed_replay_preserved": true,
+  "legacy_missing_candidate_counts_are_null": true,
+  "new_catalog_active_worker_end_to_end_verified": false,
+  "normalized_consumption_integrity_verified": false,
+  "full_context_daily_output_snapshot_verified": false,
+  "real_source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_china_trading_day_replay": false,
+  "project_full_gate_passed": false,
+  "production_cutover": false,
+  "new_network_requests": 0,
+  "real_qualified_ai_outputs": 0,
+  "files": [
+    {
+      "path": "src/pring_cycle/cli.py",
+      "bytes": 38961,
+      "sha256": "5bfe8b3a3c70f2754605568cde476e4ba53b7d5b4779606fd387e5e962a49541"
+    },
+    {
+      "path": "src/pring_cycle/domain/trend.py",
+      "bytes": 8446,
+      "sha256": "bcbdec85dceefe2fea11bb9c565e319f124d8b1a86432aad9d4b326d99cad9cc"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "bytes": 47956,
+      "sha256": "f48f95a1c9070943892eaa0ac4dfb9a70d969bf59192c4b1307b9c38358e8b2a"
+    },
+    {
+      "path": "src/pring_cycle/model_outputs.py",
+      "bytes": 10960,
+      "sha256": "6ee27d7eea0c44e1a95d4cddb5d5ea665312b97b47c47c74e7521336adc44573"
+    },
+    {
+      "path": "src/pring_cycle/models.py",
+      "bytes": 50985,
+      "sha256": "c04441908bbd826e7e395a92b68aae4e8875417d10b1d488e711a0b148988f56"
+    },
+    {
+      "path": "src/pring_cycle/storage.py",
+      "bytes": 6917,
+      "sha256": "5e13852cbb99a31bc0cd6fd287f798933ffa1d6dc1c9961cfa7afc2b589861e3"
+    },
+    {
+      "path": "src/pring_cycle/web.py",
+      "bytes": 27050,
+      "sha256": "d9ca3215046a8082013ab622be39a18797a0dd897ff5870db1912bf300fea530"
+    },
+    {
+      "path": "src/pring_cycle/migrations/versions/0020_model_evaluation_outputs.py",
+      "bytes": 1313,
+      "sha256": "6442d4ccf58788447fd46eeb7e3e5aaebb462ee9cc584b2292c72c4d910d5ca2"
+    },
+    {
+      "path": "tests/models/test_candidate_replay.py",
+      "bytes": 25189,
+      "sha256": "eccd2c4d4e62691b1ad60c559a13a0d3d0df9af66b08d4b6a8a926141f506f26"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-21-candidate-replay.md",
+      "bytes": 5349,
+      "sha256": "b65dc079e1a3ba6c86dcfbc3df40e8553e0b1716e8618a28de66733e3fb23a72"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/context-replay-snapshot-boundary.md",
+      "bytes": 2515,
+      "sha256": "f0a19ec07cce149db65f7d340ca122080c8a5c7068e11dc90dc18199ec7e6e4c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/continuation-status.md",
+      "bytes": 18451,
+      "sha256": "793f5bf1dc74b0b51938e25bd8e54c4882d6af6ba7fab54a3ccb810ed63782d7"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md",
+      "bytes": 11352,
+      "sha256": "282a5d72cc6b38dab706aaaeedfafd6b11e985997eb9fc3834fc732eb2486713"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md",
+      "bytes": 5571,
+      "sha256": "7ff2c13aa9db8dd5dee44649e67a79f242880c29a27ae9956d30b42cd61c1c82"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate/review.md",
+      "bytes": 995,
+      "sha256": "547cd60461a931932a57525ae8e9c27e4d1d2323dd8dcd77b98fa64b2e2bd1c0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate/finalize.py",
+      "bytes": 4134,
+      "sha256": "0bd47ebf4c9c6655abbd37aaf1cf40f5c208c7b31440797cd7b70a47cf724fe7"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-fingerprint.json",
+      "bytes": 28544,
+      "sha256": "19740db14c2c4d927bb2fed1c606d2af2490fbf2a116132b5a3eefc59062dc30"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-associated-01.txt",
+      "bytes": 878,
+      "sha256": "36ede8bcc4f2224785a83af92dfde06281c2ae5c680f5f2f4921b5d093c86276"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-calibration-green-01.txt",
+      "bytes": 232,
+      "sha256": "a92786c3d42c0a231f5d15792b3f97899026cb301df9b97098c97bfeec1cf1e6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-calibration-red-01.txt",
+      "bytes": 1566,
+      "sha256": "aa2661895eeea79ced98830c6e14d6719c1c9e273655d6bad764b80adb74a188"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-current-green-01.txt",
+      "bytes": 232,
+      "sha256": "6b4ea800015d79f1d328a25bf172e044793871bf7a2d1743b962c0c31293e3e7"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-current-red-01.txt",
+      "bytes": 1678,
+      "sha256": "3a8313928e697f1ee1848a92bd76065ea06f2f2d5076579bc5bd9bdf3d2b08a9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-format-final.txt",
+      "bytes": 56,
+      "sha256": "13313daced85c0f094f6b95b3cec949f389d0bab1d6909fbcd97ef2316a505ea"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-integrity-green-01.txt",
+      "bytes": 232,
+      "sha256": "647353a5ef8ec4b4ec1a8e951bebbef5b8bf57a54cebeb2cefaf9a041815bd36"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-integrity-red-01.txt",
+      "bytes": 2492,
+      "sha256": "5df8160af7c2d22e3d205c16934ed5cef3e7dc43589bbabb5735de290498ab63"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-integrity-red-02.txt",
+      "bytes": 1650,
+      "sha256": "65369f7b8270da2b14a8c3250454539d3bacc3be4bc0f4300e405f2c97788b14"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-models-01.txt",
+      "bytes": 4184,
+      "sha256": "f201d85268f14b2d1fa9e7bc0b430d575b453dc9562a95b309522d6c1d64927b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-mypy-01.txt",
+      "bytes": 716,
+      "sha256": "f06cfb6f793c86e60d99465a14b3c1dae77419ca89f3aaa71c25866a741edf1e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-mypy-final.txt",
+      "bytes": 92,
+      "sha256": "b1e22f6df26f77d566ac879076251885ceef1b8a18202cdedf214357c743c219"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-persist-green-01.txt",
+      "bytes": 232,
+      "sha256": "18d91760a0652872bec2a407cc60e0393b58c4ec429ca131b20708f8ba9c9dc6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-persist-red-01.txt",
+      "bytes": 1504,
+      "sha256": "d35a7e337a386bed4bfbdb8fb693201c33d5b408ec34cad65414b5a71228197c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-read-contract-green-01.txt",
+      "bytes": 206,
+      "sha256": "2b645afc3ad6b33b9829e97f2c7627c67a8a407b9b8d04d93b95fbfec494b3a2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-read-contract-red-01.txt",
+      "bytes": 14272,
+      "sha256": "90ff56e9680d06402e325b4d42bc6f6f59a479dcec5b6c3c2e22b0560f0337b9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-replay-green-01.txt",
+      "bytes": 202,
+      "sha256": "188d7d7479aa72b86cb02c867868e5eb2ca23a976b8e731b8fdca47e62bf0df0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-replay-green-02.txt",
+      "bytes": 204,
+      "sha256": "edbc7700d73e5b6d58acfdc1951631e027936412f7720c2ded15fce81441cf49"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-replay-red-01.txt",
+      "bytes": 1652,
+      "sha256": "f74cc3442f3ce8bc18b88ed6fcc97e7f881f9f3c61bfa469ad002173e53dcb90"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-review-green-01.txt",
+      "bytes": 232,
+      "sha256": "995ea9114e7f8f4ba196439edaf2fa1a4f8c5232e8d287e474e8650a7e70b916"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-review-red-01.txt",
+      "bytes": 5170,
+      "sha256": "4bb86c7c0283df2ac772aa93b9343c6ad8752560db27d0bad36e031d21bcd155"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-ruff-01.txt",
+      "bytes": 17098,
+      "sha256": "9bc3bb37979d335495ba4966cccab89c83bfaf15163b66d925ab2e5e397a695d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-candidate-ruff-final.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    }
+  ]
+}

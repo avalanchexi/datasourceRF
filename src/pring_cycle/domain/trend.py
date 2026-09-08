@@ -24,7 +24,7 @@ class TrendRules:
     rule_version: str = "trend-v0001"
     candidate_duration_rule_version: str = "candidate-duration-v0001"
 
-    def candidate_days_for_output(self, result: TrendResult) -> int:
+    def candidate_days_for_output(self, result: TrendResult | TrendHistoryPoint) -> int:
         # Historical manifests retain their published duration semantics.
         if self.candidate_duration_rule_version == "candidate-duration-v0001":
             return result.persistence_days
@@ -54,6 +54,9 @@ class TrendHistoryPoint:
     business_date: date
     stable_state: CoreAssetState | None
     distance_pct: float | None
+    candidate_state: CoreAssetState | None = None
+    candidate_days: int = 0
+    persistence_days: int = 0
 
 
 def evaluate_trend(points: list[PricePoint], rules: TrendRules) -> TrendResult:
@@ -135,9 +138,7 @@ def evaluate_trend_history(
 ) -> tuple[TrendHistoryPoint, ...]:
     ordered = sorted(points, key=lambda point: point.business_date)
     if any(point.value <= 0 for point in ordered):
-        return tuple(
-            TrendHistoryPoint(point.business_date, None, None) for point in ordered
-        )
+        return tuple(TrendHistoryPoint(point.business_date, None, None) for point in ordered)
     required = rules.window_days + rules.slope_days
     values = [point.value for point in ordered]
     stable_state: CoreAssetState | None = None
@@ -148,13 +149,9 @@ def evaluate_trend_history(
         if index < required - 1:
             history.append(TrendHistoryPoint(point.business_date, None, None))
             continue
-        current_ma = statistics.fmean(
-            values[index - rules.window_days + 1 : index + 1]
-        )
+        current_ma = statistics.fmean(values[index - rules.window_days + 1 : index + 1])
         prior_end = index - rules.slope_days
-        prior_ma = statistics.fmean(
-            values[prior_end - rules.window_days + 1 : prior_end + 1]
-        )
+        prior_ma = statistics.fmean(values[prior_end - rules.window_days + 1 : prior_end + 1])
         distance_pct = (values[index] / current_ma - 1.0) * 100.0
         slope_pct = (current_ma / prior_ma - 1.0) * 100.0
         recent = values[index - rules.volatility_days : index + 1]
@@ -177,7 +174,14 @@ def evaluate_trend_history(
             candidate_state = None
             candidate_days = 0
         history.append(
-            TrendHistoryPoint(point.business_date, stable_state, distance_pct)
+            TrendHistoryPoint(
+                point.business_date,
+                stable_state,
+                distance_pct,
+                candidate_state,
+                candidate_days,
+                rules.persistence_days if stable_state is not None else candidate_days,
+            )
         )
     return tuple(history)
 

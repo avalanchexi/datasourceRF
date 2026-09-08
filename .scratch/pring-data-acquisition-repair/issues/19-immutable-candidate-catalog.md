@@ -68,3 +68,5 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-08：[三核心新目录来源切片](../implementation-19-core-source.md)完成252关联/最终17项通过，应用及candidate测试mypy87、双轴剩余0；目录预检、三组交付身份、逐次原件日期/数值关联和布尔值拒绝已接通，PUBLIC未知保持。最终格式和安装源码以[检查点](../verification-new-core/checkpoint.json)为准。下一段核验消费时原件完整性及[回放晚修订边界](../core-replay-revision-boundary.md)，不把软件fixture称为实际完整候选或120日通过；整票仍in-progress。
 
 - 2026-09-09：[三核心消费原件核验](../implementation-19-core-original-consumption.md)完成328关联通过、mypy87/Ruff/格式及86安装源码匹配，双轴0。新目录选值/逐日PUBLIC与Worker共享raw回执、哈希及原行核验；缺件、损坏、多关联中一坏均拒收，未可见修订不误伤早期，每次评价重新核验。新目录active Worker完整纵向及normalized消费完整性尚未覆盖；实际来源认证、完整候选及最终门仍开放，不关闭整票。
+
+- 2026-09-09：[候选字段与明细切片](../implementation-21-candidate-replay.md)342关联通过，含34新增；mypy89、Ruff/格式9文件、88安装源一致及双轴剩余0。新hardened v0002无候选明细不能通过，校准/回放存档与完整核心输入hash进入机验；旧记录保持not_recorded/null，新增0020迁移。实际完整候选、正式认证、active Worker完整纵向和normalized消费仍未验收，整票不关闭。
