@@ -1,0 +1,126 @@
+{
+  "recorded_at": "2026-09-08T15:14:28.305502+00:00",
+  "base_commit": "b8cf9b3091074ede751fb7c09e30daa150eb05dc",
+  "scope": "verified per-symbol warrant history coverage for registered catalog Worker",
+  "software_slice_passed": true,
+  "associated_tests": 219,
+  "application_and_changed_test_mypy_files": 87,
+  "installed_sources": 86,
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "worker_120d_complete_member_density_software_passed": true,
+  "real_new_catalog_worker_publication_tested": false,
+  "real_source_certification": false,
+  "real_candidate_or_120d_replay": false,
+  "project_full_gate_passed": false,
+  "production_cutover": false,
+  "new_cny030_official_numeric_samples": 0,
+  "new_core_catalog_consumption_implemented": false,
+  "files": [
+    {
+      "path": "src/pring_cycle/warrant_inputs.py",
+      "bytes": 6344,
+      "sha256": "207d7060df033ebddee8baa39745840ca93a08f0081c97495398aa509712ffe8"
+    },
+    {
+      "path": "src/pring_cycle/context_projection.py",
+      "bytes": 82057,
+      "sha256": "74338121490bee92c2d3f9834088118e9d047f18aa1d7019b72bed51ed9af820"
+    },
+    {
+      "path": "src/pring_cycle/worker.py",
+      "bytes": 58270,
+      "sha256": "e58ef5f21f6159448d959cc1bf5b8092438ed72781d829418e5b79c1b5163c6f"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "bytes": 148210,
+      "sha256": "543d6ab7183e969478dca72267ae16c0392e5e3100527dd28e9a7a9a7c587edc"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-19-warrants-history.md",
+      "bytes": 2972,
+      "sha256": "8f422888158a28b10b9d1e814284b80db1855d46631bbd03e60226d108b917f8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md",
+      "bytes": 9809,
+      "sha256": "0497896ed0a663c8c5a46e6d05496357129ce23446561945071a365da51b5447"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/21-public-replay-120d.md",
+      "bytes": 3764,
+      "sha256": "474db6d16aa51f29d896cd878ee49e403e0719a34f8d332e65f2bac2988ebc21"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history/review.md",
+      "bytes": 1058,
+      "sha256": "d6bd883e88fcc83d027143c4d0d7b9908ea06a6575bc2263faf949e97d10fc9e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history/finalize.py",
+      "bytes": 3380,
+      "sha256": "fc8b8b61ea442fce176b8ad5e5a5d4392ffa59e72bfad9944b2046e11da705ab"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history/research-verification.json",
+      "bytes": 398,
+      "sha256": "46fb9a0063d8e6dd111849f7f3a04aa007f401824bc84ea0317f6f2cbde2902d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/cny030-official-followup-20260908.md",
+      "bytes": 7841,
+      "sha256": "c33aa021b0f74b767c6792afa1c21eb5bb42bfcf39e045a8cef7bc3737bc6aec"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/new-catalog-core-consumption-boundary.md",
+      "bytes": 15500,
+      "sha256": "33158ff0f724366ee26f9efbdcef9b4bad836357cc8623d3dee092c3cacfa2a3"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-associated-01.txt",
+      "bytes": 716,
+      "sha256": "79ef934ceeace973484e2168f74dd5730fadc2cc7023f39b622feb80057148e2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-format-final.txt",
+      "bytes": 56,
+      "sha256": "3c9105041166a0913568f3c6adb0b9b4ad6945c34f455feecf166807eb8af6b8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-green-01.txt",
+      "bytes": 236,
+      "sha256": "9d8fdabc57dab8588e50178b988d464ec502e47e16958a057d06c5eaaed00a7d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-mypy-01.txt",
+      "bytes": 92,
+      "sha256": "5e3712d3f4502f5351c3ed054a3995be22c9877ec9a2ab4fca1efd9cb3417e98"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-mypy-final.txt",
+      "bytes": 92,
+      "sha256": "5e3712d3f4502f5351c3ed054a3995be22c9877ec9a2ab4fca1efd9cb3417e98"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-red-01.txt",
+      "bytes": 2524,
+      "sha256": "c0cb5789ef2c4ec2a7870a7645f1897f8f3ff47e673813d5cc05fda47cc4e593"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-ruff-01.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-ruff-final.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-warrants-history-fingerprint.json",
+      "bytes": 13932,
+      "sha256": "4ce3aef60d45faa9d11188792e911ab89df7d79110f5824c4506ca2687f9ebde"
+    }
+  ]
+}

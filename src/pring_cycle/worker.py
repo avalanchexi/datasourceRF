@@ -9,6 +9,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition, metric_definition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import (
     ContextProjection,
     ContextProjectionRules,
@@ -1022,6 +1023,15 @@ def _explanatory_evidence_warnings(
                 available += 1
                 continue
             if not _context_status_allows_direct_metric(definition, statuses):
+                continue
+            if (
+                definition.metric_id == "CN_FUTURES_WARRANTS"
+                and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+                and (
+                    context.warrant_history is None
+                    or not context.warrant_history.is_ready(target_trading_days)
+                )
+            ):
                 continue
             series = evidence.metric_series(
                 definition.metric_id,

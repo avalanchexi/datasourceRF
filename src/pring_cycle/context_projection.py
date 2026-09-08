@@ -28,7 +28,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.metric_contracts import evidence_max_age_days
 from pring_cycle.published_events import select_published_rrr_events
-from pring_cycle.warrant_inputs import select_warrant_inputs
+from pring_cycle.warrant_inputs import WarrantHistoryCoverage, select_warrant_inputs
 
 _POLICY_ACTION = {
     "CN_OMO_7D_RATE": "policy_action",
@@ -88,6 +88,13 @@ class ContextProjection:
     inventory: dict[str, object]
     observation_version_ids: tuple[str, ...]
     warnings: tuple[str, ...]
+    warrant_history: WarrantHistoryCoverage | None = None
+
+
+@dataclass(frozen=True)
+class _MetricRows:
+    rows: tuple[dict[str, object], ...]
+    warrant_history: WarrantHistoryCoverage | None = None
 
 
 _SUPPORTED_FORMULA_VERSIONS = {
@@ -263,7 +270,7 @@ def build_context_projection(
     missing = sorted(relevant - definitions.keys())
     if missing:
         raise ValueError(f"context_model_metric_missing:{','.join(missing)}")
-    rows_by_metric = {
+    metric_results = {
         metric_id: _metric_rows(
             visible_repository,
             definitions[metric_id],
@@ -272,6 +279,7 @@ def build_context_projection(
         )
         for metric_id in sorted(relevant)
     }
+    rows_by_metric = {metric_id: result.rows for metric_id, result in metric_results.items()}
     acquisition_period = (
         target_business_date or as_of.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
     )
@@ -547,7 +555,13 @@ def build_context_projection(
     )
     if any(item["status"] != "current" for item in international_context):
         warnings += ("p2_context_degraded",)
-    return ContextProjection(macro_document, inventory_document, versions, warnings)
+    return ContextProjection(
+        macro_document,
+        inventory_document,
+        versions,
+        warnings,
+        warrant_history=metric_results["CN_FUTURES_WARRANTS"].warrant_history,
+    )
 
 
 class TargetBoundEvidenceRepository:
@@ -1287,7 +1301,7 @@ def _metric_rows(
     *,
     as_of: datetime,
     as_of_mode: AsOfMode,
-) -> tuple[dict[str, object], ...]:
+) -> _MetricRows:
     series = repository.metric_series(
         definition.metric_id,
         mode=as_of_mode,
@@ -1301,13 +1315,22 @@ def _metric_rows(
         else set()
     )
     warrant_latest_period = None
+    warrant_history = None
     if (
         definition.metric_id == "CN_FUTURES_WARRANTS"
         and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
     ):
         warrant_latest_period = max((point.period_end for point in series), default=None)
+        complete_periods: dict[str, list[str]] = {}
         for period in {point.period_end for point in series}:
             selection = select_warrant_inputs(repository, series, period=period, mode=as_of_mode)
+            selected_ids = set(selection.selected_claim_ids)
+            for symbol in {
+                point.dimensions["symbol"]
+                for point in series
+                if point.selected_claim_id in selected_ids
+            }:
+                complete_periods.setdefault(symbol, []).append(period)
             incomplete_source_claims.update(selection.incomplete_claim_ids)
             if selection.missing_members:
                 incomplete_source_claims.update(
@@ -1315,6 +1338,10 @@ def _metric_rows(
                     for point in series
                     if point.period_end == period and point.selected_claim_id is not None
                 )
+        if definition.certification_status == "certified":
+            warrant_history = WarrantHistoryCoverage(
+                {symbol: tuple(sorted(periods)) for symbol, periods in complete_periods.items()}
+            )
     release_status = _release_status(
         repository,
         definition,
@@ -1337,7 +1364,7 @@ def _metric_rows(
             )
         ):
             release_status = "no_event_in_visible_window"
-        return (_gap_row(definition, release_status=release_status),)
+        return _MetricRows((_gap_row(definition, release_status=release_status),), warrant_history)
     rows: list[dict[str, object]] = []
     for dimensions_key in sorted(grouped):
         points = grouped[dimensions_key]
@@ -1449,7 +1476,7 @@ def _metric_rows(
                 ),
             }
         )
-    return tuple(rows)
+    return _MetricRows(tuple(rows), warrant_history)
 
 
 def _gap_row(

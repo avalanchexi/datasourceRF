@@ -3473,3 +3473,133 @@ def test_registered_lpr_rejects_a_claim_from_another_provider(
                 quality_status="validated",
             )
         )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(("missing_days", "staggered"), [(6, False), (7, False), (6, True)])
+def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    missing_days: int,
+    staggered: bool,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    digest = "6e849804171177debebc666eabf63388c21066fe695a06f75f6c2cc47043f120"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-04"
+        / f"{digest}.json"
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    required = tuple(
+        sorted(
+            {date.fromisoformat(row["tradeDate"]).isoformat() for row in json.loads(raw)["data"]}
+        )
+    )
+    assert len(required) == 120
+    assert (required[0], required[-1]) == ("2026-03-09", "2026-08-28")
+    # Only the date set comes from the saved official index response.
+    # All warrant values, publication times, and source certification are synthetic.
+    missing = set(required[40 : 40 + missing_days])
+    pp_missing = set(required[60:66]) if staggered else set()
+    symbols = ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        symbol = str(payload["params"]["symbol"])
+        start = date.fromisoformat(payload["params"]["start_date"]).isoformat()
+        end = date.fromisoformat(payload["params"]["end_date"]).isoformat()
+        unit = "桶" if symbol == "SC" else "张" if symbol in {"CF", "PTA"} else "吨"
+        rows = []
+        for period in required:
+            if start <= period <= end:
+                day = period.replace("-", "")
+                rows.append(
+                    [
+                        day,
+                        symbol,
+                        "synthetic-first",
+                        None,
+                        None if symbol == "PP" and period in pp_missing else 100,
+                        None,
+                        unit,
+                        "synthetic",
+                    ]
+                )
+                if symbol == "CU":
+                    rows.append(
+                        [
+                            day,
+                            symbol,
+                            "synthetic-second",
+                            None,
+                            None if period in missing else 25,
+                            None,
+                            unit,
+                            "synthetic",
+                        ]
+                    )
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": rows,
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        return tuple(
+            replace(
+                scalar,
+                release_at=datetime.fromisoformat(f"{scalar.period_end}T09:00:00+00:00"),
+                public_available_at=datetime.fromisoformat(f"{scalar.period_end}T09:00:00+00:00"),
+            )
+            for symbol in symbols
+            for scalar in adapter.futures_warrants(
+                start_date=date(2026, 3, 9), end_date=date(2026, 8, 28), symbol=symbol
+            )
+        )
+
+    adapter.acquire_scalars(paths, retrieve, definition_version=version)
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=datetime(2026, 8, 28, 9, tzinfo=UTC),
+        as_of_mode=AsOfMode.PUBLIC,
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date="2026-08-28",
+        visible_evidence_start="2026-03-09",
+    )
+    coverage = context.warrant_history
+    assert coverage is not None
+    assert len(coverage.complete_periods["CU"]) == (114 if missing_days == 6 else 113)
+    assert len(coverage.complete_periods["PP"]) == (114 if staggered else 120)
+    assert all(
+        len(coverage.complete_periods[symbol]) == 120
+        for symbol in symbols
+        if symbol not in {"CU", "PP"}
+    )
+    if staggered:
+        assert (
+            len(set(coverage.complete_periods["CU"]) & set(coverage.complete_periods["PP"])) == 108
+        )
+    assert missing.isdisjoint(coverage.complete_periods["CU"])
+    assert coverage.is_ready(required) is (missing_days == 6)
+    assert not coverage.is_ready(required[:-1])
+    assert not coverage.is_ready((*required[:-1], required[-2]))

@@ -1,0 +1,16 @@
+{
+  "report_bytes": 15500,
+  "input_snapshots_verified": 20,
+  "current_inputs": 19,
+  "explicit_prior_commit_inputs": [
+    ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md"
+  ],
+  "local_links": 53,
+  "cny030_followup_root_checked": {
+    "bytes": 7841,
+    "input_hashes": 4,
+    "local_links": 12,
+    "old_original_hashes": 3,
+    "new_numeric_samples": 0
+  }
+}

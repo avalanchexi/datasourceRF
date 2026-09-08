@@ -26,6 +26,23 @@ class WarrantInputSelection:
     missing_members: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class WarrantHistoryCoverage:
+    complete_periods: dict[str, tuple[str, ...]]
+
+    def is_ready(self, required_trading_days: tuple[str, ...]) -> bool:
+        """Apply the existing 120-day, 95% rule to verified symbol-day deliveries."""
+        required = set(required_trading_days)
+        if len(required_trading_days) != 120 or len(required) != 120:
+            return False
+        minimum_observations = (len(required) * 95 + 99) // 100
+        return all(
+            len(required.intersection(self.complete_periods.get(symbol, ())))
+            >= minimum_observations
+            for symbol in WARRANT_SYMBOLS
+        )
+
+
 def select_warrant_inputs(
     repository: EvidenceRepository,
     points: tuple[MetricSeriesPoint, ...],
