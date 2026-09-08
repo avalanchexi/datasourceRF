@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from datetime import time as clock_time
@@ -28,6 +29,7 @@ from pring_cycle.model_outputs import (
     validate_replay_output,
 )
 from pring_cycle.source_contract_review import require_model_source_contract
+from pring_cycle.storage import database_connection
 
 CALIBRATION_BASELINE: dict[str, int] = {
     "asset_direction_changes": 21,
@@ -1050,12 +1052,13 @@ class ModelRepository:
             ).fetchall()
         return tuple(_model_version(row) for row in rows)
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self._database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute("PRAGMA journal_mode=WAL")
+            yield connection
 
 
 def _model_version(row: sqlite3.Row) -> ModelVersion:
@@ -1088,7 +1091,7 @@ def _hardened_machine_acceptance_matches(
     except (KeyError, LookupError, TypeError, ValueError):
         return False
     expected_hash = hashlib.sha256(_canonical_json({**normalized, **metadata}).encode()).hexdigest()
-    with sqlite3.connect(database_path) as connection:
+    with database_connection(database_path) as connection:
         row = connection.execute(
             """
             SELECT 1 FROM model_acceptance

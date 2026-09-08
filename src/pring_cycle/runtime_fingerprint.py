@@ -7,6 +7,7 @@ from typing import Any
 
 from pring_cycle.models import ModelRepository
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.storage import database_connection
 
 
 def execution_fingerprint(
@@ -21,9 +22,7 @@ def execution_fingerprint(
         "code_hash": _tree_hash(package_root, ("*.py", "*.css", "*.js")),
         "configuration_version": "config-v0001",
         "database_revision": _database_revision(paths.database),
-        "dependency_hash": (
-            _file_hash(dependency_file) if dependency_file.is_file() else None
-        ),
+        "dependency_hash": (_file_hash(dependency_file) if dependency_file.is_file() else None),
     }
     if model_version_id is not None:
         model = ModelRepository(paths.database).get(model_version_id)
@@ -38,10 +37,7 @@ def execution_fingerprint(
 
 def model_manifest_hashes(paths: RuntimePaths) -> dict[str, str]:
     models = ModelRepository(paths.database)
-    return {
-        model.model_version_id: model.manifest_hash
-        for model in models.list_versions()
-    }
+    return {model.model_version_id: model.manifest_hash for model in models.list_versions()}
 
 
 def fingerprint_matches(
@@ -53,14 +49,7 @@ def fingerprint_matches(
 
 def _tree_hash(root: Path, patterns: tuple[str, ...]) -> str:
     digest = hashlib.sha256()
-    paths = sorted(
-        {
-            path
-            for pattern in patterns
-            for path in root.rglob(pattern)
-            if path.is_file()
-        }
-    )
+    paths = sorted({path for pattern in patterns for path in root.rglob(pattern) if path.is_file()})
     for path in paths:
         digest.update(path.relative_to(root).as_posix().encode())
         digest.update(b"\0")
@@ -89,10 +78,8 @@ def _database_revision(database: Path) -> str | None:
     if not database.is_file():
         return None
     try:
-        with sqlite3.connect(database) as connection:
-            row = connection.execute(
-                "SELECT version_num FROM alembic_version LIMIT 1"
-            ).fetchone()
+        with database_connection(database) as connection:
+            row = connection.execute("SELECT version_num FROM alembic_version LIMIT 1").fetchone()
     except sqlite3.DatabaseError:
         return None
     return str(row[0]) if row is not None else None

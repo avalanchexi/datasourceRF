@@ -15,6 +15,17 @@ if TYPE_CHECKING:
 SCHEMA_HEAD = "0021_context_replay_outputs"
 
 
+@contextmanager
+def database_connection(database: Path | str, *, uri: bool = False) -> Iterator[sqlite3.Connection]:
+    """Commit or roll back the operation, then always close its connection."""
+    connection = sqlite3.connect(database, uri=uri)
+    try:
+        with connection:
+            yield connection
+    finally:
+        connection.close()
+
+
 def migrate_database(database_path: Path) -> None:
     from alembic import command
     from sqlalchemy import create_engine, event
@@ -177,15 +188,11 @@ def worker_status(database_path: Path, now: datetime | None = None) -> WorkerHea
 
 @contextmanager
 def _sqlite_connection(database_path: Path) -> Iterator[sqlite3.Connection]:
-    connection = sqlite3.connect(database_path, timeout=5)
-    try:
+    with database_connection(database_path) as connection:
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("PRAGMA foreign_keys=ON")
         connection.execute("PRAGMA busy_timeout=5000")
         yield connection
-        connection.commit()
-    finally:
-        connection.close()
 
 
 def _alembic_configuration() -> Config:

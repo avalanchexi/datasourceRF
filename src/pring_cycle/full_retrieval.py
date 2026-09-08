@@ -26,6 +26,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
+from pring_cycle.storage import database_connection
 
 
 class FullRunRetrieval:
@@ -335,7 +336,7 @@ class FullRunRetrieval:
             )
         snapshot = ledger.for_run(run.run_id)
         if snapshot is not None:
-            with sqlite3.connect(self.paths.database) as connection:
+            with database_connection(self.paths.database) as connection:
                 for request in snapshot["requests"]:
                     linked = [g for g in snapshot["gaps"] if g["gap_id"] in request["gap_ids"]]
                     for final_gap in snapshot["gaps"]:
@@ -453,7 +454,7 @@ class FullRunRetrieval:
 
             walk(projection.datasets["macro"])
             walk(projection.datasets["inventory"])
-        with sqlite3.connect(self.paths.database) as connection:
+        with database_connection(self.paths.database) as connection:
             snapshot = connection.execute(
                 "SELECT observation_version_ids_json FROM evidence_snapshot "
                 "WHERE evidence_snapshot_id=?",
@@ -492,7 +493,7 @@ class FullRunRetrieval:
 
     def _record(self, run_id: str, phase: str, document: dict[str, Any]) -> None:
         encoded = json.dumps(document, ensure_ascii=False, sort_keys=True)
-        with sqlite3.connect(self.paths.database) as connection:
+        with database_connection(self.paths.database) as connection:
             existing = connection.execute(
                 "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase=?",
                 (run_id, phase),
@@ -509,7 +510,7 @@ class FullRunRetrieval:
 
 def read_full_retrieval_plan(database: Path, run_id: str) -> dict[str, Any]:
     result: dict[str, Any] = {"initial": None, "final": None, "adoption": None, "acquisitions": []}
-    with sqlite3.connect(database) as connection:
+    with database_connection(database) as connection:
         if not connection.execute(
             "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
         ).fetchone():

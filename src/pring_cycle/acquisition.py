@@ -14,6 +14,7 @@ from urllib.error import HTTPError
 from uuid import uuid4
 
 from pring_cycle.artifacts import store_artifact
+from pring_cycle.storage import database_connection
 
 
 def utc_now() -> datetime:
@@ -85,7 +86,7 @@ def acquisition_analysis_context(
     """Use persisted ownership; mixed or unbound originals have no single analysis target."""
     if not acquisition_ids:
         return {}
-    with sqlite3.connect(database) as connection:
+    with database_connection(database) as connection:
         if (
             connection.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='full_run_acquisition'"
@@ -316,11 +317,12 @@ class AcquisitionRepository:
             raise ValueError("artifact_hash_mismatch")
         return content
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self.database) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            yield connection
 
 
 def _check_time(value: datetime, previous: datetime | None = None) -> None:

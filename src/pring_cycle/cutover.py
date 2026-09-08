@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,7 +24,7 @@ from pring_cycle.rehearsals import verify_source_smoke_artifacts
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.runtime_fingerprint import execution_fingerprint, fingerprint_matches
 from pring_cycle.source_contract_review import source_contract_review
-from pring_cycle.storage import artifact_is_registered, database_health
+from pring_cycle.storage import artifact_is_registered, database_connection, database_health
 
 CUTOVER_CONFIRMATION = "DIRECT_CUTOVER_TO_PRING_V1"
 
@@ -247,8 +249,7 @@ def _read_artifact(
         "cutover_manifest": "cutover:manifest-candidate",
     }[kind]
     if (
-        kind != "cutover_manifest"
-        and (not isinstance(result_hash, str) or len(result_hash) != 64)
+        kind != "cutover_manifest" and (not isinstance(result_hash, str) or len(result_hash) != 64)
     ) or not artifact_is_registered(paths.database, content_hash, source_reference):
         raise ValueError("artifact_provenance_invalid")
     return normalized
@@ -282,8 +283,7 @@ def _quality_gates_passed(document: dict[str, Any]) -> bool:
         and isinstance(regressions, dict)
         and len(regressions) == 35
         and all(
-            isinstance(item, dict) and item.get("passed") is True
-            for item in regressions.values()
+            isinstance(item, dict) and item.get("passed") is True for item in regressions.values()
         )
     )
 
@@ -352,11 +352,12 @@ def _canonical_json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
-def _connect(database: Path) -> sqlite3.Connection:
-    connection = sqlite3.connect(database)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA journal_mode=WAL")
-    return connection
+@contextmanager
+def _connect(database: Path) -> Iterator[sqlite3.Connection]:
+    with database_connection(database) as connection:
+        connection.row_factory = sqlite3.Row
+        connection.execute("PRAGMA journal_mode=WAL")
+        yield connection
 
 
 def _cutover_record(row: sqlite3.Row) -> CutoverRecord:

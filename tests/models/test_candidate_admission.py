@@ -39,7 +39,7 @@ from pring_cycle.search_discovery import (
     build_search_query,
     search_discovery_adapter,
 )
-from pring_cycle.search_evidence import select_retrieval_input
+from pring_cycle.search_evidence import ModelInputSelection, select_retrieval_input
 from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
 
 
@@ -798,6 +798,16 @@ def test_registered_warrant_acquisition_preserves_sample_units_and_unknown_publi
         "prior_missing",
         "warehouse_removed",
         "forged_optional",
+        "wrong_normalized",
+        "wrong_normalized_public",
+        "explicit_definition",
+        "wrong_normalized_value",
+        "wrong_normalized_unit",
+        "wrong_normalized_period",
+        "wrong_normalized_link",
+        "wrong_normalized_definition",
+        "normalized_removed",
+        "normalized_changed",
     ],
 )
 def test_registered_warrant_selection_requires_all_returned_warehouses(
@@ -806,7 +816,9 @@ def test_registered_warrant_selection_requires_all_returned_warehouses(
     scenario: str,
 ) -> None:
     missing_current = scenario == "missing_current"
-    invalid_receipt = scenario == "invalid_receipt"
+    invalid_receipt = scenario == "invalid_receipt" or scenario.startswith(
+        ("wrong_normalized", "normalized_")
+    )
     prior_missing = scenario == "prior_missing"
     warehouse_removed = scenario == "warehouse_removed"
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -875,7 +887,12 @@ def test_registered_warrant_selection_requires_all_returned_warehouses(
     imported = adapter.acquire_scalars(
         paths,
         lambda: tuple(
-            replace(scalar, release_at=public_at, public_available_at=public_at)
+            replace(
+                scalar,
+                release_at=public_at,
+                public_available_at=public_at,
+                definition_version=version if scenario == "explicit_definition" else None,
+            )
             for symbol in symbols
             for scalar in adapter.futures_warrants(
                 start_date=date(2026, 8, 27 if prior_missing or warehouse_removed else 28),
@@ -941,21 +958,49 @@ def test_registered_warrant_selection_requires_all_returned_warehouses(
         claim = next(c for c in point.claims if c.claim_id == point.selected_claim_id)
         (original,) = evidence.source_claim_originals(claim.claim_id)
         receipt, raw = original
-        malformed = (
-            AcquisitionRepository(paths.database, paths.artifacts)
-            .capture(
-                provider="tushare",
-                api_name="fut_wsr",
-                parameters=receipt.parameters,
-                fields=receipt.fields,
-                parser_version="synthetic-invalid-parser",
-                fetch=lambda: raw,
-                parse=json.loads,
-                normalize=lambda document: document,
-                clock=lambda: claim.fetched_at,
-            )
-            .receipt
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        malformed = acquisitions.capture(
+            provider="tushare",
+            api_name="fut_wsr",
+            parameters=receipt.parameters,
+            fields=receipt.fields,
+            parser_version=(
+                receipt.parser_version
+                if scenario != "invalid_receipt"
+                else "synthetic-invalid-parser"
+            ),
+            fetch=lambda: raw,
+            parse=json.loads,
+            normalize=lambda document: [] if scenario == "wrong_normalized" else document,
+            clock=lambda: claim.fetched_at,
+            defer_validation=True,
+        ).receipt
+        normalized: list[dict[str, Any]] = []
+        if scenario not in {"invalid_receipt", "wrong_normalized"}:
+            normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+            for item in normalized:
+                item["acquisition_ids"] = [malformed.acquisition_id]
+            changes = {
+                "wrong_normalized_public": ("public_available_at", None),
+                "wrong_normalized_value": ("value", 999),
+                "wrong_normalized_unit": ("unit", "barrel"),
+                "wrong_normalized_period": ("period_end", "2026-08-27"),
+                "wrong_normalized_link": ("acquisition_ids", [receipt.acquisition_id]),
+                "wrong_normalized_definition": ("definition_version", "wrong-catalog"),
+            }
+            if scenario in changes:
+                field, value = changes[scenario]
+                normalized[0][field] = value
+        malformed = acquisitions.complete_validation(
+            malformed.acquisition_id, normalized, clock=lambda: claim.fetched_at
         )
+        if scenario in {"normalized_removed", "normalized_changed"}:
+            assert malformed.normalized_hash is not None
+            artifact = paths.artifacts / malformed.normalized_hash[:2] / malformed.normalized_hash
+            if scenario == "normalized_removed":
+                artifact.unlink()
+            else:
+                artifact.write_bytes(b"damaged normalized")
         revision = evidence.latest_provider_claim(
             metric_id="CN_FUTURES_WARRANTS",
             definition_version=version,
@@ -1034,6 +1079,116 @@ def test_registered_warrant_selection_requires_all_returned_warehouses(
                 if p.dimensions["warehouse"] == "synthetic-second"
             }
             assert removed_ids.isdisjoint(inputs)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_warrant_value_revision_remains_system_usable_with_unknown_public(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    copper = 100
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        symbol = payload["params"]["symbol"]
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": [
+                        "trade_date",
+                        "symbol",
+                        "warehouse",
+                        "pre_vol",
+                        "vol",
+                        "vol_chg",
+                        "unit",
+                        "exchange",
+                    ],
+                    "items": [
+                        [
+                            "20260828",
+                            symbol,
+                            "synthetic",
+                            None,
+                            copper if symbol == "CU" else 100,
+                            None,
+                            "吨",
+                            "synthetic",
+                        ]
+                    ],
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+    def acquire(symbols: tuple[str, ...]) -> None:
+        adapter.acquire_scalars(
+            paths,
+            lambda: tuple(
+                replace(scalar, release_at=public_at, public_available_at=public_at)
+                for symbol in symbols
+                for scalar in adapter.futures_warrants(
+                    start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=symbol
+                )
+            ),
+            definition_version=version,
+        )
+
+    def select(name: str) -> ModelInputSelection:
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id=name,
+            model_version_id=model_id,
+            system_as_of=datetime.now(UTC),
+            release_event_id="synthetic:warrant-revision",
+            metric_ids=("CN_FUTURES_WARRANTS",),
+            period="2026-08-28",
+        )
+        return select_retrieval_input(paths, run)
+
+    acquire(("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA"))
+    assert select("warrant-before-revision").complete
+    copper = 101
+    public_at += timedelta(hours=1)
+    acquire(("CU",))
+    evidence = EvidenceRepository(paths.database)
+    points = evidence.metric_series(
+        "CN_FUTURES_WARRANTS",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=version,
+    )
+    current = next(p for p in points if p.dimensions["symbol"] == "CU")
+    claim = next(c for c in current.claims if c.claim_id == current.selected_claim_id)
+    assert current.selected_value == 101
+    assert claim.public_available_at is None and claim.release_at is None
+    historical = evidence.metric_series(
+        "CN_FUTURES_WARRANTS",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime.now(UTC),
+        definition_version=version,
+    )
+    assert next(p for p in historical if p.dimensions["symbol"] == "CU").selected_value == 100
+    selection = select("warrant-after-revision")
+    assert selection.complete
+    # The historical target remains PUBLIC-bounded, even in a SYSTEM run.
+    assert current.selected_claim_id not in selection.selected_claim_ids
+    context = build_context_projection(
+        evidence,
+        as_of=datetime.now(UTC),
+        as_of_mode=AsOfMode.SYSTEM,
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+    )
+    assert context.warrant_history is not None
+    assert context.warrant_history.complete_periods["CU"] == ("2026-08-28",)
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -3780,10 +3935,12 @@ def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
 
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("fault", ["changed", "missing"])
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
 def test_registered_core_history_preserves_originals_and_unknown_public(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     fault: str,
+    artifact_kind: str,
 ) -> None:
     from pring_cycle.core_history import refresh_core_history
     from pring_cycle.runs import RetrievalScope
@@ -3890,8 +4047,10 @@ def test_registered_core_history_preserves_originals_and_unknown_public(
     )
     assert stock.selected_claim_id is not None
     ((receipt, _),) = evidence.source_claim_originals(stock.selected_claim_id)
-    assert receipt.raw_hash is not None
-    artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
+    artifact_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert artifact_hash is not None
+    content = acquisitions.read_content(receipt.acquisition_id, artifact_kind)
+    artifact = paths.artifacts / artifact_hash[:2] / artifact_hash
     if fault == "changed":
         artifact.write_bytes(b"damaged after admission")
     else:
@@ -3902,14 +4061,22 @@ def test_registered_core_history_preserves_originals_and_unknown_public(
         rejected = current.select(scope)
         assert not rejected.complete
         assert set(rejected.selected_claim_ids) == selected_ids - {stock.selected_claim_id}
-    artifact.write_bytes(originals["000985.CSI"])
+    artifact.write_bytes(content)
     assert selector.select(scope).complete
 
 
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize(
     "fault",
-    ["missing_original", "wrong_original", "forged_value", "wrong_code", "missing_period_null"],
+    [
+        "missing_original",
+        "wrong_original",
+        "forged_value",
+        "wrong_code",
+        "missing_period_null",
+        "wrong_normalized",
+        "missing_normalized",
+    ],
 )
 def test_registered_core_claim_requires_its_exact_original(
     tmp_path: Path,
@@ -3950,6 +4117,23 @@ def test_registered_core_claim_requires_its_exact_original(
         if r.parameters.get("ts_code")
         == ("000012.SH" if fault == "wrong_original" else "000985.CSI")
     )
+    if fault == "wrong_normalized":
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        raw = acquisitions.read_content(receipt.acquisition_id, "raw")
+        receipt = acquisitions.capture(
+            provider=receipt.provider,
+            api_name=receipt.api_name,
+            parameters=receipt.parameters,
+            fields=receipt.fields,
+            parser_version=receipt.parser_version,
+            fetch=lambda: raw,
+            parse=json.loads,
+            normalize=lambda document: [],
+        ).receipt
+        assert acquisitions.read_content(receipt.acquisition_id, "normalized") == b"[]"
+    elif fault == "missing_normalized":
+        assert receipt.normalized_hash is not None
+        (paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash).unlink()
     assert receipt.received_at is not None and receipt.validated_at is not None
     expected = (
         "registered_core_source_identity_mismatch"
@@ -4006,12 +4190,14 @@ def test_registered_core_claim_requires_its_exact_original(
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("fault", ["changed", "missing"])
 @pytest.mark.parametrize("original_case", ["base", "late_revision", "one_of_two"])
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
 def test_registered_core_public_replay_rechecks_selected_originals(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
     fault: str,
     original_case: str,
+    artifact_kind: str,
 ) -> None:
     from pring_cycle.model_evaluation import evaluate_history
     from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
@@ -4065,13 +4251,16 @@ def test_registered_core_public_replay_rechecks_selected_originals(
         fetched_at = receipt.received_at
         tracked_originals.add(paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash)
         if metric_id == "CN_BOND_CORE_000012":
-            assert receipt.raw_hash is not None
-            damaged_hash = receipt.raw_hash
+            selected_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+            assert selected_hash is not None
+            damaged_hash = selected_hash
         extra_ids: tuple[str, ...] = ()
         if metric_id == "CN_BOND_CORE_000012" and original_case == "one_of_two":
             # Two distinct physical deliveries support each claim; both must stay valid.
             def second_response(payload: dict[str, Any], body: bytes = raw) -> bytes:
-                return body + b"\n"
+                document = json.loads(body)
+                document["data"]["items"][0][3] = 98
+                return encode(document)
 
             extra = (
                 TushareCoreAdapter("synthetic-token", transport=second_response)
@@ -4088,7 +4277,11 @@ def test_registered_core_public_replay_rechecks_selected_originals(
             assert extra.received_at is not None
             fetched_at = extra.received_at
             extra_ids = (extra.acquisition_id,)
-            damaged_hash = extra.raw_hash
+            selected_hash = extra.raw_hash if artifact_kind == "raw" else extra.normalized_hash
+            assert selected_hash is not None
+            assert extra.raw_hash != receipt.raw_hash
+            assert extra.normalized_hash != receipt.normalized_hash
+            damaged_hash = selected_hash
             tracked_originals.add(paths.artifacts / extra.raw_hash[:2] / extra.raw_hash)
         for i, day in enumerate(days):
             published = datetime(day.year, day.month, day.day, 8, tzinfo=UTC)
@@ -4145,7 +4338,9 @@ def test_registered_core_public_replay_rechecks_selected_originals(
         )
         assert receipt.raw_hash is not None
         assert receipt.received_at is not None and receipt.validated_at is not None
-        damaged_hash = receipt.raw_hash
+        selected_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+        assert selected_hash is not None
+        damaged_hash = selected_hash
         tracked_originals.add(paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash)
         published = datetime(days[-1].year, days[-1].month, days[-1].day, 8, tzinfo=UTC)
         evidence.append_source_claim(

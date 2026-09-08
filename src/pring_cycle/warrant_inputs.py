@@ -49,6 +49,7 @@ def select_warrant_inputs(
     *,
     period: str,
     mode: AsOfMode,
+    definition_version: str,
 ) -> WarrantInputSelection:
     """Select all verified fields from each symbol's latest visible physical delivery."""
     points = tuple(point for point in points if point.period_end == period)
@@ -57,6 +58,9 @@ def select_warrant_inputs(
     delivery_ranks: dict[str, tuple[datetime, datetime]] = {}
     links: dict[str, set[str]] = {}
     invalid: set[str] = set()
+    acquisitions = repository.source_claim_acquisitions_many(
+        tuple(p.selected_claim_id for p in points if p.selected_claim_id is not None)
+    )
     for point in points:
         claim = next((c for c in point.claims if c.claim_id == point.selected_claim_id), None)
         if claim is None:
@@ -66,14 +70,19 @@ def select_warrant_inputs(
             invalid.add(claim.claim_id)
             continue
         rank = (ordered_at, claim.available_at)
-        originals = repository.source_claim_originals(claim.claim_id)
+        originals = acquisitions[claim.claim_id]
         if not originals:
             invalid.add(claim.claim_id)
-        for receipt, raw in originals:
+        for original in originals:
+            receipt = original.receipt
             try:
                 if receipt.acquisition_id not in parsed:
                     parsed[receipt.acquisition_id] = parse_warrant_acquisition(
-                        receipt, raw, period=period
+                        receipt,
+                        original.raw,
+                        original.normalized,
+                        period=period,
+                        definition_version=definition_version,
                     )
                 delivery = parsed[receipt.acquisition_id]
             except (TypeError, ValueError, KeyError):
@@ -148,5 +157,14 @@ def _matches_original(point: MetricSeriesPoint, claim: ClaimView, scalar: Contex
         and claim.provider == "tushare"
         and claim.source_reference == f"tushare:fut_wsr:{scalar.source_field}:{scalar.period_end}"
         and claim.unit == scalar.unit
+        and (
+            # Ingestion conservatively clears both times on a changed value.
+            # Keep the captured assertion without granting it PUBLIC eligibility.
+            (claim.release_at is None and claim.public_available_at is None)
+            or (
+                claim.release_at == scalar.release_at
+                and claim.public_available_at == scalar.public_available_at
+            )
+        )
         and claim.value == scalar.value
     )

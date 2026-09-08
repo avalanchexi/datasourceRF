@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import shutil
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+from pring_cycle.storage import database_connection
 
 GIB = 1024**3
 MIB = 1024**2
@@ -213,11 +217,12 @@ class MaintenanceRepository:
             "destructive_recovery_available": False,
         }
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self._database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA journal_mode=WAL")
+            yield connection
 
 
 def _retention_policy(kind: str) -> tuple[timedelta | None, int | None]:

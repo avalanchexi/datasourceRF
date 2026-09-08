@@ -56,6 +56,16 @@ def parse_core_acquisition(
     bars = _core_bars_response(document, metric_id, None)
     if any(not start <= bar.business_date <= end for bar in bars):
         raise ValueError("core_acquisition_period_mismatch")
+    normalized = json.dumps(
+        [asdict(bar) for bar in bars],
+        default=str,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode()
+    if hashlib.sha256(normalized).hexdigest() != receipt.normalized_hash:
+        raise ValueError("core_acquisition_normalized_mismatch")
     return bars
 
 

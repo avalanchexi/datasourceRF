@@ -16,6 +16,7 @@ from pring_cycle.catalog import (
     METRIC_CATALOG_VERSION,
     MetricDefinition,
 )
+from pring_cycle.storage import database_connection
 
 BUILTIN_CATALOG_VERSIONS = frozenset(
     {
@@ -70,7 +71,7 @@ def _register_admitted_catalog(connection: sqlite3.Connection, manifest: dict[st
 
 def registered_definitions(database_path: Path, version: str) -> list[dict[str, Any]]:
     """Read a registered identity; never create a database or invent a catalog."""
-    with sqlite3.connect(f"{database_path.resolve().as_uri()}?mode=ro", uri=True) as connection:
+    with database_connection(f"{database_path.resolve().as_uri()}?mode=ro", uri=True) as connection:
         row = connection.execute(
             """SELECT c.definitions_hash, c.definitions_json, m.manifest_json
             FROM registered_metric_catalog c

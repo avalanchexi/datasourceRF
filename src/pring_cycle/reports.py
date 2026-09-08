@@ -9,14 +9,15 @@ import sqlite3
 import subprocess
 import tempfile
 import time
-from collections.abc import Callable
-from contextlib import suppress
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, suppress
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 from pring_cycle.projections import ProjectionSet
+from pring_cycle.storage import database_connection
 
 REPORT_SCHEMA_VERSION = "report-schema-v0003"
 PROMPT_CONTRACT_VERSION = "report-prompt-v0003"
@@ -547,12 +548,13 @@ class ReportRepository:
         )
         return replace(snapshot, explanation_verification=status)
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self._database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute("PRAGMA journal_mode=WAL")
+            yield connection
 
 
 class ReportService:

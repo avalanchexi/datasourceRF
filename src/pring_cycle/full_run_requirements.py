@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import UTC, date, datetime
 from typing import Any
 
@@ -11,6 +10,7 @@ from pring_cycle.evidence import EvidenceValueState
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
+from pring_cycle.storage import database_connection
 
 
 def required_calendar(
@@ -37,7 +37,7 @@ def required_calendar(
     basis = "certified_trade_calendar_claims"
     if len(dates) < 120 or not dates or dates[-1] != run.target_business_date:
         dates = []
-        with sqlite3.connect(paths.database) as connection:
+        with database_connection(paths.database) as connection:
             receipts = connection.execute(
                 "SELECT acquisition_id, validated_at FROM acquisition_request "
                 "WHERE provider='tushare' "

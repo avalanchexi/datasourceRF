@@ -3,12 +3,15 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 from pring_cycle.source_contract_review import require_stored_model_source_contract
+from pring_cycle.storage import database_connection
 
 ANALYTICAL_DATASETS = (
     "cycle_overview",
@@ -202,9 +205,10 @@ class ProjectionSetRepository:
         assessment = self.p0_assessment(assessment_id)
         if assessment.get("event_kind") != "gap" or assessment.get("current_stage") is not None:
             raise ValueError("gap_notice_requires_p0_gap_assessment")
-        notice_id = "gap-notice-" + hashlib.sha256(
-            f"{assessment_id}:{client_request_id}".encode()
-        ).hexdigest()[:20]
+        notice_id = (
+            "gap-notice-"
+            + hashlib.sha256(f"{assessment_id}:{client_request_id}".encode()).hexdigest()[:20]
+        )
         document: dict[str, object] = {
             "ai_calls": 0,
             "assessment_id": assessment_id,
@@ -336,12 +340,13 @@ class ProjectionSetRepository:
             },
         )
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self._database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute("PRAGMA journal_mode=WAL")
+            yield connection
 
 
 def _validate_projection(
@@ -402,9 +407,11 @@ def validate_analytical_projection(
         window_end=envelope.evidence_window_end,
     )
     cards = inventory.get("cards")
-    if not isinstance(cards, list) or tuple(
-        str(card.get("name")) for card in cards if isinstance(card, dict)
-    ) != INVENTORY_CARD_NAMES:
+    if (
+        not isinstance(cards, list)
+        or tuple(str(card.get("name")) for card in cards if isinstance(card, dict))
+        != INVENTORY_CARD_NAMES
+    ):
         raise ValueError("projection_inventory_card_manifest_invalid")
     release_events = datasets["release_calendar"].get("events")
     stage_events = datasets["stage_history"].get("events")
@@ -445,9 +452,7 @@ def _validate_visible_context_window(
                     or evidence_end < visible_start
                     or evidence_start > visible_end
                 ):
-                    raise ValueError(
-                        "projection_context_evidence_outside_visible_window"
-                    )
+                    raise ValueError("projection_context_evidence_outside_visible_window")
             for child in value.values():
                 walk(child)
         elif isinstance(value, list):

@@ -1,5 +1,9 @@
 # 修复项目当前执行入口
 
+**2026-09-09 当前进展：**[核心/仓单标准化消费](implementation-19-normalized-consumption.md)及[SQLite连接生命周期修复](implementation-database-connections.md)完成本批软件验收。修复后[默认全套](verification-connection-full-01.txt)为**1031通过、0失败、2975.70秒**，原主会话37371已正常退出，退出码0；[扩大关联回归](verification-connection-targeted-01.txt)257通过、625.54秒。应用及两个测试文件mypy92、Ruff/格式22文件、两轴复审0项；运行前后90安装Python源匹配，22个测试输入字节未变。[本批检查点](verification-connection/checkpoint.json)绑定源码、终态及完整日志，旧1022通过/6失败/1错误的原始记录保留。[CNY030增量研究](cny030-official-followup-20260909.md)完成4个逻辑搜索，新增目标实值0，正式认证缺口保持。下一步继续LPR/常规宏观/银行间标准化消费与RRR多收据核验，以及真实来源、模型及报告前置；实际完整候选、120中国交易日、合格AI及切换均未完成。
+
+**2026-09-09 本批原全套记录：**从已提交`3e1b7d3`继续的[核心与仓单标准化制品消费核验](implementation-19-normalized-consumption.md)完成公开RED/GREEN、21个新增用例、mypy91、Ruff/格式8文件和90安装Python源核对；两轴复审剩余0。原项目默认全套结果为**1022通过、6失败、1错误，2028.77秒**，见[完整失败日志](verification-normalized-full-01.txt)。失败涉及检索台账及仓单上下文，异常为文件句柄耗尽与SQLite无法打开数据库；该轮时连接释放根因尚待验证，后续修复见上方最新记录。标准化丢失/损坏、哈希正确但语义不符、多关联、显式目录及保守时间降级都按各自证据记录；LPR/常规宏观/银行间与RRR多收据边界继续开放。
+
 **2026-09-09 更新：**从`6662bc2`继续的[上下文逐日快照与输入版本绑定](implementation-21-context-replay.md)已完成**432项关联回归、0失败、611.08秒**，包含19项新增用例；mypy92、Ruff/格式9文件通过，90安装Python源匹配，Spec/Standards剩余均0。[本批检查点](verification-context/checkpoint.json)绑定源码及日志。LPR同值新版本、较早仓单版本、必需字段/成员/范围、旧0019/0020迁移、逐日PUBLIC、失败保留及退出仓库不混入当前输入均已验证。下文旧“尚未执行上下文RED”只反映前一批历史状态。
 
 **仍开放：**normalized消费完整性、新目录active Worker完整纵向、融资注册来源合同、真实来源与规则补证；实际完整候选/120中国交易日/合格AI/切换均未完成。业务规则与网络待答条件保持，不重复提问、不静默替换。

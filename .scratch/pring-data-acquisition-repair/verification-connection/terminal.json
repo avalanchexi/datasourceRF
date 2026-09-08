@@ -1,0 +1,17 @@
+{
+  "targeted": {
+    "session_id": 21546,
+    "exit_code": 0,
+    "tests": 257,
+    "duration_seconds": 625.54,
+    "log": "verification-connection-targeted-01.txt"
+  },
+  "full": {
+    "session_id": 37371,
+    "exit_code": 0,
+    "state": "completed",
+    "tests": 1031,
+    "duration_seconds": 2975.70,
+    "log": "verification-connection-full-01.txt"
+  }
+}

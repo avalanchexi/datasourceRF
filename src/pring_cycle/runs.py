@@ -4,7 +4,8 @@ import hashlib
 import json
 import os
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -12,6 +13,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle.run_cutoffs import cutoff_contract, upgrade_run_cutoffs
+from pring_cycle.storage import database_connection
 
 RUN_STEPS = (
     "queued",
@@ -936,12 +938,13 @@ class RunRepository:
         if updated != 1:
             raise LookupError("run_not_found")
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self._database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute("PRAGMA journal_mode=WAL")
+            yield connection
 
     def _run_record(self, connection: sqlite3.Connection, row: sqlite3.Row) -> RunRecord:
         from dataclasses import replace

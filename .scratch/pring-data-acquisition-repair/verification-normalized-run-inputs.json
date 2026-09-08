@@ -1,0 +1,37 @@
+{
+  "base_commit": "3e1b7d3f4f2421fa72ee2e30ffbaefb11da03f8d",
+  "files": [
+    {
+      "path": "src/pring_cycle/evidence.py",
+      "sha256": "9a969d05fbce05fcd79c4085ba9e191c32c8cddf2e6607ed4ff22976a6753584"
+    },
+    {
+      "path": "src/pring_cycle/source_adapters.py",
+      "sha256": "a9c0e5f7db4d822e61da40b6f623621b3bc85f942a0982d1823592648fb07a4d"
+    },
+    {
+      "path": "src/pring_cycle/tushare_context.py",
+      "sha256": "5a642d4a7275c8991d76f6e5ec24f271ff1fc8693e213fc7abeca26d0602c443"
+    },
+    {
+      "path": "src/pring_cycle/warrant_inputs.py",
+      "sha256": "cb322fe99ef2bc680a1d5a178f127ef6a14d5063d5162c19d8e279c5df1415b3"
+    },
+    {
+      "path": "src/pring_cycle/context_projection.py",
+      "sha256": "f3e986b42ff235159dba263357b740ba06b42619ed4e233e391712de2115f2af"
+    },
+    {
+      "path": "src/pring_cycle/search_evidence.py",
+      "sha256": "be9c08917c9ec3220654e155e14213eaf5a3d2d7602e19e1f282ecced34a30cb"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "sha256": "4fcbd2a8531839fff04b6c542aab14c11428835d66d4bcebae8163aafe4243ce"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "sha256": "4b466ca451a4114c09f7f3c153ef8cb9ef870469d0c8a7b16055df419a2f86a1"
+    }
+  ]
+}

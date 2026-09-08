@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sqlite3
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date
@@ -28,6 +27,7 @@ from pring_cycle.source_adapters import (
     CoreInputValidator,
     selected_core_claim_is_valid,
 )
+from pring_cycle.storage import database_connection
 from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
@@ -112,7 +112,11 @@ class ModelInputSelector:
             )
             if metric_id == "CN_FUTURES_WARRANTS" and self.version not in BUILTIN_CATALOG_VERSIONS:
                 warrants = select_warrant_inputs(
-                    self.core_evidence, self.series(metric_id), period=scope.period, mode=self.mode
+                    self.core_evidence,
+                    self.series(metric_id),
+                    period=scope.period,
+                    mode=self.mode,
+                    definition_version=self.version,
                 )
                 if definition.certification_status != "certified":
                     missing.append("CN_FUTURES_WARRANTS:source_certification_required")
@@ -234,7 +238,7 @@ def verify_search_candidates(
     ]
     for url in urls[:3]:
         validation_id = "candidate-validation-" + uuid4().hex
-        with sqlite3.connect(paths.database) as connection:
+        with database_connection(paths.database) as connection:
             attempt = connection.execute(
                 "SELECT COUNT(*) FROM run_attempt WHERE run_id=?", (run_id,)
             ).fetchone()[0]
@@ -322,7 +326,7 @@ def verify_search_candidates(
         public_selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
         outcome = "model_usable" if claim_ids and selection.complete else "not_model_usable"
         reason = errors[0] if errors else response.classification
-        with sqlite3.connect(paths.database) as connection:
+        with database_connection(paths.database) as connection:
             connection.execute(
                 "UPDATE retrieval_candidate_validation SET outcome=?, reason=?, checked_at=?, "
                 "download_request_id=?, claim_ids_json=?, selected_claim_ids_json=?, "

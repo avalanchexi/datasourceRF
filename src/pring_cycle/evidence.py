@@ -4,7 +4,8 @@ import hashlib
 import json
 import sqlite3
 from bisect import bisect_right
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
@@ -26,6 +27,7 @@ from pring_cycle.source_contract_review import (
     require_registered_source_contract,
     require_source_contract,
 )
+from pring_cycle.storage import database_connection
 
 
 class AsOfMode(StrEnum):
@@ -233,6 +235,13 @@ class SourceClaimVintage:
     quality_status: str
 
 
+@dataclass(frozen=True)
+class SourceClaimAcquisition:
+    receipt: AcquisitionReceipt
+    raw: bytes
+    normalized: bytes
+
+
 @dataclass
 class _PreloadedSeriesState:
     visible_count: int
@@ -267,6 +276,7 @@ class EvidenceRepository:
                     try:
                         receipt = acquisitions.get(identity)
                         raw = acquisitions.read_content(identity, "raw")
+                        acquisitions.read_content(identity, "normalized")
                         bars = parse_core_acquisition(receipt, raw, metric_id=claim.metric_id)
                     except (LookupError, OSError, TypeError, ValueError) as error:
                         raise ValueError("registered_core_source_original_mismatch") from error
@@ -284,6 +294,15 @@ class EvidenceRepository:
     def source_claim_originals_many(
         self, claim_ids: tuple[str, ...]
     ) -> dict[str, tuple[tuple[AcquisitionReceipt, bytes], ...]]:
+        """Preserve the original-reading interface with both artifacts checked."""
+        return {
+            claim_id: tuple((item.receipt, item.raw) for item in items)
+            for claim_id, items in self.source_claim_acquisitions_many(claim_ids).items()
+        }
+
+    def source_claim_acquisitions_many(
+        self, claim_ids: tuple[str, ...]
+    ) -> dict[str, tuple[SourceClaimAcquisition, ...]]:
         """Read each physical receipt once in this batch, preserving exact claim links."""
         identities = tuple(dict.fromkeys(claim_ids))
         rows = []
@@ -303,8 +322,8 @@ class EvidenceRepository:
         acquisitions = AcquisitionRepository(
             self._database_path, self._database_path.parent / "artifacts" / "sha256"
         )
-        checked: dict[str, tuple[AcquisitionReceipt, bytes] | None] = {}
-        originals: dict[str, list[tuple[AcquisitionReceipt, bytes]]] = {
+        checked: dict[str, SourceClaimAcquisition | None] = {}
+        originals: dict[str, list[SourceClaimAcquisition]] = {
             claim_id: [] for claim_id in identities
         }
         invalid: set[str] = set()
@@ -315,7 +334,10 @@ class EvidenceRepository:
                 if row["state"] == "validated":
                     try:
                         raw = acquisitions.read_content(acquisition_id, "raw")
-                        checked[acquisition_id] = (receipt_from_row(row), raw)
+                        normalized = acquisitions.read_content(acquisition_id, "normalized")
+                        checked[acquisition_id] = SourceClaimAcquisition(
+                            receipt_from_row(row), raw, normalized
+                        )
                     except (LookupError, ValueError, OSError):
                         pass
             original = checked[acquisition_id]
@@ -1201,12 +1223,13 @@ class EvidenceRepository:
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
             connection.executescript(ACQUISITION_SCHEMA)
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self._database_path)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA journal_mode=WAL")
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self._database_path) as connection:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA foreign_keys=ON")
+            connection.execute("PRAGMA journal_mode=WAL")
+            yield connection
 
 
 def _select_claim_rows(

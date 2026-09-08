@@ -1,0 +1,94 @@
+﻿{
+    "base_commit":  "3e1b7d3f4f2421fa72ee2e30ffbaefb11da03f8d",
+    "recorded_at":  "2026-09-08T20:47:53.0689935+00:00",
+    "files":  [
+                  {
+                      "path":  "src/pring_cycle/acquisition.py",
+                      "sha256":  "ed81eef2b153417009c0beb356be64bbe8fd164a9f3ea0d6eafe9cdc66ad69f8"
+                  },
+                  {
+                      "path":  "src/pring_cycle/catalog_registry.py",
+                      "sha256":  "e94a5417a900c111514addb5b3c3b320c3eb0ac723543fca9b116934bcd57ecc"
+                  },
+                  {
+                      "path":  "src/pring_cycle/context_projection.py",
+                      "sha256":  "f3e986b42ff235159dba263357b740ba06b42619ed4e233e391712de2115f2af"
+                  },
+                  {
+                      "path":  "src/pring_cycle/cutover.py",
+                      "sha256":  "5027582419b5c4082a919372f5185a890cae2dc7e39464211e21475d69bcc5d8"
+                  },
+                  {
+                      "path":  "src/pring_cycle/evidence.py",
+                      "sha256":  "d27332e14065b179f510c6253e06088f376341349657b598bc692070d9c35ec2"
+                  },
+                  {
+                      "path":  "src/pring_cycle/full_retrieval.py",
+                      "sha256":  "0bf9073319f85aa1f206f67ec1fd99c8a61f09cdc8490fca68177fb76a57ee35"
+                  },
+                  {
+                      "path":  "src/pring_cycle/full_run_requirements.py",
+                      "sha256":  "eea86ff5a7f0a5628eaa90ad75e015c134d5c466f17a52375ee05a0c8164eefa"
+                  },
+                  {
+                      "path":  "src/pring_cycle/maintenance.py",
+                      "sha256":  "7e68d72d06704ba4632232f1ccd7f604027c0ffa84b91f82f245acca15c03692"
+                  },
+                  {
+                      "path":  "src/pring_cycle/model_evaluation.py",
+                      "sha256":  "4fcbd2a8531839fff04b6c542aab14c11428835d66d4bcebae8163aafe4243ce"
+                  },
+                  {
+                      "path":  "src/pring_cycle/models.py",
+                      "sha256":  "21baa442ee10700a817f807647cd299a46bcab8d5061eedde7c9759c6782e8fa"
+                  },
+                  {
+                      "path":  "src/pring_cycle/projections.py",
+                      "sha256":  "90b041fc3b3b966e364ea7c7f6efd6dc79fa51e8b2231e2a5639611b7773fa18"
+                  },
+                  {
+                      "path":  "src/pring_cycle/reports.py",
+                      "sha256":  "9764abb7e40f0af61b5cf40a59b5134e181bb7ac7e6c0d9f978b3a8a7d32a78b"
+                  },
+                  {
+                      "path":  "src/pring_cycle/retrieval_ledger.py",
+                      "sha256":  "22690a9c726d2c6de01acdfdace4ca1c2bbbaa6e6b96146cce782f4730634cee"
+                  },
+                  {
+                      "path":  "src/pring_cycle/runs.py",
+                      "sha256":  "ac2855a5ff75004084edd2ce9accb0acc1174884994f20d4001e186a3e0f5ef6"
+                  },
+                  {
+                      "path":  "src/pring_cycle/runtime_fingerprint.py",
+                      "sha256":  "d5976a3fe7530a27262dedbab4f763c259e296faa478cf82e72bb69f689ce46e"
+                  },
+                  {
+                      "path":  "src/pring_cycle/search_evidence.py",
+                      "sha256":  "5f86f408b11197f6ec5c68e9cb03fe6b3910aa00fd687f75786f3c727c8bb06d"
+                  },
+                  {
+                      "path":  "src/pring_cycle/source_adapters.py",
+                      "sha256":  "a9c0e5f7db4d822e61da40b6f623621b3bc85f942a0982d1823592648fb07a4d"
+                  },
+                  {
+                      "path":  "src/pring_cycle/storage.py",
+                      "sha256":  "ef947dab6fc589e8efb4f121f77f4237566f23492cee6351ade035ea66874401"
+                  },
+                  {
+                      "path":  "src/pring_cycle/tushare_context.py",
+                      "sha256":  "5a642d4a7275c8991d76f6e5ec24f271ff1fc8693e213fc7abeca26d0602c443"
+                  },
+                  {
+                      "path":  "src/pring_cycle/warrant_inputs.py",
+                      "sha256":  "cb322fe99ef2bc680a1d5a178f127ef6a14d5063d5162c19d8e279c5df1415b3"
+                  },
+                  {
+                      "path":  "tests/integration/test_database_lifetime.py",
+                      "sha256":  "47aab05d1bb76e70476e0fda67899c2125c575fb04baab0c93aca5967fd6f8c9"
+                  },
+                  {
+                      "path":  "tests/models/test_candidate_admission.py",
+                      "sha256":  "4b466ca451a4114c09f7f3c153ef8cb9ef870469d0c8a7b16055df419a2f86a1"
+                  }
+              ]
+}

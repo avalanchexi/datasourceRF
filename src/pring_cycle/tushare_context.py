@@ -1696,7 +1696,12 @@ class WarrantAcquisition:
 
 
 def parse_warrant_acquisition(
-    receipt: AcquisitionReceipt, raw: bytes, *, period: str
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+    normalized: bytes,
+    *,
+    period: str,
+    definition_version: str,
 ) -> WarrantAcquisition:
     """Reparse one complete physical delivery, including its warehouse denominator."""
     if (
@@ -1739,9 +1744,54 @@ def parse_warrant_acquisition(
             ("vol_chg", "registered_receipts_change"),
         ),
     )
+    normalized_scalars = json.loads(normalized)
+    if not isinstance(normalized_scalars, list) or len(normalized_scalars) != len(scalars):
+        raise ValueError("tushare_warrant_normalized_mismatch")
+    expected = sorted(_canonical_json(asdict(scalar)) for scalar in scalars)
+    actual = []
+    verified: list[ContextScalar] = []
+    for item in normalized_scalars:
+        if not isinstance(item, dict):
+            raise ValueError("tushare_warrant_normalized_mismatch")
+        if item.get("definition_version") not in (None, definition_version):
+            raise ValueError("tushare_warrant_normalized_mismatch")
+        acquisition_ids = item.get("acquisition_ids")
+        if (
+            not isinstance(acquisition_ids, list)
+            or not all(isinstance(identity, str) for identity in acquisition_ids)
+            or receipt.acquisition_id not in acquisition_ids
+        ):
+            raise ValueError("tushare_warrant_normalized_mismatch")
+        times: dict[str, datetime | None] = {}
+        for field in ("release_at", "public_available_at"):
+            if field not in item:
+                raise ValueError("tushare_warrant_normalized_mismatch")
+            value = item[field]
+            if value is not None:
+                if not isinstance(value, str):
+                    raise ValueError("tushare_warrant_normalized_mismatch")
+                value = datetime.fromisoformat(value)
+                if value.tzinfo is None:
+                    raise ValueError("tushare_warrant_normalized_mismatch")
+            times[field] = value
+        # Raw data determines economic fields. The recorded time assertions must
+        # separately match the selected claim; they do not certify source timing.
+        economic = {
+            **item,
+            "release_at": None,
+            "public_available_at": None,
+            "acquisition_ids": [],
+            "definition_version": None,
+        }
+        actual.append(_canonical_json(economic))
+        verified.append(
+            ContextScalar(**{**item, **times, "acquisition_ids": tuple(acquisition_ids)})
+        )
+    if sorted(actual) != expected:
+        raise ValueError("tushare_warrant_normalized_mismatch")
     return WarrantAcquisition(
         symbol,
-        tuple(scalar for scalar in scalars if scalar.period_end == period),
+        tuple(scalar for scalar in verified if scalar.period_end == period),
         sum(_compact_date(row.get("trade_date")).isoformat() == period for row in rows),
     )
 

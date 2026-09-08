@@ -3,7 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
@@ -19,6 +20,7 @@ from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse
+from pring_cycle.storage import database_connection
 
 if TYPE_CHECKING:
     from pring_cycle.runs import RunRecord
@@ -675,10 +677,11 @@ class RetrievalLedger:
             results.append(item)
         return results
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.database)
-        connection.row_factory = sqlite3.Row
-        return connection
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        with database_connection(self.database) as connection:
+            connection.row_factory = sqlite3.Row
+            yield connection
 
 
 RETRIEVAL_LEDGER_SCHEMA = """

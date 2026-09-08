@@ -1323,7 +1323,13 @@ def _metric_rows(
         warrant_latest_period = max((point.period_end for point in series), default=None)
         complete_periods: dict[str, list[str]] = {}
         for period in {point.period_end for point in series}:
-            selection = select_warrant_inputs(repository, series, period=period, mode=as_of_mode)
+            selection = select_warrant_inputs(
+                repository,
+                series,
+                period=period,
+                mode=as_of_mode,
+                definition_version=definition.definition_version,
+            )
             selected_ids = set(selection.selected_claim_ids)
             for symbol in {
                 point.dimensions["symbol"]

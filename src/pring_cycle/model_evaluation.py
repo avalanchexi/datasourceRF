@@ -1118,7 +1118,11 @@ def _context_selection_gaps(
     warrant_selection = None
     if metric_id == "CN_FUTURES_WARRANTS" and definition_version not in BUILTIN_CATALOG_VERSIONS:
         warrant_selection = select_warrant_inputs(
-            repository, series, period=latest_period_end, mode=AsOfMode.PUBLIC
+            repository,
+            series,
+            period=latest_period_end,
+            mode=AsOfMode.PUBLIC,
+            definition_version=definition_version,
         )
         if warrant_selection.missing_members:
             statuses.add("members_missing")
