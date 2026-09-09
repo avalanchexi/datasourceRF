@@ -1,0 +1,38 @@
+﻿{
+    "base_commit":  "bda795f566f60205fc443f3854a8e2eb1b13b76c",
+    "state":  "in_progress",
+    "scope":  "LPR acquisition artifacts in retrieval and context consumers",
+    "test_log":  "verification-context-normalized-lpr-green-04.txt",
+    "tests_passed":  14,
+    "test_duration_seconds":  10.3,
+    "exit_code":  0,
+    "mypy_source_files":  91,
+    "installed_python_sources":  90,
+    "standards_findings_in_current_slice":  0,
+    "spec_findings_in_current_slice":  0,
+    "full_suite_for_current_batch_passed":  false,
+    "all_lpr_consumption_boundaries_verified":  false,
+    "project_full_gate_passed":  false,
+    "files":  [
+                  {
+                      "path":  "src/pring_cycle/official_lpr.py",
+                      "bytes":  17823,
+                      "sha256":  "7a19f5fe51db96aee168ef36be58eb1f7219f47c88d02294fbd3b2b062e062a4"
+                  },
+                  {
+                      "path":  "src/pring_cycle/search_evidence.py",
+                      "bytes":  17446,
+                      "sha256":  "63499be62d53dd13fe3df0b7741d62e719c3c1dee475db0f0993e760cd1e8dbc"
+                  },
+                  {
+                      "path":  "src/pring_cycle/context_projection.py",
+                      "bytes":  82681,
+                      "sha256":  "d6b8d2588ceeffc21ec3152a4c83d2b5555906356244c895697c3e9ba51f9680"
+                  },
+                  {
+                      "path":  "tests/models/test_candidate_admission.py",
+                      "bytes":  183846,
+                      "sha256":  "d8fd905520bbb8a06a99210296d9c968eb724d612707c79b0d85a057e8b63665"
+                  }
+              ]
+}

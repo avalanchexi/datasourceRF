@@ -23,7 +23,7 @@ class ReleaseExpectation:
 class ReleasedObservation:
     observation_id: str
     period: str
-    public_available_at: datetime
+    public_available_at: datetime | None
     available_at: datetime
 
 
@@ -70,6 +70,7 @@ def assess_release_state(
     value_state: str | None = None,
     metric_id: str | None = None,
     priority: str = "P1",
+    as_of_mode: AsOfMode = AsOfMode.SYSTEM,
 ) -> ReleaseState:
     if expectation is None:
         return ReleaseState(
@@ -86,8 +87,11 @@ def assess_release_state(
     current_observation = (
         previous is not None
         and previous.period == expectation.period
-        and previous.public_available_at <= as_of
-        and previous.available_at <= as_of
+        and (
+            previous.public_available_at is not None and previous.public_available_at <= as_of
+            if as_of_mode is AsOfMode.PUBLIC
+            else previous.available_at <= as_of
+        )
     )
     if current_observation:
         status = "current"
@@ -171,18 +175,25 @@ def lpr_release_calendar(
     if as_of.tzinfo is None:
         raise ValueError("release_calendar_as_of_must_be_timezone_aware")
     expectation = lpr_release_expectation(period, holidays=holidays)
-    visible = tuple(
-        event
-        for event in repository.release_events_for_definition(
-            metric_id=expectation.metric_id,
-            definition_version=definition_version,
-        )
-        if (
-            event.public_available_at is not None
-            and event.public_available_at <= as_of
-            if as_of_mode is AsOfMode.PUBLIC
-            else event.available_at <= as_of
-        )
+    visible = sorted(
+        (
+            event
+            for event in repository.release_events_for_definition(
+                metric_id=expectation.metric_id,
+                definition_version=definition_version,
+            )
+            if (
+                event.public_available_at is not None and event.public_available_at <= as_of
+                if as_of_mode is AsOfMode.PUBLIC
+                else event.available_at <= as_of
+            )
+        ),
+        key=lambda event: (
+            event.period,
+            event.public_available_at if as_of_mode is AsOfMode.PUBLIC else event.available_at,
+            event.available_at,
+            event.release_event_id,
+        ),
     )
     current_event = next((item for item in reversed(visible) if item.period == period), None)
     previous_event = current_event or (visible[-1] if visible else None)
@@ -202,6 +213,7 @@ def lpr_release_calendar(
         previous=released,
         retrieval_outcome=attempt.outcome if attempt is not None else None,
         priority="P1",
+        as_of_mode=as_of_mode,
     )
     return (
         ReleaseCalendarEvent(
@@ -260,17 +272,13 @@ def _released_observation(
     *,
     mode: AsOfMode,
 ) -> ReleasedObservation | None:
-    if event is None or event.public_available_at is None:
+    if event is None or (mode is AsOfMode.PUBLIC and event.public_available_at is None):
         return None
     return ReleasedObservation(
         observation_id=event.release_event_id,
         period=event.period,
         public_available_at=event.public_available_at,
-        available_at=(
-            event.public_available_at
-            if mode is AsOfMode.PUBLIC
-            else event.available_at
-        ),
+        available_at=event.available_at,
     )
 
 

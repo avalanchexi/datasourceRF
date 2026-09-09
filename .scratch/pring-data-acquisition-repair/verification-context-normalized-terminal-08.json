@@ -1,0 +1,47 @@
+﻿{
+    "recorded_at":  "2026-09-09T06:34:42.0251769+08:00",
+    "base_commit":  "bda795f566f60205fc443f3854a8e2eb1b13b76c",
+    "session_id":  21016,
+    "exit_code":  1,
+    "passed":  21,
+    "failed":  2,
+    "duration_seconds":  41,
+    "failure_cases":  [
+                          "unknown_public",
+                          "same_time_revision"
+                      ],
+    "state":  "incomplete",
+    "note":  "Fresh targeted verification only. Two status assertion failures require diagnosis. No full-suite or review acceptance for this worktree.",
+    "files":  [
+                  {
+                      "path":  "src/pring_cycle/official_lpr.py",
+                      "length":  19119,
+                      "sha256":  "9f7339b36e288cbe808299a76c8b3a61fa67683197245112a2319f8982b4936f"
+                  },
+                  {
+                      "path":  "src/pring_cycle/search_evidence.py",
+                      "length":  17424,
+                      "sha256":  "10ecdba4ae812f448c37ee9fa3bcb42456b79e41d986c14a058a802709db9025"
+                  },
+                  {
+                      "path":  "src/pring_cycle/context_projection.py",
+                      "length":  82674,
+                      "sha256":  "e664f0b8fdf21bdacf7b04a70f408a2ae0e04d40b96c64168386481a033204fa"
+                  },
+                  {
+                      "path":  "tests/models/test_candidate_admission.py",
+                      "length":  190637,
+                      "sha256":  "5f2ac12c49683a2fe7e4894ffce7db0985dcd6626900bcb092c1a24722160177"
+                  },
+                  {
+                      "path":  ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-08.txt",
+                      "length":  2970,
+                      "sha256":  "2b097a7dfa4345cab6c0fd792263f1e265392fb453f06f1ada5f7741377d86ef"
+                  },
+                  {
+                      "path":  ".scratch/pring-data-acquisition-repair/verification-context-normalized-fingerprint-08.json",
+                      "length":  14621,
+                      "sha256":  "14ff56b3e0d0c412a7c3649a9454feb84c8976fcb8f41afcf37f98ca184a91de"
+                  }
+              ]
+}

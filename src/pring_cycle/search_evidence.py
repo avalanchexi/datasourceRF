@@ -17,6 +17,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
+from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
@@ -102,6 +103,16 @@ class ModelInputSelector:
                 for point in self.series(metric_id)
                 if point.selected_claim_id is not None
                 and matches_retrieval_period(point.period_end, scope.period)
+            ),
+        )
+        valid_lpr_claim_ids = lpr_claims_matching_acquisitions(
+            self.core_evidence,
+            tuple(
+                point
+                for metric_id in scope.metric_ids
+                if metric_id == "CN_LPR_1Y_5Y" and self.version not in BUILTIN_CATALOG_VERSIONS
+                for point in self.series(metric_id)
+                if point.selected_claim_id is not None
             ),
         )
         selected_ids: list[str] = []
@@ -197,6 +208,11 @@ class ModelInputSelector:
                             metric_id not in CORE_API_IDENTITIES
                             or self.version in BUILTIN_CATALOG_VERSIONS
                             or core_inputs.is_valid(metric_id, point)
+                        )
+                        and (
+                            metric_id != "CN_LPR_1Y_5Y"
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_lpr_claim_ids
                         )
                     ):
                         accepted.append(claim.claim_id)

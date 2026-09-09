@@ -1,5 +1,21 @@
 # 修复项目当前执行入口
 
+**2026-09-09 最新验收：**LPR标准化消费、双点时日历和PUBLIC组件回放软件批已通过[默认全套](verification-context-normalized-full-22.txt)：**1053通过、0失败、3673.23秒**，原主会话95550实际退出码0。[关联回归](verification-context-normalized-targeted-22.txt)376通过、935.66秒；mypy92、Ruff、7文件格式和两轴复核通过，167冻结输入字节未变，90安装Python源最终匹配，4个受保护用户文件未变。[本批检查点](verification-context-normalized/checkpoint.json)绑定源码、终态和日志。下一步按[PMI/CPI消费研究](official-macro-normalized-next-step.md)及[跨统计期回退边界](official-macro-derived-selection-boundary.md)继续公开RED/GREEN；新PMI反例尚未执行。真实来源认证、业务规则、完整候选、120交易日重放、合格AI及真实切换仍未完成，不关闭整个修复项目。
+
+顶部最新记录及其终态证据控制当前进展；下方各阶段快照保留记录时的“当前/正在执行”措辞，不代表那些旧进程现在仍在运行，也不覆盖后续结果。
+
+**等待期间新增边界：**[PMI较早统计期回退](official-macro-derived-selection-boundary.md)明确：只过滤坏的七月父项，仍可能让六月在95天鲜度阈值内生成current派生，首组回归须同时防止跨版本和跨统计期回退。这是有源码依据的待执行反例，尚未修改应用或测试。默认全套95550最新刷新至47%，仍未终态；167冻结输入未变，辅助WSL错误与主测试进展分别留在[辅助记录](verification-context-normalized-helper-check-22.md)。
+
+**本次PP补证：**[官方增量报告](pp-official-followup-20260909.md)完成6个逻辑查询、2次web搜索和1次新官方PDF的GET调用尝试；TLS握手超时，无HTTP响应或新原件。新增2022年历史月表索引不能认证2026目标日报的单位，目标日行情、仓单及历史映射继续缺证。报告9717字节、hash及10个本地引用已根代理独立核对；本轮不进入Tavily/Exa实验分母。
+
+**本次官方增量：**[RRR事件全集补证](rrr-official-completeness-followup-20260909.md)4个逻辑查询、2次web调用，新增合格原件0；固定窗口全集、阶段性续止及前置最近状态继续缺证。报告与15本地引用、两份旧PBC原件已独立核验。2025原始PBC通知此前已找到，不再沿用较早“原通知未找到”的状态；未混入Tavily/Exa实测分母。
+
+**2026-09-09 全套执行中：**当前LPR软件批[376项关联回归](verification-context-normalized-targeted-22.txt)全通过、935.66秒，主会话52702已实际退出0；167输入字节复核无变化，mypy92、Ruff及最终7文件格式检查通过，两轴剩余0。辅助WSL启动错误已由独立Ruff补验消除，不影响前一主回归。现在[默认全套](verification-context-normalized-full-22.txt)运行于主会话95550，尚无最终结果，[运行状态](verification-context-normalized/terminal.json)已登记；不得重启、提前生成检查点或提交。下一宏观入口研究[PMI/CPI消费与派生边界](official-macro-normalized-next-step.md)已根核55引用、两原件及8格字面值，新RED未执行。其他真实来源与模型最终门继续开放。
+
+**2026-09-09 当前验证：**分支main，最近已提交批次仍为`bda795f`。LPR当前软件增量已接检索、上下文及PUBLIC回放的双制品/声明字段核验。上次21通过/2失败已定位为发布日历误将缺PUBLIC的SYSTEM记录判stale，修复后[29项通过](verification-context-normalized-lpr-green-10.txt)；回放坏制品漏报缺口也已公开RED后修复，[13项扩展通过](verification-context-normalized-lpr-replay-green-15.txt)，含后发坏修订不伤旧cutoff且不得回退旧值。新增真实归档原文与取得边界[7项通过](verification-context-normalized-lpr-positive-green-16.txt)。Spec复核发现的事件ID排序问题已修，[22项通过](verification-context-normalized-lpr-calendar-green-19.txt)，两轴剩余0。mypy92、Ruff及90安装源核对通过，167个输入已冻结；[9个关联测试文件](verification-context-normalized-targeted-22.txt)正在执行，主会话52702尚未验收终态。当前批全套未执行、未提交；其他家族、真实来源认证、完整候选、120日回放、合格AI与切换仍未完成。下方14项阶段及原失败记录仅保留各自历史，不覆盖当前代码。
+
+**2026-09-09 正在续作：**前批已保存本地提交 `bda795f`（1031全套通过）。现从该提交继续[上下文标准化消费核验](implementation-19-context-normalized-consumption.md)，已复现并修复LPR制品损坏、哈希自洽但利率错配仍被检索选中，以及上下文继续标current的问题；[14项回归](verification-context-normalized-lpr-green-04.txt)通过、10.30秒、退出码0，mypy91和90安装源指纹通过，[两轴阶段复核](verification-context-normalized-review-01.md)新增问题各0。失败诊断引用继续可追溯，实际采用以model_input_observation_version_ids验收。选中声明字段/时间、PUBLIC回放、其他家族和派生边界仍开放，本批未提交；前批全绿不代替当前新代码验收。
+
 **2026-09-09 当前进展：**[核心/仓单标准化消费](implementation-19-normalized-consumption.md)及[SQLite连接生命周期修复](implementation-database-connections.md)完成本批软件验收。修复后[默认全套](verification-connection-full-01.txt)为**1031通过、0失败、2975.70秒**，原主会话37371已正常退出，退出码0；[扩大关联回归](verification-connection-targeted-01.txt)257通过、625.54秒。应用及两个测试文件mypy92、Ruff/格式22文件、两轴复审0项；运行前后90安装Python源匹配，22个测试输入字节未变。[本批检查点](verification-connection/checkpoint.json)绑定源码、终态及完整日志，旧1022通过/6失败/1错误的原始记录保留。[CNY030增量研究](cny030-official-followup-20260909.md)完成4个逻辑搜索，新增目标实值0，正式认证缺口保持。下一步继续LPR/常规宏观/银行间标准化消费与RRR多收据核验，以及真实来源、模型及报告前置；实际完整候选、120中国交易日、合格AI及切换均未完成。
 
 **2026-09-09 本批原全套记录：**从已提交`3e1b7d3`继续的[核心与仓单标准化制品消费核验](implementation-19-normalized-consumption.md)完成公开RED/GREEN、21个新增用例、mypy91、Ruff/格式8文件和90安装Python源核对；两轴复审剩余0。原项目默认全套结果为**1022通过、6失败、1错误，2028.77秒**，见[完整失败日志](verification-normalized-full-01.txt)。失败涉及检索台账及仓单上下文，异常为文件句柄耗尽与SQLite无法打开数据库；该轮时连接释放根因尚待验证，后续修复见上方最新记录。标准化丢失/损坏、哈希正确但语义不符、多关联、显式目录及保守时间降级都按各自证据记录；LPR/常规宏观/银行间与RRR多收据边界继续开放。

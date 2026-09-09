@@ -27,6 +27,7 @@ from pring_cycle.evidence import (
     MetricSeriesPoint,
 )
 from pring_cycle.metric_contracts import evidence_max_age_days
+from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.warrant_inputs import WarrantHistoryCoverage, select_warrant_inputs
 
@@ -1314,6 +1315,16 @@ def _metric_rows(
         and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
         else set()
     )
+    if (
+        definition.metric_id == "CN_LPR_1Y_5Y"
+        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
+        claim_ids = tuple(
+            point.selected_claim_id for point in series if point.selected_claim_id is not None
+        )
+        incomplete_source_claims.update(
+            set(claim_ids) - lpr_claims_matching_acquisitions(repository, series)
+        )
     warrant_latest_period = None
     warrant_history = None
     if (

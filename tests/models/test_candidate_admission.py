@@ -27,7 +27,7 @@ from pring_cycle.official_context import (
     ingest_official_context_document,
     parse_official_context_document,
 )
-from pring_cycle.official_lpr import ingest_lpr_document
+from pring_cycle.official_lpr import ingest_lpr_document, parse_lpr_announcement
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.retrieval_ledger import RetrievalLedger
@@ -3491,8 +3491,9 @@ def test_same_catalog_version_cannot_name_different_reviewed_definitions(
     assert ModelRepository(paths.database).manifest(admitted["model_version_id"]) == manifest_before
 
 
+@pytest.mark.parametrize("saved_official", [False, True])
 def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], saved_official: bool
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -3503,6 +3504,16 @@ def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
     version = manifest["metric_catalog_version"]
     acquired_at = datetime(2026, 8, 20, 2, tzinfo=UTC)
     content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    if saved_official:
+        # Real archived bytes and literal expected values; admission and clocks
+        # remain synthetic, so this does not grant historical source certification.
+        digest = "5b4ddec501ddfe52bfec15d471c8c6d4548b643da9a61f35f9a978825bc04bd5"
+        content = (
+            Path(__file__).parents[2]
+            / ".scratch/pring-data-acquisition-repair/evidence-lpr-import-20260908"
+            / digest
+        ).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == digest
     ingested = ingest_lpr_document(
         paths,
         content,
@@ -3557,9 +3568,432 @@ def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
         if row["metric_id"] == "CN_LPR_1Y_5Y"
     ]
     assert {row["dimensions"]["tenor"]: row["value"] for row in rows} == {"1y": 3.0, "5y_plus": 3.5}
+    assert all(row["status"] == "current" for row in rows)
+    model_inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(model_inputs, list)
+    assert set(model_inputs) == set(ingested.claim_ids)
     assert set(ingested.claim_ids) <= set(context.observation_version_ids)
     with pytest.raises(LookupError, match="active_model_unavailable"):
         ModelRepository(paths.database).active()
+
+
+@pytest.mark.parametrize(
+    ("consumer", "fault"),
+    [
+        ("selection", "damaged"),
+        ("selection", "wrong_value"),
+        ("context", "damaged"),
+        ("selection", "claim_value"),
+        ("selection", "claim_period"),
+        ("selection", "claim_reference"),
+        ("selection", "claim_public"),
+    ],
+)
+def test_lpr_selection_rejects_normalized_damage_after_ingestion(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], consumer: str, fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    acquired_at = datetime(2026, 8, 20, 2, tzinfo=UTC)
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    source_url = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
+    source_period = "2026-08"
+    if fault == "claim_period":
+        # Synthetic July release, intentionally associated with an August claim below.
+        content = content.replace(b"2026-08-20", b"2026-07-20").replace(
+            "2026年8月20日".encode(), "2026年7月20日".encode()
+        )
+        source_url = source_url.replace("20260820", "20260720")
+        source_period = "2026-07"
+    ingested = ingest_lpr_document(
+        paths,
+        content,
+        source_url=source_url,
+        fetched_at=acquired_at,
+        expected_period=source_period,
+        definition_version=version,
+        clock=lambda: acquired_at,
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="lpr-normalized-damage",
+        model_version_id=model_id,
+        system_as_of=acquired_at + timedelta(seconds=1),
+        release_event_id=ingested.release_event_id,
+        metric_ids=("CN_LPR_1Y_5Y",),
+        period="2026-08",
+    )
+    before = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    if fault == "claim_period":
+        # A valid July release does not fill the explicit August evidence gap.
+        assert not before.complete
+        assert before.selected_claim_ids == ()
+    else:
+        assert before.complete
+        assert set(before.selected_claim_ids) == set(ingested.claim_ids)
+    if consumer == "context":
+        before_context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=acquired_at,
+            model_manifest=manifest,
+            as_of_mode=AsOfMode.PUBLIC,
+        )
+        assert set(ingested.claim_ids) <= set(before_context.observation_version_ids)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.normalized_hash is not None
+    if fault == "damaged":
+        artifact = paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash
+        artifact.write_bytes(b"damaged normalized LPR")
+    else:
+        malformed = acquisitions.capture(
+            provider=receipt.provider,
+            api_name=receipt.api_name,
+            parameters=receipt.parameters,
+            fields=receipt.fields,
+            parser_version=receipt.parser_version,
+            fetch=lambda: acquisitions.read_content(receipt.acquisition_id, "raw"),
+            parse=lambda raw: parse_lpr_announcement(
+                raw,
+                source_url=receipt.parameters["source_url"],
+                fetched_at=acquired_at,
+                expected_period=receipt.parameters["period"],
+            ),
+            normalize=lambda parsed: (
+                asdict(parsed)
+                if fault.startswith("claim_")
+                else {
+                    **asdict(parsed),
+                    "observations": [
+                        {"tenor": "1y", "value": 3.1},
+                        {"tenor": "5y_plus", "value": 3.5},
+                    ],
+                }
+            ),
+            clock=lambda: acquired_at,
+        ).receipt
+        evidence = EvidenceRepository(paths.database)
+        for point in evidence.metric_series(
+            "CN_LPR_1Y_5Y", mode=AsOfMode.PUBLIC, as_of=acquired_at, definition_version=version
+        ):
+            claim = next(c for c in point.claims if c.claim_id == point.selected_claim_id)
+            assert claim.public_available_at is not None
+            linked = evidence.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_LPR_1Y_5Y",
+                    definition_version=version,
+                    period_kind="month",
+                    period_start="2026-08-01" if fault == "claim_period" else point.period_start,
+                    period_end="2026-08-31" if fault == "claim_period" else point.period_end,
+                    dimensions=point.dimensions,
+                    value=(
+                        {"1y": 3.2, "5y_plus": 3.7}[point.dimensions["tenor"]]
+                        if fault == "claim_value"
+                        else claim.value
+                    ),
+                    value_state=claim.value_state,
+                    unit=claim.unit,
+                    provider=claim.provider,
+                    source_reference=(
+                        claim.source_reference + ":wrong"
+                        if fault == "claim_reference"
+                        else claim.source_reference
+                    ),
+                    release_event_id=ingested.release_event_id
+                    + (":synthetic-public" if fault == "claim_public" else ""),
+                    release_at=claim.release_at,
+                    public_available_at=(
+                        claim.public_available_at + timedelta(minutes=1)
+                        if fault == "claim_public"
+                        else claim.public_available_at
+                    ),
+                    fetched_at=claim.fetched_at,
+                    available_at=(
+                        claim.available_at + timedelta(seconds=1)
+                        if fault.startswith("claim_")
+                        else claim.available_at
+                    ),
+                    certification_status=claim.certification_status,
+                    quality_status=claim.quality_status,
+                    acquisition_id=malformed.acquisition_id,
+                )
+            )
+            assert (linked.claim_id == claim.claim_id) is (not fault.startswith("claim_"))
+
+    if consumer == "selection":
+        after = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        assert not after.complete
+        assert after.selected_claim_ids == ()
+    else:
+        after_context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=acquired_at,
+            model_manifest=manifest,
+            as_of_mode=AsOfMode.PUBLIC,
+        )
+        rows = [
+            row
+            for row in after_context.macro["credit"]["evidence"]  # type: ignore[index]
+            if row["metric_id"] == "CN_LPR_1Y_5Y"
+        ]
+        assert {row["status"] for row in rows} == {"source_failed"}
+        model_inputs = after_context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert not set(ingested.claim_ids) & set(model_inputs)
+        # Diagnostic references remain visible without becoming model inputs.
+        assert set(ingested.claim_ids) <= set(after_context.observation_version_ids)
+
+
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
+@pytest.mark.parametrize("damage", ["changed", "missing"])
+@pytest.mark.parametrize("later_revision", [False, True])
+def test_lpr_public_replay_rechecks_selected_acquisition_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    artifact_kind: str,
+    damage: str,
+    later_revision: bool,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    claims = {}
+    acquisitions = {}
+    acquired_at = datetime(2026, 8, 20, 2, tzinfo=UTC)
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_LPR_1Y_5Y")
+        # Exercise the public component replay; the full model still lacks its
+        # core and 120-day evidence. The stored admitted manifest is unchanged.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        ingested = ingest_lpr_document(
+            paths,
+            content + b"<!-- synthetic candidate retrieval -->" if side == "candidate" else content,
+            source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+            fetched_at=acquired_at,
+            expected_period="2026-08",
+            definition_version=manifest["metric_catalog_version"],
+            clock=lambda: acquired_at,
+        )
+        claims[side] = set(ingested.claim_ids)
+        (acquisition,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+            (ingested.claim_ids[0],)
+        )[ingested.claim_ids[0]]
+        acquisitions[side] = acquisition.receipt
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1
+    assert before.output_document is not None
+    for side in ("comparison", "candidate"):
+        day = before.output_document["days"][0][side]
+        assert set(day["macro"]["model_input_observation_version_ids"]) == claims[side]
+    current_claims = claims["candidate"]
+    evaluation_day = "2026-08-28"
+    if later_revision:
+        revised_at = datetime(2026, 8, 31, 2, tzinfo=UTC)
+        revised = ingest_lpr_document(
+            paths,
+            content.replace(b"3.0%", b"3.1%").replace(b"2026-08-20 09:00", b"2026-08-31 09:00"),
+            source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+            fetched_at=revised_at,
+            expected_period="2026-08",
+            definition_version=manifests["candidate"]["metric_catalog_version"],
+            clock=lambda: revised_at,
+        )
+        current_claims = set(revised.claim_ids)
+        (acquisition,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+            (revised.claim_ids[0],)
+        )[revised.claim_ids[0]]
+        acquisitions["candidate"] = acquisition.receipt
+        evaluation_day = "2026-08-31"
+    receipt = acquisitions["candidate"]
+    content_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert content_hash is not None
+    assert content_hash not in {
+        acquisitions["comparison"].raw_hash,
+        acquisitions["comparison"].normalized_hash,
+    }
+    artifact = paths.artifacts / content_hash[:2] / content_hash
+    if damage == "changed":
+        artifact.write_bytes(b"damaged-lpr-artifact")
+    else:
+        artifact.unlink()
+
+    if later_revision:
+        historical = evaluate_context_replay(
+            paths.database,
+            manifests["candidate"],
+            manifests["comparison"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+        assert not historical.gaps, historical.gaps
+        assert historical.output_document is not None
+        historical_ids = historical.output_document["days"][0]["candidate"]["macro"][
+            "model_input_observation_version_ids"
+        ]
+        assert set(historical_ids) == claims["candidate"]
+        assert set(historical_ids).isdisjoint(current_claims)
+
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start=evaluation_day,
+        requested_end=evaluation_day,
+    )
+    assert after.gaps == ("candidate_context_selection_invalid:CN_LPR_1Y_5Y",)
+    assert after.output_document is not None
+    day = after.output_document["days"][0]
+    assert day["candidate"]["macro"]["model_input_observation_version_ids"] == []
+    assert (
+        set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+        == claims["comparison"]
+    )
+    assert current_claims <= set(day["candidate"]["observation_version_ids"])
+    rows = day["candidate"]["macro"]["credit"]["evidence"]
+    lpr_rows = [row for row in rows if row["metric_id"] == "CN_LPR_1Y_5Y"]
+    assert len(lpr_rows) == 2 and all(row["status"] == "source_failed" for row in lpr_rows)
+    assert {row["dimensions"]["tenor"]: row["value"] for row in lpr_rows} == {
+        "1y": 3.1 if later_revision else 3.0,
+        "5y_plus": 3.5,
+    }
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    ["date_only", "unknown_public", "same_time_revision", "new_time_revision", "repeat"],
+)
+def test_registered_lpr_consumers_preserve_publication_precision_and_revisions(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], scenario: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    first_at = datetime(2026, 8, 20, 2, tzinfo=UTC)
+    revised_at = datetime(2026, 8, 21, 2, tzinfo=UTC)
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    if scenario == "date_only":
+        content = content.replace(b"2026-08-20 09:00", b"2026-08-20")
+    elif scenario == "unknown_public":
+        content = content.replace(b"<time>2026-08-20 09:00</time>", b"")
+    first = ingest_lpr_document(
+        paths,
+        content,
+        source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+        fetched_at=first_at,
+        expected_period="2026-08",
+        definition_version=version,
+        clock=lambda: first_at,
+    )
+    latest = first
+    if scenario in {"same_time_revision", "new_time_revision", "repeat"}:
+        if scenario != "repeat":
+            content = content.replace(b"3.0%", b"3.1%")
+        if scenario == "new_time_revision":
+            content = content.replace(b"2026-08-20 09:00", b"2026-08-21 09:00")
+        latest = ingest_lpr_document(
+            paths,
+            content,
+            source_url="https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html",
+            fetched_at=revised_at,
+            expected_period="2026-08",
+            definition_version=version,
+            clock=lambda: revised_at,
+        )
+    public_ids = (
+        set()
+        if scenario == "unknown_public"
+        else set(first.claim_ids if scenario == "same_time_revision" else latest.claim_ids)
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=revised_at,
+            model_manifest=manifest,
+            as_of_mode=mode,
+        )
+        rows = [
+            row
+            for row in context.macro["credit"]["evidence"]  # type: ignore[index]
+            if row["metric_id"] == "CN_LPR_1Y_5Y" and row["value"] is not None
+        ]
+        expected_values = (
+            {}
+            if mode is AsOfMode.PUBLIC and scenario == "unknown_public"
+            else {
+                "1y": 3.1
+                if scenario == "new_time_revision"
+                or (scenario == "same_time_revision" and mode is AsOfMode.SYSTEM)
+                else 3.0,
+                "5y_plus": 3.5,
+            }
+        )
+        assert {row["dimensions"]["tenor"]: row["value"] for row in rows} == expected_values
+        assert all(row["status"] == "current" for row in rows), (
+            mode.value,
+            [(row["status"], row["public_available_at"]) for row in rows],
+        )
+        expected_ids = public_ids if mode is AsOfMode.PUBLIC else set(latest.claim_ids)
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert set(model_inputs) == expected_ids
+        if mode is AsOfMode.SYSTEM and scenario in {"unknown_public", "same_time_revision"}:
+            assert all(row["public_available_at"] is None for row in rows)
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id="lpr-precision-" + mode.value,
+            model_version_id=model_id,
+            system_as_of=revised_at,
+            release_event_id=latest.release_event_id,
+            metric_ids=("CN_LPR_1Y_5Y",),
+            period="2026-08",
+        )
+        selection = select_retrieval_input(paths, run, mode=mode)
+        assert selection.complete is (scenario != "unknown_public")
+        # A historical target still applies its PUBLIC upper bound in SYSTEM mode.
+        assert set(selection.selected_claim_ids) == public_ids
+    if scenario == "date_only":
+        repository = EvidenceRepository(paths.database)
+        system = build_context_projection(
+            repository, as_of=first_at, model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+        )
+        system_inputs = system.macro["model_input_observation_version_ids"]
+        assert isinstance(system_inputs, list)
+        assert set(system_inputs) == set(first.claim_ids)
+        before = build_context_projection(
+            repository,
+            as_of=first_at - timedelta(microseconds=1),
+            model_manifest=manifest,
+            as_of_mode=AsOfMode.SYSTEM,
+        )
+        assert before.macro["model_input_observation_version_ids"] == []
+        for cutoff, expected_count in (
+            (datetime(2026, 8, 20, 15, 59, 59, tzinfo=UTC), 0),
+            (datetime(2026, 8, 20, 16, tzinfo=UTC), 2),
+        ):
+            points = repository.metric_series(
+                "CN_LPR_1Y_5Y", mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+            )
+            assert len(points) == expected_count
 
 
 @pytest.mark.parametrize("consumer", ["selection", "context", "ledger"])

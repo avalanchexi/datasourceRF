@@ -33,6 +33,7 @@ def test_offline_contract_extracts_exact_release_identity_and_two_tenors() -> No
         == "chinamoney-lpr:2026-08-20:" + hashlib.sha256(ANNOUNCEMENT).hexdigest()
     )
     assert parsed.period == "2026-08"
+    assert parsed.release_at is not None
     assert parsed.release_at.isoformat() == "2026-08-20T09:00:00+08:00"
     assert [(item.tenor, item.value) for item in parsed.observations] == [
         ("1y", 3.0),
@@ -242,3 +243,49 @@ def test_lpr_revision_without_new_publication_time_is_system_only(tmp_path: Path
         ).selected_value
         == 3.1
     )
+
+
+def test_calendar_uses_visible_revision_time_after_publication_is_restored(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    times = (
+        datetime(2026, 8, 20, 2, tzinfo=UTC),
+        datetime(2026, 8, 21, 2, tzinfo=UTC),
+        datetime(2026, 8, 22, 2, tzinfo=UTC),
+    )
+    contents = (
+        ANNOUNCEMENT,
+        ANNOUNCEMENT.replace(b"3.0%", b"3.1%"),
+        ANNOUNCEMENT.replace(b"3.0%", b"3.2%").replace(b"2026-08-20 09:00", b"2026-08-22 09:00"),
+    )
+    imported = []
+    for acquired_at, content in zip(times, contents, strict=True):
+
+        def clock(value: datetime = acquired_at) -> datetime:
+            return value
+
+        imported.append(
+            ingest_lpr_document(
+                paths,
+                content,
+                source_url=OFFICIAL_URL,
+                fetched_at=acquired_at,
+                expected_period="2026-08",
+                clock=clock,
+            )
+        )
+    for cutoff, mode, expected_index, expected_public in (
+        (times[1], AsOfMode.SYSTEM, 1, None),
+        (times[1], AsOfMode.PUBLIC, 0, datetime(2026, 8, 20, 1, tzinfo=UTC)),
+        (times[2], AsOfMode.SYSTEM, 2, datetime(2026, 8, 22, 1, tzinfo=UTC)),
+        (times[2], AsOfMode.PUBLIC, 2, datetime(2026, 8, 22, 1, tzinfo=UTC)),
+    ):
+        event = lpr_release_calendar(
+            EvidenceRepository(paths.database), period="2026-08", as_of=cutoff, as_of_mode=mode
+        )[0]
+        assert event.status == "current"
+        assert event.public_available_at == expected_public
+        assert event.available_at == times[expected_index]
+        assert event.source_reference == (
+            OFFICIAL_URL + "#sha256=" + imported[expected_index].artifact_hash
+        )

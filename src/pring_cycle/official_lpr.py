@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -10,9 +11,9 @@ from urllib.parse import urlsplit
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.catalog import METRIC_CATALOG_VERSION
-from pring_cycle.evidence import EvidenceRepository, publication_times
+from pring_cycle.evidence import EvidenceRepository, MetricSeriesPoint, publication_times
 from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.official_context import (
     ParsedOfficialContextRelease,
@@ -170,6 +171,87 @@ def parse_lpr_announcement(
         source_url=source_url,
         observations=(LprObservation("1y", one_year), LprObservation("5y_plus", five_year)),
     )
+
+
+def parse_lpr_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> ParsedLprRelease:
+    """Rebuild the release recorded by one validated LPR acquisition."""
+    if (
+        receipt.state != "validated"
+        or receipt.provider != CHINAMONEY_PROVIDER
+        or receipt.api_name not in {"document_import", "official_http_get"}
+        or receipt.parser_version != "chinamoney-lpr-parser-v0002"
+        or receipt.fields != "1y,5y_plus"
+        or receipt.received_at is None
+    ):
+        raise ValueError("lpr_acquisition_identity_mismatch")
+    parsed = parse_lpr_announcement(
+        raw,
+        source_url=receipt.parameters["source_url"],
+        fetched_at=receipt.received_at,
+        expected_period=receipt.parameters["period"],
+    )
+    normalized = json.dumps(
+        asdict(parsed),
+        default=str,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode()
+    if hashlib.sha256(normalized).hexdigest() != receipt.normalized_hash:
+        raise ValueError("lpr_acquisition_normalized_mismatch")
+    return parsed
+
+
+def lpr_claims_matching_acquisitions(
+    repository: EvidenceRepository, points: tuple[MetricSeriesPoint, ...]
+) -> set[str]:
+    """Match selected values to every linked release within one evaluation."""
+    selected_points = {
+        point.selected_claim_id: point for point in points if point.selected_claim_id is not None
+    }
+    checked: dict[str, ParsedLprRelease | None] = {}
+    valid_claim_ids: set[str] = set()
+    for claim_id, acquisitions in repository.source_claim_acquisitions_many(
+        tuple(selected_points)
+    ).items():
+        valid = bool(acquisitions)
+        point = selected_points[claim_id]
+        claim = next((item for item in point.claims if item.claim_id == claim_id), None)
+        for acquisition in acquisitions:
+            acquisition_id = acquisition.receipt.acquisition_id
+            if acquisition_id not in checked:
+                try:
+                    checked[acquisition_id] = parse_lpr_acquisition(
+                        acquisition.receipt, acquisition.raw
+                    )
+                except (ValueError, TypeError, KeyError):
+                    checked[acquisition_id] = None
+            parsed = checked[acquisition_id]
+            if (
+                parsed is None
+                or claim is None
+                or claim.provider != CHINAMONEY_PROVIDER
+                or claim.unit != "percent"
+                or claim.source_reference
+                != f"{parsed.source_url}#sha256={acquisition.receipt.raw_hash}"
+                or (
+                    (claim.release_at is not None or claim.public_available_at is not None)
+                    and (claim.release_at, claim.public_available_at)
+                    != (parsed.release_at, parsed.public_available_at)
+                )
+                or (point.period_start, point.period_end) != month_bounds(parsed.period)
+                or not any(
+                    point.dimensions == {"tenor": observation.tenor}
+                    and point.selected_value == observation.value
+                    for observation in parsed.observations
+                )
+            ):
+                valid = False
+                break
+        if valid:
+            valid_claim_ids.add(claim_id)
+    return valid_claim_ids
 
 
 def _publication_metadata(extractor: _TextExtractor) -> datetime | date | None:

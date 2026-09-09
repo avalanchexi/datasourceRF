@@ -1,0 +1,432 @@
+{
+  "recorded_at": "2026-09-09T01:07:53.730695+00:00",
+  "base_commit": "bda795f566f60205fc443f3854a8e2eb1b13b76c",
+  "scope": "LPR acquisition consumption, dual as-of release calendar and public component replay",
+  "software_slice_passed": true,
+  "default_suite_passed": true,
+  "default_suite_tests": 1053,
+  "default_suite_duration_seconds": 3673.23,
+  "new_tests": 22,
+  "mypy_source_files": 92,
+  "installed_python_sources": 90,
+  "spec_findings_remaining": 0,
+  "standards_findings_remaining": 0,
+  "lpr_normalized_consumer_integrity_verified": true,
+  "lpr_public_component_replay_verified": true,
+  "all_family_normalized_consumer_integrity_verified": false,
+  "all_real_p1_p2_positive_consumption_verified": false,
+  "new_catalog_active_worker_end_to_end_verified": false,
+  "real_source_certification": false,
+  "real_complete_candidate": false,
+  "real_120_china_trading_day_replay": false,
+  "real_qualified_ai_outputs": 0,
+  "production_cutover": false,
+  "project_full_gate_passed": false,
+  "files": [
+    {
+      "path": "src/pring_cycle/official_lpr.py",
+      "bytes": 19119,
+      "sha256": "9f7339b36e288cbe808299a76c8b3a61fa67683197245112a2319f8982b4936f"
+    },
+    {
+      "path": "src/pring_cycle/search_evidence.py",
+      "bytes": 17424,
+      "sha256": "10ecdba4ae812f448c37ee9fa3bcb42456b79e41d986c14a058a802709db9025"
+    },
+    {
+      "path": "src/pring_cycle/context_projection.py",
+      "bytes": 82674,
+      "sha256": "e664f0b8fdf21bdacf7b04a70f408a2ae0e04d40b96c64168386481a033204fa"
+    },
+    {
+      "path": "src/pring_cycle/release_calendar.py",
+      "bytes": 10002,
+      "sha256": "6c3694a0321e9bd5e321beda5be76e87d8f2eb8f0f8c2543ec36ac30c53712f5"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "bytes": 48529,
+      "sha256": "a6dd0675ee6a267a21dfd57693e81cf22da5cee00f02f35ab40fb33fce080dce"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "bytes": 202383,
+      "sha256": "3d502f8a6bf9f078145259ae504950bf19746bf190cfa5fc9ca6c876daa98d13"
+    },
+    {
+      "path": "tests/adapters/test_chinamoney_lpr.py",
+      "bytes": 9888,
+      "sha256": "b47de9ac5880d5a9d8a8678922fc5cc5698c9068084aeb456d6c46b50723c16f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/continuation-status.md",
+      "bytes": 26930,
+      "sha256": "b584e55e536a5eb28bb442996e9d144fd9a2543a46dfc53199ee0ec7a59bdf20"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/issues/19-immutable-candidate-catalog.md",
+      "bytes": 15807,
+      "sha256": "db3325ba26a603fcfe65815d12057207a88d0f575258b6b22b6ec44cac100bd6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/implementation-19-context-normalized-consumption.md",
+      "bytes": 11642,
+      "sha256": "ae3ca47adff636ec7548e0fe4de70729e8a77a9cd0d12ca04a10785d6d9f818d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/official-macro-normalized-next-step.md",
+      "bytes": 14931,
+      "sha256": "b30913ac8be775e8201f7a7ff10dc427c09abe6378c809749075d0699bb8d39d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/official-macro-derived-selection-boundary.md",
+      "bytes": 2804,
+      "sha256": "8753e46e8a7d449aae80527c2504165ff7821dc74a2adb9563bd29343be5dee4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/rrr-official-completeness-followup-20260909.md",
+      "bytes": 9753,
+      "sha256": "f16d1133185a33ed35f869c1ea690ce3c7be7088abebf26c0adde63ff422aeab"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/pp-official-followup-20260909.md",
+      "bytes": 9717,
+      "sha256": "04a5f8558de55ec16cfa794c55bcd83ce6db2680e9b7246452d7c9b0eb8df1d8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-format-01.txt",
+      "bytes": 56,
+      "sha256": "3c9105041166a0913568f3c6adb0b9b4ad6945c34f455feecf166807eb8af6b8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-format-17.txt",
+      "bytes": 92,
+      "sha256": "979696e498e2f862e2174b6a1673ac43b2e6e281ca82ccf73b90c6fa4c253410"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-format-20.txt",
+      "bytes": 960,
+      "sha256": "2aea0e3bd4fcb75d98e7e079a219d258f0c295d34c926894e4891cc5b4b37cf6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-format-21.txt",
+      "bytes": 42,
+      "sha256": "5442d6f95f0f5183933557ba95e72ef70073a02d784fc5dc9893ef7a4e029580"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-format-22.txt",
+      "bytes": 42,
+      "sha256": "5442d6f95f0f5183933557ba95e72ef70073a02d784fc5dc9893ef7a4e029580"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-format-final.txt",
+      "bytes": 56,
+      "sha256": "434f4a82bdd9fe39a96b9b1b3db7f608d366843d4f1c47fc243a2318842ac4b2"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-full-22.txt",
+      "bytes": 2502,
+      "sha256": "eebfb630f26083fd1a13668213caba718e33f3446ee2102e5ca08c90f9c0175b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-helper-ruff-23.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-helper-ruff-final.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-01.txt",
+      "bytes": 1284,
+      "sha256": "179a5c346264388b915c552c1902833c533ed0efa428f470d5cd2dab1ea10bc8"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-02.txt",
+      "bytes": 1280,
+      "sha256": "b9fa6ab6dff728c87869c74f8ed22c58e4193701f3884154f1318db540a4f838"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-03.txt",
+      "bytes": 1276,
+      "sha256": "c4f45c658481f7f1d4858419340a481353774e91acd5d7d4783400ec4ff29dbd"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-04.txt",
+      "bytes": 1276,
+      "sha256": "623653d6ecd75de0b4400a13a9743385b1be398822adf35de84c0ae50667dde9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-05.txt",
+      "bytes": 1276,
+      "sha256": "066823f6b6956f8822fd9ff37b5bf109e69ce163faaca9f03ea52ff09938a1e4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-06.txt",
+      "bytes": 1278,
+      "sha256": "30711adfcf4d180e65e119c4e361213b775778831458c3be98b92f2c2cc73fe0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-07.txt",
+      "bytes": 1280,
+      "sha256": "7d5fc344cf81c234db90f9634145d87c997102d955dbc0b75ea1aa977a140766"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-10.txt",
+      "bytes": 1276,
+      "sha256": "47529dff5dd79a2093a449ca861c3b5eb55ab8caf3f63c9a1309bf3bf5d02ee0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-14.txt",
+      "bytes": 1276,
+      "sha256": "1b463d1ea5c2bffc3e4eb37c5aa2089a06de12638c40b47e8ed6120fc98d822c"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-17.txt",
+      "bytes": 1280,
+      "sha256": "a8691c534e49c78ddd2a1b0206bf9de23e2ccdda8607db553d1343f3b756f2ee"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-install-19.txt",
+      "bytes": 1278,
+      "sha256": "54e3e5ba4a8a3e81a7179f0d7ff74626ab9cad7db5a0bb339167f7708f86142f"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-calendar-green-19.txt",
+      "bytes": 206,
+      "sha256": "8c3854c208486ae948637192f5f9d172579b303d0650c3924db5537e3c1c1dec"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-calendar-red-18.txt",
+      "bytes": 2052,
+      "sha256": "cee3261ce146ac74e2d6199d43686a6fac41d9d1814cdcf339e9454ba0d7f1d0"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-claim-red-01.txt",
+      "bytes": 1822,
+      "sha256": "247c20161ab403e5be44bd8f27e2827833a3f374ae557cb1d0bd21768f70b581"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-context-red-01.txt",
+      "bytes": 1732,
+      "sha256": "f0245ea108de5a871c5e670a46459c74512509edaebb34c33e2226db4a9b55be"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-01.txt",
+      "bytes": 202,
+      "sha256": "353b130ca2c23f3b4a73b7d67c243f6056f7cf693b175ea0df3c3e179e6309db"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-02.txt",
+      "bytes": 202,
+      "sha256": "65707d8ee2a870cf1fa8a991b273249d05b244d5e2fc582e81a32dd02f88c31b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-03.txt",
+      "bytes": 4828,
+      "sha256": "13d5d5e7e74eeebc2741a7d6fe8ff6a768987f9e820bc949d0e202c63e145cd4"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-04.txt",
+      "bytes": 206,
+      "sha256": "e8adeeaedb622053bd1a7b514b8e0676caeccf3c2bf0465f1bf6f4d58446d336"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-05.txt",
+      "bytes": 206,
+      "sha256": "3ea1275396bd8fb9f2e8fbd064aa4990b88a3c2d5eda181f5a3490eb6a023bae"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-06.txt",
+      "bytes": 204,
+      "sha256": "d9d4f2902fae33d8bba67ea26abef1f8850123c85a202f4869462160843364c1"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-07.txt",
+      "bytes": 202,
+      "sha256": "f30e74fd5152634bf1d9a9cbb750da9783895e2a46f3e32ce5832ddabfc7fb35"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-08.txt",
+      "bytes": 2970,
+      "sha256": "2b097a7dfa4345cab6c0fd792263f1e265392fb453f06f1ada5f7741377d86ef"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-green-10.txt",
+      "bytes": 206,
+      "sha256": "a58310b012a6e733fd5b9f49caf7d9527dfa1144cfc83ffba102b0c525e3656d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-period-red-01.txt",
+      "bytes": 1652,
+      "sha256": "49f265d48445fa2c5a2f9f7760cc83b1109fc62026cff319d774be0cf3dc021e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-period-red-02.txt",
+      "bytes": 1826,
+      "sha256": "11b9e9a92a1a7956b67079496701046548f1b129cdda157b76b02ba2e8800e6b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-positive-green-16.txt",
+      "bytes": 204,
+      "sha256": "4fb84fc6ecea8fdd117f81d8d42259d09fa03a84f933ca02c18b05a78580acd3"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-red-01.txt",
+      "bytes": 1762,
+      "sha256": "36443c93e5eea61589cf606e01f078f177de255137a7364421276cec37ceae98"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-reference-red-01.txt",
+      "bytes": 1838,
+      "sha256": "afa157036745f4d01e550eb497a483a30390ae9aaf75925e6c960a8bb421a1e9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-replay-green-14.txt",
+      "bytes": 204,
+      "sha256": "83931a3f322927f9358b219a420dc4b86118005038acef4086043fdc89467d77"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-replay-green-15.txt",
+      "bytes": 206,
+      "sha256": "59587c9e71dc0c8c380ba23ece623ca1f123a91184b3d897b24690d1b17ad332"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-replay-red-11.txt",
+      "bytes": 1370,
+      "sha256": "19bffda8088da3daab0b28cb5df294e930441981c786348a55c9320e5dad79f6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-replay-red-12.txt",
+      "bytes": 2148,
+      "sha256": "ef49769dab36516ea626a92f970f96d3897d03e85bb7af4ca0656bdf57f17915"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-replay-red-13.txt",
+      "bytes": 1692,
+      "sha256": "066ebeeb3d0985abd325187bf87710225fb4312ea6154a25690e206c8880b3fe"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-semantics-red-01.txt",
+      "bytes": 1788,
+      "sha256": "b90fde8bfdf7188db59413759a056a49966867358778740ec4d1f76e5e4f291d"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-status-red-09.txt",
+      "bytes": 3282,
+      "sha256": "c575bb24d85736e1dd5aa08eacd3730b140bec8e9e619691bf360bc4b8f20f45"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-lpr-time-red-01.txt",
+      "bytes": 1826,
+      "sha256": "2a3fb2cd853cd61a091d51f6292ba850515ddb024568ab2ee12100277c2fa383"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-mypy-01.txt",
+      "bytes": 92,
+      "sha256": "faffaba0981ab64c964f23977eb428adcf70763ffbb41a7e4e33de95f11da67e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-mypy-17.txt",
+      "bytes": 92,
+      "sha256": "faffaba0981ab64c964f23977eb428adcf70763ffbb41a7e4e33de95f11da67e"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-mypy-21.txt",
+      "bytes": 532,
+      "sha256": "5ce4570b341aef5beaa83c6be688f1e03a1108b39acc94204287eadcbf359783"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-mypy-22.txt",
+      "bytes": 92,
+      "sha256": "84c96559963461ade2a9bd24b68f98e37b1a0450052160ce80e05aa7216f3923"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-ruff-01.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-ruff-17.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-ruff-20.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-ruff-22.txt",
+      "bytes": 42,
+      "sha256": "af352a86840ad0af3d37ea0d9197f868363a6dac6b1c2ef5d2722f6b41d2d9af"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-targeted-22.txt",
+      "bytes": 1040,
+      "sha256": "da466d1a31460340540913054cf1c31ab9cd7ceef089d921ee91a9a78c2b8794"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-fingerprint-01.json",
+      "bytes": 14621,
+      "sha256": "378de94dee6502c86f0d745f9a2bf43136808af4a59d93293d63b00dbf94eb40"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-fingerprint-08.json",
+      "bytes": 14621,
+      "sha256": "14ff56b3e0d0c412a7c3649a9454feb84c8976fcb8f41afcf37f98ca184a91de"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-fingerprint-22.json",
+      "bytes": 14621,
+      "sha256": "13d4c8c22c103d0853f0c8fb39c8d9f252e50617493830c21e5ff1fc2ce40750"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-fingerprint-final.json",
+      "bytes": 14621,
+      "sha256": "13d4c8c22c103d0853f0c8fb39c8d9f252e50617493830c21e5ff1fc2ce40750"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-run-inputs-22.json",
+      "bytes": 30312,
+      "sha256": "d8ea6163b0db4c7fd20b935a9152db8da04fd3f4f2e0be13bc601f5d8d9ffb65"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-run-inputs.json",
+      "bytes": 1703,
+      "sha256": "57cc63ee35b8cfc945b16c4622334e08a71026efc0ffd4dcf64e16b12dce2a35"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-terminal-08.json",
+      "bytes": 2255,
+      "sha256": "04cbda4119ab189cba96d748b776c71d5c8b756925c2801ae398f10920df79a5"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-helper-check-22.md",
+      "bytes": 2196,
+      "sha256": "77a0f074678388e2922dcfe9457160dd2fcc39d3ec19cba7425e601c8da7445b"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-review-01.md",
+      "bytes": 1409,
+      "sha256": "da2400fb8574b87cdc4f91b8cb7c6b7a86db274d2d42b5c7fbdb5012bffa88c6"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized-review-22.md",
+      "bytes": 1890,
+      "sha256": "a10a03897c633b742108274760d718f92c6ae3fa846d95cd8f2d34ce609d6568"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized/finalize.py",
+      "bytes": 5594,
+      "sha256": "9545f5b40665b1116fcea3a9cfeffe1f5493478a1ef9fbd3b569e6dec2ddd4a9"
+    },
+    {
+      "path": ".scratch/pring-data-acquisition-repair/verification-context-normalized/terminal.json",
+      "bytes": 648,
+      "sha256": "2014e990fffa1806fb87fbcd224ac028c83fc52bee9c6a2d716e51c212c89f6e"
+    }
+  ]
+}

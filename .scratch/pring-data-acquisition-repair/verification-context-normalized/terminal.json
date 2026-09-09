@@ -1,0 +1,18 @@
+﻿{
+    "targeted":  {
+                     "state":  "completed",
+                     "session_id":  52702,
+                     "exit_code":  0,
+                     "tests":  376,
+                     "duration_seconds":  935.66,
+                     "log":  "verification-context-normalized-targeted-22.txt"
+                 },
+    "full":  {
+                 "state":  "completed",
+                 "session_id":  95550,
+                 "exit_code":  0,
+                 "tests":  1053,
+                 "duration_seconds":  3673.23,
+                 "log":  "verification-context-normalized-full-22.txt"
+             }
+}
