@@ -1,0 +1,5 @@
+................
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:343: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+16 passed, 591 deselected in 297.26s (0:04:57)

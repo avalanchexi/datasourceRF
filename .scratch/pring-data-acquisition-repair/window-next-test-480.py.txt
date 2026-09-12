@@ -1,0 +1,53 @@
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_outputs_fixed_120_days_with_hidden_warmup(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()
+    assert len(days) == 239 and days[0] == date(2025, 9, 3)
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 3, 9), end_date=date(2026, 8, 28),
+            universe_hash=universe_hash, window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 360
+    evidence = EvidenceRepository(paths.database)
+    points = tuple(
+        point for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in evidence.metric_series(
+            metric, mode=AsOfMode.PUBLIC, as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(points) == 360
+    visible = {day.isoformat() for day in days if day >= date(2026, 3, 9)}
+    assert len(visible) == 120 and {p.period_end for p in points} == visible
+    for day in sorted(visible):
+        values = {p.dimensions["measure"]: p.selected_value for p in points if p.period_end == day}
+        assert values == {"new_highs": 1.0, "new_lows": 1.0, "above_ma_share": pytest.approx(100 / 3)}
+    first = tuple(
+        point for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in evidence.metric_series(
+            metric, mode=AsOfMode.PUBLIC, as_of=datetime(2026, 3, 9, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(first) == 3 and {p.period_end for p in first} == {"2026-03-09"}
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh", target_business_date="2026-03-09",
+        client_request_id="synthetic-window-first-visible-day",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 3, 9, 8, tzinfo=UTC),
+        release_event_id="synthetic:window-first-visible-day",
+        metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"), period="2026-03-09",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete and len(selection.selected_claim_ids) == 3

@@ -1,0 +1,85 @@
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_ignores_unused_future_action_artifact(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-121:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    window = json.loads((paths.artifacts / window_hash[:2] / window_hash).read_bytes())
+    window.pop("review_hash")
+    coverage_hash = save(paths, {"synthetic": True, "kind": "complete fixture action coverage"})
+    window["coverage_evidence"] = [coverage_hash]
+    window["evidence"][0]["artifact_hash"] = coverage_hash
+    action_hash = save(paths, {"synthetic": True, "reference_before": "10", "reference_after": "20"})
+    window["adjustments"] = [{
+        "event_id": "synthetic:second-output-adjustment",
+        "security_id": "ordinary-bj",
+        "effective_date": "2026-08-28",
+        "method": "official-reference-ratio",
+        "reference_before": "10",
+        "reference_after": "20",
+        "evidence": [action_hash],
+    }]
+    window["evidence"].append({
+        "artifact_hash": action_hash,
+        "source_reference": "synthetic:second-output-adjustment-reference",
+        "release_at": "2026-08-27T08:00:00+00:00",
+        "public_available_at": "2026-08-27T08:00:00+00:00",
+    })
+    review_hash = save(paths, {
+        "schema_version": "market-breadth-window-review-v0001",
+        "subject_hash": hashlib.sha256(encode(window)).hexdigest(),
+        "reviewer": "synthetic independent event reviewer",
+        "reviewed_at": "2026-09-13T00:00:00+00:00",
+        "decision": "accepted",
+    })
+    window_hash = save(paths, {**window, "review_hash": review_hash})
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 27),
+            end_date=date(2026, 8, 28),
+            output_days=2,
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    evidence = EvidenceRepository(paths.database)
+    lows = evidence.metric_series(
+        "CN_EQ_NEW_HIGH_LOW_120",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    # First day: only SZ descends. Second day: BJ is 10 against 119 adjusted prices of 20.
+    assert {p.period_end: p.selected_value for p in lows if p.dimensions["measure"] == "new_lows"} == {"2026-08-27": 1.0, "2026-08-28": 2.0}
+    runs = tuple(
+        RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date=day.isoformat(),
+            client_request_id="window-independent-event-" + day.isoformat(),
+            model_version_id=manifest["model_version_id"],
+            system_as_of=datetime(day.year, day.month, day.day, 8, tzinfo=UTC),
+            release_event_id="synthetic:window-independent-event",
+            metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+            period=day.isoformat(),
+        ) for day in (date(2026, 8, 27), date(2026, 8, 28))
+    )
+    initial = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+    assert all(item.complete and len(item.selected_claim_ids) == 3 for item in initial)
+    artifact = paths.artifacts / action_hash[:2] / action_hash
+    original = artifact.read_bytes()
+    try:
+        artifact.write_bytes(b"damaged independent future event")
+        after = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+        assert tuple(item.complete for item in after) == (True, False)
+        assert after[0].selected_claim_ids == initial[0].selected_claim_ids
+        assert after[1].selected_claim_ids == ()
+    finally:
+        artifact.write_bytes(original)
+    restored = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+    assert restored == initial

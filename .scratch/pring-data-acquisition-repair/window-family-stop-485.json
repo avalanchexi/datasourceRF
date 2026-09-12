@@ -1,0 +1,8 @@
+{
+  "status": "interruption_requested",
+  "reason": "Spec484 unused external future-event proof scope and Standards484 noncanonical action-date discovery require new public RED slices before final family regression",
+  "pid": 2232530,
+  "command": "/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/bin/python -m pytest --basetemp=/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/family-485 -q --tb=short tests/models/test_candidate_admission.py -k registered_window_breadth ",
+  "signal": "SIGINT",
+  "at": "2026-09-12T21:32:30.966728+00:00"
+}

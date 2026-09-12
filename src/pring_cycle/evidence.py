@@ -323,6 +323,7 @@ class EvidenceRepository:
             self._database_path, self._database_path.parent / "artifacts" / "sha256"
         )
         checked: dict[str, SourceClaimAcquisition | None] = {}
+        content_by_hash: dict[str, bytes] = {}
         originals: dict[str, list[SourceClaimAcquisition]] = {
             claim_id: [] for claim_id in identities
         }
@@ -335,6 +336,10 @@ class EvidenceRepository:
                     try:
                         raw = acquisitions.read_content(acquisition_id, "raw")
                         normalized = acquisitions.read_content(acquisition_id, "normalized")
+                        # Keep each receipt's validation, but share identical immutable payloads
+                        # for the lifetime of this batch (including across different claims).
+                        raw = content_by_hash.setdefault(row["raw_hash"], raw)
+                        normalized = content_by_hash.setdefault(row["normalized_hash"], normalized)
                         checked[acquisition_id] = SourceClaimAcquisition(
                             receipt_from_row(row), raw, normalized
                         )

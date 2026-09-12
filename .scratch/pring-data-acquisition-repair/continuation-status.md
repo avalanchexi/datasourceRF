@@ -1,5 +1,7 @@
 # 修复项目当前执行入口
 
+**2026-09-13 implement：M2窗口广度软件切片完成，继续10金额。** [票09](issues/09-breadth-window-metrics.md)两项新增软件条件已通过；37项窗口、263项相关及独立HEAD175项分别全通过，类型92/91、Ruff/格式与两轴498通过，保留一项判断性测试结构建议。[根核验500](verification-window-acceptance-500.json)绑定输入、环境、实际终态及八文件独立补丁，详见[09实施记录](implementation-09-registered-window-breadth.md)。市场15项P1已有12项软件路径；下一项10金额1项、11→12商品2项。[金额研究485](research-10-software-inputs-485.md)及499独立手算提供32.5%合成正例、全池分母与金额覆盖边界。真实历史输入/认证、全市场容量及M3–M6/最终默认全套继续开放，23延期。
+
 **2026-09-09 最新验收：**LPR标准化消费、双点时日历和PUBLIC组件回放软件批已通过[默认全套](verification-context-normalized-full-22.txt)：**1053通过、0失败、3673.23秒**，原主会话95550实际退出码0。[关联回归](verification-context-normalized-targeted-22.txt)376通过、935.66秒；mypy92、Ruff、7文件格式和两轴复核通过，167冻结输入字节未变，90安装Python源最终匹配，4个受保护用户文件未变。[本批检查点](verification-context-normalized/checkpoint.json)绑定源码、终态和日志。下一步按[PMI/CPI消费研究](official-macro-normalized-next-step.md)及[跨统计期回退边界](official-macro-derived-selection-boundary.md)继续公开RED/GREEN；新PMI反例尚未执行。真实来源认证、业务规则、完整候选、120交易日重放、合格AI及真实切换仍未完成，不关闭整个修复项目。
 
 顶部最新记录及其终态证据控制当前进展；下方各阶段快照保留记录时的“当前/正在执行”措辞，不代表那些旧进程现在仍在运行，也不覆盖后续结果。

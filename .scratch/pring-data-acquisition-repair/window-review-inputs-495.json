@@ -1,0 +1,57 @@
+{
+  "base_head": "7272057fcbc5e1bd31c0673ead9f8dc25485e566",
+  "commits": [],
+  "command": "diff of frozen window-base-422 sources (evidence.py baseline476) to window-review-495 snapshots; preexisting WIP excluded",
+  "files": [
+    {
+      "path": "src/pring_cycle/market_breadth.py",
+      "baseline": "window-base-422-market_breadth.py.txt",
+      "snapshot": "window-review-495-market_breadth.py.txt",
+      "sha256": "8b833ace33dd9a5a5079fa1e1c15d28627fe9d7d733c326ad273e441729d4127"
+    },
+    {
+      "path": "src/pring_cycle/metric_contracts.py",
+      "baseline": "window-base-422-metric_contracts.py.txt",
+      "snapshot": "window-review-495-metric_contracts.py.txt",
+      "sha256": "a289b075b9465854e93fec2f99563ecffd71ac3c160ce8bdaca8f041f23c3093"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "baseline": "window-base-422-model_evaluation.py.txt",
+      "snapshot": "window-review-495-model_evaluation.py.txt",
+      "sha256": "49ee60b2c026b2b45c7ba9d7fec3583a78cb42d0da19e47d229bd94c69a8a4ef"
+    },
+    {
+      "path": "src/pring_cycle/search_evidence.py",
+      "baseline": "window-base-422-search_evidence.py.txt",
+      "snapshot": "window-review-495-search_evidence.py.txt",
+      "sha256": "c854e71c3faa42385cff54afc6ff9f24fd1e3a1cd7a81aad0c7ad0bebaaece02"
+    },
+    {
+      "path": "src/pring_cycle/source_contract_review.py",
+      "baseline": "window-base-422-source_contract_review.py.txt",
+      "snapshot": "window-review-495-source_contract_review.py.txt",
+      "sha256": "8edffb887643c8d7f52956b50272d36281ecb14e2a35f3016176d87cf1170124"
+    },
+    {
+      "path": "src/pring_cycle/tushare_context.py",
+      "baseline": "window-base-422-tushare_context.py.txt",
+      "snapshot": "window-review-495-tushare_context.py.txt",
+      "sha256": "1fc45cc5730abb9a7c2dc60ee5ae3d27558d982a20b5c8e14d699cfee4690c5a"
+    },
+    {
+      "path": "src/pring_cycle/evidence.py",
+      "baseline": "window-base-476-evidence.py.txt",
+      "snapshot": "window-review-495-evidence.py.txt",
+      "sha256": "08a69c98462fc3c99cd6a16501a8f43f003e8a2d6d26ef303955bbdc14d27c57"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "baseline": "window-base-422-test_candidate_admission.py.txt",
+      "snapshot": "window-review-495-test_candidate_admission.py.txt",
+      "sha256": "7c04f6be6d6d487fcc3a8600a2cf30243d9d438582b0d603f23ad2dfbc843bec"
+    }
+  ],
+  "patch": "window-review-diff-495.patch",
+  "patch_sha256": "b96a926c34f0fec6ed663ba31df5141a9d0626b71b5fab3ad2a93ea9b9822c6f"
+}

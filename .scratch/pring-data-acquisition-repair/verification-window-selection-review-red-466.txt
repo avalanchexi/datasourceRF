@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-damaged_before_selection] _
+tests/models/test_candidate_admission.py:13323: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    assert not rejected.complete
+E   AssertionError: assert not True
+E    +  where True = ModelInputSelection(complete=True, selected_claim_ids=('96da30a95b08e88b867ff244e2dcbc5b777abed15e029e422a4817a337e035...f03c2c0367a3e8302415bbeef944', 'ec0965f7e3d28861e17e326a0668cc112b5848fedc766a211f7a873299793ceb'), missing_members=()).complete
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-damaged_before_selection]
+1 failed in 35.55s

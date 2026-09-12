@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-changed_scalar] _
+tests/models/test_candidate_admission.py:13189: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-changed_scalar]
+1 failed in 19.00s

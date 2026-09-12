@@ -1,0 +1,50 @@
+[
+  {
+    "path": "src/pring_cycle/market_breadth.py",
+    "exit_code": 0,
+    "conflicts": 0,
+    "output": "window-transplant-485-market_breadth.py.txt"
+  },
+  {
+    "path": "src/pring_cycle/metric_contracts.py",
+    "exit_code": 0,
+    "conflicts": 0,
+    "output": "window-transplant-485-metric_contracts.py.txt"
+  },
+  {
+    "path": "src/pring_cycle/model_evaluation.py",
+    "exit_code": 1,
+    "conflicts": 1,
+    "output": "window-transplant-485-model_evaluation.py.txt"
+  },
+  {
+    "path": "src/pring_cycle/search_evidence.py",
+    "exit_code": 1,
+    "conflicts": 1,
+    "output": "window-transplant-485-search_evidence.py.txt"
+  },
+  {
+    "path": "src/pring_cycle/source_contract_review.py",
+    "exit_code": 0,
+    "conflicts": 0,
+    "output": "window-transplant-485-source_contract_review.py.txt"
+  },
+  {
+    "path": "src/pring_cycle/tushare_context.py",
+    "exit_code": 0,
+    "conflicts": 0,
+    "output": "window-transplant-485-tushare_context.py.txt"
+  },
+  {
+    "path": "src/pring_cycle/evidence.py",
+    "exit_code": 0,
+    "conflicts": 0,
+    "output": "window-transplant-485-evidence.py.txt"
+  },
+  {
+    "path": "tests/models/test_candidate_admission.py",
+    "exit_code": 0,
+    "conflicts": 0,
+    "output": "window-transplant-485-test_candidate_admission.py.txt"
+  }
+]

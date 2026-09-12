@@ -1,0 +1,138 @@
+
+
+
+def china_window_input_dates() -> tuple[date, ...]:
+    """239 SSE calendar dates, independently checked in research-09-calendar-warmup-470.
+
+    Calendar response SHA256 2c8576c3d87cca2973053122683cd3ee48c1b29b3524f500179e123d40785705.
+    The dates are real; the stock prices and publication evidence below are synthetic.
+    """
+    return tuple(date.fromisoformat(value) for value in """
+        2025-09-03 2025-09-04 2025-09-05 2025-09-08 2025-09-09 2025-09-10
+        2025-09-11 2025-09-12 2025-09-15 2025-09-16 2025-09-17 2025-09-18
+        2025-09-19 2025-09-22 2025-09-23 2025-09-24 2025-09-25 2025-09-26
+        2025-09-29 2025-09-30 2025-10-09 2025-10-10 2025-10-13 2025-10-14
+        2025-10-15 2025-10-16 2025-10-17 2025-10-20 2025-10-21 2025-10-22
+        2025-10-23 2025-10-24 2025-10-27 2025-10-28 2025-10-29 2025-10-30
+        2025-10-31 2025-11-03 2025-11-04 2025-11-05 2025-11-06 2025-11-07
+        2025-11-10 2025-11-11 2025-11-12 2025-11-13 2025-11-14 2025-11-17
+        2025-11-18 2025-11-19 2025-11-20 2025-11-21 2025-11-24 2025-11-25
+        2025-11-26 2025-11-27 2025-11-28 2025-12-01 2025-12-02 2025-12-03
+        2025-12-04 2025-12-05 2025-12-08 2025-12-09 2025-12-10 2025-12-11
+        2025-12-12 2025-12-15 2025-12-16 2025-12-17 2025-12-18 2025-12-19
+        2025-12-22 2025-12-23 2025-12-24 2025-12-25 2025-12-26 2025-12-29
+        2025-12-30 2025-12-31 2026-01-05 2026-01-06 2026-01-07 2026-01-08
+        2026-01-09 2026-01-12 2026-01-13 2026-01-14 2026-01-15 2026-01-16
+        2026-01-19 2026-01-20 2026-01-21 2026-01-22 2026-01-23 2026-01-26
+        2026-01-27 2026-01-28 2026-01-29 2026-01-30 2026-02-02 2026-02-03
+        2026-02-04 2026-02-05 2026-02-06 2026-02-09 2026-02-10 2026-02-11
+        2026-02-12 2026-02-13 2026-02-24 2026-02-25 2026-02-26 2026-02-27
+        2026-03-02 2026-03-03 2026-03-04 2026-03-05 2026-03-06 2026-03-09
+        2026-03-10 2026-03-11 2026-03-12 2026-03-13 2026-03-16 2026-03-17
+        2026-03-18 2026-03-19 2026-03-20 2026-03-23 2026-03-24 2026-03-25
+        2026-03-26 2026-03-27 2026-03-30 2026-03-31 2026-04-01 2026-04-02
+        2026-04-03 2026-04-07 2026-04-08 2026-04-09 2026-04-10 2026-04-13
+        2026-04-14 2026-04-15 2026-04-16 2026-04-17 2026-04-20 2026-04-21
+        2026-04-22 2026-04-23 2026-04-24 2026-04-27 2026-04-28 2026-04-29
+        2026-04-30 2026-05-06 2026-05-07 2026-05-08 2026-05-11 2026-05-12
+        2026-05-13 2026-05-14 2026-05-15 2026-05-18 2026-05-19 2026-05-20
+        2026-05-21 2026-05-22 2026-05-25 2026-05-26 2026-05-27 2026-05-28
+        2026-05-29 2026-06-01 2026-06-02 2026-06-03 2026-06-04 2026-06-05
+        2026-06-08 2026-06-09 2026-06-10 2026-06-11 2026-06-12 2026-06-15
+        2026-06-16 2026-06-17 2026-06-18 2026-06-22 2026-06-23 2026-06-24
+        2026-06-25 2026-06-26 2026-06-29 2026-06-30 2026-07-01 2026-07-02
+        2026-07-03 2026-07-06 2026-07-07 2026-07-08 2026-07-09 2026-07-10
+        2026-07-13 2026-07-14 2026-07-15 2026-07-16 2026-07-17 2026-07-20
+        2026-07-21 2026-07-22 2026-07-23 2026-07-24 2026-07-27 2026-07-28
+        2026-07-29 2026-07-30 2026-07-31 2026-08-03 2026-08-04 2026-08-05
+        2026-08-06 2026-08-07 2026-08-10 2026-08-11 2026-08-12 2026-08-13
+        2026-08-14 2026-08-17 2026-08-18 2026-08-19 2026-08-20 2026-08-21
+        2026-08-24 2026-08-25 2026-08-26 2026-08-27 2026-08-28
+        """.split())
+
+
+def synthetic_window_breadth_range(
+    paths: RuntimePaths, days: tuple[date, ...]
+) -> tuple[TushareContextAdapter, str, str]:
+    """Create transparent transport inputs with a separate publication proof for each day."""
+    universe = synthetic_breadth_universe(paths)
+    universe["coverage_start"] = days[0].isoformat()
+    universe["coverage_end"] = days[-1].isoformat()
+    known_identity = datetime.combine(days[0] - timedelta(days=1), datetime.min.time(), UTC)
+    universe["evidence"][0].update(
+        release_at=known_identity.isoformat(), public_available_at=known_identity.isoformat()
+    )
+    universe["publications"] = {}
+    for day in days:
+        proof = save(paths, {"synthetic": True, "quote_and_suspension_publication": day.isoformat()})
+        published = datetime(day.year, day.month, day.day, 8, tzinfo=UTC).isoformat()
+        universe["evidence"].append({
+            "artifact_hash": proof,
+            "source_reference": "synthetic:daily-price-publication",
+            "release_at": published,
+            "public_available_at": published,
+        })
+        universe["publications"][day.isoformat()] = [proof]
+    universe_hash = save_breadth_review(paths, universe)
+    coverage = save(paths, {"synthetic": True, "assumption": "no corporate actions in fixture range"})
+    window = {
+        "schema_version": "market-breadth-window-inputs-v0001",
+        "coverage_start": days[0].isoformat(), "coverage_end": days[-1].isoformat(),
+        "coverage_evidence": [coverage], "adjustments": [],
+        "evidence": [{
+            "artifact_hash": coverage,
+            "source_reference": "synthetic:fixture-action-coverage",
+            "release_at": known_identity.isoformat(),
+            "public_available_at": known_identity.isoformat(),
+        }],
+    }
+    review = save(paths, {
+        "schema_version": "market-breadth-window-review-v0001",
+        "subject_hash": hashlib.sha256(encode(window)).hexdigest(),
+        "reviewer": "synthetic window range reviewer",
+        "reviewed_at": "2026-09-13T00:00:00+00:00", "decision": "accepted",
+    })
+    window_hash = save(paths, {**window, "review_hash": review})
+    quotes = [
+        {"ts_code": code, "trade_date": day.strftime("%Y%m%d"),
+         "close": str(value), "pre_close": str(value), "vol": "1"}
+        for index, day in enumerate(days)
+        for code, value in (("600000.SH", index + 1), ("000001.SZ", len(days) - index), ("920001.BJ", 10))
+    ]
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=breadth_transport(
+            quotes, [], days=tuple(day.strftime("%Y%m%d") for day in days)
+        )
+    )
+    return adapter, universe_hash, window_hash
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_limits_requested_visible_days(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-121:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 27), end_date=date(2026, 8, 28), output_days=1,
+            universe_hash=universe_hash, window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 3
+    points = tuple(
+        point for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in EvidenceRepository(paths.database).metric_series(
+            metric, mode=AsOfMode.PUBLIC, as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(points) == 3 and {p.period_end for p in points} == {"2026-08-28"}
+    assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+        "new_highs": 1.0, "new_lows": 1.0, "above_ma_share": pytest.approx(100 / 3)
+    }

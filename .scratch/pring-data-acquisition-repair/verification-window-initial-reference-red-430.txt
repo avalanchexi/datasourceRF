@@ -1,0 +1,26 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-window_start] _
+tests/models/test_candidate_admission.py:13071: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    result = adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:179: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:13073: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1134: in market_breadth
+    return self._reviewed_window_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1094: in _reviewed_window_breadth
+    self._reviewed_daily_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1064: in _reviewed_daily_breadth
+    result = daily_breadth_day(day, captured.value, quotes, suspensions)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_breadth.py:495: in daily_breadth_day
+    close, previous = _breadth_price(row["close"]), _breadth_price(row["pre_close"])
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_breadth.py:559: in _breadth_price
+    raise ValueError("breadth_price_invalid")
+E   ValueError: breadth_price_invalid
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-window_start]
+1 failed in 22.43s

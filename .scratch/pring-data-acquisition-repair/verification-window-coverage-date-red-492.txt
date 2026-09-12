@@ -1,0 +1,10 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_requires_adjustment_coverage_through_target[20260827] _
+tests/models/test_candidate_admission.py:14130: in test_registered_window_breadth_requires_adjustment_coverage_through_target
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_requires_adjustment_coverage_through_target[20260827]
+1 failed, 1 passed in 36.19s

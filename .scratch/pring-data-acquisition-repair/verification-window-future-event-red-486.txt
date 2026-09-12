@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_registered_window_breadth_ignores_unused_future_action_artifact _____
+tests/models/test_candidate_admission.py:14050: in test_registered_window_breadth_ignores_unused_future_action_artifact
+    assert tuple(item.complete for item in after) == (True, False)
+E   assert (False, False) == (True, False)
+E     
+E     At index 0 diff: False != True
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_ignores_unused_future_action_artifact
+1 failed in 52.13s

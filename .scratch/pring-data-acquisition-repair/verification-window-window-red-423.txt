@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_registered_window_breadth_uses_full_window_with_hidden_warmup ______
+tests/models/test_candidate_admission.py:13005: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    result = adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:177: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:13007: in <lambda>
+    lambda: adapter.market_breadth(
+E   TypeError: TushareContextAdapter.market_breadth() got an unexpected keyword argument 'window_inputs_hash'
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup
+1 failed, 591 deselected in 6.13s

@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_registered_window_breadth_rejects_noncanonical_adjustment_date ______
+tests/models/test_candidate_admission.py:14079: in test_registered_window_breadth_rejects_noncanonical_adjustment_date
+    with pytest.raises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_rejects_noncanonical_adjustment_date
+1 failed in 14.08s

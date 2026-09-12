@@ -211,7 +211,12 @@ def require_registered_source_contract(
         ):
             raise ValueError("registered_capacity_q1_mapping_unresolved")
         return
-    from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, DAILY_BREADTH_SOURCE_CODE
+    from pring_cycle.market_breadth import (
+        DAILY_BREADTH_MEASURES,
+        DAILY_BREADTH_SOURCE_CODE,
+        WINDOW_BREADTH_MEASURES,
+        WINDOW_BREADTH_SOURCE_CODE,
+    )
     from pring_cycle.tushare_context import (
         MARKET_INDEX_IDENTITIES,
         VALUATION_FIELDS,
@@ -233,6 +238,7 @@ def require_registered_source_contract(
         {metric_id: ("market_index", "tushare") for metric_id in MARKET_INDEX_IDENTITIES}
     )
     contracts.update({metric: ("daily_breadth", "tushare") for metric in DAILY_BREADTH_MEASURES})
+    contracts.update({metric: ("window_breadth", "tushare") for metric in WINDOW_BREADTH_MEASURES})
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
@@ -245,8 +251,11 @@ def require_registered_source_contract(
         "market_index",
         "valuation",
         "daily_breadth",
+        "window_breadth",
     }:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+    if family == "window_breadth":
+        supported = replace(supported, source_codes=(WINDOW_BREADTH_SOURCE_CODE,))
     if family == "daily_breadth":
         supported = replace(supported, source_codes=(DAILY_BREADTH_SOURCE_CODE,))
     if family == "cpi":
@@ -279,6 +288,21 @@ def require_registered_source_contract(
             or date.fromisoformat(period_end).isoformat() != period_end
         ):
             raise ValueError("registered_daily_breadth_source_identity_mismatch")
+        return
+    if family == "window_breadth":
+        breadth_measure = dimensions.get("measure")
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or dimensions
+            != {"measure": breadth_measure, "universe": "point_in_time_traded_a_shares"}
+            or breadth_measure not in WINDOW_BREADTH_MEASURES[definition.metric_id]
+            or unit != ("percent" if definition.metric_id == "CN_EQ_ABOVE_MA120" else "count")
+            or source_reference != f"tushare:window_breadth:{breadth_measure}:{period_end}"
+            or period_start != period_end
+            or date.fromisoformat(period_end).isoformat() != period_end
+        ):
+            raise ValueError("registered_window_breadth_source_identity_mismatch")
         return
     if family == "valuation":
         valuation_measure = dimensions.get("measure", "")

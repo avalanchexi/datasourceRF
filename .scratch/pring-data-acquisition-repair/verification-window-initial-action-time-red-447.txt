@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-window_start_action] _
+tests/models/test_candidate_admission.py:13165: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    assert evidence.metric_series(
+E   AssertionError: assert (MetricSeries...m_id=None),))) == ()
+E     
+E     Left contains 2 more items, first extra item: MetricSeriesPoint(observation_id='2cc5a8e8c2c185a5ccb69bdf3365ac494447c024cb37cd275a39176028ffc4cf', period_start='202...info=datetime.timezone.utc), certification_status='certified', quality_status='validated', supersedes_claim_id=None),))
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-window_start_action]
+1 failed in 39.42s

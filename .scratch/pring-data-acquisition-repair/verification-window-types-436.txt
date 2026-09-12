@@ -1,0 +1,2 @@
+tests/models/test_candidate_admission.py:13055: error: "Sequence[Collection[str]]" has no attribute "append"  [attr-defined]
+Found 1 error in 1 file (checked 92 source files)

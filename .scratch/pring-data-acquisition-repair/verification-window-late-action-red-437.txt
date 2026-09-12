@@ -1,0 +1,13 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-late_action] _
+tests/models/test_candidate_admission.py:13145: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    assert values["above_ma_share"] == pytest.approx(
+E   assert 33.333333333333336 == 50 ± 5.0e-05
+E     
+E     comparison failed
+E     Obtained: 33.333333333333336
+E     Expected: 50 ± 5.0e-05
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-late_action]
+1 failed in 17.44s

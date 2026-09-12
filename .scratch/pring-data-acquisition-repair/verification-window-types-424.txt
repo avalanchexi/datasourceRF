@@ -1,0 +1,2 @@
+src/pring_cycle/market_breadth.py:846: error: Returning Any from function declared to return "dict[str, Any]"  [no-any-return]
+Found 1 error in 1 file (checked 92 source files)

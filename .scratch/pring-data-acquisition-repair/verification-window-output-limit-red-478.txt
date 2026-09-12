@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_registered_window_breadth_limits_requested_visible_days _________
+tests/models/test_candidate_admission.py:13543: in test_registered_window_breadth_limits_requested_visible_days
+    assert result.observation_count == 3
+E   AssertionError: assert 6 == 3
+E    +  where 6 = ContextIngestionResult(observation_count=6, observation_ids=('4141754e61bb918f95f902d43158b9453618e579951a60eef7feb522...31c7ea0beacdd993658126b24d5f839b'), metric_ids=('CN_EQ_ABOVE_MA120', 'CN_EQ_NEW_HIGH_LOW_120'), rejected_field_count=0).observation_count
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_limits_requested_visible_days
+1 failed in 23.03s

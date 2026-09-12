@@ -7726,3 +7726,1226 @@ def test_registered_daily_breadth_requires_exit_publication_for_changed_denomina
         selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
         assert selection.complete is available
         assert len(selection.selected_claim_ids) == (6 if available else 0)
+
+
+def admitted_window_breadth_manifest(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], *, side: str = "candidate"
+) -> dict[str, Any]:
+    request, _ = prepared_request(paths)
+    manifest = request["manifest"]
+    manifest["metric_catalog_version"] += "-breadth-window-v2-" + side
+    for definition in manifest["metric_definitions"]:
+        definition["definition_version"] = manifest["metric_catalog_version"]
+        if definition["metric_id"] in {"CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"}:
+            definition["source_codes"] = ["tushare:daily:breadth-window-v0002"]
+            if side == "candidate":
+                definition["source_candidates"] = [
+                    *definition["source_candidates"],
+                    "https://www.sse.com.cn/synthetic-window-review",
+                ]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"] = {
+        d["metric_id"]: hashlib.sha256(encode(d)).hexdigest()
+        for d in manifest["metric_definitions"]
+        if d["metric_id"] in package["definition_bindings"]
+    }
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    return ModelRepository(paths.database).manifest(model_id)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "new_listing,scenario",
+    [
+        (False, "none"),
+        (True, "none"),
+        (False, "historical"),
+        (False, "window_start"),
+        (False, "late_price"),
+        (False, "cash_dividend"),
+        (False, "late_action"),
+        (False, "ex_day_halt"),
+        (False, "target_halt"),
+        (False, "zero_participants"),
+        (False, "window_start_action"),
+        (False, "duplicate_calendar"),
+        (False, "duplicate_action"),
+        (False, "prior_halt_chain"),
+        (False, "public_before_release"),
+        (False, "wrong_date_precision"),
+        (False, "date_only"),
+        (False, "ipo_full_window"),
+        (False, "historical_reference_missing"),
+        (False, "ipo_without_trade"),
+        (False, "unknown_price"),
+        (False, "changed_scalar"),
+        (False, "damaged_before_validation"),
+        (False, "damaged_before_selection"),
+        (False, "damaged_before_replay"),
+        (False, "builtin_zero"),
+        (False, "missing_source_reference"),
+    ],
+)
+def test_registered_window_breadth_uses_full_window_with_hidden_warmup(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], new_listing: bool, scenario: str
+) -> None:
+    historical_halt = scenario in {
+        "historical",
+        "window_start",
+        "late_price",
+        "ex_day_halt",
+        "target_halt",
+        "zero_participants",
+        "builtin_zero",
+        "window_start_action",
+        "prior_halt_chain",
+    }
+    halt_code = "000001.SZ" if scenario in {"ex_day_halt", "window_start_action"} else "600000.SH"
+    halt_index = (
+        2
+        if scenario == "prior_halt_chain"
+        else 1
+        if scenario in {"window_start", "window_start_action"}
+        else 119
+        if scenario in {"target_halt", "zero_participants", "builtin_zero"}
+        else 60
+    )
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    # A synthetic exchange calendar, not the certified 2026 China replay calendar.
+    days = tuple(
+        reversed(
+            [
+                date(2026, 8, 28) - timedelta(days=i)
+                for i in range(170)
+                if (date(2026, 8, 28) - timedelta(days=i)).weekday() < 5
+            ][:120]
+        )
+    )
+    assert len(days) == 120
+    if scenario in {"window_start", "window_start_action", "prior_halt_chain"}:
+        for _ in range(2 if scenario == "prior_halt_chain" else 1):
+            earlier = days[0] - timedelta(days=1)
+            while earlier.weekday() >= 5:
+                earlier -= timedelta(days=1)
+            days = (earlier, *days)
+    universe = synthetic_breadth_universe(paths)
+    universe["coverage_start"] = days[0].isoformat()
+    proof = universe["evidence"][0]["artifact_hash"]
+    universe["publications"] = {day.isoformat(): [proof] for day in days}
+    if new_listing:
+        universe["members"][1]["valid_from"] = days[10].isoformat()
+        universe["members"][1]["first_trading_day"] = days[10].isoformat()
+    if scenario in {"ipo_full_window", "ipo_without_trade"}:
+        universe["members"][1]["valid_from"] = days[0].isoformat()
+        universe["members"][1]["first_trading_day"] = days[0].isoformat()
+    if historical_halt:
+        # The carried price and pool identity were already public on their own dates.
+        before_window = datetime.combine(days[0] - timedelta(days=1), datetime.min.time(), UTC)
+        universe["evidence"][0]["release_at"] = before_window.isoformat()
+        universe["evidence"][0]["public_available_at"] = before_window.isoformat()
+        for day in days:
+            daily_proof = save(
+                paths, {"synthetic": True, "published_prices_and_suspensions": day.isoformat()}
+            )
+            published = datetime(day.year, day.month, day.day, 8, tzinfo=UTC).isoformat()
+            if scenario == "late_price" and day == days[halt_index - 1]:
+                late = days[halt_index] + timedelta(days=1)
+                published = datetime(late.year, late.month, late.day, 8, tzinfo=UTC).isoformat()
+            universe["evidence"].append(
+                {
+                    "artifact_hash": daily_proof,
+                    "source_reference": "synthetic:dated-market-publication",
+                    "release_at": published,
+                    "public_available_at": published,
+                }
+            )
+            universe["publications"][day.isoformat()] = [daily_proof]
+    universe_hash = save_breadth_review(paths, universe)
+    coverage_hash = save(paths, {"synthetic": True, "kind": "complete corporate-action coverage"})
+    window_inputs: dict[str, Any] = {
+        "schema_version": "market-breadth-window-inputs-v0001",
+        "coverage_start": days[0].isoformat(),
+        "coverage_end": days[-1].isoformat(),
+        "coverage_evidence": [coverage_hash],
+        "adjustments": [],
+        "evidence": [
+            {
+                "artifact_hash": coverage_hash,
+                "source_reference": "synthetic:official-actions",
+                "release_at": "2026-08-28T08:00:00+00:00",
+                "public_available_at": "2026-08-28T08:00:00+00:00",
+            }
+        ],
+    }
+    action_index = 1 if scenario == "window_start_action" else 60
+    if scenario in {
+        "cash_dividend",
+        "late_action",
+        "ex_day_halt",
+        "window_start_action",
+        "duplicate_action",
+    }:
+        # Independent reference example: 11.30 -> 10.94 for 0.36 cash/share
+        # (research-09-adjustment-sample-429). All dates/publication here are synthetic.
+        action_hash = save(paths, {"synthetic": True, "cash_per_share": "0.36"})
+        window_inputs["adjustments"] = [
+            {
+                "event_id": "synthetic:cash-distribution",
+                "security_id": "st-delisting-sz",
+                "effective_date": days[action_index].isoformat(),
+                "method": "official-reference-ratio",
+                "reference_before": "11.30",
+                "reference_after": "10.94",
+                "evidence": [action_hash],
+            }
+        ]
+        published = (
+            "2026-08-29T08:00:00+00:00"
+            if scenario == "late_action"
+            else "2026-08-28T12:00:00+00:00"
+            if scenario == "window_start_action"
+            else datetime.combine(days[action_index - 1], datetime.min.time(), UTC).isoformat()
+        )
+        window_inputs["evidence"].append(
+            {
+                "artifact_hash": action_hash,
+                "source_reference": "synthetic:cash-implementation-reference",
+                "release_at": published,
+                "public_available_at": published,
+            }
+        )
+    if scenario == "duplicate_action":
+        window_inputs["adjustments"].append(dict(window_inputs["adjustments"][0]))
+    if scenario == "missing_source_reference":
+        window_inputs["evidence"][0]["source_reference"] = ""
+    if scenario == "public_before_release":
+        window_inputs["evidence"][0]["release_at"] = "2026-08-28T10:00:00+00:00"
+    if scenario in {"wrong_date_precision", "date_only"}:
+        window_inputs["evidence"][0].update(
+            published_date="2026-08-28",
+            release_at=None if scenario == "date_only" else "2026-08-27T16:00:00+00:00",
+            public_available_at="2026-08-28T16:00:00+00:00"
+            if scenario == "date_only"
+            else "2026-08-27T16:00:00+00:00",
+        )
+    review_hash = save(
+        paths,
+        {
+            "schema_version": "market-breadth-window-review-v0001",
+            "subject_hash": hashlib.sha256(encode(window_inputs)).hexdigest(),
+            "reviewer": "synthetic adjustment reviewer",
+            "reviewed_at": "2026-09-13T00:00:00+00:00",
+            "decision": "accepted",
+        },
+    )
+    window_hash = save(paths, {**window_inputs, "review_hash": review_hash})
+    quotes: list[dict[str, Any]] = [
+        {
+            "ts_code": code,
+            "trade_date": day.strftime("%Y%m%d"),
+            "close": str(value),
+            "pre_close": str(value),
+            "vol": "1",
+        }
+        for index, day in enumerate(days)
+        for code, value in (
+            ("600000.SH", index + 1),
+            ("000001.SZ", len(days) - index),
+            ("920001.BJ", 10),
+        )
+        if not (new_listing and code == "000001.SZ" and index < 10)
+        and not (historical_halt and code == halt_code and index == halt_index)
+        and not (scenario in {"zero_participants", "builtin_zero"} and index == halt_index)
+        and not (scenario == "prior_halt_chain" and code == "600000.SH" and index == 1)
+    ]
+    if scenario in {
+        "cash_dividend",
+        "late_action",
+        "ex_day_halt",
+        "window_start_action",
+        "duplicate_action",
+    }:
+        for quote in quotes:
+            if quote["ts_code"] == "000001.SZ":
+                value = (
+                    "11.30"
+                    if quote["trade_date"] < days[action_index].strftime("%Y%m%d")
+                    else "10.94"
+                )
+                quote.update(close=value, pre_close=value)
+    for quote in quotes:
+        if (
+            scenario == "ipo_without_trade"
+            and quote["ts_code"] == "000001.SZ"
+            and quote["trade_date"] == days[0].strftime("%Y%m%d")
+        ):
+            quote["vol"] = "0"
+        if (
+            scenario == "historical_reference_missing"
+            and quote["ts_code"] == "000001.SZ"
+            and quote["trade_date"] == days[60].strftime("%Y%m%d")
+        ):
+            quote["pre_close"] = None
+        if (
+            scenario == "unknown_price"
+            and quote["ts_code"] == "600000.SH"
+            and quote["trade_date"] == days[60].strftime("%Y%m%d")
+        ):
+            quote["close"] = None
+    suspensions = (
+        [
+            {
+                "ts_code": halt_code,
+                "trade_date": days[halt_index].strftime("%Y%m%d"),
+                "suspend_type": "S",
+                "suspend_timing": None,
+            }
+        ]
+        if historical_halt
+        else []
+    )
+    if scenario in {"zero_participants", "builtin_zero"}:
+        suspensions = [
+            {**suspensions[0], "ts_code": code} for code in ("600000.SH", "000001.SZ", "920001.BJ")
+        ]
+    if scenario == "prior_halt_chain":
+        suspensions.append({**suspensions[0], "trade_date": days[1].strftime("%Y%m%d")})
+    delivered_dates = tuple(day.strftime("%Y%m%d") for day in days)
+    if scenario == "duplicate_calendar":
+        # 120 rows containing only 119 distinct trading dates.
+        delivered_dates = (delivered_dates[0], delivered_dates[0], *delivered_dates[2:])
+    adapter = TushareContextAdapter(
+        "synthetic-token",
+        transport=breadth_transport(quotes, suspensions, days=delivered_dates),
+    )
+    retrieval_completed = False
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        nonlocal retrieval_completed
+        scalars = adapter.market_breadth(
+            start_date=days[-1],
+            end_date=days[-1],
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+            output_days=1,
+        )
+        retrieval_completed = True
+        if scenario == "builtin_zero":
+            assert scalars == ()
+        if scenario == "changed_scalar":
+            return (replace(scalars[0], value=99.0), *scalars[1:])
+        if scenario == "damaged_before_validation":
+            (paths.artifacts / review_hash[:2] / review_hash).write_bytes(b"damaged window review")
+        return scalars
+
+    def acquire() -> Any:
+        return adapter.acquire_scalars(
+            paths,
+            retrieve,
+            definition_version=(
+                "metric-catalog-v0003"
+                if scenario == "builtin_zero"
+                else manifest["metric_catalog_version"]
+            ),
+        )
+
+    if scenario in {
+        "duplicate_calendar",
+        "duplicate_action",
+        "public_before_release",
+        "wrong_date_precision",
+        "changed_scalar",
+        "damaged_before_validation",
+        "builtin_zero",
+        "missing_source_reference",
+    }:
+        with pytest.raises(ValueError):
+            acquire()
+        if scenario == "builtin_zero":
+            assert retrieval_completed
+        receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+        assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+        assert (
+            EvidenceRepository(paths.database).metric_series(
+                "CN_EQ_NEW_HIGH_LOW_120",
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=manifest["metric_catalog_version"],
+            )
+            == ()
+        )
+        return
+    result = acquire()
+    if scenario == "zero_participants":
+        assert result.observation_count == 0
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        receipts = acquisitions.history()
+        assert len(receipts) == 243 and all(r.state == "validated" for r in receipts)
+        output = json.loads(acquisitions.read_content(receipts[0].acquisition_id, "normalized"))
+        assert output["accepted_scalars"] == []
+        unavailable = output["window_breadth"][0]
+        assert unavailable["status"] == "unavailable:no_participants"
+        assert unavailable["participants"] == 0 and unavailable["excluded_participants"] == 3
+        assert all(unavailable[m] is None for m in ("new_highs", "new_lows", "above_ma_share"))
+        assert sum(m["state"] == "full_day_suspension" for m in unavailable["members"]) == 3
+        evidence = EvidenceRepository(paths.database)
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"):
+            assert (
+                evidence.metric_series(
+                    metric,
+                    mode=AsOfMode.PUBLIC,
+                    as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+                    definition_version=manifest["metric_catalog_version"],
+                )
+                == ()
+            )
+        return
+    assert result.observation_count == 3
+    evidence = EvidenceRepository(paths.database)
+    if scenario in {"window_start_action", "date_only"}:
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"):
+            assert (
+                evidence.metric_series(
+                    metric,
+                    mode=AsOfMode.PUBLIC,
+                    as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+                    definition_version=manifest["metric_catalog_version"],
+                )
+                == ()
+            )
+    points = tuple(
+        point
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in evidence.metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(
+                2026,
+                8,
+                29 if scenario == "late_action" else 28,
+                16 if scenario == "date_only" else 12 if scenario == "window_start_action" else 8,
+                tzinfo=UTC,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(points) == 3 and all(p.period_end == "2026-08-28" for p in points)
+    values = {p.dimensions["measure"]: p.selected_value for p in points}
+    assert values["new_highs"] == (
+        0 if scenario in {"late_price", "target_halt", "unknown_price"} else 1
+    )
+    assert values["new_lows"] == (
+        0
+        if new_listing
+        or scenario == "ipo_without_trade"
+        or scenario
+        in {
+            "cash_dividend",
+            "late_action",
+            "ex_day_halt",
+            "window_start_action",
+            "duplicate_action",
+        }
+        else 1
+    )
+    assert values["above_ma_share"] == pytest.approx(
+        0
+        if scenario in {"late_price", "target_halt", "unknown_price"}
+        else 50
+        if new_listing or scenario in {"late_action", "ipo_without_trade"}
+        else 100 / 3
+    )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipts = acquisitions.history()
+    assert len(receipts) == (
+        247
+        if scenario == "prior_halt_chain"
+        else 245
+        if scenario in {"window_start", "window_start_action"}
+        else 243
+    ) and all(r.state == "validated" for r in receipts)
+    parent_sets = evidence.source_claim_acquisitions_many(
+        tuple(p.selected_claim_id for p in points if p.selected_claim_id is not None)
+    )
+    assert len(parent_sets) == 3
+    assert all(
+        {i.receipt.acquisition_id for i in inputs} == {r.acquisition_id for r in receipts}
+        for inputs in parent_sets.values()
+    )
+    terminal = next(
+        r for r in receipts if r.api_name == "daily" and r.parameters["trade_date"] == "20260828"
+    )
+    normalized = json.loads(acquisitions.read_content(terminal.acquisition_id, "normalized"))
+    window = normalized["window_breadth"][0]
+    assert window["participants"] == (
+        2
+        if new_listing
+        or scenario
+        in {"late_price", "late_action", "target_halt", "unknown_price", "ipo_without_trade"}
+        else 3
+    )
+    assert window["window_days"] == 120
+    if new_listing or scenario == "ipo_without_trade":
+        assert (
+            next(m["state"] for m in window["members"] if m["security_id"] == "st-delisting-sz")
+            == "insufficient_window"
+        )
+    if scenario in {"late_price", "unknown_price"}:
+        assert (
+            next(m["state"] for m in window["members"] if m["security_id"] == "ordinary-sh")
+            == "insufficient_window"
+        )
+    if historical_halt and scenario not in {
+        "late_price",
+        "ex_day_halt",
+        "target_halt",
+        "window_start_action",
+        "prior_halt_chain",
+    }:
+        carried = next(m for m in window["members"] if m["security_id"] == "ordinary-sh")
+        assert carried["carried_dates"] == [days[halt_index].isoformat()]
+        assert carried["prices"][
+            0 if scenario in {"window_start", "window_start_action"} else 60
+        ] == ("1" if scenario in {"window_start", "window_start_action"} else "60")
+    if scenario == "prior_halt_chain":
+        carried = next(m for m in window["members"] if m["security_id"] == "ordinary-sh")
+        assert carried["carried_dates"] == [days[2].isoformat()]
+        assert carried["prices"][0] == "1"
+    if scenario == "target_halt":
+        excluded = next(m for m in window["members"] if m["security_id"] == "ordinary-sh")
+        assert excluded["state"] == "full_day_suspension"
+        assert "prices" not in excluded
+    if scenario == "late_action":
+        adjusted = next(m for m in window["members"] if m["security_id"] == "st-delisting-sz")
+        assert adjusted["state"] == "insufficient_adjustment_chain"
+        assert "prices" not in adjusted
+    if scenario in {"cash_dividend", "ex_day_halt", "window_start_action"}:
+        adjusted = next(m for m in window["members"] if m["security_id"] == "st-delisting-sz")
+        assert adjusted["state"] == "eligible"
+        assert adjusted["prices"] == ["547/50"] * 120
+        assert adjusted["adjustment_events"] == ["synthetic:cash-distribution"]
+        if scenario in {"ex_day_halt", "window_start_action"}:
+            assert adjusted["carried_dates"] == [days[action_index].isoformat()]
+    assert window["formula_version"] == "ordinary-a-market-window-v0002"
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-window-breadth",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        release_event_id="synthetic:window-breadth",
+        metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete is (
+        scenario not in {"late_action", "window_start_action", "date_only"}
+    )
+    assert len(selection.selected_claim_ids) == (
+        0 if scenario in {"late_action", "window_start_action", "date_only"} else 3
+    )
+
+    if scenario == "damaged_before_selection":
+        original = paths.artifacts / review_hash[:2] / review_hash
+        saved = original.read_bytes()
+        try:
+            original.write_bytes(b"damaged after validation")
+            rejected = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+            assert not rejected.complete
+            assert rejected.selected_claim_ids == ()
+        finally:
+            original.write_bytes(saved)
+        recovered = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        assert recovered.complete and len(recovered.selected_claim_ids) == 3
+
+    if scenario == "damaged_before_replay":
+        comparison = admitted_window_breadth_manifest(paths, capsys, side="comparison")
+        comparison_inputs = {**window_inputs, "synthetic_side": "comparison"}
+        comparison_review = save(
+            paths,
+            {
+                "schema_version": "market-breadth-window-review-v0001",
+                "subject_hash": hashlib.sha256(encode(comparison_inputs)).hexdigest(),
+                "reviewer": "synthetic adjustment reviewer",
+                "reviewed_at": "2026-09-13T00:00:00+00:00",
+                "decision": "accepted",
+            },
+        )
+        comparison_hash = save(paths, {**comparison_inputs, "review_hash": comparison_review})
+        comparison_adapter = TushareContextAdapter(
+            "synthetic-token", transport=breadth_transport(quotes, [], days=delivered_dates)
+        )
+        comparison_adapter.acquire_scalars(
+            paths,
+            lambda: comparison_adapter.market_breadth(
+                start_date=days[-1],
+                end_date=days[-1],
+                universe_hash=universe_hash,
+                window_inputs_hash=comparison_hash,
+                output_days=1,
+            ),
+            definition_version=comparison["metric_catalog_version"],
+        )
+        manifest.pop("source_certification_packages")
+        comparison.pop("source_certification_packages")
+        before = evaluate_context_replay(
+            paths.database,
+            manifest,
+            comparison,
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+        assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+        assert review_hash != comparison_review
+        original = paths.artifacts / review_hash[:2] / review_hash
+        original.write_bytes(b"damaged candidate review for replay")
+        after = evaluate_context_replay(
+            paths.database,
+            manifest,
+            comparison,
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+        assert "candidate_context_selection_invalid:CN_EQ_NEW_HIGH_LOW_120" in after.gaps
+        assert "candidate_context_selection_invalid:CN_EQ_ABOVE_MA120" in after.gaps
+        assert not any(gap.startswith("comparison_") for gap in after.gaps)
+
+
+def china_window_input_dates() -> tuple[date, ...]:
+    """239 SSE calendar dates, independently checked in research-09-calendar-warmup-470.
+
+    Calendar response SHA256 2c8576c3d87cca2973053122683cd3ee48c1b29b3524f500179e123d40785705.
+    The dates are real; the stock prices and publication evidence below are synthetic.
+    """
+    calendar_months: dict[tuple[int, int], tuple[int, ...]] = {
+        (2025, 9): (3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30),
+        (2025, 10): (9, 10, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31),
+        (2025, 11): (3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28),
+        (2025, 12): (
+            1,
+            2,
+            3,
+            4,
+            5,
+            8,
+            9,
+            10,
+            11,
+            12,
+            15,
+            16,
+            17,
+            18,
+            19,
+            22,
+            23,
+            24,
+            25,
+            26,
+            29,
+            30,
+            31,
+        ),
+        (2026, 1): (5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 26, 27, 28, 29, 30),
+        (2026, 2): (2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 24, 25, 26, 27),
+        (2026, 3): (
+            2,
+            3,
+            4,
+            5,
+            6,
+            9,
+            10,
+            11,
+            12,
+            13,
+            16,
+            17,
+            18,
+            19,
+            20,
+            23,
+            24,
+            25,
+            26,
+            27,
+            30,
+            31,
+        ),
+        (2026, 4): (1, 2, 3, 7, 8, 9, 10, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 27, 28, 29, 30),
+        (2026, 5): (6, 7, 8, 11, 12, 13, 14, 15, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29),
+        (2026, 6): (1, 2, 3, 4, 5, 8, 9, 10, 11, 12, 15, 16, 17, 18, 22, 23, 24, 25, 26, 29, 30),
+        (2026, 7): (
+            1,
+            2,
+            3,
+            6,
+            7,
+            8,
+            9,
+            10,
+            13,
+            14,
+            15,
+            16,
+            17,
+            20,
+            21,
+            22,
+            23,
+            24,
+            27,
+            28,
+            29,
+            30,
+            31,
+        ),
+        (2026, 8): (3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 17, 18, 19, 20, 21, 24, 25, 26, 27, 28),
+    }
+    return tuple(
+        date(year, month, day)
+        for (year, month), month_days in calendar_months.items()
+        for day in month_days
+    )
+
+
+def synthetic_window_breadth_range(
+    paths: RuntimePaths, days: tuple[date, ...]
+) -> tuple[TushareContextAdapter, str, str]:
+    """Create transparent transport inputs with a separate publication proof for each day."""
+    universe = synthetic_breadth_universe(paths)
+    universe["coverage_start"] = days[0].isoformat()
+    universe["coverage_end"] = days[-1].isoformat()
+    known_identity = datetime.combine(days[0] - timedelta(days=1), datetime.min.time(), UTC)
+    universe["evidence"][0].update(
+        release_at=known_identity.isoformat(), public_available_at=known_identity.isoformat()
+    )
+    universe["publications"] = {}
+    for day in days:
+        proof = save(
+            paths, {"synthetic": True, "quote_and_suspension_publication": day.isoformat()}
+        )
+        published = datetime(day.year, day.month, day.day, 8, tzinfo=UTC).isoformat()
+        universe["evidence"].append(
+            {
+                "artifact_hash": proof,
+                "source_reference": "synthetic:daily-price-publication",
+                "release_at": published,
+                "public_available_at": published,
+            }
+        )
+        universe["publications"][day.isoformat()] = [proof]
+    universe_hash = save_breadth_review(paths, universe)
+    coverage = save(
+        paths, {"synthetic": True, "assumption": "no corporate actions in fixture range"}
+    )
+    window = {
+        "schema_version": "market-breadth-window-inputs-v0001",
+        "coverage_start": days[0].isoformat(),
+        "coverage_end": days[-1].isoformat(),
+        "coverage_evidence": [coverage],
+        "adjustments": [],
+        "evidence": [
+            {
+                "artifact_hash": coverage,
+                "source_reference": "synthetic:fixture-action-coverage",
+                "release_at": known_identity.isoformat(),
+                "public_available_at": known_identity.isoformat(),
+            }
+        ],
+    }
+    review = save(
+        paths,
+        {
+            "schema_version": "market-breadth-window-review-v0001",
+            "subject_hash": hashlib.sha256(encode(window)).hexdigest(),
+            "reviewer": "synthetic window range reviewer",
+            "reviewed_at": "2026-09-13T00:00:00+00:00",
+            "decision": "accepted",
+        },
+    )
+    window_hash = save(paths, {**window, "review_hash": review})
+    quotes = [
+        {
+            "ts_code": code,
+            "trade_date": day.strftime("%Y%m%d"),
+            "close": str(value),
+            "pre_close": str(value),
+            "vol": "1",
+        }
+        for index, day in enumerate(days)
+        for code, value in (
+            ("600000.SH", index + 1),
+            ("000001.SZ", len(days) - index),
+            ("920001.BJ", 10),
+        )
+    ]
+    adapter = TushareContextAdapter(
+        "synthetic-token",
+        transport=breadth_transport(quotes, [], days=tuple(day.strftime("%Y%m%d") for day in days)),
+    )
+    return adapter, universe_hash, window_hash
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_limits_requested_visible_days(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-121:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 27),
+            end_date=date(2026, 8, 28),
+            output_days=1,
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 3
+    points = tuple(
+        point
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in EvidenceRepository(paths.database).metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(points) == 3 and {p.period_end for p in points} == {"2026-08-28"}
+    assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+        "new_highs": 1.0,
+        "new_lows": 1.0,
+        "above_ma_share": pytest.approx(100 / 3),
+    }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_outputs_fixed_120_days_with_hidden_warmup(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()
+    assert len(days) == 239 and days[0] == date(2025, 9, 3)
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 3, 9),
+            end_date=date(2026, 8, 28),
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 360
+    evidence = EvidenceRepository(paths.database)
+    points = tuple(
+        point
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in evidence.metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(points) == 360
+    visible = {day.isoformat() for day in days if day >= date(2026, 3, 9)}
+    assert len(visible) == 120 and {p.period_end for p in points} == visible
+    for day in sorted(visible):
+        values = {p.dimensions["measure"]: p.selected_value for p in points if p.period_end == day}
+        assert values == {
+            "new_highs": 1.0,
+            "new_lows": 1.0,
+            "above_ma_share": pytest.approx(100 / 3),
+        }
+    first = tuple(
+        point
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in evidence.metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 3, 9, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert len(first) == 3 and {p.period_end for p in first} == {"2026-03-09"}
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-03-09",
+        client_request_id="synthetic-window-first-visible-day",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 3, 9, 8, tzinfo=UTC),
+        release_event_id="synthetic:window-first-visible-day",
+        metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+        period="2026-03-09",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete and len(selection.selected_claim_ids) == 3
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "damaged_input,availability", [("future", (True, False)), ("older", (False, True))]
+)
+def test_registered_window_breadth_uses_only_each_outputs_required_quotes(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    damaged_input: str,
+    availability: tuple[bool, bool],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-121:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 27),
+            end_date=date(2026, 8, 28),
+            output_days=2,
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    runs = tuple(
+        RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date=day.isoformat(),
+            client_request_id="window-required-parents-" + day.isoformat(),
+            model_version_id=manifest["model_version_id"],
+            system_as_of=datetime(day.year, day.month, day.day, 8, tzinfo=UTC),
+            release_event_id="synthetic:window-required-parents",
+            metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+            period=day.isoformat(),
+        )
+        for day in (date(2026, 8, 27), date(2026, 8, 28))
+    )
+    before = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+    assert all(item.complete and len(item.selected_claim_ids) == 3 for item in before)
+    bad_day = days[-1] if damaged_input == "future" else days[0]
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    receipt = next(
+        r
+        for r in receipts
+        if r.api_name == "daily" and r.parameters["trade_date"] == bad_day.strftime("%Y%m%d")
+    )
+    assert receipt.raw_hash is not None
+    artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
+    artifact.write_bytes(b"damaged independent quote outside one output window")
+    after = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+    assert tuple(item.complete for item in after) == availability
+    for initial, selected, available in zip(before, after, availability, strict=True):
+        assert selected.selected_claim_ids == (initial.selected_claim_ids if available else ())
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("continuous_identity", [True, False])
+def test_registered_window_breadth_requires_identity_continuity_across_code_changes(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], continuous_identity: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-120:]
+    _, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    universe = json.loads((paths.artifacts / universe_hash[:2] / universe_hash).read_bytes())
+    universe.pop("review_hash")
+    transition = days[60]
+    previous = universe["members"][0]
+    successor = {
+        **previous,
+        "ts_code": "600001.SH",
+        "valid_from": transition.isoformat(),
+        "security_id": previous["security_id"] if continuous_identity else "independent-sh",
+    }
+    previous["valid_until"] = transition.isoformat()
+    universe["members"].append(successor)
+    universe_hash = save_breadth_review(paths, universe)
+    # The prices keep the same ascending path. Only reviewed identity continuity differs.
+    quotes = [
+        {
+            "ts_code": code,
+            "trade_date": day.strftime("%Y%m%d"),
+            "close": str(value),
+            "pre_close": str(value),
+            "vol": "1",
+        }
+        for index, day in enumerate(days)
+        for code, value in (
+            ("600000.SH" if day < transition else "600001.SH", index + 1),
+            ("000001.SZ", 120 - index),
+            ("920001.BJ", 10),
+        )
+    ]
+    adapter = TushareContextAdapter(
+        "synthetic-token",
+        transport=breadth_transport(quotes, [], days=tuple(day.strftime("%Y%m%d") for day in days)),
+    )
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=days[-1],
+            end_date=days[-1],
+            output_days=1,
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 3
+    evidence = EvidenceRepository(paths.database)
+    points = tuple(
+        point
+        for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120")
+        for point in evidence.metric_series(
+            metric,
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    )
+    assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+        "new_highs": 1.0 if continuous_identity else 0.0,
+        "new_lows": 1.0,
+        "above_ma_share": pytest.approx(100 / 3) if continuous_identity else 0.0,
+    }
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    output = json.loads(
+        acquisitions.read_content(acquisitions.history()[0].acquisition_id, "normalized")
+    )["window_breadth"][0]
+    assert output["participants"] == (3 if continuous_identity else 2)
+    member = next(m for m in output["members"] if m["ts_code"] == "600001.SH")
+    assert member["state"] == ("eligible" if continuous_identity else "insufficient_window")
+    if continuous_identity:
+        assert (
+            len(member["prices"]) == 120
+            and member["prices"][0] == "1"
+            and member["prices"][-1] == "120"
+        )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="window-code-continuity",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        release_event_id="synthetic:window-code-continuity",
+        metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete and len(selection.selected_claim_ids) == 3
+
+
+def synthetic_window_adjustment(
+    paths: RuntimePaths, window_hash: str, *, effective_date: str
+) -> tuple[str, str]:
+    """Add a reviewed synthetic 10-to-20 reference change for the constant BJ stock."""
+    window = json.loads((paths.artifacts / window_hash[:2] / window_hash).read_bytes())
+    window.pop("review_hash")
+    coverage_hash = save(paths, {"synthetic": True, "kind": "complete fixture action coverage"})
+    window["coverage_evidence"] = [coverage_hash]
+    window["evidence"][0]["artifact_hash"] = coverage_hash
+    action_hash = save(
+        paths, {"synthetic": True, "reference_before": "10", "reference_after": "20"}
+    )
+    window["adjustments"] = [
+        {
+            "event_id": "synthetic:second-output-adjustment",
+            "security_id": "ordinary-bj",
+            "effective_date": effective_date,
+            "method": "official-reference-ratio",
+            "reference_before": "10",
+            "reference_after": "20",
+            "evidence": [action_hash],
+        }
+    ]
+    window["evidence"].append(
+        {
+            "artifact_hash": action_hash,
+            "source_reference": "synthetic:second-output-adjustment-reference",
+            "release_at": "2026-08-27T08:00:00+00:00",
+            "public_available_at": "2026-08-27T08:00:00+00:00",
+        }
+    )
+    review_hash = save(
+        paths,
+        {
+            "schema_version": "market-breadth-window-review-v0001",
+            "subject_hash": hashlib.sha256(encode(window)).hexdigest(),
+            "reviewer": "synthetic independent event reviewer",
+            "reviewed_at": "2026-09-13T00:00:00+00:00",
+            "decision": "accepted",
+        },
+    )
+    window_hash = save(paths, {**window, "review_hash": review_hash})
+    return window_hash, action_hash
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_ignores_unused_future_action_artifact(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-121:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    window_hash, action_hash = synthetic_window_adjustment(
+        paths, window_hash, effective_date="2026-08-28"
+    )
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 27),
+            end_date=date(2026, 8, 28),
+            output_days=2,
+            universe_hash=universe_hash,
+            window_inputs_hash=window_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    evidence = EvidenceRepository(paths.database)
+    lows = evidence.metric_series(
+        "CN_EQ_NEW_HIGH_LOW_120",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    # First day: only SZ descends. Second day: BJ is 10 against 119 adjusted prices of 20.
+    assert {
+        p.period_end: p.selected_value for p in lows if p.dimensions["measure"] == "new_lows"
+    } == {"2026-08-27": 1.0, "2026-08-28": 2.0}
+    runs = tuple(
+        RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date=day.isoformat(),
+            client_request_id="window-independent-event-" + day.isoformat(),
+            model_version_id=manifest["model_version_id"],
+            system_as_of=datetime(day.year, day.month, day.day, 8, tzinfo=UTC),
+            release_event_id="synthetic:window-independent-event",
+            metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+            period=day.isoformat(),
+        )
+        for day in (date(2026, 8, 27), date(2026, 8, 28))
+    )
+    initial = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+    assert all(item.complete and len(item.selected_claim_ids) == 3 for item in initial)
+    artifact = paths.artifacts / action_hash[:2] / action_hash
+    original = artifact.read_bytes()
+    try:
+        artifact.write_bytes(b"damaged independent future event")
+        after = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+        assert tuple(item.complete for item in after) == (True, False)
+        assert after[0].selected_claim_ids == initial[0].selected_claim_ids
+        assert after[1].selected_claim_ids == ()
+    finally:
+        artifact.write_bytes(original)
+    restored = tuple(select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) for run in runs)
+    assert restored == initial
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_rejects_noncanonical_adjustment_date(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-120:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    window_hash, _ = synthetic_window_adjustment(paths, window_hash, effective_date="20260828")
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=days[-1],
+                end_date=days[-1],
+                output_days=1,
+                universe_hash=universe_hash,
+                window_inputs_hash=window_hash,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+    evidence = EvidenceRepository(paths.database)
+    for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"):
+        assert (
+            evidence.metric_series(
+                metric,
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=manifest["metric_catalog_version"],
+            )
+            == ()
+        )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("coverage_end", ["20260827", "2026-08-27"])
+def test_registered_window_breadth_requires_adjustment_coverage_through_target(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], coverage_end: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-120:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    window = json.loads((paths.artifacts / window_hash[:2] / window_hash).read_bytes())
+    window.pop("review_hash")
+    window["coverage_end"] = coverage_end
+    review = save(
+        paths,
+        {
+            "schema_version": "market-breadth-window-review-v0001",
+            "subject_hash": hashlib.sha256(encode(window)).hexdigest(),
+            "reviewer": "synthetic coverage boundary reviewer",
+            "reviewed_at": "2026-09-13T00:00:00+00:00",
+            "decision": "accepted",
+        },
+    )
+    window_hash = save(paths, {**window, "review_hash": review})
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=days[-1],
+                end_date=days[-1],
+                output_days=1,
+                universe_hash=universe_hash,
+                window_inputs_hash=window_hash,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+    evidence = EvidenceRepository(paths.database)
+    for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"):
+        assert (
+            evidence.metric_series(
+                metric,
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=manifest["metric_catalog_version"],
+            )
+            == ()
+        )

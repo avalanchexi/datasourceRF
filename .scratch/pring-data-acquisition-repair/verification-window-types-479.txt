@@ -1,0 +1,3 @@
+src/pring_cycle/market_breadth.py:1120: error: Non-overlapping identity check (left operand type: "type[str]", right operand type: "type[int]")  [comparison-overlap]
+src/pring_cycle/tushare_context.py:1104: error: Dict entry 3 has incompatible type "str": "int"; expected "str": "str"  [dict-item]
+Found 2 errors in 2 files (checked 92 source files)

@@ -1,0 +1,9 @@
+ERROR: found no collectors for /mnt/d/cursor/datasourceRF/tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-window_start]
+
+
+==================================== ERRORS ====================================
+__________ ERROR collecting tests/models/test_candidate_admission.py ___________
+In test_registered_window_breadth_uses_full_window_with_hidden_warmup: function uses no argument 'halt_case'
+=========================== short test summary info ============================
+ERROR tests/models/test_candidate_admission.py - Failed: In test_registered_w...
+1 error in 2.61s

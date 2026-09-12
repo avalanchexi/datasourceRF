@@ -1,0 +1,20 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_only_each_outputs_required_quotes[future-availability0] _
+tests/models/test_candidate_admission.py:13857: in test_registered_window_breadth_uses_only_each_outputs_required_quotes
+    assert tuple(item.complete for item in after) == availability
+E   assert (False, False) == (True, False)
+E     
+E     At index 0 diff: False != True
+E     Use -v to get more diff
+_ test_registered_window_breadth_uses_only_each_outputs_required_quotes[older-availability1] _
+tests/models/test_candidate_admission.py:13857: in test_registered_window_breadth_uses_only_each_outputs_required_quotes
+    assert tuple(item.complete for item in after) == availability
+E   assert (False, False) == (False, True)
+E     
+E     At index 1 diff: False != True
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_only_each_outputs_required_quotes[future-availability0]
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_only_each_outputs_required_quotes[older-availability1]
+2 failed in 79.83s (0:01:19)

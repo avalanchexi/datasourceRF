@@ -1,0 +1,9 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_registered_window_breadth_uses_full_window_with_hidden_warmup[True] ___
+tests/models/test_candidate_admission.py:13073: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    next(m["state"] for m in window["members"] if m["security_id"] == "st-delisting-sz")
+E   StopIteration
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[True]
+1 failed, 1 passed, 591 deselected in 35.07s

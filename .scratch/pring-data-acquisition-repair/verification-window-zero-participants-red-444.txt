@@ -1,0 +1,20 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-zero_participants] _
+tests/models/test_candidate_admission.py:13128: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    result = adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:179: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:13130: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1134: in market_breadth
+    return self._reviewed_window_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1115: in _reviewed_window_breadth
+    self._window_breadth = calculate_window_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_breadth.py:996: in calculate_window_breadth
+    raise ValueError("breadth_window_participants_missing")
+E   ValueError: breadth_window_participants_missing
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-zero_participants]
+1 failed in 32.50s

@@ -1,0 +1,11 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-damaged_before_replay] _
+tests/models/test_candidate_admission.py:13359: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+E   AssertionError: ()
+E   assert (0 == 1)
+E    +  where 0 = ContextReplayEvaluation(context_output_differences=0, evaluated_cutoffs=0, duration_seconds=0.003525345993693918, gaps...6a9fbd9470d15bb86dc159', 'source_metrics': [], 'formula_keys': [], 'status': 'not_applicable', 'gaps': [], 'days': []}).evaluated_cutoffs
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-damaged_before_replay]
+1 failed in 34.66s

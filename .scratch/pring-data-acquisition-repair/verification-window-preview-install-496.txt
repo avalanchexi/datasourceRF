@@ -1,0 +1,7 @@
+Using Python 3.12.12 environment at: /home/tywin/.cache/pring-cycle/verification/window-commit-496/venv
+Resolved 1 package in 5ms
+Prepared 1 package in 16ms
+Uninstalled 1 package in 4ms
+Installed 1 package in 5ms
+ - pring-cycle==0.1.0 (from file:///home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/wheels-window-493/pring_cycle-0.1.0-py3-none-any.whl)
+ + pring-cycle==0.1.0 (from file:///home/tywin/.cache/pring-cycle/verification/window-commit-496/wheels/pring_cycle-0.1.0-py3-none-any.whl)

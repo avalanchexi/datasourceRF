@@ -1,0 +1,6 @@
+{
+  "report_sha256": "78ece4f33c8058d5297d622d1bb004512a60ec25f3eb97c58cdd652e1f0258e2",
+  "manifest_sha256": "50c128bf84321fd613d9d411d192af03ffb521f7ca9b8b4abeeeac80d0938034",
+  "artifacts_verified": 17,
+  "scope": "483 three stack samples; no completed5000/120 or OOM claim"
+}

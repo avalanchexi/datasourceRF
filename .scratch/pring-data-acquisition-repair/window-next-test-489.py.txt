@@ -1,0 +1,32 @@
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_window_breadth_rejects_noncanonical_adjustment_date(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_window_breadth_manifest(paths, capsys)
+    days = china_window_input_dates()[-120:]
+    adapter, universe_hash, window_hash = synthetic_window_breadth_range(paths, days)
+    window_hash, _ = synthetic_window_adjustment(paths, window_hash, effective_date="20260828")
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=days[-1],
+                end_date=days[-1],
+                output_days=1,
+                universe_hash=universe_hash,
+                window_inputs_hash=window_hash,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+    evidence = EvidenceRepository(paths.database)
+    for metric in ("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"):
+        assert evidence.metric_series(
+            metric,
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=manifest["metric_catalog_version"],
+        ) == ()

@@ -1,0 +1,34 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-date_only] _
+tests/models/test_candidate_admission.py:13183: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    result = acquire()
+             ^^^^^^^^^
+tests/models/test_candidate_admission.py:13161: in acquire
+    return adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:179: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:13163: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1143: in market_breadth
+    return self._reviewed_window_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1083: in _reviewed_window_breadth
+    captured = acquisitions.capture(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/acquisition.py:194: in capture
+    value = parse(raw)
+            ^^^^^^^^^^
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1090: in <lambda>
+    parse=lambda raw: load_breadth_window_inputs(raw, acquisitions.artifacts),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_breadth.py:855: in load_breadth_window_inputs
+    raise ValueError("breadth_publication_invalid")
+E   ValueError: breadth_publication_invalid
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-ipo_full_window] _
+tests/models/test_candidate_admission.py:13224: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    assert values["new_lows"] == (0 if new_listing or halt_case in {"cash_dividend", "late_action", "ex_day_halt", "window_start_action", "duplicate_action"} else 1)
+E   assert 0.0 == 1
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-date_only]
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-ipo_full_window]
+2 failed, 16 deselected in 19.45s

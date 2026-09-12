@@ -1,0 +1,29 @@
+{
+  "report_sha256": "ea33eefb3255c4ce115b0bf0bc07388450fc274e3c8e3c9c131e44fc20f7fe71",
+  "manifest_sha256": "785f5ab7db1a8eb8c60985475628a5d1d7db63709e52503e1d004b69ee4daebf",
+  "artifacts_verified": 22,
+  "terminal": {
+    "setup_run": {
+      "supervisor_exec_session": 4248,
+      "supervisor_exit_code": 0,
+      "child_exit_code": 1,
+      "classification": "fixture preparation rejection; no daily transport"
+    },
+    "bounded_run": {
+      "supervisor_exec_session": 73793,
+      "supervisor_exit_code": 0,
+      "child_exit_code": -9,
+      "classification": "hard 180-second wall limit after soft TimeoutError; no complete result.json",
+      "result_json_present": false
+    },
+    "post_terminal_inspection": {
+      "command": [
+        "/home/tywin/.cache/pring-cycle/verification/window-benchmark-488/venv/bin/python",
+        "-B",
+        "/home/tywin/.cache/pring-cycle/verification/window-benchmark-488/inspect-488.py"
+      ],
+      "observed_exit_code": 0
+    }
+  },
+  "scope": "483 bounded experiment; not493 source capacity or certification"
+}

@@ -29,7 +29,11 @@ from pring_cycle.domain.trend import (
     evaluate_trend_history,
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
-from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, breadth_claims_matching_acquisitions
+from pring_cycle.market_breadth import (
+    DAILY_BREADTH_MEASURES,
+    WINDOW_BREADTH_MEASURES,
+    breadth_claims_matching_acquisitions,
+)
 from pring_cycle.metric_contracts import (
     REQUIRED_DIMENSION_MEMBERS,
     evidence_frequency,
@@ -1216,7 +1220,10 @@ def _context_selection_gaps(
             point.selected_claim_id not in valid_valuation_claims for point in validation_points
         ):
             statuses.add("invalid")
-    if metric_id in DAILY_BREADTH_MEASURES and definition_version not in BUILTIN_CATALOG_VERSIONS:
+    if (
+        metric_id in (DAILY_BREADTH_MEASURES | WINDOW_BREADTH_MEASURES)
+        and definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
         valid_breadth_claims = breadth_claims_matching_acquisitions(
             repository,
             tuple(validation_points),

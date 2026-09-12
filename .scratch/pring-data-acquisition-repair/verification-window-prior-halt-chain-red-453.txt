@@ -1,0 +1,9 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-prior_halt_chain] _
+tests/models/test_candidate_admission.py:13208: in test_registered_window_breadth_uses_full_window_with_hidden_warmup
+    assert values["new_highs"] == (0 if halt_case in {"late_price", "target_halt"} else 1)
+E   assert 0.0 == 1
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-prior_halt_chain]
+1 failed in 26.77s

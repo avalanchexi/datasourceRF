@@ -13,6 +13,7 @@ import re
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
+from fractions import Fraction
 from math import isfinite
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -312,36 +313,38 @@ def _breadth_time(value: object) -> datetime | None:
     return result
 
 
-def load_breadth_universe(raw: bytes, artifacts: Path) -> dict[str, Any]:
-    """Read an explicitly reviewed historical pool; current stock_basic is not a substitute.
-
-    The review binds effective identity intervals and their original documents. It
-    is an input review, never a source certification or a claim about review time
-    being the historical publication time.
-    """
-    document = json.loads(raw)
-    if (
-        not isinstance(document, dict)
-        or document["schema_version"] != "market-breadth-universe-v0001"
-    ):
-        raise ValueError("breadth_universe_schema_invalid")
+def _validate_breadth_review(
+    document: dict[str, Any], artifacts: Path, *, subject_kind: str
+) -> None:
     subject = {k: v for k, v in document.items() if k != "review_hash"}
     review = json.loads(_breadth_artifact(artifacts, document["review_hash"]))
     if (
-        review["schema_version"] != "market-breadth-universe-review-v0001"
+        review["schema_version"] != f"market-breadth-{subject_kind}-review-v0001"
         or review["subject_hash"] != hashlib.sha256(_breadth_json(subject).encode()).hexdigest()
         or review["decision"] != "accepted"
         or not isinstance(review["reviewer"], str)
         or not review["reviewer"].strip()
         or _breadth_time(review["reviewed_at"]) is None
     ):
-        raise ValueError("breadth_universe_review_invalid")
+        raise ValueError(f"breadth_{subject_kind}_review_invalid")
+
+
+def _validate_breadth_proofs(evidence: list[dict[str, Any]], artifacts: Path) -> set[str]:
+    proof_ids = _validate_breadth_proof_metadata(evidence)
+    for digest in proof_ids:
+        _breadth_artifact(artifacts, digest)
+    return proof_ids
+
+
+def _validate_breadth_proof_metadata(evidence: list[dict[str, Any]]) -> set[str]:
     proof_ids: set[str] = set()
-    for proof in document["evidence"]:
+    for proof in evidence:
         if proof["artifact_hash"] in proof_ids:
             raise ValueError("breadth_evidence_duplicate")
-        proof_ids.add(proof["artifact_hash"])
-        _breadth_artifact(artifacts, proof["artifact_hash"])
+        digest = proof["artifact_hash"]
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise ValueError("breadth_evidence_hash_invalid")
+        proof_ids.add(digest)
         release = _breadth_time(proof["release_at"])
         public = _breadth_time(proof["public_available_at"])
         if not proof["source_reference"]:
@@ -357,6 +360,24 @@ def load_breadth_universe(raw: bytes, artifacts: Path) -> dict[str, Any]:
                 raise ValueError("breadth_publication_invalid")
         elif public is not None and (release is None or public < release):
             raise ValueError("breadth_publication_invalid")
+    return proof_ids
+
+
+def load_breadth_universe(raw: bytes, artifacts: Path) -> dict[str, Any]:
+    """Read an explicitly reviewed historical pool; current stock_basic is not a substitute.
+
+    The review binds effective identity intervals and their original documents. It
+    is an input review, never a source certification or a claim about review time
+    being the historical publication time.
+    """
+    document = json.loads(raw)
+    if (
+        not isinstance(document, dict)
+        or document["schema_version"] != "market-breadth-universe-v0001"
+    ):
+        raise ValueError("breadth_universe_schema_invalid")
+    _validate_breadth_review(document, artifacts, subject_kind="universe")
+    proof_ids = _validate_breadth_proofs(document["evidence"], artifacts)
     references = [
         document["coverage_evidence"],
         *[m["evidence"] for m in document["members"]],
@@ -565,6 +586,7 @@ def parse_daily_breadth_acquisitions(
     artifacts: Path,
     *,
     period: str | None = None,
+    periods: frozenset[date] | None = None,
 ) -> list[DailyBreadthResult]:
     """Rebuild one day's adopted inputs, or a complete acquisition batch, from originals."""
     from pring_cycle.tushare_context import _response_rows
@@ -632,7 +654,13 @@ def parse_daily_breadth_acquisitions(
             deliveries[api][day] = rows
     if universe is None or calendar_days is None:
         raise ValueError("breadth_inputs_missing")
-    days = set(calendar_days) if period is None else {date.fromisoformat(period)}
+    if period is not None and periods is not None:
+        raise ValueError("breadth_input_periods_ambiguous")
+    days = (
+        (set(calendar_days) if period is None else {date.fromisoformat(period)})
+        if periods is None
+        else set(periods)
+    )
     if (
         not days <= set(calendar_days)
         or set(deliveries["daily"]) != days
@@ -684,6 +712,10 @@ def daily_breadth_scalars(days: list[DailyBreadthResult]) -> tuple[ContextScalar
 
 def daily_breadth_scalar_documents(days: list[DailyBreadthResult]) -> list[dict[str, Any]]:
     """Canonical scalar JSON fields for provenance checks."""
+    return _breadth_scalar_documents(daily_breadth_scalars(days))
+
+
+def _breadth_scalar_documents(scalars: tuple[ContextScalar, ...]) -> list[dict[str, Any]]:
     return [
         {
             **asdict(scalar),
@@ -693,7 +725,7 @@ def daily_breadth_scalar_documents(days: list[DailyBreadthResult]) -> list[dict[
             if scalar.public_available_at
             else None,
         }
-        for scalar in daily_breadth_scalars(days)
+        for scalar in scalars
     ]
 
 
@@ -717,17 +749,32 @@ def breadth_claims_matching_acquisitions(
         try:
             if key not in cached:
                 cached[key] = None
-                days = parse_daily_breadth_acquisitions(
-                    tuple((i.receipt, i.raw) for i in inputs), artifacts, period=point.period_end
-                )
-                expected = daily_breadth_scalar_documents(days)
+                originals = tuple((i.receipt, i.raw) for i in inputs)
+                if any(i.receipt.api_name == "breadth_window_inputs" for i in inputs):
+                    window_days = parse_window_breadth_acquisitions(
+                        originals, artifacts, period=point.period_end
+                    )
+                    expected = _breadth_scalar_documents(window_breadth_scalars(window_days))
+                    expected = [d for d in expected if d["period_end"] == point.period_end]
+                    result_field = "window_breadth"
+                    results: list[Any] = window_days
+                else:
+                    days = parse_daily_breadth_acquisitions(
+                        originals, artifacts, period=point.period_end
+                    )
+                    expected = daily_breadth_scalar_documents(days)
+                    result_field = "daily_breadth"
+                    results = list(days)
+                checked_normalized = set()
                 for item in inputs:
+                    if item.receipt.normalized_hash in checked_normalized:
+                        continue
+                    checked_normalized.add(item.receipt.normalized_hash)
                     document = json.loads(item.normalized)
-                    if [
-                        d
-                        for d in document["daily_breadth"]
-                        if d["business_date"] == point.period_end
-                    ] != days:
+                    normalized_results = [
+                        d for d in document[result_field] if d["business_date"] == point.period_end
+                    ]
+                    if normalized_results != results:
                         raise ValueError("breadth_normalized_day_mismatch")
                     economic = []
                     for entry in document["accepted_scalars"]:
@@ -769,7 +816,7 @@ def breadth_claims_matching_acquisitions(
                 and d["value"] == claim.value
                 and d["unit"] == claim.unit
                 and claim.source_reference
-                == f"tushare:daily_breadth:{d['source_field']}:{point.period_end}"
+                == f"tushare:{d['api_name']}:{d['source_field']}:{point.period_end}"
                 and claim.provider == "tushare"
                 and all(
                     _breadth_time(d[field]) == getattr(claim, field)
@@ -808,3 +855,403 @@ def validate_daily_breadth_scalars(
         _breadth_json(d) for d in daily_breadth_scalar_documents(days)
     ):
         raise ValueError("breadth_scalar_values_mismatch")
+
+
+WINDOW_BREADTH_SOURCE_CODE = "tushare:daily:breadth-window-v0002"
+WINDOW_BREADTH_MEASURES = {
+    "CN_EQ_NEW_HIGH_LOW_120": ("new_highs", "new_lows"),
+    "CN_EQ_ABOVE_MA120": ("above_ma_share",),
+}
+WINDOW_BREADTH_FORMULA = "ordinary-a-market-window-v0002"
+
+
+def load_breadth_window_inputs(raw: bytes, artifacts: Path) -> dict[str, Any]:
+    """Read and verify all contemporaneous corporate-action inputs at acquisition."""
+    document = _reviewed_breadth_window_inputs(raw, artifacts)
+    for proof in document["evidence"]:
+        _breadth_artifact(artifacts, proof["artifact_hash"])
+    return document
+
+
+def _reviewed_breadth_window_inputs(raw: bytes, artifacts: Path) -> dict[str, Any]:
+    """Verify the shared review and metadata before determining adopted event originals."""
+    document = json.loads(raw)
+    if (
+        not isinstance(document, dict)
+        or document["schema_version"] != "market-breadth-window-inputs-v0001"
+    ):
+        raise ValueError("breadth_window_schema_invalid")
+    _validate_breadth_review(document, artifacts, subject_kind="window")
+    for field in ("coverage_start", "coverage_end"):
+        if date.fromisoformat(document[field]).isoformat() != document[field]:
+            raise ValueError("breadth_window_coverage_date_invalid")
+    if document["coverage_start"] > document["coverage_end"]:
+        raise ValueError("breadth_window_coverage_date_invalid")
+    proofs = _validate_breadth_proof_metadata(document["evidence"])
+    if not document["coverage_evidence"] or not set(document["coverage_evidence"]) <= proofs:
+        raise ValueError("breadth_window_coverage_evidence_missing")
+    event_ids = [event["event_id"] for event in document["adjustments"]]
+    if len(set(event_ids)) != len(event_ids):
+        raise ValueError("breadth_window_adjustment_duplicate")
+    for event in document["adjustments"]:
+        if event["method"] != "official-reference-ratio":
+            raise ValueError("breadth_window_adjustment_method_invalid")
+        if not event["evidence"] or not set(event["evidence"]) <= proofs:
+            raise ValueError("breadth_window_adjustment_evidence_missing")
+        effective = date.fromisoformat(event["effective_date"])
+        if effective.isoformat() != event["effective_date"]:
+            raise ValueError("breadth_window_adjustment_date_invalid")
+        _breadth_price(event["reference_before"])
+        _breadth_price(event["reference_after"])
+    return document
+
+
+def calculate_window_breadth(
+    days: list[DailyBreadthResult],
+    prices: dict[str, dict[str, Decimal]],
+    window_inputs: dict[str, Any],
+    *,
+    start: date,
+    end: date,
+) -> list[dict[str, Any]]:
+    """Use 120 common market dates; hidden inputs do not expand the output dates."""
+    states = {
+        day["business_date"]: {member["security_id"]: member["state"] for member in day["members"]}
+        for day in days
+    }
+    outputs = []
+    for index, day in enumerate(days):
+        target = date.fromisoformat(day["business_date"])
+        if not start <= target <= end:
+            continue
+        history = days[max(0, index - 119) : index + 1]
+        if len(history) != 120:
+            raise ValueError("breadth_window_warmup_missing")
+        if not (
+            window_inputs["coverage_start"] <= history[0]["business_date"]
+            and day["business_date"] <= window_inputs["coverage_end"]
+        ):
+            raise ValueError("breadth_window_adjustment_coverage_missing")
+        members = []
+        highs = lows = above = 0
+        earlier_reference = days[index - 120] if index >= 120 else None
+        required_references: dict[str, DailyBreadthResult] = {}
+        required_action_proofs: set[str] = set()
+        for member in day["members"]:
+            if member["state"] not in {"advance", "decline", "flat"}:
+                members.append(
+                    {
+                        "security_id": member["security_id"],
+                        "ts_code": member["ts_code"],
+                        "state": member["state"],
+                    }
+                )
+                continue
+            identity = member["security_id"]
+            window: list[Decimal | None] = []
+            price_origins: list[str] = []
+            carried_dates = []
+            previous = (
+                prices[earlier_reference["business_date"]].get(identity)
+                if earlier_reference is not None
+                else None
+            )
+            previous_public = (
+                _breadth_time(earlier_reference["public_available_at"])
+                if earlier_reference is not None
+                else None
+            )
+            previous_period = (
+                earlier_reference["business_date"] if earlier_reference is not None else ""
+            )
+            references = [earlier_reference] if earlier_reference is not None else []
+            if previous is None and references:
+                for prior in reversed(days[: index - 120]):
+                    if (
+                        states[references[0]["business_date"]].get(identity)
+                        != "full_day_suspension"
+                    ):
+                        break
+                    references.insert(0, prior)
+                    previous = prices[prior["business_date"]].get(identity)
+                    if previous is None:
+                        continue
+                    previous_period = prior["business_date"]
+                    previous_public = _breadth_time(prior["public_available_at"])
+                    for suspended in references[1:]:
+                        if previous_public is None or previous_public.astimezone(
+                            ZoneInfo("Asia/Shanghai")
+                        ).date() > date.fromisoformat(suspended["business_date"]):
+                            previous = None
+                            break
+                        previous_public = _breadth_time(suspended["public_available_at"])
+                    break
+            for item in history:
+                period = item["business_date"]
+                origin = period
+                value = prices[period].get(identity)
+                if (
+                    value is None
+                    and states[period].get(identity) == "full_day_suspension"
+                    and previous is not None
+                    and previous_public is not None
+                    and previous_public.astimezone(ZoneInfo("Asia/Shanghai")).date()
+                    <= date.fromisoformat(period)
+                ):
+                    value = previous
+                    origin = previous_period
+                    carried_dates.append(period)
+                    if period == history[0]["business_date"]:
+                        required_references.update(
+                            (reference["business_date"], reference) for reference in references
+                        )
+                window.append(value)
+                price_origins.append(origin)
+                previous_period = origin
+                previous = value
+                previous_public = _breadth_time(item["public_available_at"])
+            if any(value is None for value in window):
+                members.append(
+                    {
+                        "security_id": identity,
+                        "ts_code": member["ts_code"],
+                        "state": "insufficient_window",
+                    }
+                )
+                continue
+            actions = [
+                event
+                for event in window_inputs["adjustments"]
+                if event["security_id"] == identity
+                and min(price_origins) < event["effective_date"] <= day["business_date"]
+            ]
+            required_action_proofs.update(
+                digest for action in actions for digest in action["evidence"]
+            )
+            action_proofs = [
+                proof
+                for proof in window_inputs["evidence"]
+                if any(proof["artifact_hash"] in action["evidence"] for action in actions)
+            ]
+            if any(
+                (published := _breadth_time(proof["public_available_at"])) is None
+                or published.astimezone(ZoneInfo("Asia/Shanghai")).date() > target
+                for proof in action_proofs
+            ):
+                members.append(
+                    {
+                        "security_id": identity,
+                        "ts_code": member["ts_code"],
+                        "state": "insufficient_adjustment_chain",
+                    }
+                )
+                continue
+            known = []
+            for origin, raw_value in zip(price_origins, window, strict=True):
+                assert raw_value is not None
+                adjusted_value = Fraction(raw_value)
+                for event in actions:
+                    if origin < event["effective_date"]:
+                        adjusted_value *= Fraction(
+                            _breadth_price(event["reference_after"])
+                        ) / Fraction(_breadth_price(event["reference_before"]))
+                known.append(adjusted_value)
+            current = known[-1]
+            different = min(known) != max(known)
+            highs += int(different and current == max(known))
+            lows += int(different and current == min(known))
+            above += int(current * 120 > sum(known))
+            members.append(
+                {
+                    "security_id": identity,
+                    "ts_code": member["ts_code"],
+                    "state": "eligible",
+                    "prices": [str(value) for value in known],
+                    "carried_dates": carried_dates,
+                    "adjustment_events": [event["event_id"] for event in actions],
+                }
+            )
+        participants = sum(member["state"] == "eligible" for member in members)
+        times: dict[str, str | None] = {}
+        for field in ("release_at", "public_available_at"):
+            values = [_breadth_time(item[field]) for item in history]
+            values += [
+                _breadth_time(reference[field]) for reference in required_references.values()
+            ]
+            values += [
+                _breadth_time(p[field])
+                for p in window_inputs["evidence"]
+                if p["artifact_hash"] in window_inputs["coverage_evidence"]
+                or p["artifact_hash"] in required_action_proofs
+            ]
+            times[field] = (
+                max(v for v in values if v is not None).isoformat()
+                if values and all(v is not None for v in values)
+                else None
+            )
+        outputs.append(
+            {
+                "business_date": day["business_date"],
+                "window_start": history[0]["business_date"],
+                "window_days": 120,
+                "input_dates": sorted(
+                    {item["business_date"] for item in history} | required_references.keys()
+                ),
+                "input_evidence": sorted(
+                    set(window_inputs["coverage_evidence"]) | required_action_proofs
+                ),
+                "formula_version": WINDOW_BREADTH_FORMULA,
+                "members": members,
+                "participants": participants,
+                "excluded_participants": sum(
+                    member["state"] not in {"eligible", "outside_ordinary_a"} for member in members
+                ),
+                "status": "available" if participants else "unavailable:no_participants",
+                "new_highs": highs if participants else None,
+                "new_lows": lows if participants else None,
+                "above_ma_share": 100.0 * above / participants if participants else None,
+                **times,
+            }
+        )
+    return outputs
+
+
+def window_breadth_scalars(days: list[dict[str, Any]]) -> tuple[ContextScalar, ...]:
+    from pring_cycle.tushare_context import ContextScalar
+
+    return tuple(
+        ContextScalar(
+            metric_id=metric,
+            api_name="window_breadth",
+            source_field=measure,
+            period_kind="business_day",
+            period_start=day["business_date"],
+            period_end=day["business_date"],
+            dimensions={"measure": measure, "universe": "point_in_time_traded_a_shares"},
+            value=float(day[measure]),
+            unit="percent" if metric == "CN_EQ_ABOVE_MA120" else "count",
+            release_at=_breadth_time(day["release_at"]),
+            public_available_at=_breadth_time(day["public_available_at"]),
+        )
+        for day in days
+        if day["participants"]
+        for metric, measures in WINDOW_BREADTH_MEASURES.items()
+        for measure in measures
+    )
+
+
+def parse_window_breadth_acquisitions(
+    inputs: tuple[tuple[AcquisitionReceipt, bytes], ...],
+    artifacts: Path,
+    *,
+    period: str | None = None,
+) -> list[dict[str, Any]]:
+    """Rebuild a captured batch, or one output from its exact necessary input dates."""
+    from pring_cycle.tushare_context import _response_rows
+
+    windows = [
+        (receipt, raw) for receipt, raw in inputs if receipt.api_name == "breadth_window_inputs"
+    ]
+    if len(windows) != 1:
+        raise ValueError("breadth_window_receipt_invalid")
+    receipt, raw = windows[0]
+    start = date.fromisoformat(receipt.parameters["output_start"])
+    end = date.fromisoformat(receipt.parameters["output_end"])
+    output_days = int(receipt.parameters["output_days"])
+    if (
+        receipt.provider != "reviewed_evidence"
+        or receipt.fields != ""
+        or receipt.parser_version != "market-breadth-window-inputs-v0001"
+        or start > end
+        or output_days < 1
+        or receipt.parameters
+        != {
+            "window_inputs_hash": hashlib.sha256(raw).hexdigest(),
+            "output_start": start.isoformat(),
+            "output_end": end.isoformat(),
+            "output_days": str(output_days),
+        }
+    ):
+        raise ValueError("breadth_window_receipt_invalid")
+    window_inputs = (
+        load_breadth_window_inputs(raw, artifacts)
+        if period is None
+        else _reviewed_breadth_window_inputs(raw, artifacts)
+    )
+    daily_inputs = tuple(
+        (receipt, raw) for receipt, raw in inputs if receipt.api_name != "breadth_window_inputs"
+    )
+    calendars = [(receipt, raw) for receipt, raw in daily_inputs if receipt.api_name == "trade_cal"]
+    if len(calendars) != 1:
+        raise ValueError("breadth_calendar_invalid")
+    calendar, calendar_raw = calendars[0]
+    required_days: frozenset[date] | None = None
+    if period is not None:
+        target = date.fromisoformat(period)
+        calendar_rows = _response_rows(
+            json.loads(calendar_raw), required_fields=("cal_date", "is_open")
+        )
+        calendar_dates = sorted(
+            _date(row["cal_date"]) for row in calendar_rows if str(row["is_open"]) == "1"
+        )
+        output_dates = [day for day in calendar_dates if start <= day <= end][-output_days:]
+        provided = frozenset(
+            _date(receipt.parameters["trade_date"])
+            for receipt, _ in daily_inputs
+            if receipt.api_name == "daily"
+        )
+        history = [day for day in calendar_dates if day <= target][-120:]
+        if target not in output_dates or len(history) != 120 or not set(history) <= provided:
+            raise ValueError("breadth_window_input_dates_missing")
+        required_days = frozenset(day for day in calendar_dates if min(provided) <= day <= target)
+        if provided != required_days:
+            raise ValueError("breadth_window_input_dates_noncontiguous")
+    days = parse_daily_breadth_acquisitions(daily_inputs, artifacts, periods=required_days)
+    if calendar.parameters["start_date"] != window_inputs["coverage_start"].replace(
+        "-", ""
+    ) or calendar.parameters["end_date"] != end.strftime("%Y%m%d"):
+        raise ValueError("breadth_window_calendar_range_mismatch")
+    frames = {day["business_date"].replace("-", ""): day for day in days}
+    prices: dict[str, dict[str, Decimal]] = {}
+    for receipt, raw in daily_inputs:
+        if receipt.api_name != "daily":
+            continue
+        day = frames[receipt.parameters["trade_date"]]
+        rows = _response_rows(
+            json.loads(raw, parse_float=Decimal),
+            required_fields=("ts_code", "trade_date", "close", "pre_close", "vol"),
+        )
+        quotes = {row["ts_code"]: row for row in rows}
+        prices[day["business_date"]] = {
+            member["security_id"]: _breadth_price(quotes[member["ts_code"]]["close"])
+            for member in day["members"]
+            if member["state"]
+            in {
+                "advance",
+                "decline",
+                "flat",
+                "first_day_reference_unproven",
+                "reference_price_missing",
+            }
+            and quotes[member["ts_code"]]["close"] is not None
+            and quotes[member["ts_code"]]["vol"] is not None
+            and _breadth_price(quotes[member["ts_code"]]["vol"], allow_zero=True) > 0
+        }
+    if period is not None:
+        start = end = date.fromisoformat(period)
+    else:
+        visible = [
+            day for day in days if start.isoformat() <= day["business_date"] <= end.isoformat()
+        ]
+        if len(visible) > output_days:
+            start = date.fromisoformat(visible[-output_days]["business_date"])
+    outputs = calculate_window_breadth(days, prices, window_inputs, start=start, end=end)
+    for output in outputs:
+        for digest in output["input_evidence"]:
+            _breadth_artifact(artifacts, digest)
+    if required_days is not None and (
+        len(outputs) != 1
+        or set(outputs[0]["input_dates"]) != {day.isoformat() for day in required_days}
+    ):
+        raise ValueError("breadth_window_unnecessary_input_dates")
+    return outputs
