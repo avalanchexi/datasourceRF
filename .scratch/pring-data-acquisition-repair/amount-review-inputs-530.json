@@ -1,0 +1,55 @@
+{
+  "base_commit": "7828c99799bf958092403a825c2303814c48763a",
+  "patch": "amount-review-diff-530.patch",
+  "patch_sha256": "c165e174efff309da8905dc379aed8a5ba22f06a14d1b66a9cd64917a930a5bb",
+  "files": [
+    {
+      "path": "src/pring_cycle/market_breadth.py",
+      "baseline": "amount-base-502-market_breadth.py.txt",
+      "snapshot": "amount-review-530-market_breadth.py.txt",
+      "sha256": "6d3791081781ada629343836aa97df19535cb17deb25c35f406c9b6c4048af54"
+    },
+    {
+      "path": "src/pring_cycle/tushare_context.py",
+      "baseline": "amount-base-502-tushare_context.py.txt",
+      "snapshot": "amount-review-530-tushare_context.py.txt",
+      "sha256": "da55f98063390769b536151669db37b82046ab7f8151504fdcdcaad8dce9cc14"
+    },
+    {
+      "path": "src/pring_cycle/source_contract_review.py",
+      "baseline": "amount-base-502-source_contract_review.py.txt",
+      "snapshot": "amount-review-530-source_contract_review.py.txt",
+      "sha256": "d046e22e6bc5e4994797efee3faf2efe7f4b43367be5a44073cc6d1f9472d777"
+    },
+    {
+      "path": "src/pring_cycle/metric_contracts.py",
+      "baseline": "amount-base-502-metric_contracts.py.txt",
+      "snapshot": "amount-review-530-metric_contracts.py.txt",
+      "sha256": "70de7ec1a60fd49b7e19cee688546303f5bbed43202cdfd5c438aaa1d48d5a5c"
+    },
+    {
+      "path": "src/pring_cycle/search_evidence.py",
+      "baseline": "amount-base-502-search_evidence.py.txt",
+      "snapshot": "amount-review-530-search_evidence.py.txt",
+      "sha256": "66124f32a3a39d924a52f11c4a561bcea6773cda6ad1cda3215d10899e57ad77"
+    },
+    {
+      "path": "src/pring_cycle/model_evaluation.py",
+      "baseline": "amount-base-502-model_evaluation.py.txt",
+      "snapshot": "amount-review-530-model_evaluation.py.txt",
+      "sha256": "96eea574f08189fab738a89d9887795a82c4e77567a19bf75a11d492784c1f9d"
+    },
+    {
+      "path": "tests/models/test_candidate_admission.py",
+      "baseline": "amount-base-502-test_candidate_admission.py.txt",
+      "snapshot": "amount-review-530-test_candidate_admission.py.txt",
+      "sha256": "56148f599abe48dc14cd91c5e6828a50a32759774b5a7c2071023b0671fbe253"
+    },
+    {
+      "path": "src/pring_cycle/market_amount.py",
+      "baseline": null,
+      "snapshot": "amount-review-530-market_amount.py.txt",
+      "sha256": "2f0a73704d4d0abf1feb1f571d3f3db3c66a0e7ccfa4f1f55e4311f1c17d6b69"
+    }
+  ]
+}

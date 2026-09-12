@@ -1,0 +1,40 @@
+{
+  "base_commit": "7828c99799bf958092403a825c2303814c48763a",
+  "patch": "amount-review-diff-515.patch",
+  "patch_sha256": "19cba342b99949adc997601153bd3a7c4225396050d4e9e430632f5b3dcbda46",
+  "files": {
+    "src/pring_cycle/market_breadth.py": {
+      "snapshot": "amount-review-515-market_breadth.py.txt",
+      "sha256": "6d3791081781ada629343836aa97df19535cb17deb25c35f406c9b6c4048af54"
+    },
+    "src/pring_cycle/tushare_context.py": {
+      "snapshot": "amount-review-515-tushare_context.py.txt",
+      "sha256": "010c28b85a8d9a23ff4a94939385414025508b94d3bd4c4a9b50a660ce13ca62"
+    },
+    "src/pring_cycle/source_contract_review.py": {
+      "snapshot": "amount-review-515-source_contract_review.py.txt",
+      "sha256": "d046e22e6bc5e4994797efee3faf2efe7f4b43367be5a44073cc6d1f9472d777"
+    },
+    "src/pring_cycle/metric_contracts.py": {
+      "snapshot": "amount-review-515-metric_contracts.py.txt",
+      "sha256": "70de7ec1a60fd49b7e19cee688546303f5bbed43202cdfd5c438aaa1d48d5a5c"
+    },
+    "src/pring_cycle/search_evidence.py": {
+      "snapshot": "amount-review-515-search_evidence.py.txt",
+      "sha256": "66124f32a3a39d924a52f11c4a561bcea6773cda6ad1cda3215d10899e57ad77"
+    },
+    "src/pring_cycle/model_evaluation.py": {
+      "snapshot": "amount-review-515-model_evaluation.py.txt",
+      "sha256": "96eea574f08189fab738a89d9887795a82c4e77567a19bf75a11d492784c1f9d"
+    },
+    "tests/models/test_candidate_admission.py": {
+      "snapshot": "amount-review-515-test_candidate_admission.py.txt",
+      "sha256": "eb09e5a57d195bea1d2e50356fbc8b6ababcda1b2ab315f6c91cfde4ec34ac24"
+    },
+    "src/pring_cycle/market_amount.py": {
+      "snapshot": "amount-review-515-market_amount.py.txt",
+      "sha256": "d21fd44437f7716271be006f43507bea994c1f1cf478954718f8e7185c011abc"
+    }
+  },
+  "scope": "Ticket10 initial software slice only; current reviewed WIP delta from captured502 baseline excludes earlier changes; real certification remains open."
+}

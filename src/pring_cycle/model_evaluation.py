@@ -29,6 +29,7 @@ from pring_cycle.domain.trend import (
     evaluate_trend_history,
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES
 from pring_cycle.market_breadth import (
     DAILY_BREADTH_MEASURES,
     WINDOW_BREADTH_MEASURES,
@@ -1221,7 +1222,7 @@ def _context_selection_gaps(
         ):
             statuses.add("invalid")
     if (
-        metric_id in (DAILY_BREADTH_MEASURES | WINDOW_BREADTH_MEASURES)
+        metric_id in (DAILY_BREADTH_MEASURES | WINDOW_BREADTH_MEASURES | AMOUNT_BREADTH_MEASURES)
         and definition_version not in BUILTIN_CATALOG_VERSIONS
     ):
         valid_breadth_claims = breadth_claims_matching_acquisitions(

@@ -1,0 +1,381 @@
+{
+  "scope": "Historical scoped test/type/lint receipts only, never summed as a suite",
+  "receipts": [
+    {
+      "receipt": "verification-amount-applicability-green-508.json",
+      "sha256": "9d2c57a483960e84ad0f4897a4906f7b0c0eb043c7f0ea4994019c8f48114e7f",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-applicability-green-508.txt",
+      "log_sha256": "9ceb4bf035a6395352bda96861bb300575c7105e2796ef22fa668c51533a9a14"
+    },
+    {
+      "receipt": "verification-amount-applicability-red-507.json",
+      "sha256": "8042ba1c547e2f6f385c7f19c5e2db282a5e93d18a1b89243912203ef4dc8d43",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-applicability-red-507.txt",
+      "log_sha256": "2720e53fd44d69a10a4a63a20e5c12fb666600b3998d79c808b135026292bd00"
+    },
+    {
+      "receipt": "verification-amount-contract-527.json",
+      "sha256": "70a808b04204b7426cbdfdbe48b675405b41cedeef75bdcddf7b0c7d21efa394",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-contract-527.txt",
+      "log_sha256": "ccb47b91497784679935768d6605b7d7a6e8d7308432296fca038ebf78bfe486"
+    },
+    {
+      "receipt": "verification-amount-coverage-green-510.json",
+      "sha256": "4664e62ecbd0de1ca8eb1fd5615c4329c7ea1ff53a6be88171420f180eec7bb5",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-coverage-green-510.txt",
+      "log_sha256": "7191500424871a9c851f771989e8d4d76e6237de909271fb7045e7cc193c6283"
+    },
+    {
+      "receipt": "verification-amount-coverage-red-509.json",
+      "sha256": "cd0f2f2e7cabeece8bd9825d1a91085fb4084a1f29c452d4ab7c54d59b8f24cd",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-coverage-red-509.txt",
+      "log_sha256": "357390b451392a6f0983d838c71cd8fc09d8482df8ee6589a201be02c9b72023"
+    },
+    {
+      "receipt": "verification-amount-duplicate-fact-green-517.json",
+      "sha256": "9dce644849c0bcb9f3236b720bfc55da0a4ce848574eebf3b4b0944ac9b2bf0e",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-duplicate-fact-green-517.txt",
+      "log_sha256": "02c5dfcf1833086d76d92ea26073bdcf33b0cb1e7c335865faab83befb6481ad"
+    },
+    {
+      "receipt": "verification-amount-duplicate-fact-red-516.json",
+      "sha256": "861a0cf813ffd51cf425d2d656acd8604960a7b3929b3b0671be7aff1c73020b",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-duplicate-fact-red-516.txt",
+      "log_sha256": "5f02243fa983331d181462e7de4bf523e537e36565cbc1dba3a9710131dfaca3"
+    },
+    {
+      "receipt": "verification-amount-family-515.json",
+      "sha256": "a725730849ff85d9e33a821015e15ddf8baa9da0f05f24f0affd972ed37d58fd",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-family-515.txt",
+      "log_sha256": "418435b858244d5052f4e1a3723e51790caddbf511053c3994d4d281ad8adfe7"
+    },
+    {
+      "receipt": "verification-amount-family-530.json",
+      "sha256": "9ff3e5ba8cec3024b75bad2b2be433e9c9298c8990e7d796ffb76096cddb1faa",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-family-530.txt",
+      "log_sha256": "a455760ac30260fd93226e8f9e2e6df1d8856b8733779db932b9311efd830e11"
+    },
+    {
+      "receipt": "verification-amount-full-pool-green-504.json",
+      "sha256": "e20e3edc922f7407225c049c884766dc0ba7495ddaa57e2034dbb8269853295a",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-full-pool-green-504.txt",
+      "log_sha256": "51838bf78814a2c8582db06eeeabcba9412f91e37ca1aa713d3d0030b0666811"
+    },
+    {
+      "receipt": "verification-amount-full-pool-red-502.json",
+      "sha256": "77a5ac5945db769a4d4b47beed1fa5c67f4e1d9cf83942fa324d17ce5a8b8e79",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-full-pool-red-502.txt",
+      "log_sha256": "9ee6928ed55911cee24ef040859a849b56f9cb575f77f06a0d29bc18fbaab21d"
+    },
+    {
+      "receipt": "verification-amount-full-pool-red-503.json",
+      "sha256": "4eda89c44e135c07365bea4f46c19e03ad1c53616039d9a88391524ee3e94437",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-full-pool-red-503.txt",
+      "log_sha256": "c7692b06e7b7c7d745f3afeec14c427c1d7ff01a6cd5d35d381894dba75685d1"
+    },
+    {
+      "receipt": "verification-amount-future-original-green-521.json",
+      "sha256": "42badaff70e1beb0fd8e4c0ee37adf0204b88577708fefe78bec93e9cf6b1a11",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-future-original-green-521.txt",
+      "log_sha256": "5eb7398f92594ae66e12a97408da9b9210fc64b148cb3cdb27089773b325a92c"
+    },
+    {
+      "receipt": "verification-amount-future-original-red-520.json",
+      "sha256": "1b45249c67e0379300d633fedb39811c63155a2bda23d04c53e86e5c9242f2fc",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-future-original-red-520.txt",
+      "log_sha256": "1a623878ceb48699c4bf49b823d99a58c3c7cce62efa5030868a92eb167dcad6"
+    },
+    {
+      "receipt": "verification-amount-integrity-514.json",
+      "sha256": "ecc0986ab5300b46d314351003ead275d8f1c4651e48f20e5c45bebff63a413a",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-integrity-514.txt",
+      "log_sha256": "64973288bbdf77d9c662817a07e5e49c0a52ecf64e2cbde4d026bbe01f0b17f0"
+    },
+    {
+      "receipt": "verification-amount-lint-505.json",
+      "sha256": "06cce5d68a2892e1cba40bb17772631eb5b316cc5f05d0c8bcb657b5bcb17ded",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-lint-505.txt",
+      "log_sha256": "363f72bb87a6e49a897f45d9500f7d9c8ca99217e8a79ff1235b07f3713008a8"
+    },
+    {
+      "receipt": "verification-amount-lint-506.json",
+      "sha256": "e02e345f99f8571e4c5389ba5eab0b27df9f71c3aa789307d644d5308ba219f4",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-lint-506.txt",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "receipt": "verification-amount-lint-508.json",
+      "sha256": "c7e059eec7f6d5e79239cfd776bf2fe551907ade53054ae7c4af98f4fac3793f",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-lint-508.txt",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "receipt": "verification-amount-lint-515.json",
+      "sha256": "c3316ee6016182c07c1676c0ccdb011f29a93028c9ebac983ffe532b80956fac",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-lint-515.txt",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "receipt": "verification-amount-lint-519.json",
+      "sha256": "88e70f5f10daeba882f9782b0656b7a7b4cc72addf652b40f8b464c3a8cb615e",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-lint-519.txt",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "receipt": "verification-amount-lint-524.json",
+      "sha256": "9620a2a606abee52c75d03ae30f469e7b27085f67ac8e6e577e899b630cfb4b4",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-lint-524.txt",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "receipt": "verification-amount-lint-530.json",
+      "sha256": "b19086818ffee7edd31b8a1ae1715287a6a56df8636c3ff43a4234bbff9f7d67",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-lint-530.txt",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "receipt": "verification-amount-malformed-526.json",
+      "sha256": "fb906b83ebf4168bdc3ba4106acd2d45d7573b6c4e859b6be600c5df668f69c4",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-malformed-526.txt",
+      "log_sha256": "d320012c23eb1a255f9a3124cdca7a59d2cc206e73049a46afe4fbb6a90e9e10"
+    },
+    {
+      "receipt": "verification-amount-missing-green-506.json",
+      "sha256": "91035c5a3c6dfb15fba244c12609bf2e89c9762451adba06bc98202e6f4adf6f",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-missing-green-506.txt",
+      "log_sha256": "fbe9ceb5f6feb7223c94725ff02d5bd0c7480bc934821d63f3b5f972ee0aada2"
+    },
+    {
+      "receipt": "verification-amount-missing-red-505.json",
+      "sha256": "b8038dc540e05a1defd65edfdf1b511c5926aa483aa1d663e3900752bfcf838e",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-missing-red-505.txt",
+      "log_sha256": "0714c2b6a4beac1966b2cdf1373b6786c0d5c3b2534a23071f10511827bf9243"
+    },
+    {
+      "receipt": "verification-amount-preperiod-green-523.json",
+      "sha256": "69c36ba6e2e85951878181784c868932cc9015190ea83b7bfee0f0651507a3e3",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-preperiod-green-523.txt",
+      "log_sha256": "bfaae003d79661b765b5c8caa1b73d676bd26a95b86795e926d34a4cf18fbc68"
+    },
+    {
+      "receipt": "verification-amount-preperiod-red-522.json",
+      "sha256": "4ecfa00ccd9cdb307731b6892153c1b4ff201ff54a3fd99028f51ccfd5ee02d6",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-preperiod-red-522.txt",
+      "log_sha256": "7379e11ee9d2deb52efcd37e10583f45a264085dd6942b6bf087c2aad22d0f76"
+    },
+    {
+      "receipt": "verification-amount-publication-512.json",
+      "sha256": "97aa113251d48590f118f5d1f49ad7b0ad9975cfbf101c3749d1af0116f64737",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-publication-512.txt",
+      "log_sha256": "71538c5f64a1decd033d1b18dcb01b344180210ab571f3689ec2befe7684320f"
+    },
+    {
+      "receipt": "verification-amount-publication-513.json",
+      "sha256": "4c467c6f35f5bce19cb634bbd21e1302ae2a13456b0034ec0b7e163530126f96",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-publication-513.txt",
+      "log_sha256": "24359e3004cf8bb1151dba0daf25598f98330754d7f835a7ce6c1f0c7ff6c451"
+    },
+    {
+      "receipt": "verification-amount-refactor-524.json",
+      "sha256": "505bc2b93584a66820ddbaeeb7dc3a692a29b1eaf4c5d906b99121018a10e7a7",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-refactor-524.txt",
+      "log_sha256": "461b98e9d1a602115a6ed0f8af08450bc7f6b15101b17aea8f84c4630cda489e"
+    },
+    {
+      "receipt": "verification-amount-related-532.json",
+      "sha256": "aaa175752da351e1152b4ee788d081281c75b57d26c2f25e4cedaab9c0a956f6",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-related-532.txt",
+      "log_sha256": "599f5a04f7651de7b83b439c13f85ce81aa952eaaa2b1e3627f63ef552a0325b"
+    },
+    {
+      "receipt": "verification-amount-repeated-delivery-green-529.json",
+      "sha256": "c6499410ef7419b336d4e11677f8c6e4ba334d73ec98c2cf90f058b20dd97a7a",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-repeated-delivery-green-529.txt",
+      "log_sha256": "1ecaf33a9b8b7a1f6ef87650b61448f10a002069feeb076795819bf0652c66ae"
+    },
+    {
+      "receipt": "verification-amount-repeated-delivery-red-528.json",
+      "sha256": "397591a2fc411b0b4fbe64736827157b88298524ad41a8ebcff11e1f469e12af",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-repeated-delivery-red-528.txt",
+      "log_sha256": "9be106107390e3b9e9aa4e0e0e751e23835574228b3da409232f6ce134094e02"
+    },
+    {
+      "receipt": "verification-amount-replay-525.json",
+      "sha256": "7a9c1ae77deeafb5235675cd05e22f195a44e15a1e3003783c4c89be9d145409",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-replay-525.txt",
+      "log_sha256": "441252a2d933d6ece2d3ac4f594212121df065a7a7b9d965ef4c19a146c91969"
+    },
+    {
+      "receipt": "verification-amount-scope-green-519.json",
+      "sha256": "5bb2d9008d086cb557ddb38b9c7e8132affb14404845df28fe5cd19bc4288391",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-scope-green-519.txt",
+      "log_sha256": "912420131aa6422cf1f43deaf7a00cd4c9cb697194f7bf8463f7e79722c5dcee"
+    },
+    {
+      "receipt": "verification-amount-scope-red-518.json",
+      "sha256": "6b037f92c891d50daa4ac27da380dab8e266045a6815fda1d36778524a68b578",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-scope-red-518.txt",
+      "log_sha256": "f52011fe9284a03cc5eca3a7745b9e8d4fc7ca5c88634657b0f72b85d4c34427"
+    },
+    {
+      "receipt": "verification-amount-types-504.json",
+      "sha256": "fd7665f046df6052df411b09d40aee745e9a25596d9aa9b016137e1350beb702",
+      "status": "failed",
+      "test_exit_code": 1,
+      "log": "verification-amount-types-504.txt",
+      "log_sha256": "698025f3b64ab9f0288ef3a3b6d158ef6ff04e83e7d9444046d01f16af22e787"
+    },
+    {
+      "receipt": "verification-amount-types-505.json",
+      "sha256": "8e4ab65590b18322406d647fccd1631933e094a92205d2c1858c00dc1d632e79",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-505.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-506.json",
+      "sha256": "7a6d3691876796b34bbacdf704d03351498626e971018e3222973e43c4cbea3e",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-506.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-508.json",
+      "sha256": "0e03802525b004844467fb15eeb529fbf62535833202331101bd7d1c17911ed8",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-508.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-515.json",
+      "sha256": "6b2ad6e17be12608dddef65935831971d6a61edb26a14cf5a24a0d0f805b756a",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-515.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-519.json",
+      "sha256": "79cbf07f459649feac84405d30f0573047ade72d32b4b9950c76886a18b09b98",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-519.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-521.json",
+      "sha256": "cfe1775bfb0131c31b432674cb59a3bd1227acf4e000d0f5a5f93f79b0220df2",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-521.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-523.json",
+      "sha256": "4d3c844cc7109e35760abbe461e7d389674ef3f5e29179eda1cc1306f2aa7d17",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-523.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-524.json",
+      "sha256": "fcc752aa930131afd95586ea87f8bab76bab1a95fd54ee8e5279bee2926639db",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-524.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-types-529.json",
+      "sha256": "1c7fd97b849931339d1792c9d56e27e610c91fd2040b97c9ed49fa7591b2f8f7",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-types-529.txt",
+      "log_sha256": "787fb5f4281ca29d54908fb6f304c60aaf529c36739cf0420d75b382addef0b7"
+    },
+    {
+      "receipt": "verification-amount-zeros-511.json",
+      "sha256": "07ba66e8a7d82ce7023a68265900bcc1040a0a8df236805ca67341d87933b2d8",
+      "status": "passed",
+      "test_exit_code": 0,
+      "log": "verification-amount-zeros-511.txt",
+      "log_sha256": "56922d819ab8d5a53406822cdb058c396043638a242503db304add1bfb7dca85"
+    }
+  ]
+}

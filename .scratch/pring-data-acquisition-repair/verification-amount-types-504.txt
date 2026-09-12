@@ -1,0 +1,4 @@
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:216: error: Incompatible types in assignment (expression has type "dict[str, tuple[str]]", variable has type "dict[str, tuple[str, ...]]")  [assignment]
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:216: note: "dict" is invariant -- see https://mypy.readthedocs.io/en/stable/common_issues.html#variance
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:216: note: Consider using "Mapping" instead, which is covariant in the value type
+Found 1 error in 1 file (checked 95 source files)

@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_registered_amount_breadth_includes_nonparticipating_member_turnover ___
+tests/models/test_candidate_admission.py:14316: in test_registered_amount_breadth_includes_nonparticipating_member_turnover
+    result = adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:179: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:14318: in <lambda>
+    lambda: adapter.market_breadth(
+E   TypeError: TushareContextAdapter.market_breadth() got an unexpected keyword argument 'amount_inputs_hash'
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_includes_nonparticipating_member_turnover
+1 failed in 6.12s

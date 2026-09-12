@@ -750,14 +750,26 @@ def breadth_claims_matching_acquisitions(
             if key not in cached:
                 cached[key] = None
                 originals = tuple((i.receipt, i.raw) for i in inputs)
-                if any(i.receipt.api_name == "breadth_window_inputs" for i in inputs):
+                if any(i.receipt.api_name == "breadth_amount_inputs" for i in inputs):
+                    from pring_cycle.market_amount import (
+                        amount_breadth_scalars,
+                        parse_amount_breadth_acquisitions,
+                    )
+
+                    amount_days = parse_amount_breadth_acquisitions(
+                        originals, artifacts, period=point.period_end
+                    )
+                    expected = _breadth_scalar_documents(amount_breadth_scalars(amount_days))
+                    result_field = "amount_breadth"
+                    results: list[Any] = amount_days
+                elif any(i.receipt.api_name == "breadth_window_inputs" for i in inputs):
                     window_days = parse_window_breadth_acquisitions(
                         originals, artifacts, period=point.period_end
                     )
                     expected = _breadth_scalar_documents(window_breadth_scalars(window_days))
                     expected = [d for d in expected if d["period_end"] == point.period_end]
                     result_field = "window_breadth"
-                    results: list[Any] = window_days
+                    results = window_days
                 else:
                     days = parse_daily_breadth_acquisitions(
                         originals, artifacts, period=point.period_end

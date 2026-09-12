@@ -1,0 +1,62 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+_ test_registered_amount_breadth_requires_effective_nonapplicability_rule[effective] _
+tests/models/test_candidate_admission.py:14495: in test_registered_amount_breadth_requires_effective_nonapplicability_rule
+    result = acquire()
+             ^^^^^^^^^
+tests/models/test_candidate_admission.py:14471: in acquire
+    return adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:181: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:14473: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1242: in market_breadth
+    return self._reviewed_amount_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1222: in _reviewed_amount_breadth
+    self._amount_breadth = parse_amount_breadth_acquisitions(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_amount.py:125: in parse_amount_breadth_acquisitions
+    digest = component["artifact_hash"]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'artifact_hash'
+_ test_registered_amount_breadth_requires_effective_nonapplicability_rule[missing] _
+tests/models/test_candidate_admission.py:14484: in test_registered_amount_breadth_requires_effective_nonapplicability_rule
+    acquire()
+tests/models/test_candidate_admission.py:14471: in acquire
+    return adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:181: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:14473: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1242: in market_breadth
+    return self._reviewed_amount_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1222: in _reviewed_amount_breadth
+    self._amount_breadth = parse_amount_breadth_acquisitions(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_amount.py:125: in parse_amount_breadth_acquisitions
+    digest = component["artifact_hash"]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'artifact_hash'
+_ test_registered_amount_breadth_requires_effective_nonapplicability_rule[future] _
+tests/models/test_candidate_admission.py:14484: in test_registered_amount_breadth_requires_effective_nonapplicability_rule
+    acquire()
+tests/models/test_candidate_admission.py:14471: in acquire
+    return adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:181: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:14473: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1242: in market_breadth
+    return self._reviewed_amount_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1222: in _reviewed_amount_breadth
+    self._amount_breadth = parse_amount_breadth_acquisitions(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_amount.py:125: in parse_amount_breadth_acquisitions
+    digest = component["artifact_hash"]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'artifact_hash'
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_requires_effective_nonapplicability_rule[effective]
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_requires_effective_nonapplicability_rule[missing]
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_requires_effective_nonapplicability_rule[future]
+3 failed in 7.53s

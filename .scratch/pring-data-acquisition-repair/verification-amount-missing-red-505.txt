@@ -1,0 +1,23 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_registered_amount_breadth_reports_unknown_amount_outside_advances ____
+tests/models/test_candidate_admission.py:14388: in test_registered_amount_breadth_reports_unknown_amount_outside_advances
+    result = adapter.acquire_scalars(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:181: in acquire_scalars
+    scalars = retrieve()
+              ^^^^^^^^^^
+tests/models/test_candidate_admission.py:14390: in <lambda>
+    lambda: adapter.market_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1242: in market_breadth
+    return self._reviewed_amount_breadth(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/tushare_context.py:1222: in _reviewed_amount_breadth
+    self._amount_breadth = parse_amount_breadth_acquisitions(
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_amount.py:137: in parse_amount_breadth_acquisitions
+    value = _breadth_price(matching[0][component["field"]], allow_zero=True)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/market_breadth.py:574: in _breadth_price
+    raise ValueError("breadth_price_invalid")
+E   ValueError: breadth_price_invalid
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_reports_unknown_amount_outside_advances
+1 failed in 5.63s

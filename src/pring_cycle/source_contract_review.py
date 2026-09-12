@@ -211,6 +211,7 @@ def require_registered_source_contract(
         ):
             raise ValueError("registered_capacity_q1_mapping_unresolved")
         return
+    from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES, AMOUNT_BREADTH_SOURCE_CODE
     from pring_cycle.market_breadth import (
         DAILY_BREADTH_MEASURES,
         DAILY_BREADTH_SOURCE_CODE,
@@ -239,6 +240,7 @@ def require_registered_source_contract(
     )
     contracts.update({metric: ("daily_breadth", "tushare") for metric in DAILY_BREADTH_MEASURES})
     contracts.update({metric: ("window_breadth", "tushare") for metric in WINDOW_BREADTH_MEASURES})
+    contracts.update({metric: ("amount_breadth", "tushare") for metric in AMOUNT_BREADTH_MEASURES})
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
@@ -252,8 +254,11 @@ def require_registered_source_contract(
         "valuation",
         "daily_breadth",
         "window_breadth",
+        "amount_breadth",
     }:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+    if family == "amount_breadth":
+        supported = replace(supported, source_codes=(AMOUNT_BREADTH_SOURCE_CODE,))
     if family == "window_breadth":
         supported = replace(supported, source_codes=(WINDOW_BREADTH_SOURCE_CODE,))
     if family == "daily_breadth":
@@ -274,6 +279,19 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "amount_breadth":
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or dimensions
+            != {"measure": "advancing_amount_share", "universe": "point_in_time_traded_a_shares"}
+            or unit != "percent"
+            or source_reference != f"tushare:amount_breadth:advancing_amount_share:{period_end}"
+            or period_start != period_end
+            or date.fromisoformat(period_end).isoformat() != period_end
+        ):
+            raise ValueError("registered_amount_breadth_source_identity_mismatch")
+        return
     if family == "daily_breadth":
         breadth_measure = dimensions.get("measure")
         if (

@@ -1,0 +1,10 @@
+..F                                                                      [100%]
+=================================== FAILURES ===================================
+____ test_registered_amount_breadth_waits_for_amount_publication[date_only] ____
+tests/models/test_candidate_admission.py:14667: in test_registered_amount_breadth_waits_for_amount_publication
+    assert selection.complete is complete
+E   assert False is True
+E    +  where False = ModelInputSelection(complete=False, selected_claim_ids=(), missing_members=('CN_EQ_ADV_AMOUNT_SHARE:{"measure": "advancing_amount_share", "universe": "point_in_time_traded_a_shares"}',)).complete
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_waits_for_amount_publication[date_only]
+1 failed, 2 passed in 10.86s

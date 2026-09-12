@@ -158,6 +158,7 @@ class TushareContextAdapter:
         self._field_rejections: list[dict[str, str]] = []
         self._daily_breadth: list[DailyBreadthResult] = []
         self._window_breadth: list[dict[str, Any]] = []
+        self._amount_breadth: list[dict[str, Any]] = []
 
     def acquire_scalars(
         self,
@@ -175,12 +176,24 @@ class TushareContextAdapter:
         self._field_rejections = []
         self._daily_breadth = []
         self._window_breadth = []
+        self._amount_breadth = []
         try:
             scalars = retrieve()
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
+            has_amount_inputs = any(r.api_name == "breadth_amount_inputs" for r in self._receipts)
             has_window_inputs = any(r.api_name == "breadth_window_inputs" for r in self._receipts)
-            if has_window_inputs or any(r.api_name == "breadth_universe" for r in self._receipts):
+            if (
+                has_amount_inputs
+                or has_window_inputs
+                or any(r.api_name == "breadth_universe" for r in self._receipts)
+            ):
+                from pring_cycle.market_amount import (
+                    AMOUNT_BREADTH_MEASURES,
+                    AMOUNT_BREADTH_SOURCE_CODE,
+                    amount_breadth_scalars,
+                    parse_amount_breadth_acquisitions,
+                )
                 from pring_cycle.market_breadth import (
                     DAILY_BREADTH_MEASURES,
                     DAILY_BREADTH_SOURCE_CODE,
@@ -199,6 +212,9 @@ class TushareContextAdapter:
                 source_code = (
                     WINDOW_BREADTH_SOURCE_CODE if has_window_inputs else DAILY_BREADTH_SOURCE_CODE
                 )
+                if has_amount_inputs:
+                    measures = AMOUNT_BREADTH_MEASURES
+                    source_code = AMOUNT_BREADTH_SOURCE_CODE
                 definitions = {
                     metric: metric_definition(
                         metric, definition_version=definition_version, database_path=paths.database
@@ -206,27 +222,38 @@ class TushareContextAdapter:
                     for metric in measures
                 }
                 if any(d.source_codes != (source_code,) for d in definitions.values()):
-                    family = "window" if has_window_inputs else "daily"
+                    family = (
+                        "amount"
+                        if has_amount_inputs
+                        else "window"
+                        if has_window_inputs
+                        else "daily"
+                    )
                     raise ValueError(f"registered_{family}_breadth_source_contract_unsupported")
                 originals = tuple(
                     (r, self._acquisitions.read_content(r.acquisition_id, "raw"))
                     for r in self._receipts
                 )
-                if has_window_inputs:
+                if has_amount_inputs:
+                    self._amount_breadth = parse_amount_breadth_acquisitions(
+                        originals, paths.artifacts
+                    )
+                    _require_breadth_scalar_match(
+                        scalars,
+                        amount_breadth_scalars(self._amount_breadth),
+                        definition_version=definition_version,
+                        family="amount",
+                    )
+                elif has_window_inputs:
                     self._window_breadth = parse_window_breadth_acquisitions(
                         originals, paths.artifacts
                     )
-                    if any(s.definition_version not in (None, definition_version) for s in scalars):
-                        raise ValueError("breadth_window_scalar_definition_mismatch")
-                    outputs = tuple(
-                        replace(scalar, definition_version=None, acquisition_ids=())
-                        for scalar in scalars
+                    _require_breadth_scalar_match(
+                        scalars,
+                        window_breadth_scalars(self._window_breadth),
+                        definition_version=definition_version,
+                        family="window",
                     )
-                    expected = window_breadth_scalars(self._window_breadth)
-                    if sorted(_canonical_json(asdict(s)) for s in outputs) != sorted(
-                        _canonical_json(asdict(s)) for s in expected
-                    ):
-                        raise ValueError("breadth_window_scalar_values_mismatch")
                 else:
                     days = parse_daily_breadth_acquisitions(originals, paths.artifacts)
                     if days != self._daily_breadth:
@@ -311,6 +338,13 @@ class TushareContextAdapter:
                         or receipt.api_name in {"daily", "suspend_d"}
                         and receipt.parameters.get("trade_date") in input_dates
                     ]
+                if self._amount_breadth and scalar.api_name == "amount_breadth":
+                    inputs = [
+                        r
+                        for r in self._receipts
+                        if r.api_name in {"breadth_amount_inputs", "breadth_universe", "trade_cal"}
+                        or r.parameters.get("trade_date") == scalar.period_end.replace("-", "")
+                    ]
                 if self._daily_breadth and scalar.api_name == "daily_breadth":
                     inputs = [
                         receipt
@@ -354,6 +388,11 @@ class TushareContextAdapter:
                     "accepted_scalars": normalized,
                     "window_breadth": self._window_breadth,
                 }
+            if self._amount_breadth:
+                normalized = {
+                    "accepted_scalars": normalized,
+                    "amount_breadth": self._amount_breadth,
+                }
             if self._daily_breadth:
                 normalized = {"accepted_scalars": normalized, "daily_breadth": self._daily_breadth}
             if self._field_rejections:
@@ -370,7 +409,7 @@ class TushareContextAdapter:
             )
             for receipt in self._receipts:
                 receipt_document: object
-                if self._window_breadth:
+                if self._window_breadth or self._amount_breadth:
                     # The immutable batch remains auditable; each scalar names its own parents.
                     receipt_document = normalized
                 else:
@@ -400,7 +439,7 @@ class TushareContextAdapter:
                     receipt.acquisition_id,
                     receipt_document,
                 )
-            if (self._daily_breadth or self._window_breadth) and not linked:
+            if (self._daily_breadth or self._window_breadth or self._amount_breadth) and not linked:
                 return ContextIngestionResult(0, (), (), ())
             result = ingest_context_scalars(
                 paths,
@@ -420,6 +459,7 @@ class TushareContextAdapter:
             self._field_rejections = []
             self._daily_breadth = []
             self._window_breadth = []
+            self._amount_breadth = []
 
     @property
     def network_requests(self) -> int:
@@ -1175,6 +1215,39 @@ class TushareContextAdapter:
         )
         return window_breadth_scalars(self._window_breadth)
 
+    def _reviewed_amount_breadth(
+        self, start: date, end: date, universe_hash: str, amount_inputs_hash: str
+    ) -> tuple[ContextScalar, ...]:
+        from pring_cycle.market_amount import (
+            amount_breadth_scalars,
+            load_breadth_amount_inputs,
+            parse_amount_breadth_acquisitions,
+        )
+        from pring_cycle.market_breadth import _breadth_artifact
+
+        if self._acquisitions is None:
+            raise ValueError("breadth_acquisition_required")
+        acquisitions = self._acquisitions
+        captured = acquisitions.capture(
+            provider="reviewed_evidence",
+            api_name="breadth_amount_inputs",
+            parameters={"amount_inputs_hash": amount_inputs_hash},
+            fields="",
+            parser_version="market-breadth-amount-inputs-v0001",
+            fetch=lambda: _breadth_artifact(acquisitions.artifacts, amount_inputs_hash),
+            parse=lambda raw: load_breadth_amount_inputs(raw, acquisitions.artifacts),
+            normalize=lambda document: document,
+            defer_validation=True,
+        )
+        self._receipts.append(captured.receipt)
+        self._reviewed_daily_breadth(start, end, universe_hash)
+        self._daily_breadth = []
+        self._amount_breadth = parse_amount_breadth_acquisitions(
+            tuple((r, acquisitions.read_content(r.acquisition_id, "raw")) for r in self._receipts),
+            acquisitions.artifacts,
+        )
+        return amount_breadth_scalars(self._amount_breadth)
+
     def market_breadth(
         self,
         *,
@@ -1184,7 +1257,14 @@ class TushareContextAdapter:
         output_days: int = 120,
         universe_hash: str | None = None,
         window_inputs_hash: str | None = None,
+        amount_inputs_hash: str | None = None,
     ) -> tuple[ContextScalar, ...]:
+        if amount_inputs_hash is not None:
+            if universe_hash is None or window_inputs_hash is not None:
+                raise ValueError("breadth_amount_inputs_invalid")
+            return self._reviewed_amount_breadth(
+                start_date, end_date, universe_hash, amount_inputs_hash
+            )
         if window_inputs_hash is not None:
             if (
                 universe_hash is None
@@ -1445,6 +1525,22 @@ class TushareContextAdapter:
         )
         with build_opener(NoRedirect()).open(request, timeout=30) as response:
             return bytes(response.read())
+
+
+def _require_breadth_scalar_match(
+    scalars: tuple[ContextScalar, ...],
+    expected: tuple[ContextScalar, ...],
+    *,
+    definition_version: str,
+    family: str,
+) -> None:
+    if any(s.definition_version not in (None, definition_version) for s in scalars):
+        raise ValueError(f"breadth_{family}_scalar_definition_mismatch")
+    outputs = tuple(replace(s, definition_version=None, acquisition_ids=()) for s in scalars)
+    if sorted(_canonical_json(asdict(s)) for s in outputs) != sorted(
+        _canonical_json(asdict(s)) for s in expected
+    ):
+        raise ValueError(f"breadth_{family}_scalar_values_mismatch")
 
 
 def ingest_context_scalars(

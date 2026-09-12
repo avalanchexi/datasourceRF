@@ -235,6 +235,11 @@ def required_dimension_members(
         from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, WINDOW_BREADTH_MEASURES
         from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
 
+        if metric_id == "CN_EQ_ADV_AMOUNT_SHARE":
+            return (
+                {"measure": "advancing_amount_share", "universe": "point_in_time_traded_a_shares"},
+            )
+
         if metric_id in WINDOW_BREADTH_MEASURES:
             return tuple(
                 {"measure": m, "universe": "point_in_time_traded_a_shares"}

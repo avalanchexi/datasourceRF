@@ -1,0 +1,10 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_registered_amount_breadth_rejects_same_fact_under_different_methods[True] _
+tests/models/test_candidate_admission.py:14773: in test_registered_amount_breadth_rejects_same_fact_under_different_methods
+    with pytest.raises(ValueError, match="breadth_amount_fact_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_rejects_same_fact_under_different_methods[True]
+1 failed, 1 passed in 10.24s

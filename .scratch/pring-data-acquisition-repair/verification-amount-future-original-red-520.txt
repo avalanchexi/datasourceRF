@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_registered_amount_breadth_ignores_unadopted_future_amount_original ____
+tests/models/test_candidate_admission.py:14909: in test_registered_amount_breadth_ignores_unadopted_future_amount_original
+    assert tuple(selected.complete for selected in after) == (True, False)
+E   assert (False, False) == (True, False)
+E     
+E     At index 0 diff: False != True
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_ignores_unadopted_future_amount_original
+1 failed in 7.92s

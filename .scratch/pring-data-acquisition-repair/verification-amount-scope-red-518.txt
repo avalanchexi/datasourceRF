@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_registered_amount_breadth_cannot_shrink_reviewed_complete_scope _____
+tests/models/test_candidate_admission.py:14788: in test_registered_amount_breadth_cannot_shrink_reviewed_complete_scope
+    with pytest.raises(ValueError, match="breadth_amount_scope"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_cannot_shrink_reviewed_complete_scope
+1 failed in 7.45s

@@ -1,0 +1,11 @@
+E501 Line too long (109 > 100)
+  --> src/pring_cycle/market_amount.py:25:101
+   |
+23 |     from pring_cycle.tushare_context import ContextScalar
+24 |
+25 | AMOUNT_BREADTH_MEASURES: dict[str, tuple[str, ...]] = {"CN_EQ_ADV_AMOUNT_SHARE": ("advancing_amount_share",)}
+   |                                                                                                     ^^^^^^^^^
+26 | AMOUNT_BREADTH_SOURCE_CODE = "tushare:daily:breadth-amount-v0002"
+   |
+
+Found 1 error.

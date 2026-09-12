@@ -1,0 +1,10 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_registered_amount_breadth_rejects_amount_without_unique_coverage[extra_methods1] _
+tests/models/test_candidate_admission.py:14525: in test_registered_amount_breadth_rejects_amount_without_unique_coverage
+    with pytest.raises(ValueError, match="breadth_amount_coverage"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_rejects_amount_without_unique_coverage[extra_methods1]
+1 failed, 1 passed in 7.65s

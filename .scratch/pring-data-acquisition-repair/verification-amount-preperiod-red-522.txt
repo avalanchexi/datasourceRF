@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_registered_amount_breadth_rejects_publication_before_amount_day[timestamp] _
+tests/models/test_candidate_admission.py:14935: in test_registered_amount_breadth_rejects_publication_before_amount_day
+    with pytest.raises(ValueError, match="breadth_amount_publication_precedes_period"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_registered_amount_breadth_rejects_publication_before_amount_day[date_only] _
+tests/models/test_candidate_admission.py:14935: in test_registered_amount_breadth_rejects_publication_before_amount_day
+    with pytest.raises(ValueError, match="breadth_amount_publication_precedes_period"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_rejects_publication_before_amount_day[timestamp]
+FAILED tests/models/test_candidate_admission.py::test_registered_amount_breadth_rejects_publication_before_amount_day[date_only]
+2 failed in 8.40s

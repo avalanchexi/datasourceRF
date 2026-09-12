@@ -1,0 +1,15 @@
+{
+  "inputs": {
+    "ca4edc25a04d579e05101f0d4db51ac7484d92de73486159aff5d12cb8b34edd": 343,
+    "d463a5480032fc7a737a77a9264e7b958522001f3b628fb303b9d619efebb200": 3735,
+    "8a436bb7ed11ad9ae5f6c605e77b77f3f31ca5306e4093843fe9bc17d7f0673f": 276,
+    "a27be539f890fbc3edbddae7b586400eeb2627c2150308b916ab96d7e73e3bb8": 3533
+  },
+  "known_ordinary_amount_minus_official_total_yuan": {
+    "20260612": "30.57000",
+    "20260611": "72.13000"
+  },
+  "sample_amount_plus_after_hours_minus_official_total_yuan": "34.9000",
+  "synthetic_full_pool_share_percent": "32.500",
+  "scope": "Independent Decimal recomputation of three raw samples and synthetic oracle; inclusion contracts, unknown after-hours amounts and PUBLIC certification remain unresolved."
+}
