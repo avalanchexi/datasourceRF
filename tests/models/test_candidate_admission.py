@@ -6559,3 +6559,1170 @@ def test_registered_valuation_respects_publication_cutoff(
     selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
     assert selection.complete is (publication == "known")
     assert len(selection.selected_claim_ids) == (9 if publication == "known" else 0)
+
+
+def admitted_daily_breadth_manifest(
+    paths: RuntimePaths,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    side: str = "daily",
+    source_code: str = "tushare:daily:breadth-v0002",
+) -> dict[str, Any]:
+    request, _ = prepared_request(paths)
+    manifest = request["manifest"]
+    manifest["metric_catalog_version"] += "-breadth-v2-" + side
+    for definition in manifest["metric_definitions"]:
+        definition["definition_version"] = manifest["metric_catalog_version"]
+        if definition["metric_id"] in {"CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"}:
+            definition["source_codes"] = [source_code]
+            if side == "candidate":
+                definition["source_candidates"] = [
+                    *definition["source_candidates"],
+                    "https://www.sse.com.cn/synthetic-breadth-review",
+                ]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"] = {
+        d["metric_id"]: hashlib.sha256(encode(d)).hexdigest()
+        for d in manifest["metric_definitions"]
+        if d["metric_id"] in package["definition_bindings"]
+    }
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    return ModelRepository(paths.database).manifest(model_id)
+
+
+def synthetic_breadth_universe(paths: RuntimePaths) -> dict[str, Any]:
+    # A reviewed synthetic complete pool, not certification of a real exchange universe.
+    original = save(paths, {"synthetic": True, "kind": "historical identity and publication"})
+    return {
+        "schema_version": "market-breadth-universe-v0001",
+        "coverage_start": "2026-08-28",
+        "coverage_end": "2026-08-28",
+        "coverage_evidence": [original],
+        "members": [
+            {
+                "security_id": identity,
+                "ts_code": code,
+                "security_type": kind,
+                "valid_from": "2020-01-01",
+                "valid_until": None,
+                "first_trading_day": "2020-01-01",
+                "evidence": [original],
+            }
+            for identity, code, kind in (
+                ("ordinary-sh", "600000.SH", "ordinary_a"),
+                ("st-delisting-sz", "000001.SZ", "ordinary_a"),
+                ("ordinary-bj", "920001.BJ", "ordinary_a"),
+                ("b-share", "900901.SH", "b_share"),
+                ("cdr", "689009.SH", "cdr"),
+            )
+        ],
+        "events": [],
+        "publications": {"2026-08-28": [original]},
+        "evidence": [
+            {
+                "artifact_hash": original,
+                "source_reference": "synthetic:official-universe",
+                "release_at": "2026-08-28T08:00:00+00:00",
+                "public_available_at": "2026-08-28T08:00:00+00:00",
+            }
+        ],
+    }
+
+
+def save_breadth_review(paths: RuntimePaths, universe: dict[str, Any]) -> str:
+    review = {
+        "schema_version": "market-breadth-universe-review-v0001",
+        "subject_hash": hashlib.sha256(encode(universe)).hexdigest(),
+        "reviewer": "synthetic universe reviewer",
+        "reviewed_at": "2026-09-13T00:00:00+00:00",
+        "decision": "accepted",
+    }
+    return save(paths, {**universe, "review_hash": save(paths, review)})
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_daily_breadth_reads_daily_members_without_window_or_amount(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe_hash = save_breadth_review(paths, synthetic_breadth_universe(paths))
+    originals = {}
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        api = payload["api_name"]
+        responses: dict[str, list[dict[str, Any]]] = {
+            "trade_cal": [{"cal_date": "20260828", "is_open": 1}],
+            "daily": [
+                {
+                    "ts_code": code,
+                    "trade_date": "20260828",
+                    "close": close,
+                    "pre_close": "10.000000000000000",
+                    "vol": "1",
+                    "amount": None,
+                }
+                for code, close in (
+                    ("600000.SH", "10.000000000000001"),
+                    ("000001.SZ", "9.000000000000000"),
+                    ("920001.BJ", "10.000000000000000"),
+                    ("900901.SH", "20"),
+                    ("689009.SH", "20"),
+                )
+            ],
+            "suspend_d": [],
+        }
+        rows = responses[api]
+        fields = payload["fields"].split(",")
+        raw = encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": fields,
+                    "items": [[row[field] for field in fields] for row in rows],
+                },
+            }
+        )
+        originals[api] = raw
+        return raw
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28),
+            end_date=date(2026, 8, 28),
+            universe_hash=universe_hash,
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-daily-breadth",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:daily-breadth",
+        metric_ids=("CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete and set(selection.selected_claim_ids) == set(result.claim_ids)
+    evidence = EvidenceRepository(paths.database)
+    counts = evidence.metric_series(
+        "CN_EQ_ADV_DEC",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert {p.dimensions["measure"]: p.selected_value for p in counts} == {
+        "advances": 1.0,
+        "declines": 1.0,
+        "flats": 1.0,
+        "net": 0.0,
+        "participants": 3.0,
+    }
+    ratios = evidence.metric_series(
+        "CN_EQ_AD_RATIO",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert len(ratios) == 1 and ratios[0].selected_value == 1.0
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipts = acquisitions.history()
+    assert len(receipts) == 4 and all(r.state == "validated" for r in receipts)
+    for receipt in receipts:
+        raw = acquisitions.read_content(receipt.acquisition_id, "raw")
+        if receipt.api_name == "breadth_universe":
+            assert hashlib.sha256(raw).hexdigest() == universe_hash
+        else:
+            assert raw == originals[receipt.api_name]
+        normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+        day = normalized["daily_breadth"][0]
+        assert day["participants"] == 3 and day["zero_declines"] is False
+        assert {m["ts_code"]: m["state"] for m in day["members"]} == {
+            "600000.SH": "advance",
+            "000001.SZ": "decline",
+            "920001.BJ": "flat",
+            "900901.SH": "outside_ordinary_a",
+            "689009.SH": "outside_ordinary_a",
+        }
+    links = evidence.source_claim_acquisitions_many(result.claim_ids)
+    assert all(len(inputs) == 4 for inputs in links.values())
+
+
+def breadth_transport(
+    quotes: list[dict[str, Any]],
+    suspensions: list[dict[str, Any]],
+    *,
+    days: tuple[str, ...] = ("20260828",),
+) -> Any:
+    def transport(payload: dict[str, Any]) -> bytes:
+        api = payload["api_name"]
+        rows = (
+            [{"cal_date": day, "is_open": 1} for day in days]
+            if api == "trade_cal"
+            else [
+                r
+                for r in (quotes if api == "daily" else suspensions)
+                if r["trade_date"] == payload["params"]["trade_date"]
+            ]
+        )
+        fields = payload["fields"].split(",")
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": fields,
+                    "items": [[row[field] for field in fields] for row in rows],
+                },
+            }
+        )
+
+    return transport
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_daily_breadth_explains_halts_and_unproven_first_reference(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    universe["members"].append(
+        {
+            **universe["members"][0],
+            "security_id": "ipo",
+            "ts_code": "002001.SZ",
+            "valid_from": "2026-08-28",
+            "first_trading_day": "2026-08-28",
+        }
+    )
+    universe_hash = save_breadth_review(paths, universe)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": close, "pre_close": "10", "vol": "1"}
+        for code, close in (("000001.SZ", "11"), ("920001.BJ", "10"), ("002001.SZ", "20"))
+    ]
+    suspensions = [
+        {"ts_code": code, "trade_date": "20260828", "suspend_type": kind, "suspend_timing": timing}
+        for code, kind, timing in (
+            ("600000.SH", "S", ""),
+            ("000001.SZ", "S", "09:30-10:00"),
+            ("000001.SZ", "R", ""),
+        )
+    ]
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=breadth_transport(quotes, suspensions)
+    )
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipt = acquisitions.history()[0]
+    document = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+    day = document["daily_breadth"][0]
+    assert (day["advances"], day["declines"], day["flats"], day["participants"]) == (1, 0, 1, 2)
+    assert day["advance_decline_ratio"] == 1 and day["zero_declines"] is True
+    states = {m["ts_code"]: m["state"] for m in day["members"]}
+    assert states["600000.SH"] == "full_day_suspension"
+    assert states["000001.SZ"] == "advance"
+    assert states["002001.SZ"] == "first_day_reference_unproven"
+    ratios = EvidenceRepository(paths.database).metric_series(
+        "CN_EQ_AD_RATIO",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert len(ratios) == 1 and ratios[0].selected_value == 1
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_daily_breadth_zero_participants_stays_unavailable(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    universe_hash = save_breadth_review(paths, universe)
+    suspensions = [
+        {
+            "ts_code": m["ts_code"],
+            "trade_date": "20260828",
+            "suspend_type": "S",
+            "suspend_timing": "",
+        }
+        for m in universe["members"]
+        if m["security_type"] == "ordinary_a"
+    ]
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport([], suspensions))
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 0 and result.claim_ids == ()
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    for receipt in acquisitions.history():
+        assert receipt.state == "validated"
+        document = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+        assert document["accepted_scalars"] == []
+        assert document["daily_breadth"][0]["status"] == "unavailable:no_participants"
+        assert document["daily_breadth"][0]["advance_decline_ratio"] is None
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-daily-breadth-empty",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:daily-breadth",
+        metric_ids=("CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert not selection.complete and not selection.selected_claim_ids
+    assert len(selection.missing_members) == 6
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_daily_breadth_keeps_code_continuity_and_proven_first_reference(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    universe["coverage_start"] = "2026-08-27"
+    proof = universe["coverage_evidence"][0]
+    universe["publications"]["2026-08-27"] = [proof]
+    before = {**universe["members"][2], "ts_code": "830001.BJ", "valid_until": "2026-08-28"}
+    universe["members"][2]["valid_from"] = "2026-08-28"
+    universe["members"].extend(
+        [
+            before,
+            {
+                **universe["members"][0],
+                "security_id": "ipo",
+                "ts_code": "002001.SZ",
+                "valid_from": "2026-08-28",
+                "first_trading_day": "2026-08-28",
+            },
+        ]
+    )
+    universe["events"] = [
+        {
+            "kind": "first_day_reference",
+            "business_date": "2026-08-28",
+            "ts_code": "002001.SZ",
+            "reference_semantics": "official_same_day_pre_close",
+            "reference_price": "10",
+            "evidence": [proof],
+        }
+    ]
+    universe_hash = save_breadth_review(paths, universe)
+    quotes = [
+        {"ts_code": code, "trade_date": day, "close": close, "pre_close": "10", "vol": "1"}
+        for day, entries in (
+            ("20260827", (("600000.SH", "11"), ("000001.SZ", "9"), ("830001.BJ", "10"))),
+            (
+                "20260828",
+                (("600000.SH", "11"), ("000001.SZ", "9"), ("920001.BJ", "10"), ("002001.SZ", "9")),
+            ),
+        )
+        for code, close in entries
+    ]
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=breadth_transport(quotes, [], days=("20260827", "20260828"))
+    )
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 27), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    evidence = EvidenceRepository(paths.database)
+    points = evidence.metric_series(
+        "CN_EQ_ADV_DEC",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert {
+        (p.period_end, p.selected_value)
+        for p in points
+        if p.dimensions["measure"] == "participants"
+    } == {
+        ("2026-08-27", 3.0),
+        ("2026-08-28", 4.0),
+    }
+    assert {
+        (p.period_end, p.selected_value) for p in points if p.dimensions["measure"] == "declines"
+    } == {
+        ("2026-08-27", 1.0),
+        ("2026-08-28", 2.0),
+    }
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipt = next(r for r in acquisitions.history() if r.api_name == "breadth_universe")
+    days = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))[
+        "daily_breadth"
+    ]
+    mapped = [next(m for m in day["members"] if m["state"] == "flat") for day in days]
+    assert [(m["security_id"], m["ts_code"]) for m in mapped] == [
+        ("ordinary-bj", "830001.BJ"),
+        ("ordinary-bj", "920001.BJ"),
+    ]
+    links = evidence.source_claim_acquisitions_many(result.claim_ids)
+    for point in points:
+        assert point.selected_claim_id is not None
+        inputs = links[point.selected_claim_id]
+        assert len(inputs) == 4
+        assert {
+            i.receipt.parameters["trade_date"]
+            for i in inputs
+            if i.receipt.api_name in {"daily", "suspend_d"}
+        } == {point.period_end.replace("-", "")}
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "duplicate_member",
+        "duplicate_subject",
+        "unknown_identity",
+        "missing_quote",
+        "extra_quote",
+        "conflicting_suspension",
+        "duplicate_suspension",
+        "reversed_interval",
+        "unreviewed_change",
+    ],
+)
+def test_registered_daily_breadth_rejects_unresolved_membership(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    suspensions = []
+    if fault == "duplicate_member":
+        universe["members"].append(dict(universe["members"][0]))
+    elif fault == "duplicate_subject":
+        universe["members"][1]["security_id"] = universe["members"][0]["security_id"]
+    elif fault == "unknown_identity":
+        universe["members"][0]["security_type"] = "unclassified"
+    elif fault == "missing_quote":
+        quotes.pop()
+    elif fault == "extra_quote":
+        quotes.append({**quotes[0], "ts_code": "002002.SZ"})
+    elif fault == "conflicting_suspension":
+        quotes.pop(0)
+        suspensions = [
+            {
+                "ts_code": "600000.SH",
+                "trade_date": "20260828",
+                "suspend_type": kind,
+                "suspend_timing": "",
+            }
+            for kind in ("S", "R")
+        ]
+    elif fault == "duplicate_suspension":
+        suspensions = [
+            {
+                "ts_code": "600000.SH",
+                "trade_date": "20260828",
+                "suspend_type": "S",
+                "suspend_timing": "09:30-10:00",
+            }
+        ] * 2
+    elif fault == "reversed_interval":
+        universe["members"][0]["valid_until"] = "2019-01-01"
+    universe_hash = save_breadth_review(paths, universe)
+    if fault == "unreviewed_change":
+        document = json.loads((paths.artifacts / universe_hash[:2] / universe_hash).read_bytes())
+        document["members"][0]["security_id"] = "changed-after-review"
+        universe_hash = save(paths, document)
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=breadth_transport(quotes, suspensions)
+    )
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=date(2026, 8, 28),
+                end_date=date(2026, 8, 28),
+                universe_hash=universe_hash,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+    assert (
+        EvidenceRepository(paths.database).metric_series(
+            "CN_EQ_ADV_DEC",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+        == ()
+    )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault,reason",
+    [
+        ("zero_volume", "no_legal_trade"),
+        ("missing_reference", "reference_price_missing"),
+        ("missing_close", "close_price_missing"),
+    ],
+)
+def test_registered_daily_breadth_explains_unusable_trading_fields(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str, reason: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe_hash = save_breadth_review(paths, synthetic_breadth_universe(paths))
+    quotes: list[dict[str, Any]] = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    quotes[0][
+        {"zero_volume": "vol", "missing_reference": "pre_close", "missing_close": "close"}[fault]
+    ] = "0" if fault == "zero_volume" else None
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport(quotes, []))
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    document = json.loads(
+        acquisitions.read_content(acquisitions.history()[0].acquisition_id, "normalized")
+    )
+    day = document["daily_breadth"][0]
+    assert day["participants"] == 2 and day["advances"] == 2
+    assert next(m["state"] for m in day["members"] if m["ts_code"] == "600000.SH") == reason
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("resolution", ["exact", "other_day", "other_code"])
+def test_registered_daily_breadth_limits_official_suspension_resolution(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], resolution: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    universe["events"] = [
+        {
+            "kind": "full_day_suspension",
+            "business_date": "2026-08-27" if resolution == "other_day" else "2026-08-28",
+            "ts_code": "000001.SZ" if resolution == "other_code" else "600000.SH",
+            "evidence": universe["coverage_evidence"],
+        }
+    ]
+    universe_hash = save_breadth_review(paths, universe)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("000001.SZ", "920001.BJ")
+    ]
+    suspensions = [
+        {
+            "ts_code": "600000.SH",
+            "trade_date": "20260828",
+            "suspend_type": kind,
+            "suspend_timing": "",
+        }
+        for kind in ("S", "R")
+    ]
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=breadth_transport(quotes, suspensions)
+    )
+
+    def acquire() -> Any:
+        return adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=date(2026, 8, 28),
+                end_date=date(2026, 8, 28),
+                universe_hash=universe_hash,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+
+    if resolution != "exact":
+        with pytest.raises(ValueError, match="breadth_suspension_conflict"):
+            acquire()
+        assert all(
+            r.state == "failed"
+            for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        )
+        return
+    result = acquire()
+    assert result.observation_count == 6
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    day = json.loads(
+        acquisitions.read_content(acquisitions.history()[0].acquisition_id, "normalized")
+    )["daily_breadth"][0]
+    assert day["participants"] == 2
+    member = next(m for m in day["members"] if m["ts_code"] == "600000.SH")
+    assert member["state"] == "full_day_suspension"
+    assert member["event_evidence"] == universe["coverage_evidence"]
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "artifact_kind",
+    ["daily", "suspend_d", "trade_cal", "breadth_universe", "normalized", "review", "proof"],
+)
+@pytest.mark.parametrize("damage", ["missing", "corrupt"])
+def test_registered_daily_breadth_selection_rejects_damaged_input_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], artifact_kind: str, damage: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    universe_hash = save_breadth_review(paths, universe)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport(quotes, []))
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-breadth-originals",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:daily-breadth",
+        metric_ids=("CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"),
+        period="2026-08-28",
+    )
+    before = select_retrieval_input(paths, run)
+    assert before.complete and set(before.selected_claim_ids) == set(result.claim_ids)
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    if artifact_kind == "proof":
+        digest = universe["coverage_evidence"][0]
+    elif artifact_kind == "review":
+        digest = json.loads((paths.artifacts / universe_hash[:2] / universe_hash).read_bytes())[
+            "review_hash"
+        ]
+    elif artifact_kind == "normalized":
+        digest = next(r for r in receipts if r.api_name == "daily").normalized_hash
+    else:
+        digest = next(r for r in receipts if r.api_name == artifact_kind).raw_hash
+    assert digest is not None
+    original = paths.artifacts / digest[:2] / digest
+    if damage == "missing":
+        original.unlink()
+    else:
+        original.write_bytes(b"damaged breadth input")
+    after = select_retrieval_input(paths, run)
+    assert not after.complete and not after.selected_claim_ids
+    assert len(after.missing_members) == 6
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "wrong_value",
+        "wrong_unit",
+        "wrong_measure",
+        "wrong_public_time",
+        "missing_output",
+        "foreign_definition",
+    ],
+)
+def test_registered_daily_breadth_rejects_changed_scalars_before_validation(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe_hash = save_breadth_review(paths, synthetic_breadth_universe(paths))
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport(quotes, []))
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        scalars = adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        )
+        first = scalars[0]
+        if fault == "wrong_value":
+            first = replace(first, value=30.0)
+        elif fault == "wrong_unit":
+            first = replace(first, unit="ratio")
+        elif fault == "wrong_measure":
+            first = replace(first, source_field="unsupported")
+        elif fault == "wrong_public_time":
+            first = replace(first, public_available_at=datetime(2026, 8, 28, 7, tzinfo=UTC))
+        elif fault == "foreign_definition":
+            first = replace(first, definition_version="metric-catalog-v0003")
+        elif fault == "missing_output":
+            return scalars[1:]
+        return (first, *scalars[1:])
+
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths, retrieve, definition_version=manifest["metric_catalog_version"]
+        )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipts = acquisitions.history()
+    assert len(receipts) == 4 and all(
+        r.state == "failed" and r.validated_at is None for r in receipts
+    )
+    assert all(acquisitions.read_content(r.acquisition_id, "raw") for r in receipts)
+    assert (
+        EvidenceRepository(paths.database).metric_series(
+            "CN_EQ_ADV_DEC",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+        == ()
+    )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "publication", ["known", "unknown", "future", "date_only", "quote_time_missing"]
+)
+def test_registered_daily_breadth_respects_publication_evidence(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], publication: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    proof = universe["evidence"][0]
+    if publication == "quote_time_missing":
+        universe["publications"]["2026-08-28"] = []
+    elif publication == "unknown":
+        proof["release_at"] = proof["public_available_at"] = None
+    elif publication == "future":
+        proof["release_at"] = proof["public_available_at"] = "2026-08-28T09:00:00+00:00"
+    elif publication == "date_only":
+        proof["published_date"] = "2026-08-28"
+        proof["release_at"] = None
+        proof["public_available_at"] = "2026-08-28T16:00:00+00:00"
+    universe_hash = save_breadth_review(paths, universe)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport(quotes, []))
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    evidence = EvidenceRepository(paths.database)
+    for metric, count in (("CN_EQ_ADV_DEC", 5), ("CN_EQ_AD_RATIO", 1)):
+        assert (
+            len(
+                evidence.metric_series(
+                    metric,
+                    mode=AsOfMode.SYSTEM,
+                    as_of=datetime.now(UTC),
+                    definition_version=manifest["metric_catalog_version"],
+                )
+            )
+            == count
+        )
+        for hour, expected in (
+            (7, 0),
+            (8, count if publication == "known" else 0),
+            (16, 0 if publication in {"unknown", "quote_time_missing"} else count),
+        ):
+            points = evidence.metric_series(
+                metric,
+                mode=AsOfMode.PUBLIC,
+                as_of=datetime(2026, 8, 28, hour, tzinfo=UTC),
+                definition_version=manifest["metric_catalog_version"],
+            )
+            assert len(points) == expected
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-breadth-publication",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        release_event_id="synthetic:daily-breadth",
+        metric_ids=("CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete is (publication == "known")
+    assert len(selection.selected_claim_ids) == (6 if publication == "known" else 0)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("damaged_input", ["daily", "review"])
+def test_registered_daily_breadth_public_replay_rechecks_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_input: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests, hashes = {}, {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_daily_breadth_manifest(paths, capsys, side=side)
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        universe = synthetic_breadth_universe(paths)
+        universe["synthetic_side"] = side
+        universe_hash = save_breadth_review(paths, universe)
+        quotes = [
+            {
+                "ts_code": code,
+                "trade_date": "20260828",
+                "close": "11",
+                "pre_close": "10",
+                "vol": "1",
+            }
+            for code in ("600000.SH", "000001.SZ", "920001.BJ")
+        ]
+        source = breadth_transport(quotes, [])
+
+        def transport(payload: dict[str, Any], delegate: Any = source, marker: str = side) -> bytes:
+            response = json.loads(delegate(payload))
+            response["synthetic_side"] = marker
+            return encode(response)
+
+        adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+        def retrieve(
+            adapter: TushareContextAdapter = adapter, universe_hash: str = universe_hash
+        ) -> tuple[ContextScalar, ...]:
+            return adapter.market_breadth(
+                start_date=date(2026, 8, 28),
+                end_date=date(2026, 8, 28),
+                universe_hash=universe_hash,
+            )
+
+        adapter.acquire_scalars(
+            paths,
+            retrieve,
+            definition_version=manifest["metric_catalog_version"],
+        )
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        if damaged_input == "review":
+            hashes[side] = json.loads(
+                (paths.artifacts / universe_hash[:2] / universe_hash).read_bytes()
+            )["review_hash"]
+        else:
+            hashes[side] = next(
+                r.raw_hash
+                for r in acquisitions.history()
+                if r.api_name == "daily"
+                and json.loads(acquisitions.read_content(r.acquisition_id, "raw"))["synthetic_side"]
+                == side
+            )
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+    assert hashes["candidate"] != hashes["comparison"]
+    digest = hashes["candidate"]
+    (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate breadth original")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert "candidate_context_selection_invalid:CN_EQ_ADV_DEC" in after.gaps
+    assert "candidate_context_selection_invalid:CN_EQ_AD_RATIO" in after.gaps
+    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_daily_breadth_preserves_numeric_json_price_precision(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe_hash = save_breadth_review(paths, synthetic_breadth_universe(paths))
+    quotes = [
+        {
+            "ts_code": code,
+            "trade_date": "20260828",
+            "close": close,
+            "pre_close": "10.0000000000000000",
+            "vol": "1",
+        }
+        for code, close in (
+            ("600000.SH", "10.0000000000000001"),
+            ("000001.SZ", "10.0000000000000000"),
+            ("920001.BJ", "10.0000000000000000"),
+        )
+    ]
+    source = breadth_transport(quotes, [])
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        raw: bytes = source(payload)
+        return raw.replace(b'"10.0000000000000001"', b"10.0000000000000001").replace(
+            b'"10.0000000000000000"', b"10.0000000000000000"
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_EQ_ADV_DEC",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+        "advances": 1.0,
+        "declines": 0.0,
+        "flats": 2.0,
+        "net": 1.0,
+        "participants": 3.0,
+    }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "coverage",
+        "member",
+        "first_reference",
+        "duplicate_proof",
+        "missing_reviewer",
+        "prior_quote_publication",
+    ],
+)
+def test_registered_daily_breadth_requires_unambiguous_reviewed_evidence(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    if fault == "coverage":
+        universe["coverage_evidence"] = []
+    elif fault == "member":
+        universe["members"][0]["evidence"] = []
+    elif fault == "first_reference":
+        universe["members"][0]["valid_from"] = universe["members"][0]["first_trading_day"] = (
+            "2026-08-28"
+        )
+        universe["events"] = [
+            {
+                "kind": "first_day_reference",
+                "ts_code": "600000.SH",
+                "business_date": "2026-08-28",
+                "reference_semantics": "official_same_day_pre_close",
+                "reference_price": "10",
+                "evidence": [],
+            }
+        ]
+    elif fault == "duplicate_proof":
+        universe["evidence"].append(
+            {**universe["evidence"][0], "release_at": None, "public_available_at": None}
+        )
+    elif fault == "prior_quote_publication":
+        universe["evidence"][0]["release_at"] = universe["evidence"][0]["public_available_at"] = (
+            "2026-08-27T08:00:00+00:00"
+        )
+    universe_hash = save_breadth_review(paths, universe)
+    if fault == "missing_reviewer":
+        document = json.loads((paths.artifacts / universe_hash[:2] / universe_hash).read_bytes())
+        digest = document["review_hash"]
+        review = json.loads((paths.artifacts / digest[:2] / digest).read_bytes())
+        review["reviewer"] = None
+        document["review_hash"] = save(paths, review)
+        universe_hash = save(paths, document)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport(quotes, []))
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=date(2026, 8, 28),
+                end_date=date(2026, 8, 28),
+                universe_hash=universe_hash,
+            ),
+            definition_version=manifest["metric_catalog_version"],
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault", ["empty_calendar", "duplicate_calendar", "legacy_registered", "builtin"]
+)
+def test_registered_daily_breadth_rejects_unsupported_acquisition_contracts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(
+        paths,
+        capsys,
+        source_code="tushare:daily:breadth-v0001"
+        if fault == "legacy_registered"
+        else "tushare:daily:breadth-v0002",
+    )
+    version = "metric-catalog-v0003" if fault == "builtin" else manifest["metric_catalog_version"]
+    universe_hash = save_breadth_review(paths, synthetic_breadth_universe(paths))
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ", "920001.BJ")
+    ]
+    days = (
+        ()
+        if fault == "empty_calendar"
+        else ("20260828", "20260828")
+        if fault == "duplicate_calendar"
+        else ("20260828",)
+    )
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=breadth_transport(quotes, [], days=days)
+    )
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_breadth(
+                start_date=date(2026, 8, 28),
+                end_date=date(2026, 8, 28),
+                universe_hash=universe_hash,
+            ),
+            definition_version=version,
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("exit_publication", ["known", "future", "unknown"])
+def test_registered_daily_breadth_requires_exit_publication_for_changed_denominator(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], exit_publication: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_daily_breadth_manifest(paths, capsys)
+    universe = synthetic_breadth_universe(paths)
+    exited = universe["members"][2]
+    exited["valid_until"] = "2026-08-28"
+    exit_hash = save(paths, {"synthetic": True, "kind": "exit announcement"})
+    exited["evidence"] = [exit_hash]
+    published = {
+        "known": "2026-08-28T08:00:00+00:00",
+        "future": "2026-08-29T08:00:00+00:00",
+        "unknown": None,
+    }[exit_publication]
+    universe["evidence"].append(
+        {
+            "artifact_hash": exit_hash,
+            "source_reference": "synthetic:official-exit",
+            "release_at": published,
+            "public_available_at": published,
+        }
+    )
+    universe_hash = save_breadth_review(paths, universe)
+    quotes = [
+        {"ts_code": code, "trade_date": "20260828", "close": "11", "pre_close": "10", "vol": "1"}
+        for code in ("600000.SH", "000001.SZ")
+    ]
+    adapter = TushareContextAdapter("synthetic-token", transport=breadth_transport(quotes, []))
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.market_breadth(
+            start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), universe_hash=universe_hash
+        ),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert result.observation_count == 6
+    evidence = EvidenceRepository(paths.database)
+    points = evidence.metric_series(
+        "CN_EQ_ADV_DEC",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert next(p.selected_value for p in points if p.dimensions["measure"] == "participants") == 2
+    for cutoff, available in (
+        (datetime(2026, 8, 28, 8, tzinfo=UTC), exit_publication == "known"),
+        (datetime(2026, 8, 29, 8, tzinfo=UTC), exit_publication != "unknown"),
+    ):
+        public_points = evidence.metric_series(
+            "CN_EQ_ADV_DEC",
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+            definition_version=manifest["metric_catalog_version"],
+        )
+        assert len(public_points) == (5 if available else 0)
+        if cutoff.date() != date(2026, 8, 28):
+            # Target-bound retrieval also enforces the target day's release fence.
+            continue
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id="exit-publication-" + cutoff.isoformat(),
+            model_version_id=manifest["model_version_id"],
+            system_as_of=cutoff,
+            release_event_id="synthetic:exit-publication",
+            metric_ids=("CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"),
+            period="2026-08-28",
+        )
+        selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        assert selection.complete is available
+        assert len(selection.selected_claim_ids) == (6 if available else 0)

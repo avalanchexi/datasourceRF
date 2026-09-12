@@ -211,6 +211,7 @@ def require_registered_source_contract(
         ):
             raise ValueError("registered_capacity_q1_mapping_unresolved")
         return
+    from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, DAILY_BREADTH_SOURCE_CODE
     from pring_cycle.tushare_context import (
         MARKET_INDEX_IDENTITIES,
         VALUATION_FIELDS,
@@ -231,12 +232,23 @@ def require_registered_source_contract(
     contracts.update(
         {metric_id: ("market_index", "tushare") for metric_id in MARKET_INDEX_IDENTITIES}
     )
+    contracts.update({metric: ("daily_breadth", "tushare") for metric in DAILY_BREADTH_MEASURES})
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
     supported = metric_definition(definition.metric_id)
-    if family in {"interbank", "rrr", "warrant", "margin", "market_index", "valuation"}:
+    if family in {
+        "interbank",
+        "rrr",
+        "warrant",
+        "margin",
+        "market_index",
+        "valuation",
+        "daily_breadth",
+    }:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+    if family == "daily_breadth":
+        supported = replace(supported, source_codes=(DAILY_BREADTH_SOURCE_CODE,))
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
         supported = replace(supported, release_event_family="nbs_core_cpi")
@@ -253,6 +265,21 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "daily_breadth":
+        breadth_measure = dimensions.get("measure")
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or dimensions
+            != {"measure": breadth_measure, "universe": "point_in_time_traded_a_shares"}
+            or breadth_measure not in DAILY_BREADTH_MEASURES[definition.metric_id]
+            or unit != ("count" if definition.metric_id == "CN_EQ_ADV_DEC" else "ratio")
+            or source_reference != f"tushare:daily_breadth:{breadth_measure}:{period_end}"
+            or period_start != period_end
+            or date.fromisoformat(period_end).isoformat() != period_end
+        ):
+            raise ValueError("registered_daily_breadth_source_identity_mismatch")
+        return
     if family == "valuation":
         valuation_measure = dimensions.get("measure", "")
         measures = {measure: (field, unit) for field, measure, unit in VALUATION_FIELDS}

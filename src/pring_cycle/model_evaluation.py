@@ -29,6 +29,7 @@ from pring_cycle.domain.trend import (
     evaluate_trend_history,
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, breadth_claims_matching_acquisitions
 from pring_cycle.metric_contracts import (
     REQUIRED_DIMENSION_MEMBERS,
     evidence_frequency,
@@ -821,6 +822,7 @@ def evaluate_context_replay(
                 gaps.extend(
                     _context_selection_gaps(
                         evidence,
+                        artifacts=database.parent / "artifacts" / "sha256",
                         side=side,
                         metric_id=metric_id,
                         definition_version=definition_version,
@@ -1093,6 +1095,7 @@ def _single_context_coverage_gaps(
 def _context_selection_gaps(
     repository: EvidenceRepository,
     *,
+    artifacts: Path,
     side: str,
     metric_id: str,
     definition_version: str,
@@ -1212,6 +1215,15 @@ def _context_selection_gaps(
         if any(
             point.selected_claim_id not in valid_valuation_claims for point in validation_points
         ):
+            statuses.add("invalid")
+    if metric_id in DAILY_BREADTH_MEASURES and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        valid_breadth_claims = breadth_claims_matching_acquisitions(
+            repository,
+            tuple(validation_points),
+            definition_version=definition_version,
+            artifacts=artifacts,
+        )
+        if any(point.selected_claim_id not in valid_breadth_claims for point in validation_points):
             statuses.add("invalid")
     freshness_days = (
         730

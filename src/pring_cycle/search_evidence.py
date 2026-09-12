@@ -11,6 +11,7 @@ from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
+from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, breadth_claims_matching_acquisitions
 from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
     evidence_max_age_days,
@@ -150,6 +151,17 @@ class ModelInputSelector:
             definition_version=self.version,
             parse=parse_valuation_acquisition,
         )
+        valid_breadth_claim_ids = breadth_claims_matching_acquisitions(
+            self.core_evidence,
+            tuple(
+                point
+                for metric in scope.metric_ids
+                if metric in DAILY_BREADTH_MEASURES and self.version not in BUILTIN_CATALOG_VERSIONS
+                for point in self.series(metric)
+            ),
+            definition_version=self.version,
+            artifacts=self.database_path.parent / "artifacts" / "sha256",
+        )
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -235,6 +247,11 @@ class ModelInputSelector:
                         and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
                         and definition.certification_status == "certified"
+                        and (
+                            metric_id not in DAILY_BREADTH_MEASURES
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_breadth_claim_ids
+                        )
                         and (
                             metric_id != "CN_INDEX_VALUATION"
                             or self.version in BUILTIN_CATALOG_VERSIONS

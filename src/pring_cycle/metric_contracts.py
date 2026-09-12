@@ -232,7 +232,14 @@ def required_dimension_members(
             measures += ("cumulative_average_yoy",)
         return tuple({"category": categories[metric_id], "measure": value} for value in measures)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES
         from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+
+        if metric_id in DAILY_BREADTH_MEASURES:
+            return tuple(
+                {"measure": m, "universe": "point_in_time_traded_a_shares"}
+                for m in DAILY_BREADTH_MEASURES[metric_id]
+            )
 
         if metric_id in MARKET_INDEX_IDENTITIES:
             return ({"source_code": MARKET_INDEX_IDENTITIES[metric_id][1]},)
