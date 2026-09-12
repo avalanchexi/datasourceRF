@@ -243,6 +243,7 @@ def ingest_eia_spot_prices(
         definition = metric_definition(
             price.metric_id,
             definition_version=definition_version,
+            database_path=paths.database,
         )
         source_reference = (
             f"eia:v2:petroleum/pri/spt:{price.series_id}:{price.business_date.isoformat()}"

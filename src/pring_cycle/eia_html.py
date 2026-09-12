@@ -340,7 +340,9 @@ def refresh_eia_history(
     if series_id not in _SOURCES or end_date < start_date:
         raise ValueError("eia_history_request_invalid")
     metric_id, _, endpoint = _SOURCES[series_id]
-    definition = metric_definition(metric_id, definition_version=definition_version)
+    definition = metric_definition(
+        metric_id, definition_version=definition_version, database_path=paths.database
+    )
     repository = EvidenceRepository(paths.database)
     ids: list[str] = []
     responses: list[FetchedEiaHistory] = []

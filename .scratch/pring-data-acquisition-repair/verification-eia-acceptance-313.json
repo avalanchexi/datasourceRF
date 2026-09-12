@@ -1,0 +1,120 @@
+{
+  "status": "m1_limited_scope_passed",
+  "recorded_at": "2026-09-12T16:28:08.839329+00:00",
+  "base_commit": "99c495a217b66d4bca9d6ceae4688ee69d4382bb",
+  "tested_tree": "Complete frozen worktree including pre-existing uncommitted work; not a clean HEAD project-wide acceptance.",
+  "related_suite": {
+    "passed": 74,
+    "failed": 0,
+    "seconds": 197.54,
+    "exit_code": 0,
+    "terminal": "verification-eia-related-312.json"
+  },
+  "new_public_scenarios": 7,
+  "typecheck_files": 92,
+  "ruff": "passed",
+  "standards_findings_remaining": 0,
+  "spec_findings_remaining": 0,
+  "frozen_inputs_verified": 320,
+  "protected_files_verified": 4,
+  "installed_python_sources_verified_by_runner": 91,
+  "installed_package_files_verified": 95,
+  "dependencies_verified": 53,
+  "records": {
+    "verification-eia-api-failures-307.json": {
+      "sha256": "5b42cb7f75f0e04bc2dfa7aae19d811d05fc924538d8cc24fbc7a9f9f6c08a8f",
+      "exit_code": 0,
+      "log_sha256": "792acc66d5eaf109f9dcbbd2347ad006dc4fb52334c89738195da60a753396aa",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-api-green-303.json": {
+      "sha256": "a3549da7de8a2b700a8c56d77877c5eeadc278595ac336d0383f44f4051e030e",
+      "exit_code": 0,
+      "log_sha256": "9e2eeceb5633485daf1e2b9130a4019164c70df46ea7babb1e4058349166ce8f",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-api-red-302.json": {
+      "sha256": "8fa66947befa66b97a1c0d849755c96f2b7edefc0b623c99752a60d1178ce1bc",
+      "exit_code": 1,
+      "log_sha256": "7689b121ab74fc67d16d25848f8c7123841c92afc7bfd20bfdf36d6658fea1a5",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-format-311.json": {
+      "sha256": "446035272a1b500878462f3abb5226e3d9f95f744b692acaf91cc880a5c6eb87",
+      "exit_code": 0,
+      "log_sha256": "eee76f865de5a9f2456950f710ae5d5f9b5bd0ea02aa54f614c5eed6642a0bfd",
+      "helper_inputs_unchanged": true
+    },
+    "verification-eia-html-failures-308.json": {
+      "sha256": "c7dfdbdb947533e2f58bd9a1a76ca76f3df61ab268d63270cfccf64e1dc25958",
+      "exit_code": 1,
+      "log_sha256": "d3fadc710223cfa80f9a2ca21692b84d3bf2e89b0fba655b72ca9240085aa023",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-html-failures-309.json": {
+      "sha256": "460e915b909e63e43aaa81ad0546e76774f3734acb428f45f9638e33e9a77162",
+      "exit_code": 0,
+      "log_sha256": "101fda757451a84f2df58ecd2fa69716a3b7bf5440a846145ea0a652a43f4e81",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-html-green-305.json": {
+      "sha256": "ec1dad901bba3d608a0e8076f131965d3dc72419d44c8e655db3514d89b499e8",
+      "exit_code": 0,
+      "log_sha256": "c0d62ab9a5766831fe057fe7488ab378287cffab68eb4aac0efc2dde43f576b7",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-html-red-304.json": {
+      "sha256": "9c8a17e4afdfb3329638b672409305fed7fbb2be117c18b062df797b9c9c7ece",
+      "exit_code": 1,
+      "log_sha256": "5ac39c5cdd5c48df906276c397b1c5223585105ac3b06301ea4de7b63d3d1f0b",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-lint-311.json": {
+      "sha256": "62d3f66620bfd3f414118376696bedb03245f942b771150eec6ec2c84ac705fb",
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "helper_inputs_unchanged": true
+    },
+    "verification-eia-related-312.json": {
+      "sha256": "a3d1a5f549691adc640c6ea2755c8945d6493fc37a4b7e32460ab9337943ad06",
+      "exit_code": 0,
+      "log_sha256": "0211068de614dc79ba45307452707fc11b74e37ae5f3891be7bd403178ae7b9f",
+      "helper_inputs_unchanged": true
+    },
+    "verification-eia-typecheck-306.json": {
+      "sha256": "d56bdcdfcdb61ebde90c722983d064dfc83bab82dff8f9d33c8ce964da612ebc",
+      "exit_code": 0,
+      "log_sha256": "fe0ce6e3b1983c3e150c09b415036599a0bee120f2cad38e219412ce21d84a67",
+      "helper_inputs_unchanged": null
+    },
+    "verification-eia-typecheck-310.json": {
+      "sha256": "e4d2698635e6ce0e98e5df609ecda0aa4ae672fd51317384690c42b825aadfa4",
+      "exit_code": 0,
+      "log_sha256": "4ceb57b647f65ad9bc4a2ac12b1f1d95323ae55da4304fb3e5014cf75bf56502",
+      "helper_inputs_unchanged": true
+    }
+  },
+  "review_inputs": {
+    "verification-eia-standards-313.md": "4652e243a91444d011db8958948e0744aa5e8a2fbe63d0801afacff00c89f0cf",
+    "verification-eia-spec-313.md": "a09b1738038282f61e16e4987c949be635d12680d87779401d546480ca985590",
+    "eia-catalog-review-310.diff": "41b8698d18661683cd6f481059a7c47e7909e3c46d836b2bbbfc3c7d2e583131"
+  },
+  "task_source_files": {
+    "src/pring_cycle/eia_context.py": "466e6ec01702758b0465b42276ff0f5cd9c6b244f2812fbb10062346a5891fe0",
+    "src/pring_cycle/eia_html.py": "6fdb6909a3a0000eae1ea13d29d2a5f31266d634038e78863f979a22167c2ad3",
+    "tests/models/test_candidate_admission.py": "6df000ab3ffcf96f23ce22ebfca63e13a085015b8a914cb26ac0e74c7109ceac"
+  },
+  "prior_candidate_test_content_preserved": true,
+  "verifier_sha256": "d0ad65a0092b45f2846331c131cf0aff65efde179ab0cf3c24d57a9bc40ad62f",
+  "project_default_suite_run": false,
+  "open": [
+    "Worker combined full run",
+    "Market P1 contracts and input evidence",
+    "Legal isolated active-model preparation",
+    "Real source certification and replay/product acceptance",
+    "M5 final default suite"
+  ],
+  "deferred": [
+    "23 SQLite diagnostics"
+  ]
+}

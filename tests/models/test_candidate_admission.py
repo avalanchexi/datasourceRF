@@ -4830,3 +4830,347 @@ def test_registered_core_public_replay_rechecks_selected_originals(
             requested_start=days[-2].isoformat(),
             requested_end=days[-1].isoformat(),
         )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_catalog_eia_api_keeps_both_series_and_unknown_public_time(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from pring_cycle.eia_context import EiaPetroleumAdapter
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    admitted = json.loads(capsys.readouterr().out)
+    assert admitted["status"] == "candidate"
+    manifest = models.manifest(admitted["model_version_id"])
+    assert len(manifest["metric_definitions"]) == 61
+    version = manifest["metric_catalog_version"]
+    raw = encode(
+        {
+            "response": {
+                "frequency": "daily",
+                "data": [
+                    {
+                        "period": "2026-08-27",
+                        "series": series,
+                        "series-description": label,
+                        "value": value,
+                        "units": "Dollars per Barrel",
+                    }
+                    for series, label, value in (
+                        ("RBRTE", "Europe Brent Spot Price FOB", "71.25"),
+                        ("RWTC", "Cushing, OK WTI Spot Price FOB", "66.50"),
+                    )
+                ],
+            }
+        }
+    )
+    adapter = EiaPetroleumAdapter("synthetic-api-key", transport=lambda _: raw)
+    before = datetime.now(UTC)
+    result = adapter.acquire_spot_prices(
+        paths,
+        start_date=date(2026, 8, 27),
+        end_date=date(2026, 8, 27),
+        definition_version=version,
+    )
+    after = datetime.now(UTC)
+    assert result.observation_count == 2
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.api_name == "eia_spot_prices"
+    assert receipt.state == "validated"
+    assert "api_key" not in receipt.parameters
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    assert before <= receipt.started_at <= receipt.received_at <= receipt.validated_at <= after
+    evidence = EvidenceRepository(paths.database)
+    for metric, value in (("EIA_BRENT_RBRTE", 71.25), ("EIA_WTI_RWTC", 66.50)):
+        assert (
+            evidence.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+            )
+            == ()
+        )
+        assert (
+            evidence.metric_series(
+                metric, mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
+            )
+            == ()
+        )
+        (point,) = evidence.metric_series(
+            metric, mode=AsOfMode.SYSTEM, as_of=after, definition_version=version
+        )
+        assert point.observation_id in result.observation_ids
+        (claim,) = point.claims
+        assert claim.value == value and claim.unit == "usd_per_barrel"
+        assert claim.certification_status == "awaiting_source_certification"
+        assert claim.release_at is None and claim.public_available_at is None
+        assert claim.fetched_at == receipt.received_at
+        assert receipt.validated_at <= claim.available_at <= after
+        trace = evidence.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=after)
+        assert tuple(item.acquisition_id for item in trace.acquisitions) == (
+            receipt.acquisition_id,
+        )
+    assert (
+        next(
+            model
+            for model in models.list_versions()
+            if model.model_version_id == admitted["model_version_id"]
+        ).status
+        == "candidate"
+    )
+
+
+@pytest.mark.parametrize(
+    ("case", "exception_type", "message"),
+    [
+        ("missing_key", ValueError, "eia_api_key_required"),
+        ("source_failed", OSError, "synthetic_eia_unavailable"),
+        ("invalid_response", ValueError, "eia_response_json_invalid"),
+    ],
+)
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_catalog_eia_api_failure_keeps_receipt_without_claims(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    case: str,
+    exception_type: type[Exception],
+    message: str,
+) -> None:
+    from pring_cycle.eia_context import EiaPetroleumAdapter
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    raw = b"not JSON"
+
+    def transport(parameters: dict[str, object]) -> bytes:
+        if case == "source_failed":
+            raise OSError("synthetic_eia_unavailable")
+        return raw
+
+    with pytest.raises(exception_type, match=message):
+        adapter = EiaPetroleumAdapter(
+            "" if case == "missing_key" else "synthetic-api-key", transport=transport
+        )
+        adapter.acquire_spot_prices(
+            paths,
+            start_date=date(2026, 8, 27),
+            end_date=date(2026, 8, 27),
+            definition_version=version,
+        )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    if case == "missing_key":
+        assert acquisitions.history() == ()
+    else:
+        (receipt,) = acquisitions.history()
+        assert receipt.api_name == "eia_spot_prices"
+        assert receipt.state == "failed" and receipt.error_type == exception_type.__name__
+        assert receipt.normalized_hash is None and receipt.validated_at is None
+        assert "api_key" not in receipt.parameters
+        if case == "source_failed":
+            assert receipt.raw_hash is None and receipt.received_at is None
+        else:
+            assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+            assert receipt.received_at is not None
+    evidence = EvidenceRepository(paths.database)
+    for metric in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
+        assert (
+            evidence.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+            )
+            == ()
+        )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_catalog_eia_html_cli_keeps_receipt_and_unknown_public_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    admitted = json.loads(capsys.readouterr().out)
+    assert admitted["status"] == "candidate"
+    models = ModelRepository(paths.database)
+    manifest = models.manifest(admitted["model_version_id"])
+    assert len(manifest["metric_definitions"]) == 61
+    version = manifest["metric_catalog_version"]
+    digest = "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e"
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-14" / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+
+    class Response(BytesIO):
+        status = 200
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+
+        def geturl(self) -> str:
+            return "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"
+
+    def fetch(request: Any, *, timeout: float) -> Response:
+        assert request.full_url == "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"
+        assert timeout > 0
+        return Response(raw)
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", fetch)
+    before = datetime.now(UTC)
+    main(
+        [
+            "eia-html-refresh",
+            "--runtime-root",
+            str(paths.override_root),
+            "--series",
+            "RBRTE",
+            "--start",
+            "2026-08-31",
+            "--end",
+            "2026-09-04",
+            "--definition-version",
+            version,
+            "--json",
+        ]
+    )
+    after = datetime.now(UTC)
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "stored_candidate"
+    assert result["observation_count"] == 1 and result["missing_cell_count"] == 4
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.api_name == "eia_history_html" and receipt.state == "validated"
+    assert receipt.parameters["definition_version"] == version
+    assert receipt.raw_hash == digest
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+    assert normalized["release_date"] == "2026-09-02"
+    assert normalized["next_release_date"] == "2026-09-10"
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    assert before <= receipt.started_at <= receipt.received_at <= receipt.validated_at <= after
+    evidence = EvidenceRepository(paths.database)
+    assert (
+        evidence.metric_series(
+            "EIA_BRENT_RBRTE", mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+        )
+        == ()
+    )
+    assert (
+        evidence.metric_series(
+            "EIA_BRENT_RBRTE", mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
+        )
+        == ()
+    )
+    (point,) = evidence.metric_series(
+        "EIA_BRENT_RBRTE", mode=AsOfMode.SYSTEM, as_of=after, definition_version=version
+    )
+    assert point.period_start == point.period_end == "2026-09-01"
+    (claim,) = point.claims
+    assert claim.value == 96.02 and claim.unit == "usd_per_barrel"
+    assert claim.certification_status == "awaiting_source_certification"
+    assert claim.release_at is None and claim.public_available_at is None
+    assert claim.fetched_at == receipt.received_at
+    assert receipt.validated_at <= claim.available_at <= after
+    trace = evidence.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=after)
+    assert tuple(item.acquisition_id for item in trace.acquisitions) == (receipt.acquisition_id,)
+    assert (
+        next(
+            model
+            for model in models.list_versions()
+            if model.model_version_id == admitted["model_version_id"]
+        ).status
+        == "candidate"
+    )
+
+
+@pytest.mark.parametrize("outcome", ["source_failed", "validation_failed"])
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_catalog_eia_html_cli_failure_keeps_classified_attempt(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    outcome: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    raw = b"<html><body>Synthetic malformed history</body></html>"
+
+    class Response(BytesIO):
+        status = 200
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+
+        def geturl(self) -> str:
+            return "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"
+
+    def fetch(request: Any, *, timeout: float) -> Response:
+        assert request.full_url == "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"
+        if outcome == "source_failed":
+            raise OSError("synthetic_eia_unavailable")
+        return Response(raw)
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", fetch)
+    with pytest.raises(OSError if outcome == "source_failed" else SystemExit) as failure:
+        main(
+            [
+                "eia-html-refresh",
+                "--runtime-root",
+                str(paths.override_root),
+                "--series",
+                "RBRTE",
+                "--start",
+                "2026-08-31",
+                "--end",
+                "2026-09-04",
+                "--definition-version",
+                version,
+                "--json",
+            ]
+        )
+    if outcome == "source_failed":
+        assert isinstance(failure.value, OSError)
+        assert str(failure.value) == "synthetic_eia_unavailable"
+    else:
+        assert isinstance(failure.value, SystemExit)
+        assert failure.value.code == 2
+        assert "eia_history_" in capsys.readouterr().err
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.api_name == "eia_history_html" and receipt.state == "failed"
+    assert receipt.normalized_hash is None and receipt.validated_at is None
+    assert receipt.parameters["definition_version"] == version
+    if outcome == "source_failed":
+        assert receipt.error_type == "OSError"
+        assert receipt.raw_hash is None and receipt.received_at is None
+    else:
+        assert receipt.error_type == "ValueError"
+        assert receipt.received_at is not None
+        assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    evidence = EvidenceRepository(paths.database)
+    assert (
+        evidence.metric_series(
+            "EIA_BRENT_RBRTE",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=version,
+        )
+        == ()
+    )
+    attempt = evidence.latest_retrieval_attempt(
+        "EIA_BRENT_RBRTE",
+        period="2026-09-04",
+        as_of=datetime.now(UTC),
+        definition_version=version,
+    )
+    assert attempt is not None and attempt.outcome == outcome
+    assert attempt.safe_metadata["acquisition_ids"] == receipt.acquisition_id
+    assert attempt.safe_metadata["error_type"] == receipt.error_type
