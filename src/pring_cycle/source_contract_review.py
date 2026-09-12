@@ -211,7 +211,11 @@ def require_registered_source_contract(
         ):
             raise ValueError("registered_capacity_q1_mapping_unresolved")
         return
-    from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+    from pring_cycle.tushare_context import (
+        MARKET_INDEX_IDENTITIES,
+        VALUATION_FIELDS,
+        VALUATION_INDEX_CODES,
+    )
 
     contracts = {
         "CN_LPR_1Y_5Y": ("lpr", "中国货币网"),
@@ -222,6 +226,7 @@ def require_registered_source_contract(
         "CN_SHIBOR_ON_1W_3M": ("interbank", "tushare"),
         "CN_FUTURES_WARRANTS": ("warrant", "tushare"),
         "CN_MARGIN_BALANCE": ("margin", "tushare"),
+        "CN_INDEX_VALUATION": ("valuation", "tushare"),
     }
     contracts.update(
         {metric_id: ("market_index", "tushare") for metric_id in MARKET_INDEX_IDENTITIES}
@@ -230,7 +235,7 @@ def require_registered_source_contract(
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
     supported = metric_definition(definition.metric_id)
-    if family in {"interbank", "rrr", "warrant", "margin", "market_index"}:
+    if family in {"interbank", "rrr", "warrant", "margin", "market_index", "valuation"}:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
@@ -248,6 +253,25 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "valuation":
+        valuation_measure = dimensions.get("measure", "")
+        measures = {measure: (field, unit) for field, measure, unit in VALUATION_FIELDS}
+        source_field, expected_unit = measures.get(valuation_measure, ("", ""))
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or set(dimensions) != {"index", "measure"}
+            or dimensions.get("index") not in VALUATION_INDEX_CODES
+            or valuation_measure not in measures
+            or unit != expected_unit
+            or source_reference != f"tushare:index_dailybasic:{source_field}:{period_end}"
+        ):
+            raise ValueError("registered_valuation_source_identity_mismatch")
+        start = date.fromisoformat(period_start)
+        end = date.fromisoformat(period_end)
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_valuation_source_period_mismatch")
+        return
     if family == "market_index":
         api_name, source_code = MARKET_INDEX_IDENTITIES[definition.metric_id]
         if (

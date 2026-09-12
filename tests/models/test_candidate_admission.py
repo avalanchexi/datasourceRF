@@ -6058,3 +6058,504 @@ def test_registered_market_indices_respect_publication_cutoff(
         selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
         assert selection.complete is (publication == "known")
         assert len(selection.selected_claim_ids) == (1 if publication == "known" else 0)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_valuation_keeps_all_nine_static_members_and_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    models = ModelRepository(paths.database)
+    manifest = models.manifest(model_id)
+    assert len(manifest["metric_definitions"]) == 61
+    version = manifest["metric_catalog_version"]
+    expected = {
+        "000300.SH": {"price_earnings": 12.0, "price_book": 1.2, "turnover_rate": 0.5},
+        "000905.SH": {"price_earnings": 20.0, "price_book": 2.0, "turnover_rate": 0.8},
+        "000852.SH": {"price_earnings": 30.0, "price_book": 3.0, "turnover_rate": 1.1},
+    }
+    originals = {}
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        assert payload["api_name"] == "index_dailybasic"
+        assert payload["fields"] == "ts_code,trade_date,pe,pb,turnover_rate"
+        code = payload["params"]["ts_code"]
+        assert payload["params"] == {
+            "ts_code": code,
+            "start_date": "20260828",
+            "end_date": "20260828",
+        }
+        values = expected[code]
+        raw = encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["ts_code", "trade_date", "pe", "pb", "turnover_rate"],
+                    "items": [
+                        [
+                            code,
+                            "20260828",
+                            values["price_earnings"],
+                            values["price_book"],
+                            values["turnover_rate"],
+                        ]
+                    ],
+                },
+            }
+        )
+        originals[code] = raw
+        return raw
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    # Synthetic publication assertion, not evidence of an official historical release.
+    public_at = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=public_at, public_available_at=public_at)
+            for s in adapter.index_valuation(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        ),
+        definition_version=version,
+    )
+    assert result.observation_count == 9
+    evidence = EvidenceRepository(paths.database)
+    assert (
+        evidence.metric_series(
+            "CN_INDEX_VALUATION",
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 7, tzinfo=UTC),
+            definition_version=version,
+        )
+        == ()
+    )
+    points = evidence.metric_series(
+        "CN_INDEX_VALUATION", mode=AsOfMode.PUBLIC, as_of=public_at, definition_version=version
+    )
+    assert len(points) == 9
+    assert {(p.dimensions["index"], p.dimensions["measure"]) for p in points} == {
+        (code, measure)
+        for code in expected
+        for measure in ("price_earnings", "price_book", "turnover_rate")
+    }
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    assert len(acquisitions.history()) == 3
+    for point in points:
+        code, measure = point.dimensions["index"], point.dimensions["measure"]
+        assert point.selected_value == expected[code][measure]
+        assert point.period_start == point.period_end == "2026-08-28"
+        (claim,) = point.claims
+        assert claim.unit == ("percent" if measure == "turnover_rate" else "multiple")
+        field = {"price_earnings": "pe", "price_book": "pb", "turnover_rate": "turnover_rate"}[
+            measure
+        ]
+        assert claim.source_reference == f"tushare:index_dailybasic:{field}:2026-08-28"
+        trace = evidence.trace(point.observation_id, mode=AsOfMode.PUBLIC, as_of=public_at)
+        (receipt,) = trace.acquisitions
+        assert receipt.state == "validated" and receipt.parameters["ts_code"] == code
+        assert acquisitions.read_content(receipt.acquisition_id, "raw") == originals[code]
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-valuation-nine-members",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:valuation",
+        metric_ids=("CN_INDEX_VALUATION",),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete and set(selection.selected_claim_ids) == set(result.claim_ids)
+    assert models.manifest(model_id) == manifest
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "ttm_measure",
+        "duplicate_day",
+        "ttm_column",
+        "wrong_index",
+        "wrong_period",
+        "wrong_unit",
+        "wrong_value",
+        "bad_response",
+    ],
+)
+def test_registered_valuation_rejects_invalid_delivery_before_validation(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    originals = {}
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        code = payload["params"]["ts_code"]
+        fields = ["ts_code", "trade_date", "pe", "pb", "turnover_rate"]
+        rows: list[list[Any]] = [[code, "20260828", 12.0, 1.2, 0.5]]
+        if code == "000852.SH":
+            if fault == "ttm_column":
+                fields[2] = "pe_ttm"
+            elif fault == "wrong_index":
+                rows[0][0] = "000300.SH"
+            elif fault == "wrong_period":
+                rows[0][1] = "20260827"
+        if code == "000852.SH" and fault == "duplicate_day":
+            rows.append(rows[0].copy())
+        raw = encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": fields,
+                    "items": rows,
+                },
+            }
+        )
+        if code == "000852.SH" and fault == "bad_response":
+            raw = b"not JSON"
+        originals[code] = raw
+        return raw
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        scalars = adapter.index_valuation(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+        delivered = []
+        for scalar in scalars:
+            if scalar.dimensions == {"index": "000852.SH", "measure": "price_earnings"}:
+                if fault == "ttm_measure":
+                    scalar = replace(scalar, source_field="pe_ttm")
+                elif fault == "wrong_unit":
+                    scalar = replace(scalar, unit="percent")
+                elif fault == "wrong_value":
+                    scalar = replace(scalar, value=120.0)
+            delivered.append(scalar)
+        return tuple(delivered)
+
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(paths, retrieve, definition_version=version)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    assert len(acquisitions.history()) == 3
+    for receipt in acquisitions.history():
+        assert receipt.state == "failed" and receipt.validated_at is None
+        assert (
+            acquisitions.read_content(receipt.acquisition_id, "raw")
+            == originals[receipt.parameters["ts_code"]]
+        )
+    assert (
+        EvidenceRepository(paths.database).metric_series(
+            "CN_INDEX_VALUATION",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=version,
+        )
+        == ()
+    )
+
+
+@pytest.mark.parametrize("damage", ["corrupt", "missing"])
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
+def test_registered_valuation_selection_rejects_damaged_index_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], artifact_kind: str, damage: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["ts_code", "trade_date", "pe", "pb", "turnover_rate"],
+                    "items": [[payload["params"]["ts_code"], "20260828", 12.0, 1.2, 0.5]],
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    public_at = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=public_at, public_available_at=public_at)
+            for s in adapter.index_valuation(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        ),
+        definition_version=version,
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-valuation-original",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:valuation",
+        metric_ids=("CN_INDEX_VALUATION",),
+        period="2026-08-28",
+    )
+    before = select_retrieval_input(paths, run)
+    assert before.complete and set(before.selected_claim_ids) == set(result.claim_ids)
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_INDEX_VALUATION", mode=AsOfMode.PUBLIC, as_of=public_at, definition_version=version
+    )
+    unaffected = {p.selected_claim_id for p in points if p.dimensions["index"] != "000852.SH"}
+    receipt = next(
+        r
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.parameters["ts_code"] == "000852.SH"
+    )
+    digest = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert digest is not None
+    original = paths.artifacts / digest[:2] / digest
+    if damage == "missing":
+        original.unlink()
+    else:
+        original.write_bytes(b"damaged valuation original")
+    after = select_retrieval_input(paths, run)
+    assert not after.complete
+    assert set(after.selected_claim_ids) == unaffected
+    assert len(after.selected_claim_ids) == 6 and len(after.missing_members) == 3
+    assert all("000852.SH" in missing for missing in after.missing_members)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_valuation_public_replay_rejects_damaged_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    receipts = {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_INDEX_VALUATION")
+        # Public component scope only; stored candidates keep all 61 definitions.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+
+        def transport(payload: dict[str, Any], synthetic_side: str = side) -> bytes:
+            return encode(
+                {
+                    "code": 0,
+                    "synthetic_side": synthetic_side,
+                    "data": {
+                        "fields": ["ts_code", "trade_date", "pe", "pb", "turnover_rate"],
+                        "items": [[payload["params"]["ts_code"], "20260828", 12.0, 1.2, 0.5]],
+                    },
+                }
+            )
+
+        adapter = TushareContextAdapter("synthetic-token", transport=transport)
+        published = datetime(2026, 8, 28, 8, tzinfo=UTC)
+
+        def retrieve(
+            source: TushareContextAdapter = adapter, public_at: datetime = published
+        ) -> tuple[ContextScalar, ...]:
+            return tuple(
+                replace(s, release_at=public_at, public_available_at=public_at)
+                for s in source.index_valuation(
+                    start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+                )
+            )
+
+        adapter.acquire_scalars(
+            paths, retrieve, definition_version=manifest["metric_catalog_version"]
+        )
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        receipts[side] = next(
+            r
+            for r in acquisitions.history()
+            if r.parameters["ts_code"] == "000852.SH"
+            and side.encode() in acquisitions.read_content(r.acquisition_id, "raw")
+        )
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+    digest = receipts["candidate"].raw_hash
+    assert digest is not None and digest != receipts["comparison"].raw_hash
+    (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate valuation source")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert "candidate_context_selection_invalid:CN_INDEX_VALUATION" in after.gaps
+    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault,expected_count", [("missing_static_pe", 8), ("ttm_only", 8), ("empty_index", 6)]
+)
+def test_registered_valuation_keeps_missing_members_incomplete(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str, expected_count: int
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    originals = {}
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        code = payload["params"]["ts_code"]
+        fields = ["ts_code", "trade_date", "pe", "pb", "turnover_rate"]
+        row: list[Any] = [code, "20260828", 12.0, 1.2, 0.5]
+        if code == "000852.SH":
+            row[2] = None
+            if fault == "ttm_only":
+                fields.append("pe_ttm")
+                row.append(40.0)
+        rows = [] if code == "000852.SH" and fault == "empty_index" else [row]
+        raw = encode({"code": 0, "data": {"fields": fields, "items": rows}})
+        originals[code] = raw
+        return raw
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    public_at = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=public_at, public_available_at=public_at)
+            for s in adapter.index_valuation(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        ),
+        definition_version=version,
+    )
+    assert result.observation_count == expected_count
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-valuation-missing-" + fault,
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:valuation",
+        metric_ids=("CN_INDEX_VALUATION",),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert not selection.complete and len(selection.selected_claim_ids) == expected_count
+    assert len(selection.missing_members) == 9 - expected_count
+    assert all("000852.SH" in member for member in selection.missing_members)
+    if fault != "empty_index":
+        assert "price_earnings" in selection.missing_members[0]
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_INDEX_VALUATION", mode=AsOfMode.PUBLIC, as_of=public_at, definition_version=version
+    )
+    assert not any(
+        p.dimensions == {"index": "000852.SH", "measure": "price_earnings"} for p in points
+    )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    for receipt in acquisitions.history():
+        assert (
+            acquisitions.read_content(receipt.acquisition_id, "raw")
+            == originals[receipt.parameters["ts_code"]]
+        )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("publication", ["known", "unknown", "future"])
+def test_registered_valuation_respects_publication_cutoff(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], publication: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    cutoff = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    public_at = (
+        None
+        if publication == "unknown"
+        else cutoff
+        if publication == "known"
+        else datetime(2026, 8, 28, 9, tzinfo=UTC)
+    )
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        return encode(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["ts_code", "trade_date", "pe", "pb", "turnover_rate"],
+                    "items": [[payload["params"]["ts_code"], "20260828", 12.0, 1.2, 0.5]],
+                },
+            }
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    # Synthetic metadata verifies software boundaries, never historical source certification.
+    adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=public_at, public_available_at=public_at)
+            for s in adapter.index_valuation(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        ),
+        definition_version=version,
+    )
+    evidence = EvidenceRepository(paths.database)
+    assert (
+        evidence.metric_series(
+            "CN_INDEX_VALUATION",
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 7, tzinfo=UTC),
+            definition_version=version,
+        )
+        == ()
+    )
+    assert len(
+        evidence.metric_series(
+            "CN_INDEX_VALUATION", mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+        )
+    ) == (9 if publication == "known" else 0)
+    assert (
+        len(
+            evidence.metric_series(
+                "CN_INDEX_VALUATION",
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=version,
+            )
+        )
+        == 9
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-valuation-publication-" + publication,
+        model_version_id=model_id,
+        system_as_of=cutoff,
+        release_event_id="synthetic:valuation",
+        metric_ids=("CN_INDEX_VALUATION",),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete is (publication == "known")
+    assert len(selection.selected_claim_ids) == (9 if publication == "known" else 0)

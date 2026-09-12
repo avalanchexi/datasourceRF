@@ -32,6 +32,7 @@ from pring_cycle.storage import database_connection
 from pring_cycle.tushare_context import (
     MARKET_INDEX_IDENTITIES,
     parse_market_index_acquisition,
+    parse_valuation_acquisition,
     tushare_claims_matching_acquisitions,
 )
 from pring_cycle.warrant_inputs import select_warrant_inputs
@@ -140,6 +141,15 @@ class ModelInputSelector:
             definition_version=self.version,
             parse=parse_market_index_acquisition,
         )
+        valid_valuation_claim_ids = tushare_claims_matching_acquisitions(
+            self.core_evidence,
+            self.series("CN_INDEX_VALUATION")
+            if "CN_INDEX_VALUATION" in scope.metric_ids
+            and self.version not in BUILTIN_CATALOG_VERSIONS
+            else (),
+            definition_version=self.version,
+            parse=parse_valuation_acquisition,
+        )
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -225,6 +235,11 @@ class ModelInputSelector:
                         and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
                         and definition.certification_status == "certified"
+                        and (
+                            metric_id != "CN_INDEX_VALUATION"
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_valuation_claim_ids
+                        )
                         and (
                             metric_id not in MARKET_INDEX_IDENTITIES
                             or self.version in BUILTIN_CATALOG_VERSIONS

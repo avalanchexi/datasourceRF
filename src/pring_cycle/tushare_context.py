@@ -46,6 +46,11 @@ MARKET_INDEX_IDENTITIES = {
     "CN_COMMODITY_BROAD_NHCI": ("fut_index_daily", "NHCI.NH"),
 }
 VALUATION_INDEX_CODES = ("000300.SH", "000905.SH", "000852.SH")
+VALUATION_FIELDS = (
+    ("pe", "price_earnings", "multiple"),
+    ("pb", "price_book", "multiple"),
+    ("turnover_rate", "turnover_rate", "percent"),
+)
 FUTURES_SLEEVE_CODES = {
     "copper": ("CU.SHF",),
     "rebar": ("RB.SHF",),
@@ -177,6 +182,12 @@ class TushareContextAdapter:
                         {"index_daily", "fut_index_daily"},
                         parse_market_index_acquisition,
                     ),
+                    (
+                        "valuation",
+                        {"CN_INDEX_VALUATION"},
+                        {"index_dailybasic"},
+                        parse_valuation_acquisition,
+                    ),
                 )
                 for family, metric_ids, api_names, parse_scalars in family_contracts:
                     outputs = tuple(
@@ -223,6 +234,17 @@ class TushareContextAdapter:
                     ]
                     if not inputs:
                         raise ValueError("registered_market_index_acquisition_missing")
+                if (
+                    definition_version not in BUILTIN_CATALOG_VERSIONS
+                    and scalar.metric_id == "CN_INDEX_VALUATION"
+                ):
+                    inputs = [
+                        receipt
+                        for receipt in matching
+                        if receipt.parameters.get("ts_code") == scalar.dimensions.get("index")
+                    ]
+                    if not inputs:
+                        raise ValueError("registered_valuation_acquisition_missing")
                 if scalar.metric_id == "CN_FUTURES_WARRANTS" and scalar.api_name == "fut_wsr":
                     inputs = warrant_inputs.get(_warrant_input_identity(scalar), [])
                     if not inputs:
@@ -842,11 +864,6 @@ class TushareContextAdapter:
     ) -> tuple[ContextScalar, ...]:
         if end_date < start_date:
             raise ValueError("tushare_date_range_invalid")
-        fields = (
-            ("pe", "price_earnings", "multiple"),
-            ("pb", "price_book", "multiple"),
-            ("turnover_rate", "turnover_rate", "percent"),
-        )
         scalars: list[ContextScalar] = []
         for source_code in VALUATION_INDEX_CODES:
             rows = self._call(
@@ -856,25 +873,9 @@ class TushareContextAdapter:
                     "start_date": start_date.strftime("%Y%m%d"),
                     "end_date": end_date.strftime("%Y%m%d"),
                 },
-                ("ts_code", "trade_date", *(field for field, _measure, _unit in fields)),
+                ("ts_code", "trade_date", *(field for field, _measure, _unit in VALUATION_FIELDS)),
             )
-            for row in rows:
-                if str(row.get("ts_code")) != source_code:
-                    raise ValueError("tushare_index_valuation_identity_mismatch")
-                for source_field, measure, unit in fields:
-                    if _number(row.get(source_field)) is None:
-                        continue
-                    scalars.append(
-                        _daily_scalar(
-                            "CN_INDEX_VALUATION",
-                            "index_dailybasic",
-                            source_field,
-                            row,
-                            date_field="trade_date",
-                            dimensions={"index": source_code, "measure": measure},
-                            unit=unit,
-                        )
-                    )
+            scalars.extend(_valuation_scalars(source_code, rows))
         return tuple(scalars)
 
     def market_breadth_inputs(
@@ -2229,3 +2230,53 @@ def parse_market_index_acquisition(
     rows = _response_rows(document, required_fields=fields)
     _validate_response_periods(rows, receipt.parameters)
     return _market_index_scalars(metric_id, rows)
+
+
+def _valuation_scalars(source_code: str, rows: ContextRows) -> tuple[ContextScalar, ...]:
+    seen_dates = set()
+    scalars = []
+    for row in rows:
+        if str(row.get("ts_code")) != source_code:
+            raise ValueError("tushare_index_valuation_identity_mismatch")
+        trading_day = _compact_date(row.get("trade_date"))
+        if trading_day in seen_dates:
+            raise ValueError("registered_valuation_duplicate_day")
+        seen_dates.add(trading_day)
+        for source_field, measure, unit in VALUATION_FIELDS:
+            if _number(row.get(source_field)) is None:
+                continue
+            scalars.append(
+                _daily_scalar(
+                    "CN_INDEX_VALUATION",
+                    "index_dailybasic",
+                    source_field,
+                    row,
+                    date_field="trade_date",
+                    dimensions={"index": source_code, "measure": measure},
+                    unit=unit,
+                )
+            )
+    return tuple(scalars)
+
+
+def parse_valuation_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Rebuild static PE, PB and turnover from the identified index delivery."""
+    fields = ("ts_code", "trade_date", *(field for field, _measure, _unit in VALUATION_FIELDS))
+    source_code = receipt.parameters.get("ts_code")
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "index_dailybasic"
+        or source_code not in VALUATION_INDEX_CODES
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
+    ):
+        raise ValueError("registered_valuation_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _valuation_scalars(receipt.parameters["ts_code"], rows)
