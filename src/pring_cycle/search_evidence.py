@@ -29,6 +29,7 @@ from pring_cycle.source_adapters import (
     selected_core_claim_is_valid,
 )
 from pring_cycle.storage import database_connection
+from pring_cycle.tushare_context import margin_claims_matching_acquisitions
 from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
@@ -115,6 +116,14 @@ class ModelInputSelector:
                 if point.selected_claim_id is not None
             ),
         )
+        valid_margin_claim_ids = margin_claims_matching_acquisitions(
+            self.core_evidence,
+            self.series("CN_MARGIN_BALANCE")
+            if "CN_MARGIN_BALANCE" in scope.metric_ids
+            and self.version not in BUILTIN_CATALOG_VERSIONS
+            else (),
+            definition_version=self.version,
+        )
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -200,6 +209,11 @@ class ModelInputSelector:
                         and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
                         and definition.certification_status == "certified"
+                        and (
+                            metric_id != "CN_MARGIN_BALANCE"
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_margin_claim_ids
+                        )
                         and (
                             metric_id not in CORE_API_IDENTITIES
                             or selected_core_claim_is_valid(metric_id, point)

@@ -1316,6 +1316,16 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
             unit=claim.unit,
             period_start=claim.period_start,
             period_end=claim.period_end,
+            database_path=database_path,
+            value=claim.value,
+            acquisition_ids=tuple(
+                dict.fromkeys(
+                    (
+                        *claim.acquisition_ids,
+                        *((claim.acquisition_id,) if claim.acquisition_id else ()),
+                    )
+                )
+            ),
         )
     if claim.certification_status not in {
         "certified",

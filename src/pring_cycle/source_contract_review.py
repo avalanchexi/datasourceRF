@@ -112,6 +112,9 @@ def require_registered_source_contract(
     unit: str,
     period_start: str,
     period_end: str,
+    database_path: Path,
+    value: float | None,
+    acquisition_ids: tuple[str, ...],
 ) -> None:
     """New catalog identity alone does not certify an existing parser's output."""
     if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
@@ -216,12 +219,13 @@ def require_registered_source_contract(
         "CN_DR007": ("interbank", "tushare"),
         "CN_SHIBOR_ON_1W_3M": ("interbank", "tushare"),
         "CN_FUTURES_WARRANTS": ("warrant", "tushare"),
+        "CN_MARGIN_BALANCE": ("margin", "tushare"),
     }
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
     supported = metric_definition(definition.metric_id)
-    if family in {"interbank", "rrr", "warrant"}:
+    if family in {"interbank", "rrr", "warrant", "margin"}:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
@@ -239,6 +243,44 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
+    if family == "margin":
+        measure = dimensions.get("measure")
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or dimensions != {"measure": measure, "scope": "all_exchanges"}
+            or measure not in {"financing_balance", "financing_buy_amount"}
+            or unit != "hundred_million_cny"
+            or source_reference != f"tushare:margin:{measure}:{period_end}"
+        ):
+            raise ValueError("registered_margin_source_identity_mismatch")
+        start = date.fromisoformat(period_start)
+        end = date.fromisoformat(period_end)
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_margin_source_period_mismatch")
+        from pring_cycle.acquisition import AcquisitionRepository
+        from pring_cycle.tushare_context import parse_margin_acquisition
+
+        if not acquisition_ids:
+            raise ValueError("registered_margin_acquisition_missing")
+        acquisitions = AcquisitionRepository(
+            database_path, database_path.parent / "artifacts" / "sha256"
+        )
+        for identity in acquisition_ids:
+            receipt = acquisitions.get(identity)
+            if receipt.state != "validated":
+                raise ValueError("registered_margin_acquisition_not_validated")
+            scalars = parse_margin_acquisition(receipt, acquisitions.read_content(identity, "raw"))
+            if not any(
+                scalar.period_start == period_start
+                and scalar.period_end == period_end
+                and scalar.dimensions == dimensions
+                and scalar.unit == unit
+                and scalar.value == value
+                for scalar in scalars
+            ):
+                raise ValueError("registered_margin_acquisition_value_mismatch")
+        return
     if family == "warrant":
         if (
             provider != supported_provider

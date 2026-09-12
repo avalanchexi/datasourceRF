@@ -18,6 +18,7 @@ from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
+    MetricSeriesPoint,
     SourceClaimInput,
     StoredSourceClaim,
 )
@@ -167,6 +168,33 @@ class TushareContextAdapter:
             scalars = retrieve()
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
+            if definition_version not in BUILTIN_CATALOG_VERSIONS and any(
+                scalar.metric_id == "CN_MARGIN_BALANCE" for scalar in scalars
+            ):
+                margin_inputs = tuple(
+                    scalar
+                    for receipt in self._receipts
+                    if receipt.api_name == "margin"
+                    for scalar in parse_margin_acquisition(
+                        receipt,
+                        self._acquisitions.read_content(receipt.acquisition_id, "raw"),
+                    )
+                )
+                margin_outputs = tuple(
+                    replace(
+                        scalar,
+                        release_at=None,
+                        public_available_at=None,
+                        definition_version=None,
+                        acquisition_ids=(),
+                    )
+                    for scalar in scalars
+                    if scalar.metric_id == "CN_MARGIN_BALANCE"
+                )
+                if sorted(_canonical_json(asdict(s)) for s in margin_inputs) != sorted(
+                    _canonical_json(asdict(s)) for s in margin_outputs
+                ):
+                    raise ValueError("registered_margin_acquisition_values_mismatch")
             warrant_inputs = self._warrant_receipt_inputs()
             linked = []
             for scalar in scalars:
@@ -2022,3 +2050,120 @@ def _required_text(value: object, error_code: str) -> str:
 
 def _canonical_json(value: object) -> str:
     return json.dumps(value, default=str, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
+def parse_margin_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+) -> tuple[ContextScalar, ...]:
+    """Rebuild the two totals only from complete, unique three-exchange deliveries."""
+    fields = ("trade_date", "exchange_id", "rzye", "rzmre")
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "margin"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_date", "end_date"}
+    ):
+        raise ValueError("registered_margin_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    days = tuple(sorted({_compact_date(row["trade_date"]) for row in rows}))
+    adapter = TushareContextAdapter("receipt-reparse", transport=lambda _: raw)
+    try:
+        scalars = adapter.margin_financing_candidate(trading_days=days)
+    except ValueError as error:
+        if str(error) == "tushare_margin_exchange_coverage_incomplete":
+            raise ValueError("registered_margin_exchange_coverage_incomplete") from error
+        raise
+    return tuple(
+        replace(
+            scalar,
+            dimensions={"measure": scalar.dimensions["measure"], "scope": "all_exchanges"},
+            definition_version=None,
+        )
+        for scalar in scalars
+    )
+
+
+def margin_claims_matching_acquisitions(
+    repository: EvidenceRepository,
+    points: tuple[MetricSeriesPoint, ...],
+    *,
+    definition_version: str,
+) -> set[str]:
+    """Keep exact selected totals bound to complete raw and normalized deliveries."""
+    selected = {p.selected_claim_id: p for p in points if p.selected_claim_id is not None}
+    parsed: dict[str, list[dict[str, Any]] | None] = {}
+    valid = set()
+    for claim_id, inputs in repository.source_claim_acquisitions_many(tuple(selected)).items():
+        if not inputs:
+            continue
+        point = selected[claim_id]
+        claim = next(c for c in point.claims if c.claim_id == claim_id)
+        identities = {item.receipt.acquisition_id for item in inputs}
+        try:
+            for item in inputs:
+                identity = item.receipt.acquisition_id
+                if identity not in parsed:
+                    parsed[identity] = None
+                    scalars = parse_margin_acquisition(item.receipt, item.raw)
+                    normalized = json.loads(item.normalized)
+                    if not isinstance(normalized, list):
+                        raise ValueError("registered_margin_normalized_mismatch")
+                    economic = []
+                    for entry in normalized:
+                        if (
+                            not isinstance(entry, dict)
+                            or entry.get("definition_version") not in (None, definition_version)
+                            or not isinstance(entry.get("acquisition_ids"), list)
+                            or identity not in entry["acquisition_ids"]
+                        ):
+                            raise ValueError("registered_margin_normalized_mismatch")
+                        economic.append(
+                            _canonical_json(
+                                {
+                                    **entry,
+                                    "release_at": None,
+                                    "public_available_at": None,
+                                    "acquisition_ids": [],
+                                    "definition_version": None,
+                                }
+                            )
+                        )
+                    if sorted(economic) != sorted(_canonical_json(asdict(s)) for s in scalars):
+                        raise ValueError("registered_margin_normalized_mismatch")
+                    parsed[identity] = normalized
+                normalized = parsed[identity]
+                if normalized is None:
+                    raise ValueError("registered_margin_normalized_mismatch")
+                matches = [
+                    entry
+                    for entry in normalized
+                    if (
+                        entry["period_start"] == point.period_start
+                        and entry["period_end"] == point.period_end
+                        and entry["dimensions"] == point.dimensions
+                        and entry["value"] == claim.value
+                        and entry["unit"] == claim.unit
+                        and set(entry["acquisition_ids"]) == identities
+                        and claim.source_reference
+                        == f"tushare:margin:{entry['source_field']}:{point.period_end}"
+                        and all(
+                            (
+                                datetime.fromisoformat(entry[field])
+                                if entry[field] is not None
+                                else None
+                            )
+                            == getattr(claim, field)
+                            for field in ("release_at", "public_available_at")
+                        )
+                    )
+                ]
+                if len(matches) != 1 or claim.provider != "tushare":
+                    raise ValueError("registered_margin_claim_mismatch")
+        except (LookupError, TypeError, ValueError, OSError):
+            continue
+        valid.add(claim_id)
+    return valid

@@ -5,6 +5,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -5174,3 +5175,402 @@ def test_registered_catalog_eia_html_cli_failure_keeps_classified_attempt(
     assert attempt is not None and attempt.outcome == outcome
     assert attempt.safe_metadata["acquisition_ids"] == receipt.acquisition_id
     assert attempt.safe_metadata["error_type"] == receipt.error_type
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_margin_acquisition_keeps_three_exchange_totals_and_raw_evidence(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    admitted = json.loads(capsys.readouterr().out)
+    models = ModelRepository(paths.database)
+    manifest = models.manifest(admitted["model_version_id"])
+    assert len(manifest["metric_definitions"]) == 61
+    version = manifest["metric_catalog_version"]
+    raw = encode(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["trade_date", "exchange_id", "rzye", "rzmre"],
+                "items": [
+                    ["20260828", "SSE", 100_000_000, 10_000_000],
+                    ["20260828", "SZSE", 200_000_000, 20_000_000],
+                    ["20260828", "BSE", 300_000_000, 30_000_000],
+                ],
+            },
+        }
+    )
+    requests = []
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        requests.append(payload["api_name"])
+        assert payload["api_name"] == "margin"
+        assert payload["fields"] == "trade_date,exchange_id,rzye,rzmre"
+        assert payload["params"] == {"start_date": "20260828", "end_date": "20260828"}
+        return raw
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+    before = datetime.now(UTC)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: adapter.margin_financing(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)),
+        definition_version=version,
+    )
+    after = datetime.now(UTC)
+    assert requests == ["margin"]
+    assert result.observation_count == 2
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.state == "validated" and receipt.api_name == "margin"
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    evidence = EvidenceRepository(paths.database)
+    assert (
+        evidence.metric_series(
+            "CN_MARGIN_BALANCE", mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+        )
+        == ()
+    )
+    assert (
+        evidence.metric_series(
+            "CN_MARGIN_BALANCE", mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
+        )
+        == ()
+    )
+    points = evidence.metric_series(
+        "CN_MARGIN_BALANCE", mode=AsOfMode.SYSTEM, as_of=after, definition_version=version
+    )
+    assert {(p.dimensions["measure"], p.selected_value) for p in points} == {
+        ("financing_balance", 6.0),
+        ("financing_buy_amount", 0.6),
+    }
+    for point in points:
+        assert point.dimensions["scope"] == "all_exchanges"
+        (claim,) = point.claims
+        assert claim.unit == "hundred_million_cny"
+        assert claim.release_at is None and claim.public_available_at is None
+        assert claim.fetched_at == receipt.received_at
+        assert (
+            receipt.validated_at is not None and receipt.validated_at <= claim.available_at <= after
+        )
+        trace = evidence.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=after)
+        assert tuple(r.acquisition_id for r in trace.acquisitions) == (receipt.acquisition_id,)
+    assert (
+        next(
+            m for m in models.list_versions() if m.model_version_id == admitted["model_version_id"]
+        ).status
+        == "candidate"
+    )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "missing_exchange",
+        "duplicate_exchange",
+        "wrong_unit",
+        "wrong_value",
+        "wrong_scope",
+        "bad_response",
+        "missing_value",
+        "negative_value",
+        "wrong_period",
+        "wrong_exchange",
+    ],
+)
+def test_registered_margin_rejects_invalid_delivery_with_failed_receipt(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    rows: list[list[Any]] = [
+        ["20260828", "SSE", 100_000_000, 10_000_000],
+        ["20260828", "SZSE", 200_000_000, 20_000_000],
+        ["20260828", "BSE", 300_000_000, 30_000_000],
+    ]
+    if fault == "wrong_period":
+        for row in rows:
+            row[0] = "20260827"
+    elif fault == "wrong_exchange":
+        rows[-1][1] = "NYSE"
+    elif fault == "missing_exchange":
+        rows.pop()
+    elif fault == "duplicate_exchange":
+        rows.append(rows[-1].copy())
+    elif fault == "missing_value":
+        rows[-1][-1] = None
+    elif fault == "negative_value":
+        rows[-1][-1] = -30_000_000
+    raw = (
+        b"not JSON"
+        if fault == "bad_response"
+        else encode(
+            {
+                "code": 0,
+                "data": {"fields": ["trade_date", "exchange_id", "rzye", "rzmre"], "items": rows},
+            }
+        )
+    )
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        scalars = adapter.margin_financing(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+        if fault == "wrong_unit":
+            return tuple(replace(s, unit="cny") for s in scalars)
+        if fault == "wrong_value":
+            return (replace(scalars[0], value=60), *scalars[1:])
+        if fault == "wrong_scope":
+            return tuple(
+                replace(s, dimensions={**s.dimensions, "scope": "SSE+SZSE"}) for s in scalars
+            )
+        return scalars
+
+    with pytest.raises(ValueError):
+        adapter.acquire_scalars(paths, retrieve, definition_version=version)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.state == "failed"
+    assert receipt.error_type in {"ValueError", "JSONDecodeError"}
+    assert receipt.validated_at is None
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    assert (
+        EvidenceRepository(paths.database).metric_series(
+            "CN_MARGIN_BALANCE",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=version,
+        )
+        == ()
+    )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
+@pytest.mark.parametrize("damage", ["corrupt", "missing"])
+def test_registered_margin_selection_requires_readable_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], artifact_kind: str, damage: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    raw = encode(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["trade_date", "exchange_id", "rzye", "rzmre"],
+                "items": [
+                    ["20260828", "SSE", 100_000_000, 10_000_000],
+                    ["20260828", "SZSE", 200_000_000, 20_000_000],
+                    ["20260828", "BSE", 300_000_000, 30_000_000],
+                ],
+            },
+        }
+    )
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+    # Explicit synthetic publication assertion; not evidence of a real exchange release.
+    published = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=published, public_available_at=published)
+            for s in adapter.margin_financing(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        ),
+        definition_version=version,
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-margin-original-integrity",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:margin",
+        metric_ids=("CN_MARGIN_BALANCE",),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete
+    assert set(selection.selected_claim_ids) == set(result.claim_ids)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    digest = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert digest is not None
+    original = paths.artifacts / digest[:2] / digest
+    if damage == "missing":
+        original.unlink()
+    else:
+        original.write_bytes(b"damaged source delivery")
+    rejected = select_retrieval_input(paths, run)
+    assert not rejected.complete
+    assert rejected.selected_claim_ids == ()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_margin_public_replay_rejects_damaged_originals(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    receipts = {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_MARGIN_BALANCE")
+        # Only the existing public component replay is scoped here. Stored full
+        # candidate manifests retain their package bindings and all 61 definitions.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        raw = encode(
+            {
+                "code": 0,
+                "synthetic_side": side,
+                "data": {
+                    "fields": ["trade_date", "exchange_id", "rzye", "rzmre"],
+                    "items": [
+                        ["20260828", "SSE", 100_000_000, 10_000_000],
+                        ["20260828", "SZSE", 200_000_000, 20_000_000],
+                        ["20260828", "BSE", 300_000_000, 30_000_000],
+                    ],
+                },
+            }
+        )
+
+        def transport(payload: dict[str, Any], body: bytes = raw) -> bytes:
+            return body
+
+        adapter = TushareContextAdapter("synthetic-token", transport=transport)
+        published = datetime(2026, 8, 28, 8, tzinfo=UTC)
+
+        def retrieve(
+            source: TushareContextAdapter = adapter, public_at: datetime = published
+        ) -> tuple[ContextScalar, ...]:
+            return tuple(
+                replace(s, release_at=public_at, public_available_at=public_at)
+                for s in source.margin_financing(
+                    start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+                )
+            )
+
+        result = adapter.acquire_scalars(
+            paths, retrieve, definition_version=manifest["metric_catalog_version"]
+        )
+        (linked,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+            (result.claim_ids[0],)
+        )[result.claim_ids[0]]
+        receipts[side] = linked.receipt
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+    digest = receipts["candidate"].raw_hash
+    assert digest is not None and digest != receipts["comparison"].raw_hash
+    (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate margin source")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert "candidate_context_selection_invalid:CN_MARGIN_BALANCE" in after.gaps
+    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("publication", ["known", "unknown", "future"])
+def test_registered_margin_candidate_selection_respects_publication_cutoff(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], publication: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    raw = encode(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["trade_date", "exchange_id", "rzye", "rzmre"],
+                "items": [
+                    ["20260828", "SSE", 100_000_000, 10_000_000],
+                    ["20260828", "SZSE", 200_000_000, 20_000_000],
+                    ["20260828", "BSE", 300_000_000, 30_000_000],
+                ],
+            },
+        }
+    )
+    # These are synthetic time assertions to exercise the two existing query modes.
+    published = (
+        None
+        if publication == "unknown"
+        else datetime(2026, 8, 31 if publication == "future" else 28, 8, tzinfo=UTC)
+    )
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+    result = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=published, public_available_at=published)
+            for s in adapter.margin_financing(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        ),
+        definition_version=version,
+    )
+    repository = EvidenceRepository(paths.database)
+    assert (
+        repository.metric_series(
+            "CN_MARGIN_BALANCE",
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 7, tzinfo=UTC),
+            definition_version=version,
+        )
+        == ()
+    )
+    visible = repository.metric_series(
+        "CN_MARGIN_BALANCE",
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        definition_version=version,
+    )
+    assert len(visible) == (2 if publication == "known" else 0)
+    assert (
+        len(
+            repository.metric_series(
+                "CN_MARGIN_BALANCE",
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=version,
+            )
+        )
+        == 2
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-margin-publication",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:margin-publication",
+        metric_ids=("CN_MARGIN_BALANCE",),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run)
+    assert selection.complete is (publication == "known")
+    assert set(selection.selected_claim_ids) == (
+        set(result.claim_ids) if publication == "known" else set()
+    )

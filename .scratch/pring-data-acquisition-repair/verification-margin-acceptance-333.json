@@ -1,0 +1,199 @@
+{
+  "status": "m2_margin_software_limited_scope_passed",
+  "recorded_at": "2026-09-12T17:09:23.961612+00:00",
+  "base_commit": "926434ee142bd064b1ae08c4153d3ed440cdee1a",
+  "related_suite": {
+    "passed": 87,
+    "failed": 0,
+    "seconds": 181.18,
+    "exit_code": 0,
+    "terminal": "verification-margin-related-327.json"
+  },
+  "new_public_scenarios": 19,
+  "typecheck_files": 92,
+  "ruff": "passed",
+  "standards_findings_remaining": 0,
+  "spec_findings_remaining": 0,
+  "frozen_inputs_verified": 320,
+  "protected_files_verified": 4,
+  "installed_worktree_sources_verified_by_runner": 91,
+  "dependencies_verified": 53,
+  "standalone_commit": {
+    "patch": "margin-index-preview-329.patch",
+    "sha256": "ee23c55363a7c565cdeb9650fd6627509b560872f9ff52c017263eecc97255e9",
+    "changed_files": {
+      "src/pring_cycle/evidence.py": "ea4e18a38828aeaf0f7625bb69987968e0ccfda074899b0283cb33d201dc3492",
+      "src/pring_cycle/source_contract_review.py": "2f640261479765e4d0b1ef1a4a973afd72ecd156446b1f6b28772f909db2d501",
+      "src/pring_cycle/tushare_context.py": "1a94425bab727c97504e3af195ba8e2809e4325eebcc9158b630bc5e740108cc",
+      "src/pring_cycle/search_evidence.py": "fad5afd09fc9492a692ce142918fee25d94c43f82c53803fd115d884202ded3d",
+      "src/pring_cycle/model_evaluation.py": "34f9b5a7c895089d5bd1cd9aa935be798b8a3f101c81b6b577108c3ad6fefa88",
+      "tests/models/test_candidate_admission.py": "fb9e232b478f12b8cc8a97c73c3fa2336d7364c5ece5631593696c6740844993"
+    },
+    "tests": 19,
+    "prior_eia_tests": 7,
+    "typecheck_files": 91,
+    "installed": {
+      "environment": "/home/tywin/.cache/pring-cycle/verification/margin-commit-328/venv",
+      "installed_sources_matched": 90,
+      "dependencies": {
+        "plotly": "7.0.0",
+        "pathspec": "1.1.1",
+        "MarkupSafe": "3.0.3",
+        "nest-asyncio": "1.6.0",
+        "ruff": "0.16.5",
+        "typing-inspection": "0.4.4",
+        "pydantic_core": "2.46.4",
+        "annotated-types": "0.8.0",
+        "iniconfig": "2.3.0",
+        "Pygments": "2.21.0",
+        "charset-normalizer": "3.5.1",
+        "mypy": "1.20.2",
+        "blinker": "1.9.0",
+        "watchfiles": "1.2.0",
+        "certifi": "2026.7.22",
+        "PyYAML": "6.0.3",
+        "idna": "3.19",
+        "pydantic": "2.13.4",
+        "httptools": "0.8.0",
+        "click": "8.5.0",
+        "annotated-doc": "0.0.5",
+        "anyio": "4.14.2",
+        "Flask": "3.1.3",
+        "tzdata": "2026.3",
+        "Jinja2": "3.1.6",
+        "janus": "2.0.0",
+        "uvicorn": "0.52.4",
+        "h11": "0.16.0",
+        "python-dotenv": "1.2.3",
+        "importlib_metadata": "9.0.0",
+        "alembic": "1.19.1",
+        "urllib3": "2.7.0",
+        "requests": "2.34.2",
+        "mypy_extensions": "1.1.0",
+        "dash": "4.2.0",
+        "Werkzeug": "3.1.8",
+        "zipp": "4.1.0",
+        "SQLAlchemy": "2.0.52",
+        "starlette": "1.6.0",
+        "pluggy": "1.6.0",
+        "itsdangerous": "2.2.0",
+        "packaging": "26.3",
+        "typing_extensions": "4.16.0",
+        "pytest": "8.4.2",
+        "uvloop": "0.22.1",
+        "websockets": "17.1",
+        "narwhals": "2.25.0",
+        "fastapi": "0.141.1",
+        "greenlet": "3.5.5",
+        "librt": "0.15.0",
+        "setuptools": "84.0.0",
+        "retrying": "1.4.2",
+        "Mako": "1.4.1"
+      }
+    },
+    "records": {
+      "verification-margin-preview-329.json": "28e22e29201a261e76747b22c3ef352427c5afa142cdccd02ebfca5296b4b4e2",
+      "verification-margin-preview-332.json": "f467f1c8bf0472f2bcd37cacf1dfacb839eb7db450433a786512c812d88a2ca1"
+    }
+  },
+  "records": {
+    "verification-margin-boundaries-325.json": {
+      "sha256": "c4e7bf0562b72e8f4aea850d98f0591bca6526c9904790e7b2728344348a7252",
+      "exit_code": 0,
+      "log_sha256": "5b3a7c553900673dbadae4b33933828354b80332dc29c1857388b65d4e196406"
+    },
+    "verification-margin-consumer-green-321.json": {
+      "sha256": "398a5e07a125dc0eec454a76665459a0d652191a0330ae23f47a58430449688c",
+      "exit_code": 0,
+      "log_sha256": "7000d425d3858265156c3153372b1ada26d0cc85b74803ba5ef81117410b8665"
+    },
+    "verification-margin-consumer-red-320.json": {
+      "sha256": "09309c54ec9656b9f92397c9ab196803d31914605f5ab5afb3d77b8f7cf4a1ba",
+      "exit_code": 1,
+      "log_sha256": "6b7bee2dfb782bfdea08f393669c91b1ca7282add22b9f1211ddd4c1acc5772d"
+    },
+    "verification-margin-contract-green-316.json": {
+      "sha256": "00722894289d34b3a3348e269e22d800bbde53e8165ef3d0dec9c359e7035ef2",
+      "exit_code": 0,
+      "log_sha256": "35161239b5393a8e1f6a492d2f94f1df23b506403cb706bbed6f17bfe3c076ea"
+    },
+    "verification-margin-contract-red-315.json": {
+      "sha256": "a69355470bf53743c6d58264efd5103da9300193627112b61a86bbfb703724da",
+      "exit_code": 1,
+      "log_sha256": "4ed8bc092fbb02338c3354f83ebe76718315eb456c7e4d1782c0749383409fae"
+    },
+    "verification-margin-lint-326.json": {
+      "sha256": "37e673fc7b45238e0d972dc3c13c59b3b42774a6ebca0a63a8a619600813a49f",
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "verification-margin-lint-330.json": {
+      "sha256": "fcf915cc4140a1a9345639e5183c9cae7d88869c749687b0e6b307c96051cc62",
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "verification-margin-members-green-318.json": {
+      "sha256": "c8f00209e7b5afe5982fb7d9d3ce1d9930536fb7d27210f66d0f0e6199c85f3f",
+      "exit_code": 1,
+      "log_sha256": "e54d250c0e763bf25493b8560034892ba479dc274251256228060d87bf47c2fb"
+    },
+    "verification-margin-members-green-319.json": {
+      "sha256": "718ca8319ca1fda0ec812516d9ecc52ce520aca826d756625dc2965fa49ac3a3",
+      "exit_code": 0,
+      "log_sha256": "3bf96d87f9c66e0840ced2b875f4d0dbf94561b40d41f737d431588e79101720"
+    },
+    "verification-margin-missing-red-317.json": {
+      "sha256": "c5fa8dc8e93ed4505de8f322ed2808005b6e5a89497ef45c04ce222d5e530365",
+      "exit_code": 1,
+      "log_sha256": "3ebeddadc9e9205609fb3be11190d858de7e039075c6928f9c65942b3de0ebd6"
+    },
+    "verification-margin-related-327.json": {
+      "sha256": "deee578fa714b38e2d72a119df3c6196f348d82f7044ac9f242b4f75d39caffb",
+      "exit_code": 0,
+      "log_sha256": "03678160e1a57f760d129e32efbee851b8e1277905ddc7897451d3473342d1a4"
+    },
+    "verification-margin-replay-green-324.json": {
+      "sha256": "a50a29dcfd18a3d87c817cb2140bb8b7d1d1172659a41a66fbd25c4dedecea7d",
+      "exit_code": 0,
+      "log_sha256": "a4d3ff16e3d42cc5b6ca4bec0a55a4f8fb9a6c4d3a23daedbc76b2050f473be1"
+    },
+    "verification-margin-replay-red-323.json": {
+      "sha256": "3eac60c25ebde5d353eb13f6f3ebe5f43c6e14115bddc2dd50295275b6389d56",
+      "exit_code": 1,
+      "log_sha256": "1f5345b0790a7347e648ee20eb7cf33f6f40ba92b2c75ba26b581e4ce0694f48"
+    },
+    "verification-margin-typecheck-322.json": {
+      "sha256": "e800c0e6d6c1c24d14c532309ad03a0d9cf28f00c291203912f04f4cc5bd36da",
+      "exit_code": 0,
+      "log_sha256": "4ceb57b647f65ad9bc4a2ac12b1f1d95323ae55da4304fb3e5014cf75bf56502"
+    },
+    "verification-margin-typecheck-326.json": {
+      "sha256": "3ce9d65a6b73cdf29cad9e85b8c09fc642132c3388f0815edf1912cc11410cbc",
+      "exit_code": 1,
+      "log_sha256": "3553d2b25a35dec6e1de30c41694282b9c72e173dbc551f6294c5c29551c20db"
+    },
+    "verification-margin-typecheck-327.json": {
+      "sha256": "0271256c82acb44d4b42bc13499926f46021b20d8a73fe2dfebd9ce955d0a485",
+      "exit_code": 0,
+      "log_sha256": "4ceb57b647f65ad9bc4a2ac12b1f1d95323ae55da4304fb3e5014cf75bf56502"
+    }
+  },
+  "reviews": {
+    "verification-margin-standards-330.md": "bcf0cd55d3a5a4ef40d023e077653083b2d4eaea1fe1f413a9f0dde163792b76",
+    "verification-margin-spec-330.md": "908a048cb5aef5d1c177c8d17a4ca3e96a19a9a7c6e09c77afa1458d0aa27001"
+  },
+  "prior_candidate_test_content_preserved": true,
+  "verifier_sha256": "3d56598c79866643572931d905d2923e36284ceed675f21c73de87f91920c04b",
+  "project_default_suite_run": false,
+  "scope": "Only ticket05 two new software criteria; full ticket remains blocked by real BSE and historical publication evidence.",
+  "open": [
+    "Other M2 market contracts",
+    "M3 legal isolated full model",
+    "M4 Worker",
+    "M5 final default suite",
+    "M6 real certification/replay/product gates"
+  ],
+  "deferred": [
+    "23 SQLite diagnostics"
+  ]
+}
