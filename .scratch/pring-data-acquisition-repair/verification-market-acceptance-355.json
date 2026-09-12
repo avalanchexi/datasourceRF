@@ -1,0 +1,210 @@
+{
+  "status": "m2_six_indices_software_limited_scope_passed",
+  "recorded_at": "2026-09-12T17:32:28.548585+00:00",
+  "base_commit": "aa945dc522a1d8f0021d7119d812e2efb03e3469",
+  "related_suite": {
+    "passed": 119,
+    "failed": 0,
+    "seconds": 163.07,
+    "exit_code": 0,
+    "terminal": "verification-market-related-351.json"
+  },
+  "new_public_scenarios": 32,
+  "typecheck_files": 92,
+  "ruff": "passed",
+  "standards_findings_remaining": 0,
+  "spec_findings_remaining": 0,
+  "frozen_inputs_verified": 320,
+  "protected_files_verified": 4,
+  "installed_worktree_sources_verified_by_runner": 91,
+  "dependencies_verified": 53,
+  "standalone_commit": {
+    "patch": "market-index-preview-354.patch",
+    "sha256": "d7732d049403c6f24cce0c25a07c1519069fdb51131b8a8e229ca6eafb163e90",
+    "changed_files": {
+      "src/pring_cycle/metric_contracts.py": "6b49cf07d47295aecdce9594f7c06243b36656c706659c44aa7ebb94139bacfb",
+      "src/pring_cycle/source_contract_review.py": "f768d02110b9fb32fe39ca1ce3252a981bc7e34b2ff05242ed6c0e2a588d27ea",
+      "src/pring_cycle/tushare_context.py": "0134b3202ae55c91876a707eb6f31dc82e41e2cdd421d87f95cb6271d62a5065",
+      "src/pring_cycle/search_evidence.py": "6894a29b0b531f186f8e1f9b84c493a1e6b2909672ecda0bbb0b454d87874e08",
+      "src/pring_cycle/model_evaluation.py": "7ced2026d88875a52c075aa5976ae30a033b37de013297c25991fcb1b03aff45",
+      "tests/models/test_candidate_admission.py": "ba21d26bfe5f469544133bf263c43e5f9899eb5c94125774058bff4b6a46abf0"
+    },
+    "tests": 58,
+    "new_index_tests": 32,
+    "prior_margin_tests": 19,
+    "prior_eia_tests": 7,
+    "typecheck_files": 91,
+    "installed": {
+      "environment": "/home/tywin/.cache/pring-cycle/verification/market-commit-352/venv",
+      "installed_sources_matched": 90,
+      "dependencies": {
+        "plotly": "7.0.0",
+        "pathspec": "1.1.1",
+        "MarkupSafe": "3.0.3",
+        "nest-asyncio": "1.6.0",
+        "ruff": "0.16.5",
+        "typing-inspection": "0.4.4",
+        "pydantic_core": "2.46.4",
+        "annotated-types": "0.8.0",
+        "iniconfig": "2.3.0",
+        "Pygments": "2.21.0",
+        "charset-normalizer": "3.5.1",
+        "mypy": "1.20.2",
+        "blinker": "1.9.0",
+        "watchfiles": "1.2.0",
+        "certifi": "2026.7.22",
+        "PyYAML": "6.0.3",
+        "idna": "3.19",
+        "pydantic": "2.13.4",
+        "httptools": "0.8.0",
+        "click": "8.5.0",
+        "annotated-doc": "0.0.5",
+        "anyio": "4.14.2",
+        "Flask": "3.1.3",
+        "tzdata": "2026.3",
+        "Jinja2": "3.1.6",
+        "janus": "2.0.0",
+        "uvicorn": "0.52.4",
+        "h11": "0.16.0",
+        "python-dotenv": "1.2.3",
+        "importlib_metadata": "9.0.0",
+        "alembic": "1.19.1",
+        "urllib3": "2.7.0",
+        "requests": "2.34.2",
+        "mypy_extensions": "1.1.0",
+        "dash": "4.2.0",
+        "Werkzeug": "3.1.8",
+        "zipp": "4.1.0",
+        "SQLAlchemy": "2.0.52",
+        "starlette": "1.6.0",
+        "pluggy": "1.6.0",
+        "itsdangerous": "2.2.0",
+        "packaging": "26.3",
+        "typing_extensions": "4.16.0",
+        "pytest": "8.4.2",
+        "uvloop": "0.22.1",
+        "websockets": "17.1",
+        "narwhals": "2.25.0",
+        "fastapi": "0.141.1",
+        "greenlet": "3.5.5",
+        "librt": "0.15.0",
+        "setuptools": "84.0.0",
+        "retrying": "1.4.2",
+        "Mako": "1.4.1"
+      }
+    },
+    "records": {
+      "verification-market-preview-353.json": "57d1f2f3a5a84bcea69943c9a5ddfc74827f87e7628963b86369370f45cc4cb6"
+    }
+  },
+  "records": {
+    "verification-market-boundaries-347.json": {
+      "sha256": "816dc7178a6b89134439bd1d96c66efb455e3a7713262adcd40514b7a2d37661",
+      "exit_code": 0,
+      "log_sha256": "b9863d4ddaa973a8465c2b559121d69704d7d92e83ba5ee0cdfc5c0ac317da20"
+    },
+    "verification-market-consumer-green-343.json": {
+      "sha256": "f245a3a2feeb5329d567d7dc939212d1aa4aab63d3337f8bbd5cb7c569f08ec5",
+      "exit_code": 1,
+      "log_sha256": "0ae376a99bdd7ab899a930c674477580366018e218b5d881d94483a1916c954f"
+    },
+    "verification-market-consumer-green-344.json": {
+      "sha256": "2caaab4f12ab88a99d68c3b9a302acd20cf4fc9a9e05a594f17dd35d97904e19",
+      "exit_code": 0,
+      "log_sha256": "2cd5202ea819d3b62a1e74a753dd49a8c2a8f5ddcf074631f2111532eb380a3e"
+    },
+    "verification-market-consumer-red-341.json": {
+      "sha256": "945798bc7110ff31baf537f09632013a39e3fd43bfe5f907128847c282e73a72",
+      "exit_code": 1,
+      "log_sha256": "66615c8f1dbe9660901b11f6380f8769d31e57cc06b2cd7a24a3faaf6b5e2184"
+    },
+    "verification-market-consumer-red-342.json": {
+      "sha256": "9ee92b30bd3bb594f77749155a12172c65326881c494c1dda908a3d21ac6bbc7",
+      "exit_code": 1,
+      "log_sha256": "c2ab295d3ed5b550be4891339f3b3f7b46e08cb4d450d66dfd33d78181826dcc"
+    },
+    "verification-market-contract-green-336.json": {
+      "sha256": "76058f05dc401655d49aa8bff70976f50540adfd01c365dfb674a5594dc15788",
+      "exit_code": 0,
+      "log_sha256": "61ea2449edda8352eb1232e017da985775bda60a8bb9deecc1680212cb026f26"
+    },
+    "verification-market-contract-red-335.json": {
+      "sha256": "489b6c6700fdc52cb1eba81b964602f74a924f200d52ebac282c0ad153fa95db",
+      "exit_code": 1,
+      "log_sha256": "63bd4c1a65aad652729b31994d17d0fd2fe0a34e1b075b394b2d0d07aeb674d4"
+    },
+    "verification-market-delivery-green-340.json": {
+      "sha256": "4e6345ed8ed876490f0e1c3eec12a9e85fc9f56273159ac1d6c99a72ef9b941c",
+      "exit_code": 0,
+      "log_sha256": "3fac161555d2aa72ca3cc4394c81ced59d9f1eb5de3cad6178b35160885f382c"
+    },
+    "verification-market-delivery-red-339.json": {
+      "sha256": "93f848434cd1f72523f35c0b679fa0391325642aa1f5c5fdbe5bbf1003593626",
+      "exit_code": 1,
+      "log_sha256": "8dc1eebe4f90764a2d33292cadb2198fae0ce3e6237b5c5eeb4b47263c579ec4"
+    },
+    "verification-market-duplicate-green-338.json": {
+      "sha256": "40ec509ff69582c0a737451b7aa25b5e2ceb7a5176d7722cb72cc09423db745d",
+      "exit_code": 0,
+      "log_sha256": "2134e6e0f09898d767a45c18a65774474007d64482e855aa0c78978c170eef89"
+    },
+    "verification-market-duplicate-red-337.json": {
+      "sha256": "a6b311bf7e8c00a635bd28981cdc53e0431c98f919b014164375dcb95a009c4c",
+      "exit_code": 1,
+      "log_sha256": "72eef7f9d71d4fa48275e83e4a1e6a6de521c86162107a8dc981d21d9326663d"
+    },
+    "verification-market-lint-352.json": {
+      "sha256": "fd6134ff86b1ad0bcce6d0e1d543e80b988cc0f502d28c88659368cb37f01a15",
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "verification-market-related-351.json": {
+      "sha256": "149e7e55574a15f988ab364add1d3786ed23a7351cc1a4e26778b161855a7817",
+      "exit_code": 0,
+      "log_sha256": "c3779f8882756313145e6d924cbcee8fd3c5e5e19ca997b5bbfd5c549173595d"
+    },
+    "verification-market-replay-green-346.json": {
+      "sha256": "449dc3cf6170e03830b64b4b3d79a56bf9236da0003135282d285b35bb1dc596",
+      "exit_code": 0,
+      "log_sha256": "c2523e08422b9e8657c003427ea43b8a13568b11aac2ef7e97ebe19c92fbeb5a"
+    },
+    "verification-market-replay-red-345.json": {
+      "sha256": "3e99a28c78d9075188b9843384b251f6ba3fbce4fbe3bb17901dae4898bfdda2",
+      "exit_code": 1,
+      "log_sha256": "a74eac37d805495591466df3fc0beedcd85f5055beb073f3d177454c7f7030f6"
+    },
+    "verification-market-typecheck-340.json": {
+      "sha256": "634c9581494005dfe8393c3f8d6b4ec4d19df955f5e633018b890a67b89732e6",
+      "exit_code": 0,
+      "log_sha256": "4ceb57b647f65ad9bc4a2ac12b1f1d95323ae55da4304fb3e5014cf75bf56502"
+    },
+    "verification-market-typecheck-348.json": {
+      "sha256": "e6cf4a98779e81754804f38c1c900b471591b20b73a71c7fedf9e869f36bf3d7",
+      "exit_code": 0,
+      "log_sha256": "4ceb57b647f65ad9bc4a2ac12b1f1d95323ae55da4304fb3e5014cf75bf56502"
+    },
+    "verification-market-typecheck-350.json": {
+      "sha256": "2cb918912eeedf8c754f5d65e83460dade180af48ae2c7202404e467b5efe9be",
+      "exit_code": 0,
+      "log_sha256": "4ceb57b647f65ad9bc4a2ac12b1f1d95323ae55da4304fb3e5014cf75bf56502"
+    }
+  },
+  "reviews": {
+    "verification-market-standards-354.md": "d86469aaa00dd308c353cf9bd9d21c91d2a426ff2c51fc134e549b2c20d3c46f",
+    "verification-market-spec-354.md": "ec35b361fe8d23a1c08a0282be0c48e432df17b4d01a620412f22a9d0813882b"
+  },
+  "prior_candidate_test_content_preserved": true,
+  "verifier_sha256": "fe697ed61e5901e398ec39d31a9add5da3228863c50b8cc6485b445fcde81e99",
+  "project_default_suite_run": false,
+  "scope": "Only ticket06 two new software criteria; full ticket remains blocked by real CNY030 publisher values and historical publication evidence.",
+  "open": [
+    "Other M2 market contracts",
+    "M3 legal isolated full model",
+    "M4 Worker",
+    "M5 final default suite",
+    "M6 real certification/replay/product gates"
+  ],
+  "deferred": [
+    "23 SQLite diagnostics"
+  ]
+}

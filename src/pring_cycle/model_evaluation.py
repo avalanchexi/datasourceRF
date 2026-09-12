@@ -49,7 +49,11 @@ from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.source_adapters import CoreInputValidator
-from pring_cycle.tushare_context import margin_claims_matching_acquisitions
+from pring_cycle.tushare_context import (
+    MARKET_INDEX_IDENTITIES,
+    parse_market_index_acquisition,
+    tushare_claims_matching_acquisitions,
+)
 from pring_cycle.warrant_inputs import select_warrant_inputs
 
 CALIBRATION_END = "2026-08-19"
@@ -1183,10 +1187,19 @@ def _context_selection_gaps(
         if any(point.selected_claim_id not in valid_lpr_claims for point in validation_points):
             statuses.add("invalid")
     if metric_id == "CN_MARGIN_BALANCE" and definition_version not in BUILTIN_CATALOG_VERSIONS:
-        valid_margin_claims = margin_claims_matching_acquisitions(
+        valid_margin_claims = tushare_claims_matching_acquisitions(
             repository, tuple(validation_points), definition_version=definition_version
         )
         if any(point.selected_claim_id not in valid_margin_claims for point in validation_points):
+            statuses.add("invalid")
+    if metric_id in MARKET_INDEX_IDENTITIES and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        valid_market_claims = tushare_claims_matching_acquisitions(
+            repository,
+            tuple(validation_points),
+            definition_version=definition_version,
+            parse=parse_market_index_acquisition,
+        )
+        if any(point.selected_claim_id not in valid_market_claims for point in validation_points):
             statuses.add("invalid")
     freshness_days = (
         730

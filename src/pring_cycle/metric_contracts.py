@@ -232,6 +232,11 @@ def required_dimension_members(
             measures += ("cumulative_average_yoy",)
         return tuple({"category": categories[metric_id], "measure": value} for value in measures)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+
+        if metric_id in MARKET_INDEX_IDENTITIES:
+            return ({"source_code": MARKET_INDEX_IDENTITIES[metric_id][1]},)
+
         members = official_source_members(metric_id, period)
         if members is not None:
             return tuple(

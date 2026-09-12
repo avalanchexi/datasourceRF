@@ -29,7 +29,11 @@ from pring_cycle.source_adapters import (
     selected_core_claim_is_valid,
 )
 from pring_cycle.storage import database_connection
-from pring_cycle.tushare_context import margin_claims_matching_acquisitions
+from pring_cycle.tushare_context import (
+    MARKET_INDEX_IDENTITIES,
+    parse_market_index_acquisition,
+    tushare_claims_matching_acquisitions,
+)
 from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
@@ -116,13 +120,25 @@ class ModelInputSelector:
                 if point.selected_claim_id is not None
             ),
         )
-        valid_margin_claim_ids = margin_claims_matching_acquisitions(
+        valid_margin_claim_ids = tushare_claims_matching_acquisitions(
             self.core_evidence,
             self.series("CN_MARGIN_BALANCE")
             if "CN_MARGIN_BALANCE" in scope.metric_ids
             and self.version not in BUILTIN_CATALOG_VERSIONS
             else (),
             definition_version=self.version,
+        )
+        valid_market_claim_ids = tushare_claims_matching_acquisitions(
+            self.core_evidence,
+            tuple(
+                point
+                for metric_id in scope.metric_ids
+                if metric_id in MARKET_INDEX_IDENTITIES
+                and self.version not in BUILTIN_CATALOG_VERSIONS
+                for point in self.series(metric_id)
+            ),
+            definition_version=self.version,
+            parse=parse_market_index_acquisition,
         )
         selected_ids: list[str] = []
         missing = []
@@ -209,6 +225,11 @@ class ModelInputSelector:
                         and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
                         and definition.certification_status == "certified"
+                        and (
+                            metric_id not in MARKET_INDEX_IDENTITIES
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_market_claim_ids
+                        )
                         and (
                             metric_id != "CN_MARGIN_BALANCE"
                             or self.version in BUILTIN_CATALOG_VERSIONS

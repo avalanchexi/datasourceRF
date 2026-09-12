@@ -168,33 +168,43 @@ class TushareContextAdapter:
             scalars = retrieve()
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
-            if definition_version not in BUILTIN_CATALOG_VERSIONS and any(
-                scalar.metric_id == "CN_MARGIN_BALANCE" for scalar in scalars
-            ):
-                margin_inputs = tuple(
-                    scalar
-                    for receipt in self._receipts
-                    if receipt.api_name == "margin"
-                    for scalar in parse_margin_acquisition(
-                        receipt,
-                        self._acquisitions.read_content(receipt.acquisition_id, "raw"),
-                    )
+            if definition_version not in BUILTIN_CATALOG_VERSIONS:
+                family_contracts = (
+                    ("margin", {"CN_MARGIN_BALANCE"}, {"margin"}, parse_margin_acquisition),
+                    (
+                        "market_index",
+                        set(MARKET_INDEX_IDENTITIES),
+                        {"index_daily", "fut_index_daily"},
+                        parse_market_index_acquisition,
+                    ),
                 )
-                margin_outputs = tuple(
-                    replace(
-                        scalar,
-                        release_at=None,
-                        public_available_at=None,
-                        definition_version=None,
-                        acquisition_ids=(),
+                for family, metric_ids, api_names, parse_scalars in family_contracts:
+                    outputs = tuple(
+                        replace(
+                            scalar,
+                            release_at=None,
+                            public_available_at=None,
+                            definition_version=None,
+                            acquisition_ids=(),
+                        )
+                        for scalar in scalars
+                        if scalar.metric_id in metric_ids
                     )
-                    for scalar in scalars
-                    if scalar.metric_id == "CN_MARGIN_BALANCE"
-                )
-                if sorted(_canonical_json(asdict(s)) for s in margin_inputs) != sorted(
-                    _canonical_json(asdict(s)) for s in margin_outputs
-                ):
-                    raise ValueError("registered_margin_acquisition_values_mismatch")
+                    if not outputs:
+                        continue
+                    parsed_inputs = tuple(
+                        scalar
+                        for receipt in self._receipts
+                        if receipt.api_name in api_names
+                        for scalar in parse_scalars(
+                            receipt,
+                            self._acquisitions.read_content(receipt.acquisition_id, "raw"),
+                        )
+                    )
+                    if sorted(_canonical_json(asdict(s)) for s in parsed_inputs) != sorted(
+                        _canonical_json(asdict(s)) for s in outputs
+                    ):
+                        raise ValueError(f"registered_{family}_acquisition_values_mismatch")
             warrant_inputs = self._warrant_receipt_inputs()
             linked = []
             for scalar in scalars:
@@ -202,6 +212,17 @@ class TushareContextAdapter:
                 # A derived family uses its complete captured input batch,
                 # including calendar and hidden warmup requests.
                 inputs = matching or self._receipts
+                if (
+                    definition_version not in BUILTIN_CATALOG_VERSIONS
+                    and scalar.metric_id in MARKET_INDEX_IDENTITIES
+                ):
+                    inputs = [
+                        receipt
+                        for receipt in matching
+                        if receipt.parameters.get("ts_code") == scalar.dimensions.get("source_code")
+                    ]
+                    if not inputs:
+                        raise ValueError("registered_market_index_acquisition_missing")
                 if scalar.metric_id == "CN_FUTURES_WARRANTS" and scalar.api_name == "fut_wsr":
                     inputs = warrant_inputs.get(_warrant_input_identity(scalar), [])
                     if not inputs:
@@ -697,20 +718,7 @@ class TushareContextAdapter:
                 },
                 ("ts_code", "trade_date", "close"),
             )
-            for row in rows:
-                if str(row.get("ts_code")) != source_code:
-                    raise ValueError("tushare_market_index_identity_mismatch")
-                scalars.append(
-                    _daily_scalar(
-                        metric_id,
-                        api_name,
-                        "close",
-                        row,
-                        date_field="trade_date",
-                        dimensions={"source_code": source_code},
-                        unit="index_points",
-                    )
-                )
+            scalars.extend(_market_index_scalars(metric_id, rows))
         return tuple(scalars)
 
     def margin_financing(
@@ -2087,13 +2095,16 @@ def parse_margin_acquisition(
     )
 
 
-def margin_claims_matching_acquisitions(
+def tushare_claims_matching_acquisitions(
     repository: EvidenceRepository,
     points: tuple[MetricSeriesPoint, ...],
     *,
     definition_version: str,
+    parse: Callable[
+        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...]
+    ] = parse_margin_acquisition,
 ) -> set[str]:
-    """Keep exact selected totals bound to complete raw and normalized deliveries."""
+    """Keep selected TuShare scalars bound to complete raw and normalized deliveries."""
     selected = {p.selected_claim_id: p for p in points if p.selected_claim_id is not None}
     parsed: dict[str, list[dict[str, Any]] | None] = {}
     valid = set()
@@ -2108,10 +2119,10 @@ def margin_claims_matching_acquisitions(
                 identity = item.receipt.acquisition_id
                 if identity not in parsed:
                     parsed[identity] = None
-                    scalars = parse_margin_acquisition(item.receipt, item.raw)
+                    scalars = parse(item.receipt, item.raw)
                     normalized = json.loads(item.normalized)
                     if not isinstance(normalized, list):
-                        raise ValueError("registered_margin_normalized_mismatch")
+                        raise ValueError("registered_tushare_normalized_mismatch")
                     economic = []
                     for entry in normalized:
                         if (
@@ -2120,7 +2131,7 @@ def margin_claims_matching_acquisitions(
                             or not isinstance(entry.get("acquisition_ids"), list)
                             or identity not in entry["acquisition_ids"]
                         ):
-                            raise ValueError("registered_margin_normalized_mismatch")
+                            raise ValueError("registered_tushare_normalized_mismatch")
                         economic.append(
                             _canonical_json(
                                 {
@@ -2133,11 +2144,11 @@ def margin_claims_matching_acquisitions(
                             )
                         )
                     if sorted(economic) != sorted(_canonical_json(asdict(s)) for s in scalars):
-                        raise ValueError("registered_margin_normalized_mismatch")
+                        raise ValueError("registered_tushare_normalized_mismatch")
                     parsed[identity] = normalized
                 normalized = parsed[identity]
                 if normalized is None:
-                    raise ValueError("registered_margin_normalized_mismatch")
+                    raise ValueError("registered_tushare_normalized_mismatch")
                 matches = [
                     entry
                     for entry in normalized
@@ -2149,7 +2160,7 @@ def margin_claims_matching_acquisitions(
                         and entry["unit"] == claim.unit
                         and set(entry["acquisition_ids"]) == identities
                         and claim.source_reference
-                        == f"tushare:margin:{entry['source_field']}:{point.period_end}"
+                        == f"tushare:{entry['api_name']}:{entry['source_field']}:{point.period_end}"
                         and all(
                             (
                                 datetime.fromisoformat(entry[field])
@@ -2162,8 +2173,59 @@ def margin_claims_matching_acquisitions(
                     )
                 ]
                 if len(matches) != 1 or claim.provider != "tushare":
-                    raise ValueError("registered_margin_claim_mismatch")
+                    raise ValueError("registered_tushare_claim_mismatch")
         except (LookupError, TypeError, ValueError, OSError):
             continue
         valid.add(claim_id)
     return valid
+
+
+def _market_index_scalars(metric_id: str, rows: ContextRows) -> tuple[ContextScalar, ...]:
+    api_name, source_code = MARKET_INDEX_IDENTITIES[metric_id]
+    seen_dates = set()
+    scalars = []
+    for row in rows:
+        if str(row.get("ts_code")) != source_code:
+            raise ValueError("tushare_market_index_identity_mismatch")
+        trading_day = _compact_date(row.get("trade_date"))
+        if trading_day in seen_dates:
+            raise ValueError("tushare_market_index_duplicate_day")
+        seen_dates.add(trading_day)
+        scalars.append(
+            _daily_scalar(
+                metric_id,
+                api_name,
+                "close",
+                row,
+                date_field="trade_date",
+                dimensions={"source_code": source_code},
+                unit="index_points",
+            )
+        )
+    return tuple(scalars)
+
+
+def parse_market_index_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Read the exact index, day and closing points from its captured delivery."""
+    identity = (receipt.api_name, receipt.parameters.get("ts_code"))
+    metric_id = next(
+        (metric for metric, source in MARKET_INDEX_IDENTITIES.items() if source == identity),
+        None,
+    )
+    fields = ("ts_code", "trade_date", "close")
+    if (
+        metric_id is None
+        or receipt.provider != "tushare"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
+    ):
+        raise ValueError("registered_market_index_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _market_index_scalars(metric_id, rows)
