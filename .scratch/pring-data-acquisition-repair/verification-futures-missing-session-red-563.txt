@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_futures_inputs_report_missing_session_without_inventing_a_night_start __
+tests/adapters/test_futures_inputs.py:861: in test_futures_inputs_report_missing_session_without_inventing_a_night_start
+    assert result["missing"] == ["futures_session_missing:SC"]
+E   AssertionError: assert [] == ['futures_session_missing:SC']
+E     
+E     Right contains one more item: 'futures_session_missing:SC'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_report_missing_session_without_inventing_a_night_start
+1 failed, 22 deselected in 4.11s

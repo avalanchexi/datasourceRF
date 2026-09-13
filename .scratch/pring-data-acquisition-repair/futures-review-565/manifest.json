@@ -1,0 +1,23 @@
+{
+  "base_head": "5e186f740be3d275cba5664a13ef0290e6a57916",
+  "working_tree_review": true,
+  "commits": [],
+  "files": [
+    {
+      "source": "src/pring_cycle/futures_inputs.py",
+      "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-565/futures_inputs.py",
+      "sha256": "b29e0cbd3d7a1c7236049f93ff42f3f784a189f4950815fd3ea59e9d333f1356"
+    },
+    {
+      "source": "src/pring_cycle/tushare_context.py",
+      "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-565/tushare_context.py",
+      "sha256": "7b73ee29129bdeca8e2268e67ca09d945d3a147c3064f31ae18ee273ca675d0e"
+    },
+    {
+      "source": "tests/adapters/test_futures_inputs.py",
+      "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-565/test_futures_inputs.py",
+      "sha256": "c804b125d59cd6260414723af66f58f9eacbb84a23ea442e352acdf0e2912998"
+    }
+  ],
+  "diff_sha256": "941955caa5a66b3857e793b307d322496c1080b769521682726017001da3112b"
+}

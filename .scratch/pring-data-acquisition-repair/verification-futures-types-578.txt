@@ -1,0 +1,2 @@
+src/pring_cycle/futures_inputs.py:617: error: Incompatible types in assignment (expression has type "tuple[str, ...]", variable has type "tuple[Any, Any, Any]")  [assignment]
+Found 1 error in 1 file (checked 93 source files)

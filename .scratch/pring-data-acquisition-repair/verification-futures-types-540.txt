@@ -1,0 +1,4 @@
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/futures_inputs.py:169: error: Need type annotation for "contracts" (hint: "contracts: list[<type>] = ...")  [var-annotated]
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/futures_inputs.py:258: error: Value of type variable "SupportsRichComparisonT" of "max" cannot be "datetime | None"  [type-var]
+/home/tywin/.cache/pring-cycle/verification/eia-catalog-20260912-301/venv/lib/python3.12/site-packages/pring_cycle/futures_inputs.py:269: error: Item "None" of "datetime | None" has no attribute "isoformat"  [union-attr]
+Found 3 errors in 1 file (checked 96 source files)

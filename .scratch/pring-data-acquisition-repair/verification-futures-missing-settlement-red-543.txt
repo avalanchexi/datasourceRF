@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_________ test_futures_inputs_keep_missing_settlement_as_explicit_gap __________
+tests/adapters/test_futures_inputs.py:195: in test_futures_inputs_keep_missing_settlement_as_explicit_gap
+    assert result["missing"] == ["futures_settlement_missing:SC2609.INE"]
+E   AssertionError: assert [] == ['futures_set...g:SC2609.INE']
+E     
+E     Right contains one more item: 'futures_settlement_missing:SC2609.INE'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_keep_missing_settlement_as_explicit_gap
+1 failed, 2 deselected in 1.77s

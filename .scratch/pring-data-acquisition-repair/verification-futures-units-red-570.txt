@@ -1,0 +1,46 @@
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[quote_unit-None] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[quote_unit-] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[quote_unit-\u7f8e\u5143/\u6876] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[trade_unit-None] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[per_unit-None] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[per_unit-0] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_missing_or_incompatible_contract_units[per_unit--1] _
+tests/adapters/test_futures_inputs.py:643: in test_futures_inputs_reject_missing_or_incompatible_contract_units
+    with pytest.raises(ValueError, match="futures_input_contract_unit_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[quote_unit-None]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[quote_unit-]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[quote_unit-\u7f8e\u5143/\u6876]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[trade_unit-None]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[per_unit-None]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[per_unit-0]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_missing_or_incompatible_contract_units[per_unit--1]
+7 failed, 31 deselected in 5.69s

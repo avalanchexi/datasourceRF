@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "scope": "ticket11_progress_only_not_acceptance",
+  "head": "5e186f740be3d275cba5664a13ef0290e6a57916",
+  "source_version": "futures-574",
+  "tests": "39 passed in 31.04s; tests/adapters/test_futures_inputs.py only",
+  "typecheck": "93 source files; src/pring_cycle",
+  "receipts": [
+    {
+      "path": "verification-futures-future-review-green-574.json",
+      "sha256": "fe15b9d78f10d1f5e31b328c26b8d9e65988c1f0586d482c86cdc8143fcc037a"
+    },
+    {
+      "path": "verification-futures-types-574.json",
+      "sha256": "94d5ba95c70ea372db1e7c6e05cd3fc2cd9c4328b592e0a47c2ae2e3d1dfb6b7"
+    },
+    {
+      "path": "verification-futures-lint-574.json",
+      "sha256": "58a207b8a2d025d0a4cbd48f6bdbf67691cd1d4826e00897c1c5a69dd9629c76"
+    },
+    {
+      "path": "verification-futures-format-574.json",
+      "sha256": "aa2710c7ea0b4a6d542e267544b231218617306ca3d26924deb1e1e4a0d822da"
+    }
+  ],
+  "frozen_files": 323,
+  "protected_files": 4,
+  "environment_equal": true,
+  "review_snapshot_565_unchanged": true,
+  "ticket_complete": false,
+  "unresolved": [
+    "same-PUBLIC cross-batch conflicts",
+    "missing or unknown calendar dates through contract expiry",
+    "evidence and session negative/control coverage",
+    "review-stage local validation duplication",
+    "two-axis final review, related and independent HEAD validation, commit",
+    "real source certification; later tickets and final default suite"
+  ]
+}

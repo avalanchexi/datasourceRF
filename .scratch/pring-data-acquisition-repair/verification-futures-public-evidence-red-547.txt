@@ -1,0 +1,9 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_futures_inputs_use_reviewed_publication_originals_at_exact_cutoff ____
+tests/adapters/test_futures_inputs.py:328: in test_futures_inputs_use_reviewed_publication_originals_at_exact_cutoff
+    adapter.acquire_futures_inputs(
+E   TypeError: TushareContextAdapter.acquire_futures_inputs() got an unexpected keyword argument 'evidence_hash'
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_use_reviewed_publication_originals_at_exact_cutoff
+1 failed, 7 deselected in 2.86s

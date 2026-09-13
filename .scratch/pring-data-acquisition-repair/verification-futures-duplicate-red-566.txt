@@ -1,0 +1,40 @@
+FFFFFF                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_reject_duplicate_identities_within_one_delivery[False-fut_basic] _
+tests/adapters/test_futures_inputs.py:915: in test_futures_inputs_reject_duplicate_identities_within_one_delivery
+    with pytest.raises(ValueError, match="futures_input_identity_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_duplicate_identities_within_one_delivery[False-fut_trade_cal] _
+tests/adapters/test_futures_inputs.py:915: in test_futures_inputs_reject_duplicate_identities_within_one_delivery
+    with pytest.raises(ValueError, match="futures_input_identity_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_duplicate_identities_within_one_delivery[False-fut_daily] _
+tests/adapters/test_futures_inputs.py:915: in test_futures_inputs_reject_duplicate_identities_within_one_delivery
+    with pytest.raises(ValueError, match="futures_input_identity_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_duplicate_identities_within_one_delivery[True-fut_basic] _
+tests/adapters/test_futures_inputs.py:915: in test_futures_inputs_reject_duplicate_identities_within_one_delivery
+    with pytest.raises(ValueError, match="futures_input_identity_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_duplicate_identities_within_one_delivery[True-fut_trade_cal] _
+tests/adapters/test_futures_inputs.py:915: in test_futures_inputs_reject_duplicate_identities_within_one_delivery
+    with pytest.raises(ValueError, match="futures_input_identity_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_ test_futures_inputs_reject_duplicate_identities_within_one_delivery[True-fut_daily] _
+tests/adapters/test_futures_inputs.py:915: in test_futures_inputs_reject_duplicate_identities_within_one_delivery
+    with pytest.raises(ValueError, match="futures_input_identity_duplicate"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_duplicate_identities_within_one_delivery[False-fut_basic]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_duplicate_identities_within_one_delivery[False-fut_trade_cal]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_duplicate_identities_within_one_delivery[False-fut_daily]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_duplicate_identities_within_one_delivery[True-fut_basic]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_duplicate_identities_within_one_delivery[True-fut_trade_cal]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_duplicate_identities_within_one_delivery[True-fut_daily]
+6 failed, 23 deselected in 7.78s

@@ -23,6 +23,7 @@ from pring_cycle.evidence import (
     SourceClaimInput,
     StoredSourceClaim,
 )
+from pring_cycle.futures_inputs import FuturesInputAcquisition
 from pring_cycle.http_transport import NoRedirect
 from pring_cycle.market_breadth import (
     DailyBreadthResult,
@@ -1380,6 +1381,26 @@ class TushareContextAdapter:
                     )
                 )
         return tuple(outputs)
+
+    def acquire_futures_inputs(
+        self,
+        paths: RuntimePaths,
+        *,
+        products: tuple[str, ...],
+        start_date: date,
+        end_date: date,
+        evidence_hash: str | None = None,
+    ) -> FuturesInputAcquisition:
+        from pring_cycle.futures_inputs import acquire_futures_inputs
+
+        return acquire_futures_inputs(
+            paths,
+            request=lambda payload: self._transport({**payload, "token": self._token}),
+            products=products,
+            start_date=start_date,
+            end_date=end_date,
+            evidence_hash=evidence_hash,
+        )
 
     def commodity_basket(
         self,

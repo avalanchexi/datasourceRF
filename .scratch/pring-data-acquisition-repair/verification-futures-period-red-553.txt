@@ -1,0 +1,16 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_futures_inputs_reject_settlement_outside_requested_period[20260827] ___
+tests/adapters/test_futures_inputs.py:451: in test_futures_inputs_reject_settlement_outside_requested_period
+    with pytest.raises(ValueError, match="futures_input_period_mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+___ test_futures_inputs_reject_settlement_outside_requested_period[20260831] ___
+tests/adapters/test_futures_inputs.py:451: in test_futures_inputs_reject_settlement_outside_requested_period
+    with pytest.raises(ValueError, match="futures_input_period_mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_settlement_outside_requested_period[20260827]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_settlement_outside_requested_period[20260831]
+2 failed, 10 deselected in 2.96s

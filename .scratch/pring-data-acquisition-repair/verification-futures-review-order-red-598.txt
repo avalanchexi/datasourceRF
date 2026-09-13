@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_do_not_promote_old_prices_when_their_public_times_are_reviewed_later _
+tests/adapters/test_futures_inputs.py:1861: in test_futures_inputs_do_not_promote_old_prices_when_their_public_times_are_reviewed_later
+    assert {r["contract_code"]: r["settle"] for r in current["settlements"]} == {
+E   AssertionError: assert {'SC2609.INE'...INE': '592.3'} == {'SC2609.INE'...INE': '592.3'}
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing items:
+E     {'SC2609.INE': '584.2'} != {'SC2609.INE': '600'}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_do_not_promote_old_prices_when_their_public_times_are_reviewed_later
+1 failed, 67 deselected in 7.09s

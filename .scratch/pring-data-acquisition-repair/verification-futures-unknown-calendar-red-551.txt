@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_futures_inputs_keep_unknown_calendar_day_distinct_from_closed_day ____
+tests/adapters/test_futures_inputs.py:424: in test_futures_inputs_keep_unknown_calendar_day_distinct_from_closed_day
+    assert result["missing"] == ["futures_calendar_unknown:INE"]
+E   AssertionError: assert [] == ['futures_cal..._unknown:INE']
+E     
+E     Right contains one more item: 'futures_calendar_unknown:INE'
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_keep_unknown_calendar_day_distinct_from_closed_day
+1 failed, 9 deselected in 2.97s

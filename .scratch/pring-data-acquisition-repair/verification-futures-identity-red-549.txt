@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_reject_month_metadata_that_disagrees_with_contract_code __
+tests/adapters/test_futures_inputs.py:385: in test_futures_inputs_reject_month_metadata_that_disagrees_with_contract_code
+    with pytest.raises(ValueError, match="futures_input_contract_identity_mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_month_metadata_that_disagrees_with_contract_code
+1 failed, 8 deselected in 5.37s

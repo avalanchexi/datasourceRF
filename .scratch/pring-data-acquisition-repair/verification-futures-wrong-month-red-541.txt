@@ -1,0 +1,10 @@
+.F                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_futures_inputs_reject_another_month_in_requested_contract_response ____
+tests/adapters/test_futures_inputs.py:156: in test_futures_inputs_reject_another_month_in_requested_contract_response
+    with pytest.raises(ValueError, match="futures_input_contract_identity_mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_another_month_in_requested_contract_response
+1 failed, 1 passed in 5.08s

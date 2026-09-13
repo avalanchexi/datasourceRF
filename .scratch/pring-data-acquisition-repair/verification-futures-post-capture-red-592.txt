@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_attach_post_capture_review_without_requesting_new_responses _
+tests/adapters/test_futures_inputs.py:1714: in test_futures_inputs_attach_post_capture_review_without_requesting_new_responses
+    bound = futures_inputs.bind_futures_input_evidence(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: module 'pring_cycle.futures_inputs' has no attribute 'bind_futures_input_evidence'
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_attach_post_capture_review_without_requesting_new_responses
+1 failed, 64 deselected in 6.54s

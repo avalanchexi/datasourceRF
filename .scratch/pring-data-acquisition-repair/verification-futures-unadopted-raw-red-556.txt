@@ -1,0 +1,16 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_ignore_unadopted_later_price_original_and_recover_when_restored _
+tests/adapters/test_futures_inputs.py:590: in test_futures_inputs_ignore_unadopted_later_price_original_and_recover_when_restored
+    assert read(night_cutoff) == before
+E   AssertionError: assert {'calendar': ...tlements': []} == {'calendar': ...tlements': []}
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing items:
+E     {'missing': ['futures_input_delivery_invalid:acquisition-8a7600c2e10546b8bad2318d165112ef', 'futures_contract_inputs_missing:SC', 'futures_calendar_missing:INE']} != {'missing': ['futures_settlement_missing:SC2609.INE', 'futures_settlement_missing:SC2610.INE']}
+E     {'calendar': []} != {'calendar': [{'acquisition_ids': ['acquisition-b620a1ae7cc5462994f8c0b1743cd7ce', 'acquisition-8a7600c2e10546b8bad231...b3697bb4eda536522f119f33a6187506becd', '86a78e43ce28bac13a56c07dca0d63397dcb84da5421700c0dfb57661512ebae'], ...}, ....
+E     
+E     ...Full output truncated (3 lines hidden), use '-vv' to show
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_ignore_unadopted_later_price_original_and_recover_when_restored
+1 failed, 14 deselected in 4.12s

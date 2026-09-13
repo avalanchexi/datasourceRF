@@ -1,0 +1,28 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+_____ test_futures_inputs_reject_invalid_settlement_numbers[pre_settle-0] ______
+tests/adapters/test_futures_inputs.py:227: in test_futures_inputs_reject_invalid_settlement_numbers
+    with pytest.raises(ValueError, match="futures_input_settlement_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_______ test_futures_inputs_reject_invalid_settlement_numbers[settle--1] _______
+tests/adapters/test_futures_inputs.py:227: in test_futures_inputs_reject_invalid_settlement_numbers
+    with pytest.raises(ValueError, match="futures_input_settlement_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+______ test_futures_inputs_reject_invalid_settlement_numbers[settle-NaN] _______
+tests/adapters/test_futures_inputs.py:227: in test_futures_inputs_reject_invalid_settlement_numbers
+    with pytest.raises(ValueError, match="futures_input_settlement_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+____ test_futures_inputs_reject_invalid_settlement_numbers[settle-unknown] _____
+tests/adapters/test_futures_inputs.py:227: in test_futures_inputs_reject_invalid_settlement_numbers
+    with pytest.raises(ValueError, match="futures_input_settlement_invalid"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_invalid_settlement_numbers[pre_settle-0]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_invalid_settlement_numbers[settle--1]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_invalid_settlement_numbers[settle-NaN]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_invalid_settlement_numbers[settle-unknown]
+4 failed, 3 deselected in 5.80s

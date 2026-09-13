@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "previous_goal_turn": "progress",
+  "frozen_files": 323,
+  "protected_files": 4,
+  "matching_previous_driver_processes": 0,
+  "application_changed": false,
+  "tests_run": false
+}

@@ -1,0 +1,14 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_futures_inputs_keep_newer_public_price_after_a_later_expiry_notice ____
+tests/adapters/test_futures_inputs.py:2002: in test_futures_inputs_keep_newer_public_price_after_a_later_expiry_notice
+    assert {r["contract_code"]: r["settle"] for r in result["settlements"]} == {
+E   AssertionError: assert {'SC2609.INE'...INE': '592.3'} == {'SC2609.INE'...INE': '592.3'}
+E     
+E     Omitting 1 identical items, use -vv to show
+E     Differing items:
+E     {'SC2609.INE': '584.2'} != {'SC2609.INE': '600'}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_keep_newer_public_price_after_a_later_expiry_notice
+1 failed, 69 deselected in 10.81s

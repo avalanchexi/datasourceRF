@@ -1,0 +1,12 @@
+B023 Function definition does not bind loop variable `price`
+    --> tests/adapters/test_futures_inputs.py:1079:56
+     |
+1077 |                 document = json.loads(raw)
+1078 |                 column = document["data"]["fields"].index("settle")
+1079 |                 document["data"]["items"][0][column] = price
+     |                                                        ^^^^^
+1080 |                 return json.dumps(document).encode()
+1081 |             return raw
+     |
+
+Found 1 error.

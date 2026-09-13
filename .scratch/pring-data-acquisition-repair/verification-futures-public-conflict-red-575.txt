@@ -1,0 +1,14 @@
+.F.F                                                                     [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order[False-True] _
+tests/adapters/test_futures_inputs.py:1114: in test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order
+    assert "futures_input_conflict:settlement:SC2609.INE:2026-08-28" in public["missing"]
+E   AssertionError: assert 'futures_input_conflict:settlement:SC2609.INE:2026-08-28' in []
+_ test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order[True-True] _
+tests/adapters/test_futures_inputs.py:1114: in test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order
+    assert "futures_input_conflict:settlement:SC2609.INE:2026-08-28" in public["missing"]
+E   AssertionError: assert 'futures_input_conflict:settlement:SC2609.INE:2026-08-28' in []
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order[False-True]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order[True-True]
+2 failed, 2 passed, 39 deselected in 6.25s

@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_____ test_futures_inputs_reject_review_dated_after_evidence_was_received ______
+tests/adapters/test_futures_inputs.py:1040: in test_futures_inputs_reject_review_dated_after_evidence_was_received
+    with pytest.raises(ValueError, match="futures_input_evidence_review_in_future"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_reject_review_dated_after_evidence_was_received
+1 failed, 38 deselected in 3.69s

@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_futures_inputs_keep_real_months_settlement_and_unknown_public_time ____
+tests/adapters/test_futures_inputs.py:87: in test_futures_inputs_keep_real_months_settlement_and_unknown_public_time
+    acquired = adapter.acquire_futures_inputs(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: 'TushareContextAdapter' object has no attribute 'acquire_futures_inputs'
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_keep_real_months_settlement_and_unknown_public_time
+1 failed in 3.06s

@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "scope": "ticket11_software_only",
+  "base_head": "5e186f740be3d275cba5664a13ef0290e6a57916",
+  "source_version": "futures-607",
+  "tests": {
+    "public-order-green-607": "70 passed in 139.03s (0:02:19)",
+    "related-610": "61 passed in 261.10s (0:04:21)"
+  },
+  "independent_tests": "131 passed in 384.33s (0:06:24)",
+  "receipts": [
+    {
+      "path": "verification-futures-public-order-green-607.json",
+      "sha256": "b4646d0bb0f0dd84480d4060583a9b4e7ce6e67197434daa05020807d07f0897"
+    },
+    {
+      "path": "verification-futures-types-607.json",
+      "sha256": "70d7e3dc8b03e7dffebae110a26ad589612d8366c40bcfa986f981a4962476fa"
+    },
+    {
+      "path": "verification-futures-lint-607.json",
+      "sha256": "2171ce2e2d51e5a0a04088bb0e55b85ff9a36b259b29b0b5d094d69ce4fc56b3"
+    },
+    {
+      "path": "verification-futures-format-607.json",
+      "sha256": "e84cb2755ad45cdb66db58615bfed31976d598da8cd6632127624e4ab6d2dfee"
+    },
+    {
+      "path": "verification-futures-related-610.json",
+      "sha256": "0f62195c0fa9f8b1deb8566df865ad532d2dd0951be4bda9919835fd4dbd8844"
+    }
+  ],
+  "reviews": [
+    {
+      "path": "review-futures-standards-608.md",
+      "sha256": "2b20efeaade5de2707687d064ee0917d884e8b430a85b4246615439029a484a9"
+    },
+    {
+      "path": "review-futures-spec-608.md",
+      "sha256": "f144c237d7ab1e336cbdf12644642bfc41db1b6f300e8ed20327afc4651468fd"
+    }
+  ],
+  "standards_hard_violations": 0,
+  "standards_nonblocking_p3_suggestions": 2,
+  "spec_software_findings": 0,
+  "frozen_files": 323,
+  "protected_files": 4,
+  "environment_equal": true,
+  "independent_head_plus_own_delta": {
+    "base_head": "5e186f740be3d275cba5664a13ef0290e6a57916",
+    "tree": "/home/tywin/.cache/pring-cycle/verification/futures-commit-609/tree",
+    "method": "HEAD plus own538 delta; earlier WIP excluded; conflict-free three-way transplant",
+    "files": [
+      {
+        "path": "src/pring_cycle/futures_inputs.py",
+        "baseline": null,
+        "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-608/futures_inputs.py",
+        "sha256": "009486832a1ea4828e296830466771a9eb00c15089e43c583209d848480cd818"
+      },
+      {
+        "path": "src/pring_cycle/tushare_context.py",
+        "baseline": "futures-base-538-tushare_context.py.txt",
+        "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-608/tushare_context.py",
+        "sha256": "ef0d4d0822859839eda225eaa8f9a7186c0b174023880b69f9166b0c74d1138d"
+      },
+      {
+        "path": "tests/adapters/test_futures_inputs.py",
+        "baseline": null,
+        "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-608/test_futures_inputs.py",
+        "sha256": "df2a0d9598fb64761a4fd327121a1458517fbf39d87ec5545e4363528a73bfef"
+      }
+    ],
+    "patch": "futures-index-preview-609.patch",
+    "patch_sha256": "6cba7f78419056cb5e7f2b59e33a4125ebce18e722238e74b79cb049e42a74dc"
+  },
+  "independent_receipt_sha256": "6ad505d492f554418a41fa21a9f6bce8c0792de86c6f5c91728537a500f05b3b",
+  "source_certification_complete": false,
+  "full_goal_complete": false,
+  "remaining": [
+    "real futures source certification and historical PUBLIC evidence",
+    "ticket12 commodity selection and registered derived contracts",
+    "M3-M6 and final default suite",
+    "ticket23 remains deferred"
+  ]
+}

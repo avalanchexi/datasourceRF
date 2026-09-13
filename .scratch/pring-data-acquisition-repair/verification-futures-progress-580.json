@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "scope": "ticket11_progress_only_not_acceptance",
+  "head": "5e186f740be3d275cba5664a13ef0290e6a57916",
+  "source_version": "futures-579",
+  "tests": "45 passed in 71.13s; tests/adapters/test_futures_inputs.py only",
+  "typecheck": "93 source files; src/pring_cycle",
+  "receipts": [
+    {
+      "path": "verification-futures-review-fixes-green-580.json",
+      "sha256": "c34e3296b101398c9566a6990b6366d98320849ba2b59bd576f7cc34fc3d9913"
+    },
+    {
+      "path": "verification-futures-types-580.json",
+      "sha256": "ebc3e8fa40844e28ffaa0243114a1e6035476bea5de66c9acb5af893174572c5"
+    },
+    {
+      "path": "verification-futures-lint-580.json",
+      "sha256": "c82aa8a7a78f58b76de6c0288849d13addf5889183255d39602b91b90ab39140"
+    },
+    {
+      "path": "verification-futures-format-580.json",
+      "sha256": "7ffea1f3e8ba8c5228fdf969dd9e85a52dcc94c3bc342e1dcae44e44d1b17978"
+    }
+  ],
+  "frozen_files": 323,
+  "protected_files": 4,
+  "environment_equal": true,
+  "review_snapshot_565_unchanged": true,
+  "ticket_complete": false,
+  "unresolved": [
+    "later PUBLIC conflict resolution and equivalent-value/time representation controls",
+    "evidence and session negative/control coverage",
+    "review-stage local validation duplication",
+    "two-axis final review, related and independent HEAD validation, commit",
+    "real source certification; later tickets and final default suite"
+  ]
+}

@@ -1,0 +1,24 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day[other_product] _
+tests/adapters/test_futures_inputs.py:984: in test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day
+    assert read() == before
+E   AssertionError: assert {'calendar': ...ons': [], ...} == {'calendar': ...ons': [], ...}
+E     
+E     Omitting 4 identical items, use -vv to show
+E     Differing items:
+E     {'missing': ['futures_input_delivery_invalid:acquisition-1424f3febf3b4cc9b3325264379245b4', 'futures_session_missing:SC']} != {'missing': ['futures_session_missing:SC']}
+E     Use -v to get more diff
+_ test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day[other_business_day] _
+tests/adapters/test_futures_inputs.py:984: in test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day
+    assert read() == before
+E   AssertionError: assert {'calendar': ...ons': [], ...} == {'calendar': ...ons': [], ...}
+E     
+E     Omitting 4 identical items, use -vv to show
+E     Differing items:
+E     {'missing': ['futures_input_delivery_invalid:acquisition-8be04c397414494e90b91bae95cd11b1', 'futures_session_missing:SC']} != {'missing': ['futures_session_missing:SC']}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day[other_product]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day[other_business_day]
+2 failed, 29 deselected in 6.02s

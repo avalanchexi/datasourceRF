@@ -1,0 +1,27 @@
+{
+  "base_head": "5e186f740be3d275cba5664a13ef0290e6a57916",
+  "tree": "/home/tywin/.cache/pring-cycle/verification/futures-commit-605/tree",
+  "method": "HEAD plus own538 delta; earlier WIP excluded; conflict-free three-way transplant",
+  "files": [
+    {
+      "path": "src/pring_cycle/futures_inputs.py",
+      "baseline": null,
+      "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-604/futures_inputs.py",
+      "sha256": "1c7b739827b4a6c9d9f01f2bb804f5367e97c0de1aebdeba4696d3a75d54b687"
+    },
+    {
+      "path": "src/pring_cycle/tushare_context.py",
+      "baseline": "futures-base-538-tushare_context.py.txt",
+      "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-604/tushare_context.py",
+      "sha256": "ef0d4d0822859839eda225eaa8f9a7186c0b174023880b69f9166b0c74d1138d"
+    },
+    {
+      "path": "tests/adapters/test_futures_inputs.py",
+      "baseline": null,
+      "snapshot": ".scratch/pring-data-acquisition-repair/futures-review-604/test_futures_inputs.py",
+      "sha256": "cdf350f82e28aedbb2601345450d3e6cbebcdc0553ef42253227455189646a60"
+    }
+  ],
+  "patch": "futures-index-preview-605.patch",
+  "patch_sha256": "8ef435ac1b40b9b54346b9c5d4177238c36fc7d0c660f2d05022017134d05170"
+}

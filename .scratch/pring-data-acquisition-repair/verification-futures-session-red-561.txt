@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_query_reviewed_night_session_by_product_and_business_date _
+tests/adapters/test_futures_inputs.py:817: in test_futures_inputs_query_reviewed_night_session_by_product_and_business_date
+    assert before["sessions"] == []
+           ^^^^^^^^^^^^^^^^^^
+E   KeyError: 'sessions'
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_query_reviewed_night_session_by_product_and_business_date
+1 failed, 21 deselected in 3.85s

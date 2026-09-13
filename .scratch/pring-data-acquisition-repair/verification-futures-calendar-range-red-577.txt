@@ -1,0 +1,14 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry[missing] _
+tests/adapters/test_futures_inputs.py:1182: in test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry
+    assert f"futures_calendar_{calendar_gap}:INE:2026-08-31" in result["missing"]
+E   AssertionError: assert 'futures_calendar_missing:INE:2026-08-31' in ['futures_session_missing:SC']
+_ test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry[unknown] _
+tests/adapters/test_futures_inputs.py:1182: in test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry
+    assert f"futures_calendar_{calendar_gap}:INE:2026-08-31" in result["missing"]
+E   AssertionError: assert 'futures_calendar_unknown:INE:2026-08-31' in ['futures_session_missing:SC']
+=========================== short test summary info ============================
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry[missing]
+FAILED tests/adapters/test_futures_inputs.py::test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry[unknown]
+2 failed, 43 deselected in 8.37s
