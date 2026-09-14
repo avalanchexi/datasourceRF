@@ -26,6 +26,19 @@ def database_connection(database: Path | str, *, uri: bool = False) -> Iterator[
         connection.close()
 
 
+@contextmanager
+def keep_database_open(database: Path) -> Iterator[None]:
+    """Defer last-connection WAL cleanup until concurrent work has stopped.
+
+    Opening a Python connection alone does not open SQLite's pager. Read the
+    journal mode and exhaust the cursor without starting a transaction; callers
+    keep using their own short-lived connections for all reads and writes.
+    """
+    with database_connection(database) as connection:
+        connection.execute("PRAGMA journal_mode").fetchall()
+        yield
+
+
 def migrate_database(database_path: Path) -> None:
     from alembic import command
     from sqlalchemy import create_engine, event

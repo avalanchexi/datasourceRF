@@ -59,7 +59,7 @@ from pring_cycle.source_adapters import (
     selected_core_claim_is_valid,
 )
 from pring_cycle.source_contract_review import require_model_source_contract
-from pring_cycle.storage import database_health, record_worker_heartbeat
+from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
     ContextScalar,
@@ -93,18 +93,19 @@ def run_worker(paths: RuntimePaths) -> None:
     runs.audit_lease()
     previous_schedule_check = started_at
     try:
-        while not stopped.is_set():
-            observed_at = datetime.now(UTC)
-            record_worker_heartbeat(
-                paths.database,
-                process_id=os.getpid(),
-                started_at=started_at,
-                heartbeat_at=observed_at,
-            )
-            submit_schedule_if_crossed(paths, previous_schedule_check, observed_at)
-            previous_schedule_check = observed_at
-            process_pending_run(paths)
-            stopped.wait(1)
+        with keep_database_open(paths.database):
+            while not stopped.is_set():
+                observed_at = datetime.now(UTC)
+                record_worker_heartbeat(
+                    paths.database,
+                    process_id=os.getpid(),
+                    started_at=started_at,
+                    heartbeat_at=observed_at,
+                )
+                submit_schedule_if_crossed(paths, previous_schedule_check, observed_at)
+                previous_schedule_check = observed_at
+                process_pending_run(paths)
+                stopped.wait(1)
     finally:
         write_runtime_event(paths, "worker", "worker_stopped")
 
@@ -164,45 +165,45 @@ def process_pending_run(
     RetrievalLedger(paths.database).expire_responses(paths.artifacts)
     if queued is None:
         return None
-    owner_id = f"worker-{os.getpid()}"
-    runs.acquire_lease(queued.run_id, owner_id=owner_id)
-    heartbeat_stop = threading.Event()
-    heartbeat = threading.Thread(
-        target=_lease_heartbeat,
-        args=(runs, owner_id, heartbeat_stop),
-        daemon=True,
-        name="pring-run-lease-heartbeat",
-    )
-    heartbeat.start()
-    try:
-        _execute_run(
-            paths,
-            runs,
-            queued,
-            report_adapters,
-            retrieval_adapters=retrieval_adapters,
-            retrieval_now=retrieval_now,
-            retrieval_release_resolver=retrieval_release_resolver,
-            execution_now=execution_now,
+    with keep_database_open(paths.database):
+        owner_id = f"worker-{os.getpid()}"
+        runs.acquire_lease(queued.run_id, owner_id=owner_id)
+        heartbeat_stop = threading.Event()
+        heartbeat = threading.Thread(
+            target=_lease_heartbeat,
+            args=(runs, owner_id, heartbeat_stop),
+            daemon=True,
+            name="pring-run-lease-heartbeat",
         )
-    except (LookupError, OSError, TypeError, ValueError) as error:
-        RetrievalLedger(paths.database).interrupt(queued.run_id)
-        if runs.get(queued.run_id).status != "cancelled":
-            runs.mark_action_required(
-                queued.run_id,
-                f"worker_failure:{type(error).__name__}:{error}",
+        heartbeat.start()
+        try:
+            _execute_run(
+                paths,
+                runs,
+                queued,
+                report_adapters,
+                retrieval_adapters=retrieval_adapters,
+                retrieval_now=retrieval_now,
+                retrieval_release_resolver=retrieval_release_resolver,
+                execution_now=execution_now,
             )
-    except BaseException:
-        from pring_cycle.retrieval_ledger import RetrievalLedger
-
-        RetrievalLedger(paths.database).interrupt(queued.run_id)
-        if runs.get(queued.run_id).status != "cancelled":
-            runs.mark_interrupted(queued.run_id, "worker_process_interrupted")
-        raise
-    finally:
-        heartbeat_stop.set()
-        heartbeat.join(timeout=1)
-        runs.release_lease(owner_id)
+        except (LookupError, OSError, TypeError, ValueError) as error:
+            RetrievalLedger(paths.database).interrupt(queued.run_id)
+            if runs.get(queued.run_id).status != "cancelled":
+                runs.mark_action_required(
+                    queued.run_id,
+                    f"worker_failure:{type(error).__name__}:{error}",
+                )
+        except BaseException:
+            RetrievalLedger(paths.database).interrupt(queued.run_id)
+            if runs.get(queued.run_id).status != "cancelled":
+                runs.mark_interrupted(queued.run_id, "worker_process_interrupted")
+            raise
+        finally:
+            heartbeat_stop.set()
+            # The final connection and lease must outlive every heartbeat write.
+            heartbeat.join()
+            runs.release_lease(owner_id)
     return queued.run_id
 
 

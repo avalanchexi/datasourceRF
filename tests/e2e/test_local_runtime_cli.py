@@ -293,6 +293,7 @@ def test_web_and_worker_start_offline_as_independent_local_processes(tmp_path: P
             web_output = stop_process(web)
         worker_output = stop_process(worker)
 
+    assert worker.returncode == 0, worker_output
     assert sentinel_secret not in web_output
     assert sentinel_secret not in worker_output
 
