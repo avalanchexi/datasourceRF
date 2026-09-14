@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, tzinfo
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 
 import pytest
 
@@ -84,6 +84,109 @@ def test_valid_primary_cli_writes_an_immutable_report_snapshot(tmp_path: Path) -
     assert stored.projection_set_id == "projection-1"
     assert stored.current_stage == "stage_ii"
     assert stored.body_retained is True
+
+
+def test_clock_rollback_retains_timeout_audit_and_measured_duration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    source = bundle()
+    started = datetime(2026, 9, 9, 10, tzinfo=UTC)
+    wall_now = started
+    monotonic_ns = 7_000_000_000
+
+    class WallClock(datetime):
+        @classmethod
+        def now(cls, tz: tzinfo | None = None) -> Self:
+            return cls.fromtimestamp(wall_now.timestamp(), tz)
+
+    class TimedOutTransport:
+        name = "codex_cli"
+        version = "fixture-timeout"
+
+        def generate(self, evidence: EvidenceBundle) -> AdapterResponse:
+            nonlocal wall_now, monotonic_ns
+            assert evidence.document() == source.document()
+            wall_now = started - timedelta(minutes=1)
+            monotonic_ns = 9_500_000_000
+            return AdapterResponse("unavailable", None, "timed_out", 0, {"stdout_bytes": 7})
+
+    monkeypatch.setattr("pring_cycle.reports.datetime", WallClock)
+    monkeypatch.setattr("pring_cycle.reports.time.monotonic_ns", lambda: monotonic_ns)
+    result = ReportService(reports, (TimedOutTransport(),)).generate(
+        source, client_request_id="clock-rollback"
+    )
+
+    assert result.status == "completed_degraded"
+    (attempt,) = reports.attempts(result.report_snapshot_id)
+    assert attempt.outcome == "timed_out"
+    assert attempt.started_at == started
+    assert attempt.completed_at == datetime(2026, 9, 9, 9, 59, tzinfo=UTC)
+    assert attempt.duration_ms == 2500
+    assert attempt.process_audit["stdout_bytes"] == 7
+    assert attempt.process_audit["timing"]["clock_went_backwards"] is True
+    snapshot = reports.get(result.report_snapshot_id)
+    assert snapshot.duration_ms == 2500
+    assert snapshot.report_cutoff == source.report_cutoff
+    assert snapshot.system_as_of == source.system_as_of
+    assert snapshot.current_stage == "stage_ii"
+    assert "ai_explanation" not in snapshot.body
+    requested = reports.by_client_request("clock-rollback")
+    assert requested is not None and requested.duration_ms == 2500
+    assert reports.history()[0].duration_ms == 2500
+
+
+def test_fallback_report_duration_spans_both_attempts_across_clock_changes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    source = bundle()
+    wall_now = datetime(2026, 9, 9, 10, tzinfo=UTC)
+    monotonic_ns = 7_000_000_000
+
+    class WallClock(datetime):
+        @classmethod
+        def now(cls, tz: tzinfo | None = None) -> Self:
+            return cls.fromtimestamp(wall_now.timestamp(), tz)
+
+    class ClockChangingTransport:
+        version = "fixture-clock-change"
+
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        def generate(self, evidence: EvidenceBundle) -> AdapterResponse:
+            nonlocal wall_now, monotonic_ns
+            assert evidence.document() == source.document()
+            if self.name == "codex_cli":
+                wall_now = datetime(2026, 9, 9, 9, 59, tzinfo=UTC)
+                monotonic_ns = 9_500_000_000
+                return AdapterResponse.unavailable("timed_out")
+            wall_now = datetime(2026, 9, 9, 11, tzinfo=UTC)
+            monotonic_ns = 11_000_000_000
+            return AdapterResponse.succeeded(valid_document())
+
+    monkeypatch.setattr("pring_cycle.reports.datetime", WallClock)
+    monkeypatch.setattr("pring_cycle.reports.time.monotonic_ns", lambda: monotonic_ns)
+    service = ReportService(
+        reports,
+        (
+            ClockChangingTransport("codex_cli"),
+            ClockChangingTransport("claude_code_cli"),
+        ),
+    )
+    result = service.generate(source, client_request_id="clock-fallback")
+    assert result.status == "completed"
+    assert result.adapter == "claude_code_cli"
+    first, second = reports.attempts(result.report_snapshot_id)
+    assert [first.duration_ms, second.duration_ms] == [2500, 1500]
+    assert first.completed_at == second.started_at == datetime(2026, 9, 9, 9, 59, tzinfo=UTC)
+    assert second.completed_at == datetime(2026, 9, 9, 11, tzinfo=UTC)
+    assert first.process_audit["timing"]["clock_went_backwards"] is True
+    assert second.process_audit["timing"]["clock_went_backwards"] is False
+    assert reports.get(result.report_snapshot_id).duration_ms == 4000
+    assert service.generate(source, client_request_id="clock-fallback") == result
+    assert len(reports.attempts(result.report_snapshot_id)) == 2
 
 
 def test_stage_mutation_is_rejected_and_alternate_cli_is_tried_once(tmp_path: Path) -> None:

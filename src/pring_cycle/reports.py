@@ -341,7 +341,7 @@ class ReportRepository:
                 _REPORT_SNAPSHOT_SELECT + " WHERE report_snapshot.client_request_id=?",
                 (client_request_id,),
             ).fetchone()
-        return _report_snapshot(row) if row is not None else None
+        return self._with_runtime_metadata(_report_snapshot(row)) if row is not None else None
 
     def next_version(self, target_business_date: str) -> int:
         with self._connect() as connection:
@@ -389,10 +389,31 @@ class ReportRepository:
         tool_events: int,
         output_hash: str | None,
         process_audit: dict[str, Any] | None = None,
+        elapsed_ms: int | None = None,
+        report_elapsed_ms: int | None = None,
     ) -> None:
         if started_at.tzinfo is None or completed_at.tzinfo is None:
             raise ValueError("report_attempt_times_must_be_timezone_aware")
-        if completed_at < started_at:
+        audit = dict(process_audit or {})
+        # Provider metadata cannot replace the report service's measured timing.
+        audit.pop("timing", None)
+        if elapsed_ms is not None:
+            if (
+                type(elapsed_ms) is not int
+                or elapsed_ms < 0
+                or type(report_elapsed_ms) is not int
+                or report_elapsed_ms < elapsed_ms
+            ):
+                raise ValueError("report_attempt_elapsed_time_invalid")
+            audit["timing"] = {
+                "basis": "monotonic",
+                "elapsed_ms": elapsed_ms,
+                "report_elapsed_ms": report_elapsed_ms,
+                "clock_went_backwards": completed_at < started_at,
+            }
+        elif report_elapsed_ms is not None:
+            raise ValueError("report_attempt_elapsed_time_invalid")
+        elif completed_at < started_at:
             raise ValueError("report_attempt_time_order_invalid")
         with self._connect() as connection:
             connection.execute(
@@ -411,7 +432,7 @@ class ReportRepository:
                     outcome,
                     tool_events,
                     output_hash,
-                    _canonical_json(process_audit or {}),
+                    _canonical_json(audit),
                 ),
             )
 
@@ -469,7 +490,7 @@ class ReportRepository:
             ).fetchone()
         if row is None:
             raise LookupError("report_snapshot_not_found")
-        return self._with_explanation_review(_report_snapshot(row))
+        return self._with_runtime_metadata(_report_snapshot(row))
 
     def history(self) -> tuple[ReportSnapshot, ...]:
         with self._connect() as connection:
@@ -479,7 +500,7 @@ class ReportRepository:
                 ORDER BY target_business_date DESC, version DESC
                 """
             ).fetchall()
-        return tuple(self._with_explanation_review(_report_snapshot(row)) for row in rows)
+        return tuple(self._with_runtime_metadata(_report_snapshot(row)) for row in rows)
 
     def attempts(self, report_snapshot_id: str) -> tuple[ReportAttempt, ...]:
         with self._connect() as connection:
@@ -531,8 +552,12 @@ class ReportRepository:
         with self._connect() as connection:
             return explanation_reviews(connection, report_snapshot_id)
 
-    def _with_explanation_review(self, snapshot: ReportSnapshot) -> ReportSnapshot:
+    def _with_runtime_metadata(self, snapshot: ReportSnapshot) -> ReportSnapshot:
         reviews = self.explanation_reviews(snapshot.report_snapshot_id)
+        attempts = self.attempts(snapshot.report_snapshot_id)
+        measured_duration = (
+            _timing_duration(attempts[-1].process_audit, "report_elapsed_ms") if attempts else None
+        )
         status = (
             reviews[-1]
             if reviews
@@ -546,7 +571,13 @@ class ReportRepository:
                 },
             )
         )
-        return replace(snapshot, explanation_verification=status)
+        return replace(
+            snapshot,
+            explanation_verification=status,
+            duration_ms=(
+                measured_duration if measured_duration is not None else snapshot.duration_ms
+            ),
+        )
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -587,12 +618,15 @@ class ReportService:
             "report-" + hashlib.sha256(f"{bundle.bundle_id}:{request_id}".encode()).hexdigest()[:20]
         )
         bundle_hash = self._repository.save_bundle(bundle)
+        report_started_ns = time.monotonic_ns()
         for adapter in self._adapters:
             if cancel_requested is not None and cancel_requested():
                 raise ValueError("report_generation_cancelled")
             started_at = datetime.now(UTC)
+            attempt_started_ns = time.monotonic_ns()
             response = adapter.generate(bundle)
             completed_at = datetime.now(UTC)
+            completed_ns = time.monotonic_ns()
             cancelled_after = response.error_classification == "cancelled" or (
                 cancel_requested is not None and cancel_requested()
             )
@@ -614,6 +648,8 @@ class ReportService:
                 tool_events=response.tool_events,
                 output_hash=output_hash,
                 process_audit={**response.process_audit, "bundle_id": bundle.bundle_id},
+                elapsed_ms=(completed_ns - attempt_started_ns) // 1_000_000,
+                report_elapsed_ms=(completed_ns - report_started_ns) // 1_000_000,
             )
             if cancelled_after:
                 raise ValueError("report_generation_cancelled")
@@ -1223,19 +1259,31 @@ def _report_snapshot(row: sqlite3.Row) -> ReportSnapshot:
 def _report_attempt(row: sqlite3.Row) -> ReportAttempt:
     started_at = datetime.fromisoformat(str(row["started_at"]))
     completed_at = datetime.fromisoformat(str(row["completed_at"]))
+    audit = json.loads(row["process_audit_json"]) if "process_audit_json" in set(row.keys()) else {}
+    elapsed_ms = _timing_duration(audit, "elapsed_ms")
     return ReportAttempt(
         adapter=str(row["adapter"]),
         adapter_version=str(row["adapter_version"]),
         outcome=str(row["outcome"]),
         started_at=started_at,
         completed_at=completed_at,
-        duration_ms=max(0, int((completed_at - started_at).total_seconds() * 1000)),
+        duration_ms=(
+            elapsed_ms
+            if elapsed_ms is not None
+            else max(0, int((completed_at - started_at).total_seconds() * 1000))
+        ),
         tool_events=int(row["tool_events"]),
         output_hash=(str(row["output_hash"]) if row["output_hash"] is not None else None),
-        process_audit=json.loads(row["process_audit_json"])
-        if "process_audit_json" in set(row.keys())
-        else {},
+        process_audit=audit,
     )
+
+
+def _timing_duration(audit: dict[str, Any], field: str) -> int | None:
+    timing = audit.get("timing")
+    if not isinstance(timing, dict) or timing.get("basis") != "monotonic":
+        return None
+    value = timing.get(field)
+    return value if type(value) is int and value >= 0 else None
 
 
 def _hash_document(document: Any) -> str:
