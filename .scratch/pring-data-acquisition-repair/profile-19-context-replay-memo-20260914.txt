@@ -1,0 +1,53 @@
+         300924985 function calls (282457323 primitive calls) in 181.294 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1044 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.007    0.007  183.816  183.816 /mnt/d/cursor/datasourceRF/src/pring_cycle/model_evaluation.py:670(evaluate_context_replay)
+        1    0.123    0.123  183.756  183.756 /mnt/d/cursor/datasourceRF/src/pring_cycle/model_evaluation.py:693(_evaluate_context_replay)
+      400    0.490    0.001  104.765    0.262 /mnt/d/cursor/datasourceRF/src/pring_cycle/model_evaluation.py:1122(_context_selection_gaps)
+     1945    0.538    0.000   74.148    0.038 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:305(source_claim_acquisitions_many)
+       20    0.110    0.005   71.084    3.554 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:238(build_context_projection)
+    46967    0.555    0.000   70.496    0.002 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:322(read_content)
+       20    0.314    0.016   61.467    3.073 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:525(commodity_claims_matching_acquisitions)
+      880    0.454    0.001   50.466    0.057 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:1406(_metric_rows)
+    47054    0.308    0.000   41.383    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:304(get)
+       20    0.389    0.019   35.284    1.764 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:220(calculate_commodity_basket)
+       50    0.029    0.001   33.556    0.671 /mnt/d/cursor/datasourceRF/src/pring_cycle/market_breadth.py:732(breadth_claims_matching_acquisitions)
+   155489   30.904    0.000   30.904    0.000 {method 'execute' of 'sqlite3.Connection' objects}
+    45330    0.289    0.000   30.141    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:927(select)
+     1215    0.835    0.001   26.138    0.022 /mnt/d/cursor/datasourceRF/src/pring_cycle/warrant_inputs.py:84(select_warrant_inputs)
+    47055    0.124    0.000   25.748    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:360(_schema_available)
+      450    0.158    0.000   22.322    0.050 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:327(official_claims_matching_acquisitions)
+      701    0.001    0.000   20.075    0.029 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:135(feed)
+      701    3.263    0.005   20.073    0.029 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:185(goahead)
+     2330    0.851    0.000   19.648    0.008 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:77(select_commodity_contracts)
+    99091   19.599    0.000   19.599    0.000 {built-in method _hashlib.openssl_sha256}
+     2310    0.105    0.000   19.161    0.008 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:179(calculate_commodity_returns)
+     2290    0.188    0.000   18.505    0.008 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:596(metric_series)
+1020429/916843    0.366    0.000   18.210    0.000 {built-in method builtins.next}
+    45330    8.539    0.000   17.814    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:899(_visibility_thresholds)
+     2300    2.220    0.001   16.288    0.007 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:916(metric_series)
+       20    0.003    0.000   14.245    0.712 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:2083(_credit_impulse_proxy)
+       10    0.014    0.001   13.340    1.334 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:393(official_gdp_quarters_matching_baselines)
+    18640    0.085    0.000   13.076    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:43(_frozen_session)
+   103646    0.177    0.000   12.047    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/storage.py:18(database_connection)
+     2233    3.176    0.001   11.880    0.005 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:964(_select)
+    94110    0.208    0.000   11.544    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:339(_connect)
+      425    0.016    0.000   11.019    0.026 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:208(parse_official_context_document)
+      365    0.018    0.000   10.817    0.030 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:267(parse_official_acquisition)
+    60993    0.170    0.000    9.892    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:1015(read_bytes)
+   419856    0.430    0.000    9.681    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:299(loads)
+  1222363    2.264    0.000    8.789    0.000 {built-in method builtins.sorted}
+   993170    3.791    0.000    8.751    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:398(parse_starttag)
+103617/51824    0.151    0.000    8.428    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py:141(__exit__)
+   419856    0.616    0.000    8.263    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/decoder.py:333(decode)
+   327623    1.097    0.000    8.185    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:1297(_select_claim_rows)
+11173440/40    5.844    0.000    8.170    0.204 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:352(_commodity_meaning)
+103617/51824    0.070    0.000    7.899    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py:132(__enter__)
+    51823    7.863    0.000    7.863    0.000 {method 'close' of 'sqlite3.Connection' objects}
+       20    0.887    0.044    7.777    0.389 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:382(_commodity_document)
+     7017    0.042    0.000    6.864    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:308(_rebuilt_official_acquisition)
+
+

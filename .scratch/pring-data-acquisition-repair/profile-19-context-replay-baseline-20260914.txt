@@ -1,0 +1,53 @@
+         1554332483 function calls (1462575962 primitive calls) in 790.976 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1026 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.124    0.124  795.958  795.958 /mnt/d/cursor/datasourceRF/src/pring_cycle/model_evaluation.py:670(evaluate_context_replay)
+      400    0.632    0.002  427.916    1.070 /mnt/d/cursor/datasourceRF/src/pring_cycle/model_evaluation.py:1099(_context_selection_gaps)
+       20    3.016    0.151  370.490   18.524 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:499(commodity_claims_matching_acquisitions)
+       20    0.102    0.005  359.917   17.996 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:238(build_context_projection)
+      880    0.440    0.000  288.493    0.328 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:1406(_metric_rows)
+       20    1.594    0.080  280.307   14.015 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:215(calculate_commodity_basket)
+    45330   80.749    0.002  271.994    0.006 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:863(select)
+      450    0.265    0.001  194.689    0.433 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:295(official_claims_matching_acquisitions)
+     7624    0.013    0.000  182.056    0.024 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:135(feed)
+     7624   28.591    0.004  182.043    0.024 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:185(goahead)
+     7107    0.253    0.000  172.754    0.024 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:261(parse_official_acquisition)
+     7167    0.200    0.000  168.733    0.024 /mnt/d/cursor/datasourceRF/src/pring_cycle/official_context.py:202(parse_official_context_document)
+     2310    0.749    0.000  137.105    0.059 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:174(calculate_commodity_returns)
+     2330    2.043    0.001  125.617    0.054 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:72(select_commodity_contracts)
+  7890200    2.809    0.000   97.087    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:817(_verify)
+   130240    4.356    0.000   92.075    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:831(_check_against_originals)
+    51128    0.617    0.000   88.240    0.002 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:303(read_content)
+       50    9.021    0.180   84.677    1.694 /mnt/d/cursor/datasourceRF/src/pring_cycle/interbank_evidence.py:40(interbank_claims_matching_acquisitions)
+     1945    0.537    0.000   84.377    0.043 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:305(source_claim_acquisitions_many)
+  8148524   34.551    0.000   81.553    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:398(parse_starttag)
+     1540    7.063    0.005   77.067    0.050 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:365(_facts)
+     1215    1.550    0.001   70.490    0.058 /mnt/d/cursor/datasourceRF/src/pring_cycle/warrant_inputs.py:46(select_warrant_inputs)
+ 13900682   12.723    0.000   67.581    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:183(dumps)
+     1540   10.418    0.007   63.812    0.041 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:276(_bind_publications)
+ 13900682   11.783    0.000   52.484    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/encoder.py:183(encode)
+  2284954    1.219    0.000   51.248    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/dataclasses.py:1308(asdict)
+    52678    0.378    0.000   49.423    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:285(get)
+40702270/2284954   26.361    0.000   49.050    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/dataclasses.py:1332(_asdict_inner)
+     9720    3.850    0.000   45.284    0.005 /mnt/d/cursor/datasourceRF/src/pring_cycle/tushare_context.py:2371(parse_warrant_acquisition)
+       20    0.019    0.001   43.649    2.182 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:686(_derived_market_context_rows)
+44693760/160   29.431    0.000   39.483    0.247 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:347(_commodity_meaning)
+  7669919   15.984    0.000   37.224    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:456(parse_endtag)
+   172418   36.925    0.000   36.925    0.000 {method 'execute' of 'sqlite3.Connection' objects}
+ 13900682   35.816    0.000   35.816    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/encoder.py:205(iterencode)
+       50    0.026    0.001   34.648    0.693 /mnt/d/cursor/datasourceRF/src/pring_cycle/market_breadth.py:732(breadth_claims_matching_acquisitions)
+  7472229    3.683    0.000   34.562    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:126(_json)
+ 75454804   31.347    0.000   31.347    0.000 {method 'match' of 're.Pattern' objects}
+    52698    0.144    0.000   31.291    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:341(_schema_available)
+       80    4.972    0.062   30.574    0.382 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:377(_commodity_document)
+   478286    0.580    0.000   30.152    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:299(loads)
+  2835609    3.904    0.000   29.822    0.000 {built-in method builtins.sorted}
+    91412   29.549    0.000   29.549    0.000 {built-in method _hashlib.openssl_sha256}
+39566960/39565420   13.806    0.000   27.717    0.000 {built-in method builtins.any}
+       20    0.004    0.000   27.358    1.368 /mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:2081(_credit_impulse_proxy)
+   478286    1.265    0.000   26.043    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/decoder.py:333(decode)
+
+

@@ -1,0 +1,7 @@
+[32m.[0m[32m                                                                        [100%][0m
+============================== slowest durations ===============================
+1637.24s call     tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+0.08s teardown tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+0.06s setup    tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+[32m[32m[1m1 passed[0m[32m in 1639.92s (0:27:19)[0m[0m
+exit=0

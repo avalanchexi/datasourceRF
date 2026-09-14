@@ -1,0 +1,43 @@
+         100362842 function calls (100220518 primitive calls) in 314.897 seconds
+
+   Ordered by: cumulative time
+   List reduced from 290 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.002    0.002  315.074  315.074 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:403(persist_commodity_basket)
+        2    0.112    0.056  314.739  157.369 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:210(calculate_commodity_basket)
+      116   16.265    0.140  314.226    2.709 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:689(select_futures_inputs)
+        6    0.203    0.034  236.038   39.340 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:72(select_commodity_contracts)
+    53851    0.249    0.000  188.708    0.004 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:299(loads)
+        4    0.059    0.015  187.135   46.784 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:174(calculate_commodity_returns)
+    53851    0.265    0.000  179.972    0.003 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/decoder.py:333(decode)
+    53851  179.057    0.003  179.057    0.003 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/decoder.py:344(raw_decode)
+        1    0.001    0.001  159.304  159.304 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:489(append_source_claims)
+        1    0.004    0.004  159.273  159.273 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:254(_validate_core_originals)
+        1    0.003    0.003  159.268  159.268 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:563(require_commodity_results)
+       48    0.130    0.003  105.731    2.203 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:38(_frozen_session)
+     1040    4.345    0.004   49.574    0.048 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:356(_facts)
+     1040    6.499    0.006   41.071    0.039 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:275(_bind_publications)
+    11632    0.276    0.000   40.860    0.004 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:303(read_content)
+    32082    0.297    0.000   35.907    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:285(get)
+  5025568    2.479    0.000   23.356    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:125(_json)
+    97022   22.915    0.000   22.915    0.000 {method 'execute' of 'sqlite3.Connection' objects}
+    17029   22.437    0.001   22.437    0.001 {built-in method _hashlib.openssl_sha256}
+    32198    0.109    0.000   21.946    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:341(_schema_available)
+  5025595    4.358    0.000   20.156    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:183(dumps)
+    17980    0.056    0.000   16.233    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:735(<genexpr>)
+  5025595    4.071    0.000   14.876    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/encoder.py:183(encode)
+211238/146828    0.178    0.000   11.029    0.000 {built-in method builtins.next}
+    64404    0.171    0.000   10.880    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:320(_connect)
+    64442    0.138    0.000   10.016    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/storage.py:18(database_connection)
+  5025595    9.114    0.000    9.114    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/encoder.py:205(iterencode)
+    12647    8.329    0.001    8.329    0.001 {method 'decode' of 'bytes' objects}
+     3696    0.026    0.000    7.853    0.002 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:802(<genexpr>)
+64426/32221    0.106    0.000    6.857    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py:141(__exit__)
+    32221    6.466    0.000    6.466    0.000 {method 'close' of 'sqlite3.Connection' objects}
+    13873    0.083    0.000    5.718    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:1015(read_bytes)
+  4784232    1.268    0.000    4.985    0.000 {built-in method builtins.all}
+    13873    4.315    0.000    4.315    0.000 {method 'read' of '_io.BufferedReader' objects}
+64426/32221    0.050    0.000    4.192    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py:132(__enter__)
+
+

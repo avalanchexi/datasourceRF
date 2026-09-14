@@ -1,0 +1,43 @@
+         18407407 function calls (18395555 primitive calls) in 7.982 seconds
+
+   Ordered by: cumulative time
+   List reduced from 310 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.014    0.014    7.989    7.989 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:412(persist_commodity_basket)
+        2    0.002    0.001    7.724    3.862 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:215(calculate_commodity_basket)
+       78    0.147    0.002    7.709    0.099 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:863(select)
+    21128    0.007    0.000    7.137    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:817(_verify)
+     2200    0.325    0.000    7.125    0.003 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:831(_check_against_originals)
+      154    0.350    0.002    5.989    0.039 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:365(_facts)
+      154    0.838    0.005    5.073    0.033 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:276(_bind_publications)
+        1    0.000    0.000    4.016    4.016 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:489(append_source_claims)
+        1    0.003    0.003    3.997    3.997 /mnt/d/cursor/datasourceRF/src/pring_cycle/evidence.py:254(_validate_core_originals)
+        1    0.015    0.015    3.994    3.994 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:572(require_commodity_results)
+   746752    0.289    0.000    2.687    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:126(_json)
+   746779    0.500    0.000    2.318    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:183(dumps)
+   746779    0.459    0.000    1.716    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/encoder.py:183(encode)
+        4    0.003    0.001    1.366    0.342 /mnt/d/cursor/datasourceRF/src/pring_cycle/commodity_basket.py:72(select_commodity_contracts)
+   746779    1.063    0.000    1.063    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/encoder.py:205(iterencode)
+   944462    0.200    0.000    0.790    0.000 {built-in method builtins.all}
+      482    0.005    0.000    0.764    0.002 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:303(read_content)
+     1317    0.733    0.001    0.733    0.001 {built-in method _hashlib.openssl_sha256}
+  2759400    0.445    0.000    0.667    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:307(<genexpr>)
+      588    0.002    0.000    0.642    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:837(<genexpr>)
+      682    0.004    0.000    0.561    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:285(get)
+      308    0.003    0.000    0.394    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:247(_load_evidence)
+     2480    0.380    0.000    0.380    0.000 {method 'execute' of 'sqlite3.Connection' objects}
+      684    0.001    0.000    0.352    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:341(_schema_available)
+      308    0.001    0.000    0.343    0.001 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:183(_evidence_structure)
+  3577771    0.291    0.000    0.291    0.000 {method 'get' of 'dict' objects}
+   161400    0.227    0.000    0.227    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:351(_fact)
+15190/13808    0.005    0.000    0.199    0.000 {built-in method builtins.next}
+     1414    0.002    0.000    0.174    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/storage.py:18(database_connection)
+     1376    0.003    0.000    0.173    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/acquisition.py:320(_connect)
+      819    0.003    0.000    0.141    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:1015(read_bytes)
+     1464    0.004    0.000    0.139    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:299(loads)
+  1629050    0.136    0.000    0.136    0.000 {built-in method builtins.isinstance}
+   910976    0.133    0.000    0.133    0.000 {method 'setdefault' of 'dict' objects}
+   163600    0.085    0.000    0.132    0.000 /mnt/d/cursor/datasourceRF/src/pring_cycle/futures_inputs.py:343(_fact_key)
+
+

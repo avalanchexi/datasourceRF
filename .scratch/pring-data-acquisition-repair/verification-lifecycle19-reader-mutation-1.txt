@@ -1,0 +1,3 @@
+/mnt/d/cursor/datasourceRF/tests/adapters/test_futures_inputs.py:2055: AssertionError: assert {'calendar': ...ing': [], ...} == {'calendar': ...09.INE'], ...}
+FAILED tests/adapters/test_futures_inputs.py::test_reused_reader_selections_match_fresh_reads_across_revision_cutoffs - AssertionError: assert {'calendar': ...ing': [], ...} == {'calendar': ...09...
+1 failed, 70 deselected in 3.54s

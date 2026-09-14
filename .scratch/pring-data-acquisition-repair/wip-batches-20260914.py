@@ -48,6 +48,20 @@ BATCHES = {
         'tests/models/test_candidate_replay.py',
         'tests/models/test_capacity_historical_contract.py',
     ],
+    'd-ticket19': [
+        'src/pring_cycle/acquisition.py',
+        'src/pring_cycle/commodity_basket.py',
+        'src/pring_cycle/context_projection.py',
+        'src/pring_cycle/evidence.py',
+        'src/pring_cycle/futures_inputs.py',
+        'src/pring_cycle/interbank_evidence.py',
+        'src/pring_cycle/model_evaluation.py',
+        'src/pring_cycle/models.py',
+        'src/pring_cycle/official_context.py',
+        'src/pring_cycle/warrant_inputs.py',
+        'tests/integration/test_inventory_period_alignment.py',
+        'tests/models/test_isolated_lifecycle.py',
+    ],
 }
 
 

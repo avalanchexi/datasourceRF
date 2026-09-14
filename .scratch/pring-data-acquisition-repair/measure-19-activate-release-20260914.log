@@ -1,0 +1,2 @@
+{"exit": 0, "seconds": 380.5, "child_peak_rss_mb": 3458, "stdout": "{\"certified_replay_start\": \"2026-03-09\", \"manifest_hash\": \"ac8ec07c6bc182e9d39daeea21dce643fe116db1435b9ab731dac4a42fd19aed\", \"model_version_id\": \"model-reviewed-0a6916484d525332081286ce5fd33eb8483ccfb5f4bf8a4bb8139e1ca5e55280\", \"status\": \"active\"}\n", "stderr": ""}
+exit=0

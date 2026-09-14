@@ -1,0 +1,12 @@
+[31mF[0m[31m                                                                        [100%][0m
+=================================== FAILURES ===================================
+[31m[1m____ test_complete_isolated_candidate_is_calibrated_replayed_and_activated _____[0m
+[1m[31mtests/models/test_isolated_lifecycle.py[0m:168: in test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+    [0m[94massert[39;49;00m replay[[33m"[39;49;00m[33mgaps[39;49;00m[33m"[39;49;00m] == [][90m[39;49;00m
+[1m[31mE   AssertionError: assert ['candidate_c..._BASKET', ...] == [][0m
+[1m[31mE     [0m
+[1m[31mE     Left contains 48 more items, first extra item: [0m[33m'[39;49;00m[33mcandidate_context_sources_uncertified:CN_GDP[39;49;00m[33m'[39;49;00m[90m[39;49;00m[0m
+[1m[31mE     Use -v to get more diff[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/models/test_isolated_lifecycle.py::[1mtest_complete_isolated_candidate_is_calibrated_replayed_and_activated[0m - AssertionError: assert ['candidate_c..._BASKET', ...] == []
+[31m[31m[1m1 failed[0m[31m in 94.44s (0:01:34)[0m[0m

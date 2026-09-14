@@ -1,0 +1,21 @@
+{
+  "batch": "d-ticket19",
+  "head": "dcb3ea788487b3daf481dbd55e459202b54cdaa1",
+  "files": {
+    "src/pring_cycle/acquisition.py": "0a89c254284af2f6bf8052086380a4b8b44aa47a64e2bf7af9969074cc3599b8",
+    "src/pring_cycle/commodity_basket.py": "7c24c5df2e8aa23e7510309ff7f09259c5e8538fbf9b07645e39ab387d5e32e2",
+    "src/pring_cycle/context_projection.py": "a46ebc6fc013368c21bd94edaf158419dfe74cda1af3852d82efca40f6c372d7",
+    "src/pring_cycle/evidence.py": "a59251d518ea862928b120d98907018b6652e75db729d6438a50e73fbbbf561b",
+    "src/pring_cycle/futures_inputs.py": "df4b4a4fcc7d3c75ba045cc278fc9c133f2f407f0d8caef0532da80847536d48",
+    "src/pring_cycle/interbank_evidence.py": "6ac8971b73b235307e14fe7b04048e62a4aae0bd29d16381fe7907f5165ccaae",
+    "src/pring_cycle/model_evaluation.py": "6397047a75b0c4b7155aebfd8e76340d4f7be6b99cd42a24d4dc4a6ec1bae3a0",
+    "src/pring_cycle/models.py": "f2eaf2ca9bb11744c6290da801fcb7046456b1c1c7489defc04c95b5e2534728",
+    "src/pring_cycle/official_context.py": "0a9b9a7203b474a7643be218828218bd624bd3c04aecc9d71de5524b00bbb901",
+    "src/pring_cycle/warrant_inputs.py": "6765eda87b2d4edd3f2435f43ad8038153fc0307ce7fe8fcc5aeecbbf60b823e",
+    "tests/integration/test_inventory_period_alignment.py": "e82f25f86ba9f3eb2a2939d2e113b1b8627620f703a92208abc4f7f1e61571ca",
+    "tests/models/test_isolated_lifecycle.py": "9f8f8c77d2e6af0ce24549d9728197866ac4e36d0bea50073be6a6960144fe9a"
+  },
+  "patch_sha256": "7a97125ae9d8ffc7e3ecc81d9294cf299863b290f12861521c1c162c9e54ee65",
+  "changed_paths_are_exactly_batch": true,
+  "prepared_at": "2026-09-14T15:10:07.097748+00:00"
+}

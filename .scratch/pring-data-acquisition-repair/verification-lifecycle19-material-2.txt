@@ -1,0 +1,27 @@
+[32m.[0m[31mF[0m[31m                                                                       [100%][0m
+=================================== FAILURES ===================================
+[31m[1m__ test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence __[0m
+[1m[31mtests/models/test_isolated_lifecycle.py[0m:980: in test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+    [0mfirst, material = isolated_lifecycle_material(tmp_path / [33m"[39;49;00m[33mfirst[39;49;00m[33m"[39;49;00m, capsys, runtime_clock)[90m[39;49;00m
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mtests/models/test_isolated_lifecycle.py[0m:951: in isolated_lifecycle_material
+    [0mdocument = json.loads((stored / [33m"[39;49;00m[33mmaterial.json[39;49;00m[33m"[39;49;00m).read_text())[90m[39;49;00m
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1027: in read_text
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mr[39;49;00m[33m'[39;49;00m, encoding=encoding, errors=errors) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/lifecycle19-20260914/materials/d9c2feeffd9b83a7009f1d1769596b9f87cd581e99ac0073c6a295a51e67ec7e/material.json'[0m
+============================== slowest durations ===============================
+1648.16s call     tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+1647.48s call     tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+0.05s setup    tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+0.01s setup    tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+
+(2 durations < 0.005s hidden.  Use -vv to show these durations.)
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/models/test_isolated_lifecycle.py::[1mtest_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence[0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31m[31m[1m1 failed[0m, [32m1 passed[0m[31m in 3298.72s (0:54:58)[0m[0m
+exit=1

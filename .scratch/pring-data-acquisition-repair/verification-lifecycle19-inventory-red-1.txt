@@ -1,0 +1,5 @@
+/mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:166: ValueError: context_model_formula_version_unsupported
+/mnt/d/cursor/datasourceRF/src/pring_cycle/context_projection.py:166: ValueError: context_model_formula_version_unsupported
+FAILED tests/integration/test_inventory_period_alignment.py::test_common_month_inventory_uses_the_visible_ppi_for_the_inventory_period[inventory-ppi-common-month-v0002-ppi_months0-06-expected0] - ValueError: context_model_formula_version_unsupported
+FAILED tests/integration/test_inventory_period_alignment.py::test_common_month_inventory_uses_the_visible_ppi_for_the_inventory_period[inventory-ppi-common-month-v0002-ppi_months1-07-expected1] - ValueError: context_model_formula_version_unsupported
+2 failed, 4 passed in 1.63s

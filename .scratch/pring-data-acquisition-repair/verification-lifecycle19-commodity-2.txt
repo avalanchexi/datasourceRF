@@ -1,0 +1,18 @@
+[31mF[0m[31m                                                                        [100%][0m
+=================================== FAILURES ===================================
+[31m[1m____ test_complete_isolated_candidate_is_calibrated_replayed_and_activated _____[0m
+[1m[31mtests/models/test_isolated_lifecycle.py[0m:802: in test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+    [0m[94massert[39;49;00m replay[[33m"[39;49;00m[33mgaps[39;49;00m[33m"[39;49;00m] == [], json.dumps(replay[[33m"[39;49;00m[33mgaps[39;49;00m[33m"[39;49;00m], ensure_ascii=[94mFalse[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: ["candidate_context_formula_output_missing:credit_impulse", "candidate_context_formula_output_missing:real_inventory_approximation"][0m
+[1m[31mE   assert ['candidate_c...pproximation'] == [][0m
+[1m[31mE     [0m
+[1m[31mE     Left contains 2 more items, first extra item: [0m[33m'[39;49;00m[33mcandidate_context_formula_output_missing:credit_impulse[39;49;00m[33m'[39;49;00m[90m[39;49;00m[0m
+[1m[31mE     Use -v to get more diff[0m
+============================== slowest durations ===============================
+4583.73s call     tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+0.06s setup    tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+0.02s teardown tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/models/test_isolated_lifecycle.py::[1mtest_complete_isolated_candidate_is_calibrated_replayed_and_activated[0m - AssertionError: ["candidate_context_formula_output_missing:credit_impulse",...
+[31m[31m[1m1 failed[0m[31m in 4587.47s (1:16:27)[0m[0m
+exit=1
