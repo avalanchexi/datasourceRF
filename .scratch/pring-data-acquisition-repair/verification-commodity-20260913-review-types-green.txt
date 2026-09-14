@@ -1,0 +1,2 @@
+src/pring_cycle/futures_inputs.py:680: error: Need type annotation for "contract_failures" (hint: "contract_failures: list[<type>] = ...")  [var-annotated]
+Found 1 error in 1 file (checked 94 source files)

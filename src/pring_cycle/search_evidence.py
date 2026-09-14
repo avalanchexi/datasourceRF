@@ -169,6 +169,24 @@ class ModelInputSelector:
             definition_version=self.version,
             artifacts=self.database_path.parent / "artifacts" / "sha256",
         )
+        from pring_cycle.commodity_basket import (
+            COMMODITY_METRICS,
+            commodity_claims_matching_acquisitions,
+        )
+
+        commodity_ids = commodity_claims_matching_acquisitions(
+            self.core_evidence,
+            {
+                metric: self.series(metric)
+                for metric in scope.metric_ids
+                if metric in COMMODITY_METRICS and self.version not in BUILTIN_CATALOG_VERSIONS
+            },
+            database_path=self.database_path,
+            artifacts=self.database_path.parent / "artifacts" / "sha256",
+            definition_version=self.version,
+            mode=self.mode,
+            as_of=self.as_of,
+        )
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -254,6 +272,11 @@ class ModelInputSelector:
                         and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
                         and definition.certification_status == "certified"
+                        and (
+                            metric_id not in COMMODITY_METRICS
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in commodity_ids
+                        )
                         and (
                             metric_id
                             not in (

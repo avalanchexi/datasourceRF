@@ -605,6 +605,56 @@ def _meaning(fact: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _damaged_review_contract_scope(
+    repository: AcquisitionRepository,
+    receipt: AcquisitionReceipt,
+    history: tuple[AcquisitionReceipt, ...],
+    artifacts: Path,
+    products: tuple[str, ...],
+) -> dict[str, Any]:
+    """Recover version keys from originals solely to quarantine a damaged batch.
+
+    Reconstructed facts remain invalid. Their original publication times let a
+    superseding intact contract version recover without accepting the damaged one.
+    """
+    if receipt.api_name != "futures_input_evidence":
+        raise ValueError("futures_input_normalization_invalid")
+    packet = json.loads(repository.read_content(receipt.acquisition_id, "raw"))
+    parents = []
+    for publication in packet["publications"]:
+        if (
+            publication["api_name"] != "fut_basic"
+            or publication["parameters"].get("fut_code") not in products
+        ):
+            continue
+        matches = [
+            r
+            for r in history
+            if r.api_name == "fut_basic"
+            and r.raw_hash == publication["raw_hash"]
+            and r.parameters == publication["parameters"]
+            and r.validated_at is not None
+            and receipt.validated_at is not None
+            and r.validated_at <= receipt.validated_at
+        ]
+        if not matches:
+            raise ValueError("futures_input_contract_scope_unknown")
+        parents.append(
+            max(matches, key=lambda r: r.validated_at.isoformat() if r.validated_at else "")
+        )
+    inputs = (*parents, receipt)
+    facts = _facts(
+        tuple((r, repository.read_content(r.acquisition_id, "raw")) for r in inputs), artifacts
+    )
+    return {
+        "schema_version": BATCH_SCHEMA,
+        "acquisition_ids": [r.acquisition_id for r in inputs],
+        "facts": [
+            {**fact, "normalization_invalid": True} for fact in facts if fact["kind"] == "contract"
+        ],
+    }
+
+
 def select_futures_inputs(
     paths: RuntimePaths,
     *,
@@ -612,21 +662,41 @@ def select_futures_inputs(
     business_date: date,
     mode: AsOfMode,
     as_of: datetime,
+    system_as_of: datetime | None = None,
 ) -> dict[str, Any]:
-    """Read original-backed input versions at an explicit PUBLIC or SYSTEM cutoff."""
+    """Read input versions, optionally intersecting PUBLIC knowledge with system visibility."""
     if as_of.tzinfo is None or as_of.utcoffset() is None:
         raise ValueError("futures_input_cutoff_timezone_required")
+    if system_as_of is not None and (
+        system_as_of.tzinfo is None or system_as_of.utcoffset() is None
+    ):
+        raise ValueError("futures_input_system_cutoff_timezone_required")
     day = business_date.isoformat()
     exchanges = {PRODUCT_EXCHANGES[p] for p in products}
     repository = AcquisitionRepository(paths.database, paths.artifacts)
     seen: set[tuple[str, ...]] = set()
     selected: dict[tuple[str, str, str], tuple[datetime, list[dict[str, Any]]]] = {}
     missing = []
-    for receipt in repository.history():
+    contract_failures: list[dict[str, str]] = []
+    history = repository.history()
+    for receipt in history:
         if receipt.parser_version != PARSER_VERSION or receipt.state != "validated":
             continue
+        if mode is AsOfMode.SYSTEM and (
+            receipt.validated_at is None or receipt.validated_at > as_of
+        ):
+            continue
+        if system_as_of is not None and (
+            receipt.validated_at is None or receipt.validated_at > system_as_of
+        ):
+            continue
         try:
-            document = json.loads(repository.read_content(receipt.acquisition_id, "normalized"))
+            try:
+                document = json.loads(repository.read_content(receipt.acquisition_id, "normalized"))
+            except (ValueError, KeyError, TypeError, LookupError, OSError):
+                document = _damaged_review_contract_scope(
+                    repository, receipt, history, paths.artifacts, products
+                )
             ids = tuple(document["acquisition_ids"])
             if ids in seen:
                 continue
@@ -649,6 +719,8 @@ def select_futures_inputs(
                 if not times or any(value is None for value in times):
                     raise ValueError("futures_input_validation_time_missing")
                 available = max(value for value in times if value is not None)
+                if system_as_of is not None and available > system_as_of:
+                    continue
                 ordered: datetime | None
                 if mode is AsOfMode.SYSTEM:
                     if available > as_of:
@@ -680,6 +752,12 @@ def select_futures_inputs(
                     selected[key][1].append(value)
         except (ValueError, KeyError, TypeError, LookupError, OSError):
             missing.append("futures_input_delivery_invalid:" + receipt.acquisition_id)
+            if receipt.api_name == "futures_input_evidence":
+                # Neither the batch nor its original can establish historical scope.
+                contract_failures.extend(
+                    {"product": product, "contract_code": "unknown:" + receipt.acquisition_id}
+                    for product in products
+                )
     facts = []
     reconstructed: dict[tuple[str, ...], list[dict[str, Any]]] = {}
     verified_proofs: set[str] = set()
@@ -706,6 +784,15 @@ def select_futures_inputs(
                 verified.append(value)
             except (ValueError, KeyError, TypeError, LookupError, OSError):
                 missing.append("futures_input_delivery_invalid:" + value["acquisition_ids"][0])
+        contract_unavailable = len(verified) != len(candidates) or any(
+            _meaning(value) != _meaning(verified[0]) for value in verified[1:]
+        )
+        if (
+            key[0] == "contract"
+            and contract_unavailable
+            and any(value["listed_on"] <= day <= value["last_trade_date"] for value in candidates)
+        ):
+            contract_failures.append({"product": candidates[0]["product"], "contract_code": key[1]})
         if not verified:
             continue
         if any(_meaning(value) != _meaning(verified[0]) for value in verified[1:]):
@@ -772,6 +859,7 @@ def select_futures_inputs(
         missing.append("futures_settlement_missing:" + code)
     return {
         "contracts": contracts,
+        "contract_failures": contract_failures,
         "calendar": calendar,
         "settlements": settlements,
         "sessions": sessions,

@@ -827,6 +827,7 @@ def evaluate_context_replay(
                 gaps.extend(
                     _context_selection_gaps(
                         evidence,
+                        database_path=database,
                         artifacts=database.parent / "artifacts" / "sha256",
                         side=side,
                         metric_id=metric_id,
@@ -1100,6 +1101,7 @@ def _single_context_coverage_gaps(
 def _context_selection_gaps(
     repository: EvidenceRepository,
     *,
+    database_path: Path,
     artifacts: Path,
     side: str,
     metric_id: str,
@@ -1232,6 +1234,23 @@ def _context_selection_gaps(
             artifacts=artifacts,
         )
         if any(point.selected_claim_id not in valid_breadth_claims for point in validation_points):
+            statuses.add("invalid")
+    from pring_cycle.commodity_basket import (
+        COMMODITY_METRICS,
+        commodity_claims_matching_acquisitions,
+    )
+
+    if metric_id in COMMODITY_METRICS and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        commodity_ids = commodity_claims_matching_acquisitions(
+            repository,
+            {metric_id: tuple(validation_points)},
+            database_path=database_path,
+            artifacts=artifacts,
+            definition_version=definition_version,
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+        )
+        if any(point.selected_claim_id not in commodity_ids for point in validation_points):
             statuses.add("invalid")
     freshness_days = (
         730

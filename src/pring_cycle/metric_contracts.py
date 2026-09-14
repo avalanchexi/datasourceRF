@@ -232,8 +232,15 @@ def required_dimension_members(
             measures += ("cumulative_average_yoy",)
         return tuple({"category": categories[metric_id], "measure": value} for value in measures)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        from pring_cycle.commodity_basket import COMMODITY_FORMULA_VERSION, COMMODITY_METRICS
         from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, WINDOW_BREADTH_MEASURES
         from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+
+        if metric_id in COMMODITY_METRICS:
+            commodity_members = REQUIRED_DIMENSION_MEMBERS.get(metric_id, ({},))
+            return tuple(
+                {"formula_version": COMMODITY_FORMULA_VERSION, **m} for m in commodity_members
+            )
 
         if metric_id == "CN_EQ_ADV_AMOUNT_SHARE":
             return (

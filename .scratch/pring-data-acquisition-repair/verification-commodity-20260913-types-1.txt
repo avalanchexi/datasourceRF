@@ -1,0 +1,4 @@
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/metric_contracts.py:271: error: Incompatible types in assignment (expression has type "tuple[OfficialMember, ...] | None", variable has type "tuple[dict[str, str], ...]")  [assignment]
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/metric_contracts.py:274: error: "dict[str, str]" has no attribute "dimensions"  [attr-defined]
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/metric_contracts.py:276: error: "dict[str, str]" has no attribute "dimensions"  [attr-defined]
+Found 3 errors in 1 file (checked 97 source files)

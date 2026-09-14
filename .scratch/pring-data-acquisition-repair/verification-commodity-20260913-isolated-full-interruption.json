@@ -1,0 +1,8 @@
+{
+  "run": "isolated-full",
+  "decision": "interrupted_known_defect",
+  "reason": "Confirmed P1: a prior trading-day result can be relabelled as a closed target date through public evidence ingestion; shared document validation requires a target-day output guard. Not a timeout or completed full acceptance.",
+  "record_sha256": "4c11f45d64bfb8b7f6965e4f38c9c7f82500154038e4f5e3c2719d855e671679",
+  "partial_result": "1136 passed before KeyboardInterrupt",
+  "recorded_at": "2026-09-13T11:56:15.106767+00:00"
+}

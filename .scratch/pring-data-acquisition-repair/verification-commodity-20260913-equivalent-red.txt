@@ -1,0 +1,18 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_equivalent_price_redelivery_keeps_saved_candidate_and_original_parents __
+tests/models/test_registered_commodity.py:373: in test_equivalent_price_redelivery_keeps_saved_candidate_and_original_parents
+    assert select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC) == before
+E   assert ModelInputSel...crude_oil"}')) == ModelInputSel...ng_members=())
+E     
+E     Differing attributes:
+E     ['complete', 'selected_claim_ids', 'missing_members']
+E     
+E     Drill down into differing attribute complete:
+E       complete: False != True
+E     ...
+E     
+E     ...Full output truncated (9 lines hidden), use '-vv' to show
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_equivalent_price_redelivery_keeps_saved_candidate_and_original_parents
+1 failed, 5 deselected in 61.37s (0:01:01)

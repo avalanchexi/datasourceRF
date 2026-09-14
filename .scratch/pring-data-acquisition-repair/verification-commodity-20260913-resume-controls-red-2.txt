@@ -1,0 +1,12 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_conflicting_near_contract_does_not_silently_select_far_contract _____
+tests/adapters/test_commodity_basket.py:851: in test_conflicting_near_contract_does_not_silently_select_far_contract
+    assert selected["selections"] == []
+E   AssertionError: assert [{'calendar':...': 'SC', ...}] == []
+E     
+E     Left contains one more item: {'calendar': [{'acquisition_ids': ['acquisition-fa464d0255ec448a982c48369b125968', 'acquisition-1e0dca4e40b444edafa4ea...contract_code': 'SC2610.INE', 'contract_multiplier': '1000', ...}, 'contract_code': 'SC2610.INE', 'product': 'SC', ...}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/adapters/test_commodity_basket.py::test_conflicting_near_contract_does_not_silently_select_far_contract
+1 failed, 1 passed, 23 deselected in 48.60s

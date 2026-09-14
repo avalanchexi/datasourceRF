@@ -1,0 +1,9 @@
+{
+  "status": "interrupted_without_terminal_receipt",
+  "observed_at": "2026-09-13T10:21:22.370113+00:00",
+  "original_record": "verification-commodity-20260913-unknown-public-control.json",
+  "original_sha256": "4a44c869e74f25a34861da365e6c456ebf85b310b36c1744747f87e5873488ad",
+  "reason": "environment restart; process 79631 and native /tmp task directory no longer exist",
+  "replacement_control": "verification-commodity-20260913-resume-controls-red-2.json",
+  "replacement_note": "unknown_publication passed; the separate near-contract conflict case failed as intended"
+}

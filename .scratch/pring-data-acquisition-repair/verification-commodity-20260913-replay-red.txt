@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__________ test_public_replay_rechecks_registered_commodity_originals __________
+tests/models/test_registered_commodity.py:324: in test_public_replay_rechecks_registered_commodity_originals
+    assert "candidate_context_selection_invalid:CN_COMMODITY_EX_HOG_BASKET" in after.gaps
+E   AssertionError: assert 'candidate_context_selection_invalid:CN_COMMODITY_EX_HOG_BASKET' in ()
+E    +  where () = ContextReplayEvaluation(context_output_differences=0, evaluated_cutoffs=1, duration_seconds=0.3971528109977953, gaps=(...are:commodity_basket:textiles:2026-03-10', 'certification_status': 'certified', 'quality_status': 'validated'}]}]}}}]}).gaps
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_public_replay_rechecks_registered_commodity_originals
+1 failed, 4 deselected in 47.30s

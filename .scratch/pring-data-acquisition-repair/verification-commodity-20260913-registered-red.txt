@@ -1,0 +1,9 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_______ test_registered_basket_is_readable_with_all_seven_contributions ________
+tests/models/test_registered_commodity.py:59: in test_registered_basket_is_readable_with_all_seven_contributions
+    from pring_cycle.commodity_basket import persist_commodity_basket
+E   ImportError: cannot import name 'persist_commodity_basket' from 'pring_cycle.commodity_basket' (/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/commodity_basket.py)
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_registered_basket_is_readable_with_all_seven_contributions
+1 failed in 5.21s

@@ -1,0 +1,41 @@
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 15%]
+........................................................................ [ 21%]
+........................................................................ [ 26%]
+........................................................................ [ 31%]
+........................................................................ [ 37%]
+........................................................................ [ 42%]
+........................................................................ [ 47%]
+........................................................................ [ 53%]
+........................................................................ [ 58%]
+........................................................................ [ 63%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+........................................................
+============================= slowest 20 durations =============================
+166.33s call     tests/integration/test_full_run_retrieval.py::test_full_run_recovers_adoption_after_projection_checkpoint
+162.35s call     tests/integration/test_full_run_retrieval.py::test_credit_formula_expands_required_history_in_full_run_plan
+161.99s call     tests/integration/test_full_run_retrieval.py::test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot[False]
+161.29s call     tests/integration/test_full_run_retrieval.py::test_resume_rechecks_unknown_release_without_mutating_initial_plan[False]
+161.13s call     tests/integration/test_full_run_retrieval.py::test_full_run_searches_real_gap_and_publishes_traceable_adoption
+155.86s call     tests/integration/test_full_run_retrieval.py::test_full_run_shares_hard_search_budget_across_periods
+155.37s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema]
+154.92s call     tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[failure2]
+154.16s call     tests/integration/test_full_run_retrieval.py::test_full_run_adoption_excludes_uncertified_candidates
+154.03s call     tests/integration/test_full_run_retrieval.py::test_resume_rechecks_unknown_release_without_mutating_initial_plan[True]
+152.88s call     tests/integration/test_full_run_retrieval.py::test_full_run_plan_includes_missing_historical_daily_members
+151.97s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels]
+151.92s call     tests/integration/test_full_run_retrieval.py::test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot[True]
+150.78s call     tests/integration/test_full_run_retrieval.py::test_independent_calendar_keeps_missing_core_day_in_required_window
+150.70s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial]
+150.21s call     tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices[reuse]
+149.94s call     tests/integration/test_context_acquisition_receipts.py::test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explicit
+149.44s call     tests/integration/test_full_run_retrieval.py::test_upgrade_resumes_verified_evidence_at_original_cutoff
+149.10s call     tests/integration/test_full_run_retrieval.py::test_newly_acquired_historical_publication_fact_can_open_full_run_search
+149.04s call     tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[None]
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/home/tywin/.cache/pring-cycle/verification/commodity-resume-20260913/venv/lib/python3.12/site-packages/pring_cycle/storage.py:23: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+1136 passed in 5449.66s (1:30:49)

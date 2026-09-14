@@ -716,6 +716,8 @@ def test_context_selection_combines_members_with_same_period_end_and_distinct_st
 
     gaps = _context_selection_gaps(
         repository,
+        database_path=tmp_path / "models.sqlite3",
+        artifacts=tmp_path / "artifacts" / "sha256",
         side="candidate",
         metric_id="CN_SF_TOTAL",
         definition_version="metric-catalog-v0001",

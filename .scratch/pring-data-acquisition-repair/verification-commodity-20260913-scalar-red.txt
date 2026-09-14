@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_registered_basket_rejects_changed_value_attached_to_valid_inputs _____
+tests/models/test_registered_commodity.py:162: in test_registered_basket_rejects_changed_value_attached_to_valid_inputs
+    with pytest.raises(ValueError, match="commodity.*(original|result|value)"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_registered_basket_rejects_changed_value_attached_to_valid_inputs
+1 failed, 2 deselected in 18.40s

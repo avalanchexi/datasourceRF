@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_registered_basket_rejects_previous_output_relabelled_as_closed_day ____
+tests/models/test_registered_commodity.py:276: in test_registered_basket_rejects_previous_output_relabelled_as_closed_day
+    with pytest.raises(ValueError, match="commodity.*(original|result|value)"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   Failed: DID NOT RAISE <class 'ValueError'>
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_registered_basket_rejects_previous_output_relabelled_as_closed_day
+1 failed, 8 deselected in 56.37s

@@ -1,0 +1,10 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+__ test_candidate_rechecks_settlement_original_and_recovers_after_restoration __
+tests/models/test_registered_commodity.py:133: in test_candidate_rechecks_settlement_original_and_recovers_after_restoration
+    assert not rejected.complete and rejected.selected_claim_ids == ()
+E   AssertionError: assert (not True)
+E    +  where True = ModelInputSelection(complete=True, selected_claim_ids=('fe0022aa70cf705dc0c65402af5d333a00fa41b1238e40233b93f7cb419bf2...eb8fd551020004e0c8eb13d8e32f', 'bdea30eac7be507a0bbde19bad324c7a9cc8290c64eaa3fce1544be92a398e6d'), missing_members=()).complete
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_candidate_rechecks_settlement_original_and_recovers_after_restoration
+1 failed, 1 deselected in 15.02s

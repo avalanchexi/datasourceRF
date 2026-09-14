@@ -252,8 +252,10 @@ class _PreloadedSeriesState:
 
 class EvidenceRepository:
     def _validate_core_originals(self, claims: tuple[SourceClaimInput, ...]) -> None:
+        from pring_cycle.commodity_basket import require_commodity_results
         from pring_cycle.source_adapters import CORE_API_IDENTITIES, parse_core_acquisition
 
+        require_commodity_results(self._database_path, claims)
         originals: dict[tuple[str, str], dict[str, float]] = {}
         acquisitions = AcquisitionRepository(
             self._database_path, self._database_path.parent / "artifacts" / "sha256"

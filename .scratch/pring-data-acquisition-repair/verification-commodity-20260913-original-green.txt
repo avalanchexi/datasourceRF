@@ -1,0 +1,36 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_registered_basket_is_readable_with_all_seven_contributions ________
+tests/models/test_registered_commodity.py:79: in test_registered_basket_is_readable_with_all_seven_contributions
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/search_evidence.py:66: in select_retrieval_input
+    return ModelInputSelector(paths, run, mode=mode).select(scope)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/search_evidence.py:208: in select
+    commodity_ids = commodity_claims_matching_acquisitions(
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/commodity_basket.py:424: in commodity_claims_matching_acquisitions
+    if any(m["metric_id"] == point.metric_id and m["dimensions"] == point.dimensions
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/commodity_basket.py:424: in <genexpr>
+    if any(m["metric_id"] == point.metric_id and m["dimensions"] == point.dimensions
+                             ^^^^^^^^^^^^^^^
+E   AttributeError: 'MetricSeriesPoint' object has no attribute 'metric_id'
+__ test_candidate_rechecks_settlement_original_and_recovers_after_restoration __
+tests/models/test_registered_commodity.py:124: in test_candidate_rechecks_settlement_original_and_recovers_after_restoration
+    assert select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC).complete
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/search_evidence.py:66: in select_retrieval_input
+    return ModelInputSelector(paths, run, mode=mode).select(scope)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/search_evidence.py:208: in select
+    commodity_ids = commodity_claims_matching_acquisitions(
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/commodity_basket.py:424: in commodity_claims_matching_acquisitions
+    if any(m["metric_id"] == point.metric_id and m["dimensions"] == point.dimensions
+/tmp/pring-commodity-implement-20260913/venv/lib/python3.12/site-packages/pring_cycle/commodity_basket.py:424: in <genexpr>
+    if any(m["metric_id"] == point.metric_id and m["dimensions"] == point.dimensions
+                             ^^^^^^^^^^^^^^^
+E   AttributeError: 'MetricSeriesPoint' object has no attribute 'metric_id'
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_registered_basket_is_readable_with_all_seven_contributions
+FAILED tests/models/test_registered_commodity.py::test_candidate_rechecks_settlement_original_and_recovers_after_restoration
+2 failed in 46.72s

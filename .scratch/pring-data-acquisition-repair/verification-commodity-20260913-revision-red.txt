@@ -1,0 +1,18 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ test_registered_revision_preserves_old_public_system_results_and_parent_artifacts _
+tests/models/test_registered_commodity.py:258: in test_registered_revision_preserves_old_public_system_results_and_parent_artifacts
+    assert select(AsOfMode.PUBLIC, old_public, "after-old-public") == before_public
+E   assert ModelInputSel...crude_oil"}')) == ModelInputSel...ng_members=())
+E     
+E     Differing attributes:
+E     ['complete', 'selected_claim_ids', 'missing_members']
+E     
+E     Drill down into differing attribute complete:
+E       complete: False != True
+E     ...
+E     
+E     ...Full output truncated (9 lines hidden), use '-vv' to show
+=========================== short test summary info ============================
+FAILED tests/models/test_registered_commodity.py::test_registered_revision_preserves_old_public_system_results_and_parent_artifacts
+1 failed, 3 deselected in 108.09s (0:01:48)

@@ -1,0 +1,19 @@
+{
+  "base": "9a36df502fbc345b3041e39364430aaf3f676910",
+  "files": {
+    "src/pring_cycle/commodity_basket.py": "c7b304b49285bc327e9cc239e11c8b2474fd9b564f905b5ddc86aa919e1ba835",
+    "src/pring_cycle/evidence.py": "b3d523581a40acdf7a97a658653898cdb297313a46052647eb39a9c7015461b6",
+    "src/pring_cycle/futures_inputs.py": "1453831384fd668abc7e447398a294da36040c9c86f3e8aff55ac7909e5910b8",
+    "src/pring_cycle/metric_contracts.py": "0552efc65041b2b71d8ffabad010e70768c5364476b5dd681f1fec4a045e9e53",
+    "src/pring_cycle/model_evaluation.py": "e5327f0b0df5f110b95ca75fd54710b125b447eaf2198f1ae0f06f34b43ce6da",
+    "src/pring_cycle/search_evidence.py": "00f7a6908a8d768ec00e1921f7e41826fbea0f1713ebf81941d76b90a831faec",
+    "src/pring_cycle/source_contract_review.py": "72d33ba2fbf20a95c968f86fed19b4f209fe0f583fb3f9c3cd05bc3ebda88f78",
+    "tests/adapters/test_commodity_basket.py": "ff7088d19054a03b3bbd767b9e46ec1f75ce6c2c5662e5e7efbbf78509ca3d95",
+    "tests/models/test_registered_commodity.py": "37d2ec035566f9eec1576e3f5187e312135c96024c3e9213b4b6e413a2af7aeb"
+  },
+  "isolated_checkout_matches_index": true,
+  "non_ticket_source_test_changes": [],
+  "review_patch_sha256": "2ae555a3ca33551772d7d0c182a841d5042cb43bc7fa6d6bf83f6d4cd4c8a9a2",
+  "standards_review": "final static review: no hard violations; one optional duplicate return expression",
+  "spec_review": "final static review: no unresolved software findings; closed-date guard verified"
+}
