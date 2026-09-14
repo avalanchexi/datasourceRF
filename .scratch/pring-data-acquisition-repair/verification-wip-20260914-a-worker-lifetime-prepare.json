@@ -1,0 +1,15 @@
+{
+  "batch": "a-worker-lifetime",
+  "head": "59b7ce5fc52e7f4fc529eca5e911259e77095324",
+  "files": {
+    "src/pring_cycle/storage.py": "e2c9953a6493b12538b9ac530d97d194417cb3293ee0e3975346ac4a703ec94b",
+    "src/pring_cycle/worker.py": "264dbb9c528cb5b6b73cc655221fc0d4614f6d4ddf3b6ee4300eeb06fdc203b2",
+    "tests/e2e/test_local_runtime_cli.py": "e5c287d2b18ccd5bf9fd57b92237351aac9d805b03e591ec155a2e23398effed",
+    "tests/integration/test_worker_database_lifetime.py": "6746e5e9489d5864720fd2616d58c46e9a40785ed778851a66ad96569479add9",
+    "tests/fixtures/worker_heartbeat_shutdown.py": "f63b6df4aba02d1cf2c5d1fd14c641a7565ac81aa8d21d899378c739a6dabe4f",
+    "tests/fixtures/worker_sqlite_lifetime.py": "257cae8b3ccdce9c9dfaaab7214a4514da3cb3e645b47bd9f4e1ace61ddaa719"
+  },
+  "patch_sha256": "6a4454001379bcf75aa86a790625b62103a13c3155585772bab74fb0739a6eff",
+  "changed_paths_are_exactly_batch": true,
+  "prepared_at": "2026-09-14T03:16:02.465423+00:00"
+}

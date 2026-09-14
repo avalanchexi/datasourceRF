@@ -1,0 +1,50 @@
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_gdp_requires_complete_current_quarter_and_matched_receiptsissing_member]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_gdp_requires_complete_current_quarter_and_matched_receiptsissing_lineage]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_omo_net_injection_checks_operation_and_calendar_artifactsaturing-raw]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_omo_net_injection_checks_operation_and_calendar_artifactsaturing-normalized]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_replay_rechecks_each_catalog_mappingissing-mapping]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_replay_rechecks_each_catalog_mappingissing-raw]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_replay_rechecks_each_catalog_mappingissing-normalized]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revisionapping]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_capacity_mapping_reference_role_requires_actual_admission_validationixed_roles]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_capacity_q1_mapping_admission_requires_an_unambiguous_alias_tableissing_rate]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_candidate_admission.py::test_capacity_q1_mapping_admission_requires_an_unambiguous_alias_tableissing_industry]
+(no match in any of [<Module test_candidate_admission.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_capacity_historical_contract.py::test_historical_capacity_catalog_preserves_unclassified_dependenciesissing-mapping]
+(no match in any of [<Module test_capacity_historical_contract.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_capacity_historical_contract.py::test_historical_capacity_catalog_preserves_unclassified_dependenciesissing-basis]
+(no match in any of [<Module test_capacity_historical_contract.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_capacity_historical_contract.py::test_historical_capacity_catalog_preserves_unclassified_dependenciesissing-ordinary_fields]
+(no match in any of [<Module test_capacity_historical_contract.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_capacity_historical_contract.py::test_historical_capacity_catalog_still_requires_unselected_grant_dependenciesissing-unselected_mapping]
+(no match in any of [<Module test_capacity_historical_contract.py>])
+[0m
+[31mERROR: not found: /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/tests/models/test_capacity_historical_contract.py::test_historical_capacity_catalog_still_requires_unselected_grant_dependenciesissing-unselected_basis]
+(no match in any of [<Module test_capacity_historical_contract.py>])
+[0m
+
+[33m[33mno tests ran[0m[33m in 1.20s[0m[0m

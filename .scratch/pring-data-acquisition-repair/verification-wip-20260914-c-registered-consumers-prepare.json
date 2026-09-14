@@ -1,0 +1,25 @@
+{
+  "batch": "c-registered-consumers",
+  "head": "59b7ce5fc52e7f4fc529eca5e911259e77095324",
+  "files": {
+    "src/pring_cycle/candidate_admission.py": "d8ba08c83c2b8159dda6a3a7c4210466a7e5937c21aba2ae02207bf6087ff3fe",
+    "src/pring_cycle/context_projection.py": "34062e6b22bfab9f03352d264531b1e0ac899e25e6b85804b2aedf52f83e6141",
+    "src/pring_cycle/context_replay_scope.py": "0cf789d2c9332a277b530a11fca77486f22139886d68bf76fa00919e3c18d7d0",
+    "src/pring_cycle/evidence.py": "24be40a776a50fe2c739fff94adc183d237987371080f822725e8b5e5c3d164e",
+    "src/pring_cycle/interbank_evidence.py": "9d7bea566c32b720ef643ebd417b3fa778a4ee83635dc34a7c09b4be89656e5e",
+    "src/pring_cycle/metric_contracts.py": "1dec37bf3b4b2de0a4d4e585960514f3eba091199a23325b6b65f9db2f0e8658",
+    "src/pring_cycle/model_evaluation.py": "40a516439ff00ac6bd8c9031032eec62dea4991d4d13a95f7148f10f433a83d2",
+    "src/pring_cycle/model_outputs.py": "0010cd10184d61dd91a39282b1fc1801ff575805637d4e40c6a6ba995e4210c0",
+    "src/pring_cycle/official_context.py": "2d1d38ee644e3fb289cab39c7fad67ba2a45426cb4a2e6657fd76a21b1be7187",
+    "src/pring_cycle/search_evidence.py": "df3aa2fd1be0333a9507b447b824ffcfebf2ef10b890e678216da922aef1077d",
+    "src/pring_cycle/source_contract_review.py": "adcb797ba141f32c1ab8e68ece519177cc25034e5ec1e6c12fd25390ccf12f0f",
+    "src/pring_cycle/treasury_context.py": "041baa8ee9f3dd3444e1f0fe3d7de4acc54b0192d696c79de484996028b75c93",
+    "src/pring_cycle/tushare_context.py": "60e216a7660e5eb326eb0b0e2f677a200ff30d97822b195676f2b2b7787c789b",
+    "tests/models/test_candidate_admission.py": "56148f599abe48dc14cd91c5e6828a50a32759774b5a7c2071023b0671fbe253",
+    "tests/models/test_candidate_replay.py": "7b2407bc3d6ed72a2476df9ac54dc634083c518a42f638aa3d75bf2b84d8dfcc",
+    "tests/models/test_capacity_historical_contract.py": "0bfd9912ebad36f96d80bb55bbd5f00902332dc012dd9b870cd6229b92bb8565"
+  },
+  "patch_sha256": "435a569f44bbd19b81377a9903bf1ab46694550ea484c4caa4e7422fe479d45c",
+  "changed_paths_are_exactly_batch": true,
+  "prepared_at": "2026-09-14T03:17:04.996669+00:00"
+}

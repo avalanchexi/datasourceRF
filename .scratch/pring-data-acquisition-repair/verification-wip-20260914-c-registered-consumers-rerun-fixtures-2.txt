@@ -1,0 +1,545 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31m [ 42%]
+[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[31mF[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m [ 84%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31m                                              [100%][0m
+=================================== FAILURES ===================================
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-coherent] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-coherent_decimal] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-synthetic_inconsistent] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-actual_revised] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_social_raw] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_social_normalized] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_gdp_raw] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_gdp_normalized] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-unused_old_raw] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_nonpositive_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_quality_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_certification_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_quality_social] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_certification_social] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_nondisclosed_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_nondisclosed_social] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-older_social_window] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_missing_social_baseline] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-coherent] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-coherent_decimal] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-synthetic_inconsistent] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-actual_revised] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_social_raw] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_social_normalized] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_gdp_raw] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_gdp_normalized] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-unused_old_raw] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_nonpositive_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_quality_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_certification_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_quality_social] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_certification_social] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_nondisclosed_gdp] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_nondisclosed_social] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-older_social_window] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_missing_social_baseline] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:5758: in test_registered_credit_window_requires_comparable_gdp_release_baselines
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m___ test_credit_public_component_replay_requires_historical_window_artifacts ___[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6118: in test_credit_public_component_replay_requires_historical_window_artifacts
+    [0mmanifests, parent_ids = prepare_credit_component_pair(paths, capsys)[90m[39;49;00m
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mtests/models/test_candidate_admission.py[0m:6045: in prepare_credit_component_pair
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_credit_public_component_replay_preserves_revision_cutoffs[known-public] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6195: in test_credit_public_component_replay_preserves_revision_cutoffs
+    [0mmanifests, parent_ids = prepare_credit_component_pair(paths, capsys)[90m[39;49;00m
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mtests/models/test_candidate_admission.py[0m:6045: in prepare_credit_component_pair
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_credit_public_component_replay_preserves_revision_cutoffs[unknown-public] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6195: in test_credit_public_component_replay_preserves_revision_cutoffs
+    [0mmanifests, parent_ids = prepare_credit_component_pair(paths, capsys)[90m[39;49;00m
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mtests/models/test_candidate_admission.py[0m:6045: in prepare_credit_component_pair
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_credit_public_component_replay_requires_latest_month_difference_baseline _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6313: in test_credit_public_component_replay_requires_latest_month_difference_baseline
+    [0mmanifests, parent_ids = prepare_credit_component_pair([90m[39;49;00m
+[1m[31mtests/models/test_candidate_admission.py[0m:6045: in prepare_credit_component_pair
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_revision_preserves_as_of_and_history[known-public-public_as_of] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6452: in test_registered_credit_revision_preserves_as_of_and_history
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_revision_preserves_as_of_and_history[known-public-system_as_of] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6452: in test_registered_credit_revision_preserves_as_of_and_history
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_revision_preserves_as_of_and_history[unknown-public-public_as_of] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6452: in test_registered_credit_revision_preserves_as_of_and_history
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[31m[1m_ test_registered_credit_revision_preserves_as_of_and_history[unknown-public-system_as_of] _[0m
+[1m[31mtests/models/test_candidate_admission.py[0m:6452: in test_registered_credit_revision_preserves_as_of_and_history
+    [0mraw = (root / parent[[33m"[39;49;00m[33mraw_path[39;49;00m[33m"[39;49;00m]).read_bytes()[90m[39;49;00m
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1019: in read_bytes
+    [0m[94mwith[39;49;00m [96mself[39;49;00m.open(mode=[33m'[39;49;00m[33mrb[39;49;00m[33m'[39;49;00m) [94mas[39;49;00m f:[90m[39;49;00m
+         ^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py[0m:1013: in open
+    [0m[94mreturn[39;49;00m io.open([96mself[39;49;00m, mode, buffering, encoding, errors, newline)[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/c-registered-consumers/checkout/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b'[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-coherent][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-coherent_decimal][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-synthetic_inconsistent][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-actual_revised][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_social_raw][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_social_normalized][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_gdp_raw][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-damaged_gdp_normalized][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-unused_old_raw][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_nonpositive_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_quality_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_certification_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_quality_social][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_certification_social][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_nondisclosed_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_nondisclosed_social][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-older_social_window][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[public_as_of-latest_missing_social_baseline][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-coherent][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-coherent_decimal][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-synthetic_inconsistent][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-actual_revised][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_social_raw][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_social_normalized][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_gdp_raw][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-damaged_gdp_normalized][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-unused_old_raw][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_nonpositive_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_quality_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_certification_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_quality_social][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_certification_social][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_nondisclosed_gdp][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_nondisclosed_social][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-older_social_window][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_window_requires_comparable_gdp_release_baselines[system_as_of-latest_missing_social_baseline][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_credit_public_component_replay_requires_historical_window_artifacts[0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_credit_public_component_replay_preserves_revision_cutoffs[known-public][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_credit_public_component_replay_preserves_revision_cutoffs[unknown-public][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_credit_public_component_replay_requires_latest_month_difference_baseline[0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_revision_preserves_as_of_and_history[known-public-public_as_of][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_revision_preserves_as_of_and_history[known-public-system_as_of][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_revision_preserves_as_of_and_history[unknown-public-public_as_of][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31mFAILED[0m tests/models/test_candidate_admission.py::[1mtest_registered_credit_revision_preserves_as_of_and_history[unknown-public-system_as_of][0m - FileNotFoundError: [Errno 2] No such file or directory: '/home/tywin/.cache...
+[31m[31m[1m44 failed[0m, [32m127 passed[0m[31m in 146.40s (0:02:26)[0m[0m

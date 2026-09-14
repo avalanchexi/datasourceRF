@@ -132,3 +132,12 @@ Standards和Spec均已对该补丁复审，详见[审查记录](review-commodity
 `closed-target-red` 实际1失败/56.37秒：正常保存休市日拒绝，但完整父项和新哈希派生原件的错日期声明没有抛错。共享不可变文档入口补充完整/非空/末日等于目标日校验，`closed-target-green` 1通过/46.75秒。最终补丁SHA-256为`2ae555a3ca33551772d7d0c182a841d5042cb43bc7fa6d6bf83f6d4cd4c8a9a2`，9文件暂存/投影/独立检出一致，本票外源码测试保持原指纹。
 
 两轴独立复审无未解决软件问题，Standards保留1项可选重复收益公式判断。`closed-target-types`独立93源码通过，`final-ruff`/`final-format`最终9文件通过。现单任务运行`isolated-full-final`，源码、测试与依赖冻结；结果未出前不勾选最终交接、不提交为已验收。
+
+## isolated-full-final终态与提交59b7ce5
+
+`isolated-full-final` 实际 **2失败/1353通过/6510.13秒**，退出1，输入/依赖/安装源码前后一致，不记为全绿。
+
+1. `test_context_selection_combines_members_with_same_period_end_and_distinct_starts`：测试直接调用私有 `_context_selection_gaps` 未传关键字参数；`artifacts` 自7272057起已缺，本票又加 `database_path`。本票补传两参数；独立检出该文件21通过/1.24秒，Ruff通过（格式检查报告的294行差异为既有代码，未改）。
+2. `test_invalid_cli_schema_is_audited_and_falls_back_once[governance_refs=null]`：HEAD `reports.py` 墙钟完成时间早于开始时间，抛 `report_attempt_time_order_invalid`；本票补丁未触及reports，独立检出重跑4参数全通过。属于既有墙钟时序不稳定，工作区另有未提交的monotonic计时改动，不纳入本票。
+
+以已暂存并独立核验的补丁加上述测试修正提交 `59b7ce5`。修正后未重跑默认全套；票19/22的最终同版本全套仍须覆盖。真实来源认证、固定120日及产品验收继续开放，23延期。

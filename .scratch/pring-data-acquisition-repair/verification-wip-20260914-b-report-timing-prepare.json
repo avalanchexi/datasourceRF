@@ -1,0 +1,11 @@
+{
+  "batch": "b-report-timing",
+  "head": "59b7ce5fc52e7f4fc529eca5e911259e77095324",
+  "files": {
+    "src/pring_cycle/reports.py": "a6221e323ad869c416320c7b28285e6df1e5e1834bdb201262337277f87c959a",
+    "tests/reports/test_report_boundary.py": "d114d1a5cefb21aa6624c01e0964017558b331387403991d33a0e22eb3ed7405"
+  },
+  "patch_sha256": "e17e8c22732e851999c9b72542d533610007393f83190b09c24a9355ece798b1",
+  "changed_paths_are_exactly_batch": true,
+  "prepared_at": "2026-09-14T03:16:51.713657+00:00"
+}

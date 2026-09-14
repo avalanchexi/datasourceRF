@@ -1,0 +1,58 @@
+........................................................................ [  5%]
+........................................................................ [ 10%]
+........................................................................ [ 15%]
+........................................................................ [ 21%]
+........................................................................ [ 26%]
+........................................................................ [ 31%]
+........................................................................ [ 37%]
+........................................................................ [ 42%]
+........................................................................ [ 47%]
+........................................................................ [ 53%]
+........................................................................ [ 58%]
+........................................................................ [ 63%]
+........................................................................ [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+........................................................................ [ 85%]
+........................................................................ [ 90%]
+.............................................F.......................... [ 95%]
+..............F............................................              [100%]
+=================================== FAILURES ===================================
+_ test_context_selection_combines_members_with_same_period_end_and_distinct_starts _
+tests/models/test_model_lifecycle.py:717: in test_context_selection_combines_members_with_same_period_end_and_distinct_starts
+    gaps = _context_selection_gaps(
+E   TypeError: _context_selection_gaps() missing 2 required keyword-only arguments: 'database_path' and 'artifacts'
+_ test_invalid_cli_schema_is_audited_and_falls_back_once[governance_refs=null] _
+tests/reports/test_cli_protocol.py:373: in test_invalid_cli_schema_is_audited_and_falls_back_once
+    ).generate(frozen_bundle())
+      ^^^^^^^^^^^^^^^^^^^^^^^^^
+../venv/lib/python3.12/site-packages/pring_cycle/reports.py:607: in generate
+    self._repository.record_attempt(
+../venv/lib/python3.12/site-packages/pring_cycle/reports.py:396: in record_attempt
+    raise ValueError("report_attempt_time_order_invalid")
+E   ValueError: report_attempt_time_order_invalid
+============================= slowest 20 durations =============================
+163.46s call     tests/integration/test_full_run_retrieval.py::test_resume_rechecks_unknown_release_without_mutating_initial_plan[False]
+161.80s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema]
+160.63s call     tests/models/test_registered_commodity.py::test_registered_revision_preserves_old_public_system_results_and_parent_artifacts
+159.66s call     tests/integration/test_full_run_retrieval.py::test_full_run_recovers_adoption_after_projection_checkpoint
+157.66s call     tests/integration/test_full_run_retrieval.py::test_full_run_shares_hard_search_budget_across_periods
+157.07s call     tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices[reuse]
+155.10s call     tests/integration/test_full_run_retrieval.py::test_newly_acquired_historical_publication_fact_can_open_full_run_search
+154.41s call     tests/integration/test_full_run_retrieval.py::test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot[True]
+154.39s call     tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[None]
+154.00s call     tests/integration/test_full_run_retrieval.py::test_full_run_searches_real_gap_and_publishes_traceable_adoption
+152.09s call     tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[failure2]
+151.93s call     tests/integration/test_full_run_retrieval.py::test_full_run_plan_includes_missing_historical_daily_members
+151.70s call     tests/integration/test_full_run_retrieval.py::test_upgrade_resumes_verified_evidence_at_original_cutoff
+150.64s call     tests/integration/test_full_run_retrieval.py::test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot[False]
+149.78s call     tests/integration/test_full_run_retrieval.py::test_resume_rechecks_unknown_release_without_mutating_initial_plan[True]
+148.93s call     tests/integration/test_full_run_retrieval.py::test_credit_formula_expands_required_history_in_full_run_plan
+148.77s call     tests/integration/test_full_run_retrieval.py::test_independent_calendar_keeps_missing_core_day_in_required_window
+148.76s call     tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability
+148.63s call     tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification[failure1]
+148.63s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels]
+=========================== short test summary info ============================
+FAILED tests/models/test_model_lifecycle.py::test_context_selection_combines_members_with_same_period_end_and_distinct_starts
+FAILED tests/reports/test_cli_protocol.py::test_invalid_cli_schema_is_audited_and_falls_back_once[governance_refs=null]
+2 failed, 1353 passed in 6510.13s (1:48:30)
