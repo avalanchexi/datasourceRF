@@ -853,9 +853,14 @@ class ModelRepository:
         try:
             details = self.replay_details(replay_id)
             saved = details["replay"]
-            if not saved["passed"] or details["core_output_status"] != "recorded":
+            core_status = details["core_output_status"]
+            context_status = details["context_output_status"]
+            # The saved documents were validated above and are compared by hash; release them
+            # before recomputing, so two full replay documents are never held at once.
+            del details
+            if not saved["passed"] or core_status != "recorded":
                 return False
-            if details["context_output_status"] not in {"recorded", "not_applicable"}:
+            if context_status not in {"recorded", "not_applicable"}:
                 return False
             evaluation = replay_models(
                 self._database_path,

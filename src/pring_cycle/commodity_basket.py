@@ -17,7 +17,12 @@ from pring_cycle.evidence import (
     SourceClaimAcquisition,
     SourceClaimInput,
 )
-from pring_cycle.futures_inputs import PRODUCT_EXCHANGES, select_futures_inputs
+from pring_cycle.futures_inputs import (
+    PRODUCT_EXCHANGES,
+    FuturesInputReader,
+    futures_input_reader,
+    shared_futures_input_reads,
+)
 from pring_cycle.runtime import RuntimePaths
 
 COMMODITY_FORMULA_VERSION = "ex-hog-calendar-settlement-v0002"
@@ -41,13 +46,13 @@ def _frozen_session(
     business_date: date,
     latest: dict[str, Any],
     system_as_of: datetime | None,
+    reader: FuturesInputReader,
 ) -> dict[str, Any] | None:
     versions = [latest]
     current = latest
     while True:
         published = datetime.fromisoformat(current["public_available_at"])
-        older = select_futures_inputs(
-            paths,
+        older = reader.select(
             products=(product,),
             business_date=business_date,
             mode=AsOfMode.PUBLIC,
@@ -76,6 +81,7 @@ def select_commodity_contracts(
     business_date: date,
     as_of: datetime,
     mode: AsOfMode,
+    reader: FuturesInputReader | None = None,
 ) -> dict[str, Any]:
     """Select the nearest expiry with over ten open days, before its T session.
 
@@ -85,14 +91,14 @@ def select_commodity_contracts(
     """
     if as_of.tzinfo is None or as_of.utcoffset() is None:
         raise ValueError("commodity_cutoff_timezone_required")
+    reader = reader or futures_input_reader(paths)
     system_as_of = as_of if mode is AsOfMode.SYSTEM else None
     notice_cutoff = min(
         as_of,
         datetime.combine(business_date, time.min, ZoneInfo("Asia/Shanghai"))
         - timedelta(microseconds=1),
     )
-    visible = select_futures_inputs(
-        paths,
+    visible = reader.select(
         products=products,
         business_date=business_date,
         mode=AsOfMode.PUBLIC,
@@ -107,7 +113,7 @@ def select_commodity_contracts(
         if session is None:
             missing.append("commodity_session_missing:" + product)
             continue
-        session = _frozen_session(paths, product, business_date, session, system_as_of)
+        session = _frozen_session(paths, product, business_date, session, system_as_of, reader)
         if session is None:
             missing.append("commodity_session_not_known_before_start:" + product)
             continue
@@ -116,8 +122,7 @@ def select_commodity_contracts(
             notice_cutoff,
             datetime.fromisoformat(session["session_start_at"]) - timedelta(microseconds=1),
         )
-        known = select_futures_inputs(
-            paths,
+        known = reader.select(
             products=(product,),
             business_date=business_date,
             mode=AsOfMode.PUBLIC,
@@ -178,14 +183,19 @@ def calculate_commodity_returns(
     business_date: date,
     as_of: datetime,
     mode: AsOfMode,
+    reader: FuturesInputReader | None = None,
 ) -> dict[str, Any]:
     """Read point-in-time returns using each frozen choice's own settle and pre_settle."""
+    reader = reader or futures_input_reader(paths)
     choices = select_commodity_contracts(
-        paths, products=products, business_date=business_date, as_of=as_of, mode=mode
+        paths,
+        products=products,
+        business_date=business_date,
+        as_of=as_of,
+        mode=mode,
+        reader=reader,
     )
-    inputs = select_futures_inputs(
-        paths, products=products, business_date=business_date, mode=mode, as_of=as_of
-    )
+    inputs = reader.select(products=products, business_date=business_date, mode=mode, as_of=as_of)
     settlements = {item["contract_code"]: item for item in inputs["settlements"]}
     missing = list(choices["missing"])
     returns = []
@@ -228,11 +238,17 @@ def calculate_commodity_basket(
         "days": [],
         "missing": [],
     }
+    # One consistent read of the captured inputs for the whole fixed-base chain.
+    reader = futures_input_reader(paths)
     base_choices = select_commodity_contracts(
-        paths, products=products, business_date=COMMODITY_BASE_DATE, as_of=as_of, mode=mode
-    )
-    base_inputs = select_futures_inputs(
         paths,
+        products=products,
+        business_date=COMMODITY_BASE_DATE,
+        as_of=as_of,
+        mode=mode,
+        reader=reader,
+    )
+    base_inputs = reader.select(
         products=products,
         business_date=COMMODITY_BASE_DATE,
         mode=mode,
@@ -252,9 +268,7 @@ def calculate_commodity_basket(
     level = Fraction(1000)
     for offset in range(1, (business_date - COMMODITY_BASE_DATE).days + 1):
         day = COMMODITY_BASE_DATE + timedelta(days=offset)
-        inputs = select_futures_inputs(
-            paths, products=products, business_date=day, mode=mode, as_of=as_of
-        )
+        inputs = reader.select(products=products, business_date=day, mode=mode, as_of=as_of)
         calendar = {
             item["exchange"]: item
             for item in inputs["calendar"]
@@ -269,7 +283,7 @@ def calculate_commodity_basket(
         if all(calendar[exchange]["is_open"] is False for exchange in exchanges):
             continue
         daily = calculate_commodity_returns(
-            paths, products=products, business_date=day, as_of=as_of, mode=mode
+            paths, products=products, business_date=day, as_of=as_of, mode=mode, reader=reader
         )
         if daily["missing"]:
             result["missing"].extend(reason + ":" + day.isoformat() for reason in daily["missing"])
@@ -409,13 +423,34 @@ def persist_commodity_basket(
     definition_version: str,
 ) -> dict[str, Any]:
     """Publish original-backed fixed-base results without rewriting input receipts."""
-    from pring_cycle.acquisition import AcquisitionRepository, utc_now
-    from pring_cycle.catalog import metric_definition
     from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
-    from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 
     if definition_version in BUILTIN_CATALOG_VERSIONS:
         raise ValueError("commodity_registered_definition_required")
+    # The calculation and the pre-write recalculation read the same captured inputs; the
+    # derived result captured in between is not a futures input.
+    with shared_futures_input_reads():
+        return _persist_commodity_basket(
+            paths,
+            business_date=business_date,
+            as_of=as_of,
+            mode=mode,
+            definition_version=definition_version,
+        )
+
+
+def _persist_commodity_basket(
+    paths: RuntimePaths,
+    *,
+    business_date: date,
+    as_of: datetime,
+    mode: AsOfMode,
+    definition_version: str,
+) -> dict[str, Any]:
+    from pring_cycle.acquisition import AcquisitionRepository, utc_now
+    from pring_cycle.catalog import metric_definition
+    from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+
     result = calculate_commodity_basket(paths, business_date=business_date, as_of=as_of, mode=mode)
     if (
         result["missing"]
@@ -513,12 +548,24 @@ def commodity_claims_matching_acquisitions(
         if p.selected_claim_id is not None
     }
     inputs_by_claim = repository.source_claim_acquisitions_many(tuple(selected))
-    expected_by_day: dict[str, dict[str, Any]] = {}
+    expected_by_day: dict[str, Any] = {}
+    # The level and seven contribution claims of one day share a single result snapshot.
+    documents: dict[tuple[str, ...], dict[str, Any] | Exception] = {}
+    agreement: dict[tuple[tuple[str, ...], str], bool] = {}
     valid = set()
     for claim_id, inputs in inputs_by_claim.items():
         metric, point = selected[claim_id]
         try:
-            document = _commodity_document(inputs, artifacts)
+            inputs_key = tuple(sorted(i.receipt.acquisition_id for i in inputs))
+            if inputs_key not in documents:
+                try:
+                    documents[inputs_key] = _commodity_document(inputs, artifacts)
+                except (ValueError, KeyError, TypeError, LookupError, OSError) as error:
+                    documents[inputs_key] = error
+            loaded = documents[inputs_key]
+            if isinstance(loaded, Exception):
+                raise loaded
+            document = loaded
             if (
                 document["definition_version"] != definition_version
                 or document["business_date"] != point.period_end
@@ -526,19 +573,24 @@ def commodity_claims_matching_acquisitions(
                 continue
             result = document["result"]
             if point.period_end not in expected_by_day:
-                expected_by_day[point.period_end] = calculate_commodity_basket(
-                    paths,
-                    business_date=date.fromisoformat(point.period_end),
-                    mode=mode,
-                    as_of=as_of,
+                expected_by_day[point.period_end] = _commodity_meaning(
+                    calculate_commodity_basket(
+                        paths,
+                        business_date=date.fromisoformat(point.period_end),
+                        mode=mode,
+                        as_of=as_of,
+                    )
                 )
             # Equivalent later deliveries may have different receipt identities.
             # Preserve the historical claim's parents, validating their originals,
             # while comparing the facts selected at the caller's cutoff.
-            if (
-                _commodity_meaning(result) != _commodity_meaning(expected_by_day[point.period_end])
-                or result["missing"]
-            ):
+            comparison = inputs_key, point.period_end
+            if comparison not in agreement:
+                agreement[comparison] = (
+                    _commodity_meaning(result) == expected_by_day[point.period_end]
+                    and not result["missing"]
+                )
+            if not agreement[comparison]:
                 continue
             claim = next(c for c in point.claims if c.claim_id == claim_id)
             published = _commodity_publication(result)

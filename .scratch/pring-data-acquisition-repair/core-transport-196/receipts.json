@@ -1,0 +1,133 @@
+{
+  "purpose": "real transport input preparation only; no application acquisition, source claims, certification or model mutation",
+  "credential_origin": "existing project TuShare configuration; token neither logged nor copied",
+  "attempts_per_request": 1,
+  "state": "complete",
+  "receipts": [
+    {
+      "name": "calendar",
+      "endpoint": "https://api.tushare.pro",
+      "method": "POST",
+      "api_name": "trade_cal",
+      "parameters": {
+        "exchange": "SSE",
+        "start_date": "20170103",
+        "end_date": "20260828"
+      },
+      "fields": "cal_date,is_open",
+      "started_at": "2026-09-11T06:01:59.796429+00:00",
+      "state": "captured",
+      "http_status": 200,
+      "received_at": "2026-09-11T06:02:00.116518+00:00",
+      "sha256": "2c8576c3d87cca2973053122683cd3ee48c1b29b3524f500179e123d40785705",
+      "byte_count": 53039,
+      "local_file": "2c8576c3d87cca2973053122683cd3ee48c1b29b3524f500179e123d40785705.json",
+      "business_code": 0,
+      "returned_fields": [
+        "cal_date",
+        "is_open"
+      ],
+      "returned_rows": 3525,
+      "headers": {
+        "Date": "Fri, 11 Sep 2026 06:01:59 GMT",
+        "Content-Type": "application/json; charset=utf-8"
+      }
+    },
+    {
+      "name": "CN_EQUITY_CORE_000985",
+      "endpoint": "https://api.tushare.pro",
+      "method": "POST",
+      "api_name": "index_daily",
+      "parameters": {
+        "ts_code": "000985.CSI",
+        "start_date": "20170103",
+        "end_date": "20260828"
+      },
+      "fields": "ts_code,trade_date,close,pre_close,pct_chg",
+      "started_at": "2026-09-11T06:02:00.118772+00:00",
+      "state": "captured",
+      "http_status": 200,
+      "received_at": "2026-09-11T06:02:00.267541+00:00",
+      "sha256": "426a275fa6984375b1a679657519154848519581e579e6efe55286ad18f30649",
+      "byte_count": 124863,
+      "local_file": "426a275fa6984375b1a679657519154848519581e579e6efe55286ad18f30649.json",
+      "business_code": 0,
+      "returned_fields": [
+        "ts_code",
+        "trade_date",
+        "close",
+        "pre_close",
+        "pct_chg"
+      ],
+      "returned_rows": 2345,
+      "headers": {
+        "Date": "Fri, 11 Sep 2026 06:02:00 GMT",
+        "Content-Type": "application/json; charset=utf-8"
+      }
+    },
+    {
+      "name": "CN_BOND_CORE_000012",
+      "endpoint": "https://api.tushare.pro",
+      "method": "POST",
+      "api_name": "index_daily",
+      "parameters": {
+        "ts_code": "000012.SH",
+        "start_date": "20170103",
+        "end_date": "20260828"
+      },
+      "fields": "ts_code,trade_date,close,pre_close,pct_chg",
+      "started_at": "2026-09-11T06:02:00.269527+00:00",
+      "state": "captured",
+      "http_status": 200,
+      "received_at": "2026-09-11T06:02:00.508683+00:00",
+      "sha256": "a8a1d69f3a59a6de07e35ae0f479e5687239d51c34d311cfb850b692f99c343f",
+      "byte_count": 117352,
+      "local_file": "a8a1d69f3a59a6de07e35ae0f479e5687239d51c34d311cfb850b692f99c343f.json",
+      "business_code": 0,
+      "returned_fields": [
+        "ts_code",
+        "trade_date",
+        "close",
+        "pre_close",
+        "pct_chg"
+      ],
+      "returned_rows": 2345,
+      "headers": {
+        "Date": "Fri, 11 Sep 2026 06:02:00 GMT",
+        "Content-Type": "application/json; charset=utf-8"
+      }
+    },
+    {
+      "name": "CN_COMMODITY_CORE_NHII",
+      "endpoint": "https://api.tushare.pro",
+      "method": "POST",
+      "api_name": "fut_index_daily",
+      "parameters": {
+        "ts_code": "NHII.NH",
+        "start_date": "20170103",
+        "end_date": "20260828"
+      },
+      "fields": "ts_code,trade_date,close,pre_close,pct_chg",
+      "started_at": "2026-09-11T06:02:00.512830+00:00",
+      "state": "captured",
+      "http_status": 200,
+      "received_at": "2026-09-11T06:02:00.826780+00:00",
+      "sha256": "76d6ae3adb68cb0aa18c954c3cfc2a70f7285ca0bb59d71ad524e6ff6809faf4",
+      "byte_count": 113756,
+      "local_file": "76d6ae3adb68cb0aa18c954c3cfc2a70f7285ca0bb59d71ad524e6ff6809faf4.json",
+      "business_code": 0,
+      "returned_fields": [
+        "ts_code",
+        "trade_date",
+        "close",
+        "pre_close",
+        "pct_chg"
+      ],
+      "returned_rows": 2345,
+      "headers": {
+        "Date": "Fri, 11 Sep 2026 06:02:00 GMT",
+        "Content-Type": "application/json; charset=utf-8"
+      }
+    }
+  ]
+}

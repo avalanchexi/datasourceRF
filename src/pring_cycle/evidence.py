@@ -336,14 +336,15 @@ class EvidenceRepository:
                 checked[acquisition_id] = None
                 if row["state"] == "validated":
                     try:
-                        raw = acquisitions.read_content(acquisition_id, "raw")
-                        normalized = acquisitions.read_content(acquisition_id, "normalized")
-                        # Keep each receipt's validation, but share identical immutable payloads
-                        # for the lifetime of this batch (including across different claims).
-                        raw = content_by_hash.setdefault(row["raw_hash"], raw)
-                        normalized = content_by_hash.setdefault(row["normalized_hash"], normalized)
+                        receipt = receipt_from_row(row)
+                        # Keep each receipt's own checks, but read and hash-check identical
+                        # immutable payloads once for this batch (including across claims).
+                        payloads = [
+                            acquisitions.read_receipt_content(receipt, kind, content_by_hash)
+                            for kind in ("raw", "normalized")
+                        ]
                         checked[acquisition_id] = SourceClaimAcquisition(
-                            receipt_from_row(row), raw, normalized
+                            receipt, payloads[0], payloads[1]
                         )
                     except (LookupError, ValueError, OSError):
                         pass

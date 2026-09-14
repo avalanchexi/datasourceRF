@@ -13,7 +13,13 @@ from urllib.parse import urlsplit
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    Acquired,
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    receipt_key,
+    utc_now,
+)
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
@@ -292,6 +298,32 @@ def parse_official_acquisition(
     return parsed
 
 
+# Rebuilding an announcement is a pure function of its receipt and the bytes just read,
+# so repeated consumers (each replay cutoff) reuse it. The key includes the SHA-256 of
+# those bytes: damaged or replaced originals never match an earlier rebuild.
+_OFFICIAL_REBUILDS: dict[tuple[object, ...], ParsedOfficialContextRelease | None] = {}
+_OFFICIAL_REBUILD_LIMIT = 4096
+
+
+def _rebuilt_official_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> ParsedOfficialContextRelease | None:
+    key = (receipt_key(receipt), hashlib.sha256(raw).hexdigest())
+    if key in _OFFICIAL_REBUILDS:
+        return _OFFICIAL_REBUILDS[key]
+    rebuilt: ParsedOfficialContextRelease | None
+    try:
+        rebuilt = parse_official_acquisition(receipt, raw)
+        if rebuilt.family == "nbs_gdp":
+            _validate_registered_gdp_table(raw, rebuilt.period)
+    except (LookupError, TypeError, ValueError):
+        rebuilt = None
+    if len(_OFFICIAL_REBUILDS) >= _OFFICIAL_REBUILD_LIMIT:
+        _OFFICIAL_REBUILDS.pop(next(iter(_OFFICIAL_REBUILDS)))
+    _OFFICIAL_REBUILDS[key] = rebuilt
+    return rebuilt
+
+
 def official_claims_matching_acquisitions(
     repository: EvidenceRepository,
     points_by_metric: Mapping[str, tuple[MetricSeriesPoint, ...]],
@@ -316,13 +348,9 @@ def official_claims_matching_acquisitions(
         for acquisition in acquisitions:
             acquisition_id = acquisition.receipt.acquisition_id
             if acquisition_id not in checked:
-                try:
-                    rebuilt = parse_official_acquisition(acquisition.receipt, acquisition.raw)
-                    if rebuilt.family == "nbs_gdp":
-                        _validate_registered_gdp_table(acquisition.raw, rebuilt.period)
-                    checked[acquisition_id] = rebuilt
-                except (LookupError, TypeError, ValueError):
-                    checked[acquisition_id] = None
+                checked[acquisition_id] = _rebuilt_official_acquisition(
+                    acquisition.receipt, acquisition.raw
+                )
             parsed = checked[acquisition_id]
             if (
                 parsed is None

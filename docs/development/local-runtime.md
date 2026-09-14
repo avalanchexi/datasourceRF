@@ -384,6 +384,18 @@ pring-cycle model-rollback --model NEXT_MODEL --as-of-date YYYY-MM-DD \
   --calendar /wsl/native/path/trading-days.txt --confirm --json
 ```
 
+## 隔离生命周期测试材料
+
+`tests/models/test_isolated_lifecycle.py` 经公开准入、机器校准、精确120交易日回放和显式激活，
+在测试临时运行根中构建一个合成的完整生效模型，并把成功的构建保存为可重建测试缓存，默认位于
+`${XDG_CACHE_HOME:-$HOME/.cache}/pring-cycle/test-materials/<身份键>/`（可用
+`PRING_TEST_MATERIALS_ROOT` 指定）。身份键覆盖源码、依赖、配置、构建器与输入文件哈希；材料附带
+运行根内容哈希清单，复用前逐文件核对，任一不符即拒绝。每个测试得到独立完整副本。
+
+该材料只由测试构建产生、只复制到测试临时运行根，从不读取或复制正式运行目录的 SQLite、
+证据、报告或密钥，也不用于恢复；它不是 ADR-0011 所指的运行数据备份，删除后可重新构建。
+材料中的全部来源认证与发布时间均为合成测试数据，不构成真实来源认证。
+
 ## 统一离线验收
 
 以下命令在临时 SQLite 和制品目录中重复初始化，执行原子制品写入/登记/读回，启动正式

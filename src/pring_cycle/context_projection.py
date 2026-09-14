@@ -128,7 +128,7 @@ _SUPPORTED_FORMULA_VERSIONS = {
         "pmi-order-inventory-spread-v0001",
     },
     "production_order_spread": {"pmi-production-order-spread-v0001"},
-    "real_inventory_approximation": {"inventory-ppi-v0001"},
+    "real_inventory_approximation": {"inventory-ppi-v0001", "inventory-ppi-common-month-v0002"},
     "ust_2s10s_spread": {"ust-2s10s-spread-v0001"},
 }
 
@@ -465,6 +465,8 @@ def build_context_projection(
         formula_version=rules.formula_versions.get("real_inventory_approximation"),
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
+        series_repository=visible_repository,
+        ppi_definition=definitions.get("CN_PPI"),
     )
     international_context = _international_context(rows_by_metric, rules.metric_definitions)
     macro_document: dict[str, object] = {
@@ -1926,6 +1928,56 @@ def _international_context(
     return documents
 
 
+_COMMON_MONTH_INVENTORY_FORMULA = "inventory-ppi-common-month-v0002"
+
+
+class _PeriodBoundSeries:
+    """Delegate evidence access, hiding one metric's periods after a bound."""
+
+    def __init__(self, repository: Any, metric_id: str, period_end: str) -> None:
+        self._repository = repository
+        self._metric_id = metric_id
+        self._period_end = period_end
+
+    def metric_series(self, metric_id: str, *args: Any, **kwargs: Any) -> tuple[Any, ...]:
+        series = self._repository.metric_series(metric_id, *args, **kwargs)
+        if metric_id != self._metric_id:
+            return tuple(series)
+        return tuple(point for point in series if point.period_end <= self._period_end)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._repository, name)
+
+
+def _row_for_period(
+    repository: Any,
+    definition: MetricDefinition,
+    *,
+    period: str,
+    dimensions: Mapping[str, str],
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+) -> dict[str, object] | None:
+    # Duck-typed like TargetBoundEvidenceRepository: only the bounded metric changes.
+    bounded: Any = _PeriodBoundSeries(repository, definition.metric_id, period)
+    rows = _metric_rows(
+        bounded,
+        definition,
+        as_of=as_of,
+        as_of_mode=as_of_mode,
+    ).rows
+    return next(
+        (
+            row
+            for row in rows
+            if row["status"] == "current"
+            and row["dimensions"] == dict(dimensions)
+            and row["period"] == period
+        ),
+        None,
+    )
+
+
 def _real_inventory_proxy(
     repository: EvidenceRepository,
     rows_by_metric: dict[str, tuple[dict[str, object], ...]],
@@ -1934,6 +1986,8 @@ def _real_inventory_proxy(
     formula_version: str | None,
     as_of_mode: AsOfMode,
     persist_derived: bool,
+    series_repository: Any = None,
+    ppi_definition: MetricDefinition | None = None,
 ) -> tuple[dict[str, object], tuple[str, ...]]:
     nominal = next(
         (
@@ -1964,6 +2018,25 @@ def _real_inventory_proxy(
         ),
         "value": None,
     }
+    if (
+        formula_version == _COMMON_MONTH_INVENTORY_FORMULA
+        and nominal is not None
+        and (ppi is None or ppi["period"] != nominal["period"])
+        and ppi_definition is not None
+    ):
+        # PPI for a month is released before that month's inventory, so the common month is
+        # the inventory period. Its PPI must pass the same checks as a latest row.
+        aligned = _row_for_period(
+            series_repository if series_repository is not None else repository,
+            ppi_definition,
+            period=str(nominal["period"]),
+            dimensions={"measure": "yoy", "category": "headline"},
+            as_of=as_of,
+            as_of_mode=as_of_mode,
+        )
+        if aligned is not None:
+            ppi = aligned
+            document["ppi_input"] = ppi
     if formula_version is None or nominal is None or ppi is None:
         return document, ()
     if nominal["period"] != ppi["period"]:

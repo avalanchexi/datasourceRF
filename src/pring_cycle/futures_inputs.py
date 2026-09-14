@@ -5,7 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Callable
+from bisect import bisect_left, bisect_right
+from collections import OrderedDict
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -166,46 +170,42 @@ def _validate_publication(item: dict[str, Any], proof_ids: set[str]) -> None:
         raise ValueError("futures_input_publication_invalid")
 
 
-def _load_evidence(
-    raw: bytes,
-    root: Path,
-    *,
-    verify_originals: bool,
-    received_at: datetime | None = None,
-) -> dict[str, Any]:
+@dataclass(frozen=True)
+class _EvidenceStructure:
+    document: dict[str, Any]
+    subject_hash: str
+    proof_ids: frozenset[str]
+
+
+# Keyed by the SHA-256 of the immutable packet bytes. Only checks derived from those bytes
+# are shared; the review artifact, review time and proof originals are rechecked per call.
+_EVIDENCE_STRUCTURES: dict[str, _EvidenceStructure] = {}
+_EVIDENCE_STRUCTURE_LIMIT = 16
+
+
+def _evidence_structure(raw: bytes) -> _EvidenceStructure:
+    digest = hashlib.sha256(raw).hexdigest()
+    cached = _EVIDENCE_STRUCTURES.get(digest)
+    if cached is not None:
+        return cached
     document = json.loads(raw)
     if (
         not isinstance(document, dict)
         or document.get("schema_version") != "futures-input-evidence-v0001"
     ):
         raise ValueError("futures_input_evidence_schema_invalid")
-    review = json.loads(_artifact(root, document["review_hash"]))
-    reviewed_at = _time(review.get("reviewed_at"))
     subject = {k: v for k, v in document.items() if k != "review_hash"}
-    if (
-        review.get("schema_version") != "futures-input-evidence-review-v0001"
-        or review.get("subject_hash") != hashlib.sha256(_json(subject)).hexdigest()
-        or review.get("decision") != "accepted"
-        or not isinstance(review.get("reviewer"), str)
-        or not review["reviewer"].strip()
-        or reviewed_at is None
-    ):
-        raise ValueError("futures_input_evidence_review_invalid")
-    if received_at is not None and reviewed_at > received_at:
-        raise ValueError("futures_input_evidence_review_in_future")
     proof_ids: set[str] = set()
     for proof in document["evidence"]:
-        digest = proof["artifact_hash"]
+        proof_hash = proof["artifact_hash"]
         if (
-            not isinstance(digest, str)
-            or re.fullmatch(r"[0-9a-f]{64}", digest) is None
-            or digest in proof_ids
+            not isinstance(proof_hash, str)
+            or re.fullmatch(r"[0-9a-f]{64}", proof_hash) is None
+            or proof_hash in proof_ids
             or not proof["source_reference"]
         ):
             raise ValueError("futures_input_evidence_invalid")
-        proof_ids.add(digest)
-        if verify_originals:
-            _artifact(root, digest)
+        proof_ids.add(proof_hash)
     identities = set()
     for item in document["publications"]:
         identity = _json(
@@ -238,6 +238,41 @@ def _load_evidence(
             raise ValueError("futures_input_session_invalid")
         sessions.add(key)
         _validate_publication(item, proof_ids)
+    structure = _EvidenceStructure(
+        document, hashlib.sha256(_json(subject)).hexdigest(), frozenset(proof_ids)
+    )
+    if len(_EVIDENCE_STRUCTURES) >= _EVIDENCE_STRUCTURE_LIMIT:
+        _EVIDENCE_STRUCTURES.pop(next(iter(_EVIDENCE_STRUCTURES)))
+    _EVIDENCE_STRUCTURES[digest] = structure
+    return structure
+
+
+def _load_evidence(
+    raw: bytes,
+    root: Path,
+    *,
+    verify_originals: bool,
+    received_at: datetime | None = None,
+) -> dict[str, Any]:
+    """Return the reviewed packet; callers must treat the shared document as read-only."""
+    structure = _evidence_structure(raw)
+    document = structure.document
+    review = json.loads(_artifact(root, document["review_hash"]))
+    reviewed_at = _time(review.get("reviewed_at"))
+    if (
+        review.get("schema_version") != "futures-input-evidence-review-v0001"
+        or review.get("subject_hash") != structure.subject_hash
+        or review.get("decision") != "accepted"
+        or not isinstance(review.get("reviewer"), str)
+        or not review["reviewer"].strip()
+        or reviewed_at is None
+    ):
+        raise ValueError("futures_input_evidence_review_invalid")
+    if received_at is not None and reviewed_at > received_at:
+        raise ValueError("futures_input_evidence_review_in_future")
+    if verify_originals:
+        for proof_hash in structure.proof_ids:
+            _artifact(root, proof_hash)
     return document
 
 
@@ -306,6 +341,14 @@ def _bind_publications(
         )
         fact["acquisition_ids"].append(packet.acquisition_id)
         fact["raw_hashes"].append(packet.raw_hash)
+
+
+def _fact_key(fact: dict[str, Any]) -> tuple[str, str, str]:
+    return (
+        fact["kind"],
+        str(fact.get("contract_code", fact.get("product", fact.get("exchange", "")))),
+        str(fact.get("business_date", "")),
+    )
 
 
 def _fact(
@@ -655,6 +698,36 @@ def _damaged_review_contract_scope(
     }
 
 
+_SHARED_READERS: ContextVar[dict[Path, FuturesInputReader] | None] = ContextVar(
+    "futures_input_readers", default=None
+)
+
+
+@contextmanager
+def shared_futures_input_reads() -> Iterator[None]:
+    """Share one consistent read of the captured futures inputs inside this scope.
+
+    Use only around work that neither captures nor alters futures inputs, such as a replay.
+    """
+    if _SHARED_READERS.get() is not None:
+        yield
+        return
+    token = _SHARED_READERS.set({})
+    try:
+        yield
+    finally:
+        _SHARED_READERS.reset(token)
+
+
+def futures_input_reader(paths: RuntimePaths) -> FuturesInputReader:
+    readers = _SHARED_READERS.get()
+    if readers is None:
+        return FuturesInputReader(paths)
+    if paths.database not in readers:
+        readers[paths.database] = FuturesInputReader(paths)
+    return readers[paths.database]
+
+
 def select_futures_inputs(
     paths: RuntimePaths,
     *,
@@ -665,203 +738,426 @@ def select_futures_inputs(
     system_as_of: datetime | None = None,
 ) -> dict[str, Any]:
     """Read input versions, optionally intersecting PUBLIC knowledge with system visibility."""
-    if as_of.tzinfo is None or as_of.utcoffset() is None:
-        raise ValueError("futures_input_cutoff_timezone_required")
-    if system_as_of is not None and (
-        system_as_of.tzinfo is None or system_as_of.utcoffset() is None
-    ):
-        raise ValueError("futures_input_system_cutoff_timezone_required")
-    day = business_date.isoformat()
-    exchanges = {PRODUCT_EXCHANGES[p] for p in products}
-    repository = AcquisitionRepository(paths.database, paths.artifacts)
-    seen: set[tuple[str, ...]] = set()
-    selected: dict[tuple[str, str, str], tuple[datetime, list[dict[str, Any]]]] = {}
-    missing = []
-    contract_failures: list[dict[str, str]] = []
-    history = repository.history()
-    for receipt in history:
-        if receipt.parser_version != PARSER_VERSION or receipt.state != "validated":
-            continue
-        if mode is AsOfMode.SYSTEM and (
-            receipt.validated_at is None or receipt.validated_at > as_of
-        ):
-            continue
-        if system_as_of is not None and (
-            receipt.validated_at is None or receipt.validated_at > system_as_of
-        ):
-            continue
+    return FuturesInputReader(paths).select(
+        products=products,
+        business_date=business_date,
+        mode=mode,
+        as_of=as_of,
+        system_as_of=system_as_of,
+    )
+
+
+@dataclass(frozen=True)
+class _BatchIndex:
+    """Positions of one batch document's facts by the keys every selection filters on."""
+
+    contracts: dict[str, list[tuple[int, dict[str, Any]]]]
+    calendars: dict[str, list[tuple[int, dict[str, Any]]]]
+    calendar_dates: dict[str, list[str]]
+    dated: dict[tuple[str, str, str], list[tuple[int, dict[str, Any]]]]
+
+    @classmethod
+    def build(cls, document: dict[str, Any]) -> _BatchIndex:
+        contracts: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+        calendars: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+        dated: dict[tuple[str, str, str], list[tuple[int, dict[str, Any]]]] = {}
+        for position, fact in enumerate(document["facts"]):
+            if fact["kind"] == "calendar":
+                calendars.setdefault(fact["exchange"], []).append((position, fact))
+            elif fact["kind"] in {"settlement", "session"}:
+                dated.setdefault((fact["kind"], fact["product"], fact["business_date"]), []).append(
+                    (position, fact)
+                )
+            else:
+                contracts.setdefault(fact["product"], []).append((position, fact))
+        for entries in calendars.values():
+            entries.sort(key=lambda entry: (entry[1]["business_date"], entry[0]))
+        calendar_dates = {
+            exchange: [fact["business_date"] for _, fact in entries]
+            for exchange, entries in calendars.items()
+        }
+        return cls(contracts, calendars, calendar_dates, dated)
+
+    def relevant(
+        self, products: tuple[str, ...], exchanges: set[str], day: str
+    ) -> list[dict[str, Any]]:
+        found = [entry for product in products for entry in self.contracts.get(product, [])]
+        for exchange in exchanges:
+            entries = self.calendars.get(exchange, [])
+            found.extend(entries[bisect_left(self.calendar_dates.get(exchange, []), day) :])
+        found.extend(
+            entry
+            for kind in ("settlement", "session")
+            for product in products
+            for entry in self.dated.get((kind, product, day), [])
+        )
+        return [fact for _, fact in sorted(found, key=lambda entry: entry[0])]
+
+
+# Recently used selections stay cached; consecutive replay cutoffs keep reusing the same
+# earlier chain steps, while older scopes are released to bound memory.
+_SELECTION_CACHE_LIMIT = 8192
+
+
+class FuturesInputReader:
+    """Point-in-time selections over one consistent read of the captured futures inputs.
+
+    Work derived from immutable, hash-checked contents is reused for the reader's lifetime,
+    so a new reader is required to observe later deliveries, reviews or artifact damage.
+    """
+
+    def __init__(self, paths: RuntimePaths) -> None:
+        self._paths = paths
+        self._repository = AcquisitionRepository(paths.database, paths.artifacts)
+        self._history = self._repository.history()
+        self._receipts: dict[str, AcquisitionReceipt] = {}
+        self._documents: dict[str, dict[str, Any]] = {}
+        self._indexes: dict[int, tuple[dict[str, Any], _BatchIndex]] = {}
+        self._reconstructed: dict[
+            tuple[str, ...], dict[tuple[str, str, str], list[dict[str, Any]]] | Exception
+        ] = {}
+        self._verified: dict[int, tuple[dict[str, Any], Exception | None]] = {}
+        self._proofs: dict[str, Exception | None] = {}
+        self._damaged: dict[tuple[str, tuple[str, ...]], dict[str, Any]] = {}
+        self._thresholds: dict[tuple[tuple[str, ...], str], list[datetime]] = {}
+        self._selections: OrderedDict[tuple[object, ...], dict[str, Any]] = OrderedDict()
+        self._values: dict[int, tuple[dict[str, Any], datetime, dict[str, Any]]] = {}
+
+    def _value(self, fact: dict[str, Any], available: datetime) -> dict[str, Any]:
+        """One read-only output per stored fact, shared by every selection of this reader."""
+        cached = self._values.get(id(fact))
+        if cached is not None and cached[0] is fact and cached[1] == available:
+            return cached[2]
+        value = {**fact, "available_at": available.isoformat()}
+        self._values[id(fact)] = fact, available, value
+        return value
+
+    def _receipt(self, identity: str) -> AcquisitionReceipt:
+        if identity not in self._receipts:
+            self._receipts[identity] = self._repository.get(identity)
+        return self._receipts[identity]
+
+    def _document(self, receipt: AcquisitionReceipt, products: tuple[str, ...]) -> dict[str, Any]:
         try:
-            try:
-                document = json.loads(repository.read_content(receipt.acquisition_id, "normalized"))
-            except (ValueError, KeyError, TypeError, LookupError, OSError):
-                document = _damaged_review_contract_scope(
-                    repository, receipt, history, paths.artifacts, products
+            # One batch document is shared by every receipt in that batch. Only successful
+            # hash-checked reads are reused; failures take the damaged-batch path each time.
+            document = self._documents.get(receipt.normalized_hash or "")
+            if document is None:
+                document = json.loads(
+                    self._repository.read_content(receipt.acquisition_id, "normalized")
                 )
-            ids = tuple(document["acquisition_ids"])
-            if ids in seen:
-                continue
-            seen.add(ids)
-            parents = tuple(repository.get(identity) for identity in ids)
-            if document["schema_version"] != BATCH_SCHEMA or any(
-                r.state != "validated" for r in parents
-            ):
-                raise ValueError("futures_input_batch_invalid")
-            by_id = {r.acquisition_id: r for r in parents}
-            for fact in document["facts"]:
-                if fact["kind"] == "calendar":
-                    if fact["exchange"] not in exchanges or fact["business_date"] < day:
-                        continue
-                elif fact["product"] not in products:
-                    continue
-                if fact["kind"] in {"settlement", "session"} and fact["business_date"] != day:
-                    continue
-                times = [by_id[identity].validated_at for identity in fact["acquisition_ids"]]
-                if not times or any(value is None for value in times):
-                    raise ValueError("futures_input_validation_time_missing")
-                available = max(value for value in times if value is not None)
-                if system_as_of is not None and available > system_as_of:
-                    continue
-                ordered: datetime | None
-                if mode is AsOfMode.SYSTEM:
-                    if available > as_of:
-                        continue
-                    # Reviews and supporting metadata affect visibility, not the
-                    # version order of the original that provides this fact.
-                    source_times = [
-                        by_id[identity].validated_at
-                        for identity in fact["acquisition_ids"]
-                        if by_id[identity].api_name == FACT_SOURCE_APIS[fact["kind"]]
-                    ]
-                    ordered = max(value for value in source_times if value is not None)
-                else:
-                    public_available = _time(fact["public_available_at"])
-                    if public_available is None or public_available > as_of:
-                        continue
-                    ordered = _time(fact["source_public_available_at"])
-                if ordered is None or ordered > as_of:
-                    continue
-                key = (
-                    fact["kind"],
-                    fact.get("contract_code", fact.get("product", fact["exchange"])),
-                    fact.get("business_date", ""),
-                )
-                value = {**fact, "available_at": available.isoformat()}
-                if key not in selected or selected[key][0] < ordered:
-                    selected[key] = ordered, [value]
-                elif selected[key][0] == ordered:
-                    selected[key][1].append(value)
+                if receipt.normalized_hash is not None:
+                    self._documents[receipt.normalized_hash] = document
+            return document
         except (ValueError, KeyError, TypeError, LookupError, OSError):
-            missing.append("futures_input_delivery_invalid:" + receipt.acquisition_id)
-            if receipt.api_name == "futures_input_evidence":
-                # Neither the batch nor its original can establish historical scope.
-                contract_failures.extend(
-                    {"product": product, "contract_code": "unknown:" + receipt.acquisition_id}
-                    for product in products
+            key = receipt.acquisition_id, products
+            if key not in self._damaged:
+                self._damaged[key] = _damaged_review_contract_scope(
+                    self._repository, receipt, self._history, self._paths.artifacts, products
                 )
-    facts = []
-    reconstructed: dict[tuple[str, ...], list[dict[str, Any]]] = {}
-    verified_proofs: set[str] = set()
-    for key, (_, candidates) in selected.items():
-        verified = []
-        for value in candidates:
-            try:
-                identities = tuple(value["acquisition_ids"])
-                if identities not in reconstructed:
-                    reconstructed[identities] = _facts(
-                        tuple(
-                            (repository.get(identity), repository.read_content(identity, "raw"))
-                            for identity in identities
-                        ),
-                        paths.artifacts,
-                    )
-                expected = {k: v for k, v in value.items() if k != "available_at"}
-                if expected not in reconstructed[identities]:
-                    raise ValueError("futures_input_normalized_mismatch")
-                for digest in value.get("evidence_hashes", []):
-                    if digest not in verified_proofs:
-                        _artifact(paths.artifacts, digest)
-                        verified_proofs.add(digest)
-                verified.append(value)
-            except (ValueError, KeyError, TypeError, LookupError, OSError):
-                missing.append("futures_input_delivery_invalid:" + value["acquisition_ids"][0])
-        contract_unavailable = len(verified) != len(candidates) or any(
-            _meaning(value) != _meaning(verified[0]) for value in verified[1:]
-        )
-        if (
-            key[0] == "contract"
-            and contract_unavailable
-            and any(value["listed_on"] <= day <= value["last_trade_date"] for value in candidates)
-        ):
-            contract_failures.append({"product": candidates[0]["product"], "contract_code": key[1]})
-        if not verified:
-            continue
-        if any(_meaning(value) != _meaning(verified[0]) for value in verified[1:]):
-            missing.append("futures_input_conflict:" + ":".join(key))
+            return self._damaged[key]
+
+    def _index(self, document: dict[str, Any]) -> _BatchIndex:
+        # Entries keep their document alive, so an object id is never reused while cached.
+        cached = self._indexes.get(id(document))
+        if cached is not None and cached[0] is document:
+            return cached[1]
+        index = _BatchIndex.build(document)
+        self._indexes[id(document)] = document, index
+        return index
+
+    def _verify(self, fact: dict[str, Any]) -> None:
+        cached = self._verified.get(id(fact))
+        if cached is not None and cached[0] is fact:
+            outcome = cached[1]
         else:
-            facts.append(verified[-1])
-    contracts = [
-        f
-        for f in facts
-        if f["kind"] == "contract"
-        and f["product"] in products
-        and f["listed_on"] <= day <= f["last_trade_date"]
-    ]
-    codes = {f["contract_code"] for f in contracts}
-    calendar = [f for f in facts if f["kind"] == "calendar" and f["exchange"] in exchanges]
-    settlements = [
-        f
-        for f in facts
-        if f["kind"] == "settlement" and f["contract_code"] in codes and f["business_date"] == day
-    ]
-    sessions = [
-        f
-        for f in facts
-        if f["kind"] == "session" and f["product"] in products and f["business_date"] == day
-    ]
-    for product in products:
-        if not any(f["product"] == product for f in contracts):
-            missing.append("futures_contract_inputs_missing:" + product)
-    calendar_by_day = {(f["exchange"], f["business_date"]): f for f in calendar}
-    for exchange in sorted(exchanges):
-        current_days = [
-            f for f in calendar if f["exchange"] == exchange and f["business_date"] == day
-        ]
-        if not current_days:
-            missing.append("futures_calendar_missing:" + exchange)
-        elif any(f["is_open"] is None for f in current_days):
-            missing.append("futures_calendar_unknown:" + exchange)
-        last_date = max(
-            (
-                date.fromisoformat(f["last_trade_date"])
-                for f in contracts
-                if f["exchange"] == exchange
-            ),
-            default=business_date,
-        )
-        for offset in range(1, (last_date - business_date).days + 1):
-            calendar_day = (business_date + timedelta(days=offset)).isoformat()
-            entry = calendar_by_day.get((exchange, calendar_day))
-            if entry is None:
-                missing.append(f"futures_calendar_missing:{exchange}:{calendar_day}")
-            elif entry["is_open"] is None:
-                missing.append(f"futures_calendar_unknown:{exchange}:{calendar_day}")
-    for product in products:
-        if not any(f["product"] == product for f in sessions) and not any(
-            f["exchange"] == PRODUCT_EXCHANGES[product]
-            and f["business_date"] == day
-            and f["is_open"] is False
-            for f in calendar
+            try:
+                self._check_against_originals(fact)
+                outcome = None
+            except (ValueError, KeyError, TypeError, LookupError, OSError) as error:
+                outcome = error
+            self._verified[id(fact)] = fact, outcome
+        if outcome is not None:
+            raise outcome
+
+    def _check_against_originals(self, fact: dict[str, Any]) -> None:
+        identities = tuple(fact["acquisition_ids"])
+        if identities not in self._reconstructed:
+            try:
+                facts: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+                for item in _facts(
+                    tuple(
+                        (self._receipt(identity), self._repository.read_content(identity, "raw"))
+                        for identity in identities
+                    ),
+                    self._paths.artifacts,
+                ):
+                    facts.setdefault(_fact_key(item), []).append(item)
+                self._reconstructed[identities] = facts
+            except (ValueError, KeyError, TypeError, LookupError, OSError) as error:
+                self._reconstructed[identities] = error
+        reconstructed = self._reconstructed[identities]
+        if isinstance(reconstructed, Exception):
+            raise reconstructed
+        if fact not in reconstructed.get(_fact_key(fact), []):
+            raise ValueError("futures_input_normalized_mismatch")
+        for digest in fact.get("evidence_hashes", []):
+            if digest not in self._proofs:
+                try:
+                    _artifact(self._paths.artifacts, digest)
+                    self._proofs[digest] = None
+                except (ValueError, OSError) as error:
+                    self._proofs[digest] = error
+            proof_error = self._proofs[digest]
+            if proof_error is not None:
+                raise proof_error
+
+    def _visibility_thresholds(self, products: tuple[str, ...], day: str) -> list[datetime]:
+        """Every instant a selection for this scope compares with its cutoffs."""
+        key = products, day
+        if key not in self._thresholds:
+            exchanges = {PRODUCT_EXCHANGES[p] for p in products}
+            instants: set[datetime] = set()
+            for receipt in self._history:
+                if receipt.parser_version != PARSER_VERSION or receipt.state != "validated":
+                    continue
+                if receipt.validated_at is not None:
+                    instants.add(receipt.validated_at)
+                try:
+                    facts = self._index(self._document(receipt, products)).relevant(
+                        products, exchanges, day
+                    )
+                except (ValueError, KeyError, TypeError, LookupError, OSError):
+                    continue
+                for fact in facts:
+                    for field in ("public_available_at", "source_public_available_at"):
+                        try:
+                            instant = _time(fact.get(field))
+                        except (ValueError, TypeError):
+                            continue
+                        if instant is not None:
+                            instants.add(instant)
+            self._thresholds[key] = sorted(instants)
+        return self._thresholds[key]
+
+    def select(
+        self,
+        *,
+        products: tuple[str, ...],
+        business_date: date,
+        mode: AsOfMode,
+        as_of: datetime,
+        system_as_of: datetime | None = None,
+    ) -> dict[str, Any]:
+        if as_of.tzinfo is None or as_of.utcoffset() is None:
+            raise ValueError("futures_input_cutoff_timezone_required")
+        if system_as_of is not None and (
+            system_as_of.tzinfo is None or system_as_of.utcoffset() is None
         ):
-            missing.append("futures_session_missing:" + product)
-    for code in sorted(
-        codes - {f["contract_code"] for f in settlements if f["status"] == "available"}
-    ):
-        missing.append("futures_settlement_missing:" + code)
-    return {
-        "contracts": contracts,
-        "contract_failures": contract_failures,
-        "calendar": calendar,
-        "settlements": settlements,
-        "sessions": sessions,
-        "missing": missing,
-    }
+            raise ValueError("futures_input_system_cutoff_timezone_required")
+        day = business_date.isoformat()
+        # Selection only compares cutoffs with these instants, so cutoffs between the same
+        # neighbouring instants give the same result for this consistent read.
+        thresholds = self._visibility_thresholds(products, day)
+        key = (
+            products,
+            day,
+            mode,
+            bisect_right(thresholds, as_of),
+            None if system_as_of is None else bisect_right(thresholds, system_as_of),
+        )
+        if key in self._selections:
+            self._selections.move_to_end(key)
+        else:
+            if len(self._selections) >= _SELECTION_CACHE_LIMIT:
+                self._selections.popitem(last=False)
+            self._selections[key] = self._select(
+                products=products,
+                business_date=business_date,
+                mode=mode,
+                as_of=as_of,
+                system_as_of=system_as_of,
+            )
+        cached = self._selections[key]
+        return {name: list(value) for name, value in cached.items()}
+
+    def _select(
+        self,
+        *,
+        products: tuple[str, ...],
+        business_date: date,
+        mode: AsOfMode,
+        as_of: datetime,
+        system_as_of: datetime | None,
+    ) -> dict[str, Any]:
+        day = business_date.isoformat()
+        exchanges = {PRODUCT_EXCHANGES[p] for p in products}
+        seen: set[tuple[str, ...]] = set()
+        selected: dict[tuple[str, str, str], tuple[datetime, list[dict[str, Any]]]] = {}
+        sources: dict[int, dict[str, Any]] = {}
+        missing = []
+        contract_failures: list[dict[str, str]] = []
+        for receipt in self._history:
+            if receipt.parser_version != PARSER_VERSION or receipt.state != "validated":
+                continue
+            if mode is AsOfMode.SYSTEM and (
+                receipt.validated_at is None or receipt.validated_at > as_of
+            ):
+                continue
+            if system_as_of is not None and (
+                receipt.validated_at is None or receipt.validated_at > system_as_of
+            ):
+                continue
+            try:
+                document = self._document(receipt, products)
+                ids = tuple(document["acquisition_ids"])
+                if ids in seen:
+                    continue
+                seen.add(ids)
+                parents = tuple(self._receipt(identity) for identity in ids)
+                if document["schema_version"] != BATCH_SCHEMA or any(
+                    r.state != "validated" for r in parents
+                ):
+                    raise ValueError("futures_input_batch_invalid")
+                by_id = {r.acquisition_id: r for r in parents}
+                for fact in self._index(document).relevant(products, exchanges, day):
+                    times = [by_id[identity].validated_at for identity in fact["acquisition_ids"]]
+                    if not times or any(value is None for value in times):
+                        raise ValueError("futures_input_validation_time_missing")
+                    available = max(value for value in times if value is not None)
+                    if system_as_of is not None and available > system_as_of:
+                        continue
+                    ordered: datetime | None
+                    if mode is AsOfMode.SYSTEM:
+                        if available > as_of:
+                            continue
+                        # Reviews and supporting metadata affect visibility, not the
+                        # version order of the original that provides this fact.
+                        source_times = [
+                            by_id[identity].validated_at
+                            for identity in fact["acquisition_ids"]
+                            if by_id[identity].api_name == FACT_SOURCE_APIS[fact["kind"]]
+                        ]
+                        ordered = max(value for value in source_times if value is not None)
+                    else:
+                        public_available = _time(fact["public_available_at"])
+                        if public_available is None or public_available > as_of:
+                            continue
+                        ordered = _time(fact["source_public_available_at"])
+                    if ordered is None or ordered > as_of:
+                        continue
+                    key = (
+                        fact["kind"],
+                        fact.get("contract_code", fact.get("product", fact["exchange"])),
+                        fact.get("business_date", ""),
+                    )
+                    value = self._value(fact, available)
+                    sources[id(value)] = fact
+                    if key not in selected or selected[key][0] < ordered:
+                        selected[key] = ordered, [value]
+                    elif selected[key][0] == ordered:
+                        selected[key][1].append(value)
+            except (ValueError, KeyError, TypeError, LookupError, OSError):
+                missing.append("futures_input_delivery_invalid:" + receipt.acquisition_id)
+                if receipt.api_name == "futures_input_evidence":
+                    # Neither the batch nor its original can establish historical scope.
+                    contract_failures.extend(
+                        {"product": product, "contract_code": "unknown:" + receipt.acquisition_id}
+                        for product in products
+                    )
+        facts = []
+        for key, (_, candidates) in selected.items():
+            verified = []
+            for value in candidates:
+                try:
+                    self._verify(sources[id(value)])
+                    verified.append(value)
+                except (ValueError, KeyError, TypeError, LookupError, OSError):
+                    missing.append("futures_input_delivery_invalid:" + value["acquisition_ids"][0])
+            contract_unavailable = len(verified) != len(candidates) or any(
+                _meaning(value) != _meaning(verified[0]) for value in verified[1:]
+            )
+            if (
+                key[0] == "contract"
+                and contract_unavailable
+                and any(
+                    value["listed_on"] <= day <= value["last_trade_date"] for value in candidates
+                )
+            ):
+                contract_failures.append(
+                    {"product": candidates[0]["product"], "contract_code": key[1]}
+                )
+            if not verified:
+                continue
+            if any(_meaning(value) != _meaning(verified[0]) for value in verified[1:]):
+                missing.append("futures_input_conflict:" + ":".join(key))
+            else:
+                facts.append(verified[-1])
+        contracts = [
+            f
+            for f in facts
+            if f["kind"] == "contract"
+            and f["product"] in products
+            and f["listed_on"] <= day <= f["last_trade_date"]
+        ]
+        codes = {f["contract_code"] for f in contracts}
+        calendar = [f for f in facts if f["kind"] == "calendar" and f["exchange"] in exchanges]
+        settlements = [
+            f
+            for f in facts
+            if f["kind"] == "settlement"
+            and f["contract_code"] in codes
+            and f["business_date"] == day
+        ]
+        sessions = [
+            f
+            for f in facts
+            if f["kind"] == "session" and f["product"] in products and f["business_date"] == day
+        ]
+        for product in products:
+            if not any(f["product"] == product for f in contracts):
+                missing.append("futures_contract_inputs_missing:" + product)
+        calendar_by_day = {(f["exchange"], f["business_date"]): f for f in calendar}
+        for exchange in sorted(exchanges):
+            current_days = [
+                f for f in calendar if f["exchange"] == exchange and f["business_date"] == day
+            ]
+            if not current_days:
+                missing.append("futures_calendar_missing:" + exchange)
+            elif any(f["is_open"] is None for f in current_days):
+                missing.append("futures_calendar_unknown:" + exchange)
+            last_date = max(
+                (
+                    date.fromisoformat(f["last_trade_date"])
+                    for f in contracts
+                    if f["exchange"] == exchange
+                ),
+                default=business_date,
+            )
+            for offset in range(1, (last_date - business_date).days + 1):
+                calendar_day = (business_date + timedelta(days=offset)).isoformat()
+                entry = calendar_by_day.get((exchange, calendar_day))
+                if entry is None:
+                    missing.append(f"futures_calendar_missing:{exchange}:{calendar_day}")
+                elif entry["is_open"] is None:
+                    missing.append(f"futures_calendar_unknown:{exchange}:{calendar_day}")
+        for product in products:
+            if not any(f["product"] == product for f in sessions) and not any(
+                f["exchange"] == PRODUCT_EXCHANGES[product]
+                and f["business_date"] == day
+                and f["is_open"] is False
+                for f in calendar
+            ):
+                missing.append("futures_session_missing:" + product)
+        for code in sorted(
+            codes - {f["contract_code"] for f in settlements if f["status"] == "available"}
+        ):
+            missing.append("futures_settlement_missing:" + code)
+        return {
+            "contracts": contracts,
+            "contract_failures": contract_failures,
+            "calendar": calendar,
+            "settlements": settlements,
+            "sessions": sessions,
+            "missing": missing,
+        }

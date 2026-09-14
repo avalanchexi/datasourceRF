@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 
-from pring_cycle.acquisition import AcquisitionReceipt
+from pring_cycle.acquisition import AcquisitionReceipt, receipt_key
 from pring_cycle.evidence import (
     AsOfMode,
     ClaimView,
@@ -17,6 +18,43 @@ from pring_cycle.tushare_context import (
     WarrantAcquisition,
     parse_warrant_acquisition,
 )
+
+# Reparsing a delivery is a pure function of its receipt, the bytes just read and the period,
+# so each cutoff of a replay reuses it. Keys include SHA-256 of both artifacts as read.
+_WARRANT_PARSES: dict[tuple[object, ...], WarrantAcquisition | Exception] = {}
+_WARRANT_PARSE_LIMIT = 8192
+
+
+def _parsed_warrant_delivery(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+    normalized: bytes,
+    *,
+    period: str,
+    definition_version: str,
+) -> WarrantAcquisition:
+    key = (
+        receipt_key(receipt),
+        hashlib.sha256(raw).hexdigest(),
+        hashlib.sha256(normalized).hexdigest(),
+        period,
+        definition_version,
+    )
+    if key not in _WARRANT_PARSES:
+        outcome: WarrantAcquisition | Exception
+        try:
+            outcome = parse_warrant_acquisition(
+                receipt, raw, normalized, period=period, definition_version=definition_version
+            )
+        except (TypeError, ValueError, KeyError) as error:
+            outcome = error
+        if len(_WARRANT_PARSES) >= _WARRANT_PARSE_LIMIT:
+            _WARRANT_PARSES.pop(next(iter(_WARRANT_PARSES)))
+        _WARRANT_PARSES[key] = outcome
+    outcome = _WARRANT_PARSES[key]
+    if isinstance(outcome, Exception):
+        raise outcome
+    return outcome
 
 
 @dataclass(frozen=True)
@@ -77,7 +115,7 @@ def select_warrant_inputs(
             receipt = original.receipt
             try:
                 if receipt.acquisition_id not in parsed:
-                    parsed[receipt.acquisition_id] = parse_warrant_acquisition(
+                    parsed[receipt.acquisition_id] = _parsed_warrant_delivery(
                         receipt,
                         original.raw,
                         original.normalized,

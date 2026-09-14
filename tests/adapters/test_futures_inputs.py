@@ -4,7 +4,7 @@ import hashlib
 import json
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -1406,15 +1406,8 @@ def test_futures_inputs_reject_close_when_settlement_column_is_absent(tmp_path: 
     assert document["data"]["items"][0][document["data"]["fields"].index("close")] == "581"
 
 
-@pytest.mark.parametrize("scenario", ["later_revision", "equivalent_representations"])
-@pytest.mark.usefixtures("acquisition_clock")
-def test_futures_inputs_distinguish_later_revisions_from_equivalent_public_versions(
-    tmp_path: Path, scenario: str
-) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
-
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
+def capture_sc_settlement_versions(paths: RuntimePaths, scenario: str) -> list[str]:
+    """Reviewed SC deliveries: a later 09:00 revision, or equivalent public representations."""
     prices = ["584.2", "600", "601"] if scenario == "later_revision" else ["584.2", "584.200"]
     packets = []
     for index, price in enumerate(prices):
@@ -1463,6 +1456,19 @@ def test_futures_inputs_distinguish_later_revisions_from_equivalent_public_versi
             end_date=date(2026, 8, 28),
             evidence_hash=packet,
         )
+    return packets
+
+
+@pytest.mark.parametrize("scenario", ["later_revision", "equivalent_representations"])
+@pytest.mark.usefixtures("acquisition_clock")
+def test_futures_inputs_distinguish_later_revisions_from_equivalent_public_versions(
+    tmp_path: Path, scenario: str
+) -> None:
+    from pring_cycle.futures_inputs import select_futures_inputs
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    packets = capture_sc_settlement_versions(paths, scenario)
     before = select_futures_inputs(
         paths,
         products=("SC",),
@@ -2005,3 +2011,71 @@ def test_futures_inputs_keep_newer_public_price_after_a_later_expiry_notice(tmp_
         }
         contract = next(r for r in result["contracts"] if r["contract_code"] == "SC2609.INE")
         assert contract["last_trade_date"] == expiry
+
+
+@pytest.mark.usefixtures("acquisition_clock")
+def test_reused_reader_selections_match_fresh_reads_across_revision_cutoffs(
+    tmp_path: Path,
+) -> None:
+    from pring_cycle.futures_inputs import (
+        FuturesInputReader,
+        futures_input_reader,
+        select_futures_inputs,
+        shared_futures_input_reads,
+    )
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    packets = capture_sc_settlement_versions(paths, "later_revision")
+    revision = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    # Unordered cutoffs on both sides of the 09:00 revision, with repeats in the same bucket.
+    cutoffs = [
+        revision,
+        revision - timedelta(microseconds=1),
+        revision + timedelta(hours=3),
+        datetime(2026, 8, 28, 1, tzinfo=UTC),
+        revision + timedelta(microseconds=1),
+        revision - timedelta(hours=2),
+        revision,
+    ]
+    reader = FuturesInputReader(paths)
+
+    def select(source: Any, as_of: datetime) -> dict[str, Any]:
+        arguments = {
+            "products": ("SC",),
+            "business_date": date(2026, 8, 28),
+            "mode": AsOfMode.PUBLIC,
+            "as_of": as_of,
+        }
+        if source is None:
+            return select_futures_inputs(paths, **arguments)
+        return cast(dict[str, Any], source.select(**arguments))
+
+    for as_of in cutoffs:
+        assert select(reader, as_of) == select(None, as_of)
+    settles = {
+        as_of: {r["contract_code"]: r["settle"] for r in select(reader, as_of)["settlements"]}
+        for as_of in (revision - timedelta(microseconds=1), revision)
+    }
+    assert settles[revision]["SC2609.INE"] == "601"
+    assert "SC2609.INE" not in settles[revision - timedelta(microseconds=1)]
+
+    # Inside one shared read scope the captured inputs are read once; a later new read sees
+    # damage to the adopted revision's packet and no longer adopts it.
+    latest = next(
+        receipt
+        for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if receipt.parameters.get("evidence_hash") == packets[-1]
+    )
+    assert latest.normalized_hash is not None
+    with shared_futures_input_reads():
+        assert futures_input_reader(paths) is futures_input_reader(paths)
+        adopted = select(futures_input_reader(paths), revision)
+    artifact = paths.artifacts / latest.normalized_hash[:2] / latest.normalized_hash
+    original = artifact.read_bytes()
+    artifact.write_bytes(b"damaged batch after the shared read")
+    damaged = select(None, revision)
+    assert damaged != adopted
+    assert any(item.startswith("futures_input_delivery_invalid:") for item in damaged["missing"])
+    artifact.write_bytes(original)
+    assert select(None, revision) == adopted

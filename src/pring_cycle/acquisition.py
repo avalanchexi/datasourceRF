@@ -80,6 +80,25 @@ class AcquisitionReceipt:
     error_type: str | None
 
 
+def receipt_key(receipt: AcquisitionReceipt) -> tuple[object, ...]:
+    """A hashable identity of every receipt field, for caches of work derived from it."""
+    return (
+        receipt.acquisition_id,
+        receipt.provider,
+        receipt.api_name,
+        tuple(sorted(receipt.parameters.items())),
+        receipt.fields,
+        receipt.parser_version,
+        receipt.started_at,
+        receipt.received_at,
+        receipt.validated_at,
+        receipt.state,
+        receipt.raw_hash,
+        receipt.normalized_hash,
+        receipt.error_type,
+    )
+
+
 def acquisition_analysis_context(
     database: Path, acquisition_ids: tuple[str, ...]
 ) -> dict[str, str]:
@@ -301,7 +320,19 @@ class AcquisitionRepository:
         return tuple(receipt_from_row(row) for row in rows)
 
     def read_content(self, acquisition_id: str, kind: str) -> bytes:
-        receipt = self.get(acquisition_id)
+        return self.read_receipt_content(self.get(acquisition_id), kind)
+
+    def read_receipt_content(
+        self,
+        receipt: AcquisitionReceipt,
+        kind: str,
+        verified: dict[str, bytes] | None = None,
+    ) -> bytes:
+        """Read one hash-checked artifact of a receipt the caller has already loaded.
+
+        Receipt checks always run; ``verified`` only shares bytes already hash-checked by the
+        same caller for an identical digest.
+        """
         if kind not in {"raw", "normalized"}:
             raise ValueError("acquisition_artifact_kind_invalid")
         expiry = response_retention_deadline(
@@ -312,9 +343,13 @@ class AcquisitionRepository:
         digest = receipt.raw_hash if kind == "raw" else receipt.normalized_hash
         if digest is None:
             raise LookupError("acquisition_artifact_unavailable")
+        if verified is not None and digest in verified:
+            return verified[digest]
         content = (self.artifacts / digest[:2] / digest).read_bytes()
         if hashlib.sha256(content).hexdigest() != digest:
             raise ValueError("artifact_hash_mismatch")
+        if verified is not None:
+            verified[digest] = content
         return content
 
     @contextmanager

@@ -676,6 +676,29 @@ def evaluate_context_replay(
     requested_end: str,
     replay_days: tuple[str, ...] | None = None,
 ) -> ContextReplayEvaluation:
+    from pring_cycle.futures_inputs import shared_futures_input_reads
+
+    # A replay only reads captured futures inputs, so every cutoff shares one read of them.
+    with shared_futures_input_reads():
+        return _evaluate_context_replay(
+            database,
+            candidate_manifest,
+            comparison_manifest,
+            requested_start=requested_start,
+            requested_end=requested_end,
+            replay_days=replay_days,
+        )
+
+
+def _evaluate_context_replay(
+    database: Path,
+    candidate_manifest: dict[str, object],
+    comparison_manifest: dict[str, object],
+    *,
+    requested_start: str,
+    requested_end: str,
+    replay_days: tuple[str, ...] | None = None,
+) -> ContextReplayEvaluation:
     started = time.perf_counter()
     start_date = date.fromisoformat(requested_start)
     end_date = date.fromisoformat(requested_end)
