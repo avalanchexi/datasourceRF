@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -15,10 +15,22 @@ from fastapi.routing import APIRoute
 from sqlalchemy import create_engine
 
 import pring_cycle
+from pring_cycle.catalog import metric_catalog_v0003
 from pring_cycle.cli import main
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
-from pring_cycle.model_evaluation import calibrate_model, evaluate_history, replay_models
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository, certified_model_v0001_manifest
+from pring_cycle.model_evaluation import (
+    calibrate_model,
+    evaluate_context_replay,
+    evaluate_history,
+    replay_models,
+)
+from pring_cycle.model_outputs import validate_context_output
+from pring_cycle.models import (
+    CALIBRATION_BASELINE,
+    ModelRepository,
+    analytical_model_v0002_manifest,
+    certified_model_v0001_manifest,
+)
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_health, migrate_database
@@ -623,6 +635,436 @@ def test_cli_saves_failed_replay_for_original_range_when_final_day_is_missing(
         saved["core_output_document"]["candidate"]["days"][-1]["business_date"]
         == days[-1].isoformat()
     )
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        None,
+        "valid_values",
+        "orphan_current",
+        "orphan_derived",
+        "invalid_quality",
+        "uncertified",
+        "invalid_state",
+        "missing_row",
+        "missing_point",
+        "missing_lineage",
+        "wrong_derived_value",
+        "wrong_derived_unit",
+        "wrong_raw_unit",
+        "awaiting_missing_row",
+        "awaiting_current",
+        "null_derived_value",
+        "wrong_derived_period",
+        "wrong_parent_period",
+        "adopted_stale",
+        "output_awaiting",
+        "candidate_downgrade",
+        "relabeled_stale",
+        "output_downgrade",
+    ],
+)
+def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
+    tmp_path: Path, damage: str | None
+) -> None:
+    # The legacy v3 fixture exercises the full context component, not live certification.
+    database = tmp_path / "optional-p2.sqlite3"
+    evidence = EvidenceRepository.create(database)
+    models = ModelRepository.create(database)
+    days = [date(2026, 8, 27), date(2026, 8, 28)]
+    comparison = analytical_model_v0002_manifest()
+    comparison["model_version_id"] = "optional-p2-comparison"
+    comparison["metric_catalog_version"] = "metric-catalog-v0003"
+    comparison["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
+    for definition in comparison["metric_definitions"]:
+        if definition["metric_id"] in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}:
+            definition["certification_status"] = (
+                "awaiting_source_certification"
+                if damage in {"awaiting_missing_row", "awaiting_current"}
+                else "certified"
+            )
+        elif definition["metric_id"] == "UST_2S10S_SPREAD":
+            definition["certification_status"] = (
+                "awaiting_source_certification"
+                if damage in {"awaiting_missing_row", "awaiting_current", "output_awaiting"}
+                else "derived_from_certified_inputs"
+            )
+    models.create_candidate(comparison)
+    candidate = json.loads(json.dumps(comparison))
+    candidate["model_version_id"] = "optional-p2-candidate"
+    for definition in candidate["metric_definitions"]:
+        if definition["metric_id"] in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}:
+            if damage != "output_downgrade":
+                definition["source_candidates"] = ["synthetic:optional-p2"]
+            if damage == "candidate_downgrade":
+                definition["certification_status"] = "awaiting_source_certification"
+        elif definition["metric_id"] == "UST_2S10S_SPREAD" and damage == "output_downgrade":
+            definition["certification_status"] = "awaiting_source_certification"
+    models.create_candidate(candidate)
+    assert len(candidate["metric_definitions"]) == 61
+    assert len(candidate["derived_formula_versions"]) == 8
+    acquired = datetime(2026, 8, 28, 12, tzinfo=UTC)
+    published = damage in {
+        "valid_values",
+        "missing_row",
+        "missing_point",
+        "missing_lineage",
+        "wrong_derived_value",
+        "wrong_derived_unit",
+        "wrong_raw_unit",
+    }
+    published = published or damage in {
+        "null_derived_value",
+        "wrong_derived_period",
+        "wrong_parent_period",
+    }
+    published = published or damage in {
+        "adopted_stale",
+        "output_awaiting",
+        "candidate_downgrade",
+        "relabeled_stale",
+        "output_downgrade",
+    }
+    source_day = date(2025, 8, 28) if damage in {"adopted_stale", "relabeled_stale"} else days[-1]
+    optional_claim_ids = set()
+    previous_claim_ids = set()
+    for metric_id, value in (("UST2Y_NOMINAL_YIELD", 4.0), ("UST10Y_NOMINAL_YIELD", 4.4)):
+        claim_input = SourceClaimInput(
+            metric_id=metric_id,
+            definition_version="metric-catalog-v0003",
+            period_kind="business_day",
+            period_start=source_day.isoformat(),
+            period_end=source_day.isoformat(),
+            dimensions={},
+            value=value,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit="percent",
+            provider="synthetic",
+            source_reference=f"synthetic:{metric_id}",
+            release_event_id=f"synthetic:{metric_id}",
+            release_at=acquired if published else None,
+            public_available_at=acquired if published else None,
+            fetched_at=acquired,
+            available_at=acquired,
+            certification_status=(
+                "awaiting_source_certification"
+                if damage in {"awaiting_missing_row", "awaiting_current"}
+                else "certified"
+            ),
+            quality_status="validated",
+        )
+        claim = evidence.append_source_claim(claim_input)
+        optional_claim_ids.add(claim.claim_id)
+        if damage == "valid_values":
+            previous = evidence.append_source_claim(
+                replace(
+                    claim_input,
+                    period_start=days[-2].isoformat(),
+                    period_end=days[-2].isoformat(),
+                    value=3.8 if metric_id == "UST2Y_NOMINAL_YIELD" else 4.0,
+                    source_reference=f"synthetic:{metric_id}:previous",
+                    release_event_id=f"synthetic:{metric_id}:previous",
+                    release_at=datetime(2026, 8, 27, 12, tzinfo=UTC),
+                    public_available_at=datetime(2026, 8, 27, 12, tzinfo=UTC),
+                )
+            )
+            previous_claim_ids.add(previous.claim_id)
+    evaluated = evaluate_context_replay(
+        database,
+        candidate,
+        comparison,
+        requested_start=days[-2].isoformat(),
+        requested_end=days[-1].isoformat(),
+        replay_days=tuple(day.isoformat() for day in days[-2:]),
+    )
+    assert evaluated.gaps == ()
+    assert evaluated.evaluated_cutoffs == 2
+    validation: dict[str, Any] = dict(
+        candidate_manifest=candidate,
+        comparison_manifest=comparison,
+        range_start=days[-2].isoformat(),
+        range_end=days[-1].isoformat(),
+        calendar_hash=hashlib.sha256(
+            "\n".join(day.isoformat() for day in days[-2:]).encode()
+        ).hexdigest(),
+        evaluated_days=2,
+        context_output_differences=evaluated.context_output_differences,
+    )
+    if damage == "output_awaiting":
+        for side in ("candidate", "comparison"):
+            macro = evaluated.output_document["days"][-1][side]["macro"]
+            for item in macro["international_context"]:
+                if item["metric_id"] == "UST_2S10S_SPREAD":
+                    assert item["status"] == "awaiting_source_certification"
+                    item.update(
+                        status="current",
+                        value=40.000000000000036,
+                        unit="basis_points",
+                        dimensions={},
+                        period=days[-1].isoformat(),
+                        formula_version="ust-2s10s-spread-v0001",
+                        value_state="reported_value",
+                        quality_status="validated",
+                        certification_status="derived_from_certified_inputs",
+                        selected_claim_id="synthetic-unqualified-output",
+                        observation_id="synthetic-unqualified-output",
+                        derived_observation_id="synthetic-unqualified-output",
+                        input_observation_version_ids=sorted(optional_claim_ids),
+                    )
+            macro["model_input_observation_version_ids"].append("synthetic-unqualified-output")
+    elif damage in {"adopted_stale", "relabeled_stale"}:
+        for side in ("candidate", "comparison"):
+            macro = evaluated.output_document["days"][-1][side]["macro"]
+            for item in macro["international_context"]:
+                if item["metric_id"] in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}:
+                    assert item["status"] == "stale"
+                    if damage == "relabeled_stale":
+                        item["status"] = "current"
+            macro["model_input_observation_version_ids"].extend(sorted(optional_claim_ids))
+    elif damage in {"missing_row", "awaiting_missing_row"}:
+        for row in evaluated.output_document["days"]:
+            for side in ("candidate", "comparison"):
+                macro = row[side]["macro"]
+                macro["international_context"] = [
+                    item
+                    for item in macro["international_context"]
+                    if item["metric_id"] != "UST2Y_NOMINAL_YIELD"
+                ]
+    elif damage == "wrong_parent_period":
+        for side in ("candidate", "comparison"):
+            output = evaluated.output_document["days"][-1][side]
+            point = output["source_inputs"]["UST2Y_NOMINAL_YIELD"][0]
+            point.update(period_start=days[-2].isoformat(), period_end=days[-2].isoformat())
+            for item in output["macro"]["international_context"]:
+                if item["metric_id"] == "UST2Y_NOMINAL_YIELD":
+                    item.update(period_start=days[-2].isoformat(), period=days[-2].isoformat())
+    elif damage in {
+        "wrong_derived_value",
+        "wrong_derived_unit",
+        "wrong_raw_unit",
+        "null_derived_value",
+        "wrong_derived_period",
+    }:
+        metric_id = "UST2Y_NOMINAL_YIELD" if damage == "wrong_raw_unit" else "UST_2S10S_SPREAD"
+        for side in ("candidate", "comparison"):
+            for item in evaluated.output_document["days"][-1][side]["macro"][
+                "international_context"
+            ]:
+                if item["metric_id"] == metric_id:
+                    if damage == "wrong_derived_value":
+                        item["value"] = 400.0
+                    elif damage == "null_derived_value":
+                        item["value"] = None
+                    elif damage == "wrong_derived_period":
+                        item["period"] = days[-2].isoformat()
+                    else:
+                        item["unit"] = "basis_points" if damage == "wrong_raw_unit" else "percent"
+    elif damage in {"missing_point", "missing_lineage"}:
+        for side in ("candidate", "comparison"):
+            output = evaluated.output_document["days"][-1][side]
+            if damage == "missing_point":
+                output["source_inputs"]["UST2Y_NOMINAL_YIELD"] = []
+            else:
+                for item in output["macro"]["international_context"]:
+                    if item["metric_id"] == "UST_2S10S_SPREAD":
+                        del item["input_observation_version_ids"]
+    elif damage in {"orphan_current", "orphan_derived", "awaiting_current"}:
+        for row in evaluated.output_document["days"]:
+            for side in ("candidate", "comparison"):
+                macro = row[side]["macro"]
+                for item in macro["international_context"]:
+                    if item["metric_id"] == (
+                        "UST2Y_NOMINAL_YIELD"
+                        if damage in {"orphan_current", "awaiting_current"}
+                        else "UST_2S10S_SPREAD"
+                    ):
+                        item.update(status="current", value=4.0, selected_claim_id="orphan-p2")
+                        if damage == "orphan_derived":
+                            item.update(
+                                formula_version="ust-2s10s-spread-v0001",
+                                input_observation_version_ids=["missing-2y", "missing-10y"],
+                            )
+                            macro["model_input_observation_version_ids"].extend(
+                                ["missing-2y", "missing-10y"]
+                            )
+                macro["model_input_observation_version_ids"].append("orphan-p2")
+    elif damage in {"invalid_quality", "uncertified", "invalid_state"}:
+        for side in ("candidate", "comparison"):
+            output = evaluated.output_document["days"][-1][side]
+            output["source_inputs"]["UST2Y_NOMINAL_YIELD"] = [
+                {
+                    "definition_version": "metric-catalog-v0003",
+                    "period_start": days[-1].isoformat(),
+                    "period_end": days[-1].isoformat(),
+                    "dimensions": {},
+                    "observation_id": "synthetic-optional-observation",
+                    "selected_claim_id": "synthetic-optional-claim",
+                    "selected_value": 4.0,
+                    "selection_status": "selected",
+                    "value_state": "not_reported"
+                    if damage == "invalid_state"
+                    else "reported_value",
+                    "claims": [
+                        {
+                            "claim_id": "synthetic-optional-claim",
+                            "value": 4.0,
+                            "unit": "percent",
+                            "public_available_at": acquired.isoformat(),
+                            "available_at": acquired.isoformat(),
+                            "certification_status": (
+                                "awaiting_source_certification"
+                                if damage == "uncertified"
+                                else "certified"
+                            ),
+                            "quality_status": "invalid"
+                            if damage == "invalid_quality"
+                            else "validated",
+                        }
+                    ],
+                }
+            ]
+            macro = output["macro"]
+            for item in macro["international_context"]:
+                if item["metric_id"] == "UST2Y_NOMINAL_YIELD":
+                    item.update(
+                        status="current",
+                        value=4.0,
+                        dimensions={},
+                        selected_claim_id="synthetic-optional-claim",
+                        observation_id="synthetic-optional-observation",
+                        period_start=days[-1].isoformat(),
+                        period=days[-1].isoformat(),
+                    )
+            macro["model_input_observation_version_ids"].append("synthetic-optional-claim")
+    if damage not in {None, "valid_values", "candidate_downgrade", "output_downgrade"}:
+        with pytest.raises(ValueError, match="context_output_inputs_incomplete"):
+            validate_context_output(evaluated.output_document, **validation)
+        return
+    document = validate_context_output(evaluated.output_document, **validation)
+    if damage in {"candidate_downgrade", "output_downgrade"}:
+        assert document["source_metrics"] == ["UST10Y_NOMINAL_YIELD", "UST2Y_NOMINAL_YIELD"]
+        last = document["days"][-1]
+        previous_model = last["comparison"]["macro"]
+        next_model = last["candidate"]["macro"]
+        spread = next(
+            row
+            for row in previous_model["international_context"]
+            if row["metric_id"] == "UST_2S10S_SPREAD"
+        )
+        assert spread["status"] == "current"
+        assert spread["value"] == pytest.approx(40.0)
+        assert optional_claim_ids <= set(previous_model["model_input_observation_version_ids"])
+        if damage == "candidate_downgrade":
+            assert optional_claim_ids.isdisjoint(next_model["model_input_observation_version_ids"])
+        else:
+            assert optional_claim_ids <= set(next_model["model_input_observation_version_ids"])
+        next_ust = [
+            row
+            for row in next_model["international_context"]
+            if row["metric_id"]
+            in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD", "UST_2S10S_SPREAD"}
+        ]
+        assert len(next_ust) == 3
+        assert {row["metric_id"]: row["status"] for row in next_ust} == {
+            "UST2Y_NOMINAL_YIELD": "awaiting_source_certification"
+            if damage == "candidate_downgrade"
+            else "current",
+            "UST10Y_NOMINAL_YIELD": "awaiting_source_certification"
+            if damage == "candidate_downgrade"
+            else "current",
+            "UST_2S10S_SPREAD": "awaiting_source_certification",
+        }
+        return
+    if damage == "valid_values":
+        for side in ("candidate", "comparison"):
+            macro = document["days"][-1][side]["macro"]
+            spread = next(
+                row
+                for row in macro["international_context"]
+                if row["metric_id"] == "UST_2S10S_SPREAD"
+            )
+            assert spread["status"] == "current"
+            assert spread["value"] == pytest.approx(40.0)
+            assert spread["unit"] == "basis_points"
+            assert set(spread["input_observation_version_ids"]) == optional_claim_ids
+            assert optional_claim_ids <= set(macro["model_input_observation_version_ids"])
+            assert previous_claim_ids <= set(macro["model_input_observation_version_ids"])
+            earlier_spread = next(
+                row
+                for row in document["days"][0][side]["macro"]["international_context"]
+                if row["metric_id"] == "UST_2S10S_SPREAD"
+            )
+            assert earlier_spread["value"] == pytest.approx(20.0)
+        return
+    assert document["status"] == "recorded"
+    assert document["formula_keys"] == ["ust_2s10s_spread"]
+    assert [row["business_date"] for row in document["days"]] == [
+        day.isoformat() for day in days[-2:]
+    ]
+    for row in document["days"]:
+        for side in ("candidate", "comparison"):
+            assert row[side]["source_inputs"] == {
+                "UST10Y_NOMINAL_YIELD": [],
+                "UST2Y_NOMINAL_YIELD": [],
+            }
+            optional = [
+                item
+                for item in row[side]["macro"]["international_context"]
+                if item["metric_id"]
+                in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD", "UST_2S10S_SPREAD"}
+            ]
+            assert {item["metric_id"] for item in optional} == {
+                "UST2Y_NOMINAL_YIELD",
+                "UST10Y_NOMINAL_YIELD",
+                "UST_2S10S_SPREAD",
+            }
+            assert all(item["value"] is None and item["status"] != "current" for item in optional)
+            assert optional_claim_ids.isdisjoint(
+                row[side]["macro"]["model_input_observation_version_ids"]
+            )
+
+
+def test_disabled_formula_output_change_does_not_require_parent_evidence(tmp_path: Path) -> None:
+    database = tmp_path / "disabled-formula.sqlite3"
+    EvidenceRepository.create(database)
+    comparison = analytical_model_v0002_manifest()
+    comparison["metric_catalog_version"] = "metric-catalog-v0003"
+    comparison["metric_definitions"] = [
+        asdict(item) for item in metric_catalog_v0003() if item.metric_id != "CN_GDP"
+    ]
+    comparison["derived_formula_versions"].pop("credit_impulse")
+    candidate = json.loads(json.dumps(comparison))
+    candidate["model_version_id"] = "disabled-credit-output-change"
+    for definition in candidate["metric_definitions"]:
+        if definition["metric_id"] == "CN_CREDIT_IMPULSE":
+            definition["source_candidates"] = ["synthetic:disabled-output"]
+    evaluated = evaluate_context_replay(
+        database,
+        candidate,
+        comparison,
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+        replay_days=("2026-08-28",),
+    )
+    assert evaluated.gaps == ()
+    assert evaluated.evaluated_cutoffs == 1
+    document = validate_context_output(
+        evaluated.output_document,
+        candidate_manifest=candidate,
+        comparison_manifest=comparison,
+        range_start="2026-08-28",
+        range_end="2026-08-28",
+        calendar_hash=hashlib.sha256(b"2026-08-28").hexdigest(),
+        evaluated_days=1,
+        context_output_differences=evaluated.context_output_differences,
+    )
+    assert document["formula_keys"] == []
+    assert document["source_metrics"] == []
+    for side in ("candidate", "comparison"):
+        assert document["days"][0][side]["macro"]["credit"]["formula"]["status"] == (
+            "disabled_by_model"
+        )
 
 
 def lpr_replay_case(tmp_path: Path) -> tuple[RuntimePaths, ModelRepository, dict[str, Any]]:

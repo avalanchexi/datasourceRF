@@ -1,0 +1,22 @@
+﻿{
+    "copied_at":  "2026-09-09T03:24:45.4835371+00:00",
+    "operation":  "readonly existing archive copy",
+    "acquisition_time":  null,
+    "network_calls":  0,
+    "new_source_claims":  0,
+    "source_certification":  false,
+    "files":  [
+                  {
+                      "source":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\8f\\8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+                      "destination":  "8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+                      "bytes":  44651,
+                      "sha256":  "8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769"
+                  },
+                  {
+                      "source":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\9e\\9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+                      "destination":  "9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+                      "bytes":  44903,
+                      "sha256":  "9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168"
+                  }
+              ]
+}

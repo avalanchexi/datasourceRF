@@ -24,6 +24,16 @@ CONTEXT_DERIVED_OUTPUTS = {
     "CN_PRODUCTION_ORDER_SPREAD",
     "UST_2S10S_SPREAD",
 }
+CONTEXT_FORMULA_OUTPUTS = {
+    "credit_impulse": "CN_CREDIT_IMPULSE",
+    "dr007_policy_spread": "CN_DR007_POLICY_SPREAD",
+    "loan_monthly_change": "CN_LOAN_STRUCTURE",
+    "omo_net_injection": "CN_OMO_7D_AMOUNT",
+    "order_inventory_spread": "CN_ORDER_INVENTORY_SPREAD",
+    "production_order_spread": "CN_PRODUCTION_ORDER_SPREAD",
+    "real_inventory_approximation": "CN_FINISHED_GOODS_INVENTORY",
+    "ust_2s10s_spread": "UST_2S10S_SPREAD",
+}
 
 
 @dataclass(frozen=True)
@@ -32,6 +42,8 @@ class ContextReplayScope:
     comparison: ContextProjectionRules
     requires_replay: bool
     formula_keys: set[str]
+    required_formula_keys: set[str]
+    optional_metrics: set[str]
     requires_certification: set[str]
     source_metrics: set[str]
 
@@ -64,25 +76,57 @@ class ContextReplayScope:
             }
         if packages != comparison_manifest.get("source_certification_packages"):
             changed |= relevant
+        configured_formulas = candidate.formula_versions.keys() | comparison.formula_versions.keys()
         changed_formulas = {
             key
-            for key in candidate.formula_versions.keys() | comparison.formula_versions.keys()
+            for key in configured_formulas
             if candidate.formula_versions.get(key) != comparison.formula_versions.get(key)
         }
         formulas = changed_formulas | {
-            key for key, inputs in CONTEXT_FORMULA_INPUTS.items() if changed & set(inputs)
+            key
+            for key, inputs in CONTEXT_FORMULA_INPUTS.items()
+            if key in configured_formulas
+            and (changed & set(inputs) or CONTEXT_FORMULA_OUTPUTS[key] in changed)
         }
         inputs = {metric for key in formulas for metric in CONTEXT_FORMULA_INPUTS.get(key, ())}
-        required = (changed - CONTEXT_DERIVED_OUTPUTS) | inputs
+        required_metrics = {
+            item.metric_id
+            for item in (*candidate.metric_definitions, *comparison.metric_definitions)
+            if item.priority == "P1" or item.role == "core_barometer"
+        }
+        required_formulas: set[str] = set()
+        while True:
+            dependencies = {
+                key
+                for key in formulas - required_formulas
+                if CONTEXT_FORMULA_OUTPUTS.get(key) in required_metrics
+            }
+            if not dependencies:
+                break
+            required_formulas |= dependencies
+            required_metrics.update(
+                metric for key in dependencies for metric in CONTEXT_FORMULA_INPUTS.get(key, ())
+            )
+        required = ((changed - CONTEXT_DERIVED_OUTPUTS) | inputs) & required_metrics
+        displayed = changed | inputs | {CONTEXT_FORMULA_OUTPUTS[key] for key in formulas}
+        optional = {
+            item.metric_id
+            for item in (*candidate.metric_definitions, *comparison.metric_definitions)
+            if item.priority == "P2"
+            and item.metric_id in displayed
+            and item.metric_id not in required_metrics
+        }
         return cls(
             candidate,
             comparison,
             bool(changed or changed_formulas),
             formulas,
+            required_formulas,
+            optional,
             required,
             {
                 item.metric_id
-                for item in candidate.metric_definitions
+                for item in (*candidate.metric_definitions, *comparison.metric_definitions)
                 if item.metric_id in (changed | inputs) - CONTEXT_DERIVED_OUTPUTS
                 and (item.priority == "P1" or item.certification_status == "certified")
             },

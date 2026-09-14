@@ -11,6 +11,7 @@ from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
+from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
 from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES
 from pring_cycle.market_breadth import (
     DAILY_BREADTH_MEASURES,
@@ -23,6 +24,10 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
+from pring_cycle.official_context import (
+    OFFICIAL_CONTEXT_INTEGRITY_METRICS,
+    official_claims_matching_acquisitions,
+)
 from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
@@ -35,6 +40,7 @@ from pring_cycle.source_adapters import (
     selected_core_claim_is_valid,
 )
 from pring_cycle.storage import database_connection
+from pring_cycle.treasury_context import TREASURY_METRICS, treasury_claims_matching_acquisitions
 from pring_cycle.tushare_context import (
     MARKET_INDEX_IDENTITIES,
     parse_market_index_acquisition,
@@ -126,6 +132,33 @@ class ModelInputSelector:
                 for point in self.series(metric_id)
                 if point.selected_claim_id is not None
             ),
+        )
+        official_points = {
+            metric_id: self.series(metric_id)
+            for metric_id in scope.metric_ids
+            if metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS
+            and self.version not in BUILTIN_CATALOG_VERSIONS
+        }
+        valid_official_claim_ids = official_claims_matching_acquisitions(
+            self.core_evidence, official_points, definition_version=self.version
+        )
+        valid_interbank_claim_ids = interbank_claims_matching_acquisitions(
+            self.core_evidence,
+            {
+                metric: self.series(metric)
+                for metric in scope.metric_ids
+                if metric in INTERBANK_METRICS and self.version not in BUILTIN_CATALOG_VERSIONS
+            },
+            definition_version=self.version,
+        )
+        valid_treasury_claim_ids = treasury_claims_matching_acquisitions(
+            self.core_evidence,
+            {
+                metric: self.series(metric)
+                for metric in scope.metric_ids
+                if metric in TREASURY_METRICS and self.version not in BUILTIN_CATALOG_VERSIONS
+            },
+            definition_version=self.version,
         )
         valid_margin_claim_ids = tushare_claims_matching_acquisitions(
             self.core_evidence,
@@ -303,6 +336,16 @@ class ModelInputSelector:
                             or claim.claim_id in valid_margin_claim_ids
                         )
                         and (
+                            metric_id not in INTERBANK_METRICS
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_interbank_claim_ids
+                        )
+                        and (
+                            metric_id not in TREASURY_METRICS
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_treasury_claim_ids
+                        )
+                        and (
                             metric_id not in CORE_API_IDENTITIES
                             or selected_core_claim_is_valid(metric_id, point)
                         )
@@ -315,6 +358,11 @@ class ModelInputSelector:
                             metric_id != "CN_LPR_1Y_5Y"
                             or self.version in BUILTIN_CATALOG_VERSIONS
                             or claim.claim_id in valid_lpr_claim_ids
+                        )
+                        and (
+                            metric_id not in OFFICIAL_CONTEXT_INTEGRITY_METRICS
+                            or self.version in BUILTIN_CATALOG_VERSIONS
+                            or claim.claim_id in valid_official_claim_ids
                         )
                     ):
                         accepted.append(claim.claim_id)

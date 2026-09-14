@@ -1,0 +1,3 @@
+# This directory contains the reviewed synthetic fixture only.
+!pring-cycle.sqlite3
+!artifacts/

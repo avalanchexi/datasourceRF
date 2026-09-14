@@ -1,0 +1,65 @@
+{
+  "observed_at": "2026-09-11T04:48:29.805793+00:00",
+  "scope": "archived synthetic test fixture only",
+  "database": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-related-152/test_registered_capacity_q1_co0/runtime/data/pring-cycle.sqlite3",
+  "database_sha256": "de44e802896829f70a7b68b5f074aa80b104c74bf94210094e3fc8694b042b91",
+  "integrity_check": "ok",
+  "database_revision": "0021_context_replay_outputs",
+  "models": [
+    {
+      "catalog_version": "synthetic-metric-catalog-admission-v1",
+      "definitions_hash": "30ef449d56a767fadedb8fa685a61af20c1d44592e212e25f5ee8e05b854d647",
+      "model_id": "model-reviewed-d407cba04aa79a0b0d9175b7d3de1c0e0ae6b217cad33f903602c2732ee15d92",
+      "has_mapping_reference_contract": false,
+      "manifest_sha256": "7ad2f5c8dfa46b5ad7122dca1dc8b735ddd2003983d2a482ea282c44278d9a0d",
+      "execution_fingerprint": {
+        "code_hash": "35483c38a6fbe7adbf181fcc8cc83a81f0960341c2eadd37a5cf0d86dfebff01",
+        "configuration_version": "config-v0001",
+        "database_revision": "0021_context_replay_outputs",
+        "dependency_hash": "28cdd2d2003f3235ab2bd8fcc8ec82c45c178d67e5f3fde16b1308ae8e0890b1"
+      }
+    }
+  ],
+  "verified_artifacts": [
+    {
+      "sha256": "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "bytes": 128195
+    },
+    {
+      "sha256": "433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "bytes": 1749
+    },
+    {
+      "sha256": "8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "bytes": 4219
+    },
+    {
+      "sha256": "98d53597e16b68a4c23e7aa3ca9cd10f3bd831c1a086fd2c016ef388bd8193b7",
+      "bytes": 34577
+    },
+    {
+      "sha256": "a1feba3599d91650c9009c4fef8ebf57736188316b4dda0c6427cb7c51c33be6",
+      "bytes": 4219
+    },
+    {
+      "sha256": "a29cd16110c4307e951b941c83300709d34ae4903179c9333f536a80f2d3b70f",
+      "bytes": 1230
+    },
+    {
+      "sha256": "b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "bytes": 61
+    },
+    {
+      "sha256": "bab2c6870124339a995848c69e08419aaceaed31afd0119cd27b67ea90c993b4",
+      "bytes": 1853
+    },
+    {
+      "sha256": "c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "bytes": 12902
+    },
+    {
+      "sha256": "e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "bytes": 1601
+    }
+  ]
+}

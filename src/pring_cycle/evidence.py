@@ -410,6 +410,61 @@ class EvidenceRepository:
     def validate_model_catalog(self, manifest: Mapping[str, object]) -> None:
         require_registered_manifest(self._database_path, manifest)
 
+    def source_claims_matching_registered_contract(
+        self, claim_ids: tuple[str, ...], *, definition_version: str
+    ) -> set[str]:
+        """Recheck stored claim identities and their admitted source contracts."""
+        if not claim_ids:
+            return set()
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM source_claim WHERE claim_id IN (SELECT value FROM json_each(?))",
+                (json.dumps(claim_ids),),
+            ).fetchall()
+            links = connection.execute(
+                "SELECT claim_id, acquisition_id FROM source_claim_acquisition "
+                "WHERE claim_id IN (SELECT value FROM json_each(?))",
+                (json.dumps(claim_ids),),
+            ).fetchall()
+        acquisitions: dict[str, list[str]] = {}
+        for link in links:
+            acquisitions.setdefault(str(link[0]), []).append(str(link[1]))
+        valid = set()
+        for row in rows:
+            if (
+                row["definition_version"] != definition_version
+                or row["certification_status"] != "certified"
+                or row["quality_status"] != "validated"
+            ):
+                continue
+            try:
+                claim = SourceClaimInput(
+                    metric_id=str(row["metric_id"]),
+                    definition_version=definition_version,
+                    period_kind=str(row["period_kind"]),
+                    period_start=str(row["period_start"]),
+                    period_end=str(row["period_end"]),
+                    dimensions=json.loads(row["dimensions_json"]),
+                    value=row["value"],
+                    value_state=EvidenceValueState(row["value_state"]),
+                    unit=str(row["unit"]),
+                    provider=str(row["provider"]),
+                    source_reference=str(row["source_reference"]),
+                    release_event_id=str(row["release_event_id"]),
+                    release_at=_datetime(row["release_at"]),
+                    public_available_at=_datetime(row["public_available_at"]),
+                    fetched_at=_required_datetime(row["fetched_at"]),
+                    available_at=_required_datetime(row["available_at"]),
+                    certification_status=str(row["certification_status"]),
+                    quality_status=str(row["quality_status"]),
+                    acquisition_ids=tuple(acquisitions.get(str(row["claim_id"]), ())),
+                )
+                _validate_claim(claim, self._database_path)
+            except (OSError, LookupError, TypeError, ValueError):
+                continue
+            valid.add(str(row["claim_id"]))
+        return valid
+
     def __init__(self, database_path: Path) -> None:
         self._database_path = database_path
         self._preloaded_series_rows: dict[
@@ -1325,6 +1380,8 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
             period_end=claim.period_end,
             database_path=database_path,
             value=claim.value,
+            release_at=claim.release_at,
+            public_available_at=claim.public_available_at,
             acquisition_ids=tuple(
                 dict.fromkeys(
                     (

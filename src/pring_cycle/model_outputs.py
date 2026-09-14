@@ -13,10 +13,14 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle.context_projection import ContextProjectionRules
-from pring_cycle.context_replay_scope import ContextReplayScope
+from pring_cycle.context_replay_scope import (
+    CONTEXT_FORMULA_INPUTS,
+    CONTEXT_FORMULA_OUTPUTS,
+    ContextReplayScope,
+)
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
-from pring_cycle.metric_contracts import required_dimension_members
+from pring_cycle.metric_contracts import evidence_max_age_days, required_dimension_members
 
 HISTORY_OUTPUT_SCHEMA = "core-history-output-v0001"
 REPLAY_OUTPUT_SCHEMA = "core-replay-output-v0001"
@@ -519,6 +523,15 @@ def validate_context_output(
                 inputs,
                 scope.candidate if side == "candidate" else scope.comparison,
                 complete=status == "recorded",
+                required_metrics=scope.requires_certification,
+                cutoff=datetime.fromisoformat(cutoff),
+                model_input_ids=set(macro["model_input_observation_version_ids"]),
+            )
+            _validate_optional_context_rows(
+                macro["international_context"],
+                inputs,
+                scope=scope,
+                rules=scope.candidate if side == "candidate" else scope.comparison,
                 cutoff=datetime.fromisoformat(cutoff),
                 model_input_ids=set(macro["model_input_observation_version_ids"]),
             )
@@ -535,11 +548,168 @@ def validate_context_output(
     return document
 
 
+def _validate_optional_context_rows(
+    rows: list[Any],
+    inputs: dict[str, Any],
+    *,
+    scope: ContextReplayScope,
+    rules: ContextProjectionRules,
+    cutoff: datetime,
+    model_input_ids: set[str],
+) -> None:
+    optional_metrics = scope.optional_metrics
+    optional_formulas = {
+        CONTEXT_FORMULA_OUTPUTS[key]: key
+        for key in scope.formula_keys - scope.required_formula_keys
+    }
+    definitions = {item.metric_id: item for item in rules.metric_definitions}
+    expected_metrics = (optional_metrics | optional_formulas.keys()) & definitions.keys()
+    present_metrics = {
+        row["metric_id"]
+        for row in rows
+        if isinstance(row, dict) and isinstance(row.get("metric_id"), str)
+    }
+    if not expected_metrics <= present_metrics:
+        raise ValueError("context_output_inputs_incomplete")
+    scoped_ids = {
+        point["selected_claim_id"]
+        for metric_id in optional_metrics
+        for point in inputs.get(metric_id, [])
+        if isinstance(point["selected_claim_id"], str)
+    }
+    referenced_ids: set[str] = set()
+    for row in rows:
+        if (
+            not isinstance(row, dict)
+            or not isinstance(row.get("metric_id"), str)
+            or row["metric_id"] not in expected_metrics
+        ):
+            continue
+        metric_id = row["metric_id"]
+        claim_id = row.get("selected_claim_id")
+        if isinstance(claim_id, str):
+            scoped_ids.add(claim_id)
+        if row.get("status") not in {"current", "available"}:
+            continue
+        allowed_certifications = (
+            {"certified", "derived_from_certified_inputs"}
+            if metric_id in optional_formulas
+            else {"certified"}
+        )
+        if (
+            definitions[metric_id].certification_status not in allowed_certifications
+            or not isinstance(claim_id, str)
+            or claim_id not in model_input_ids
+            or type(row.get("value")) not in (int, float)
+            or not isfinite(row["value"])
+            or row.get("value_state") != "reported_value"
+            or not isinstance(row.get("period"), str)
+        ):
+            raise ValueError("context_output_inputs_incomplete")
+        try:
+            age = (cutoff.date() - date.fromisoformat(row["period"])).days
+        except ValueError as error:
+            raise ValueError("context_output_inputs_incomplete") from error
+        if not 0 <= age <= evidence_max_age_days(metric_id, definitions[metric_id].frequency):
+            raise ValueError("context_output_inputs_incomplete")
+        referenced_ids.add(claim_id)
+        if metric_id in optional_formulas:
+            formula_key = optional_formulas[metric_id]
+            parent_ids = row.get("input_observation_version_ids")
+            if (
+                formula_key not in rules.formula_versions
+                or row.get("formula_version") != rules.formula_versions[formula_key]
+                or not isinstance(parent_ids, list)
+                or not parent_ids
+                or any(not isinstance(item, str) for item in parent_ids)
+                or len(set(parent_ids)) != len(parent_ids)
+                or not set(parent_ids) <= model_input_ids
+            ):
+                raise ValueError("context_output_inputs_incomplete")
+            matched_ids: set[str] = set()
+            parents = {}
+            for parent_metric in CONTEXT_FORMULA_INPUTS[formula_key]:
+                points = [
+                    point
+                    for point in inputs.get(parent_metric, [])
+                    if point["selected_claim_id"] in parent_ids
+                ]
+                if not points or any(not _context_point_is_adoptable(point) for point in points):
+                    raise ValueError("context_output_inputs_incomplete")
+                parents[parent_metric] = points
+                matched_ids.update(point["selected_claim_id"] for point in points)
+            if matched_ids != set(parent_ids):
+                raise ValueError("context_output_inputs_incomplete")
+            referenced_ids.update(matched_ids)
+            _validate_optional_formula_value(row, formula_key, parents)
+            continue
+        if not any(
+            point["selected_claim_id"] == claim_id
+            and point["selection_status"] == "selected"
+            and point["selected_value"] is not None
+            and point["selected_value"] == row.get("value")
+            and point["dimensions"] == row.get("dimensions")
+            and point["period_start"] == row.get("period_start")
+            and point["period_end"] == row.get("period")
+            and point["observation_id"] == row.get("observation_id")
+            and any(
+                claim.get("claim_id") == claim_id and claim.get("unit") == row.get("unit")
+                for claim in point["claims"]
+            )
+            for point in inputs.get(metric_id, [])
+        ):
+            raise ValueError("context_output_inputs_incomplete")
+        direction_ids = row.get("direction_input_observation_version_ids", [])
+        if not isinstance(direction_ids, list) or any(
+            not isinstance(item, str) or item not in model_input_ids for item in direction_ids
+        ):
+            raise ValueError("context_output_inputs_incomplete")
+        for direction_id in direction_ids:
+            if not any(
+                point["selected_claim_id"] == direction_id
+                and point["dimensions"] == row.get("dimensions")
+                and point["period_end"] < row["period"]
+                and _context_point_is_adoptable(point)
+                for point in inputs.get(metric_id, [])
+            ):
+                raise ValueError("context_output_inputs_incomplete")
+        referenced_ids.update(direction_ids)
+    if (model_input_ids & scoped_ids) - referenced_ids:
+        raise ValueError("context_output_inputs_incomplete")
+
+
+def _validate_optional_formula_value(
+    row: dict[str, Any], formula_key: str, parents: dict[str, list[dict[str, Any]]]
+) -> None:
+    # UST is the currently supported optional formula; other context formulas serve P1.
+    if (
+        formula_key != "ust_2s10s_spread"
+        or row["formula_version"] != "ust-2s10s-spread-v0001"
+        or row.get("unit") != "basis_points"
+        or row.get("dimensions") != {}
+        or any(len(points) != 1 for points in parents.values())
+    ):
+        raise ValueError("context_output_inputs_incomplete")
+    two_year = parents["UST2Y_NOMINAL_YIELD"][0]
+    ten_year = parents["UST10Y_NOMINAL_YIELD"][0]
+    if (
+        any(
+            point["period_start"] != row.get("period")
+            or point["period_end"] != row.get("period")
+            or point["dimensions"] != {}
+            for point in (two_year, ten_year)
+        )
+        or row["value"] != (ten_year["selected_value"] - two_year["selected_value"]) * 100.0
+    ):
+        raise ValueError("context_output_inputs_incomplete")
+
+
 def _validate_context_inputs(
     inputs: dict[str, Any],
     rules: ContextProjectionRules,
     *,
     complete: bool,
+    required_metrics: set[str],
     cutoff: datetime,
     model_input_ids: set[str],
 ) -> None:
@@ -547,7 +717,10 @@ def _validate_context_inputs(
     for metric_id, points in inputs.items():
         definition = definitions.get(metric_id)
         required = (
-            complete and definition is not None and definition.certification_status == "certified"
+            complete
+            and metric_id in required_metrics
+            and definition is not None
+            and definition.certification_status == "certified"
         )
         if not isinstance(points, list) or (
             required and not points and definition is not None and definition.frequency != "event"
@@ -613,6 +786,16 @@ def _validate_context_inputs(
                     valid = False
                 if not valid:
                     raise ValueError("context_output_inputs_incomplete")
+            if (
+                isinstance(point["selected_claim_id"], str)
+                and point["selected_claim_id"] in model_input_ids
+                and (
+                    definition is None
+                    or definition.certification_status != "certified"
+                    or not _context_point_is_adoptable(point)
+                )
+            ):
+                raise ValueError("context_output_inputs_incomplete")
         if required and points:
             latest = max(point["period_end"] for point in points)
             latest_by_dimensions: dict[str, dict[str, Any]] = {}
@@ -652,20 +835,20 @@ def _validate_context_inputs(
                     for member in members
                 ):
                     continue
-                selected_claim = next(
-                    (
-                        claim
-                        for claim in point["claims"]
-                        if claim.get("claim_id") == point["selected_claim_id"]
-                    ),
-                    None,
-                )
-                if (
-                    point["selection_status"] != "selected"
-                    or selected_claim is None
-                    or point["selected_value"] is None
-                    or point["value_state"] != "reported_value"
-                    or selected_claim.get("certification_status") != "certified"
-                    or selected_claim.get("quality_status") != "validated"
-                ):
+                if not _context_point_is_adoptable(point):
                     raise ValueError("context_output_inputs_incomplete")
+
+
+def _context_point_is_adoptable(point: dict[str, Any]) -> bool:
+    selected_claim = next(
+        (claim for claim in point["claims"] if claim.get("claim_id") == point["selected_claim_id"]),
+        None,
+    )
+    return (
+        point["selection_status"] == "selected"
+        and selected_claim is not None
+        and point["selected_value"] is not None
+        and point["value_state"] == "reported_value"
+        and selected_claim.get("certification_status") == "certified"
+        and selected_claim.get("quality_status") == "validated"
+    )

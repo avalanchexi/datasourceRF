@@ -5,6 +5,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, replace
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -18,13 +19,15 @@ from pring_cycle.cli import main
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
-from pring_cycle.model_evaluation import evaluate_context_replay
+from pring_cycle.model_evaluation import context_replay_gaps, evaluate_context_replay
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
     certified_120d_model_v0011_manifest,
+    certified_model_v0001_manifest,
 )
 from pring_cycle.official_context import (
+    ParsedOfficialContextRelease,
     ingest_official_context_document,
     parse_official_context_document,
 )
@@ -41,6 +44,7 @@ from pring_cycle.search_discovery import (
     search_discovery_adapter,
 )
 from pring_cycle.search_evidence import ModelInputSelection, select_retrieval_input
+from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
 from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
 
 
@@ -124,6 +128,1176 @@ def submit(paths: RuntimePaths, request_hash: str) -> None:
             "--json",
         ]
     )
+
+
+def admitted_gdp_manifest(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], *, side: str = ""
+) -> dict[str, Any]:
+    # A full candidate with synthetic review bindings; no actual source is certified.
+    request, _ = prepared_request(paths)
+    definition = next(
+        item for item in request["manifest"]["metric_definitions"] if item["metric_id"] == "CN_GDP"
+    )
+    definition["certification_status"] = "certified"
+    if side:
+        request["manifest"]["metric_catalog_version"] += "-" + side
+        for item in request["manifest"]["metric_definitions"]:
+            item["definition_version"] = request["manifest"]["metric_catalog_version"]
+        if side == "candidate":
+            definition["source_candidates"] = [
+                *definition["source_candidates"],
+                "https://www.stats.gov.cn/synthetic-review",
+            ]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    package["definition_bindings"]["CN_GDP"] = hashlib.sha256(encode(definition)).hexdigest()
+    if side:
+        package["definition_bindings"] = {
+            item["metric_id"]: hashlib.sha256(encode(item)).hexdigest()
+            for item in request["manifest"]["metric_definitions"]
+            if item["metric_id"] in package["definition_bindings"]
+        }
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    return ModelRepository(paths.database).manifest(model_id)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_candidate_allows_uncertified_optional_p2_at_replay_preflight(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    candidate = admitted_gdp_manifest(paths, capsys)
+    definitions = {item["metric_id"]: item for item in candidate["metric_definitions"]}
+    assert len(definitions) == 61
+    assert sum(item["priority"] == "P1" for item in definitions.values()) == 42
+    assert len(candidate["derived_formula_versions"]) == 8
+    assert definitions["CN_GDP"]["certification_status"] == "certified"
+    for metric_id in ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD", "UST_2S10S_SPREAD"):
+        assert definitions[metric_id]["priority"] == "P2"
+        assert definitions[metric_id]["certification_status"] == "awaiting_source_certification"
+    models = ModelRepository(paths.database)
+    baseline = models.create_candidate(certified_model_v0001_manifest())
+    comparison = models.manifest(baseline.model_version_id)
+
+    assert context_replay_gaps(candidate, comparison) == ()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("damaged_artifact", [None, "raw", "normalized"])
+def test_registered_gdp_original_preserves_eight_members_and_two_times(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_artifact: str | None
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    model_id = manifest["model_version_id"]
+    version = manifest["metric_catalog_version"]
+    digest = "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-14" / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+    before = datetime.now(UTC)
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_gdp",
+        source_url=url,
+        expected_period="2026-Q2",
+        fetched_at=before,
+        definition_version=version,
+    )
+    after = datetime.now(UTC)
+    assert len(imported.claim_ids) == 8
+    repository = EvidenceRepository(paths.database)
+    assert (
+        repository.metric_series(
+            "CN_GDP", mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+        )
+        == ()
+    )
+    release = datetime(2026, 7, 16, 1, 30, tzinfo=UTC)
+    assert (
+        repository.metric_series(
+            "CN_GDP",
+            mode=AsOfMode.PUBLIC,
+            as_of=release - timedelta(seconds=1),
+            definition_version=version,
+        )
+        == ()
+    )
+    # These literals are independently read from the NBS Q2 table, not parser output.
+    expected = {
+        ("total", "nominal_ytd_level"): (
+            695704,
+            "hundred_million_cny",
+            "year_to_quarter",
+            "2026-01-01",
+        ),
+        ("primary", "nominal_ytd_level"): (
+            31522,
+            "hundred_million_cny",
+            "year_to_quarter",
+            "2026-01-01",
+        ),
+        ("secondary", "nominal_ytd_level"): (
+            250473,
+            "hundred_million_cny",
+            "year_to_quarter",
+            "2026-01-01",
+        ),
+        ("tertiary", "nominal_ytd_level"): (
+            413709,
+            "hundred_million_cny",
+            "year_to_quarter",
+            "2026-01-01",
+        ),
+        ("total", "real_quarter_yoy"): (4.3, "percent", "quarter", "2026-04-01"),
+        ("primary", "real_quarter_yoy"): (3.7, "percent", "quarter", "2026-04-01"),
+        ("secondary", "real_quarter_yoy"): (3.0, "percent", "quarter", "2026-04-01"),
+        ("tertiary", "real_quarter_yoy"): (5.1, "percent", "quarter", "2026-04-01"),
+    }
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.raw_hash == digest
+    assert receipt.parser_version == "official-context-parser-v0004"
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    assert before <= receipt.started_at <= receipt.received_at <= receipt.validated_at <= after
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
+    assert len(normalized["scalars"]) == 8
+    for mode, cutoff in ((AsOfMode.SYSTEM, after), (AsOfMode.PUBLIC, release)):
+        points = repository.metric_series(
+            "CN_GDP", mode=mode, as_of=cutoff, definition_version=version
+        )
+        assert len(points) == 8
+        assert {point.selected_claim_id for point in points} == set(imported.claim_ids)
+        actual = {}
+        for point in points:
+            (claim,) = point.claims
+            trace = repository.trace(point.observation_id, mode=mode, as_of=cutoff)
+            assert point.period_end == "2026-06-30"
+            assert claim.source_reference == f"{url}#sha256={digest}"
+            assert tuple(item.acquisition_id for item in trace.acquisitions) == (
+                receipt.acquisition_id,
+            )
+            assert claim.public_available_at == release
+            assert claim.fetched_at == receipt.received_at
+            assert receipt.validated_at <= claim.available_at <= after
+            actual[(point.dimensions["aggregate"], point.dimensions["measure"])] = (
+                point.selected_value,
+                claim.unit,
+                trace.period_kind,
+                point.period_start,
+            )
+        assert actual == expected
+
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="admitted-gdp",
+        model_version_id=model_id,
+        system_as_of=after,
+        release_event_id=imported.release_event_id,
+        metric_ids=("CN_GDP",),
+        period="2026-Q2",
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        selected = select_retrieval_input(paths, run, mode=mode)
+        assert selected.complete, selected.missing_members
+        assert set(selected.selected_claim_ids) == set(imported.claim_ids)
+        context = build_context_projection(
+            repository, as_of=after, model_manifest=manifest, as_of_mode=mode
+        )
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert set(imported.claim_ids) <= set(model_inputs)
+
+        rows = context.macro["international_context"]
+        assert isinstance(rows, list)
+        gdp_rows = [row for row in rows if row["metric_id"] == "CN_GDP"]
+        assert len(gdp_rows) == 8
+        assert {row["role"] for row in gdp_rows} == {"context_only_never_formal_stage"}
+        assert {row["status"] for row in gdp_rows} == {"current"}
+        assert {
+            (row["dimensions"]["aggregate"], row["dimensions"]["measure"]): (
+                row["value"],
+                row["unit"],
+                row["period_start"],
+            )
+            for row in gdp_rows
+        } == {member: (value, unit, start) for member, (value, unit, _, start) in expected.items()}
+
+    if damaged_artifact is not None:
+        content_hash = receipt.raw_hash if damaged_artifact == "raw" else receipt.normalized_hash
+        assert content_hash is not None
+        (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b'{"damaged":true}\n')
+        for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+            selected = select_retrieval_input(paths, run, mode=mode)
+            assert not selected.complete
+            assert selected.selected_claim_ids == ()
+            context = build_context_projection(
+                repository, as_of=after, model_manifest=manifest, as_of_mode=mode
+            )
+            model_inputs = context.macro["model_input_observation_version_ids"]
+            assert isinstance(model_inputs, list)
+            assert set(imported.claim_ids).isdisjoint(model_inputs)
+            assert set(imported.claim_ids) <= set(context.observation_version_ids)
+            rows = context.macro["international_context"]
+            assert isinstance(rows, list)
+            assert {row["status"] for row in rows if row["metric_id"] == "CN_GDP"} == {
+                "source_failed"
+            }
+    else:
+        # Q1 shares the two start dates but still has eight distinct members.
+        q1_hash = "61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18"
+        q1_raw = (
+            Path(__file__).parents[2]
+            / ".scratch/pring-data-acquisition-repair/evidence-macro-normalized"
+            / q1_hash
+        ).read_bytes()
+        assert hashlib.sha256(q1_raw).hexdigest() == q1_hash
+        before_q1 = datetime.now(UTC)
+        q1 = ingest_official_context_document(
+            paths,
+            q1_raw,
+            family="nbs_gdp",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202604/t20260417_1963336.html",
+            expected_period="2026-Q1",
+            fetched_at=before_q1,
+            definition_version=version,
+        )
+        after_q1 = datetime.now(UTC)
+        q1_release = datetime(2026, 4, 17, 1, 30, tzinfo=UTC)
+        q1_expected = {
+            ("total", "nominal_ytd_level"): 334193,
+            ("primary", "nominal_ytd_level"): 11941,
+            ("secondary", "nominal_ytd_level"): 116135,
+            ("tertiary", "nominal_ytd_level"): 206117,
+            ("total", "real_quarter_yoy"): 5.0,
+            ("primary", "real_quarter_yoy"): 3.8,
+            ("secondary", "real_quarter_yoy"): 4.9,
+            ("tertiary", "real_quarter_yoy"): 5.2,
+        }
+        assert len(q1.claim_ids) == 8
+        for mode, cutoff in ((AsOfMode.PUBLIC, q1_release), (AsOfMode.SYSTEM, after_q1)):
+            points = repository.metric_series(
+                "CN_GDP", mode=mode, as_of=cutoff, definition_version=version
+            )
+            assert len(points) == (8 if mode is AsOfMode.PUBLIC else 16)
+            q1_points = [point for point in points if point.period_end == "2026-03-31"]
+            assert {point.period_start for point in q1_points} == {"2026-01-01"}
+            assert {point.selected_claim_id for point in q1_points} == set(q1.claim_ids)
+            assert {
+                (point.dimensions["aggregate"], point.dimensions["measure"]): point.selected_value
+                for point in q1_points
+            } == q1_expected
+            for point in q1_points:
+                trace = repository.trace(point.observation_id, mode=mode, as_of=cutoff)
+                (acquisition,) = trace.acquisitions
+                assert acquisition.raw_hash == q1_hash
+                assert acquisitions.read_content(acquisition.acquisition_id, "raw") == q1_raw
+                assert acquisition.validated_at is not None
+                assert before_q1 <= acquisition.validated_at <= after_q1
+                assert trace.period_kind == (
+                    "quarter"
+                    if point.dimensions["measure"] == "real_quarter_yoy"
+                    else "year_to_quarter"
+                )
+        assert (
+            repository.metric_series(
+                "CN_GDP",
+                mode=AsOfMode.PUBLIC,
+                as_of=q1_release - timedelta(seconds=1),
+                definition_version=version,
+            )
+            == ()
+        )
+        assert (
+            len(
+                repository.metric_series(
+                    "CN_GDP", mode=AsOfMode.SYSTEM, as_of=before_q1, definition_version=version
+                )
+            )
+            == 8
+        )
+
+        # A synthetic changed publication keeps the old header: its new public
+        # time is unknown, while the historical public Q2 values stay intact.
+        revised_raw = raw.replace(b"695704", b"695705")
+        assert revised_raw != raw
+        before_revision = datetime.now(UTC)
+        revised = ingest_official_context_document(
+            paths,
+            revised_raw,
+            family="nbs_gdp",
+            source_url=url,
+            expected_period="2026-Q2",
+            fetched_at=before_revision,
+            definition_version=version,
+        )
+        after_revision = datetime.now(UTC)
+        assert len(revised.claim_ids) == 8
+        assert set(revised.claim_ids).isdisjoint(imported.claim_ids)
+        for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+            points = repository.metric_series(
+                "CN_GDP", mode=mode, as_of=after_revision, definition_version=version
+            )
+            q2_points = [point for point in points if point.period_end == "2026-06-30"]
+            selected_ids = {point.selected_claim_id for point in q2_points}
+            assert selected_ids == set(
+                imported.claim_ids if mode is AsOfMode.PUBLIC else revised.claim_ids
+            )
+            total = next(
+                point
+                for point in q2_points
+                if point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
+            )
+            assert total.selected_value == (695704 if mode is AsOfMode.PUBLIC else 695705)
+            if mode is AsOfMode.SYSTEM:
+                for point in q2_points:
+                    selected_claim = next(
+                        claim for claim in point.claims if claim.claim_id == point.selected_claim_id
+                    )
+                    assert selected_claim.public_available_at is None
+                    assert selected_claim.release_at is None
+                    assert selected_claim.available_at >= before_revision
+
+
+def test_registered_gdp_rejects_unsupported_members_and_quarter_boundaries(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    now = datetime(2026, 9, 9, tzinfo=UTC)
+    claim = SourceClaimInput(
+        metric_id="CN_GDP",
+        definition_version=manifest["metric_catalog_version"],
+        period_kind="year_to_quarter",
+        period_start="2026-01-01",
+        period_end="2026-06-30",
+        dimensions={"aggregate": "total", "measure": "nominal_ytd_level"},
+        value=695704,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="hundred_million_cny",
+        provider="国家统计局",
+        source_reference="synthetic:gdp-identity-rejection",
+        release_event_id="synthetic:gdp",
+        release_at=now,
+        public_available_at=now,
+        fetched_at=now,
+        available_at=now,
+        certification_status="certified",
+        quality_status="validated",
+    )
+    invalid_identities: tuple[dict[str, Any], ...] = (
+        {"provider": "tushare"},
+        {"dimensions": {"aggregate": "other", "measure": "nominal_ytd_level"}},
+        {"dimensions": {"aggregate": "total", "measure": "nominal_quarterly_level"}},
+        {"dimensions": {"aggregate": "total", "measure": "real_ytd_yoy"}, "unit": "percent"},
+        {"unit": "percent"},
+        {"period_kind": "quarter"},
+    )
+    repository = EvidenceRepository(paths.database)
+    for changes in invalid_identities:
+        with pytest.raises(ValueError, match="registered_official_source_identity_mismatch"):
+            repository.append_source_claim(replace(claim, **changes))
+    invalid_periods: tuple[dict[str, Any], ...] = (
+        {"period_start": "2026-04-01"},
+        {"period_end": "2026-06-29"},
+        {"period_end": "2026-05-31"},
+        {
+            "dimensions": {"aggregate": "total", "measure": "real_quarter_yoy"},
+            "value": 4.3,
+            "unit": "percent",
+            "period_kind": "quarter",
+        },
+    )
+    for changes in invalid_periods:
+        with pytest.raises(ValueError, match="registered_official_source_period_mismatch"):
+            repository.append_source_claim(replace(claim, **changes))
+    assert (
+        repository.metric_series(
+            "CN_GDP",
+            mode=AsOfMode.SYSTEM,
+            as_of=now,
+            definition_version=manifest["metric_catalog_version"],
+        )
+        == ()
+    )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault", ["none", "missing_member", "missing_lineage", "invalid_quality", "wrong_value"]
+)
+def test_registered_gdp_requires_complete_current_quarter_and_matched_receipts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    model_id = manifest["model_version_id"]
+    version = manifest["metric_catalog_version"]
+    evidence_root = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    q1_raw = (
+        evidence_root
+        / "evidence-macro-normalized"
+        / "61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18"
+    ).read_bytes()
+    q1 = ingest_official_context_document(
+        paths,
+        q1_raw,
+        family="nbs_gdp",
+        source_url="https://www.stats.gov.cn/sj/zxfb/202604/t20260417_1963336.html",
+        expected_period="2026-Q1",
+        fetched_at=datetime.now(UTC),
+        definition_version=version,
+    )
+    digest = "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+    raw = (evidence_root / "evidence-14" / digest).read_bytes()
+    url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+    now = datetime.now(UTC)
+    # The acquisition, parser and normalized original remain complete; the
+    # public claim boundary receives one missing, invalid or mismatched member.
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider="国家统计局",
+        api_name="document_import",
+        parameters={"family": "nbs_gdp", "source_url": url, "period": "2026-Q2"},
+        fields="",
+        parser_version="official-context-parser-v0004",
+        fetch=lambda: raw,
+        parse=lambda content: parse_official_context_document(
+            content, family="nbs_gdp", source_url=url, expected_period="2026-Q2", fetched_at=now
+        ),
+        normalize=asdict,
+    )
+    receipt, parsed = acquired.receipt, acquired.value
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    repository = EvidenceRepository(paths.database)
+    claims = []
+    for scalar in parsed.scalars:
+        target = scalar.dimensions == {"aggregate": "secondary", "measure": "real_quarter_yoy"}
+        if target and fault == "missing_member":
+            continue
+        claims.append(
+            SourceClaimInput(
+                metric_id="CN_GDP",
+                definition_version=version,
+                period_kind=scalar.period_kind,
+                period_start=scalar.period_start,
+                period_end=scalar.period_end,
+                dimensions=scalar.dimensions,
+                value=3.9 if target and fault == "wrong_value" else scalar.value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=scalar.unit,
+                provider=parsed.provider,
+                source_reference=f"{url}#sha256={digest}",
+                release_event_id=parsed.release_event_id,
+                release_at=parsed.release_at,
+                public_available_at=parsed.public_available_at,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                certification_status="certified",
+                quality_status="invalid" if target and fault == "invalid_quality" else "validated",
+                acquisition_id=None
+                if target and fault == "missing_lineage"
+                else receipt.acquisition_id,
+            )
+        )
+    stored = repository.append_source_claims(tuple(claims))
+    cutoff = datetime.now(UTC)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="partial-gdp",
+        model_version_id=model_id,
+        system_as_of=cutoff,
+        release_event_id=parsed.release_event_id,
+        metric_ids=("CN_GDP",),
+        period="2026-Q2",
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        selected = select_retrieval_input(paths, run, mode=mode)
+        assert selected.complete is (fault == "none")
+        assert len(selected.selected_claim_ids) == (8 if fault == "none" else 7)
+        assert set(selected.selected_claim_ids) <= {claim.claim_id for claim in stored}
+        assert set(selected.selected_claim_ids).isdisjoint(q1.claim_ids)
+        assert len(selected.missing_members) == (0 if fault == "none" else 1)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("fault", ["unit", "quarter_columns", "price_basis"])
+@pytest.mark.parametrize("boundary", ["ingestion", "consumption"])
+def test_registered_gdp_rejects_mislabeled_official_table(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str, boundary: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-14"
+        / "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915"
+    ).read_bytes()
+    if fault == "unit":
+        malformed = raw.replace("绝对额（亿元）".encode(), "绝对额（万亿元）".encode())
+    elif fault == "quarter_columns":
+        malformed = (
+            raw.replace(">二季度<".encode(), b">quarter-placeholder<")
+            .replace(">上半年<".encode(), ">二季度<".encode())
+            .replace(b">quarter-placeholder<", ">上半年<".encode())
+        )
+    else:
+        malformed = raw.replace("增长速度按不变价计算".encode(), "增长速度按现价计算".encode())
+    assert malformed != raw
+    url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html"
+    version = manifest["metric_catalog_version"]
+    repository = EvidenceRepository(paths.database)
+    if boundary == "ingestion":
+        with pytest.raises(ValueError, match="registered_gdp_table_contract_mismatch"):
+            ingest_official_context_document(
+                paths,
+                malformed,
+                family="nbs_gdp",
+                source_url=url,
+                expected_period="2026-Q2",
+                fetched_at=datetime.now(UTC),
+                definition_version=version,
+            )
+        assert (
+            repository.metric_series(
+                "CN_GDP",
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=version,
+            )
+            == ()
+        )
+        return
+    now = datetime.now(UTC)
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider="国家统计局",
+        api_name="document_import",
+        parameters={"family": "nbs_gdp", "source_url": url, "period": "2026-Q2"},
+        fields="",
+        parser_version="official-context-parser-v0004",
+        fetch=lambda: malformed,
+        parse=lambda content: parse_official_context_document(
+            content, family="nbs_gdp", source_url=url, expected_period="2026-Q2", fetched_at=now
+        ),
+        normalize=asdict,
+    )
+    receipt, parsed = acquired.receipt, acquired.value
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    stored = repository.append_source_claims(
+        tuple(
+            SourceClaimInput(
+                metric_id="CN_GDP",
+                definition_version=version,
+                period_kind=scalar.period_kind,
+                period_start=scalar.period_start,
+                period_end=scalar.period_end,
+                dimensions=scalar.dimensions,
+                value=scalar.value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=scalar.unit,
+                provider=parsed.provider,
+                source_reference=f"{url}#sha256={receipt.raw_hash}",
+                release_event_id=parsed.release_event_id,
+                release_at=parsed.release_at,
+                public_available_at=parsed.public_available_at,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                certification_status="certified",
+                quality_status="validated",
+                acquisition_id=receipt.acquisition_id,
+            )
+            for scalar in parsed.scalars
+        )
+    )
+    assert len(stored) == 8
+    cutoff = datetime.now(UTC)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="gdp-wrong-table",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=cutoff,
+        release_event_id=parsed.release_event_id,
+        metric_ids=("CN_GDP",),
+        period="2026-Q2",
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        selected = select_retrieval_input(paths, run, mode=mode)
+        assert not selected.complete
+        assert selected.selected_claim_ids == ()
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=mode
+        )
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert {claim.claim_id for claim in stored}.isdisjoint(model_inputs)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "period,digest,url,levels,growth",
+    [
+        (
+            "2025-Q3",
+            "0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c",
+            "https://www.stats.gov.cn/sj/zxfb/202510/t20251021_1961646.html",
+            (1015036, 58061, 364020, 592955),
+            (4.8, 4.0, 4.2, 5.4),
+        ),
+        (
+            "2025-Q4",
+            "9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765",
+            "https://www.stats.gov.cn/sj/zxfb/202601/t20260120_1962349.html",
+            (1401879, 93347, 499653, 808879),
+            (4.5, 4.2, 3.4, 5.2),
+        ),
+    ],
+)
+def test_registered_gdp_preserves_q3_q4_official_table_layouts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    period: str,
+    digest: str,
+    url: str,
+    levels: tuple[int, ...],
+    growth: tuple[float, ...],
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    version = manifest["metric_catalog_version"]
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-macro-normalized"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_gdp",
+        source_url=url,
+        expected_period=period,
+        fetched_at=datetime.now(UTC),
+        definition_version=version,
+    )
+    repository = EvidenceRepository(paths.database)
+    points = repository.metric_series(
+        "CN_GDP", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+    )
+    assert len(points) == 8
+    assert {point.selected_claim_id for point in points} == set(imported.claim_ids)
+    # Independently read table literals: cumulative levels and current-quarter growth.
+    for aggregate, level, yoy in zip(
+        ("total", "primary", "secondary", "tertiary"), levels, growth, strict=True
+    ):
+        assert {
+            point.dimensions["measure"]: point.selected_value
+            for point in points
+            if point.dimensions["aggregate"] == aggregate
+        } == {
+            "nominal_ytd_level": level,
+            "real_quarter_yoy": yoy,
+        }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_catalog_treasury_cli_keeps_real_receipt_and_unknown_public_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    digest = "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+
+    class Response(BytesIO):
+        status = 200
+        headers = {"Content-Type": "text/csv; charset=UTF-8"}
+
+        def __init__(self, url: str) -> None:
+            super().__init__(raw)
+            self.url = url
+
+        def geturl(self) -> str:
+            return self.url
+
+    def fetch(request: Any, *, timeout: float) -> Response:
+        assert timeout > 0
+        return Response(request.full_url)
+
+    monkeypatch.setattr("pring_cycle.treasury_context.open_no_redirects", fetch)
+    before = datetime.now(UTC)
+    main(
+        [
+            "treasury-csv-refresh",
+            "--runtime-root",
+            str(paths.override_root),
+            "--start",
+            "2026-09-04",
+            "--end",
+            "2026-09-04",
+            "--definition-version",
+            version,
+            "--json",
+        ]
+    )
+    after = datetime.now(UTC)
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "stored_candidate" and result["observation_count"] == 2
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.raw_hash == digest
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    assert before <= receipt.started_at <= receipt.received_at <= receipt.validated_at <= after
+    assert receipt.parameters["definition_version"] == version
+    repository = EvidenceRepository(paths.database)
+    for metric, value in (("UST2Y_NOMINAL_YIELD", 4.37), ("UST10Y_NOMINAL_YIELD", 4.78)):
+        assert (
+            repository.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+            )
+            == ()
+        )
+        assert (
+            repository.metric_series(
+                metric, mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
+            )
+            == ()
+        )
+        (point,) = repository.metric_series(
+            metric, mode=AsOfMode.SYSTEM, as_of=after, definition_version=version
+        )
+        (claim,) = point.claims
+        assert claim.value == value and claim.unit == "percent"
+        assert claim.certification_status == "awaiting_source_certification"
+        assert claim.public_available_at is None and claim.release_at is None
+        assert claim.fetched_at == receipt.received_at
+        assert receipt.validated_at <= claim.available_at <= after
+        trace = repository.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=after)
+        assert tuple(item.acquisition_id for item in trace.acquisitions) == (
+            receipt.acquisition_id,
+        )
+
+
+def admitted_treasury_manifest(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str]
+) -> dict[str, Any]:
+    # Synthetic source review binds the official CSV identity, never the old TuShare fields.
+    request, _ = prepared_request(paths)
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    columns = {"UST2Y_NOMINAL_YIELD": "2 Yr", "UST10Y_NOMINAL_YIELD": "10 Yr"}
+    for definition in request["manifest"]["metric_definitions"]:
+        metric = definition["metric_id"]
+        if metric in columns:
+            definition.update(
+                certification_status="certified",
+                source_codes=[f"treasury_nominal_yields_csv.{columns[metric]}"],
+                source_candidates=["U.S. Department of the Treasury"],
+                release_event_family="treasury_nominal_yields_csv",
+                release_timezone="America/New_York",
+            )
+        elif metric == "UST_2S10S_SPREAD":
+            definition["certification_status"] = "derived_from_certified_inputs"
+        else:
+            continue
+        package["definition_bindings"][metric] = hashlib.sha256(encode(definition)).hexdigest()
+    bind_synthetic_review(paths, request, package)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    return ModelRepository(paths.database).manifest(model_id)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_registered_replay_missing_optional_sources_preserves_required_gdp_gap(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    candidate = admitted_treasury_manifest(paths, capsys)
+    models = ModelRepository(paths.database)
+    baseline = models.create_candidate(certified_model_v0001_manifest())
+    comparison = models.manifest(baseline.model_version_id)
+
+    replay = evaluate_context_replay(
+        paths.database,
+        candidate,
+        comparison,
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+        replay_days=("2026-08-28",),
+    )
+
+    assert "candidate_context_sources_uncertified:CN_GDP" in replay.gaps
+    assert "candidate_context_evidence_missing:CN_EQ_CSI500" in replay.gaps
+    assert replay.evaluated_cutoffs == 0
+    assert "ust_2s10s_spread" in replay.output_document["formula_keys"]
+    assert {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"} <= set(
+        replay.output_document["source_metrics"]
+    )
+    assert not any(
+        metric in gap
+        for gap in replay.gaps
+        for metric in ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD", "ust_2s10s_spread")
+    ), replay.gaps
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "damaged_artifact", [None, "raw", "normalized", "latest_quality", "latest_normalized"]
+)
+def test_registered_treasury_original_supports_system_context_without_inventing_public_time(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_artifact: str | None
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_treasury_manifest(paths, capsys)
+    version = manifest["metric_catalog_version"]
+    digest = "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup"
+        / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    before = datetime.now(UTC)
+    imported = refresh_treasury_yields(
+        paths,
+        start_date=date(2026, 9, 4),
+        end_date=date(2026, 9, 4),
+        definition_version=version,
+        fetcher=lambda url: FetchedTreasuryYieldCsv(raw, url, 200, "text/csv"),
+    )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipt = acquisitions.get(imported.acquisition_id)
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    repository = EvidenceRepository(paths.database)
+    # The fixture review permits values; the real CSV proves no per-row PUBLIC time.
+    claims = repository.append_source_claims(
+        tuple(
+            SourceClaimInput(
+                metric_id=metric,
+                definition_version=version,
+                period_kind="business_day",
+                period_start="2026-09-04",
+                period_end="2026-09-04",
+                dimensions={},
+                value=value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="percent",
+                provider="U.S. Department of the Treasury",
+                source_reference=f"{receipt.parameters['endpoint']}#date=2026-09-04",
+                release_event_id=f"synthetic:reviewed-treasury:{receipt.acquisition_id}",
+                release_at=None,
+                public_available_at=None,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                certification_status="certified",
+                quality_status="validated",
+                acquisition_id=receipt.acquisition_id,
+            )
+            for metric, value in (("UST2Y_NOMINAL_YIELD", 4.37), ("UST10Y_NOMINAL_YIELD", 4.78))
+        ),
+        availability_clock=lambda: datetime.now(UTC),
+    )
+    after = datetime.now(UTC)
+    for metric in ("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"):
+        assert (
+            repository.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=before, definition_version=version
+            )
+            == ()
+        )
+        assert (
+            repository.metric_series(
+                metric, mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
+            )
+            == ()
+        )
+    context = build_context_projection(
+        repository, as_of=after, model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+    )
+    rows = context.macro["international_context"]
+    assert isinstance(rows, list)
+    (spread,) = [row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD"]
+    assert spread["value"] == pytest.approx(41.0), spread
+    assert spread["unit"] == "basis_points" and spread["period"] == "2026-09-04"
+    model_inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(model_inputs, list)
+    assert {claim.claim_id for claim in claims} <= set(model_inputs)
+    # A historical target still requires reliable PUBLIC evidence; SYSTEM cannot backfill it.
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-09-04",
+        client_request_id="treasury-public-unknown",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=after,
+        release_event_id="synthetic:treasury-source-review",
+        metric_ids=("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
+        period="2026-09-04",
+    )
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        selected = select_retrieval_input(paths, run, mode=mode)
+        assert not selected.complete and selected.selected_claim_ids == ()
+
+    if damaged_artifact in {"raw", "normalized"}:
+        content_hash = receipt.raw_hash if damaged_artifact == "raw" else receipt.normalized_hash
+        assert content_hash is not None
+        (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b'{"damaged":true}\n')
+        context = build_context_projection(
+            repository, as_of=after, model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+        )
+        rows = context.macro["international_context"]
+        assert isinstance(rows, list)
+        assert {
+            row["status"]
+            for row in rows
+            if row["metric_id"] in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}
+        } == {"source_failed"}
+        (spread,) = [row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD"]
+        assert spread["value"] is None
+        adopted = context.macro["model_input_observation_version_ids"]
+        assert isinstance(adopted, list)
+        assert {claim.claim_id for claim in claims}.isdisjoint(adopted)
+        assert {claim.claim_id for claim in claims} <= set(context.observation_version_ids)
+
+    if damaged_artifact in {"latest_quality", "latest_normalized"}:
+        old = refresh_treasury_yields(
+            paths,
+            start_date=date(2026, 8, 28),
+            end_date=date(2026, 8, 28),
+            definition_version=version,
+            fetcher=lambda url: FetchedTreasuryYieldCsv(raw, url, 200, "text/csv"),
+        )
+        old_receipt = acquisitions.get(old.acquisition_id)
+        assert old_receipt.received_at is not None and old_receipt.validated_at is not None
+        old_claims = repository.append_source_claims(
+            tuple(
+                SourceClaimInput(
+                    metric_id=metric,
+                    definition_version=version,
+                    period_kind="business_day",
+                    period_start="2026-08-28",
+                    period_end="2026-08-28",
+                    dimensions={},
+                    value=value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percent",
+                    provider="U.S. Department of the Treasury",
+                    source_reference=f"{old_receipt.parameters['endpoint']}#date=2026-08-28",
+                    release_event_id="synthetic:treasury-old-valid",
+                    release_at=None,
+                    public_available_at=None,
+                    fetched_at=old_receipt.received_at,
+                    available_at=old_receipt.validated_at,
+                    certification_status="certified",
+                    quality_status="validated",
+                    acquisition_id=old_receipt.acquisition_id,
+                )
+                for metric, value in (("UST2Y_NOMINAL_YIELD", 4.34), ("UST10Y_NOMINAL_YIELD", 4.73))
+            ),
+            availability_clock=lambda: datetime.now(UTC),
+        )
+        if damaged_artifact == "latest_normalized":
+            assert receipt.normalized_hash is not None
+            assert receipt.normalized_hash != old_receipt.normalized_hash
+            (paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash).write_bytes(
+                b'{"damaged":true}\n'
+            )
+        else:
+            repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="UST10Y_NOMINAL_YIELD",
+                    definition_version=version,
+                    period_kind="business_day",
+                    period_start="2026-09-04",
+                    period_end="2026-09-04",
+                    dimensions={},
+                    value=4.78,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percent",
+                    provider="U.S. Department of the Treasury",
+                    source_reference=f"{receipt.parameters['endpoint']}#date=2026-09-04",
+                    release_event_id="synthetic:treasury-latest-invalid",
+                    release_at=None,
+                    public_available_at=None,
+                    fetched_at=receipt.received_at,
+                    available_at=datetime.now(UTC),
+                    certification_status="certified",
+                    quality_status="invalid",
+                    acquisition_id=receipt.acquisition_id,
+                )
+            )
+        assert all(repository.source_claim_originals(claim.claim_id) for claim in old_claims)
+        context = build_context_projection(
+            repository, as_of=datetime.now(UTC), model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+        )
+        rows = context.macro["international_context"]
+        assert isinstance(rows, list)
+        (spread,) = [row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD"]
+        assert spread["value"] is None, "A bad latest pair must not restore the older 39bp spread."
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "none",
+        "value",
+        "unit",
+        "window",
+        "year",
+        "http_status",
+        "endpoint",
+        "parser",
+        "definition",
+        "public_time",
+    ],
+)
+def test_registered_treasury_context_rechecks_hash_consistent_receipts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_treasury_manifest(paths, capsys)
+    version = manifest["metric_catalog_version"]
+    digest = "a14a321adffded36dfd9ab1aec72cc81423aeca271110f76569d37dd02ca4ee5"
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-14-treasury-followup"
+        / digest
+    ).read_bytes()
+    imported = refresh_treasury_yields(
+        paths,
+        start_date=date(2026, 9, 4),
+        end_date=date(2026, 9, 4),
+        definition_version=version,
+        fetcher=lambda url: FetchedTreasuryYieldCsv(raw, url, 200, "text/csv"),
+    )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    original = acquisitions.get(imported.acquisition_id)
+    normalized = json.loads(acquisitions.read_content(original.acquisition_id, "normalized"))
+    parameters = dict(original.parameters)
+    parser_version = original.parser_version
+    if fault == "value":
+        normalized["cells"][0]["value"] = 99.0
+    elif fault == "unit":
+        normalized["unit"] = "basis_points"
+    elif fault == "window":
+        parameters["start_date"] = "2026-08-28"
+    elif fault == "year":
+        parameters["source_year"] = "2025"
+    elif fault == "http_status":
+        normalized["http_response"]["response_http_status"] = "403"
+    elif fault == "endpoint":
+        normalized["http_response"]["response_final_url"] = "https://example.invalid/yields.csv"
+    elif fault == "parser":
+        parser_version = "unsupported-treasury-parser"
+    elif fault == "definition":
+        parameters["definition_version"] = "metric-catalog-v0002"
+    # A public receipt with valid physical hashes but an intentionally inconsistent batch.
+    acquired = acquisitions.capture(
+        provider=original.provider,
+        api_name=original.api_name,
+        parameters=parameters,
+        fields=original.fields,
+        parser_version=parser_version,
+        fetch=lambda: raw,
+        parse=lambda _: normalized,
+        normalize=lambda value: value,
+    )
+    receipt = acquired.receipt
+    assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    assert json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized")) == normalized
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    # An asserted timestamp is not publication evidence in this CSV protocol.
+    public_at = datetime(2026, 9, 4, 8, tzinfo=UTC) if fault == "public_time" else None
+    repository = EvidenceRepository(paths.database)
+    claims = repository.append_source_claims(
+        tuple(
+            SourceClaimInput(
+                metric_id=metric,
+                definition_version=version,
+                period_kind="business_day",
+                period_start="2026-09-04",
+                period_end="2026-09-04",
+                dimensions={},
+                value=value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="percent",
+                provider="U.S. Department of the Treasury",
+                source_reference=f"{original.parameters['endpoint']}#date=2026-09-04",
+                release_event_id=f"synthetic:treasury-mismatch:{fault}",
+                release_at=public_at,
+                public_available_at=public_at,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                certification_status="certified",
+                quality_status="validated",
+                acquisition_id=receipt.acquisition_id,
+            )
+            for metric, value in (("UST2Y_NOMINAL_YIELD", 4.37), ("UST10Y_NOMINAL_YIELD", 4.78))
+        ),
+        availability_clock=lambda: datetime.now(UTC),
+    )
+    after = datetime.now(UTC)
+    context = build_context_projection(
+        repository, as_of=after, model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+    )
+    rows = context.macro["international_context"]
+    assert isinstance(rows, list)
+    (spread,) = [row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD"]
+    adopted = context.macro["model_input_observation_version_ids"]
+    assert isinstance(adopted, list)
+    claim_ids = {claim.claim_id for claim in claims}
+    if fault == "none":
+        assert spread["value"] == pytest.approx(41.0)
+        assert claim_ids <= set(adopted)
+    else:
+        assert spread["value"] is None, spread
+        assert claim_ids.isdisjoint(adopted)
+        assert claim_ids <= set(context.observation_version_ids)
+        assert {
+            row["status"]
+            for row in rows
+            if row["metric_id"] in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}
+        } == {"source_failed"}
+    if fault == "public_time":
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-09-04",
+            client_request_id="treasury-unproven-public",
+            model_version_id=manifest["model_version_id"],
+            system_as_of=after,
+            release_event_id="synthetic:treasury-unproven-public",
+            metric_ids=("UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
+            period="2026-09-04",
+        )
+        for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+            selected = select_retrieval_input(paths, run, mode=mode)
+            assert not selected.complete and selected.selected_claim_ids == ()
 
 
 def cpi_document() -> bytes:
@@ -1769,9 +2943,16 @@ def test_registered_warrant_invalid_delivery_rejects_atomic_import(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-@pytest.mark.parametrize("public_known", [False, True])
+@pytest.mark.parametrize(
+    ("public_known", "wrong_dr_value", "conflicting_dr_row"),
+    [(False, False, False), (True, False, False), (True, True, False), (True, False, True)],
+)
 def test_registered_interbank_acquisition_preserves_public_boundary(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], public_known: bool
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    public_known: bool,
+    wrong_dr_value: bool,
+    conflicting_dr_row: bool,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1799,6 +2980,19 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
     }
 
     def transport(payload: dict[str, Any]) -> bytes:
+        if conflicting_dr_row and payload["api_name"] == "repo_daily":
+            return encode(
+                {
+                    "code": 0,
+                    "data": {
+                        "fields": ["ts_code", "trade_date", "repo_maturity", "weight"],
+                        "items": [
+                            ["DR007.IB", "20260828", "DR007", 1.3859],
+                            ["DR007.IB", "20260828", "DR007", 1.3806],
+                        ],
+                    },
+                }
+            )
         return encode(responses[payload["api_name"]])
 
     adapter = TushareContextAdapter("synthetic-token", transport=transport)
@@ -1808,11 +3002,22 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
 
     def retrieve() -> tuple[ContextScalar, ...]:
         scalars = adapter.transmission(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+        if conflicting_dr_row:
+            scalars = tuple(
+                s for s in scalars if not (s.metric_id == "CN_DR007" and s.value == 1.3806)
+            )
         if not public_known:
             assert all(s.release_at is None and s.public_available_at is None for s in scalars)
             return scalars
         return tuple(
-            replace(scalar, release_at=public_at, public_available_at=public_at)
+            replace(
+                scalar,
+                release_at=public_at,
+                public_available_at=public_at,
+                # Hash-correct normalized/claim with the wrong CFETS field:
+                # 1.3806 is the close, while raw weight remains 1.3859.
+                value=1.3806 if wrong_dr_value and scalar.metric_id == "CN_DR007" else scalar.value,
+            )
             for scalar in scalars
         )
 
@@ -1826,7 +3031,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
     now = datetime.now(UTC)
     repository = EvidenceRepository(paths.database)
     expected = {
-        "CN_DR007": {None: 1.3859},
+        "CN_DR007": {None: 1.3806 if wrong_dr_value else 1.3859},
         "CN_SHIBOR_ON_1W_3M": {
             "overnight": 1.339,
             "1w": 1.387,
@@ -1861,9 +3066,8 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
     assert len(receipts.history()) == 2
     for receipt in receipts.history():
         assert receipt.state == "validated"
-        assert (
-            json.loads(receipts.read_content(receipt.acquisition_id, "raw"))
-            == responses[receipt.api_name]
+        assert receipts.read_content(receipt.acquisition_id, "raw") == transport(
+            {"api_name": receipt.api_name}
         )
     run = RunRepository(paths.database).submit(
         command_type="targeted_refresh",
@@ -1876,15 +3080,541 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
         period="2026-08-28",
     )
     selection = select_retrieval_input(paths, run)
-    assert selection.complete is public_known
-    assert set(selection.selected_claim_ids) == (set(imported.claim_ids) if public_known else set())
-    assert len(selection.missing_members) == (0 if public_known else 4)
+    expected_selected = (
+        {
+            point.selected_claim_id
+            for metric in expected
+            if not ((wrong_dr_value or conflicting_dr_row) and metric == "CN_DR007")
+            for point in repository.metric_series(
+                metric, mode=AsOfMode.SYSTEM, as_of=now, definition_version=version
+            )
+        }
+        if public_known
+        else set()
+    )
+    assert selection.complete is (public_known and not (wrong_dr_value or conflicting_dr_row))
+    assert set(selection.selected_claim_ids) == expected_selected
+    assert len(selection.missing_members) == (
+        int(wrong_dr_value or conflicting_dr_row) if public_known else 4
+    )
     context = build_context_projection(
         repository, as_of=now, target_business_date="2026-08-28", model_manifest=request["manifest"]
     )
     assert set(imported.claim_ids).intersection(context.observation_version_ids) == (
         set(imported.claim_ids) if public_known else set()
     )
+    public_context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 29, tzinfo=UTC),
+        as_of_mode=AsOfMode.PUBLIC,
+        target_business_date="2026-08-28",
+        model_manifest=request["manifest"],
+    )
+    actual_inputs = public_context.macro["model_input_observation_version_ids"]
+    assert isinstance(actual_inputs, list)
+    assert set(imported.claim_ids) & set(actual_inputs) == expected_selected
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
+@pytest.mark.parametrize(
+    ("dr_only", "damaged_api"), [(False, "repo_daily"), (False, "shibor"), (True, "shibor")]
+)
+def test_registered_interbank_joint_receipts_preserve_filtered_members(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    artifact_kind: str,
+    dr_only: bool,
+    damaged_api: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    metrics = ("CN_DR007",) if dr_only else ("CN_DR007", "CN_SHIBOR_ON_1W_3M")
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        day = payload["params"]["start_date"]
+        # Synthetic earlier-day control, independently fixed 08-28 CFETS values;
+        # response columns are reordered and include a harmless extra field.
+        if payload["api_name"] == "repo_daily":
+            columns = ["weight", "repo_maturity", "trade_date", "ts_code", "fixture"]
+            row = [1.39 if day == "20260827" else 1.3859, "DR007", day, "DR007.IB", "joint"]
+        else:
+            columns = ["3m", "on", "date", "1w", "fixture"]
+            row = (
+                [1.44, 1.34, day, 1.39, "joint"]
+                if day == "20260827"
+                else [1.43, 1.339, day, 1.387, "joint"]
+            )
+        return encode({"code": 0, "data": {"fields": columns, "items": [row]}})
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        result = []
+        for day in (date(2026, 8, 27), date(2026, 8, 28)):
+            for scalar in adapter.transmission(start_date=day, end_date=day):
+                if scalar.metric_id in metrics:
+                    public_at = datetime.fromisoformat(scalar.period_end + "T08:00:00+00:00")
+                    result.append(
+                        replace(scalar, release_at=public_at, public_available_at=public_at)
+                    )
+        return tuple(result)
+
+    imported = adapter.acquire_scalars(paths, retrieve, definition_version=version)
+    assert len(imported.claim_ids) == (2 if dr_only else 8)
+    assert adapter.network_requests == 4
+    repository = EvidenceRepository(paths.database)
+    associations = repository.source_claim_acquisitions_many(imported.claim_ids)
+    for associated in associations.values():
+        assert len(associated) == 2
+        assert len({item.receipt.api_name for item in associated}) == 1
+        assert {item.receipt.parameters["start_date"] for item in associated} == {
+            "20260827",
+            "20260828",
+        }
+    now = datetime.now(UTC)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="joint-interbank",
+        model_version_id=model_id,
+        system_as_of=now,
+        release_event_id="synthetic:joint-interbank",
+        metric_ids=metrics,
+        period="2026-08-28",
+    )
+    before = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert before.complete and len(before.selected_claim_ids) == (1 if dr_only else 4)
+
+    def actual_inputs() -> set[str]:
+        context = build_context_projection(
+            repository,
+            as_of=datetime(2026, 8, 29, tzinfo=UTC),
+            as_of_mode=AsOfMode.PUBLIC,
+            model_manifest=request["manifest"],
+            target_business_date="2026-08-28",
+        )
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        return set(inputs)
+
+    assert set(imported.claim_ids) <= actual_inputs()
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = (
+        item
+        for item in acquisitions.history()
+        if item.api_name == damaged_api and item.parameters["start_date"] == "20260828"
+    )
+    if dr_only:
+        assert json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized")) == []
+    digest = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert digest is not None
+    (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged second API receipt")
+    affected = "CN_DR007" if damaged_api == "repo_daily" else "CN_SHIBOR_ON_1W_3M"
+    remaining = {
+        point.selected_claim_id
+        for metric in metrics
+        if metric != affected
+        for point in repository.metric_series(
+            metric, mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+        )
+    }
+    after = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert after.complete is (affected not in metrics)
+    assert set(after.selected_claim_ids) == set(before.selected_claim_ids) & remaining
+    assert set(imported.claim_ids) & actual_inputs() == remaining
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("mixed_api", [False, True])
+def test_registered_interbank_rejects_mixed_api_claim_links(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], mixed_api: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = request["manifest"]["metric_catalog_version"]
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipt_ids = []
+    # Adversarial associations through public receipt APIs: valid responses from
+    # two APIs are given the same delivered DR scalar and mixed acquisition IDs.
+    responses = {
+        "repo_daily": (
+            ["ts_code", "trade_date", "repo_maturity", "weight"],
+            ["DR007.IB", "20260828", "DR007", 1.3859],
+        ),
+        "shibor": (["date", "on", "1w", "3m"], ["20260828", 1.339, 1.387, 1.43]),
+    }
+    for api_name in ("repo_daily", "shibor") if mixed_api else ("repo_daily",):
+        columns, row = responses[api_name]
+        raw = encode({"code": 0, "data": {"fields": columns, "items": [row]}})
+
+        def fetch(content: bytes = raw) -> bytes:
+            return content
+
+        acquired = acquisitions.capture(
+            provider="tushare",
+            api_name=api_name,
+            parameters={
+                "start_date": "20260828",
+                "end_date": "20260828",
+                **({"ts_code": "DR007.IB"} if api_name == "repo_daily" else {}),
+            },
+            fields=",".join(columns),
+            parser_version="tushare-context-parser-v0002",
+            fetch=fetch,
+            parse=json.loads,
+            normalize=lambda value: value,
+            defer_validation=True,
+        )
+        receipt_ids.append(acquired.receipt.acquisition_id)
+    scalar = ContextScalar(
+        metric_id="CN_DR007",
+        api_name="repo_daily",
+        source_field="weight",
+        period_kind="business_day",
+        period_start="2026-08-28",
+        period_end="2026-08-28",
+        dimensions={},
+        value=1.3859,
+        unit="percent",
+        release_at=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        public_available_at=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        acquisition_ids=tuple(receipt_ids),
+    )
+    for receipt_id in receipt_ids:
+        acquisitions.complete_validation(receipt_id, [asdict(scalar)])
+    imported = ingest_context_scalars(
+        paths, (scalar,), fetched_at=datetime.now(UTC), definition_version=version
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="interbank-mixed-api",
+        model_version_id=model_id,
+        system_as_of=datetime.now(UTC),
+        release_event_id="synthetic:interbank-mixed-api",
+        metric_ids=("CN_DR007",),
+        period="2026-08-28",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selection.complete is (not mixed_api)
+    assert selection.selected_claim_ids == (() if mixed_api else imported.claim_ids)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("metric_id", ["CN_SHIBOR_ON_1W_3M", "CN_DR007"])
+@pytest.mark.parametrize("artifact_kind", ["normalized", "raw"])
+@pytest.mark.parametrize("artifact_state", ["damaged", "missing"])
+@pytest.mark.parametrize("late_revision", [False, True])
+def test_registered_interbank_public_replay_rejects_damaged_originals(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    metric_id: str,
+    artifact_kind: str,
+    artifact_state: str,
+    late_revision: bool,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests, claims, receipts = {}, {}, {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
+        # Public component evaluation only; stored manifests retain admission gates.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        responses = {
+            "repo_daily": {
+                "code": 0,
+                "fixture_side": side,
+                "data": {
+                    "fields": ["ts_code", "trade_date", "repo_maturity", "weight"],
+                    "items": [
+                        ["DR007.IB", "20260818", "DR007", 1.39],
+                        ["DR007.IB", "20260828", "DR007", 1.3859],
+                    ],
+                },
+            },
+            "shibor": {
+                "code": 0,
+                "fixture_side": side,
+                "data": {
+                    "fields": ["date", "on", "1w", "3m"],
+                    "items": [["20260828", 1.339, 1.387, 1.43]],
+                },
+            },
+        }
+
+        def transport(payload: dict[str, Any], data: dict[str, Any] = responses) -> bytes:
+            return encode(data[payload["api_name"]])
+
+        adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+        def retrieve(source: TushareContextAdapter = adapter) -> tuple[ContextScalar, ...]:
+            return tuple(
+                replace(
+                    scalar,
+                    release_at=datetime.fromisoformat(scalar.period_end + "T08:00:00+00:00"),
+                    public_available_at=datetime.fromisoformat(
+                        scalar.period_end + "T08:00:00+00:00"
+                    ),
+                )
+                for scalar in source.transmission(
+                    start_date=date(2026, 8, 18), end_date=date(2026, 8, 28)
+                )
+                if scalar.metric_id == metric_id
+            )
+
+        imported = adapter.acquire_scalars(
+            paths, retrieve, definition_version=manifest["metric_catalog_version"]
+        )
+        claims[side] = {
+            point.selected_claim_id
+            for point in EvidenceRepository(paths.database).metric_series(
+                metric_id,
+                mode=AsOfMode.PUBLIC,
+                as_of=datetime(2026, 8, 29, tzinfo=UTC),
+                definition_version=manifest["metric_catalog_version"],
+            )
+            if point.period_end == "2026-08-28"
+        }
+        (acquisition,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+            (imported.claim_ids[0],)
+        )[imported.claim_ids[0]]
+        receipts[side] = acquisition.receipt
+        if metric_id == "CN_DR007":
+            for day, folder, digest, suffix in (
+                (
+                    "2026-08-10",
+                    "evidence-a18-import-20260909",
+                    "80c4177bbf1d69c71e5fe3dc91b1fffbbdd41a30ebbe99947c3e58e53241861b",
+                    "2026081008522023544",
+                ),
+                (
+                    "2026-08-28",
+                    "evidence-13",
+                    "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+                    "2026082808585347002",
+                ),
+            ):
+                raw = (
+                    Path(__file__).parents[2]
+                    / ".scratch/pring-data-acquisition-repair"
+                    / folder
+                    / digest
+                ).read_bytes()
+                assert hashlib.sha256(raw).hexdigest() == digest
+                ingest_official_context_document(
+                    paths,
+                    raw,
+                    family="pbc_omo_notice",
+                    source_url=f"https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/{suffix}/index.html",
+                    expected_period=day,
+                    fetched_at=datetime.now(UTC),
+                    definition_version=manifest["metric_catalog_version"],
+                )
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.output_document is not None and before.evaluated_cutoffs == 1
+    for side in ("comparison", "candidate"):
+        actual = before.output_document["days"][0][side]["macro"][
+            "model_input_observation_version_ids"
+        ]
+        assert claims[side] <= set(actual)
+    receipt = receipts["candidate"]
+    replay_day = "2026-08-28"
+    original_candidate_ids = claims["candidate"].copy()
+    next_day_claims: dict[str, set[str]] = {}
+    if late_revision:
+        # The later replay is a real daily cutoff, so both sides also need that
+        # day's delivery. The revised August 28 value becomes a direction parent.
+        for side in ("comparison", "candidate"):
+            responses = {
+                "repo_daily": {
+                    "code": 0,
+                    "fixture_side": side,
+                    "data": {
+                        "fields": ["ts_code", "trade_date", "repo_maturity", "weight"],
+                        "items": [["DR007.IB", "20260831", "DR007", 1.45]],
+                    },
+                },
+                "shibor": {
+                    "code": 0,
+                    "fixture_side": side,
+                    "data": {
+                        "fields": ["date", "on", "1w", "3m"],
+                        "items": [["20260831", 1.4, 1.4, 1.45]],
+                    },
+                },
+            }
+
+            def next_transport(payload: dict[str, Any], data: dict[str, Any] = responses) -> bytes:
+                return encode(data[payload["api_name"]])
+
+            next_adapter = TushareContextAdapter("synthetic-token", transport=next_transport)
+
+            def next_retrieve(
+                source: TushareContextAdapter = next_adapter,
+            ) -> tuple[ContextScalar, ...]:
+                return tuple(
+                    replace(
+                        scalar,
+                        release_at=datetime(2026, 8, 31, 8, tzinfo=UTC),
+                        public_available_at=datetime(2026, 8, 31, 8, tzinfo=UTC),
+                    )
+                    for scalar in source.transmission(
+                        start_date=date(2026, 8, 31), end_date=date(2026, 8, 31)
+                    )
+                    if scalar.metric_id == metric_id
+                )
+
+            next_import = next_adapter.acquire_scalars(
+                paths,
+                next_retrieve,
+                definition_version=manifests[side]["metric_catalog_version"],
+            )
+            next_day_claims[side] = set(next_import.claim_ids)
+        # A separately evidenced synthetic publication, not an API callback's
+        # unproven claim that a changed value was publicly available earlier.
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        revised_raw = json.loads(acquisitions.read_content(receipt.acquisition_id, "raw"))
+        revised_raw["fixture_revision"] = "explicit-public-20260831"
+        fields = revised_raw["data"]["fields"]
+        value_column = fields.index("weight" if metric_id == "CN_DR007" else "on")
+        revised_raw["data"]["items"][-1][value_column] = 1.5
+        raw_bytes = encode(revised_raw)
+        acquired = acquisitions.capture(
+            provider="tushare",
+            api_name=receipt.api_name,
+            parameters=receipt.parameters,
+            fields=receipt.fields,
+            parser_version=receipt.parser_version,
+            fetch=lambda: raw_bytes,
+            parse=json.loads,
+            normalize=lambda value: value,
+            defer_validation=True,
+        )
+        revised_scalars = json.loads(
+            acquisitions.read_content(receipt.acquisition_id, "normalized")
+        )
+        public_at = datetime(2026, 8, 31, 9, tzinfo=UTC)
+        for scalar in revised_scalars:
+            scalar["acquisition_ids"] = [acquired.receipt.acquisition_id]
+            if scalar["period_end"] == "2026-08-28":
+                scalar["release_at"] = public_at.isoformat()
+                scalar["public_available_at"] = public_at.isoformat()
+                if scalar["source_field"] in {"weight", "on"}:
+                    scalar["value"] = 1.5
+        receipt = acquisitions.complete_validation(acquired.receipt.acquisition_id, revised_scalars)
+        assert receipt.received_at is not None
+        now = datetime.now(UTC)
+        updated = EvidenceRepository(paths.database).append_source_claims(
+            tuple(
+                SourceClaimInput(
+                    metric_id=metric_id,
+                    definition_version=manifests["candidate"]["metric_catalog_version"],
+                    period_kind=scalar["period_kind"],
+                    period_start=scalar["period_start"],
+                    period_end=scalar["period_end"],
+                    dimensions=scalar["dimensions"],
+                    value=scalar["value"],
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit=scalar["unit"],
+                    provider="tushare",
+                    source_reference=(
+                        f"tushare:{scalar['api_name']}:{scalar['source_field']}:2026-08-28"
+                    ),
+                    release_event_id=f"synthetic:bank-revision:{metric_id}",
+                    release_at=public_at,
+                    public_available_at=public_at,
+                    fetched_at=receipt.received_at,
+                    available_at=now,
+                    certification_status="certified",
+                    quality_status="validated",
+                    acquisition_id=receipt.acquisition_id,
+                )
+                for scalar in revised_scalars
+                if scalar["period_end"] == "2026-08-28"
+            )
+        )
+        claims["candidate"] = {claim.claim_id for claim in updated}
+        assert original_candidate_ids.isdisjoint(claims["candidate"])
+        replay_day = "2026-08-31"
+        revised = evaluate_context_replay(
+            paths.database,
+            manifests["candidate"],
+            manifests["comparison"],
+            requested_start=replay_day,
+            requested_end=replay_day,
+        )
+        assert not revised.gaps, revised.gaps
+        assert revised.output_document is not None
+        adopted = set(
+            revised.output_document["days"][0]["candidate"]["macro"][
+                "model_input_observation_version_ids"
+            ]
+        )
+        assert claims["candidate"] <= adopted
+        assert next_day_claims["candidate"] <= adopted
+        assert original_candidate_ids.isdisjoint(adopted)
+    damaged_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert damaged_hash is not None
+    damaged_path = paths.artifacts / damaged_hash[:2] / damaged_hash
+    if artifact_state == "missing":
+        damaged_path.unlink()
+    else:
+        damaged_path.write_bytes(b"damaged candidate interbank artifact")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start=replay_day,
+        requested_end=replay_day,
+    )
+    if late_revision:
+        # Current daily data remains complete; the damaged earlier direction
+        # parent must be excluded rather than replaced by its superseded version.
+        assert not after.gaps, after.gaps
+    else:
+        assert f"candidate_context_selection_invalid:{metric_id}" in after.gaps
+    assert after.output_document is not None
+    after_day = after.output_document["days"][0]
+    assert not claims["candidate"] & set(
+        after_day["candidate"]["macro"]["model_input_observation_version_ids"]
+    )
+    assert claims["comparison"] <= set(
+        after_day["comparison"]["macro"]["model_input_observation_version_ids"]
+    )
+    assert original_candidate_ids.isdisjoint(
+        after_day["candidate"]["macro"]["model_input_observation_version_ids"]
+    )
+    if late_revision:
+        for side in ("comparison", "candidate"):
+            assert next_day_claims[side] <= set(
+                after_day[side]["macro"]["model_input_observation_version_ids"]
+            )
+        early = evaluate_context_replay(
+            paths.database,
+            manifests["candidate"],
+            manifests["comparison"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+        assert not early.gaps, early.gaps
+        assert early.output_document is not None
+        assert early.output_document["days"] == before.output_document["days"]
 
 
 @pytest.mark.parametrize(
@@ -2197,8 +3927,21 @@ def test_registered_search_gap_cannot_use_a_different_catalog_than_its_model(
     assert ledger.for_run(run.run_id) is None
 
 
+@pytest.mark.parametrize(
+    ("normalized_fault", "consumer"),
+    [
+        ("none", "selection"),
+        ("damaged", "selection"),
+        ("wrong_value", "selection"),
+        ("damaged", "context"),
+        ("claim_value", "selection"),
+        ("claim_period", "selection"),
+        ("claim_reference", "selection"),
+        ("claim_public", "selection"),
+    ],
+)
 def test_registered_pmi_original_reaches_selection_and_context(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], normalized_fault: str, consumer: str
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -2263,6 +4006,518 @@ def test_registered_pmi_original_reaches_selection_and_context(
     assert set(selection.selected_claim_ids) == set(imported.claim_ids)
     context = build_context_projection(repository, as_of=now, model_manifest=manifest)
     assert set(imported.claim_ids) <= set(context.observation_version_ids)
+    model_inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(model_inputs, list)
+    assert set(imported.claim_ids) <= set(model_inputs)
+    cards = context.inventory["cards"]
+    assert isinstance(cards, list)
+    inventory_rows = [row for card in cards for row in card["evidence"]]
+    derived_expected = {
+        "CN_PRODUCTION_ORDER_SPREAD": 1.4,
+        "CN_ORDER_INVENTORY_SPREAD": -0.1,
+    }
+    for metric_id, value in derived_expected.items():
+        derived = next(row for row in inventory_rows if row["metric_id"] == metric_id)
+        assert derived["value"] == pytest.approx(value)
+        assert derived["status"] == "current"
+    assert select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC).complete
+    if normalized_fault != "none":
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        (receipt,) = acquisitions.history()
+        assert receipt.raw_hash == digest
+        assert receipt.normalized_hash is not None
+        if normalized_fault == "damaged":
+            normalized_path = (
+                paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash
+            )
+            normalized_path.write_bytes(b'{"damaged":true}\n')
+        else:
+            wrong_normalized = json.loads(
+                acquisitions.read_content(receipt.acquisition_id, "normalized")
+            )
+            manufacturing = next(
+                scalar
+                for scalar in wrong_normalized["scalars"]
+                if scalar["metric_id"] == "CN_PMI_ACTIVITY"
+                and scalar["dimensions"] == {"series": "manufacturing", "measure": "level"}
+            )
+            if normalized_fault == "wrong_value":
+                manufacturing["value"] = 49.3
+            malformed = acquisitions.capture(
+                provider=receipt.provider,
+                api_name=receipt.api_name,
+                parameters=receipt.parameters,
+                fields=receipt.fields,
+                parser_version=receipt.parser_version,
+                fetch=lambda: content,
+                parse=lambda raw: parse_official_context_document(
+                    raw,
+                    family="nbs_pmi",
+                    source_url=receipt.parameters["source_url"],
+                    expected_period="2026-07",
+                    fetched_at=now,
+                ),
+                normalize=lambda parsed: wrong_normalized,
+                clock=lambda: now,
+            ).receipt
+            assert (
+                json.loads(acquisitions.read_content(malformed.acquisition_id, "normalized"))
+                == wrong_normalized
+            )
+            for metric_id in expected:
+                for point in repository.metric_series(
+                    metric_id, mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+                ):
+                    claim = next(
+                        item for item in point.claims if item.claim_id == point.selected_claim_id
+                    )
+                    assert claim.value is not None
+                    assert claim.public_available_at is not None
+                    linked = repository.append_source_claim(
+                        SourceClaimInput(
+                            metric_id=metric_id,
+                            definition_version=version,
+                            period_kind="month",
+                            period_start=(
+                                "2026-06-01"
+                                if normalized_fault == "claim_period"
+                                else point.period_start
+                            ),
+                            period_end=(
+                                "2026-06-30"
+                                if normalized_fault == "claim_period"
+                                else point.period_end
+                            ),
+                            dimensions=point.dimensions,
+                            value=(
+                                claim.value + 0.1
+                                if normalized_fault == "claim_value"
+                                else claim.value
+                            ),
+                            value_state=claim.value_state,
+                            unit=claim.unit,
+                            provider=claim.provider,
+                            source_reference=(
+                                claim.source_reference + ":wrong"
+                                if normalized_fault == "claim_reference"
+                                else claim.source_reference
+                            ),
+                            release_event_id=imported.release_event_id
+                            + (":synthetic-public" if normalized_fault == "claim_public" else ""),
+                            release_at=claim.release_at,
+                            public_available_at=(
+                                claim.public_available_at + timedelta(minutes=1)
+                                if normalized_fault == "claim_public"
+                                else claim.public_available_at
+                            ),
+                            fetched_at=claim.fetched_at,
+                            available_at=(
+                                claim.available_at + timedelta(seconds=1)
+                                if normalized_fault.startswith("claim_")
+                                else claim.available_at
+                            ),
+                            certification_status=claim.certification_status,
+                            quality_status=claim.quality_status,
+                            acquisition_id=malformed.acquisition_id,
+                        )
+                    )
+                    assert (linked.claim_id == claim.claim_id) is (
+                        not normalized_fault.startswith("claim_")
+                    )
+        if consumer == "selection":
+            if normalized_fault == "claim_period":
+                run = RunRepository(paths.database).submit(
+                    command_type="targeted_refresh",
+                    target_business_date="2026-08-28",
+                    client_request_id="pmi-wrong-period",
+                    model_version_id=model_id,
+                    system_as_of=now,
+                    release_event_id=imported.release_event_id,
+                    metric_ids=tuple(expected),
+                    period="2026-06",
+                )
+            after = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+            assert not after.complete
+            assert after.selected_claim_ids == ()
+        else:
+            after_context = build_context_projection(
+                EvidenceRepository(paths.database),
+                as_of=now,
+                model_manifest=manifest,
+                as_of_mode=AsOfMode.PUBLIC,
+            )
+            after_inputs = after_context.macro["model_input_observation_version_ids"]
+            assert isinstance(after_inputs, list)
+            assert not set(imported.claim_ids) & set(after_inputs)
+            after_cards = after_context.inventory["cards"]
+            assert isinstance(after_cards, list)
+            after_rows = [row for card in after_cards for row in card["evidence"]]
+            assert {
+                row["status"] for row in after_rows if row["metric_id"] == "CN_PMI_INVENTORY"
+            } == {"source_failed"}
+            assert all(
+                row["value"] is None or row["status"] not in {"current", "available"}
+                for row in after_rows
+                if row["metric_id"] in derived_expected
+            )
+            assert set(imported.claim_ids) <= set(after_context.observation_version_ids)
+
+
+@pytest.mark.parametrize("metric_id", ["CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"])
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
+@pytest.mark.parametrize("later_revision", [False, True])
+def test_pmi_public_replay_reports_invalid_selected_artifacts(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    metric_id: str,
+    artifact_kind: str,
+    later_revision: bool,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    evidence_root = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    manifests = {}
+    claims = {}
+    receipts = {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
+        # Public component seam only; stored manifests and full-model admission stay unchanged.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        for period, folder, digest, url, acquired_at in (
+            (
+                "2026-06",
+                "evidence-macro-normalized",
+                "f0cc6558252e9d754645aaaedcd8bd5f20f04cc1de5765ba2c6761d4222e159c",
+                "https://www.stats.gov.cn/sj/zxfb/202606/t20260630_1964032.html",
+                datetime(2026, 7, 1, tzinfo=UTC),
+            ),
+            (
+                "2026-07",
+                "evidence-13",
+                "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6",
+                "https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+                datetime(2026, 8, 1, tzinfo=UTC),
+            ),
+        ):
+            raw = (evidence_root / folder / digest).read_bytes()
+            assert hashlib.sha256(raw).hexdigest() == digest
+
+            def clock(value: datetime = acquired_at) -> datetime:
+                return value
+
+            imported = ingest_official_context_document(
+                paths,
+                raw + b"<!-- synthetic candidate receipt -->" if side == "candidate" else raw,
+                family="nbs_pmi",
+                source_url=url,
+                expected_period=period,
+                fetched_at=acquired_at,
+                clock=clock,
+                definition_version=manifest["metric_catalog_version"],
+            )
+            claims[side, period] = set(imported.claim_ids)
+            (acquisition,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+                (imported.claim_ids[0],)
+            )[imported.claim_ids[0]]
+            receipts[side, period] = acquisition.receipt
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    for side in ("comparison", "candidate"):
+        day = before.output_document["days"][0][side]
+        assert claims[side, "2026-07"] <= set(day["macro"]["model_input_observation_version_ids"])
+    current_claims = claims["candidate", "2026-07"]
+    evaluation_day = "2026-08-28"
+    if later_revision:
+        revised_at = datetime(2026, 8, 31, 2, tzinfo=UTC)
+        july_original = (
+            evidence_root
+            / "evidence-13"
+            / "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6"
+        ).read_bytes()
+        revised = ingest_official_context_document(
+            paths,
+            july_original.replace(b"49.9", b"50.0").replace(
+                b"2026/07/31 09:30", b"2026/08/31 09:30"
+            ),
+            family="nbs_pmi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+            expected_period="2026-07",
+            fetched_at=revised_at,
+            clock=lambda: revised_at,
+            definition_version=manifests["candidate"]["metric_catalog_version"],
+        )
+        current_claims = set(revised.claim_ids)
+        (acquisition,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+            (revised.claim_ids[0],)
+        )[revised.claim_ids[0]]
+        receipts["candidate", "2026-07"] = acquisition.receipt
+        evaluation_day = "2026-08-31"
+    receipt = receipts["candidate", "2026-07"]
+    content_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+    assert content_hash is not None
+    assert content_hash not in {
+        receipts["comparison", "2026-07"].raw_hash,
+        receipts["comparison", "2026-07"].normalized_hash,
+    }
+    (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b"damaged PMI artifact")
+    if later_revision:
+        historical = evaluate_context_replay(
+            paths.database,
+            manifests["candidate"],
+            manifests["comparison"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+        assert not historical.gaps, historical.gaps
+        assert historical.evaluated_cutoffs == 1 and historical.output_document is not None
+        historical_inputs = set(
+            historical.output_document["days"][0]["candidate"]["macro"][
+                "model_input_observation_version_ids"
+            ]
+        )
+        assert claims["candidate", "2026-07"] <= historical_inputs
+        assert historical_inputs.isdisjoint(current_claims)
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start=evaluation_day,
+        requested_end=evaluation_day,
+    )
+    assert f"candidate_context_selection_invalid:{metric_id}" in after.gaps
+    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+    assert after.evaluated_cutoffs == 1 and after.output_document is not None
+    day = after.output_document["days"][0]
+    candidate_inputs = set(day["candidate"]["macro"]["model_input_observation_version_ids"])
+    assert candidate_inputs.isdisjoint(current_claims)
+    assert candidate_inputs.isdisjoint(claims["candidate", "2026-07"])
+    assert candidate_inputs.isdisjoint(claims["candidate", "2026-06"])
+    assert claims["comparison", "2026-07"] <= set(
+        day["comparison"]["macro"]["model_input_observation_version_ids"]
+    )
+    assert current_claims <= set(day["candidate"]["observation_version_ids"])
+
+
+@pytest.mark.parametrize(
+    "scenario", ["date_only", "unknown_public", "same_time_revision", "new_time_revision", "repeat"]
+)
+def test_registered_pmi_consumers_preserve_publication_precision_and_revisions(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], scenario: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    digest = "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6"
+    original = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert hashlib.sha256(original).hexdigest() == digest
+    first_at = datetime(2026, 7, 31, 2, tzinfo=UTC)
+    revised_at = datetime(2026, 8, 1, 2, tzinfo=UTC)
+    content = original
+    # Changes to the real archive are synthetic test inputs, never historical releases.
+    if scenario == "date_only":
+        content = content.replace(b"2026/07/31 09:30", "发布时间：2026-07-31".encode())
+    elif scenario == "unknown_public":
+        content = content.replace(b"2026/07/31 09:30", b"")
+    first = ingest_official_context_document(
+        paths,
+        content,
+        family="nbs_pmi",
+        source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+        expected_period="2026-07",
+        fetched_at=first_at,
+        clock=lambda: first_at,
+        definition_version=version,
+    )
+    latest = first
+    if scenario in {"same_time_revision", "new_time_revision", "repeat"}:
+        if scenario != "repeat":
+            content = content.replace(b"49.9", b"50.0")
+        if scenario == "new_time_revision":
+            content = content.replace(b"2026/07/31 09:30", b"2026/08/01 09:30")
+        latest = ingest_official_context_document(
+            paths,
+            content,
+            family="nbs_pmi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+            expected_period="2026-07",
+            fetched_at=revised_at,
+            clock=lambda: revised_at,
+            definition_version=version,
+        )
+    public_ids = (
+        set()
+        if scenario == "unknown_public"
+        else set(first.claim_ids if scenario == "same_time_revision" else latest.claim_ids)
+    )
+    all_raw_ids = set(first.claim_ids) | set(latest.claim_ids)
+    for mode in (AsOfMode.PUBLIC, AsOfMode.SYSTEM):
+        context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=revised_at,
+            model_manifest=manifest,
+            as_of_mode=mode,
+        )
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        expected_ids = public_ids if mode is AsOfMode.PUBLIC else set(latest.claim_ids)
+        assert set(model_inputs) & all_raw_ids == expected_ids
+        cards = context.inventory["cards"]
+        assert isinstance(cards, list)
+        rows = [row for card in cards for row in card["evidence"]]
+        derived = [
+            row
+            for row in rows
+            if row["metric_id"] == "CN_PRODUCTION_ORDER_SPREAD" and row["value"] is not None
+        ]
+        if mode is AsOfMode.PUBLIC and scenario == "unknown_public":
+            assert derived == []
+            assert model_inputs == []
+        else:
+            assert len(derived) == 1 and derived[0]["status"] == "current"
+            revised_value = scenario == "new_time_revision" or (
+                scenario == "same_time_revision" and mode is AsOfMode.SYSTEM
+            )
+            assert derived[0]["value"] == pytest.approx(1.5 if revised_value else 1.4)
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id="pmi-precision-" + mode.value,
+            model_version_id=model_id,
+            system_as_of=revised_at,
+            release_event_id=latest.release_event_id,
+            metric_ids=("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
+            period="2026-07",
+        )
+        selected = select_retrieval_input(paths, run, mode=mode)
+        assert selected.complete is (scenario != "unknown_public")
+        # Retrieval for a historical target also observes the PUBLIC bound in SYSTEM mode.
+        assert set(selected.selected_claim_ids) == public_ids
+    if scenario == "date_only":
+        repository = EvidenceRepository(paths.database)
+        for cutoff, expected_count in (
+            (datetime(2026, 7, 31, 15, 59, 59, tzinfo=UTC), 0),
+            (datetime(2026, 7, 31, 16, tzinfo=UTC), 4),
+        ):
+            points = repository.metric_series(
+                "CN_PMI_ACTIVITY", mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+            )
+            assert len(points) == expected_count
+            assert all(c.release_at is None for p in points for c in p.claims)
+        system = build_context_projection(
+            repository, as_of=first_at, model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+        )
+        system_inputs = system.macro["model_input_observation_version_ids"]
+        assert isinstance(system_inputs, list)
+        assert set(first.claim_ids) <= set(system_inputs)
+
+
+def test_pmi_invalid_latest_period_does_not_restore_older_derived_values(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    evidence_root = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    claims = {}
+    for period, folder, digest, url, acquired_at in (
+        (
+            "2026-06",
+            "evidence-macro-normalized",
+            "f0cc6558252e9d754645aaaedcd8bd5f20f04cc1de5765ba2c6761d4222e159c",
+            "https://www.stats.gov.cn/sj/zxfb/202606/t20260630_1964032.html",
+            datetime(2026, 7, 1, tzinfo=UTC),
+        ),
+        (
+            "2026-07",
+            "evidence-13",
+            "fff072e83f897a0a9e981e147105ecb81535958dfeaeafcf7881c24ede2a10d6",
+            "https://www.stats.gov.cn/sj/zxfb/202607/t20260731_1964253.html",
+            datetime(2026, 8, 1, tzinfo=UTC),
+        ),
+    ):
+        raw = (evidence_root / folder / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+
+        def clock(value: datetime = acquired_at) -> datetime:
+            return value
+
+        imported = ingest_official_context_document(
+            paths,
+            raw,
+            family="nbs_pmi",
+            source_url=url,
+            expected_period=period,
+            fetched_at=acquired_at,
+            clock=clock,
+            definition_version=manifest["metric_catalog_version"],
+        )
+        claims[period] = set(imported.claim_ids)
+
+    def derived_rows(cutoff: datetime) -> tuple[dict[str, Any], list[str]]:
+        context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=cutoff,
+            model_manifest=manifest,
+            as_of_mode=AsOfMode.PUBLIC,
+        )
+        cards = context.inventory["cards"]
+        assert isinstance(cards, list)
+        rows = {
+            row["metric_id"]: row
+            for card in cards
+            for row in card["evidence"]
+            if row["metric_id"] in {"CN_PRODUCTION_ORDER_SPREAD", "CN_ORDER_INVENTORY_SPREAD"}
+        }
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        return rows, inputs
+
+    now = datetime(2026, 8, 1, tzinfo=UTC)
+    current, current_inputs = derived_rows(now)
+    # Independent July table arithmetic: 49.9 - 48.5 and 48.5 - 48.6.
+    assert current["CN_PRODUCTION_ORDER_SPREAD"]["value"] == pytest.approx(1.4)
+    assert current["CN_ORDER_INVENTORY_SPREAD"]["value"] == pytest.approx(-0.1)
+    assert {row["period"] for row in current.values()} == {"2026-07-31"}
+    assert claims["2026-07"] <= set(current_inputs)
+    july = next(
+        receipt
+        for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if receipt.parameters["period"] == "2026-07"
+    )
+    assert july.normalized_hash is not None
+    (paths.artifacts / july.normalized_hash[:2] / july.normalized_hash).write_bytes(b"damaged")
+
+    earlier, earlier_inputs = derived_rows(datetime(2026, 7, 30, tzinfo=UTC))
+    # Independent June literals: 51.4 - 51.2 and 51.2 - 47.7.
+    assert earlier["CN_PRODUCTION_ORDER_SPREAD"]["value"] == pytest.approx(0.2)
+    assert earlier["CN_ORDER_INVENTORY_SPREAD"]["value"] == pytest.approx(3.5)
+    assert {row["period"] for row in earlier.values()} == {"2026-06-30"}
+    assert {row["status"] for row in earlier.values()} == {"current"}
+    assert claims["2026-06"] <= set(earlier_inputs)
+    assert not claims["2026-07"] & set(earlier_inputs)
+    after, after_inputs = derived_rows(now)
+    assert all(
+        row["value"] is None or row["status"] not in {"current", "available"}
+        for row in after.values()
+    ), [(row["period"], row["status"], row["value"]) for row in after.values()]
+    assert not (claims["2026-06"] | claims["2026-07"]) & set(after_inputs)
 
 
 @pytest.mark.parametrize(
@@ -2399,6 +4654,7 @@ def test_registered_pmi_original_reaches_selection_and_context(
         "omo",
     ],
 )
+@pytest.mark.parametrize("consumer", ["none", "selection", "context"])
 def test_registered_official_original_reaches_selection_and_context(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -2408,6 +4664,7 @@ def test_registered_official_original_reaches_selection_and_context(
     period: str,
     count: int,
     anchors: dict[str, tuple[dict[str, str], float, str]],
+    consumer: str,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -2458,6 +4715,373 @@ def test_registered_official_original_reaches_selection_and_context(
     assert set(selection.selected_claim_ids) <= set(imported.claim_ids)
     context = build_context_projection(repository, as_of=now, model_manifest=manifest)
     assert set(imported.claim_ids) <= set(context.observation_version_ids)
+    model_inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(model_inputs, list)
+    assert set(imported.claim_ids) <= set(model_inputs)
+
+    if consumer != "none":
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        (receipt,) = acquisitions.history()
+        assert receipt.raw_hash == digest
+        assert receipt.normalized_hash is not None
+        normalized_path = paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash
+        normalized_path.write_bytes(b'{"damaged":true}\n')
+        if consumer == "selection":
+            invalid_selection = select_retrieval_input(paths, run)
+            assert not invalid_selection.complete
+            assert invalid_selection.selected_claim_ids == ()
+        else:
+            after_context = build_context_projection(repository, as_of=now, model_manifest=manifest)
+            after_inputs = after_context.macro["model_input_observation_version_ids"]
+            assert isinstance(after_inputs, list)
+            assert set(imported.claim_ids).isdisjoint(after_inputs)
+            assert set(imported.claim_ids) <= set(after_context.observation_version_ids)
+
+
+@pytest.mark.parametrize("damaged_period", ["2026-05", "2026-06", "2026-07"])
+@pytest.mark.parametrize("artifact_kind", ["raw", "normalized", "invalid_quality"])
+def test_registered_loan_monthly_change_checks_required_period_artifacts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_period: str, artifact_kind: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    repository = EvidenceRepository(paths.database)
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    archive = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    claims = {}
+    for period, directory, digest, url in (
+        (
+            "2026-05",
+            "evidence-macro-derived",
+            "8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026061217051611931/index.html",
+        ),
+        (
+            "2026-06",
+            "evidence-macro-derived",
+            "9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026071515025183948/index.html",
+        ),
+        (
+            "2026-07",
+            "evidence-13",
+            "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html",
+        ),
+    ):
+        raw = (archive / directory / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        imported = ingest_official_context_document(
+            paths,
+            raw,
+            family="pbc_loan_structure",
+            source_url=url,
+            expected_period=period,
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=version,
+        )
+        claims[period] = set(imported.claim_ids)
+
+    def monthly_rows(cutoff: datetime) -> tuple[list[dict[str, Any]], list[str]]:
+        context = build_context_projection(
+            repository, as_of=cutoff, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        credit = context.macro["credit"]
+        assert isinstance(credit, dict)
+        rows = [
+            row
+            for row in credit["evidence"]
+            if row["metric_id"] == "CN_LOAN_STRUCTURE"
+            and row["dimensions"].get("measure") == "monthly_change"
+        ]
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        return rows, inputs
+
+    for cutoff, expected_period, expected_value in (
+        (datetime(2026, 7, 31, tzinfo=UTC), "2026-06-30", 5600),
+        (now, "2026-07-31", -2300),
+    ):
+        rows, inputs = monthly_rows(cutoff)
+        (enterprise,) = (
+            row
+            for row in rows
+            if row["dimensions"]["borrower"] == "enterprise"
+            and row["dimensions"]["tenor"] == "long_term"
+        )
+        assert (enterprise["period"], enterprise["value"], enterprise["status"]) == (
+            expected_period,
+            expected_value,
+            "current",
+        )
+        assert set(enterprise["input_observation_version_ids"]) <= set(inputs)
+
+    (receipt,) = (
+        receipt
+        for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if receipt.parameters["period"] == damaged_period
+    )
+    if artifact_kind == "invalid_quality":
+        for point in repository.metric_series(
+            "CN_LOAN_STRUCTURE", mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+        ):
+            if point.period_end[:7] != damaged_period:
+                continue
+            claim = next(item for item in point.claims if item.claim_id == point.selected_claim_id)
+            invalid = repository.append_source_claim(
+                SourceClaimInput(
+                    metric_id="CN_LOAN_STRUCTURE",
+                    definition_version=version,
+                    period_kind="year_to_month",
+                    period_start=point.period_start,
+                    period_end=point.period_end,
+                    dimensions=point.dimensions,
+                    value=claim.value,
+                    value_state=claim.value_state,
+                    unit=claim.unit,
+                    provider=claim.provider,
+                    source_reference=claim.source_reference,
+                    release_event_id=f"synthetic:loan-quality-review:{damaged_period}",
+                    release_at=claim.release_at,
+                    public_available_at=claim.public_available_at,
+                    fetched_at=now,
+                    available_at=now + timedelta(seconds=1),
+                    certification_status="certified",
+                    quality_status="invalid",
+                    acquisition_id=receipt.acquisition_id,
+                )
+            )
+            claims[damaged_period].add(invalid.claim_id)
+    else:
+        content_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+        assert content_hash is not None
+        (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b"damaged loan artifact")
+    after_rows, after_inputs = monthly_rows(now + timedelta(seconds=1))
+    if damaged_period == "2026-05":
+        assert len(after_rows) == 9
+        assert {row["period"] for row in after_rows} == {"2026-07-31"}
+        (enterprise,) = (
+            row
+            for row in after_rows
+            if row["dimensions"]["borrower"] == "enterprise"
+            and row["dimensions"]["tenor"] == "long_term"
+        )
+        assert enterprise["value"] == -2300
+    else:
+        assert after_rows == []
+    assert claims[damaged_period].isdisjoint(after_inputs)
+    earlier_rows, earlier_inputs = monthly_rows(datetime(2026, 7, 31, tzinfo=UTC))
+    if damaged_period == "2026-07":
+        assert len(earlier_rows) == 9
+        assert {row["period"] for row in earlier_rows} == {"2026-06-30"}
+        assert claims["2026-05"] | claims["2026-06"] <= set(earlier_inputs)
+    else:
+        assert earlier_rows == []
+    assert claims["2026-07"].isdisjoint(earlier_inputs)
+
+
+@pytest.mark.parametrize(
+    ("damaged_parent", "artifact_kind"),
+    [
+        ("maturing", "raw"),
+        ("maturing", "normalized"),
+        ("current", "raw"),
+        ("current", "normalized"),
+        ("calendar", "raw"),
+        ("calendar", "normalized"),
+        ("calendar", "invalid_quality"),
+    ],
+)
+def test_registered_omo_net_injection_checks_operation_and_calendar_artifacts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_parent: str, artifact_kind: str
+) -> None:
+    from pring_cycle.source_adapters import TushareCoreAdapter
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    repository = EvidenceRepository(paths.database)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    archive = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    for period, directory, digest, url in (
+        (
+            "2026-08-21",
+            "evidence-macro-derived",
+            "d5673e8e4351bc2a1ff1afdcdd89da9ba2c3c7a8fe946c3cd463c164da0cd834",
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082108525095972/index.html",
+        ),
+        (
+            "2026-08-28",
+            "evidence-13",
+            "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html",
+        ),
+    ):
+        raw = (archive / directory / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        ingest_official_context_document(
+            paths,
+            raw,
+            family="pbc_omo_notice",
+            source_url=url,
+            expected_period=period,
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=version,
+        )
+    # A synthetic, explicitly public core delivery supplies this isolated calendar day.
+    # This is not historical PUBLIC certification of a real index response.
+    day = date(2026, 8, 28)
+    calendar_days = (day, date(2026, 8, 31)) if artifact_kind == "invalid_quality" else (day,)
+    core_raw = encode(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["ts_code", "trade_date", "close", "pre_close", "pct_chg"],
+                "items": [
+                    ["000985.CSI", calendar_day.strftime("%Y%m%d"), 101, 100, 1]
+                    for calendar_day in calendar_days
+                ],
+            },
+        }
+    )
+    receipt = (
+        TushareCoreAdapter("synthetic-token", transport=lambda payload: core_raw)
+        .acquire_core_bars(
+            acquisitions,
+            "CN_EQUITY_CORE_000985",
+            start=day,
+            end=calendar_days[-1],
+            expected_business_dates=calendar_days,
+        )
+        .receipt
+    )
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    published = datetime(2026, 8, 28, 8, tzinfo=UTC)
+    calendar_input = SourceClaimInput(
+        metric_id="CN_EQUITY_CORE_000985",
+        definition_version=version,
+        period_kind="business_day",
+        period_start=day.isoformat(),
+        period_end=day.isoformat(),
+        dimensions={},
+        value=101,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="index_points",
+        provider="tushare",
+        source_reference="tushare:index_daily:000985.CSI:2026-08-28",
+        release_event_id="synthetic:omo-core-public-calendar:2026-08-28",
+        release_at=published,
+        public_available_at=published,
+        fetched_at=receipt.received_at,
+        available_at=receipt.validated_at,
+        certification_status="certified",
+        quality_status="validated",
+        acquisition_id=receipt.acquisition_id,
+    )
+    calendar_claim = repository.append_source_claim(calendar_input)
+    if artifact_kind == "invalid_quality":
+        repository.append_source_claim(
+            replace(
+                calendar_input,
+                period_start="2026-08-31",
+                period_end="2026-08-31",
+                source_reference="tushare:index_daily:000985.CSI:2026-08-31",
+                release_event_id="synthetic:omo-core-public-calendar:2026-08-31",
+                release_at=datetime(2026, 8, 31, 8, tzinfo=UTC),
+                public_available_at=datetime(2026, 8, 31, 8, tzinfo=UTC),
+            )
+        )
+        now = datetime(2026, 9, 1, tzinfo=UTC)
+    calendar_run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic-omo-calendar",
+        model_version_id=model_id,
+        system_as_of=receipt.validated_at + timedelta(seconds=1),
+        release_event_id="synthetic:omo-core-public-calendar:2026-08-28",
+        metric_ids=("CN_EQUITY_CORE_000985",),
+        period="2026-08-28",
+    )
+    calendar_selection = select_retrieval_input(paths, calendar_run, mode=AsOfMode.PUBLIC)
+    assert calendar_selection.complete
+    assert calendar_selection.selected_claim_ids == (calendar_claim.claim_id,)
+    injection_claims = {
+        point.period_end: point.selected_claim_id
+        for point in repository.metric_series(
+            "CN_OMO_7D_AMOUNT", mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+        )
+        if point.dimensions == {"measure": "injection"}
+    }
+
+    def net_rows() -> tuple[list[dict[str, Any]], list[str]]:
+        context = build_context_projection(
+            repository, as_of=now, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+        )
+        policy = context.macro["policy_action"]
+        assert isinstance(policy, dict)
+        rows = [
+            row
+            for row in policy["evidence"]
+            if row["metric_id"] == "CN_OMO_7D_AMOUNT"
+            and row["dimensions"] == {"measure": "net_injection"}
+        ]
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        return rows, inputs
+
+    (before,), inputs = net_rows()
+    assert (before["period"], before["value"], before["status"]) == ("2026-08-28", -750, "current")
+    assert set(before["input_observation_version_ids"]) == {
+        *injection_claims.values(),
+        calendar_claim.claim_id,
+    }
+    assert set(before["input_observation_version_ids"]) <= set(inputs)
+    excluded_id: str | None
+    if damaged_parent == "calendar":
+        damaged_receipt = receipt
+        excluded_id = calendar_claim.claim_id
+    else:
+        damaged_day = "2026-08-21" if damaged_parent == "maturing" else "2026-08-28"
+        (damaged_receipt,) = (
+            item
+            for item in acquisitions.history()
+            if item.parameters.get("family") == "pbc_omo_notice"
+            and item.parameters["period"] == damaged_day
+        )
+        excluded_id = injection_claims[damaged_day]
+    assert excluded_id is not None
+    if artifact_kind == "invalid_quality":
+        repository.append_source_claim(
+            replace(
+                calendar_input,
+                release_event_id=calendar_input.release_event_id + ":synthetic-quality-review",
+                available_at=receipt.validated_at + timedelta(seconds=1),
+                quality_status="invalid",
+            )
+        )
+    else:
+        damaged_hash = (
+            damaged_receipt.raw_hash if artifact_kind == "raw" else damaged_receipt.normalized_hash
+        )
+        assert damaged_hash is not None
+        (paths.artifacts / damaged_hash[:2] / damaged_hash).write_bytes(
+            b"damaged OMO maturity parent"
+        )
+    after_rows, after_inputs = net_rows()
+    assert after_rows == []
+    assert excluded_id not in after_inputs
 
 
 @pytest.mark.parametrize(
@@ -2585,6 +5209,187 @@ def test_registered_official_claim_rejects_wrong_member_identity(
         EvidenceRepository(paths.database).append_source_claim(replace(claim, **changes[fault]))
 
 
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("artifact_kind", ["normalized", "raw", "invalid_quality"])
+@pytest.mark.parametrize("damaged_parent", ["rate", "dr007"])
+def test_registered_policy_spread_rejects_damaged_latest_rate_original(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], artifact_kind: str, damaged_parent: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    version = manifest["metric_catalog_version"]
+    repository = EvidenceRepository(paths.database)
+    # Synthetic TuShare deliveries carry independently audited CFETS values.
+    responses = {
+        "repo_daily": {
+            "code": 0,
+            "data": {
+                "fields": ["ts_code", "trade_date", "repo_maturity", "weight"],
+                "items": [["DR007.IB", "20260828", "DR007", 1.3859]],
+            },
+        },
+        "shibor": {
+            "code": 0,
+            "data": {
+                "fields": ["date", "on", "1w", "3m"],
+                "items": [["20260828", 1.339, 1.387, 1.43]],
+            },
+        },
+    }
+    adapter = TushareContextAdapter(
+        "synthetic-token", transport=lambda payload: encode(responses[payload["api_name"]])
+    )
+    public_at = datetime(2026, 8, 28, 8, tzinfo=UTC)  # Explicit synthetic publication time.
+
+    def retrieve() -> tuple[ContextScalar, ...]:
+        return tuple(
+            replace(scalar, release_at=public_at, public_available_at=public_at)
+            for scalar in adapter.transmission(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            )
+        )
+
+    adapter.acquire_scalars(paths, retrieve, definition_version=version)
+    now = datetime.now(UTC)
+    archive = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    for day, directory, digest, url in (
+        (
+            "2026-08-21",
+            "evidence-macro-derived",
+            "d5673e8e4351bc2a1ff1afdcdd89da9ba2c3c7a8fe946c3cd463c164da0cd834",
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082108525095972/index.html",
+        ),
+        (
+            "2026-08-28",
+            "evidence-13",
+            "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a",
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026082808585347002/index.html",
+        ),
+    ):
+        raw = (archive / directory / digest).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+        ingest_official_context_document(
+            paths,
+            raw,
+            family="pbc_omo_notice",
+            source_url=url,
+            expected_period=day,
+            fetched_at=now,
+            clock=lambda: now,
+            definition_version=version,
+        )
+    cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+    (dr007,) = repository.metric_series(
+        "CN_DR007", mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+    )
+    rates = repository.metric_series(
+        "CN_OMO_7D_RATE", mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+    )
+    assert [(point.period_end, point.selected_value) for point in rates] == [
+        ("2026-08-21", 1.4),
+        ("2026-08-28", 1.4),
+    ]
+
+    def policy_spread() -> tuple[list[dict[str, Any]], list[str]]:
+        context = build_context_projection(
+            repository,
+            as_of=cutoff,
+            as_of_mode=AsOfMode.PUBLIC,
+            target_business_date="2026-08-28",
+            model_manifest=manifest,
+            persist_derived=True,
+        )
+        transmission = context.macro["transmission"]
+        assert isinstance(transmission, dict)
+        inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(inputs, list)
+        return [
+            row
+            for row in transmission["evidence"]
+            if row["metric_id"] == "CN_DR007_POLICY_SPREAD" and "derived_observation_id" in row
+        ], inputs
+
+    (before,), inputs = policy_spread()
+    assert (before["period"], before["unit"], before["status"]) == (
+        "2026-08-28",
+        "basis_points",
+        "current",
+    )
+    assert before["value"] == pytest.approx(-1.41, rel=0, abs=1e-12)
+    parents = {dr007.selected_claim_id, rates[-1].selected_claim_id}
+    assert set(before["input_observation_version_ids"]) == parents
+    assert parents <= set(inputs)
+    assert rates[0].selected_claim_id not in parents
+    trace = repository.derived_trace(
+        before["derived_observation_id"], mode=AsOfMode.PUBLIC, as_of=cutoff
+    )
+    assert set(trace.input_observation_version_ids) == parents
+
+    (receipt,) = (
+        receipt
+        for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if (
+            receipt.api_name == "repo_daily"
+            if damaged_parent == "dr007"
+            else receipt.parameters.get("period") == "2026-08-28"
+        )
+    )
+    damaged_metric = "CN_DR007" if damaged_parent == "dr007" else "CN_OMO_7D_RATE"
+    damaged_point = dr007 if damaged_parent == "dr007" else rates[-1]
+    excluded_id = damaged_point.selected_claim_id
+    if artifact_kind == "invalid_quality":
+        claim = next(item for item in damaged_point.claims if item.claim_id == excluded_id)
+        invalid = repository.append_source_claim(
+            SourceClaimInput(
+                metric_id=damaged_metric,
+                definition_version=version,
+                period_kind="business_day",
+                period_start="2026-08-28",
+                period_end="2026-08-28",
+                dimensions={},
+                value=claim.value,
+                value_state=claim.value_state,
+                unit=claim.unit,
+                provider=claim.provider,
+                source_reference=claim.source_reference,
+                release_event_id="synthetic:policy-rate-quality-review",
+                release_at=claim.release_at,
+                public_available_at=claim.public_available_at,
+                fetched_at=claim.fetched_at,
+                available_at=now + timedelta(seconds=1),
+                certification_status="certified",
+                quality_status="invalid",
+                acquisition_id=receipt.acquisition_id,
+            )
+        )
+        excluded_id = invalid.claim_id
+        assert (
+            repository.metric_series(
+                damaged_metric, mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+            )[-1].selected_claim_id
+            == excluded_id
+        )
+    else:
+        content_hash = (
+            receipt.normalized_hash if artifact_kind == "normalized" else receipt.raw_hash
+        )
+        assert content_hash is not None
+        (paths.artifacts / content_hash[:2] / content_hash).write_bytes(
+            b"damaged policy rate artifact"
+        )
+    after, after_inputs = policy_spread()
+    assert after == []
+    assert excluded_id not in after_inputs
+    assert damaged_point.selected_claim_id not in after_inputs
+    if damaged_parent == "dr007":
+        assert rates[-1].selected_claim_id in after_inputs
+    assert before["derived_observation_id"] not in after_inputs
+
+
 @pytest.mark.parametrize(
     ("latest_invalid", "event_age"), [(False, 1), (True, 1), (False, 11), (False, 371)]
 )
@@ -2623,7 +5428,50 @@ def test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_
     selected_event = None
     latest_day = {1: "2026-06-02", 11: "2026-05-23", 371: "2025-05-28"}[event_age]
     for day, value in (("2025-04-01", 1.4), (latest_day, 1.5), ("2026-06-04", 1.6)):
-        # Synthetic events isolate selection semantics, without certifying historical rates.
+        # Synthetic documents isolate event selection; they are not official historical rates.
+        url = f"https://www.pbc.gov.cn/synthetic-omo-{day}.html"
+        event_raw = f"""
+        <html><body><h1>{day} 公开市场业务交易公告（合成测试）</h1>
+        <p>发布时间：2026-06-03 09:00</p><table>
+        <tr><th>操作日</th><th>品种</th><th>期限</th><th>中标利率（%）</th>
+        <th>投放量（亿元）</th><th>到期量（亿元）</th></tr>
+        <tr><td>{day}</td><td>逆回购</td><td>7天</td><td>{value}</td>
+        <td>10</td><td>0</td></tr></table></body></html>
+        """.encode()
+
+        def parse_event(
+            content: bytes, event_day: str = day, event_url: str = url
+        ) -> ParsedOfficialContextRelease:
+            return parse_official_context_document(
+                content,
+                family="pbc_omo_notice",
+                source_url=event_url,
+                expected_period=event_day,
+                fetched_at=now,
+            )
+
+        def fetch_event(content: bytes = event_raw) -> bytes:
+            return content
+
+        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+            provider="中国人民银行",
+            api_name="document_import",
+            parameters={"source_url": url, "period": day, "family": "pbc_omo_notice"},
+            fields="",
+            parser_version="official-context-parser-v0004",
+            fetch=fetch_event,
+            parse=parse_event,
+            normalize=asdict,
+            clock=lambda: now,
+        )
+        receipt = acquired.receipt
+        assert receipt.received_at is not None and receipt.validated_at is not None
+        assert (
+            next(
+                item.value for item in acquired.value.scalars if item.metric_id == "CN_OMO_7D_RATE"
+            )
+            == value
+        )
         event = repository.append_source_claim(
             SourceClaimInput(
                 metric_id="CN_OMO_7D_RATE",
@@ -2636,14 +5484,15 @@ def test_registered_omo_zero_day_selects_prior_rate_event_without_fabricating_a_
                 value_state=EvidenceValueState.REPORTED_VALUE,
                 unit="percent",
                 provider="中国人民银行",
-                source_reference=f"synthetic:omo:{day}",
+                source_reference=f"{url}#sha256={receipt.raw_hash}",
                 release_event_id=f"synthetic:omo:{day}",
-                release_at=now,
-                public_available_at=now,
-                fetched_at=now,
-                available_at=now,
+                release_at=acquired.value.release_at,
+                public_available_at=acquired.value.public_available_at,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
                 certification_status="certified",
                 quality_status="invalid" if latest_invalid and day == latest_day else "validated",
+                acquisition_id=receipt.acquisition_id,
             )
         )
         if day == latest_day:
@@ -2696,8 +5545,32 @@ def test_registered_social_components_require_all_eight_stock_growth_members(
     model_id = json.loads(capsys.readouterr().out)["model_version_id"]
     version = request["manifest"]["metric_catalog_version"]
     now = datetime(2026, 8, 29, tzinfo=UTC)
-    public_at = datetime(2026, 8, 14, 9, tzinfo=UTC)
     repository = EvidenceRepository(paths.database)
+    digest = "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef"
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    url = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html"
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider="中国人民银行",
+        api_name="document_import",
+        parameters={"source_url": url, "period": "2026-07", "family": "pbc_social_financing"},
+        fields="",
+        parser_version="official-context-parser-v0004",
+        fetch=lambda: raw,
+        parse=lambda content: parse_official_context_document(
+            content,
+            family="pbc_social_financing",
+            source_url=url,
+            expected_period="2026-07",
+            fetched_at=now,
+        ),
+        normalize=asdict,
+        clock=lambda: now,
+    )
+    receipt = acquired.receipt
+    assert receipt.received_at is not None and receipt.validated_at is not None
     components = (
         "renminbi_loans",
         "foreign_currency_loans_rmb",
@@ -2708,39 +5581,44 @@ def test_registered_social_components_require_all_eight_stock_growth_members(
         "government_bonds",
         "nonfinancial_enterprise_equity",
     )
-    for index, component in enumerate(components):
-        for measure in ("stock_end", "ytd_increment", "stock_yoy"):
-            if measure == "stock_yoy" and index < missing_count:
-                continue
-            repository.append_source_claim(
-                SourceClaimInput(
-                    metric_id="CN_SF_COMPONENTS",
-                    definition_version=version,
-                    period_kind="year_to_month" if measure == "ytd_increment" else "month",
-                    period_start="2026-01-01" if measure == "ytd_increment" else "2026-07-01",
-                    period_end="2026-07-31",
-                    dimensions={"component": component, "measure": measure},
-                    value=10,
-                    value_state=EvidenceValueState.REPORTED_VALUE,
-                    unit="percent" if measure == "stock_yoy" else "hundred_million_cny",
-                    provider="中国人民银行",
-                    source_reference="synthetic:partial-sf",
-                    release_event_id="synthetic:partial-sf",
-                    release_at=public_at,
-                    public_available_at=public_at,
-                    fetched_at=now,
-                    available_at=now,
-                    certification_status="certified",
-                    quality_status="validated",
-                )
+    # Retain the complete captured document, but submit an incomplete member set publicly.
+    # The isolated review and acquisition clock do not certify a real production source.
+    for scalar in acquired.value.scalars:
+        if scalar.metric_id != "CN_SF_COMPONENTS" or (
+            scalar.dimensions["measure"] == "stock_yoy"
+            and scalar.dimensions["component"] in components[:missing_count]
+        ):
+            continue
+        repository.append_source_claim(
+            SourceClaimInput(
+                metric_id=scalar.metric_id,
+                definition_version=version,
+                period_kind=scalar.period_kind,
+                period_start=scalar.period_start,
+                period_end=scalar.period_end,
+                dimensions=scalar.dimensions,
+                value=scalar.value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=scalar.unit,
+                provider=acquired.value.provider,
+                source_reference=f"{url}#sha256={receipt.raw_hash}",
+                release_event_id=acquired.value.release_event_id,
+                release_at=acquired.value.release_at,
+                public_available_at=acquired.value.public_available_at,
+                fetched_at=receipt.received_at,
+                available_at=receipt.validated_at,
+                certification_status="certified",
+                quality_status="validated",
+                acquisition_id=receipt.acquisition_id,
             )
+        )
     run = RunRepository(paths.database).submit(
         command_type="targeted_refresh",
         target_business_date="2026-08-28",
         client_request_id="partial-sf",
         model_version_id=model_id,
         system_as_of=now,
-        release_event_id="synthetic:partial-sf",
+        release_event_id=acquired.value.release_event_id,
         metric_ids=("CN_SF_COMPONENTS",),
         period="2026-07",
     )
@@ -2749,6 +5627,1071 @@ def test_registered_social_components_require_all_eight_stock_growth_members(
     assert len(selection.selected_claim_ids) == 24 - missing_count
     assert len(selection.missing_members) == missing_count
     assert all('"measure": "stock_yoy"' in missing for missing in selection.missing_members)
+
+
+def synthetic_coherent_gdp_release(period: str, *, fractional: bool = False) -> tuple[bytes, str]:
+    # Deliberately synthetic public transport data. This tests the full formula
+    # without asserting that mixed historical GDP releases share a vintage.
+    year, quarter = int(period[:4]), int(period[-1])
+    label = ("一季度", "二季度", "三季度", "四季度")[quarter - 1]
+    release_year = year + 1 if quarter == 4 else year
+    release_month = 1 if quarter == 4 else quarter * 3 + 1
+    header = "<tr><td></td><td>绝对额（亿元）</td><td>比上年同期增长（%）</td></tr>"
+    if quarter != 1:
+        cumulative = ("", "上半年", "前三季度", "全年")[quarter - 1]
+        header += (
+            f"<tr><td>{label}</td><td>{cumulative}</td><td>{label}</td><td>{cumulative}</td></tr>"
+        )
+    rows = []
+    for name, value in (
+        ("GDP", 350000),
+        ("第一产业", 10000),
+        ("第二产业", 140000),
+        ("第三产业", 200000),
+    ):
+        quarter_value = Decimal(value)
+        if fractional and name in ("GDP", "第一产业"):
+            quarter_value += Decimal("0.1")
+        cells = (
+            (name, quarter_value, 5)
+            if quarter == 1
+            else (name, quarter_value, quarter_value * quarter, 5, 5)
+        )
+        rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
+    document = (
+        "<html><body><p>synthetic fixture; not official economic data</p>"
+        f"<h1>{year}年{label}国内生产总值初步核算结果</h1>"
+        f"<p>发布时间：{release_year}-{release_month:02d}-16 09:30</p>"
+        f"<table>{header}{''.join(rows)}"
+        "<tr><td>绝对额按现价计算，增长速度按不变价计算。</td></tr></table></body></html>"
+    )
+    return document.encode(), f"https://www.stats.gov.cn/sj/synthetic-credit-window-{period}.html"
+
+
+def synthetic_prior_social_financing_release(month: int = 6) -> tuple[bytes, str]:
+    # A deliberately synthetic extra month makes old-window fallback observable.
+    months_label, total = {5: ("前五个月", 15), 6: ("前六个月", 18)}[month]
+    document = f"""<html><body><p>synthetic fixture; not official economic data</p>
+    <h1>2024年{month}月社会融资规模增量统计数据报告</h1>
+    <p>发布时间：2024-{month + 1:02d}-13 17:00:00</p>
+    <p>2024年{months_label}社会融资规模增量累计为{total}万亿元。
+    其中，对实体经济发放的人民币贷款增加12.38万亿元；
+    对实体经济发放的外币贷款折合人民币减少970亿元；委托贷款减少573亿元；
+    信托贷款增加3072亿元；未贴现的银行承兑汇票减少3440亿元；
+    企业债券净融资1.61万亿元；政府债券净融资4.03万亿元；
+    非金融企业境内股票融资1445亿元。</p></body></html>"""
+    return (
+        document.encode(),
+        f"https://www.pbc.gov.cn/synthetic-credit-window-2024-{month:02d}.html",
+    )
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "coherent",
+        "coherent_decimal",
+        "synthetic_inconsistent",
+        "actual_revised",
+        "damaged_social_raw",
+        "damaged_social_normalized",
+        "damaged_gdp_raw",
+        "damaged_gdp_normalized",
+        "unused_old_raw",
+        "latest_nonpositive_gdp",
+        "latest_quality_gdp",
+        "latest_certification_gdp",
+        "latest_quality_social",
+        "latest_certification_social",
+        "latest_nondisclosed_gdp",
+        "latest_nondisclosed_social",
+        "older_social_window",
+        "latest_missing_social_baseline",
+    ],
+)
+@pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
+def test_registered_credit_window_requires_comparable_gdp_release_baselines(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], mode: AsOfMode, scenario: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    model_id = manifest["model_version_id"]
+    version = manifest["metric_catalog_version"]
+    model_before = ModelRepository(paths.database).get(model_id)
+    has_older_gdp = scenario in (
+        "unused_old_raw",
+        "latest_nonpositive_gdp",
+        "latest_quality_gdp",
+        "latest_certification_gdp",
+        "latest_nondisclosed_gdp",
+    )
+    has_older_social = scenario in (
+        "latest_quality_social",
+        "latest_certification_social",
+        "latest_nondisclosed_social",
+        "older_social_window",
+        "latest_missing_social_baseline",
+    )
+    has_two_older_social = scenario in ("older_social_window", "latest_missing_social_baseline")
+    missing_social_baseline = scenario == "latest_missing_social_baseline"
+    root = Path(__file__).parents[2]
+    fixture = json.loads(
+        (
+            root / ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/manifest.json"
+        ).read_text()
+    )
+    assert fixture["parent_count"] == {"social_financing": 25, "gdp": 9}
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    fixture_time = datetime(2026, 8, 29, tzinfo=UTC)
+
+    def fixture_clock() -> datetime:
+        return fixture_time
+
+    for parent in fixture["parents"]:
+        if (
+            missing_social_baseline
+            and parent["family"] == "pbc_social_financing"
+            and parent["period"] == "2026-06"
+        ):
+            continue
+        raw = (root / parent["raw_path"]).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == parent["raw_sha256"]
+        source_url = parent["source_url"]
+        if scenario != "actual_revised" and parent["family"] == "nbs_gdp":
+            raw, source_url = synthetic_coherent_gdp_release(
+                parent["period"], fractional=scenario == "coherent_decimal"
+            )
+            if scenario == "synthetic_inconsistent" and parent["period"] == "2025-Q4":
+                # One changed input cell; URL, PUBLIC time and the other 33 parents stay equal.
+                original_cell = b"<td>GDP</td><td>350000</td><td>1400000</td>"
+                changed_cell = b"<td>GDP</td><td>350000</td><td>1401000</td>"
+                assert raw.count(original_cell) == 1
+                raw = raw.replace(original_cell, changed_cell, 1)
+            if scenario == "latest_nonpositive_gdp" and parent["period"] == "2026-Q2":
+                original_cell = b"<td>GDP</td><td>350000</td><td>700000</td>"
+                changed_cell = b"<td>GDP</td><td>350000</td><td>350000</td>"
+                assert raw.count(original_cell) == 1
+                raw = raw.replace(original_cell, changed_cell, 1)
+        result = ingest_official_context_document(
+            paths,
+            raw,
+            family=parent["family"],
+            source_url=source_url,
+            expected_period=parent["period"],
+            fetched_at=fixture_clock(),
+            clock=fixture_clock,
+            definition_version=version,
+        )
+        assert result.claim_ids
+    if has_older_gdp:
+        old_raw, old_url = synthetic_coherent_gdp_release("2024-Q1")
+        old_result = ingest_official_context_document(
+            paths,
+            old_raw,
+            family="nbs_gdp",
+            source_url=old_url,
+            expected_period="2024-Q1",
+            fetched_at=fixture_clock(),
+            clock=fixture_clock,
+            definition_version=version,
+        )
+        assert old_result.claim_ids
+    if has_older_social:
+        for month in (5, 6) if has_two_older_social else (6,):
+            old_raw, old_url = synthetic_prior_social_financing_release(month)
+            old_result = ingest_official_context_document(
+                paths,
+                old_raw,
+                family="pbc_social_financing",
+                source_url=old_url,
+                expected_period=f"2024-{month:02d}",
+                fetched_at=fixture_clock(),
+                clock=fixture_clock,
+                definition_version=version,
+            )
+            assert old_result.claim_ids
+    after = fixture_clock()
+    cutoff = datetime(2026, 8, 28, 15, 59, tzinfo=UTC) if mode is AsOfMode.PUBLIC else after
+    repository = EvidenceRepository(paths.database)
+    for metric_id in ("CN_SF_TOTAL", "CN_GDP"):
+        before_acquisition = repository.metric_series(
+            metric_id,
+            mode=AsOfMode.SYSTEM,
+            as_of=fixture_time - timedelta(microseconds=1),
+            definition_version=version,
+        )
+        assert all(
+            point.selected_claim_id is None and point.selected_value is None and point.claims == ()
+            for point in before_acquisition
+        )
+    parent_ids: set[str | None] = set()
+    baseline_ids: dict[str, str] = {}
+    unused_gdp_id = None
+    for metric, dimensions, count in (
+        ("CN_SF_TOTAL", {"measure": "ytd_increment"}, 25),
+        ("CN_GDP", {"aggregate": "total", "measure": "nominal_ytd_level"}, 9),
+    ):
+        selected = [
+            point
+            for point in repository.metric_series(
+                metric, mode=mode, as_of=cutoff, definition_version=version
+            )
+            if point.dimensions == dimensions
+        ]
+        has_extra = (has_older_gdp and metric == "CN_GDP") or (
+            has_older_social and metric == "CN_SF_TOTAL"
+        )
+        extra_count = (2 if has_two_older_social else 1) if has_extra else 0
+        missing_count = int(missing_social_baseline and metric == "CN_SF_TOTAL")
+        assert len(selected) == count + extra_count - missing_count
+        assert all(point.selection_status == "selected" for point in selected)
+        if has_older_gdp and metric == "CN_GDP":
+            (unused,) = [point for point in selected if point.period_end == "2024-03-31"]
+            unused_gdp_id = unused.selected_claim_id
+            assert unused_gdp_id is not None
+            selected = [point for point in selected if point.period_end != "2024-03-31"]
+        if has_older_social and metric == "CN_SF_TOTAL":
+            old_periods = {"2024-05-31", "2024-06-30"} if has_two_older_social else {"2024-06-30"}
+            unused_points = [point for point in selected if point.period_end in old_periods]
+            assert len(unused_points) == extra_count
+            assert all(point.selected_claim_id is not None for point in unused_points)
+            selected = [point for point in selected if point.period_end not in old_periods]
+        if missing_count:
+            assert not any(point.period_end == "2026-06-30" for point in selected)
+            (latest,) = [point for point in selected if point.period_end == "2026-07-31"]
+            assert latest.selected_value is not None and latest.selected_claim_id is not None
+        parent_ids.update(point.selected_claim_id for point in selected)
+        baseline = min(selected, key=lambda point: point.period_end)
+        assert baseline.selected_claim_id is not None
+        baseline_ids[metric] = baseline.selected_claim_id
+    assert len(parent_ids) == 34 - int(missing_social_baseline)
+    assert len(acquisitions.history()) == (
+        34
+        - int(missing_social_baseline)
+        + int(has_older_gdp)
+        + int(has_older_social)
+        + int(has_two_older_social)
+    )
+    assert all(receipt.state == "validated" for receipt in acquisitions.history())
+    if scenario == "unused_old_raw":
+        assert unused_gdp_id is not None and unused_gdp_id not in parent_ids
+        ((receipt, _),) = repository.source_claim_originals(unused_gdp_id)
+        assert receipt.raw_hash is not None
+        artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
+        assert hashlib.sha256(artifact.read_bytes()).hexdigest() == receipt.raw_hash
+        artifact.write_bytes(b"damaged unused older GDP release")
+    damaged_parent_id = None
+    if scenario.startswith("damaged_"):
+        _, family, artifact_kind = scenario.split("_")
+        damaged_parent_id = baseline_ids["CN_SF_TOTAL" if family == "social" else "CN_GDP"]
+        ((receipt, _),) = repository.source_claim_originals(damaged_parent_id)
+        artifact_hash = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
+        assert artifact_hash is not None
+        artifact = paths.artifacts / artifact_hash[:2] / artifact_hash
+        assert hashlib.sha256(artifact.read_bytes()).hexdigest() == artifact_hash
+        artifact.write_bytes(b"damaged selected earliest cumulative baseline after ingestion")
+    reviewed_ids: set[str] = set()
+    if scenario.startswith(("latest_quality_", "latest_certification_", "latest_nondisclosed_")):
+        _, fault, family = scenario.split("_")
+        # This synthetic disqualified review is an adversarial source declaration,
+        # not a fetch failure, actual disclosure revision, or real certification.
+        nondisclosed = fault == "nondisclosed"
+        metric = "CN_GDP" if family == "gdp" else "CN_SF_TOTAL"
+        dimensions = (
+            {"aggregate": "total", "measure": "nominal_ytd_level"}
+            if family == "gdp"
+            else {"measure": "ytd_increment"}
+        )
+        latest = max(
+            (
+                point
+                for point in repository.metric_series(
+                    metric, mode=mode, as_of=cutoff, definition_version=version
+                )
+                if point.dimensions == dimensions
+            ),
+            key=lambda point: point.period_end,
+        )
+        claim = next(item for item in latest.claims if item.claim_id == latest.selected_claim_id)
+        ((receipt, _),) = repository.source_claim_originals(claim.claim_id)
+        reviewed = repository.append_source_claim(
+            SourceClaimInput(
+                metric_id=metric,
+                definition_version=version,
+                period_kind="year_to_quarter" if family == "gdp" else "year_to_month",
+                period_start=latest.period_start,
+                period_end=latest.period_end,
+                dimensions=latest.dimensions,
+                value=None if nondisclosed else claim.value,
+                value_state=EvidenceValueState.NOT_DISCLOSED if nondisclosed else claim.value_state,
+                unit=claim.unit,
+                provider=claim.provider,
+                source_reference=claim.source_reference,
+                release_event_id=f"synthetic:credit-input-review:{scenario}",
+                release_at=claim.release_at,
+                public_available_at=claim.public_available_at,
+                fetched_at=claim.fetched_at,
+                available_at=after + timedelta(seconds=1),
+                certification_status=(
+                    "awaiting_source_certification"
+                    if fault in ("certification", "nondisclosed")
+                    else "certified"
+                ),
+                quality_status="invalid" if fault in ("quality", "nondisclosed") else "validated",
+                acquisition_id=receipt.acquisition_id,
+            )
+        )
+        reviewed_ids = {claim.claim_id, reviewed.claim_id}
+        if mode is AsOfMode.SYSTEM:
+            cutoff = after + timedelta(seconds=1)
+        (reviewed_point,) = [
+            point
+            for point in repository.metric_series(
+                metric, mode=mode, as_of=cutoff, definition_version=version
+            )
+            if point.dimensions == dimensions and point.period_end == latest.period_end
+        ]
+        assert reviewed_point.selected_claim_id == reviewed.claim_id
+        assert reviewed_point.selected_value == (None if nondisclosed else latest.selected_value)
+    context = build_context_projection(
+        repository,
+        as_of=cutoff,
+        as_of_mode=mode,
+        target_business_date="2026-08-28",
+        model_manifest=manifest,
+    )
+    # With the actual releases, Q4 differences 399338/386843 disagree
+    # with the same announcements' quarterly values 373726/387911.
+    # Source-field certification does not certify this cross-release difference.
+    credit = context.macro["credit"]
+    assert isinstance(credit, dict)
+    formula = credit["formula"]
+    assert isinstance(formula, dict)
+    if scenario in ("coherent", "coherent_decimal", "unused_old_raw", "older_social_window"):
+        assert formula["status"] == "available", formula
+        impulse = next(row for row in credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE")
+        # 24 real SF monthly differences total 338600/373800, with four
+        # independently specified synthetic GDP quarters of 350000 or 350000.1.
+        annual_gdp = 1400000.4 if scenario == "coherent_decimal" else 1400000
+        assert impulse["value"] == pytest.approx(
+            100 * (338600 - 373800) / annual_gdp, rel=1e-12, abs=1e-12
+        )
+        assert set(impulse["input_observation_version_ids"]) == parent_ids
+        trace = repository.derived_trace(impulse["derived_observation_id"], mode=mode, as_of=cutoff)
+        assert set(trace.input_observation_version_ids) == parent_ids
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert parent_ids <= set(model_inputs)
+        if unused_gdp_id is not None:
+            assert unused_gdp_id not in model_inputs
+        assert ModelRepository(paths.database).get(model_id) == model_before
+        return
+    expected_status = (
+        "incomplete_source_artifacts"
+        if damaged_parent_id is not None
+        else "incomparable_gdp_vintages"
+    )
+    if scenario == "latest_nonpositive_gdp" or reviewed_ids or missing_social_baseline:
+        expected_status = "missing_certified_inputs"
+    assert formula["status"] == expected_status, formula
+    assert not any(
+        row["metric_id"] == "CN_CREDIT_IMPULSE" and row["value"] is not None
+        for row in credit["evidence"]
+    )
+    if damaged_parent_id is not None:
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert damaged_parent_id not in model_inputs
+    if reviewed_ids:
+        model_inputs = context.macro["model_input_observation_version_ids"]
+        assert isinstance(model_inputs, list)
+        assert reviewed_ids.isdisjoint(model_inputs)
+    assert ModelRepository(paths.database).get(model_id) == model_before
+
+
+def prepare_credit_component_pair(
+    paths: RuntimePaths,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    missing_candidate_social_baseline: bool = False,
+) -> tuple[dict[str, dict[str, Any]], dict[str, set[str | None]]]:
+    repository = EvidenceRepository(paths.database)
+    root = Path(__file__).parents[2]
+    fixture = json.loads(
+        (
+            root / ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/manifest.json"
+        ).read_text()
+    )
+    fixture_time = datetime(2026, 8, 29, tzinfo=UTC)
+    cutoff = datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC)
+    manifests = {}
+    parent_ids = {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_gdp_manifest(paths, capsys, side=side)
+        # The full admitted model stays immutable. This public component replay
+        # exercises only credit inputs, not real certification or a 120-day gate.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        version = manifest["metric_catalog_version"]
+        for parent in fixture["parents"]:
+            if (
+                missing_candidate_social_baseline
+                and side == "candidate"
+                and parent["family"] == "pbc_social_financing"
+                and parent["period"] == "2026-06"
+            ):
+                continue
+            raw = (root / parent["raw_path"]).read_bytes()
+            assert hashlib.sha256(raw).hexdigest() == parent["raw_sha256"]
+            url = parent["source_url"]
+            if parent["family"] == "nbs_gdp":
+                raw, url = synthetic_coherent_gdp_release(parent["period"])
+            if side == "candidate":
+                raw += b"<!-- synthetic candidate component retrieval -->"
+            imported = ingest_official_context_document(
+                paths,
+                raw,
+                family=parent["family"],
+                source_url=url,
+                expected_period=parent["period"],
+                fetched_at=fixture_time,
+                clock=lambda: fixture_time,
+                definition_version=version,
+            )
+            assert imported.claim_ids
+        if missing_candidate_social_baseline:
+            # Both catalogs have an older complete 24-month flow window. Only
+            # the candidate lacks the baseline needed for its latest July flow.
+            for month in (5, 6):
+                old_raw, old_url = synthetic_prior_social_financing_release(month)
+                older = ingest_official_context_document(
+                    paths,
+                    old_raw,
+                    family="pbc_social_financing",
+                    source_url=old_url,
+                    expected_period=f"2024-{month:02d}",
+                    fetched_at=fixture_time,
+                    clock=lambda: fixture_time,
+                    definition_version=version,
+                )
+                assert older.claim_ids
+        # Replay also checks the complete latest SF publication: stock and flow
+        # are separate official documents. Neither substitutes for the other.
+        stock_hash = "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef"
+        stock = (
+            root / ".scratch/pring-data-acquisition-repair/evidence-13" / stock_hash
+        ).read_bytes()
+        assert hashlib.sha256(stock).hexdigest() == stock_hash
+        imported_stock = ingest_official_context_document(
+            paths,
+            stock,
+            family="pbc_social_financing",
+            source_url="https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html",
+            expected_period="2026-07",
+            fetched_at=fixture_time,
+            clock=lambda: fixture_time,
+            definition_version=version,
+        )
+        assert imported_stock.claim_ids
+        parent_ids[side] = {
+            point.selected_claim_id
+            for metric, dimensions in (
+                ("CN_SF_TOTAL", {"measure": "ytd_increment"}),
+                ("CN_GDP", {"aggregate": "total", "measure": "nominal_ytd_level"}),
+            )
+            for point in repository.metric_series(
+                metric, mode=AsOfMode.PUBLIC, as_of=cutoff, definition_version=version
+            )
+            if point.dimensions == dimensions
+        }
+        expected_count = 36 - int(side == "candidate") if missing_candidate_social_baseline else 34
+        assert len(parent_ids[side]) == expected_count and None not in parent_ids[side]
+    return manifests, parent_ids
+
+
+def test_credit_public_component_replay_requires_historical_window_artifacts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests, parent_ids = prepare_credit_component_pair(paths, capsys)
+    stored_models = {
+        side: ModelRepository(paths.database).get(manifest["model_version_id"])
+        for side, manifest in manifests.items()
+    }
+    repository = EvidenceRepository(paths.database)
+    cutoff = datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC)
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1
+    assert before.output_document is not None
+    for side in ("comparison", "candidate"):
+        macro = before.output_document["days"][0][side]["macro"]
+        assert macro["credit"]["formula"]["status"] == "available"
+        impulse = next(
+            row for row in macro["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+        )
+        assert impulse["value"] == pytest.approx(-2.5142857142857142)
+        assert set(impulse["input_observation_version_ids"]) == parent_ids[side]
+        assert parent_ids[side] <= set(macro["model_input_observation_version_ids"])
+
+    (historical,) = [
+        point
+        for point in repository.metric_series(
+            "CN_GDP",
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+            definition_version=manifests["candidate"]["metric_catalog_version"],
+        )
+        if point.period_end == "2024-09-30"
+        and point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
+    ]
+    assert historical.selected_claim_id in parent_ids["candidate"]
+    assert historical.selected_claim_id is not None
+    ((receipt, _),) = repository.source_claim_originals(historical.selected_claim_id)
+    assert receipt.raw_hash is not None
+    artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
+    assert hashlib.sha256(artifact.read_bytes()).hexdigest() == receipt.raw_hash
+    artifact.write_bytes(b"damaged synthetic historical GDP release")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert after.gaps == ("candidate_context_formula_output_missing:credit_impulse",)
+    assert after.evaluated_cutoffs == 1
+    assert after.output_document is not None
+    candidate = after.output_document["days"][0]["candidate"]["macro"]
+    assert candidate["credit"]["formula"]["status"] == "incomplete_source_artifacts"
+    assert historical.selected_claim_id not in candidate["model_input_observation_version_ids"]
+    assert not any(
+        row["metric_id"] == "CN_CREDIT_IMPULSE" and row["value"] is not None
+        for row in candidate["credit"]["evidence"]
+    )
+    comparison = after.output_document["days"][0]["comparison"]["macro"]
+    assert comparison == before.output_document["days"][0]["comparison"]["macro"]
+    for side in ("comparison", "candidate"):
+        assert (
+            ModelRepository(paths.database).get(manifests[side]["model_version_id"])
+            == stored_models[side]
+        )
+
+
+@pytest.mark.parametrize("known_public", [True, False], ids=["known-public", "unknown-public"])
+def test_credit_public_component_replay_preserves_revision_cutoffs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], known_public: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests, parent_ids = prepare_credit_component_pair(paths, capsys)
+    stored_models = {
+        side: ModelRepository(paths.database).get(manifest["model_version_id"])
+        for side, manifest in manifests.items()
+    }
+    repository = EvidenceRepository(paths.database)
+    version = manifests["candidate"]["metric_catalog_version"]
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1
+    assert before.output_document is not None
+    for side in ("comparison", "candidate"):
+        credit = before.output_document["days"][0][side]["macro"]["credit"]
+        assert credit["formula"]["status"] == "available"
+        impulse = next(row for row in credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE")
+        assert impulse["value"] == pytest.approx(-2.5142857142857142)
+        assert set(impulse["input_observation_version_ids"]) == parent_ids[side]
+    (old_ytd,) = [
+        point
+        for point in repository.metric_series(
+            "CN_GDP",
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 15, 59, tzinfo=UTC),
+            definition_version=version,
+        )
+        if point.period_end == "2026-06-30"
+        and point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
+    ]
+    # Synthetic numerical revision: current four-quarter GDP is 1410000,
+    # previous is 1400000; independent SF totals stay 338600 and 373800.
+    raw, url = synthetic_coherent_gdp_release("2026-Q2")
+    for original, revised in (
+        (
+            b"<td>GDP</td><td>350000</td><td>700000</td>",
+            b"<td>GDP</td><td>360000</td><td>710000</td>",
+        ),
+        (b"<td>10000</td><td>20000</td>", b"<td>20000</td><td>30000</td>"),
+    ):
+        assert raw.count(original) == 1
+        raw = raw.replace(original, revised, 1)
+    if known_public:
+        assert raw.count(b"2026-07-16 09:30") == 1
+        raw = raw.replace(b"2026-07-16 09:30", b"2026-08-30 09:30", 1)
+    revised_at = datetime(2026, 8, 31, tzinfo=UTC)
+    revision = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_gdp",
+        source_url=url,
+        expected_period="2026-Q2",
+        fetched_at=revised_at,
+        clock=lambda: revised_at,
+        definition_version=version,
+    )
+    (new_ytd,) = [
+        claim
+        for claim in repository.source_claim_vintages("CN_GDP", definition_version=version)
+        if claim.claim_id in revision.claim_ids
+        and claim.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
+    ]
+    assert new_ytd.public_available_at == (
+        datetime(2026, 8, 30, 1, 30, tzinfo=UTC) if known_public else None
+    )
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-31",
+    )
+    assert not after.gaps, after.gaps
+    assert after.evaluated_cutoffs == 2
+    assert after.output_document is not None
+    assert [day["business_date"] for day in after.output_document["days"]] == [
+        "2026-08-28",
+        "2026-08-31",
+    ]
+    historical, current = after.output_document["days"]
+    for side in ("comparison", "candidate"):
+        assert historical[side]["macro"] == before.output_document["days"][0][side]["macro"]
+        macro = current[side]["macro"]
+        adopts_revision = side == "candidate" and known_public
+        expected_ids = (
+            (parent_ids[side] - {old_ytd.selected_claim_id}) | {new_ytd.claim_id}
+            if adopts_revision
+            else parent_ids[side]
+        )
+        assert macro["credit"]["formula"]["status"] == "available"
+        impulse = next(
+            row for row in macro["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+        )
+        assert impulse["value"] == pytest.approx(
+            -2.6858156028368803 if adopts_revision else -2.5142857142857142
+        )
+        assert set(impulse["input_observation_version_ids"]) == expected_ids
+        actual_inputs = set(macro["model_input_observation_version_ids"])
+        assert expected_ids <= actual_inputs
+        if adopts_revision:
+            assert old_ytd.selected_claim_id not in actual_inputs
+        else:
+            assert set(revision.claim_ids).isdisjoint(actual_inputs)
+        assert (
+            ModelRepository(paths.database).get(manifests[side]["model_version_id"])
+            == stored_models[side]
+        )
+
+
+def test_credit_public_component_replay_requires_latest_month_difference_baseline(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests, parent_ids = prepare_credit_component_pair(
+        paths, capsys, missing_candidate_social_baseline=True
+    )
+    stored_models = {
+        side: ModelRepository(paths.database).get(manifest["model_version_id"])
+        for side, manifest in manifests.items()
+    }
+    repository = EvidenceRepository(paths.database)
+    cutoff = datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC)
+    old_ids = {}
+    for side in ("comparison", "candidate"):
+        social = [
+            point
+            for point in repository.metric_series(
+                "CN_SF_TOTAL",
+                mode=AsOfMode.PUBLIC,
+                as_of=cutoff,
+                definition_version=manifests[side]["metric_catalog_version"],
+            )
+            if point.dimensions == {"measure": "ytd_increment"}
+        ]
+        periods = {point.period_end for point in social}
+        assert "2026-07-31" in periods
+        assert ("2026-06-30" in periods) is (side == "comparison")
+        old_ids[side] = {
+            point.selected_claim_id for point in social if point.period_end < "2024-07-31"
+        }
+        assert len(old_ids[side]) == 2
+    incomplete = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert incomplete.gaps == ("candidate_context_formula_output_missing:credit_impulse",)
+    assert incomplete.evaluated_cutoffs == 1
+    assert incomplete.output_document is not None
+    candidate = incomplete.output_document["days"][0]["candidate"]["macro"]
+    assert candidate["credit"]["formula"]["status"] == "missing_certified_inputs"
+    assert old_ids["candidate"].isdisjoint(candidate["model_input_observation_version_ids"])
+    assert not any(
+        row["metric_id"] == "CN_CREDIT_IMPULSE" and row["value"] is not None
+        for row in candidate["credit"]["evidence"]
+    )
+    comparison = incomplete.output_document["days"][0]["comparison"]["macro"]
+    assert comparison["credit"]["formula"]["status"] == "available"
+    control = next(
+        row for row in comparison["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+    )
+    assert control["value"] == pytest.approx(-2.5142857142857142)
+    assert (
+        set(control["input_observation_version_ids"])
+        == parent_ids["comparison"] - old_ids["comparison"]
+    )
+
+    root = Path(__file__).parents[2]
+    fixture = json.loads(
+        (
+            root / ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/manifest.json"
+        ).read_text()
+    )
+    baseline = next(
+        parent
+        for parent in fixture["parents"]
+        if parent["family"] == "pbc_social_financing" and parent["period"] == "2026-06"
+    )
+    raw = (root / baseline["raw_path"]).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == baseline["raw_sha256"]
+    fetched_at = datetime(2026, 8, 29, tzinfo=UTC)
+    imported = ingest_official_context_document(
+        paths,
+        raw + b"<!-- synthetic candidate component retrieval -->",
+        family="pbc_social_financing",
+        source_url=baseline["source_url"],
+        expected_period="2026-06",
+        fetched_at=fetched_at,
+        clock=lambda: fetched_at,
+        definition_version=manifests["candidate"]["metric_catalog_version"],
+    )
+    (new_baseline,) = [
+        claim
+        for claim in repository.source_claim_vintages(
+            "CN_SF_TOTAL", definition_version=manifests["candidate"]["metric_catalog_version"]
+        )
+        if claim.claim_id in imported.claim_ids and claim.dimensions == {"measure": "ytd_increment"}
+    ]
+    complete = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not complete.gaps, complete.gaps
+    assert complete.evaluated_cutoffs == 1
+    assert complete.output_document is not None
+    for side in ("comparison", "candidate"):
+        macro = complete.output_document["days"][0][side]["macro"]
+        assert macro["credit"]["formula"]["status"] == "available"
+        impulse = next(
+            row for row in macro["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+        )
+        expected_ids = parent_ids[side] - old_ids[side]
+        if side == "candidate":
+            expected_ids |= {new_baseline.claim_id}
+        assert len(expected_ids) == 34
+        assert impulse["value"] == pytest.approx(-2.5142857142857142)
+        assert set(impulse["input_observation_version_ids"]) == expected_ids
+        assert expected_ids <= set(macro["model_input_observation_version_ids"])
+        assert old_ids[side].isdisjoint(macro["model_input_observation_version_ids"])
+        assert (
+            ModelRepository(paths.database).get(manifests[side]["model_version_id"])
+            == stored_models[side]
+        )
+    assert complete.output_document["days"][0]["comparison"]["macro"] == comparison
+
+
+@pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
+@pytest.mark.parametrize("known_public", [True, False], ids=["known-public", "unknown-public"])
+def test_registered_credit_revision_preserves_as_of_and_history(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], mode: AsOfMode, known_public: bool
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_gdp_manifest(paths, capsys)
+    model_id = manifest["model_version_id"]
+    version = manifest["metric_catalog_version"]
+    model_before = ModelRepository(paths.database).get(model_id)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    repository = EvidenceRepository(paths.database)
+    root = Path(__file__).parents[2]
+    fixture = json.loads(
+        (
+            root / ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/manifest.json"
+        ).read_text()
+    )
+    fixture_time = datetime(2026, 8, 29, tzinfo=UTC)
+    for parent in fixture["parents"]:
+        raw = (root / parent["raw_path"]).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == parent["raw_sha256"]
+        url = parent["source_url"]
+        if parent["family"] == "nbs_gdp":
+            raw, url = synthetic_coherent_gdp_release(parent["period"])
+        imported = ingest_official_context_document(
+            paths,
+            raw,
+            family=parent["family"],
+            source_url=url,
+            expected_period=parent["period"],
+            fetched_at=fixture_time,
+            clock=lambda: fixture_time,
+            definition_version=version,
+        )
+        assert imported.claim_ids
+    assert len(acquisitions.history()) == 34
+    cutoff = datetime(2026, 8, 28, 15, 59, tzinfo=UTC) if mode is AsOfMode.PUBLIC else fixture_time
+    parent_ids = {
+        point.selected_claim_id
+        for metric, dimensions in (
+            ("CN_SF_TOTAL", {"measure": "ytd_increment"}),
+            ("CN_GDP", {"aggregate": "total", "measure": "nominal_ytd_level"}),
+        )
+        for point in repository.metric_series(
+            metric, mode=mode, as_of=cutoff, definition_version=version
+        )
+        if point.dimensions == dimensions
+    }
+    assert len(parent_ids) == 34 and None not in parent_ids
+    context = build_context_projection(
+        repository,
+        as_of=cutoff,
+        as_of_mode=mode,
+        target_business_date="2026-08-28",
+        model_manifest=manifest,
+    )
+    credit = context.macro["credit"]
+    assert isinstance(credit, dict)
+    assert credit["formula"]["status"] == "available"
+    impulse = next(row for row in credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE")
+    assert impulse["value"] == pytest.approx(-2.5142857142857142)
+    assert set(impulse["input_observation_version_ids"]) == parent_ids
+    trace = repository.derived_trace(impulse["derived_observation_id"], mode=mode, as_of=cutoff)
+    # A synthetic numerical revision, imported through the public parser.
+    # It certifies neither an actual GDP revision nor historical PUBLIC coverage.
+    raw, source_url = synthetic_coherent_gdp_release("2026-Q2")
+    replacements = (
+        (
+            b"<td>GDP</td><td>350000</td><td>700000</td>",
+            b"<td>GDP</td><td>360000</td><td>710000</td>",
+        ),
+        (b"<td>10000</td><td>20000</td>", b"<td>20000</td><td>30000</td>"),
+    )
+    for original, revised in replacements:
+        assert raw.count(original) == 1
+        raw = raw.replace(original, revised, 1)
+    if known_public:
+        assert raw.count(b"2026-07-16 09:30") == 1
+        raw = raw.replace(b"2026-07-16 09:30", b"2026-08-30 09:30", 1)
+    received_at = datetime(2026, 8, 31, tzinfo=UTC)
+    tick = received_at - timedelta(seconds=2)
+
+    def revision_clock() -> datetime:
+        nonlocal tick
+        tick += timedelta(seconds=1)
+        return tick
+
+    revision = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_gdp",
+        source_url=source_url,
+        expected_period="2026-Q2",
+        fetched_at=received_at,
+        clock=revision_clock,
+        definition_version=version,
+    )
+    assert revision.claim_ids
+    revision_receipt = acquisitions.history()[-1]
+    assert revision_receipt.received_at is not None
+    assert revision_receipt.validated_at is not None
+    assert revision_receipt.received_at <= revision_receipt.validated_at
+    public_at = datetime(2026, 8, 30, 1, 30, tzinfo=UTC) if known_public else None
+    revision_claims = [
+        claim
+        for point in repository.metric_series(
+            "CN_GDP", mode=AsOfMode.SYSTEM, as_of=tick, definition_version=version
+        )
+        for claim in point.claims
+        if claim.claim_id in revision.claim_ids
+    ]
+    (available_at,) = {claim.available_at for claim in revision_claims}
+    assert available_at >= revision_receipt.validated_at
+    assert {claim.public_available_at for claim in revision_claims} == {public_at}
+    visible_at = public_at if mode is AsOfMode.PUBLIC and public_at is not None else available_at
+    old_latest = next(
+        point
+        for point in repository.metric_series(
+            "CN_GDP", mode=mode, as_of=cutoff, definition_version=version
+        )
+        if point.period_end == "2026-06-30"
+        and point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
+    )
+    for index, (instant, expected_gdp) in enumerate(
+        (
+            (visible_at - timedelta(microseconds=1), 700000),
+            (visible_at, 710000 if known_public or mode is AsOfMode.SYSTEM else 700000),
+        )
+    ):
+        latest = next(
+            point
+            for point in repository.metric_series(
+                "CN_GDP", mode=mode, as_of=instant, definition_version=version
+            )
+            if point.period_end == "2026-06-30"
+            and point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
+        )
+        assert latest.selected_value == expected_gdp
+        selected_revision = expected_gdp == 710000
+        assert (latest.selected_claim_id in revision.claim_ids) is selected_revision
+        # Explicit target-day consumers additionally require known PUBLIC time.
+        adopted_revision = selected_revision and known_public
+        expected_parents = (
+            (parent_ids - {old_latest.selected_claim_id}) | {latest.selected_claim_id}
+            if adopted_revision
+            else parent_ids
+        )
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-31",
+            client_request_id=f"credit-revision-{mode.value}-{index}",
+            model_version_id=model_id,
+            system_as_of=instant,
+            release_event_id=revision.release_event_id,
+            metric_ids=("CN_GDP",),
+            period="2026-Q2",
+        )
+        selection = select_retrieval_input(paths, run, mode=mode)
+        assert selection.complete
+        expected_selected_id = (
+            latest.selected_claim_id if adopted_revision else old_latest.selected_claim_id
+        )
+        assert expected_selected_id in selection.selected_claim_ids
+        if not adopted_revision:
+            assert set(revision.claim_ids).isdisjoint(selection.selected_claim_ids)
+        for persist in (True, False):
+            revised_context = build_context_projection(
+                repository,
+                as_of=instant,
+                as_of_mode=mode,
+                target_business_date="2026-08-31",
+                model_manifest=manifest,
+                persist_derived=persist,
+            )
+            revised_credit = revised_context.macro["credit"]
+            assert isinstance(revised_credit, dict)
+            assert revised_credit["formula"]["status"] == "available"
+            revised_impulse = next(
+                row for row in revised_credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+            )
+            # Current GDP is 1,410,000, previous GDP remains 1,400,000;
+            # current/previous SF totals remain 338,600 and 373,800.
+            expected_value = -2.6858156028368803 if adopted_revision else -2.5142857142857142
+            assert revised_impulse["value"] == pytest.approx(expected_value)
+            assert set(revised_impulse["input_observation_version_ids"]) == expected_parents
+            actual_inputs = revised_context.macro["model_input_observation_version_ids"]
+            assert isinstance(actual_inputs, list)
+            assert expected_parents <= set(actual_inputs)
+            if adopted_revision:
+                assert old_latest.selected_claim_id not in actual_inputs
+            else:
+                assert set(revision.claim_ids).isdisjoint(actual_inputs)
+            if persist:
+                revised_trace = repository.derived_trace(
+                    revised_impulse["derived_observation_id"], mode=mode, as_of=instant
+                )
+                assert revised_trace.value == pytest.approx(expected_value)
+                assert set(revised_trace.input_observation_version_ids) == expected_parents
+                assert revised_trace.as_of_cutoff == instant
+                if adopted_revision:
+                    assert revised_trace.derived_observation_id != trace.derived_observation_id
+        assert (
+            repository.derived_trace(impulse["derived_observation_id"], mode=mode, as_of=instant)
+            == trace
+        )
+    # Advancing SYSTEM/as-of must not move an explicitly historical target.
+    historical = build_context_projection(
+        repository,
+        as_of=available_at,
+        as_of_mode=mode,
+        target_business_date="2026-08-28",
+        model_manifest=manifest,
+    )
+    historical_credit = historical.macro["credit"]
+    assert isinstance(historical_credit, dict)
+    historical_impulse = next(
+        row for row in historical_credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+    )
+    assert historical_impulse["value"] == pytest.approx(-2.5142857142857142)
+    assert set(historical_impulse["input_observation_version_ids"]) == parent_ids
+    if not known_public:
+        # A SYSTEM query without a historical target can use the verified revision;
+        # PUBLIC still cannot. Neither query changes the saved old result.
+        unbounded = build_context_projection(
+            repository, as_of=available_at, as_of_mode=mode, model_manifest=manifest
+        )
+        unbounded_credit = unbounded.macro["credit"]
+        assert isinstance(unbounded_credit, dict)
+        assert unbounded_credit["formula"]["status"] == "available"
+        unbounded_impulse = next(
+            row for row in unbounded_credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
+        )
+        uses_revision = mode is AsOfMode.SYSTEM
+        expected_value = -2.6858156028368803 if uses_revision else -2.5142857142857142
+        expected_parents = (
+            (parent_ids - {old_latest.selected_claim_id}) | {latest.selected_claim_id}
+            if uses_revision
+            else parent_ids
+        )
+        assert unbounded_impulse["value"] == pytest.approx(expected_value)
+        assert set(unbounded_impulse["input_observation_version_ids"]) == expected_parents
+        actual_inputs = unbounded.macro["model_input_observation_version_ids"]
+        assert isinstance(actual_inputs, list)
+        assert expected_parents <= set(actual_inputs)
+        if uses_revision:
+            assert old_latest.selected_claim_id not in actual_inputs
+        else:
+            assert set(revision.claim_ids).isdisjoint(actual_inputs)
+        unbounded_trace = repository.derived_trace(
+            unbounded_impulse["derived_observation_id"], mode=mode, as_of=available_at
+        )
+        assert unbounded_trace.value == pytest.approx(expected_value)
+        assert set(unbounded_trace.input_observation_version_ids) == expected_parents
+        if uses_revision:
+            assert unbounded_trace.derived_observation_id != trace.derived_observation_id
+        assert (
+            repository.derived_trace(
+                impulse["derived_observation_id"], mode=mode, as_of=available_at
+            )
+            == trace
+        )
+    assert ModelRepository(paths.database).get(model_id) == model_before
 
 
 def test_registered_social_financing_completes_only_after_both_original_announcements(
@@ -2842,6 +6785,1166 @@ def test_registered_social_financing_completes_only_after_both_original_announce
     assert {p.dimensions["measure"] for p in earlier} == {"stock_end", "stock_yoy"}
 
 
+def prepared_capacity_mapping_request(
+    paths: RuntimePaths, *, side: str = ""
+) -> tuple[dict[str, Any], str, bytes, str, str]:
+    # Public candidate admission and document ingestion with a synthetic review.
+    # This does not certify the real source, historical PUBLIC time, or a full replay.
+    request, _ = prepared_request(paths)
+    manifest = request["manifest"]
+    if side:
+        manifest["metric_catalog_version"] += "-" + side
+        for item in manifest["metric_definitions"]:
+            item["definition_version"] = manifest["metric_catalog_version"]
+            if side == "candidate" and item["metric_id"] == "CN_CAPACITY_UTILIZATION":
+                item["source_candidates"] = [
+                    *item["source_candidates"],
+                    "https://www.stats.gov.cn/synthetic-q1-review",
+                ]
+    version = manifest["metric_catalog_version"]
+    definition = next(
+        item
+        for item in manifest["metric_definitions"]
+        if item["metric_id"] == "CN_CAPACITY_UTILIZATION"
+    )
+    digest = "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a"
+    evidence_root = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
+    raw = (evidence_root / "evidence-official-consumer-edge" / digest).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    url = "https://www.stats.gov.cn/sj/zxfb/202604/t20260416_1963322.html"
+    store_artifact(paths.database, paths.artifacts, raw, "text/html", url)
+    basis_path = evidence_root / "capacity-q1-source-mapping-decision.md"
+    basis = store_artifact(
+        paths.database,
+        paths.artifacts,
+        basis_path.read_bytes(),
+        "text/markdown",
+        "synthetic:q1-mapping-semantic-basis",
+    )
+    mapping_hash = save(
+        paths,
+        {
+            "schema_version": "source-field-mapping-v0001",
+            "rule_version": "capacity_q1_same_interval_alias_v0001",
+            "metric_id": "CN_CAPACITY_UTILIZATION",
+            "definition_version": version,
+            "definition_hash": hashlib.sha256(encode(definition)).hexdigest(),
+            "source_document": {
+                "artifact_hash": digest,
+                "source_reference": url,
+                "bytes": 128195,
+            },
+            "parser": {
+                "version": "official-context-parser-v0004",
+                "family": "nbs_capacity_utilization",
+                "period": "2026-Q1",
+            },
+            "source": {
+                "source_field": "industrial_capacity_utilization_pct",
+                "dimensions": {"industry": "all_industry", "measure": "quarter_rate"},
+                "period_kind": "quarter",
+                "period_start": "2026-01-01",
+                "period_end": "2026-03-31",
+                "unit": "percent",
+                "value": 73.6,
+            },
+            "target": {
+                "source_field": "industrial_capacity_utilization_ytd_pct",
+                "dimensions": {"industry": "all_industry", "measure": "ytd_rate"},
+                "period_kind": "year_to_quarter",
+                "period_start": "2026-01-01",
+                "period_end": "2026-03-31",
+                "unit": "percent",
+                "value": 73.6,
+            },
+            "basis": {
+                "artifact_hash": basis.content_hash,
+                "source_reference": "synthetic:q1-mapping-semantic-basis",
+            },
+        },
+    )
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    review_hash = package["review_hash"]
+    review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+    for criterion in ("semantics", "fields"):
+        review["assessments"][criterion]["evidence"].append(
+            {
+                "artifact_hash": mapping_hash,
+                "source_reference": "synthetic:admission",
+            }
+        )
+    package["review_hash"] = save(paths, review)
+    package["definition_bindings"] = {
+        item["metric_id"]: hashlib.sha256(encode(item)).hexdigest()
+        for item in manifest["metric_definitions"]
+        if item["metric_id"] in package["definition_bindings"]
+    }
+    bind_synthetic_review(paths, request, package)
+    return request, mapping_hash, raw, digest, url
+
+
+@pytest.mark.parametrize(
+    ("field", "wrong_value"),
+    [
+        (("target", "value"), 73.7),
+        (("source", "value"), 73.7),
+        (("target", "value"), True),
+        (("target", "unit"), "percentage_points"),
+        (("target", "source_field"), "industrial_capacity_utilization_pct"),
+        (("source", "source_field"), "industrial_capacity_utilization_yoy_change_pp"),
+        (("target", "period_start"), "2026-02-01"),
+        (("target", "dimensions", "measure"), "quarter_rate"),
+        (("definition_hash",), "0" * 64),
+        (("definition_version",), "unreviewed-catalog"),
+        (("schema_version",), "source-field-mapping-v0002"),
+        (("rule_version",), "unreviewed-mapping-rule"),
+        (("parser", "version"), "official-context-parser-v0003"),
+        (("parser", "family"), "nbs_gdp"),
+        (("parser", "period"), "2026-Q2"),
+        (("source_document", "bytes"), 128196),
+        (("source_document", "artifact_hash"), "0" * 64),
+        (("source_document", "source_reference"), "https://www.stats.gov.cn/wrong"),
+        (("basis", "artifact_hash"), "0" * 64),
+        (("review", "fields"), None),
+    ],
+)
+def test_capacity_mapping_admission_rejects_a_reviewed_but_wrong_mapping(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    field: tuple[str, ...],
+    wrong_value: Any,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, mapping_hash, _, _, _ = prepared_capacity_mapping_request(paths)
+    submit(paths, save(paths, request))
+    admitted = json.loads(capsys.readouterr().out)["model_version_id"]
+    assert (
+        ModelRepository(paths.database).manifest(admitted)["metric_catalog_version"]
+        == (request["manifest"]["metric_catalog_version"])
+    )
+    mapping = json.loads((paths.artifacts / mapping_hash[:2] / mapping_hash).read_bytes())
+    if field[0] != "review":
+        parent = mapping
+        for key in field[:-1]:
+            parent = parent[key]
+        parent[field[-1]] = wrong_value
+    # Recompute all hashes: rejection must depend on semantics, not damaged JSON.
+    wrong_mapping_hash = save(paths, mapping)
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    review_hash = package["review_hash"]
+    review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+    for criterion in ("semantics", "fields"):
+        for reference in review["assessments"][criterion]["evidence"]:
+            if reference["artifact_hash"] == mapping_hash:
+                reference["artifact_hash"] = wrong_mapping_hash
+    if field == ("review", "fields"):
+        review["assessments"]["fields"]["evidence"] = [
+            reference
+            for reference in review["assessments"]["fields"]["evidence"]
+            if reference["artifact_hash"] != wrong_mapping_hash
+        ]
+    package["review_hash"] = save(paths, review)
+    request["package_hashes"] = [save(paths, package)]
+    versions_before = ModelRepository(paths.database).list_versions()
+    with pytest.raises(SystemExit) as exited:
+        submit(paths, save(paths, request))
+    assert exited.value.code == 2
+    assert ModelRepository(paths.database).list_versions() == versions_before
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "error: certification_source_mapping_invalid\n"
+
+
+@pytest.mark.parametrize(
+    ("consumer", "damaged_artifact"),
+    [("none", "none")]
+    + [
+        (consumer, artifact)
+        for consumer in ("selection", "context")
+        for artifact in ("mapping", "raw", "normalized")
+    ],
+)
+def test_registered_capacity_q1_consumes_an_explicitly_reviewed_same_interval_mapping(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    consumer: str,
+    damaged_artifact: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, mapping_hash, raw, digest, url = prepared_capacity_mapping_request(paths)
+    version = request["manifest"]["metric_catalog_version"]
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    assert ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"] == version
+
+    start = datetime(2026, 8, 29, tzinfo=UTC)
+    tick = start
+
+    def clock() -> datetime:
+        nonlocal tick
+        tick += timedelta(milliseconds=1)
+        return tick
+
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_capacity_utilization",
+        source_url=url,
+        expected_period="2026-Q1",
+        fetched_at=start,
+        clock=clock,
+        definition_version=version,
+    )
+    repository = EvidenceRepository(paths.database)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.raw_hash == digest
+    assert receipt.parser_version == "official-context-parser-v0004"
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    assert start < receipt.started_at <= receipt.received_at <= receipt.validated_at <= tick
+    system = repository.metric_series(
+        "CN_CAPACITY_UTILIZATION",
+        mode=AsOfMode.SYSTEM,
+        as_of=tick,
+        definition_version=version,
+    )
+    assert len(system) == 3
+    available_times = {claim.available_at for point in system for claim in point.claims}
+    assert len(available_times) == 1
+    available_at = available_times.pop()
+    assert available_at >= receipt.validated_at
+    # Independent literals from the industrial row: two identities share one 73.6 cell.
+    expected = {
+        "quarter_rate": (73.6, "percent", "quarter"),
+        "yoy_change": (-0.5, "percentage_points", "quarter"),
+        "ytd_rate": (73.6, "percent", "year_to_quarter"),
+    }
+    public_at = datetime(2026, 4, 16, 2, tzinfo=UTC)
+    for mode, cutoff in ((AsOfMode.SYSTEM, available_at), (AsOfMode.PUBLIC, public_at)):
+        before = repository.metric_series(
+            "CN_CAPACITY_UTILIZATION",
+            mode=mode,
+            as_of=cutoff - timedelta(microseconds=1),
+            definition_version=version,
+        )
+        assert all(
+            not point.claims and point.selected_claim_id is None and point.selected_value is None
+            for point in before
+        )
+        points = repository.metric_series(
+            "CN_CAPACITY_UTILIZATION",
+            mode=mode,
+            as_of=cutoff,
+            definition_version=version,
+        )
+        assert len(points) == 3
+        assert {point.selected_claim_id for point in points} == set(imported.claim_ids)
+        actual = {}
+        for point in points:
+            (claim,) = point.claims
+            trace = repository.trace(point.observation_id, mode=mode, as_of=cutoff)
+            assert trace.definition_version == version
+            assert point.period_start == "2026-01-01" and point.period_end == "2026-03-31"
+            assert point.dimensions["industry"] == "all_industry"
+            assert claim.source_reference == f"{url}#sha256={digest}"
+            assert claim.release_at == claim.public_available_at == public_at
+            assert claim.fetched_at == receipt.received_at
+            assert tuple(item.acquisition_id for item in trace.acquisitions) == (
+                receipt.acquisition_id,
+            )
+            actual[point.dimensions["measure"]] = (
+                point.selected_value,
+                claim.unit,
+                trace.period_kind,
+            )
+        assert actual == expected
+
+    # A reviewed value does not authorize a caller to invent an earlier PUBLIC time.
+    with pytest.raises(ValueError, match="registered_capacity_q1_mapping_unresolved"):
+        repository.append_source_claims(
+            (
+                SourceClaimInput(
+                    metric_id="CN_CAPACITY_UTILIZATION",
+                    definition_version=version,
+                    period_kind="year_to_quarter",
+                    period_start="2026-01-01",
+                    period_end="2026-03-31",
+                    dimensions={"industry": "all_industry", "measure": "ytd_rate"},
+                    value=73.6,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percent",
+                    provider="国家统计局",
+                    source_reference=f"{url}#sha256={digest}",
+                    release_event_id="synthetic:q1-invented-earlier-public-time",
+                    release_at=public_at - timedelta(days=1),
+                    public_available_at=public_at - timedelta(days=1),
+                    fetched_at=receipt.received_at,
+                    available_at=tick,
+                    certification_status="certified",
+                    quality_status="validated",
+                    acquisition_id=receipt.acquisition_id,
+                ),
+            )
+        )
+
+    if consumer in {"selection", "context"}:
+        run = RunRepository(paths.database).submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-28",
+            client_request_id="synthetic:q1-mapping-selection",
+            model_version_id=model_id,
+            system_as_of=tick,
+            release_event_id=imported.release_event_id,
+            metric_ids=("CN_CAPACITY_UTILIZATION",),
+            period="2026-Q1",
+        )
+        selected = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        assert selected.complete
+        assert set(selected.selected_claim_ids) == set(imported.claim_ids)
+        ytd_claim_id = next(
+            point.selected_claim_id for point in system if point.dimensions["measure"] == "ytd_rate"
+        )
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        if consumer == "context":
+            before_context = build_context_projection(
+                repository, as_of=tick, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+            )
+            before_inputs = before_context.macro["model_input_observation_version_ids"]
+            assert isinstance(before_inputs, list)
+            assert set(imported.claim_ids) <= set(before_inputs)
+        damaged_hash = {
+            "mapping": mapping_hash,
+            "raw": digest,
+            "normalized": receipt.normalized_hash,
+        }[damaged_artifact]
+        assert damaged_hash is not None
+        (paths.artifacts / damaged_hash[:2] / damaged_hash).write_bytes(b"damaged artifact")
+        after = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        assert not after.complete
+        assert ytd_claim_id not in after.selected_claim_ids
+        assert any('"measure": "ytd_rate"' in item for item in after.missing_members)
+        if damaged_artifact != "mapping":
+            assert not set(imported.claim_ids) & set(after.selected_claim_ids)
+        if consumer == "context":
+            after_context = build_context_projection(
+                EvidenceRepository(paths.database),
+                as_of=tick,
+                model_manifest=manifest,
+                as_of_mode=AsOfMode.PUBLIC,
+            )
+            after_inputs = after_context.macro["model_input_observation_version_ids"]
+            assert isinstance(after_inputs, list)
+            assert ytd_claim_id not in after_inputs
+            if damaged_artifact != "mapping":
+                assert not set(imported.claim_ids) & set(after_inputs)
+            assert set(imported.claim_ids) <= set(after_context.observation_version_ids)
+
+
+@pytest.mark.parametrize("artifact", ["mapping", "raw", "normalized"])
+@pytest.mark.parametrize("failure", ["damaged", "missing"])
+def test_registered_capacity_q1_public_replay_rechecks_each_catalog_mapping(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    artifact: str,
+    failure: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    mappings = {}
+    claims = {}
+    ytd_ids = {}
+    acquired_at = datetime(2026, 8, 29, tzinfo=UTC)
+    for side in ("comparison", "candidate"):
+        request, mapping, raw, _, url = prepared_capacity_mapping_request(paths, side=side)
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        version = manifest["metric_catalog_version"]
+        imported = ingest_official_context_document(
+            paths,
+            raw,
+            family="nbs_capacity_utilization",
+            source_url=url,
+            expected_period="2026-Q1",
+            fetched_at=acquired_at,
+            clock=lambda: acquired_at,
+            definition_version=version,
+        )
+        # This is a one-day component replay, not the full model's 120-day acceptance.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        mappings[side] = mapping
+        claims[side] = set(imported.claim_ids)
+        points = EvidenceRepository(paths.database).metric_series(
+            "CN_CAPACITY_UTILIZATION",
+            definition_version=version,
+            as_of=acquired_at,
+            mode=AsOfMode.PUBLIC,
+        )
+        ytd_ids[side] = next(
+            p.selected_claim_id for p in points if p.dimensions["measure"] == "ytd_rate"
+        )
+    assert mappings["candidate"] != mappings["comparison"]
+    repository = EvidenceRepository(paths.database)
+    target_version = manifests["candidate"]["metric_catalog_version"]
+    candidate_ytd_id = ytd_ids["candidate"]
+    comparison_ytd_id = ytd_ids["comparison"]
+    assert candidate_ytd_id is not None and comparison_ytd_id is not None
+    assert repository.source_claims_matching_registered_contract(
+        (candidate_ytd_id,), definition_version=target_version
+    ) == {candidate_ytd_id}
+    assert not repository.source_claims_matching_registered_contract(
+        (comparison_ytd_id,), definition_version=target_version
+    )
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    for side in ("comparison", "candidate"):
+        inputs = before.output_document["days"][0][side]["macro"][
+            "model_input_observation_version_ids"
+        ]
+        assert set(inputs) == claims[side]
+    damaged: str | None
+    if artifact == "mapping":
+        damaged = mappings["candidate"]
+        affected = {"candidate"}
+    else:
+        receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+        hashes = {
+            receipt.raw_hash if artifact == "raw" else receipt.normalized_hash
+            for receipt in receipts
+        }
+        assert len(hashes) == 1  # Both catalogs deliberately use the same raw/normalized bytes.
+        damaged = hashes.pop()
+        affected = {"candidate", "comparison"}
+    assert damaged is not None
+    artifact_path = paths.artifacts / damaged[:2] / damaged
+    if failure == "missing":
+        artifact_path.unlink()
+    else:
+        artifact_path.write_bytes(b"damaged artifact")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert set(after.gaps) == {
+        f"{side}_context_selection_invalid:CN_CAPACITY_UTILIZATION" for side in affected
+    }
+    assert after.evaluated_cutoffs == 1 and after.output_document is not None
+    day = after.output_document["days"][0]
+    for side in ("comparison", "candidate"):
+        adopted = set(day[side]["macro"]["model_input_observation_version_ids"])
+        if side not in affected:
+            assert adopted == claims[side]
+        elif artifact == "mapping":
+            assert ytd_ids[side] not in adopted
+        else:
+            assert not claims[side] & adopted
+        assert claims[side] <= set(day[side]["observation_version_ids"])
+
+
+@pytest.mark.parametrize("artifact", ["raw", "normalized", "mapping", "basis"])
+def test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revision(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], artifact: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifests = {}
+    original_claims = {}
+    acquired_at = datetime(2026, 8, 29, tzinfo=UTC)
+    revised_claims: set[str] = set()
+    revised_digest = ""
+    for side in ("comparison", "candidate"):
+        request, mapping_hash, raw, _, url = prepared_capacity_mapping_request(paths, side=side)
+        version = request["manifest"]["metric_catalog_version"]
+        if side == "candidate":
+            # Synthetic later publication; both exact mappings are explicitly in
+            # the first admitting model's immutable grant set before ingestion.
+            revised_raw = raw.replace(b"73.6", b"73.7").replace(
+                b"2026/04/16 10:00", b"2026/04/17 10:00"
+            )
+            revised_digest = store_artifact(
+                paths.database, paths.artifacts, revised_raw, "text/html", url
+            ).content_hash
+            mapping = json.loads((paths.artifacts / mapping_hash[:2] / mapping_hash).read_bytes())
+            mapping["source_document"]["artifact_hash"] = revised_digest
+            mapping["source_document"]["bytes"] = len(revised_raw)
+            mapping["source"]["value"] = mapping["target"]["value"] = 73.7
+            basis_reference = "synthetic:independent-later-mapping-basis"
+            future_basis = store_artifact(
+                paths.database,
+                paths.artifacts,
+                b"Synthetic independently reviewed basis for the later exact raw.",
+                "text/markdown",
+                basis_reference,
+            ).content_hash
+            mapping["basis"] = {
+                "artifact_hash": future_basis,
+                "source_reference": basis_reference,
+            }
+            added_mapping = save(paths, mapping)
+            mapping_reference = f"source-field-mapping:{added_mapping}"
+            store_artifact(
+                paths.database,
+                paths.artifacts,
+                encode(mapping),
+                "application/json",
+                mapping_reference,
+            )
+            package_hash = request["package_hashes"][0]
+            package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+            review_hash = package["review_hash"]
+            review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+            for criterion in ("semantics", "fields"):
+                review["assessments"][criterion]["evidence"].append(
+                    {"artifact_hash": added_mapping, "source_reference": mapping_reference}
+                )
+            package["review_hash"] = save(paths, review)
+            request["package_hashes"] = [save(paths, package)]
+        submit(paths, save(paths, request))
+        model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+        manifest = ModelRepository(paths.database).manifest(model_id)
+        # Two-day component verification, not full 120-day model acceptance.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        imported = ingest_official_context_document(
+            paths,
+            raw,
+            family="nbs_capacity_utilization",
+            source_url=url,
+            expected_period="2026-Q1",
+            fetched_at=acquired_at,
+            clock=lambda: acquired_at,
+            definition_version=version,
+        )
+        original_claims[side] = set(imported.claim_ids)
+        if side == "candidate":
+            later = acquired_at + timedelta(hours=1)
+            revised = ingest_official_context_document(
+                paths,
+                revised_raw,
+                family="nbs_capacity_utilization",
+                source_url=url,
+                expected_period="2026-Q1",
+                fetched_at=later,
+                clock=lambda: acquired_at + timedelta(hours=1),
+                definition_version=version,
+            )
+            revised_claims = set(revised.claim_ids)
+            points = EvidenceRepository(paths.database).metric_series(
+                "CN_CAPACITY_UTILIZATION",
+                definition_version=version,
+                as_of=later,
+                mode=AsOfMode.SYSTEM,
+            )
+            assert {point.selected_claim_id for point in points} == revised_claims
+            assert {p.dimensions["measure"]: p.selected_value for p in points} == {
+                "quarter_rate": 73.7,
+                "yoy_change": -0.5,
+                "ytd_rate": 73.7,
+            }
+            assert {claim.public_available_at for point in points for claim in point.claims} == {
+                datetime(2026, 4, 17, 2, tzinfo=UTC)
+            }
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-04-16",
+        requested_end="2026-04-17",
+    )
+    assert not before.gaps and before.evaluated_cutoffs == 2
+    assert before.output_document is not None
+    for index, expected in enumerate((original_claims["candidate"], revised_claims)):
+        day = before.output_document["days"][index]
+        assert set(day["candidate"]["macro"]["model_input_observation_version_ids"]) == expected
+        assert (
+            set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+            == (original_claims["comparison"])
+        )
+    (receipt,) = (
+        receipt
+        for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if receipt.raw_hash == revised_digest
+    )
+    damaged = {
+        "raw": revised_digest,
+        "normalized": receipt.normalized_hash,
+        "mapping": added_mapping,
+        "basis": future_basis,
+    }[artifact]
+    assert damaged is not None
+    (paths.artifacts / damaged[:2] / damaged).write_bytes(b"damaged later revision")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-04-16",
+        requested_end="2026-04-17",
+    )
+    assert after.gaps == ("candidate_context_selection_invalid:CN_CAPACITY_UTILIZATION",)
+    assert after.evaluated_cutoffs == 2 and after.output_document is not None
+    earlier, latest = after.output_document["days"]
+    assert (
+        set(earlier["candidate"]["macro"]["model_input_observation_version_ids"])
+        == (original_claims["candidate"])
+    )
+    latest_inputs = set(latest["candidate"]["macro"]["model_input_observation_version_ids"])
+    assert not latest_inputs & original_claims["candidate"]
+    if artifact in {"mapping", "basis"}:
+        revised_ytd = next(
+            point.selected_claim_id for point in points if point.dimensions["measure"] == "ytd_rate"
+        )
+        assert latest_inputs == revised_claims - {revised_ytd}
+    else:
+        assert not latest_inputs & revised_claims
+    assert revised_claims <= set(latest["candidate"]["observation_version_ids"])
+    for day in (earlier, latest):
+        assert (
+            set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+            == (original_claims["comparison"])
+        )
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "ordinary_json",
+        "ordinary_markdown",
+        "wrong_reference_hash",
+        "mixed_roles",
+        "self_declared_contract",
+    ],
+)
+def test_capacity_mapping_reference_role_requires_actual_admission_validation(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, mapping_hash, _, _, _ = prepared_capacity_mapping_request(paths)
+    submit(paths, save(paths, request))
+    assert json.loads(capsys.readouterr().out)["model_version_id"]
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    review_hash = package["review_hash"]
+    review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+    if fault == "self_declared_contract":
+        request["manifest"]["source_mapping_reference_contract"] = {
+            "version": "source-mapping-reference-v0001",
+            "request_hash": "0" * 64,
+        }
+        bind_synthetic_review(paths, request, package)
+    else:
+        content = (paths.artifacts / mapping_hash[:2] / mapping_hash).read_bytes()
+        if fault == "ordinary_json":
+            content = encode({"synthetic": True, "role": "ordinary-evidence"})
+        elif fault == "ordinary_markdown":
+            content = b"Synthetic ordinary review evidence, not a field mapping."
+        digest = hashlib.sha256(content).hexdigest()
+        reference = (
+            f"source-field-mapping:{'0' * 64 if fault == 'wrong_reference_hash' else digest}"
+        )
+        store_artifact(
+            paths.database, paths.artifacts, content, "application/octet-stream", reference
+        )
+        for criterion in ("semantics", "fields"):
+            if fault == "mixed_roles" and criterion == "fields":
+                continue
+            for item in review["assessments"][criterion]["evidence"]:
+                if item["artifact_hash"] == mapping_hash:
+                    item.update(artifact_hash=digest, source_reference=reference)
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+    versions = ModelRepository(paths.database).list_versions()
+    with pytest.raises(SystemExit) as exited:
+        submit(paths, save(paths, request))
+    assert exited.value.code == 2
+    assert ModelRepository(paths.database).list_versions() == versions
+    expected = (
+        "certification_manifest_reserved_fields"
+        if fault == "self_declared_contract"
+        else "certification_source_mapping_invalid"
+    )
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err == f"error: {expected}\n"
+
+
+@pytest.mark.parametrize(
+    "damaged_dependency",
+    ["request", "package", "review", "history", "fields", "legacy_mapping", "legacy_basis"],
+)
+def test_capacity_q1_mapping_still_requires_common_and_legacy_dependencies(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_dependency: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, mapping_hash, raw, _, url = prepared_capacity_mapping_request(paths)
+    version = request["manifest"]["metric_catalog_version"]
+    mapping_bytes = (paths.artifacts / mapping_hash[:2] / mapping_hash).read_bytes()
+    mapping = json.loads(mapping_bytes)
+    package_hash = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+    review_hash = package["review_hash"]
+    review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+    if not damaged_dependency.startswith("legacy_"):
+        reference = f"source-field-mapping:{mapping_hash}"
+        store_artifact(
+            paths.database, paths.artifacts, mapping_bytes, "application/json", reference
+        )
+        for criterion in ("semantics", "fields"):
+            for evidence in review["assessments"][criterion]["evidence"]:
+                if evidence["artifact_hash"] == mapping_hash:
+                    evidence["source_reference"] = reference
+    # Ordinary evidence remains a common prerequisite, including a criterion
+    # outside semantics/fields and an attachment after the valid mapping grant.
+    common_hashes = {}
+    for criterion in ("history", "fields"):
+        reference = f"synthetic:common-capacity-{criterion}-evidence"
+        common_hash = store_artifact(
+            paths.database,
+            paths.artifacts,
+            encode({"synthetic": True, "criterion": criterion}),
+            "application/json",
+            reference,
+        ).content_hash
+        common_hashes[criterion] = common_hash
+        review["assessments"][criterion]["evidence"].append(
+            {"artifact_hash": common_hash, "source_reference": reference}
+        )
+    review_hash = save(paths, review)
+    package["review_hash"] = review_hash
+    package_hash = save(paths, package)
+    request["package_hashes"] = [package_hash]
+    request_hash = save(paths, request)
+    submit(paths, request_hash)
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
+    acquired_at = datetime(2026, 8, 29, tzinfo=UTC)
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_capacity_utilization",
+        source_url=url,
+        expected_period="2026-Q1",
+        fetched_at=acquired_at,
+        clock=lambda: acquired_at,
+        definition_version=version,
+    )
+    repository = EvidenceRepository(paths.database)
+    points = repository.metric_series(
+        "CN_CAPACITY_UTILIZATION",
+        definition_version=version,
+        as_of=acquired_at,
+        mode=AsOfMode.SYSTEM,
+    )
+    ytd_claim_id = next(
+        point.selected_claim_id for point in points if point.dimensions["measure"] == "ytd_rate"
+    )
+    assert ytd_claim_id is not None
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic:common-mapping-dependency",
+        model_version_id=model_id,
+        system_as_of=acquired_at,
+        release_event_id=imported.release_event_id,
+        metric_ids=("CN_CAPACITY_UTILIZATION",),
+        period="2026-Q1",
+    )
+    selected = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert selected.complete and set(selected.selected_claim_ids) == set(imported.claim_ids)
+    before = build_context_projection(
+        repository, as_of=acquired_at, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+    )
+    before_inputs = before.macro["model_input_observation_version_ids"]
+    assert isinstance(before_inputs, list) and set(imported.claim_ids) <= set(before_inputs)
+    damaged_hash = {
+        "request": request_hash,
+        "package": package_hash,
+        "review": review_hash,
+        "history": common_hashes["history"],
+        "fields": common_hashes["fields"],
+        "legacy_mapping": mapping_hash,
+        "legacy_basis": mapping["basis"]["artifact_hash"],
+    }[damaged_dependency]
+    (paths.artifacts / damaged_hash[:2] / damaged_hash).write_bytes(b"damaged common prerequisite")
+    after_selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+    assert not after_selection.complete and ytd_claim_id not in after_selection.selected_claim_ids
+    after = build_context_projection(
+        repository, as_of=acquired_at, model_manifest=manifest, as_of_mode=AsOfMode.PUBLIC
+    )
+    after_inputs = after.macro["model_input_observation_version_ids"]
+    assert isinstance(after_inputs, list) and ytd_claim_id not in after_inputs
+    assert set(imported.claim_ids) <= set(after.observation_version_ids)
+
+
+def test_capacity_q1_new_raw_cannot_expand_an_existing_catalog_mapping(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, mapping_hash, raw, digest, url = prepared_capacity_mapping_request(paths)
+    version = request["manifest"]["metric_catalog_version"]
+    submit(paths, save(paths, request))
+    first_model = json.loads(capsys.readouterr().out)["model_version_id"]
+    acquired_at = datetime(2026, 8, 29, tzinfo=UTC)
+
+    def ingest(content: bytes, catalog: str, at: datetime) -> Any:
+        return ingest_official_context_document(
+            paths,
+            content,
+            family="nbs_capacity_utilization",
+            source_url=url,
+            expected_period="2026-Q1",
+            fetched_at=at,
+            clock=lambda: at,
+            definition_version=catalog,
+        )
+
+    first = ingest(raw, version, acquired_at)
+    # Synthetic revision with the same URL and page timestamp, a changed literal,
+    # and a new content hash. It is not evidence of an actual official revision.
+    revised_raw = raw.replace(b"73.6", b"73.7")
+    revised_digest = hashlib.sha256(revised_raw).hexdigest()
+    assert revised_digest != digest
+    revised_at = acquired_at + timedelta(hours=1)
+    with pytest.raises(ValueError, match="registered_capacity_q1_mapping_unresolved"):
+        ingest(revised_raw, version, revised_at)
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert len(receipts) == 2
+    assert {receipt.raw_hash for receipt in receipts} == {digest, revised_digest}
+    assert all(receipt.validated_at is not None for receipt in receipts)
+
+    def bind_revised_mapping(candidate: dict[str, Any], original: str) -> None:
+        mapping = json.loads((paths.artifacts / original[:2] / original).read_bytes())
+        mapping["source_document"]["artifact_hash"] = revised_digest
+        mapping["source_document"]["bytes"] = len(revised_raw)
+        mapping["source"]["value"] = mapping["target"]["value"] = 73.7
+        revised_mapping = save(paths, mapping)
+        package_hash = candidate["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        for criterion in ("semantics", "fields"):
+            for reference in review["assessments"][criterion]["evidence"]:
+                if reference["artifact_hash"] == original:
+                    reference["artifact_hash"] = revised_mapping
+        package["review_hash"] = save(paths, review)
+        candidate["package_hashes"] = [save(paths, package)]
+
+    # A later candidate may reuse identical definitions, but the first admitting
+    # model still owns this catalog's grants. Its original mapping stays immutable.
+    bind_revised_mapping(request, mapping_hash)
+    submit(paths, save(paths, request))
+    later_model = json.loads(capsys.readouterr().out)["model_version_id"]
+    assert later_model != first_model
+    assert ModelRepository(paths.database).manifest(later_model)["metric_catalog_version"] == (
+        version
+    )
+    with pytest.raises(ValueError, match="registered_capacity_q1_mapping_unresolved"):
+        ingest(revised_raw, version, revised_at + timedelta(minutes=1))
+    original_points = EvidenceRepository(paths.database).metric_series(
+        "CN_CAPACITY_UTILIZATION",
+        definition_version=version,
+        as_of=revised_at + timedelta(minutes=2),
+        mode=AsOfMode.SYSTEM,
+    )
+    assert {point.selected_claim_id for point in original_points} == set(first.claim_ids)
+
+    # The explicitly reviewed new raw is usable under a separately registered
+    # definition version. The unchanged old page timestamp cannot date the revision.
+    revised_request, revised_mapping, _, _, _ = prepared_capacity_mapping_request(
+        paths, side="revised"
+    )
+    bind_revised_mapping(revised_request, revised_mapping)
+    submit(paths, save(paths, revised_request))
+    revised_model = json.loads(capsys.readouterr().out)["model_version_id"]
+    revised_version = revised_request["manifest"]["metric_catalog_version"]
+    ingested_at = revised_at + timedelta(minutes=3)
+    revised = ingest(revised_raw, revised_version, ingested_at)
+    repository = EvidenceRepository(paths.database)
+    system = repository.metric_series(
+        "CN_CAPACITY_UTILIZATION",
+        definition_version=revised_version,
+        as_of=ingested_at,
+        mode=AsOfMode.SYSTEM,
+    )
+    assert {point.selected_claim_id for point in system} == set(revised.claim_ids)
+    assert {p.dimensions["measure"]: p.selected_value for p in system} == {
+        "quarter_rate": 73.7,
+        "yoy_change": -0.5,
+        "ytd_rate": 73.7,
+    }
+    assert all(
+        claim.public_available_at is None and claim.release_at is None
+        for point in system
+        for claim in point.claims
+    )
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="synthetic:q1-revision-selection",
+        model_version_id=revised_model,
+        system_as_of=ingested_at,
+        release_event_id=revised.release_event_id,
+        metric_ids=("CN_CAPACITY_UTILIZATION",),
+        period="2026-Q1",
+    )
+    # A historical target always requires its PUBLIC boundary, even when the
+    # retrieval query also uses SYSTEM. Direct SYSTEM evidence remains available.
+    for mode in (AsOfMode.SYSTEM, AsOfMode.PUBLIC):
+        selection = select_retrieval_input(paths, run, mode=mode)
+        assert not selection.complete and not selection.selected_claim_ids
+    manifest = ModelRepository(paths.database).manifest(revised_model)
+    for mode, expected in (
+        (AsOfMode.SYSTEM, set(revised.claim_ids)),
+        (AsOfMode.PUBLIC, set()),
+    ):
+        context = build_context_projection(
+            repository, as_of=ingested_at, model_manifest=manifest, as_of_mode=mode
+        )
+        actual = context.macro["model_input_observation_version_ids"]
+        assert isinstance(actual, list)
+        assert set(actual) == expected
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "no_receipt",
+        "wrong_receipt",
+        "one_wrong_of_two_receipts",
+        "raw_missing",
+        "raw_damaged",
+        "normalized_missing",
+        "normalized_damaged",
+        "normalized_wrong_value",
+    ],
+)
+def test_capacity_q1_direct_append_requires_all_matching_receipts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _, raw, digest, url = prepared_capacity_mapping_request(paths)
+    submit(paths, save(paths, request))
+    capsys.readouterr()
+    version = request["manifest"]["metric_catalog_version"]
+    acquired_at = datetime(2026, 8, 29, tzinfo=UTC)
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="nbs_capacity_utilization",
+        source_url=url,
+        expected_period="2026-Q1",
+        fetched_at=acquired_at,
+        clock=lambda: acquired_at,
+        definition_version=version,
+    )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    repository = EvidenceRepository(paths.database)
+    claim = SourceClaimInput(
+        metric_id="CN_CAPACITY_UTILIZATION",
+        definition_version=version,
+        period_kind="year_to_quarter",
+        period_start="2026-01-01",
+        period_end="2026-03-31",
+        dimensions={"industry": "all_industry", "measure": "ytd_rate"},
+        value=73.6,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="percent",
+        provider="国家统计局",
+        source_reference=f"{url}#sha256={digest}",
+        release_event_id=imported.release_event_id,
+        release_at=datetime(2026, 4, 16, 2, tzinfo=UTC),
+        public_available_at=datetime(2026, 4, 16, 2, tzinfo=UTC),
+        fetched_at=acquired_at,
+        available_at=acquired_at,
+        certification_status="certified",
+        quality_status="validated",
+        acquisition_id=receipt.acquisition_id,
+    )
+    # Even this public direct-write boundary accepts the complete positive first.
+    (stored,) = repository.append_source_claims((claim,), availability_clock=lambda: acquired_at)
+    assert stored.claim_id in imported.claim_ids
+    if fault == "no_receipt":
+        claim = replace(claim, acquisition_id=None)
+    elif fault in {"wrong_receipt", "one_wrong_of_two_receipts", "normalized_wrong_value"}:
+        other_raw = (
+            raw if fault == "normalized_wrong_value" else raw + b"<!-- synthetic vintage -->"
+        )
+
+        def parse(content: bytes) -> ParsedOfficialContextRelease:
+            return parse_official_context_document(
+                content,
+                family="nbs_capacity_utilization",
+                source_url=url,
+                expected_period="2026-Q1",
+                fetched_at=acquired_at,
+            )
+
+        def normalize(parsed: ParsedOfficialContextRelease) -> dict[str, Any]:
+            document = asdict(parsed)
+            if fault == "normalized_wrong_value":
+                for scalar in document["scalars"]:
+                    if scalar["dimensions"]["measure"] == "ytd_rate":
+                        scalar["value"] = 73.7
+            return document
+
+        other = acquisitions.capture(
+            provider="国家统计局",
+            api_name="document_import",
+            parameters={
+                "source_url": url,
+                "period": "2026-Q1",
+                "family": "nbs_capacity_utilization",
+            },
+            fields="",
+            parser_version="official-context-parser-v0004",
+            fetch=lambda: other_raw,
+            parse=parse,
+            normalize=normalize,
+            clock=lambda: acquired_at,
+        )
+        assert other.receipt.validated_at == acquired_at
+        # CAS checks alone pass for both receipts; their raw/normalized meaning differs.
+        assert acquisitions.read_content(other.receipt.acquisition_id, "raw") == other_raw
+        assert acquisitions.read_content(other.receipt.acquisition_id, "normalized")
+        claim = (
+            replace(claim, acquisition_ids=(other.receipt.acquisition_id,))
+            if fault == "one_wrong_of_two_receipts"
+            else replace(claim, acquisition_id=other.receipt.acquisition_id)
+        )
+    else:
+        artifact_hash = receipt.raw_hash if fault.startswith("raw_") else receipt.normalized_hash
+        assert artifact_hash is not None
+        artifact_path = paths.artifacts / artifact_hash[:2] / artifact_hash
+        if fault.endswith("missing"):
+            artifact_path.unlink()
+        else:
+            artifact_path.write_bytes(b"damaged artifact")
+    with pytest.raises(ValueError, match="registered_capacity_q1_mapping_unresolved"):
+        repository.append_source_claims((claim,), availability_clock=lambda: acquired_at)
+    points = repository.metric_series(
+        "CN_CAPACITY_UTILIZATION",
+        definition_version=version,
+        as_of=acquired_at,
+        mode=AsOfMode.SYSTEM,
+    )
+    assert {point.selected_claim_id for point in points} == set(imported.claim_ids)
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "independent_ytd",
+        "independent_equal_ytd",
+        "missing_rate",
+        "missing_industry",
+        "industry_substitute",
+        "duplicate_industry",
+        "wrong_quarter",
+        "wrong_year",
+    ],
+)
+def test_capacity_q1_mapping_admission_requires_an_unambiguous_alias_table(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, mapping_hash, _, _, url = prepared_capacity_mapping_request(paths)
+    mapping = json.loads((paths.artifacts / mapping_hash[:2] / mapping_hash).read_bytes())
+    # Synthetic source-layout tests; the main positive separately uses archived raw.
+    header = (
+        "<tr><th>行业</th><th>一季度</th></tr>"
+        "<tr><th>产能利用率（%）</th><th>比上年同期增减（百分点）</th></tr>"
+    )
+    row = "<tr><td>工业</td><td>73.6</td><td>-0.5</td></tr>"
+    content = (
+        "<html><body><h1>2026年一季度全国规模以上工业产能利用率</h1>"
+        f"<p>2026-04-16 10:00</p><table>{header}{row}</table></body></html>"
+    )
+
+    def bind_raw(text: str, previous_mapping: str, ytd_value: float = 73.6) -> str:
+        raw = text.encode()
+        artifact = store_artifact(paths.database, paths.artifacts, raw, "text/html", url)
+        mapping["source_document"] = {
+            "artifact_hash": artifact.content_hash,
+            "source_reference": url,
+            "bytes": len(raw),
+        }
+        mapping["target"]["value"] = ytd_value
+        current_mapping = save(paths, mapping)
+        package_hash = request["package_hashes"][0]
+        package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
+        review_hash = package["review_hash"]
+        review = json.loads((paths.artifacts / review_hash[:2] / review_hash).read_bytes())
+        for criterion in ("semantics", "fields"):
+            for reference in review["assessments"][criterion]["evidence"]:
+                if reference["artifact_hash"] == previous_mapping:
+                    reference["artifact_hash"] = current_mapping
+        package["review_hash"] = save(paths, review)
+        request["package_hashes"] = [save(paths, package)]
+        return current_mapping
+
+    mapping_hash = bind_raw(content, mapping_hash)
+    submit(paths, save(paths, request))
+    assert json.loads(capsys.readouterr().out)["model_version_id"]
+    if fault.startswith("independent_"):
+        ytd_value = 74.0 if fault == "independent_ytd" else 73.6
+        altered = content.replace(
+            header + row,
+            "<tr><th>行业</th><th>当季（%）</th><th>同比变化（百分点）</th><th>累计（%）</th></tr>"
+            f"<tr><td>全国规模以上工业</td><td>73.6</td><td>-0.5</td><td>{ytd_value}</td></tr>",
+        )
+        parsed = parse_official_context_document(
+            altered.encode(),
+            family="nbs_capacity_utilization",
+            source_url=url,
+            expected_period="2026-Q1",
+            fetched_at=datetime(2026, 8, 29, tzinfo=UTC),
+        )
+        assert {item.dimensions["measure"]: item.value for item in parsed.scalars} == {
+            "quarter_rate": 73.6,
+            "yoy_change": -0.5,
+            "ytd_rate": ytd_value,
+        }
+    else:
+        ytd_value = 73.6
+        altered = {
+            "missing_rate": content.replace("<td>73.6</td>", ""),
+            "missing_industry": content.replace(row, ""),
+            "industry_substitute": content.replace("<td>工业</td>", "<td>制造业</td>"),
+            "duplicate_industry": content.replace(row, row + row.replace("73.6", "73.7")),
+            "wrong_quarter": content.replace("一季度", "二季度"),
+            "wrong_year": content.replace("2026年", "2025年"),
+        }[fault]
+    assert altered != content
+    bind_raw(altered, mapping_hash, ytd_value)
+    versions = ModelRepository(paths.database).list_versions()
+    with pytest.raises(SystemExit) as exited:
+        submit(paths, save(paths, request))
+    assert exited.value.code == 2
+    assert ModelRepository(paths.database).list_versions() == versions
+    captured = capsys.readouterr()
+    assert captured.out == "" and captured.err == "error: certification_source_mapping_invalid\n"
+
+
 def test_registered_capacity_q1_does_not_certify_an_unresolved_reused_cell(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -2879,9 +7982,17 @@ def test_registered_capacity_q1_does_not_certify_an_unresolved_reused_cell(
     )
 
 
-@pytest.mark.parametrize("document_kind", ["compact", "official_original"])
+@pytest.mark.parametrize(
+    ("document_kind", "consumer"),
+    [
+        ("compact", "none"),
+        ("official_original", "none"),
+        ("official_original", "selection"),
+        ("official_original", "context"),
+    ],
+)
 def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_system_times(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], document_kind: str
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], document_kind: str, consumer: str
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -2959,8 +8070,100 @@ def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_syste
     assert set(selection.selected_claim_ids) == set(ingested.claim_ids)
     context = build_context_projection(repository, as_of=acquired_at, model_manifest=manifest)
     assert set(ingested.claim_ids) <= set(context.observation_version_ids)
+    model_inputs = context.macro["model_input_observation_version_ids"]
+    assert isinstance(model_inputs, list)
+    assert set(ingested.claim_ids) <= set(model_inputs)
     with pytest.raises(LookupError, match="active_model_unavailable"):
         ModelRepository(paths.database).active()
+    if consumer != "none":
+        (receipt,) = AcquisitionRepository(paths.database, paths.artifacts).history()
+        assert receipt.normalized_hash is not None
+        (paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash).write_bytes(
+            b"damaged CPI normalized"
+        )
+        if consumer == "selection":
+            after = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+            assert not after.complete
+            assert after.selected_claim_ids == ()
+        else:
+            after_context = build_context_projection(
+                EvidenceRepository(paths.database),
+                as_of=acquired_at,
+                model_manifest=manifest,
+                as_of_mode=AsOfMode.PUBLIC,
+            )
+            after_inputs = after_context.macro["model_input_observation_version_ids"]
+            assert isinstance(after_inputs, list)
+            assert set(ingested.claim_ids).isdisjoint(after_inputs)
+            assert set(ingested.claim_ids) <= set(after_context.observation_version_ids)
+
+
+@pytest.mark.parametrize("metric_id", ["CN_CPI_HEADLINE", "CN_CORE_CPI"])
+def test_cpi_public_replay_reports_invalid_selected_artifacts(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], metric_id: str
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    digest = "a4b8c84fa4b005807a9c30b4a41c06726f571bd203e753db81532be4dee54a49"
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    acquired_at = datetime(2026, 8, 9, 2, tzinfo=UTC)
+    manifests = {}
+    claims = {}
+    receipts = {}
+    for side in ("comparison", "candidate"):
+        manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
+        # Single-day component evidence, not the full model's certification or 120-day replay.
+        manifest.pop("source_certification_packages")
+        manifests[side] = manifest
+        imported = ingest_official_context_document(
+            paths,
+            raw + b"<!-- synthetic candidate receipt -->" if side == "candidate" else raw,
+            family="nbs_core_cpi",
+            source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1965008.html",
+            expected_period="2026-07",
+            fetched_at=acquired_at,
+            clock=lambda: acquired_at,
+            definition_version=manifest["metric_catalog_version"],
+        )
+        claims[side] = set(imported.claim_ids)
+        (acquisition,) = EvidenceRepository(paths.database).source_claim_acquisitions_many(
+            (imported.claim_ids[0],)
+        )[imported.claim_ids[0]]
+        receipts[side] = acquisition.receipt
+    before = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    for side in ("comparison", "candidate"):
+        day = before.output_document["days"][0][side]
+        assert set(day["macro"]["model_input_observation_version_ids"]) == claims[side]
+    content_hash = receipts["candidate"].normalized_hash
+    assert content_hash is not None and content_hash != receipts["comparison"].normalized_hash
+    (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b"damaged CPI normalized")
+    after = evaluate_context_replay(
+        paths.database,
+        manifests["candidate"],
+        manifests["comparison"],
+        requested_start="2026-08-28",
+        requested_end="2026-08-28",
+    )
+    assert after.gaps == (f"candidate_context_selection_invalid:{metric_id}",)
+    assert after.evaluated_cutoffs == 1 and after.output_document is not None
+    day = after.output_document["days"][0]
+    assert day["candidate"]["macro"]["model_input_observation_version_ids"] == []
+    assert (
+        set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+        == claims["comparison"]
+    )
+    assert claims["candidate"] <= set(day["candidate"]["observation_version_ids"])
 
 
 @pytest.mark.parametrize("month", [1, 7])

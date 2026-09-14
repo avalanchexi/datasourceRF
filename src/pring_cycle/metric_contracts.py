@@ -97,6 +97,15 @@ def official_source_members(metric_id: str, period: str) -> tuple[OfficialMember
     """Source-backed members for newly registered official macro contracts."""
     amount = "hundred_million_cny"
     month = int(period[-1]) * 3 if "-Q" in period else int(period[5:7])
+    if metric_id == "CN_GDP":
+        return tuple(
+            OfficialMember({"aggregate": aggregate, "measure": measure}, unit, kind)
+            for aggregate in ("total", "primary", "secondary", "tertiary")
+            for measure, unit, kind in (
+                ("nominal_ytd_level", amount, "year_to_quarter"),
+                ("real_quarter_yoy", "percent", "quarter"),
+            )
+        )
     if metric_id in {"CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"}:
         return tuple(
             OfficialMember(d, "diffusion_index_points", "month")
@@ -261,7 +270,6 @@ def required_dimension_members(
 
         if metric_id in MARKET_INDEX_IDENTITIES:
             return ({"source_code": MARKET_INDEX_IDENTITIES[metric_id][1]},)
-
         members = official_source_members(metric_id, period)
         if members is not None:
             return tuple(

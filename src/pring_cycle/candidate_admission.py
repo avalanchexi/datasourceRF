@@ -15,7 +15,11 @@ from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.runtime_fingerprint import execution_fingerprint
-from pring_cycle.source_contract_review import require_model_source_contract
+from pring_cycle.source_contract_review import (
+    SOURCE_MAPPING_REFERENCE_CONTRACT_VERSION,
+    require_model_source_contract,
+    require_reviewed_source_mappings,
+)
 from pring_cycle.storage import artifact_is_registered
 
 
@@ -62,10 +66,15 @@ def admit_source_certified_candidate(
                     f"certification_definition_mismatch:{package['package_id']}:{metric_id}"
                 )
             covered.add(metric_id)
+        require_reviewed_source_mappings(paths.database, package, definitions)
     if missing := required - covered:
         raise ValueError(f"certification_coverage_missing:{','.join(sorted(missing))}")
     manifest["source_certification_packages"] = packages
     manifest["certification_request_hash"] = request_hash
+    manifest["source_mapping_reference_contract"] = {
+        "version": SOURCE_MAPPING_REFERENCE_CONTRACT_VERSION,
+        "request_hash": request_hash,
+    }
     digest = _hash(manifest)
     manifest["model_version_id"] = f"model-reviewed-{digest}"
     return {
@@ -87,6 +96,7 @@ def _validate_manifest(
             "source_certification_packages",
             "source_certifications",
             "certification_request_hash",
+            "source_mapping_reference_contract",
         )
     ):
         raise ValueError("certification_manifest_reserved_fields")

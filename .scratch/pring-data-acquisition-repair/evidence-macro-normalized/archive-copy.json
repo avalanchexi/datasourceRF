@@ -1,0 +1,13 @@
+﻿{
+    "operation":  "archive_copy",
+    "copied_at":  "2026-09-09T01:24:50.4437352Z",
+    "source_path":  "\\\\wsl.localhost\\Ubuntu-22.04\\home\\tywin\\.local\\share\\pring-cycle\\artifacts\\sha256\\f0\\f0cc6558252e9d754645aaaedcd8bd5f20f04cc1de5765ba2c6761d4222e159c",
+    "copied_path":  ".scratch\\pring-data-acquisition-repair\\evidence-macro-normalized\\f0cc6558252e9d754645aaaedcd8bd5f20f04cc1de5765ba2c6761d4222e159c",
+    "source_url":  "https://www.stats.gov.cn/sj/zxfb/202606/t20260630_1964032.html",
+    "bytes":  422863,
+    "sha256":  "f0cc6558252e9d754645aaaedcd8bd5f20f04cc1de5765ba2c6761d4222e159c",
+    "network_requests":  0,
+    "source_claims_created":  0,
+    "source_certification_granted":  false,
+    "note":  "Copies a previously acquired original for isolated tests; this is not a new acquisition or historical SYSTEM timestamp."
+}

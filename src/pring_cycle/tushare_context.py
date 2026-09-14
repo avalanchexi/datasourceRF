@@ -857,33 +857,7 @@ class TushareContextAdapter:
             parameters,
             ("date", "on", "1w", "3m"),
         )
-        scalars = [
-            _daily_scalar(
-                "CN_DR007",
-                "repo_daily",
-                "weight",
-                row,
-                date_field="trade_date",
-                dimensions={},
-                unit="percent",
-            )
-            for row in repo_rows
-            if str(row.get("ts_code")) == "DR007.IB" and str(row.get("repo_maturity")) == "DR007"
-        ]
-        for row in shibor_rows:
-            for source_field, tenor in (("on", "overnight"), ("1w", "1w"), ("3m", "3m")):
-                scalars.append(
-                    _daily_scalar(
-                        "CN_SHIBOR_ON_1W_3M",
-                        "shibor",
-                        source_field,
-                        row,
-                        date_field="date",
-                        dimensions={"tenor": tenor},
-                        unit="percent",
-                    )
-                )
-        return tuple(scalars)
+        return _transmission_scalars(repo_rows, shibor_rows)
 
     def market_indices(
         self,
@@ -2039,6 +2013,302 @@ def _monthly_scalars(
     return tuple(scalars)
 
 
+def _market_index_scalars(metric_id: str, rows: ContextRows) -> tuple[ContextScalar, ...]:
+    api_name, source_code = MARKET_INDEX_IDENTITIES[metric_id]
+    seen_dates = set()
+    scalars = []
+    for row in rows:
+        if str(row.get("ts_code")) != source_code:
+            raise ValueError("tushare_market_index_identity_mismatch")
+        trading_day = _compact_date(row.get("trade_date"))
+        if trading_day in seen_dates:
+            raise ValueError("tushare_market_index_duplicate_day")
+        seen_dates.add(trading_day)
+        scalars.append(
+            _daily_scalar(
+                metric_id,
+                api_name,
+                "close",
+                row,
+                date_field="trade_date",
+                dimensions={"source_code": source_code},
+                unit="index_points",
+            )
+        )
+    return tuple(scalars)
+
+
+def parse_market_index_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Read the exact index, day and closing points from its captured delivery."""
+    identity = (receipt.api_name, receipt.parameters.get("ts_code"))
+    metric_id = next(
+        (metric for metric, source in MARKET_INDEX_IDENTITIES.items() if source == identity),
+        None,
+    )
+    fields = ("ts_code", "trade_date", "close")
+    if (
+        metric_id is None
+        or receipt.provider != "tushare"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
+    ):
+        raise ValueError("registered_market_index_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _market_index_scalars(metric_id, rows)
+
+
+def _valuation_scalars(source_code: str, rows: ContextRows) -> tuple[ContextScalar, ...]:
+    seen_dates = set()
+    scalars = []
+    for row in rows:
+        if str(row.get("ts_code")) != source_code:
+            raise ValueError("tushare_index_valuation_identity_mismatch")
+        trading_day = _compact_date(row.get("trade_date"))
+        if trading_day in seen_dates:
+            raise ValueError("registered_valuation_duplicate_day")
+        seen_dates.add(trading_day)
+        for source_field, measure, unit in VALUATION_FIELDS:
+            if _number(row.get(source_field)) is None:
+                continue
+            scalars.append(
+                _daily_scalar(
+                    "CN_INDEX_VALUATION",
+                    "index_dailybasic",
+                    source_field,
+                    row,
+                    date_field="trade_date",
+                    dimensions={"index": source_code, "measure": measure},
+                    unit=unit,
+                )
+            )
+    return tuple(scalars)
+
+
+def parse_valuation_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Rebuild static PE, PB and turnover from the identified index delivery."""
+    fields = ("ts_code", "trade_date", *(field for field, _measure, _unit in VALUATION_FIELDS))
+    source_code = receipt.parameters.get("ts_code")
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "index_dailybasic"
+        or source_code not in VALUATION_INDEX_CODES
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
+    ):
+        raise ValueError("registered_valuation_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _valuation_scalars(receipt.parameters["ts_code"], rows)
+
+
+def parse_margin_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+) -> tuple[ContextScalar, ...]:
+    """Rebuild the two totals only from complete, unique three-exchange deliveries."""
+    fields = ("trade_date", "exchange_id", "rzye", "rzmre")
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "margin"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_date", "end_date"}
+    ):
+        raise ValueError("registered_margin_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    days = tuple(sorted({_compact_date(row["trade_date"]) for row in rows}))
+    adapter = TushareContextAdapter("receipt-reparse", transport=lambda _: raw)
+    try:
+        scalars = adapter.margin_financing_candidate(trading_days=days)
+    except ValueError as error:
+        if str(error) == "tushare_margin_exchange_coverage_incomplete":
+            raise ValueError("registered_margin_exchange_coverage_incomplete") from error
+        raise
+    return tuple(
+        replace(
+            scalar,
+            dimensions={"measure": scalar.dimensions["measure"], "scope": "all_exchanges"},
+            definition_version=None,
+        )
+        for scalar in scalars
+    )
+
+
+def tushare_claims_matching_acquisitions(
+    repository: EvidenceRepository,
+    points: tuple[MetricSeriesPoint, ...],
+    *,
+    definition_version: str,
+    parse: Callable[
+        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...]
+    ] = parse_margin_acquisition,
+) -> set[str]:
+    """Keep selected TuShare scalars bound to complete raw and normalized deliveries."""
+    selected = {p.selected_claim_id: p for p in points if p.selected_claim_id is not None}
+    parsed: dict[str, list[dict[str, Any]] | None] = {}
+    valid = set()
+    for claim_id, inputs in repository.source_claim_acquisitions_many(tuple(selected)).items():
+        if not inputs:
+            continue
+        point = selected[claim_id]
+        claim = next(c for c in point.claims if c.claim_id == claim_id)
+        identities = {item.receipt.acquisition_id for item in inputs}
+        try:
+            for item in inputs:
+                identity = item.receipt.acquisition_id
+                if identity not in parsed:
+                    parsed[identity] = None
+                    scalars = parse(item.receipt, item.raw)
+                    normalized = json.loads(item.normalized)
+                    if not isinstance(normalized, list):
+                        raise ValueError("registered_tushare_normalized_mismatch")
+                    economic = []
+                    for entry in normalized:
+                        if (
+                            not isinstance(entry, dict)
+                            or entry.get("definition_version") not in (None, definition_version)
+                            or not isinstance(entry.get("acquisition_ids"), list)
+                            or identity not in entry["acquisition_ids"]
+                        ):
+                            raise ValueError("registered_tushare_normalized_mismatch")
+                        economic.append(
+                            _canonical_json(
+                                {
+                                    **entry,
+                                    "release_at": None,
+                                    "public_available_at": None,
+                                    "acquisition_ids": [],
+                                    "definition_version": None,
+                                }
+                            )
+                        )
+                    if sorted(economic) != sorted(_canonical_json(asdict(s)) for s in scalars):
+                        raise ValueError("registered_tushare_normalized_mismatch")
+                    parsed[identity] = normalized
+                normalized = parsed[identity]
+                if normalized is None:
+                    raise ValueError("registered_tushare_normalized_mismatch")
+                matches = [
+                    entry
+                    for entry in normalized
+                    if (
+                        entry["period_start"] == point.period_start
+                        and entry["period_end"] == point.period_end
+                        and entry["dimensions"] == point.dimensions
+                        and entry["value"] == claim.value
+                        and entry["unit"] == claim.unit
+                        and set(entry["acquisition_ids"]) == identities
+                        and claim.source_reference
+                        == f"tushare:{entry['api_name']}:{entry['source_field']}:{point.period_end}"
+                        and all(
+                            (
+                                datetime.fromisoformat(entry[field])
+                                if entry[field] is not None
+                                else None
+                            )
+                            == getattr(claim, field)
+                            for field in ("release_at", "public_available_at")
+                        )
+                    )
+                ]
+                if len(matches) != 1 or claim.provider != "tushare":
+                    raise ValueError("registered_tushare_claim_mismatch")
+        except (LookupError, TypeError, ValueError, OSError):
+            continue
+        valid.add(claim_id)
+    return valid
+
+
+def parse_interbank_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Rebuild the economic fields from one genuine bank-rate API response."""
+    fields = {
+        "repo_daily": ("ts_code", "trade_date", "repo_maturity", "weight"),
+        "shibor": ("date", "on", "1w", "3m"),
+    }
+    if (
+        receipt.state != "validated"
+        or receipt.provider != "tushare"
+        or receipt.api_name not in fields
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields[receipt.api_name])
+        or receipt.received_at is None
+        or receipt.validated_at is None
+    ):
+        raise ValueError("interbank_acquisition_identity_mismatch")
+    parameters = receipt.parameters
+    expected = {"start_date", "end_date"}
+    if receipt.api_name == "repo_daily":
+        expected.add("ts_code")
+        if parameters.get("ts_code") != "DR007.IB":
+            raise ValueError("interbank_acquisition_identity_mismatch")
+    if set(parameters) != expected:
+        raise ValueError("interbank_acquisition_identity_mismatch")
+    start, end = (_compact_date(parameters[field]) for field in ("start_date", "end_date"))
+    if start > end or any(
+        value.strftime("%Y%m%d") != parameters[field]
+        for field, value in (("start_date", start), ("end_date", end))
+    ):
+        raise ValueError("interbank_acquisition_period_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields[receipt.api_name])
+    _validate_response_periods(rows, parameters)
+    return _transmission_scalars(
+        rows if receipt.api_name == "repo_daily" else (),
+        rows if receipt.api_name == "shibor" else (),
+    )
+
+
+def _transmission_scalars(
+    repo_rows: tuple[dict[str, object], ...], shibor_rows: tuple[dict[str, object], ...]
+) -> tuple[ContextScalar, ...]:
+    scalars = [
+        _daily_scalar(
+            "CN_DR007",
+            "repo_daily",
+            "weight",
+            row,
+            date_field="trade_date",
+            dimensions={},
+            unit="percent",
+        )
+        for row in repo_rows
+        if str(row.get("ts_code")) == "DR007.IB" and str(row.get("repo_maturity")) == "DR007"
+    ]
+    for row in shibor_rows:
+        for source_field, tenor in (("on", "overnight"), ("1w", "1w"), ("3m", "3m")):
+            scalars.append(
+                _daily_scalar(
+                    "CN_SHIBOR_ON_1W_3M",
+                    "shibor",
+                    source_field,
+                    row,
+                    date_field="date",
+                    dimensions={"tenor": tenor},
+                    unit="percent",
+                )
+            )
+    return tuple(scalars)
+
+
 def _daily_scalar(
     metric_id: str,
     api_name: str,
@@ -2425,224 +2695,3 @@ def _required_text(value: object, error_code: str) -> str:
 
 def _canonical_json(value: object) -> str:
     return json.dumps(value, default=str, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-
-
-def parse_margin_acquisition(
-    receipt: AcquisitionReceipt,
-    raw: bytes,
-) -> tuple[ContextScalar, ...]:
-    """Rebuild the two totals only from complete, unique three-exchange deliveries."""
-    fields = ("trade_date", "exchange_id", "rzye", "rzmre")
-    if (
-        receipt.provider != "tushare"
-        or receipt.api_name != "margin"
-        or receipt.parser_version != "tushare-context-parser-v0002"
-        or receipt.fields != ",".join(fields)
-        or set(receipt.parameters) != {"start_date", "end_date"}
-    ):
-        raise ValueError("registered_margin_acquisition_identity_mismatch")
-    document = json.loads(raw)
-    rows = _response_rows(document, required_fields=fields)
-    _validate_response_periods(rows, receipt.parameters)
-    days = tuple(sorted({_compact_date(row["trade_date"]) for row in rows}))
-    adapter = TushareContextAdapter("receipt-reparse", transport=lambda _: raw)
-    try:
-        scalars = adapter.margin_financing_candidate(trading_days=days)
-    except ValueError as error:
-        if str(error) == "tushare_margin_exchange_coverage_incomplete":
-            raise ValueError("registered_margin_exchange_coverage_incomplete") from error
-        raise
-    return tuple(
-        replace(
-            scalar,
-            dimensions={"measure": scalar.dimensions["measure"], "scope": "all_exchanges"},
-            definition_version=None,
-        )
-        for scalar in scalars
-    )
-
-
-def tushare_claims_matching_acquisitions(
-    repository: EvidenceRepository,
-    points: tuple[MetricSeriesPoint, ...],
-    *,
-    definition_version: str,
-    parse: Callable[
-        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...]
-    ] = parse_margin_acquisition,
-) -> set[str]:
-    """Keep selected TuShare scalars bound to complete raw and normalized deliveries."""
-    selected = {p.selected_claim_id: p for p in points if p.selected_claim_id is not None}
-    parsed: dict[str, list[dict[str, Any]] | None] = {}
-    valid = set()
-    for claim_id, inputs in repository.source_claim_acquisitions_many(tuple(selected)).items():
-        if not inputs:
-            continue
-        point = selected[claim_id]
-        claim = next(c for c in point.claims if c.claim_id == claim_id)
-        identities = {item.receipt.acquisition_id for item in inputs}
-        try:
-            for item in inputs:
-                identity = item.receipt.acquisition_id
-                if identity not in parsed:
-                    parsed[identity] = None
-                    scalars = parse(item.receipt, item.raw)
-                    normalized = json.loads(item.normalized)
-                    if not isinstance(normalized, list):
-                        raise ValueError("registered_tushare_normalized_mismatch")
-                    economic = []
-                    for entry in normalized:
-                        if (
-                            not isinstance(entry, dict)
-                            or entry.get("definition_version") not in (None, definition_version)
-                            or not isinstance(entry.get("acquisition_ids"), list)
-                            or identity not in entry["acquisition_ids"]
-                        ):
-                            raise ValueError("registered_tushare_normalized_mismatch")
-                        economic.append(
-                            _canonical_json(
-                                {
-                                    **entry,
-                                    "release_at": None,
-                                    "public_available_at": None,
-                                    "acquisition_ids": [],
-                                    "definition_version": None,
-                                }
-                            )
-                        )
-                    if sorted(economic) != sorted(_canonical_json(asdict(s)) for s in scalars):
-                        raise ValueError("registered_tushare_normalized_mismatch")
-                    parsed[identity] = normalized
-                normalized = parsed[identity]
-                if normalized is None:
-                    raise ValueError("registered_tushare_normalized_mismatch")
-                matches = [
-                    entry
-                    for entry in normalized
-                    if (
-                        entry["period_start"] == point.period_start
-                        and entry["period_end"] == point.period_end
-                        and entry["dimensions"] == point.dimensions
-                        and entry["value"] == claim.value
-                        and entry["unit"] == claim.unit
-                        and set(entry["acquisition_ids"]) == identities
-                        and claim.source_reference
-                        == f"tushare:{entry['api_name']}:{entry['source_field']}:{point.period_end}"
-                        and all(
-                            (
-                                datetime.fromisoformat(entry[field])
-                                if entry[field] is not None
-                                else None
-                            )
-                            == getattr(claim, field)
-                            for field in ("release_at", "public_available_at")
-                        )
-                    )
-                ]
-                if len(matches) != 1 or claim.provider != "tushare":
-                    raise ValueError("registered_tushare_claim_mismatch")
-        except (LookupError, TypeError, ValueError, OSError):
-            continue
-        valid.add(claim_id)
-    return valid
-
-
-def _market_index_scalars(metric_id: str, rows: ContextRows) -> tuple[ContextScalar, ...]:
-    api_name, source_code = MARKET_INDEX_IDENTITIES[metric_id]
-    seen_dates = set()
-    scalars = []
-    for row in rows:
-        if str(row.get("ts_code")) != source_code:
-            raise ValueError("tushare_market_index_identity_mismatch")
-        trading_day = _compact_date(row.get("trade_date"))
-        if trading_day in seen_dates:
-            raise ValueError("tushare_market_index_duplicate_day")
-        seen_dates.add(trading_day)
-        scalars.append(
-            _daily_scalar(
-                metric_id,
-                api_name,
-                "close",
-                row,
-                date_field="trade_date",
-                dimensions={"source_code": source_code},
-                unit="index_points",
-            )
-        )
-    return tuple(scalars)
-
-
-def parse_market_index_acquisition(
-    receipt: AcquisitionReceipt, raw: bytes
-) -> tuple[ContextScalar, ...]:
-    """Read the exact index, day and closing points from its captured delivery."""
-    identity = (receipt.api_name, receipt.parameters.get("ts_code"))
-    metric_id = next(
-        (metric for metric, source in MARKET_INDEX_IDENTITIES.items() if source == identity),
-        None,
-    )
-    fields = ("ts_code", "trade_date", "close")
-    if (
-        metric_id is None
-        or receipt.provider != "tushare"
-        or receipt.parser_version != "tushare-context-parser-v0002"
-        or receipt.fields != ",".join(fields)
-        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
-    ):
-        raise ValueError("registered_market_index_acquisition_identity_mismatch")
-    document = json.loads(raw)
-    if not isinstance(document, dict) or document.get("code") != 0:
-        raise ValueError("tushare_source_failed")
-    rows = _response_rows(document, required_fields=fields)
-    _validate_response_periods(rows, receipt.parameters)
-    return _market_index_scalars(metric_id, rows)
-
-
-def _valuation_scalars(source_code: str, rows: ContextRows) -> tuple[ContextScalar, ...]:
-    seen_dates = set()
-    scalars = []
-    for row in rows:
-        if str(row.get("ts_code")) != source_code:
-            raise ValueError("tushare_index_valuation_identity_mismatch")
-        trading_day = _compact_date(row.get("trade_date"))
-        if trading_day in seen_dates:
-            raise ValueError("registered_valuation_duplicate_day")
-        seen_dates.add(trading_day)
-        for source_field, measure, unit in VALUATION_FIELDS:
-            if _number(row.get(source_field)) is None:
-                continue
-            scalars.append(
-                _daily_scalar(
-                    "CN_INDEX_VALUATION",
-                    "index_dailybasic",
-                    source_field,
-                    row,
-                    date_field="trade_date",
-                    dimensions={"index": source_code, "measure": measure},
-                    unit=unit,
-                )
-            )
-    return tuple(scalars)
-
-
-def parse_valuation_acquisition(
-    receipt: AcquisitionReceipt, raw: bytes
-) -> tuple[ContextScalar, ...]:
-    """Rebuild static PE, PB and turnover from the identified index delivery."""
-    fields = ("ts_code", "trade_date", *(field for field, _measure, _unit in VALUATION_FIELDS))
-    source_code = receipt.parameters.get("ts_code")
-    if (
-        receipt.provider != "tushare"
-        or receipt.api_name != "index_dailybasic"
-        or source_code not in VALUATION_INDEX_CODES
-        or receipt.parser_version != "tushare-context-parser-v0002"
-        or receipt.fields != ",".join(fields)
-        or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
-    ):
-        raise ValueError("registered_valuation_acquisition_identity_mismatch")
-    document = json.loads(raw)
-    if not isinstance(document, dict) or document.get("code") != 0:
-        raise ValueError("tushare_source_failed")
-    rows = _response_rows(document, required_fields=fields)
-    _validate_response_periods(rows, receipt.parameters)
-    return _valuation_scalars(receipt.parameters["ts_code"], rows)

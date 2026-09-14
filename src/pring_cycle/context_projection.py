@@ -5,6 +5,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, time, timedelta
+from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -26,9 +27,18 @@ from pring_cycle.evidence import (
     EvidenceValueState,
     MetricSeriesPoint,
 )
+from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
 from pring_cycle.metric_contracts import evidence_max_age_days
+from pring_cycle.official_context import (
+    OFFICIAL_CONTEXT_INTEGRITY_METRICS,
+    official_claims_matching_acquisitions,
+    official_gdp_quarters_matching_baselines,
+)
 from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
+from pring_cycle.source_adapters import CoreInputValidator
+from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
+from pring_cycle.treasury_context import TREASURY_METRICS, treasury_claims_matching_acquisitions
 from pring_cycle.warrant_inputs import WarrantHistoryCoverage, select_warrant_inputs
 
 _POLICY_ACTION = {
@@ -689,12 +699,32 @@ def _derived_market_context_rows(
         as_of=as_of,
         definition_version=definition_version,
     )
-    amount_points = [point for point in reported_amount_points if _certified_point(point)]
+    valid_amount_claim_ids = (
+        official_claims_matching_acquisitions(
+            repository,
+            {"CN_OMO_7D_AMOUNT": reported_amount_points},
+            definition_version=definition_version,
+        )
+        if definition_version not in BUILTIN_CATALOG_VERSIONS
+        else None
+    )
+    amount_points = [
+        point
+        for point in reported_amount_points
+        if _certified_point(point)
+        and (valid_amount_claim_ids is None or point.selected_claim_id in valid_amount_claim_ids)
+    ]
     invalid_amount_points = [
         point
         for point in reported_amount_points
         if point.dimensions.get("measure") in {"injection", "maturity"}
-        and not _certified_point(point)
+        and (
+            not _certified_point(point)
+            or (
+                valid_amount_claim_ids is not None
+                and point.selected_claim_id not in valid_amount_claim_ids
+            )
+        )
     ]
     invalid_amount_periods = {point.period_end for point in invalid_amount_points}
     amount_by_period: dict[str, dict[str, MetricSeriesPoint]] = {}
@@ -731,7 +761,7 @@ def _derived_market_context_rows(
         version_ids.extend(derived_versions)
     elif amount_by_period and omo_formula == "repo-net-injection-trading-calendar-v0002":
         trading_day_points = (
-            _certified_trading_day_points(
+            _trading_day_candidates(
                 repository,
                 trading_calendar_metric_id,
                 as_of=as_of,
@@ -791,11 +821,26 @@ def _derived_market_context_rows(
             maturity_basis == "derived_7d_trading_calendar"
             and target_date in invalid_maturity_dates
         )
+        calendar_valid = True
+        if calendar_points and definition_version not in BUILTIN_CATALOG_VERSIONS:
+            calendar_inputs = CoreInputValidator(
+                repository,
+                tuple(
+                    point.selected_claim_id
+                    for point in calendar_points
+                    if point.selected_claim_id is not None
+                ),
+            )
+            calendar_valid = trading_calendar_metric_id is not None and all(
+                calendar_inputs.is_valid(trading_calendar_metric_id, point)
+                for point in calendar_points
+            )
         if (
             maturity_basis is not None
             and (injection is not None or maturity_points)
             and target_period not in invalid_amount_periods
             and not invalid_maturity_inputs
+            and calendar_valid
         ):
             derived_row, derived_versions = _repo_net_injection_row(
                 repository,
@@ -819,6 +864,15 @@ def _derived_market_context_rows(
         as_of_mode=as_of_mode,
         definition_version=definition_version,
     )
+    if (
+        dr007 is not None
+        and definition_version not in BUILTIN_CATALOG_VERSIONS
+        and dr007.selected_claim_id
+        not in interbank_claims_matching_acquisitions(
+            repository, {"CN_DR007": (dr007,)}, definition_version=definition_version
+        )
+    ):
+        dr007 = None
     policy_rate = _latest_certified_point(
         repository,
         "CN_OMO_7D_RATE",
@@ -827,6 +881,15 @@ def _derived_market_context_rows(
         as_of_mode=as_of_mode,
         definition_version=definition_version,
     )
+    if (
+        policy_rate is not None
+        and definition_version not in BUILTIN_CATALOG_VERSIONS
+        and policy_rate.selected_claim_id
+        not in official_claims_matching_acquisitions(
+            repository, {"CN_OMO_7D_RATE": (policy_rate,)}, definition_version=definition_version
+        )
+    ):
+        policy_rate = None
     dr007_formula = formula_versions.get("dr007_policy_spread")
     if dr007 is not None and policy_rate is not None and dr007_formula is not None:
         derived_row, derived_versions = _difference_row(
@@ -954,9 +1017,19 @@ def _derived_market_context_rows(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if _certified_point(point) and point.dimensions.get("measure") == loan_input_measure
+        if point.dimensions.get("measure") == loan_input_measure
+        and (definition_version not in BUILTIN_CATALOG_VERSIONS or _certified_point(point))
     ]
     loan_groups: dict[tuple[str, str], list[MetricSeriesPoint]] = {}
+    valid_loan_claim_ids = (
+        official_claims_matching_acquisitions(
+            repository,
+            {"CN_LOAN_STRUCTURE": tuple(loan_stock_points)},
+            definition_version=definition_version,
+        )
+        if definition_version not in BUILTIN_CATALOG_VERSIONS
+        else None
+    )
     for point in loan_stock_points:
         key = (point.dimensions.get("borrower", ""), point.dimensions.get("tenor", ""))
         loan_groups.setdefault(key, []).append(point)
@@ -975,6 +1048,12 @@ def _derived_market_context_rows(
                 continue
             else:
                 previous = ordered[-2]
+            required_points = (current,) if previous is None else (current, previous)
+            if valid_loan_claim_ids is not None and any(
+                not _certified_point(point) or point.selected_claim_id not in valid_loan_claim_ids
+                for point in required_points
+            ):
+                continue
             derived_row, derived_versions = _difference_row(
                 repository,
                 metric_id="CN_LOAN_STRUCTURE",
@@ -1007,7 +1086,7 @@ def _core_stock_metric_id(model_manifest: Mapping[str, object]) -> str | None:
     return metric_id if isinstance(metric_id, str) and metric_id else None
 
 
-def _certified_trading_day_points(
+def _trading_day_candidates(
     repository: EvidenceRepository,
     metric_id: str,
     *,
@@ -1025,7 +1104,7 @@ def _certified_trading_day_points(
                     as_of=as_of,
                     definition_version=definition_version,
                 )
-                if _certified_point(point)
+                if definition_version not in BUILTIN_CATALOG_VERSIONS or _certified_point(point)
             ),
             key=lambda point: (point.period_end, point.observation_id),
         )
@@ -1254,15 +1333,40 @@ def _certified_points_by_period(
     as_of_mode: AsOfMode,
     definition_version: str,
 ) -> dict[str, MetricSeriesPoint]:
+    series = repository.metric_series(
+        metric_id,
+        mode=as_of_mode,
+        as_of=as_of,
+        definition_version=definition_version,
+    )
+    valid_claim_ids = (
+        official_claims_matching_acquisitions(
+            repository, {metric_id: series}, definition_version=definition_version
+        )
+        if metric_id in OFFICIAL_CONTEXT_FAMILIES["nbs_pmi"].metric_ids
+        and definition_version not in BUILTIN_CATALOG_VERSIONS
+        else None
+    )
+    if metric_id in TREASURY_METRICS and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        valid_claim_ids = treasury_claims_matching_acquisitions(
+            repository, {metric_id: series}, definition_version=definition_version
+        )
+    matching_points = tuple(
+        point for point in series if dimensions is None or point.dimensions == dimensions
+    )
+    if valid_claim_ids is not None and matching_points:
+        latest_period = max(point.period_end for point in matching_points)
+        if any(
+            not _certified_point(point) or point.selected_claim_id not in valid_claim_ids
+            for point in matching_points
+            if point.period_end == latest_period
+        ):
+            return {}
     return {
         point.period_end: point
-        for point in repository.metric_series(
-            metric_id,
-            mode=as_of_mode,
-            as_of=as_of,
-            definition_version=definition_version,
-        )
-        if _certified_point(point) and (dimensions is None or point.dimensions == dimensions)
+        for point in matching_points
+        if _certified_point(point)
+        and (valid_claim_ids is None or point.selected_claim_id in valid_claim_ids)
     }
 
 
@@ -1291,9 +1395,10 @@ def _latest_certified_point(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if _certified_point(point) and (no_later_than is None or point.period_end <= no_later_than)
+        if (definition_version not in BUILTIN_CATALOG_VERSIONS or _certified_point(point))
+        and (no_later_than is None or point.period_end <= no_later_than)
     ]
-    return points[-1] if points else None
+    return points[-1] if points and _certified_point(points[-1]) else None
 
 
 def _metric_rows(
@@ -1325,7 +1430,46 @@ def _metric_rows(
         incomplete_source_claims.update(
             set(claim_ids) - lpr_claims_matching_acquisitions(repository, series)
         )
+    if (
+        definition.metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS
+        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
+        official_claim_ids = tuple(
+            point.selected_claim_id for point in series if point.selected_claim_id is not None
+        )
+        incomplete_source_claims.update(
+            set(official_claim_ids)
+            - official_claims_matching_acquisitions(
+                repository,
+                {definition.metric_id: series},
+                definition_version=definition.definition_version,
+            )
+        )
+    if (
+        definition.metric_id in INTERBANK_METRICS
+        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
+        incomplete_source_claims.update(
+            {point.selected_claim_id for point in series if point.selected_claim_id is not None}
+            - interbank_claims_matching_acquisitions(
+                repository,
+                {definition.metric_id: series},
+                definition_version=definition.definition_version,
+            )
+        )
     warrant_latest_period = None
+    if (
+        definition.metric_id in TREASURY_METRICS
+        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
+        incomplete_source_claims.update(
+            {point.selected_claim_id for point in series if point.selected_claim_id is not None}
+            - treasury_claims_matching_acquisitions(
+                repository,
+                {definition.metric_id: series},
+                definition_version=definition.definition_version,
+            )
+        )
     warrant_history = None
     if (
         definition.metric_id == "CN_FUTURES_WARRANTS"
@@ -1895,7 +2039,7 @@ def _credit_impulse_proxy(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if point.dimensions == {"measure": "monthly_increment"} and _certified_point(point)
+        if point.dimensions == {"measure": "monthly_increment"} and point.claims
     ]
     reported_ytd_social_financing = [
         point
@@ -1905,7 +2049,7 @@ def _credit_impulse_proxy(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if point.dimensions == {"measure": "ytd_increment"} and _certified_point(point)
+        if point.dimensions == {"measure": "ytd_increment"} and point.claims
     ]
     reported_quarterly_gdp = [
         point
@@ -1916,7 +2060,7 @@ def _credit_impulse_proxy(
             definition_version=definition_version,
         )
         if point.dimensions == {"aggregate": "total", "measure": "nominal_quarterly_level"}
-        and _certified_point(point)
+        and point.claims
     ]
     allow_ytd_gdp = configured_formula_version in {
         "credit-impulse-rolling-share-v0001",
@@ -1932,7 +2076,7 @@ def _credit_impulse_proxy(
                 definition_version=definition_version,
             )
             if point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
-            and _certified_point(point)
+            and point.claims
         ]
         if allow_ytd_gdp
         else []
@@ -1941,6 +2085,7 @@ def _credit_impulse_proxy(
     gdp_input_points: list[MetricSeriesPoint]
     gdp_numbers: list[float]
     gdp_input_measure: str
+    quarter_values: dict[str, float] = {}
     if len(reported_quarterly_gdp) >= 8:
         gdp_period_points = reported_quarterly_gdp[-8:]
         gdp_input_points = gdp_period_points
@@ -1952,7 +2097,10 @@ def _credit_impulse_proxy(
         gdp_input_measure = "nominal_quarterly_level"
     else:
         derived_quarters = _quarter_levels_from_ytd(reported_ytd_gdp)
-        if len(derived_quarters) < 8:
+        if (
+            len(derived_quarters) < 8
+            or derived_quarters[-1][0].period_end != reported_ytd_gdp[-1].period_end
+        ):
             return None, formula, ()
         selected_quarters = derived_quarters[-8:]
         gdp_period_points = [point for point, _value, _inputs in selected_quarters]
@@ -1966,6 +2114,11 @@ def _credit_impulse_proxy(
             point for point in reported_ytd_gdp if point.selected_claim_id in selected_input_ids
         ]
         gdp_input_measure = "nominal_ytd_level"
+        quarter_values = {
+            point.selected_claim_id: value
+            for point, value, _inputs in selected_quarters
+            if point.selected_claim_id is not None
+        }
     social_input_points: list[MetricSeriesPoint]
     social_numbers: list[float]
     social_period_points: list[MetricSeriesPoint]
@@ -1978,7 +2131,10 @@ def _credit_impulse_proxy(
         social_input_points = social_period_points
     elif configured_formula_version == "credit-impulse-ytd-flow-v0002":
         monthly_flows = _monthly_flows_from_ytd(reported_ytd_social_financing)
-        if len(monthly_flows) < 24:
+        if (
+            len(monthly_flows) < 24
+            or monthly_flows[-1][0].period_end != reported_ytd_social_financing[-1].period_end
+        ):
             return None, formula, ()
         selected_flows = monthly_flows[-24:]
         social_period_points = [point for point, _value, _inputs in selected_flows]
@@ -2003,6 +2159,23 @@ def _credit_impulse_proxy(
         return None, {**formula, "status": "nonconsecutive_gdp_inputs"}, ()
     if len(social_numbers) != 24 or len(gdp_numbers) != 8:
         return None, formula, ()
+    if any(not _certified_point(point) for point in (*social_input_points, *gdp_input_points)):
+        return None, formula, ()
+    if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        selected_parent_ids = {
+            point.selected_claim_id for point in (*social_input_points, *gdp_input_points)
+        }
+        valid_parents = official_claims_matching_acquisitions(
+            repository,
+            {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)},
+            definition_version=definition_version,
+        )
+        if selected_parent_ids - valid_parents:
+            return None, {**formula, "status": "incomplete_source_artifacts"}, ()
+        if quarter_values and set(quarter_values) - official_gdp_quarters_matching_baselines(
+            repository, quarter_values
+        ):
+            return None, {**formula, "status": "incomparable_gdp_vintages"}, ()
     current_social_financing = sum(social_numbers[-12:])
     previous_social_financing = sum(social_numbers[:12])
     current_gdp = sum(gdp_numbers[-4:])
@@ -2159,7 +2332,9 @@ def _quarter_levels_from_ytd(
             or previous_value is None
         ):
             continue
-        quarter_value = float(value) - float(previous_value)
+        # Decimal source levels must not gain binary subtraction tails before
+        # comparison with the same release's announced quarterly amount.
+        quarter_value = float(Decimal(str(value)) - Decimal(str(previous_value)))
         if quarter_value <= 0:
             continue
         derived.append((point, quarter_value, (previous, point)))

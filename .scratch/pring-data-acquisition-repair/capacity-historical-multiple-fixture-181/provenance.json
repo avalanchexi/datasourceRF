@@ -1,0 +1,341 @@
+{
+  "database": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/pring-cycle.sqlite3",
+  "database_sha256": "22269ee3532be8b79b5944eab910ac2b444a95c17d4985bd03826a03f51b9d55",
+  "integrity": "ok",
+  "models": [
+    {
+      "catalog": "synthetic-metric-catalog-admission-v1-comparison",
+      "model_id": "model-reviewed-6acd3729daf32404e3afaa585285e782c9cbc3891997ae22f8af37980ec464fa",
+      "manifest_sha256": "c1960821bd672b641ba16427c67062b0471b4f40ae1f227ad33c716dc2380aa8",
+      "catalog_version": "synthetic-metric-catalog-admission-v1-comparison"
+    },
+    {
+      "catalog": "synthetic-metric-catalog-admission-v1-candidate",
+      "model_id": "model-reviewed-d42e6481a06db63d43fd3d6884fdd6f6d957c5b1218ac655e5ccc062fb40d83b",
+      "manifest_sha256": "46062c7a77d768f23a2d81997654e98d33d00704d8245e7a187422160ee98a98",
+      "catalog_version": "synthetic-metric-catalog-admission-v1-candidate"
+    }
+  ],
+  "artifacts": [
+    {
+      "sha256": "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/0c/0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/0c/0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "original_valid": true,
+      "bytes": 128195
+    },
+    {
+      "sha256": "174dcc88565ff31ad7959a9ac85e828d7bfbe14281469631d598c41c3143e091",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/17/174dcc88565ff31ad7959a9ac85e828d7bfbe14281469631d598c41c3143e091",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/17/174dcc88565ff31ad7959a9ac85e828d7bfbe14281469631d598c41c3143e091",
+      "original_valid": true,
+      "bytes": 63
+    },
+    {
+      "sha256": "19d6e0f6d21a2d7cead39219b7282bbf8502550d669813b044b3e2b22667fe6b",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/19/19d6e0f6d21a2d7cead39219b7282bbf8502550d669813b044b3e2b22667fe6b",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/19/19d6e0f6d21a2d7cead39219b7282bbf8502550d669813b044b3e2b22667fe6b",
+      "original_valid": true,
+      "bytes": 35259
+    },
+    {
+      "sha256": "36ce1f10303db4c5f8e5c6744b8c454eef4ad453f2b3015c2df553e54ff2a184",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/36/36ce1f10303db4c5f8e5c6744b8c454eef4ad453f2b3015c2df553e54ff2a184",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/36/36ce1f10303db4c5f8e5c6744b8c454eef4ad453f2b3015c2df553e54ff2a184",
+      "original_valid": true,
+      "bytes": 1240
+    },
+    {
+      "sha256": "403fb407ccef3e84bffa7780f87d3391dada492629dde3f9f95566ffe2eb2fc5",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/40/403fb407ccef3e84bffa7780f87d3391dada492629dde3f9f95566ffe2eb2fc5",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/40/403fb407ccef3e84bffa7780f87d3391dada492629dde3f9f95566ffe2eb2fc5",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/43/433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/43/433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "original_valid": true,
+      "bytes": 1749
+    },
+    {
+      "sha256": "670a7741b5fd612a5ae24b32fbd056cc7022e647fa75174fe7f0c2a7e4b1f007",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/67/670a7741b5fd612a5ae24b32fbd056cc7022e647fa75174fe7f0c2a7e4b1f007",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/67/670a7741b5fd612a5ae24b32fbd056cc7022e647fa75174fe7f0c2a7e4b1f007",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "6cc50dd33ef5e350df8d514b0d4984043fea9cbf145f820d9bb4acc80ae73e37",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/6c/6cc50dd33ef5e350df8d514b0d4984043fea9cbf145f820d9bb4acc80ae73e37",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/6c/6cc50dd33ef5e350df8d514b0d4984043fea9cbf145f820d9bb4acc80ae73e37",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "71b0293bbb27913b5e622117ecca5062027d5cfd143443fded35dcfd0816ff26",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/71/71b0293bbb27913b5e622117ecca5062027d5cfd143443fded35dcfd0816ff26",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/71/71b0293bbb27913b5e622117ecca5062027d5cfd143443fded35dcfd0816ff26",
+      "original_valid": true,
+      "bytes": 1241
+    },
+    {
+      "sha256": "8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/89/8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/89/8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "958261cf766fbd9ade5ac797c56d71e550bfd497f40dbec2f720a72476fb6d8c",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/95/958261cf766fbd9ade5ac797c56d71e550bfd497f40dbec2f720a72476fb6d8c",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/95/958261cf766fbd9ade5ac797c56d71e550bfd497f40dbec2f720a72476fb6d8c",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "ae870e1c03927496538b3dcf1f9521717205cfc32f3763d820ad95a4c9325c70",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/ae/ae870e1c03927496538b3dcf1f9521717205cfc32f3763d820ad95a4c9325c70",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/ae/ae870e1c03927496538b3dcf1f9521717205cfc32f3763d820ad95a4c9325c70",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b3/b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b3/b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "original_valid": true,
+      "bytes": 61
+    },
+    {
+      "sha256": "b535c1563dd9fc0a2c0e5ea2eae3f56a075538ff9c6b12206409b44b3cc6c7cd",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b5/b535c1563dd9fc0a2c0e5ea2eae3f56a075538ff9c6b12206409b44b3cc6c7cd",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b5/b535c1563dd9fc0a2c0e5ea2eae3f56a075538ff9c6b12206409b44b3cc6c7cd",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "bf4a7eb5aaeea7b34018a027ac3b9b1efc615503ff1354821def4ad1b75a4fb4",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/bf/bf4a7eb5aaeea7b34018a027ac3b9b1efc615503ff1354821def4ad1b75a4fb4",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/bf/bf4a7eb5aaeea7b34018a027ac3b9b1efc615503ff1354821def4ad1b75a4fb4",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c2/c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c2/c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "original_valid": true,
+      "bytes": 12902
+    },
+    {
+      "sha256": "c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c7/c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-green-159/test_capacity_q1_public_replay1/runtime/data/artifacts/sha256/c7/c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "original_valid": false,
+      "bytes": 1246
+    },
+    {
+      "sha256": "d5e0ff6461a7d85f619334b5f839301d886a5db360b82eaf09d465526700142d",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5e0ff6461a7d85f619334b5f839301d886a5db360b82eaf09d465526700142d",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5e0ff6461a7d85f619334b5f839301d886a5db360b82eaf09d465526700142d",
+      "original_valid": true,
+      "bytes": 35244
+    },
+    {
+      "sha256": "d5fa533b39af77343d7709a00873a8a1f5933cf59c89223eb96431c0284107ab",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5fa533b39af77343d7709a00873a8a1f5933cf59c89223eb96431c0284107ab",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5fa533b39af77343d7709a00873a8a1f5933cf59c89223eb96431c0284107ab",
+      "original_valid": true,
+      "bytes": 1749
+    },
+    {
+      "sha256": "d6b7dee58f99475846b854d50c712c776c961996996a5ad2bc57d9cf0f73ba30",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d6/d6b7dee58f99475846b854d50c712c776c961996996a5ad2bc57d9cf0f73ba30",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d6/d6b7dee58f99475846b854d50c712c776c961996996a5ad2bc57d9cf0f73ba30",
+      "original_valid": true,
+      "bytes": 2237
+    },
+    {
+      "sha256": "e2a6a1e3c2073a1a5b7d4c358ffad68731d758f37f32f4f990ac1a6483503ead",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2a6a1e3c2073a1a5b7d4c358ffad68731d758f37f32f4f990ac1a6483503ead",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2a6a1e3c2073a1a5b7d4c358ffad68731d758f37f32f4f990ac1a6483503ead",
+      "original_valid": true,
+      "bytes": 128195
+    },
+    {
+      "sha256": "e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "original_valid": true,
+      "bytes": 1601
+    }
+  ],
+  "scope": "preserved pre-contract synthetic catalog; no database row changed",
+  "verified_artifacts": [
+    {
+      "sha256": "0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/0c/0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/0c/0c66284a8d0420a6168c432e87e7e4ee31bf4002896634e5253780d928cdb02a",
+      "original_valid": true,
+      "bytes": 128195
+    },
+    {
+      "sha256": "174dcc88565ff31ad7959a9ac85e828d7bfbe14281469631d598c41c3143e091",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/17/174dcc88565ff31ad7959a9ac85e828d7bfbe14281469631d598c41c3143e091",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/17/174dcc88565ff31ad7959a9ac85e828d7bfbe14281469631d598c41c3143e091",
+      "original_valid": true,
+      "bytes": 63
+    },
+    {
+      "sha256": "19d6e0f6d21a2d7cead39219b7282bbf8502550d669813b044b3e2b22667fe6b",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/19/19d6e0f6d21a2d7cead39219b7282bbf8502550d669813b044b3e2b22667fe6b",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/19/19d6e0f6d21a2d7cead39219b7282bbf8502550d669813b044b3e2b22667fe6b",
+      "original_valid": true,
+      "bytes": 35259
+    },
+    {
+      "sha256": "36ce1f10303db4c5f8e5c6744b8c454eef4ad453f2b3015c2df553e54ff2a184",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/36/36ce1f10303db4c5f8e5c6744b8c454eef4ad453f2b3015c2df553e54ff2a184",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/36/36ce1f10303db4c5f8e5c6744b8c454eef4ad453f2b3015c2df553e54ff2a184",
+      "original_valid": true,
+      "bytes": 1240
+    },
+    {
+      "sha256": "403fb407ccef3e84bffa7780f87d3391dada492629dde3f9f95566ffe2eb2fc5",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/40/403fb407ccef3e84bffa7780f87d3391dada492629dde3f9f95566ffe2eb2fc5",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/40/403fb407ccef3e84bffa7780f87d3391dada492629dde3f9f95566ffe2eb2fc5",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/43/433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/43/433f26cf518cc9862b6d66b335f2dfdde4290da06ff5f12916f597627011df12",
+      "original_valid": true,
+      "bytes": 1749
+    },
+    {
+      "sha256": "670a7741b5fd612a5ae24b32fbd056cc7022e647fa75174fe7f0c2a7e4b1f007",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/67/670a7741b5fd612a5ae24b32fbd056cc7022e647fa75174fe7f0c2a7e4b1f007",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/67/670a7741b5fd612a5ae24b32fbd056cc7022e647fa75174fe7f0c2a7e4b1f007",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "6cc50dd33ef5e350df8d514b0d4984043fea9cbf145f820d9bb4acc80ae73e37",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/6c/6cc50dd33ef5e350df8d514b0d4984043fea9cbf145f820d9bb4acc80ae73e37",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/6c/6cc50dd33ef5e350df8d514b0d4984043fea9cbf145f820d9bb4acc80ae73e37",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "71b0293bbb27913b5e622117ecca5062027d5cfd143443fded35dcfd0816ff26",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/71/71b0293bbb27913b5e622117ecca5062027d5cfd143443fded35dcfd0816ff26",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/71/71b0293bbb27913b5e622117ecca5062027d5cfd143443fded35dcfd0816ff26",
+      "original_valid": true,
+      "bytes": 1241
+    },
+    {
+      "sha256": "8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/89/8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/89/8987db4c3c9f4bdc4453770bd3b25b088e3a2a37159c0cfc56a38a06699df4c5",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "958261cf766fbd9ade5ac797c56d71e550bfd497f40dbec2f720a72476fb6d8c",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/95/958261cf766fbd9ade5ac797c56d71e550bfd497f40dbec2f720a72476fb6d8c",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/95/958261cf766fbd9ade5ac797c56d71e550bfd497f40dbec2f720a72476fb6d8c",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "ae870e1c03927496538b3dcf1f9521717205cfc32f3763d820ad95a4c9325c70",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/ae/ae870e1c03927496538b3dcf1f9521717205cfc32f3763d820ad95a4c9325c70",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/ae/ae870e1c03927496538b3dcf1f9521717205cfc32f3763d820ad95a4c9325c70",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b3/b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b3/b3181b37f4f777b80cde0d8655020a6fc498b863da8a77c5e9ec7bbd874d6557",
+      "original_valid": true,
+      "bytes": 61
+    },
+    {
+      "sha256": "b535c1563dd9fc0a2c0e5ea2eae3f56a075538ff9c6b12206409b44b3cc6c7cd",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b5/b535c1563dd9fc0a2c0e5ea2eae3f56a075538ff9c6b12206409b44b3cc6c7cd",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/b5/b535c1563dd9fc0a2c0e5ea2eae3f56a075538ff9c6b12206409b44b3cc6c7cd",
+      "original_valid": true,
+      "bytes": 4219
+    },
+    {
+      "sha256": "bf4a7eb5aaeea7b34018a027ac3b9b1efc615503ff1354821def4ad1b75a4fb4",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/bf/bf4a7eb5aaeea7b34018a027ac3b9b1efc615503ff1354821def4ad1b75a4fb4",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/bf/bf4a7eb5aaeea7b34018a027ac3b9b1efc615503ff1354821def4ad1b75a4fb4",
+      "original_valid": true,
+      "bytes": 1853
+    },
+    {
+      "sha256": "c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c2/c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c2/c25614f3c356c9cb807de7a40b401bc0af0f5365927d652278b53556c7801266",
+      "original_valid": true,
+      "bytes": 12902
+    },
+    {
+      "sha256": "c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c7/c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-green-159/test_capacity_q1_public_replay1/runtime/data/artifacts/sha256/c7/c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "original_valid": false,
+      "bytes": 1246
+    },
+    {
+      "sha256": "d5e0ff6461a7d85f619334b5f839301d886a5db360b82eaf09d465526700142d",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5e0ff6461a7d85f619334b5f839301d886a5db360b82eaf09d465526700142d",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5e0ff6461a7d85f619334b5f839301d886a5db360b82eaf09d465526700142d",
+      "original_valid": true,
+      "bytes": 35244
+    },
+    {
+      "sha256": "d5fa533b39af77343d7709a00873a8a1f5933cf59c89223eb96431c0284107ab",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5fa533b39af77343d7709a00873a8a1f5933cf59c89223eb96431c0284107ab",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d5/d5fa533b39af77343d7709a00873a8a1f5933cf59c89223eb96431c0284107ab",
+      "original_valid": true,
+      "bytes": 1749
+    },
+    {
+      "sha256": "d6b7dee58f99475846b854d50c712c776c961996996a5ad2bc57d9cf0f73ba30",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d6/d6b7dee58f99475846b854d50c712c776c961996996a5ad2bc57d9cf0f73ba30",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/d6/d6b7dee58f99475846b854d50c712c776c961996996a5ad2bc57d9cf0f73ba30",
+      "original_valid": true,
+      "bytes": 2237
+    },
+    {
+      "sha256": "e2a6a1e3c2073a1a5b7d4c358ffad68731d758f37f32f4f990ac1a6483503ead",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2a6a1e3c2073a1a5b7d4c358ffad68731d758f37f32f4f990ac1a6483503ead",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2a6a1e3c2073a1a5b7d4c358ffad68731d758f37f32f4f990ac1a6483503ead",
+      "original_valid": true,
+      "bytes": 128195
+    },
+    {
+      "sha256": "e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/e2/e2b268d24e0b4c43f54bc1656828dc74013371ce66733c018df41e25eafd4180",
+      "original_valid": true,
+      "bytes": 1601
+    }
+  ],
+  "restored_artifacts": [
+    {
+      "sha256": "c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "original": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-red-157/test_capacity_q1_public_replay0/runtime/data/artifacts/sha256/c7/c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "verified_source": "/home/tywin/.cache/pring-cycle/verification/cpi-native-volume-20260908/official-capacity-role-green-159/test_capacity_q1_public_replay1/runtime/data/artifacts/sha256/c7/c7766b1a1ebff549589e06d533317adec66d0aef61c92fa61b9e148903ffd9fd",
+      "original_valid": false,
+      "bytes": 1246
+    }
+  ]
+}

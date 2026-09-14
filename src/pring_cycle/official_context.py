@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import calendar
 import hashlib
+import json
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -12,12 +13,14 @@ from urllib.parse import urlsplit
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import Acquired, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
+    MetricSeriesPoint,
     SourceClaimInput,
     publication_times,
 )
@@ -87,6 +90,25 @@ _FAMILY_METRICS = {
     family: frozenset(descriptor.metric_ids)
     for family, descriptor in OFFICIAL_CONTEXT_FAMILIES.items()
 }
+
+OFFICIAL_CONTEXT_INTEGRITY_METRICS = frozenset(
+    metric_id
+    for family in (
+        "nbs_gdp",
+        "nbs_pmi",
+        "nbs_core_cpi",
+        "nbs_ppi",
+        "nbs_industrial_value_added",
+        "nbs_industrial_finance",
+        "nbs_capacity_utilization",
+        "pbc_money",
+        "pbc_social_financing",
+        "pbc_loan_structure",
+        "pbc_tool_liquidity_monthly",
+        "pbc_omo_notice",
+    )
+    for metric_id in OFFICIAL_CONTEXT_FAMILIES[family].metric_ids
+)
 
 
 @dataclass(frozen=True)
@@ -236,6 +258,147 @@ def official_family_for_metrics(metric_ids: tuple[str, ...]) -> str:
     return matches[0]
 
 
+def parse_official_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> ParsedOfficialContextRelease:
+    """Rebuild the complete official release recorded by an acquisition."""
+    if (
+        receipt.state != "validated"
+        or receipt.api_name not in {"document_import", "official_http_get"}
+        or receipt.parser_version != "official-context-parser-v0004"
+        or receipt.fields != ""
+        or receipt.received_at is None
+    ):
+        raise ValueError("official_acquisition_identity_mismatch")
+    parsed = parse_official_context_document(
+        raw,
+        family=receipt.parameters["family"],
+        source_url=receipt.parameters["source_url"],
+        expected_period=receipt.parameters["period"],
+        fetched_at=receipt.received_at,
+    )
+    if receipt.provider != parsed.provider:
+        raise ValueError("official_acquisition_provider_mismatch")
+    normalized = json.dumps(
+        asdict(parsed),
+        default=str,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode()
+    if hashlib.sha256(normalized).hexdigest() != receipt.normalized_hash:
+        raise ValueError("official_acquisition_normalized_mismatch")
+    return parsed
+
+
+def official_claims_matching_acquisitions(
+    repository: EvidenceRepository,
+    points_by_metric: Mapping[str, tuple[MetricSeriesPoint, ...]],
+    *,
+    definition_version: str,
+) -> set[str]:
+    """Match selected macro values to every linked official announcement."""
+    selected_points = {
+        point.selected_claim_id: (metric_id, point)
+        for metric_id, points in points_by_metric.items()
+        for point in points
+        if point.selected_claim_id is not None
+    }
+    checked: dict[str, ParsedOfficialContextRelease | None] = {}
+    valid_claim_ids: set[str] = set()
+    for claim_id, acquisitions in repository.source_claim_acquisitions_many(
+        tuple(selected_points)
+    ).items():
+        valid = bool(acquisitions)
+        metric_id, point = selected_points[claim_id]
+        claim = next((item for item in point.claims if item.claim_id == claim_id), None)
+        for acquisition in acquisitions:
+            acquisition_id = acquisition.receipt.acquisition_id
+            if acquisition_id not in checked:
+                try:
+                    rebuilt = parse_official_acquisition(acquisition.receipt, acquisition.raw)
+                    if rebuilt.family == "nbs_gdp":
+                        _validate_registered_gdp_table(acquisition.raw, rebuilt.period)
+                    checked[acquisition_id] = rebuilt
+                except (LookupError, TypeError, ValueError):
+                    checked[acquisition_id] = None
+            parsed = checked[acquisition_id]
+            if (
+                parsed is None
+                or claim is None
+                or claim.source_reference
+                != f"{parsed.source_url}#sha256={acquisition.receipt.raw_hash}"
+                or (
+                    (claim.release_at is not None or claim.public_available_at is not None)
+                    and (claim.release_at, claim.public_available_at)
+                    != (parsed.release_at, parsed.public_available_at)
+                )
+                or not any(
+                    scalar.metric_id == metric_id
+                    and scalar.dimensions == point.dimensions
+                    and scalar.value == point.selected_value
+                    and scalar.period_start == point.period_start
+                    and scalar.period_end == point.period_end
+                    for scalar in parsed.scalars
+                )
+            ):
+                valid = False
+                break
+        if valid:
+            valid_claim_ids.add(claim_id)
+    if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        mapped_claim_ids = tuple(
+            claim_id
+            for claim_id, (metric_id, point) in selected_points.items()
+            if metric_id == "CN_CAPACITY_UTILIZATION"
+            and point.period_end.endswith("-03-31")
+            and point.dimensions.get("measure") == "ytd_rate"
+        )
+        valid_mappings = repository.source_claims_matching_registered_contract(
+            mapped_claim_ids, definition_version=definition_version
+        )
+        valid_claim_ids.difference_update(set(mapped_claim_ids) - valid_mappings)
+    return valid_claim_ids
+
+
+def official_gdp_quarters_matching_baselines(
+    repository: EvidenceRepository,
+    quarter_values: Mapping[str, float],
+) -> set[str]:
+    """Validate YTD differences against each selected release's nominal quarter.
+
+    This is a constraint on cross-release arithmetic, not a new observed metric.
+    Callers must also validate every selected YTD parent, including the baseline.
+    """
+    comparable: set[str] = set()
+    for claim_id, acquisitions in repository.source_claim_acquisitions_many(
+        tuple(quarter_values)
+    ).items():
+        if not acquisitions:
+            continue
+        for acquisition in acquisitions:
+            try:
+                parsed = parse_official_acquisition(acquisition.receipt, acquisition.raw)
+                if parsed.family != "nbs_gdp":
+                    break
+                _validate_registered_gdp_table(acquisition.raw, parsed.period)
+                parser = _OfficialHtmlParser()
+                parser.feed(_decode_document(acquisition.raw))
+                table = _table_with_first_column_members(
+                    parser.tables, {"GDP", "第一产业", "第二产业", "第三产业"}
+                )
+                row = _unique_first_cell_row(table, "GDP")
+                announced_quarter = _bounded_number(row[1], minimum=0)
+            except (LookupError, TypeError, ValueError):
+                break
+            if announced_quarter != quarter_values[claim_id]:
+                break
+        else:
+            comparable.add(claim_id)
+    return comparable
+
+
 def ingest_official_context_document(
     paths: RuntimePaths,
     content: bytes,
@@ -289,6 +452,8 @@ def ingest_acquired_official_release(
     content = AcquisitionRepository(paths.database, paths.artifacts).read_content(
         receipt.acquisition_id, "raw"
     )
+    if parsed.family == "nbs_gdp" and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        _validate_registered_gdp_table(content, parsed.period)
     artifact = store_artifact(
         paths.database, paths.artifacts, content, "text/html", parsed.source_url
     )
@@ -700,6 +865,40 @@ def _parse_ppi(
         for row in (selected_rows[label],)
         for source_suffix, measure, index in measure_columns
     )
+
+
+def _validate_registered_gdp_table(content: bytes, period: str) -> None:
+    """Check new-catalog source semantics without rewriting the v4 parser contract."""
+    parser = _OfficialHtmlParser()
+    parser.feed(_decode_document(content))
+    members = {"GDP", "第一产业", "第二产业", "第三产业"}
+    table = _table_with_first_column_members(parser.tables, members)
+    header = tuple(_compact_text(cell) for cell in table[0])
+    if header != ("", "绝对额（亿元）", "比上年同期增长（%）"):
+        raise ValueError("registered_gdp_table_contract_mismatch")
+    quarter = int(period[-1])
+    if quarter != 1:
+        current, cumulative = {
+            2: ("二季度", "上半年"),
+            3: ("三季度", "前三季度"),
+            4: ("四季度", "全年"),
+        }[quarter]
+        if tuple(_compact_text(cell) for cell in table[1]) != (
+            current,
+            cumulative,
+            current,
+            cumulative,
+        ):
+            raise ValueError("registered_gdp_table_contract_mismatch")
+    if any(
+        len(_unique_first_cell_row(table, member)) != (3 if quarter == 1 else 5)
+        for member in members
+    ):
+        raise ValueError("registered_gdp_table_contract_mismatch")
+    table_text = "".join(_compact_text(cell) for row in table for cell in row)
+    bases = re.findall(r"绝对额按([^，,；;。]+)[，,]增长速度按([^，,；;。]+)", table_text)
+    if bases != [("现价计算", "不变价计算")]:
+        raise ValueError("registered_gdp_table_contract_mismatch")
 
 
 def _parse_gdp(
@@ -1116,6 +1315,44 @@ def _parse_industrial_finance_live(
             )
         )
     return tuple(scalars)
+
+
+def capacity_q1_alias_value(content: bytes, period: str) -> float:
+    """Qualify the single Q1 cell without changing the frozen v0004 parser."""
+    if re.fullmatch(r"[0-9]{4}-Q1", period) is None:
+        raise ValueError("capacity_mapping_requires_q1")
+    parser = _OfficialHtmlParser()
+    parser.feed(_decode_document(content))
+    tables = _unique_tables(parser.tables)
+    # An independent cumulative column must retain its own value and review.
+    if any(
+        table
+        and (
+            tuple(_compact_text(cell) for cell in table[0])
+            == ("行业", "当季（%）", "同比变化（百分点）", "累计（%）")
+            or (
+                len(table[0]) == 3
+                and _compact_text(table[0][0]) == "行业"
+                and _compact_text(table[0][1]) == "一季度"
+            )
+        )
+        for table in tables
+    ):
+        raise ValueError("capacity_mapping_independent_ytd_column")
+    matching = [
+        table
+        for table in tables
+        if len(table) >= 3
+        and tuple(_compact_text(cell) for cell in table[0]) == ("行业", "一季度")
+        and tuple(_compact_text(cell) for cell in table[1])
+        == ("产能利用率（%）", "比上年同期增减（百分点）")
+    ]
+    if len(matching) != 1:
+        raise ValueError("capacity_mapping_table_identity_mismatch")
+    rows = [row for row in matching[0][2:] if row and row[0] == "工业"]
+    if len(rows) != 1 or len(rows[0]) != 3:
+        raise ValueError("capacity_mapping_row_identity_mismatch")
+    return _percent(rows[0][1])
 
 
 def _parse_capacity_utilization(

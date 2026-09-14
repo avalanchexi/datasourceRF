@@ -29,6 +29,7 @@ from pring_cycle.domain.trend import (
     evaluate_trend_history,
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
 from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES
 from pring_cycle.market_breadth import (
     DAILY_BREADTH_MEASURES,
@@ -52,9 +53,14 @@ from pring_cycle.model_outputs import (
     validate_replay_output,
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.official_context import (
+    OFFICIAL_CONTEXT_INTEGRITY_METRICS,
+    official_claims_matching_acquisitions,
+)
 from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.source_adapters import CoreInputValidator
+from pring_cycle.treasury_context import TREASURY_METRICS, treasury_claims_matching_acquisitions
 from pring_cycle.tushare_context import (
     MARKET_INDEX_IDENTITIES,
     parse_market_index_acquisition,
@@ -650,20 +656,11 @@ def context_replay_gaps(
     scope = ContextReplayScope.from_manifests(candidate_manifest, comparison_manifest)
     candidate = scope.candidate
     candidate_definitions = {item.metric_id: item for item in candidate.metric_definitions}
-    formula_inputs = {
-        metric_id for key in scope.formula_keys for metric_id in CONTEXT_FORMULA_INPUTS.get(key, ())
-    }
     uncertified = sorted(
         metric_id
         for metric_id in scope.requires_certification
         if (definition := candidate_definitions.get(metric_id)) is None
-        or (
-            (
-                definition.priority == "P1"
-                or (definition.priority == "P2" and metric_id in formula_inputs)
-            )
-            and definition.certification_status != "certified"
-        )
+        or definition.certification_status != "certified"
     )
     if not uncertified:
         return ()
@@ -727,7 +724,7 @@ def evaluate_context_replay(
         ),
     )
     for side, definition_version, definitions in replay_sources:
-        for metric_id in sorted(source_metrics):
+        for metric_id in sorted(source_metrics & scope.requires_certification):
             definition = definitions.get(metric_id)
             if (
                 definition is None
@@ -759,10 +756,10 @@ def evaluate_context_replay(
         if (version := candidate.formula_versions.get(key)) is not None
     }
     if gaps:
-        if candidate_formula_versions:
+        missing_formulas = scope.required_formula_keys & candidate_formula_versions.keys()
+        if missing_formulas:
             gaps.append(
-                "candidate_context_formula_output_missing:"
-                + ",".join(sorted(candidate_formula_versions))
+                "candidate_context_formula_output_missing:" + ",".join(sorted(missing_formulas))
             )
         return ContextReplayEvaluation(
             context_output_differences=0,
@@ -816,7 +813,7 @@ def evaluate_context_replay(
     output_days: list[dict[str, Any]] = []
     for cutoff in cutoffs:
         for side, definition_version, definitions in replay_sources:
-            for metric_id in sorted(source_metrics):
+            for metric_id in sorted(source_metrics & scope.requires_certification):
                 definition = definitions.get(metric_id)
                 if (
                     definition is None
@@ -900,7 +897,8 @@ def evaluate_context_replay(
                 item for item in formula_documents if item.get("status") in {"available", "current"}
             ]
             if not available:
-                gaps.append(f"candidate_context_formula_output_missing:{key}")
+                if key in scope.required_formula_keys:
+                    gaps.append(f"candidate_context_formula_output_missing:{key}")
             elif not any(
                 isinstance(item.get("input_observation_version_ids"), list)
                 and bool(item["input_observation_version_ids"])
@@ -1196,6 +1194,31 @@ def _context_selection_gaps(
     if metric_id == "CN_LPR_1Y_5Y" and definition_version not in BUILTIN_CATALOG_VERSIONS:
         valid_lpr_claims = lpr_claims_matching_acquisitions(repository, tuple(validation_points))
         if any(point.selected_claim_id not in valid_lpr_claims for point in validation_points):
+            statuses.add("invalid")
+    if (
+        metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS
+        and definition_version not in BUILTIN_CATALOG_VERSIONS
+    ):
+        valid_official_claims = official_claims_matching_acquisitions(
+            repository, {metric_id: tuple(validation_points)}, definition_version=definition_version
+        )
+        if any(point.selected_claim_id not in valid_official_claims for point in validation_points):
+            statuses.add("invalid")
+    if metric_id in INTERBANK_METRICS and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        valid_interbank_claims = interbank_claims_matching_acquisitions(
+            repository,
+            {metric_id: tuple(validation_points)},
+            definition_version=definition_version,
+        )
+        if any(
+            point.selected_claim_id not in valid_interbank_claims for point in validation_points
+        ):
+            statuses.add("invalid")
+    if metric_id in TREASURY_METRICS and definition_version not in BUILTIN_CATALOG_VERSIONS:
+        valid_treasury_claims = treasury_claims_matching_acquisitions(
+            repository, {metric_id: tuple(validation_points)}, definition_version=definition_version
+        )
+        if any(point.selected_claim_id not in valid_treasury_claims for point in validation_points):
             statuses.add("invalid")
     if metric_id == "CN_MARGIN_BALANCE" and definition_version not in BUILTIN_CATALOG_VERSIONS:
         valid_margin_claims = tushare_claims_matching_acquisitions(

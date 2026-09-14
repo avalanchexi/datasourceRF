@@ -3,8 +3,9 @@ from __future__ import annotations
 import codecs
 import csv
 import io
+import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime
 from email.message import Message
@@ -12,13 +13,22 @@ from math import isfinite
 from urllib.error import HTTPError
 from urllib.request import Request
 
-from pring_cycle.acquisition import AcquisitionRepository, utc_now
+from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
-from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.evidence import (
+    EvidenceRepository,
+    EvidenceValueState,
+    MetricSeriesPoint,
+    SourceClaimInput,
+)
 from pring_cycle.http_transport import open_no_redirects
 from pring_cycle.runtime import RuntimePaths
 
 _FIELDS = {"2 Yr": "UST2Y_NOMINAL_YIELD", "10 Yr": "UST10Y_NOMINAL_YIELD"}
+TREASURY_SOURCE_CODES = {
+    metric: (f"treasury_nominal_yields_csv.{field}",) for field, metric in _FIELDS.items()
+}
+TREASURY_METRICS = frozenset(TREASURY_SOURCE_CODES)
 _PROVIDER = "U.S. Department of the Treasury"
 _MAX_BYTES = 4_000_000
 
@@ -62,7 +72,7 @@ class TreasuryIngestionResult:
     condition: str | None
 
 
-def _endpoint(year: int) -> str:
+def treasury_yield_endpoint(year: int) -> str:
     return (
         "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
         f"daily-treasury-rates.csv/{year}/all?type=daily_treasury_yield_curve"
@@ -136,13 +146,124 @@ def parse_treasury_yield_csv(
         raise ValueError("treasury_csv_empty_document")
     return TreasuryYieldBatch(
         start_date.year,
-        _endpoint(start_date.year),
+        treasury_yield_endpoint(start_date.year),
         "America/New_York",
         "percent",
         tuple(sorted(points, key=lambda item: (item.business_date, item.metric_id))),
         len(seen),
         latest,
     )
+
+
+def _parse_treasury_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes, normalized: bytes
+) -> TreasuryYieldBatch:
+    parameters = receipt.parameters
+    if (
+        receipt.provider != _PROVIDER
+        or receipt.api_name != "treasury_nominal_yields_csv"
+        or receipt.fields != "Date,2 Yr,10 Yr"
+        or receipt.parser_version != "treasury-nominal-csv-parser-v0001"
+        or set(parameters)
+        != {"endpoint", "source_year", "start_date", "period", "definition_version"}
+    ):
+        raise ValueError("treasury_acquisition_identity_mismatch")
+    start = date.fromisoformat(parameters["start_date"])
+    end = date.fromisoformat(parameters["period"])
+    endpoint = treasury_yield_endpoint(start.year)
+    if (
+        parameters["source_year"] != str(start.year)
+        or parameters["endpoint"] != endpoint
+        or parameters["start_date"] != start.isoformat()
+        or parameters["period"] != end.isoformat()
+    ):
+        raise ValueError("treasury_acquisition_period_mismatch")
+    document = json.loads(normalized)
+    response = document.get("http_response") if isinstance(document, dict) else None
+    if not isinstance(response, dict) or set(response) != {
+        "response_final_url",
+        "response_http_status",
+        "response_media_type",
+    }:
+        raise ValueError("treasury_acquisition_response_mismatch")
+    media_type = response["response_media_type"]
+    if (
+        response["response_final_url"] != endpoint
+        or response["response_http_status"] != "200"
+        or not isinstance(media_type, str)
+        or media_type.split(";", maxsplit=1)[0].strip().lower() != "text/csv"
+    ):
+        raise ValueError("treasury_acquisition_response_mismatch")
+    batch = parse_treasury_yield_csv(raw, start_date=start, end_date=end, media_type=media_type)
+    expected = {**asdict(batch), "http_response": response}
+    if json.dumps(document, sort_keys=True, allow_nan=False) != json.dumps(
+        expected, default=str, sort_keys=True, allow_nan=False
+    ):
+        raise ValueError("treasury_acquisition_normalized_mismatch")
+    return batch
+
+
+def treasury_claims_matching_acquisitions(
+    repository: EvidenceRepository,
+    points_by_metric: Mapping[str, tuple[MetricSeriesPoint, ...]],
+    *,
+    definition_version: str,
+) -> set[str]:
+    """Match selected Treasury values to complete CSV receipts, without inventing PUBLIC time."""
+    selected = {
+        point.selected_claim_id: (metric, point)
+        for metric, points in points_by_metric.items()
+        for point in points
+        if metric in TREASURY_METRICS and point.selected_claim_id is not None
+    }
+    checked: dict[str, TreasuryYieldBatch | None] = {}
+    valid_ids: set[str] = set()
+    for claim_id, acquisitions in repository.source_claim_acquisitions_many(
+        tuple(selected)
+    ).items():
+        metric, point = selected[claim_id]
+        claim = next((item for item in point.claims if item.claim_id == claim_id), None)
+        if (
+            not acquisitions
+            or claim is None
+            or claim.provider != _PROVIDER
+            or claim.unit != "percent"
+            or point.dimensions != {}
+            or point.period_start != point.period_end
+            # This CSV contains no proof of per-row first publication or revisions.
+            or claim.release_at is not None
+            or claim.public_available_at is not None
+        ):
+            continue
+        valid = True
+        for acquisition in acquisitions:
+            receipt = acquisition.receipt
+            identity = receipt.acquisition_id
+            if identity not in checked:
+                try:
+                    checked[identity] = _parse_treasury_acquisition(
+                        receipt, acquisition.raw, acquisition.normalized
+                    )
+                except (ValueError, TypeError, KeyError, OverflowError):
+                    checked[identity] = None
+            batch = checked[identity]
+            if (
+                batch is None
+                or receipt.parameters.get("definition_version") != definition_version
+                or claim.source_reference != f"{batch.endpoint}#date={point.period_end}"
+                or not any(
+                    cell.metric_id == metric
+                    and cell.business_date.isoformat() == point.period_end
+                    and cell.state == "reported_value"
+                    and cell.value == point.selected_value == claim.value
+                    for cell in batch.cells
+                )
+            ):
+                valid = False
+                break
+        if valid:
+            valid_ids.add(claim_id)
+    return valid_ids
 
 
 def _fetch_csv(url: str) -> FetchedTreasuryYieldCsv:
@@ -177,12 +298,14 @@ def refresh_treasury_yields(
     if end_date < start_date or start_date.year != end_date.year:
         raise ValueError("treasury_csv_request_must_cover_one_source_year")
     definitions = [
-        metric_definition(metric, definition_version=definition_version)
+        metric_definition(
+            metric, definition_version=definition_version, database_path=paths.database
+        )
         for metric in _FIELDS.values()
     ]
     if any(item.unit != "percent" for item in definitions):
         raise ValueError("treasury_csv_definition_unit_mismatch")
-    endpoint = _endpoint(start_date.year)
+    endpoint = treasury_yield_endpoint(start_date.year)
     repository = EvidenceRepository(paths.database)
     ids: list[str] = []
     responses: list[FetchedTreasuryYieldCsv] = []

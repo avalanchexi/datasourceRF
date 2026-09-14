@@ -1,0 +1,448 @@
+{
+  "schema_version": "credit-window-originals-for-public-regression-v0001",
+  "status": "raw_inputs_verified_counterexample_not_certified",
+  "observed_at": "2026-09-11T05:27:51.315702+00:00",
+  "parents": [
+    {
+      "period": "2024-07",
+      "value": "188700.0",
+      "release_at": "2024-08-13 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b",
+      "raw_bytes": 27939,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/988eaca0ab0b4ac7918b2bfe17477d6f/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/52d2fe8fc26763cb262dabcce6c0256a3524dfccfd6bfa69d80a910c6c3f517b"
+    },
+    {
+      "period": "2024-08",
+      "value": "219000.0",
+      "release_at": "2024-09-13 19:27:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "7a24c20e66130c21640827fa9706a58b36eb8988a70b7b2309a1f10285d3d1c2",
+      "raw_bytes": 27939,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/7a24c20e66130c21640827fa9706a58b36eb8988a70b7b2309a1f10285d3d1c2",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/373dac1b6d60401199aedf83e8513380/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/7a24c20e66130c21640827fa9706a58b36eb8988a70b7b2309a1f10285d3d1c2"
+    },
+    {
+      "period": "2024-09",
+      "value": "256600.0",
+      "release_at": "2024-10-14 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "a0b08ead70f5096c3e33b9ff8c566202402a6c5edf65e00b3be2e2b685637a6e",
+      "raw_bytes": 27937,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/a0b08ead70f5096c3e33b9ff8c566202402a6c5edf65e00b3be2e2b685637a6e",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/37fce88395f94291b223bde31bce878a/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/a0b08ead70f5096c3e33b9ff8c566202402a6c5edf65e00b3be2e2b685637a6e"
+    },
+    {
+      "period": "2024-10",
+      "value": "270600.0",
+      "release_at": "2024-11-11 16:30:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "6ad6b1f062b5265472fba83df260cf294a5981679814e0861fc406206dffca70",
+      "raw_bytes": 27883,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/6ad6b1f062b5265472fba83df260cf294a5981679814e0861fc406206dffca70",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/9bef14011fa3468f99c82cda832eae73/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/6ad6b1f062b5265472fba83df260cf294a5981679814e0861fc406206dffca70"
+    },
+    {
+      "period": "2024-11",
+      "value": "294000.0",
+      "release_at": "2024-12-13 19:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "7e1844487f0a3983ec2b1419ed365ed2c345f4ad3c3b7b7886228ad24741b1b2",
+      "raw_bytes": 27841,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/7e1844487f0a3983ec2b1419ed365ed2c345f4ad3c3b7b7886228ad24741b1b2",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/902098a6afb84b6ea3aa13bb6135da7a/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/7e1844487f0a3983ec2b1419ed365ed2c345f4ad3c3b7b7886228ad24741b1b2"
+    },
+    {
+      "period": "2024-12",
+      "value": "322600.0",
+      "release_at": "2025-01-14 15:07:30+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "8081e0f66935a2ce9efcfea3504265858c456bbd5acc903e364c267ce9e964b5",
+      "raw_bytes": 27811,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/8081e0f66935a2ce9efcfea3504265858c456bbd5acc903e364c267ce9e964b5",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/55758b7d91ee4fcf8b79adc16cc87b13/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/8081e0f66935a2ce9efcfea3504265858c456bbd5acc903e364c267ce9e964b5"
+    },
+    {
+      "period": "2025-01",
+      "value": "70600.0",
+      "release_at": "2025-02-14 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "6329aac34d9a1c717acac7e68bb32e0a2344b3e479aa37276a8cf427c65f23ca",
+      "raw_bytes": 24326,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/6329aac34d9a1c717acac7e68bb32e0a2344b3e479aa37276a8cf427c65f23ca",
+      "source_url": "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554594361/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/6329aac34d9a1c717acac7e68bb32e0a2344b3e479aa37276a8cf427c65f23ca"
+    },
+    {
+      "period": "2025-02",
+      "value": "92900.0",
+      "release_at": "2025-03-14 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "c44f44897b31e643dd88ca7f3751d47bdb83ad0e32e0b28943adc84a163479fd",
+      "raw_bytes": 27607,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/c44f44897b31e643dd88ca7f3751d47bdb83ad0e32e0b28943adc84a163479fd",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2025080618505035955/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/c44f44897b31e643dd88ca7f3751d47bdb83ad0e32e0b28943adc84a163479fd"
+    },
+    {
+      "period": "2025-03",
+      "value": "151800.0",
+      "release_at": "2025-04-13 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "040b29b2bb7f97ebf35446c0251849f6317ab9489f675c37b8786a394b632a3b",
+      "raw_bytes": 27627,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/040b29b2bb7f97ebf35446c0251849f6317ab9489f675c37b8786a394b632a3b",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2025080618505029659/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/040b29b2bb7f97ebf35446c0251849f6317ab9489f675c37b8786a394b632a3b"
+    },
+    {
+      "period": "2025-04",
+      "value": "163400.0",
+      "release_at": "2025-05-14 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "f4272816156a6e0282a504b2a242fe2c310f6e61739b50306154945a8755a1ae",
+      "raw_bytes": 27613,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/f4272816156a6e0282a504b2a242fe2c310f6e61739b50306154945a8755a1ae",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2025080618505053336/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/f4272816156a6e0282a504b2a242fe2c310f6e61739b50306154945a8755a1ae"
+    },
+    {
+      "period": "2025-05",
+      "value": "186300.0",
+      "release_at": "2025-06-13 16:30:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "3d3053aa2cb4a4b3ad929d39e3d4dcce6947b7f5bfbecc70bf8e840447b24711",
+      "raw_bytes": 27614,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/3d3053aa2cb4a4b3ad929d39e3d4dcce6947b7f5bfbecc70bf8e840447b24711",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2025080618505079602/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/3d3053aa2cb4a4b3ad929d39e3d4dcce6947b7f5bfbecc70bf8e840447b24711"
+    },
+    {
+      "period": "2025-06",
+      "value": "228300.0",
+      "release_at": "2025-07-14 15:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "813ecda471daf222f8d6075543368c0e6414a332a6ef3841b20c9b38518c8181",
+      "raw_bytes": 27633,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/813ecda471daf222f8d6075543368c0e6414a332a6ef3841b20c9b38518c8181",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2025080618505047467/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/813ecda471daf222f8d6075543368c0e6414a332a6ef3841b20c9b38518c8181"
+    },
+    {
+      "period": "2025-07",
+      "value": "239900.0",
+      "release_at": "2025-08-13 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "16f76863da7b4ce6fb4c4680fa16b43dce8700260a0b6b872b10890c12f08a83",
+      "raw_bytes": 27628,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/16f76863da7b4ce6fb4c4680fa16b43dce8700260a0b6b872b10890c12f08a83",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/aa6b70461fd047c587722091c45956be/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/16f76863da7b4ce6fb4c4680fa16b43dce8700260a0b6b872b10890c12f08a83"
+    },
+    {
+      "period": "2025-08",
+      "value": "265600.0",
+      "release_at": "2025-09-12 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "3952fda9138d5347905f8c826c73da65823d825b3ae72480624d806dc9d3af42",
+      "raw_bytes": 27631,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/3952fda9138d5347905f8c826c73da65823d825b3ae72480624d806dc9d3af42",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/523c260b344c4f1390664430295064a9/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/3952fda9138d5347905f8c826c73da65823d825b3ae72480624d806dc9d3af42"
+    },
+    {
+      "period": "2025-09",
+      "value": "300900.0",
+      "release_at": "2025-10-15 17:00:03+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "b3c5ecfe4fb6599279e3401b3ce0ef25dc5745a8f77cff7e84c9a14e1a4cd157",
+      "raw_bytes": 44461,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/b3c5ecfe4fb6599279e3401b3ce0ef25dc5745a8f77cff7e84c9a14e1a4cd157",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/dded7449c74144a19171f582bec9ed36/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/b3c5ecfe4fb6599279e3401b3ce0ef25dc5745a8f77cff7e84c9a14e1a4cd157"
+    },
+    {
+      "period": "2025-10",
+      "value": "309000.0",
+      "release_at": "2025-11-13 17:00:19+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "72d75cc14f8c6e7649d2deaec386b6b8252aeb8232a0e3586cdcffc365b3778a",
+      "raw_bytes": 44174,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/72d75cc14f8c6e7649d2deaec386b6b8252aeb8232a0e3586cdcffc365b3778a",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/f294561578884c22878d115780ba7c08/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/72d75cc14f8c6e7649d2deaec386b6b8252aeb8232a0e3586cdcffc365b3778a"
+    },
+    {
+      "period": "2025-11",
+      "value": "333900.0",
+      "release_at": "2025-12-12 17:00:01+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "86dac86009ce1615c6cec1293dbf036603fbd6fdf0f52417e1fb9fcb0902089f",
+      "raw_bytes": 45807,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/86dac86009ce1615c6cec1293dbf036603fbd6fdf0f52417e1fb9fcb0902089f",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2025121217132789688/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/86dac86009ce1615c6cec1293dbf036603fbd6fdf0f52417e1fb9fcb0902089f"
+    },
+    {
+      "period": "2025-12",
+      "value": "356000.0",
+      "release_at": "2026-01-15 14:59:40+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "47761677bcf626cfe3ab7ab444940e9c0bdcb4326621edfe7e4e54192ee0bb33",
+      "raw_bytes": 44707,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/47761677bcf626cfe3ab7ab444940e9c0bdcb4326621edfe7e4e54192ee0bb33",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026011515015720511/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/47761677bcf626cfe3ab7ab444940e9c0bdcb4326621edfe7e4e54192ee0bb33"
+    },
+    {
+      "period": "2026-01",
+      "value": "72200.0",
+      "release_at": "2026-02-13 17:00:04+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "e5e5bcd61b540d1c7c4e4d68c2a6350bf090bb37c381fec2a9de359487705ad0",
+      "raw_bytes": 44631,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/e5e5bcd61b540d1c7c4e4d68c2a6350bf090bb37c381fec2a9de359487705ad0",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026021317031040775/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/e5e5bcd61b540d1c7c4e4d68c2a6350bf090bb37c381fec2a9de359487705ad0"
+    },
+    {
+      "period": "2026-02",
+      "value": "96000.0",
+      "release_at": "2026-03-13 17:00:01+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc",
+      "raw_bytes": 44639,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026031317020260950/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/377f455aa92273c23d57540d2b33e5b4b99f01e6ebfa7beacae157c21c5632cc"
+    },
+    {
+      "period": "2026-03",
+      "value": "148300.0",
+      "release_at": "2026-04-13 17:00:00+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "0d50495161d327868abe90f1a3d084249145fd63318ce0f7eaaafd00da830abb",
+      "raw_bytes": 44833,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/0d50495161d327868abe90f1a3d084249145fd63318ce0f7eaaafd00da830abb",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026041317011944771/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/0d50495161d327868abe90f1a3d084249145fd63318ce0f7eaaafd00da830abb"
+    },
+    {
+      "period": "2026-04",
+      "value": "154500.0",
+      "release_at": "2026-05-14 17:00:02+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "4434210d0447e96bcbeab8f02d6ac0436fb76a28e41a66f4f133ff46d8b1182e",
+      "raw_bytes": 44650,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/4434210d0447e96bcbeab8f02d6ac0436fb76a28e41a66f4f133ff46d8b1182e",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026051417030520490/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/4434210d0447e96bcbeab8f02d6ac0436fb76a28e41a66f4f133ff46d8b1182e"
+    },
+    {
+      "period": "2026-05",
+      "value": "174800.0",
+      "release_at": "2026-06-12 17:00:01+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+      "raw_bytes": 44651,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026061217051611931/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/8f71dd1e651d2e5d8e7120555a000c54a517c41fb01d94b39948183badab9769"
+    },
+    {
+      "period": "2026-06",
+      "value": "208400.0",
+      "release_at": "2026-07-15 15:00:09+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+      "raw_bytes": 44903,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026071515025183948/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/9ebce7e21c93d92980814be8f754dcc255ebe29dbbdf2531973e09361832c168"
+    },
+    {
+      "period": "2026-07",
+      "value": "222500.0",
+      "release_at": "2026-08-14 16:30:05+08:00",
+      "family": "pbc_social_financing",
+      "raw_sha256": "933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+      "raw_bytes": 44692,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef",
+      "source_url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef"
+    },
+    {
+      "period": "2024-Q2",
+      "value": "616836.0",
+      "release_at": "2024-07-16 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "d33f512e347eea7d13cbcac6f1fde4b5d37446150f3c867f4322389f2dbb6a26",
+      "raw_bytes": 261785,
+      "raw_path": ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/d33f512e347eea7d13cbcac6f1fde4b5d37446150f3c867f4322389f2dbb6a26",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202407/t20240716_1955649.html",
+      "verified_source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/d3/d33f512e347eea7d13cbcac6f1fde4b5d37446150f3c867f4322389f2dbb6a26",
+      "official_quarterly_value": "320537",
+      "official_ytd_value": "616836"
+    },
+    {
+      "period": "2024-Q3",
+      "value": "949746.0",
+      "release_at": "2024-10-19 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "0da0c7a1280c81f8cbef568bc70abf1c83e925eb02a28c491af872738dd5f761",
+      "raw_bytes": 295437,
+      "raw_path": ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/0da0c7a1280c81f8cbef568bc70abf1c83e925eb02a28c491af872738dd5f761",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202410/t20241019_1957083.html",
+      "verified_source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/0d/0da0c7a1280c81f8cbef568bc70abf1c83e925eb02a28c491af872738dd5f761",
+      "official_quarterly_value": "332910",
+      "official_ytd_value": "949746"
+    },
+    {
+      "period": "2024-Q4",
+      "value": "1349084.0",
+      "release_at": "2025-01-18 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "278383cce68511b7668d5ec7bd35fe7403ab9741636dbbf2585ca78689a0d716",
+      "raw_bytes": 295304,
+      "raw_path": ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/278383cce68511b7668d5ec7bd35fe7403ab9741636dbbf2585ca78689a0d716",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202501/t20250118_1958363.html",
+      "verified_source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/27/278383cce68511b7668d5ec7bd35fe7403ab9741636dbbf2585ca78689a0d716",
+      "official_quarterly_value": "373726",
+      "official_ytd_value": "1349084"
+    },
+    {
+      "period": "2025-Q1",
+      "value": "318758.0",
+      "release_at": "2025-04-17 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "4d38107d8ac9c1c063aaf016584817fea51c8ad9ca64f8857eb73af2b550875e",
+      "raw_bytes": 236490,
+      "raw_path": ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/4d38107d8ac9c1c063aaf016584817fea51c8ad9ca64f8857eb73af2b550875e",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202504/t20250417_1959334.html",
+      "verified_source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/4d/4d38107d8ac9c1c063aaf016584817fea51c8ad9ca64f8857eb73af2b550875e",
+      "official_quarterly_value": "318758",
+      "official_ytd_value": "318758"
+    },
+    {
+      "period": "2025-Q2",
+      "value": "660536.0",
+      "release_at": "2025-07-16 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "9a770677d59a781751b4d7c0070c250a4fa53210afccdda5efac0a12ce156f64",
+      "raw_bytes": 261934,
+      "raw_path": ".scratch/pring-data-acquisition-repair/credit-window-inputs-186/9a770677d59a781751b4d7c0070c250a4fa53210afccdda5efac0a12ce156f64",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202507/t20250716_1960426.html",
+      "verified_source_path": "/home/tywin/.local/share/pring-cycle/artifacts/sha256/9a/9a770677d59a781751b4d7c0070c250a4fa53210afccdda5efac0a12ce156f64",
+      "official_quarterly_value": "341778",
+      "official_ytd_value": "660536"
+    },
+    {
+      "period": "2025-Q3",
+      "value": "1015036.0",
+      "release_at": "2025-10-21 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c",
+      "raw_bytes": 262370,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-macro-normalized/0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202510/t20251021_1961646.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-macro-normalized/0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c",
+      "official_quarterly_value": "354500",
+      "official_ytd_value": "1015036"
+    },
+    {
+      "period": "2025-Q4",
+      "value": "1401879.0",
+      "release_at": "2026-01-20 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765",
+      "raw_bytes": 267383,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-macro-normalized/9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202601/t20260120_1962349.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-macro-normalized/9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765",
+      "official_quarterly_value": "387911",
+      "official_ytd_value": "1401879"
+    },
+    {
+      "period": "2026-Q1",
+      "value": "334193.0",
+      "release_at": "2026-04-17 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18",
+      "raw_bytes": 238636,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-macro-normalized/61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202604/t20260417_1963336.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-macro-normalized/61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18",
+      "official_quarterly_value": "334193",
+      "official_ytd_value": "334193"
+    },
+    {
+      "period": "2026-Q2",
+      "value": "695704.0",
+      "release_at": "2026-07-16 09:30:00+08:00",
+      "family": "nbs_gdp",
+      "raw_sha256": "60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "raw_bytes": 263170,
+      "raw_path": ".scratch/pring-data-acquisition-repair/evidence-14/60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "source_url": "https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html",
+      "verified_source_path": "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-14/60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915",
+      "official_quarterly_value": "361511",
+      "official_ytd_value": "695704"
+    }
+  ],
+  "output_window": {
+    "social_financing": [
+      "2024-08",
+      "2026-07",
+      24
+    ],
+    "gdp": [
+      "2024-Q3",
+      "2026-Q2",
+      8
+    ]
+  },
+  "parent_count": {
+    "social_financing": 25,
+    "gdp": 9
+  },
+  "gdp_mismatches": [
+    {
+      "period": "2024-Q4",
+      "cross_release_ytd_difference": "399338",
+      "official_same_release_quarter": "373726",
+      "difference": "25612"
+    },
+    {
+      "period": "2025-Q4",
+      "cross_release_ytd_difference": "386843",
+      "official_same_release_quarter": "387911",
+      "difference": "-1068"
+    }
+  ],
+  "mixed_vintage_arithmetic_only": {
+    "current_sf": "338600.0",
+    "previous_sf": "373800.0",
+    "current_gdp": "1437047.0",
+    "previous_gdp": "1392784.0",
+    "percentage_points": "-3.276124655980011793722369680"
+  },
+  "metadata_hashes": {
+    ".scratch/pring-data-acquisition-repair/evidence-13/research-checks.json": "921c7b9de8e5bb75cdadc5809257f5f0fc9e089265c96af0489047f5055922ed",
+    ".scratch/pring-data-acquisition-repair/evidence-13/history-verification.json": "65a153a43ee952ff40640f5faa86c83539f832d1075fbb652b5dc539c656d977",
+    ".scratch/pring-data-acquisition-repair/evidence-a18-import-20260909/receipts.json": "199e384c879ebbb7a7fc19278529e89492dc8deecb075be990abd56afffc3b6c"
+  },
+  "limits": [
+    "No production or isolated model, claims, acquisitions or derived values were created.",
+    "GDP table cells were read independently with the standard library; the app parser was not used.",
+    "These intact raw releases demonstrate an invalid cross-release GDP baseline; they are not a certified positive economic result.",
+    "A future public regression must import all raw files through real acquisitions and a synthetic reviewed catalog.",
+    "The current default suite 183 does not include these new files or a new credit-window regression."
+  ]
+}
