@@ -2529,15 +2529,21 @@ def test_warrant_context_snapshot_binds_older_coverage_claims(
     assert before.context_output_differences == after.context_output_differences == 0
     assert before.output_document != after.output_document
     assert before.output_document is not None and after.output_document is not None
-    old, new = (
-        context_day_source_inputs(output, output["days"][0], "candidate")["CN_FUTURES_WARRANTS"]
-        for output in (before.output_document, after.output_document)
-    )
+
+    def warrant_points(document: dict[str, Any]) -> list[dict[str, Any]]:
+        return context_day_source_inputs(document, document["days"][0], "candidate")[
+            "CN_FUTURES_WARRANTS"
+        ]
+
     old_point = next(
-        p for p in old if p["period_end"] == "2026-08-24" and p["dimensions"]["symbol"] == "CU"
+        point
+        for point in warrant_points(before.output_document)
+        if point["period_end"] == "2026-08-24" and point["dimensions"]["symbol"] == "CU"
     )
     new_point = next(
-        p for p in new if p["period_end"] == "2026-08-24" and p["dimensions"]["symbol"] == "CU"
+        point
+        for point in warrant_points(after.output_document)
+        if point["period_end"] == "2026-08-24" and point["dimensions"]["symbol"] == "CU"
     )
     assert old_point["selected_value"] == new_point["selected_value"] == 100
     assert old_point["selected_claim_id"] != new_point["selected_claim_id"]

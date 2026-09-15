@@ -78,3 +78,7 @@
 - 峰值 RSS（前台会话的守护脚本每5秒用 ps 采样，是下限估计）：`model-replay` 子进程约577MB；`model-activate` 子进程（含 `replay_details` 读取路径）约568MB；`model-accept` 只采到56MB，可能只采到启动阶段，不作结论。v0001 时代的激活因需要释放已保存文档才能避免 OOM，当时没有可比的逐进程采样。
 - 更正：本节首版把字符数写成了"字节"，已按上表区分口径。
 - 票17其余 Worker 用例与限定回归仍由前台会话继续运行，结果记录在票17的实施记录中。
+
+## 静态检查后续（2026-09-16）
+
+票17限定验收在检出中运行 `mypy src tests/integration/test_worker_registered_catalog.py`（沿导入拉进测试模块）时，报出 `tests/models/test_candidate_admission.py` 4 个错，属于 #16 的改动：仓单快照读取用生成器解包，且局部名 `new` 与该用例中已有的 `dict` 变量重名，导致推断冲突。改为在生成器内直接按天解析并比较，不再引入中间变量。修复后 `mypy --follow-imports=silent tests/models/test_candidate_admission.py` 无错，仓单用例 2 通过/10.9秒，ruff 通过。项目配置的门槛 `mypy`（packages=["pring_cycle"]）本就通过（票17记录 scoped-mypy-packages）。`tests/adapters/test_commodity_basket.py` 的 20 个错为既有项，不属于 #16。
