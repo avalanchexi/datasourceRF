@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 import sqlite3
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import date, datetime, time
 from math import isfinite
 from typing import Any
@@ -24,7 +24,9 @@ from pring_cycle.metric_contracts import evidence_max_age_days, required_dimensi
 
 HISTORY_OUTPUT_SCHEMA = "core-history-output-v0001"
 REPLAY_OUTPUT_SCHEMA = "core-replay-output-v0001"
-CONTEXT_OUTPUT_SCHEMA = "context-replay-output-v0001"
+CONTEXT_OUTPUT_SCHEMA_V0001 = "context-replay-output-v0001"
+# Visible source points are stored once per document and referenced from each day.
+CONTEXT_OUTPUT_SCHEMA = "context-replay-output-v0002"
 CORE_ASSETS = ("bond", "stock", "commodity")
 MODEL_OUTPUT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS model_evaluation_output (
@@ -318,6 +320,101 @@ def normalized_context_output(value: object) -> str:
     return model_output_json(normalize(value))
 
 
+class ContextSourcePoints:
+    """The distinct visible source points of one replay document, in first-reference order."""
+
+    def __init__(self) -> None:
+        self.points: list[dict[str, Any]] = []
+        self.hashes: list[str] = []
+        self._indexes: dict[str, int] = {}
+
+    def references(self, snapshot: Mapping[str, list[dict[str, Any]]]) -> dict[str, list[int]]:
+        """Store unseen points of one day's snapshot and return that day's point indexes."""
+        references: dict[str, list[int]] = {}
+        for metric_id, points in snapshot.items():
+            indexes = []
+            for point in points:
+                content = model_output_json(point)
+                digest = hashlib.sha256(content.encode()).hexdigest()
+                if digest not in self._indexes:
+                    self._indexes[digest] = len(self.points)
+                    self.points.append(json.loads(content))
+                    self.hashes.append(digest)
+                indexes.append(self._indexes[digest])
+            references[metric_id] = indexes
+        return references
+
+
+def context_day_source_inputs(
+    document: Mapping[str, Any], row: Mapping[str, Any], side: str
+) -> dict[str, list[dict[str, Any]]]:
+    """One day's visible source snapshot, resolving point references of a v0002 document.
+
+    Resolved points are the document's own shared objects: treat them as read-only.
+    """
+    inputs = row[side]["source_inputs"]
+    if document["schema_version"] == CONTEXT_OUTPUT_SCHEMA_V0001:
+        return dict(inputs)
+    points = document["source_points"]
+    return {
+        metric_id: [points[index] for index in indexes] for metric_id, indexes in inputs.items()
+    }
+
+
+def _with_day_source_inputs(
+    document: Mapping[str, Any],
+    source_inputs: Callable[[Mapping[str, Any], str], object],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            **row,
+            **{
+                side: {**row[side], "source_inputs": source_inputs(row, side)}
+                for side in ("candidate", "comparison")
+            },
+        }
+        for row in document["days"]
+    ]
+
+
+def compact_context_output(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The v0002 form of a context output document; a v0002 document is returned unchanged."""
+    if document["schema_version"] == CONTEXT_OUTPUT_SCHEMA:
+        return dict(document)
+    table = ContextSourcePoints()
+    days = _with_day_source_inputs(
+        document, lambda row, side: table.references(row[side]["source_inputs"])
+    )
+    return {
+        **document,
+        "schema_version": CONTEXT_OUTPUT_SCHEMA,
+        "days": days,
+        "source_points": table.points,
+        "source_point_hashes": table.hashes,
+    }
+
+
+def expand_context_output(document: Mapping[str, Any]) -> dict[str, Any]:
+    """An independent inline v0001 copy, only for small documents such as test fixtures.
+
+    Production code resolves one day at a time with ``context_day_source_inputs``.
+    """
+    if document["schema_version"] == CONTEXT_OUTPUT_SCHEMA:
+        document = {
+            **{
+                key: value
+                for key, value in document.items()
+                if key not in {"source_points", "source_point_hashes"}
+            },
+            "schema_version": CONTEXT_OUTPUT_SCHEMA_V0001,
+            "days": _with_day_source_inputs(
+                document, lambda row, side: context_day_source_inputs(document, row, side)
+            ),
+        }
+    expanded: dict[str, Any] = json.loads(model_output_json(document))
+    return expanded
+
+
 def context_output_document(
     candidate_manifest: Mapping[str, Any],
     comparison_manifest: Mapping[str, Any],
@@ -330,9 +427,14 @@ def context_output_document(
     formula_keys: set[str],
     gaps: tuple[str, ...],
     not_applicable: bool = False,
+    source_points: ContextSourcePoints | None = None,
 ) -> dict[str, Any]:
+    """A v0002 document whose ``days`` reference points stored in ``source_points``."""
+    table = source_points or ContextSourcePoints()
     return {
         "schema_version": CONTEXT_OUTPUT_SCHEMA,
+        "source_points": table.points,
+        "source_point_hashes": table.hashes,
         "as_of_mode": "public_as_of",
         "range_start": range_start,
         "range_end": range_end,
@@ -368,9 +470,35 @@ def validate_context_output(
     calendar_hash: str,
     evaluated_days: int,
     context_output_differences: int,
+    accept_inline_v0001: bool = False,
 ) -> dict[str, Any]:
-    if not isinstance(document, dict) or document.get("schema_version") != CONTEXT_OUTPUT_SCHEMA:
+    """Validate a context output; inline v0001 documents are accepted only when reading them."""
+    schemas = {CONTEXT_OUTPUT_SCHEMA} | (
+        {CONTEXT_OUTPUT_SCHEMA_V0001} if accept_inline_v0001 else set()
+    )
+    if not isinstance(document, dict) or document.get("schema_version") not in schemas:
         raise ValueError("context_output_schema_invalid")
+    uses_point_table = document["schema_version"] == CONTEXT_OUTPUT_SCHEMA
+    points: list[Any] = []
+    if uses_point_table:
+        stored, hashes = document.get("source_points"), document.get("source_point_hashes")
+        if (
+            not isinstance(stored, list)
+            or not isinstance(hashes, list)
+            or any(not isinstance(digest, str) for digest in hashes)
+        ):
+            raise ValueError("context_output_references_invalid")
+        points = stored
+        if (
+            len(points) != len(hashes)
+            or len(set(hashes)) != len(hashes)
+            or any(
+                not isinstance(point, dict) or digest != model_output_hash(point)
+                for point, digest in zip(points, hashes, strict=True)
+            )
+        ):
+            raise ValueError("context_output_references_invalid")
+    used_points: set[int] = set()
     expected_models = {
         side: {
             "model_version_id": manifest["model_version_id"],
@@ -519,6 +647,17 @@ def validate_context_output(
             inputs = output.get("source_inputs")
             if not isinstance(inputs, dict) or set(inputs) != set(document["source_metrics"]):
                 raise ValueError("context_output_inputs_incomplete")
+            if uses_point_table:
+                if any(
+                    not isinstance(indexes, list)
+                    or any(
+                        type(index) is not int or not 0 <= index < len(points) for index in indexes
+                    )
+                    for indexes in inputs.values()
+                ):
+                    raise ValueError("context_output_references_invalid")
+                used_points.update(index for indexes in inputs.values() for index in indexes)
+                inputs = context_day_source_inputs(document, row, side)
             _validate_context_inputs(
                 inputs,
                 scope.candidate if side == "candidate" else scope.comparison,
@@ -543,6 +682,8 @@ def validate_context_output(
         status == "recorded" and observed_days != expected_days
     ):
         raise ValueError("context_output_coverage_invalid")
+    if uses_point_table and used_points != set(range(len(points))):
+        raise ValueError("context_output_references_invalid")
     if type(context_output_differences) is not int or differences != context_output_differences:
         raise ValueError("context_output_difference_count_invalid")
     return document

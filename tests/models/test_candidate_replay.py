@@ -24,7 +24,12 @@ from pring_cycle.model_evaluation import (
     evaluate_history,
     replay_models,
 )
-from pring_cycle.model_outputs import validate_context_output
+from pring_cycle.model_outputs import (
+    compact_context_output,
+    context_day_source_inputs,
+    expand_context_output,
+    validate_context_output,
+)
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
@@ -791,9 +796,11 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
         evaluated_days=2,
         context_output_differences=evaluated.context_output_differences,
     )
+    # Damage is applied to the inline snapshot and stored again with point references.
+    inline = expand_context_output(evaluated.output_document)
     if damage == "output_awaiting":
         for side in ("candidate", "comparison"):
-            macro = evaluated.output_document["days"][-1][side]["macro"]
+            macro = inline["days"][-1][side]["macro"]
             for item in macro["international_context"]:
                 if item["metric_id"] == "UST_2S10S_SPREAD":
                     assert item["status"] == "awaiting_source_certification"
@@ -815,7 +822,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
             macro["model_input_observation_version_ids"].append("synthetic-unqualified-output")
     elif damage in {"adopted_stale", "relabeled_stale"}:
         for side in ("candidate", "comparison"):
-            macro = evaluated.output_document["days"][-1][side]["macro"]
+            macro = inline["days"][-1][side]["macro"]
             for item in macro["international_context"]:
                 if item["metric_id"] in {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}:
                     assert item["status"] == "stale"
@@ -823,7 +830,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
                         item["status"] = "current"
             macro["model_input_observation_version_ids"].extend(sorted(optional_claim_ids))
     elif damage in {"missing_row", "awaiting_missing_row"}:
-        for row in evaluated.output_document["days"]:
+        for row in inline["days"]:
             for side in ("candidate", "comparison"):
                 macro = row[side]["macro"]
                 macro["international_context"] = [
@@ -833,7 +840,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
                 ]
     elif damage == "wrong_parent_period":
         for side in ("candidate", "comparison"):
-            output = evaluated.output_document["days"][-1][side]
+            output = inline["days"][-1][side]
             point = output["source_inputs"]["UST2Y_NOMINAL_YIELD"][0]
             point.update(period_start=days[-2].isoformat(), period_end=days[-2].isoformat())
             for item in output["macro"]["international_context"]:
@@ -848,9 +855,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
     }:
         metric_id = "UST2Y_NOMINAL_YIELD" if damage == "wrong_raw_unit" else "UST_2S10S_SPREAD"
         for side in ("candidate", "comparison"):
-            for item in evaluated.output_document["days"][-1][side]["macro"][
-                "international_context"
-            ]:
+            for item in inline["days"][-1][side]["macro"]["international_context"]:
                 if item["metric_id"] == metric_id:
                     if damage == "wrong_derived_value":
                         item["value"] = 400.0
@@ -862,7 +867,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
                         item["unit"] = "basis_points" if damage == "wrong_raw_unit" else "percent"
     elif damage in {"missing_point", "missing_lineage"}:
         for side in ("candidate", "comparison"):
-            output = evaluated.output_document["days"][-1][side]
+            output = inline["days"][-1][side]
             if damage == "missing_point":
                 output["source_inputs"]["UST2Y_NOMINAL_YIELD"] = []
             else:
@@ -870,7 +875,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
                     if item["metric_id"] == "UST_2S10S_SPREAD":
                         del item["input_observation_version_ids"]
     elif damage in {"orphan_current", "orphan_derived", "awaiting_current"}:
-        for row in evaluated.output_document["days"]:
+        for row in inline["days"]:
             for side in ("candidate", "comparison"):
                 macro = row[side]["macro"]
                 for item in macro["international_context"]:
@@ -891,7 +896,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
                 macro["model_input_observation_version_ids"].append("orphan-p2")
     elif damage in {"invalid_quality", "uncertified", "invalid_state"}:
         for side in ("candidate", "comparison"):
-            output = evaluated.output_document["days"][-1][side]
+            output = inline["days"][-1][side]
             output["source_inputs"]["UST2Y_NOMINAL_YIELD"] = [
                 {
                     "definition_version": "metric-catalog-v0003",
@@ -939,9 +944,9 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
             macro["model_input_observation_version_ids"].append("synthetic-optional-claim")
     if damage not in {None, "valid_values", "candidate_downgrade", "output_downgrade"}:
         with pytest.raises(ValueError, match="context_output_inputs_incomplete"):
-            validate_context_output(evaluated.output_document, **validation)
+            validate_context_output(compact_context_output(inline), **validation)
         return
-    document = validate_context_output(evaluated.output_document, **validation)
+    document = validate_context_output(compact_context_output(inline), **validation)
     if damage in {"candidate_downgrade", "output_downgrade"}:
         assert document["source_metrics"] == ["UST10Y_NOMINAL_YIELD", "UST2Y_NOMINAL_YIELD"]
         last = document["days"][-1]
@@ -1004,7 +1009,7 @@ def test_optional_p2_unknown_public_time_preserves_daily_context_evidence(
     ]
     for row in document["days"]:
         for side in ("candidate", "comparison"):
-            assert row[side]["source_inputs"] == {
+            assert context_day_source_inputs(document, row, side) == {
                 "UST10Y_NOMINAL_YIELD": [],
                 "UST2Y_NOMINAL_YIELD": [],
             }
@@ -1151,8 +1156,8 @@ def test_saved_replay_detects_lpr_vintage_change_with_unchanged_context_differen
     day = args["requested_end"]
     later_public = datetime.fromisoformat(f"{day}T09:00:00+00:00")
     assert saved["context_output_status"] == "recorded"
-    context = saved["context_output_document"]["days"][0]["candidate"]
-    inputs = context["source_inputs"]["CN_LPR_1Y_5Y"]
+    context = saved["context_output_document"]
+    inputs = context_day_source_inputs(context, context["days"][0], "candidate")["CN_LPR_1Y_5Y"]
     assert {point["dimensions"]["tenor"]: point["selected_value"] for point in inputs} == {
         "1y": 3.0,
         "5y_plus": 3.5,
@@ -1200,9 +1205,10 @@ def test_saved_replay_detects_lpr_vintage_change_with_unchanged_context_differen
 
 def test_context_replay_rejects_snapshot_without_selected_source_identity(tmp_path: Path) -> None:
     _paths, models, args = lpr_replay_case(tmp_path)
-    document = args["context_output_document"]
-    point = document["days"][0]["candidate"]["source_inputs"]["CN_LPR_1Y_5Y"][0]
+    inline = expand_context_output(args["context_output_document"])
+    point = inline["days"][0]["candidate"]["source_inputs"]["CN_LPR_1Y_5Y"][0]
     del point["selected_claim_id"]
+    document = args["context_output_document"] = compact_context_output(inline)
     args["context_output_hash"] = hashlib.sha256(
         json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -1241,8 +1247,8 @@ def test_required_context_cannot_be_recorded_as_not_applicable(tmp_path: Path) -
 )
 def test_recorded_context_requires_complete_selected_inputs(tmp_path: Path, damage: str) -> None:
     _paths, models, args = lpr_replay_case(tmp_path)
-    document = args["context_output_document"]
-    points = document["days"][0]["candidate"]["source_inputs"]["CN_LPR_1Y_5Y"]
+    inline = expand_context_output(args["context_output_document"])
+    points = inline["days"][0]["candidate"]["source_inputs"]["CN_LPR_1Y_5Y"]
     if damage == "missing_tenor":
         points.pop()
     elif damage == "empty_inputs":
@@ -1261,6 +1267,7 @@ def test_recorded_context_requires_complete_selected_inputs(tmp_path: Path, dama
         points[0]["claims"][0]["unit"] = "unrelated-unit"
     elif damage == "non_numeric_value":
         points[0]["selected_value"] = points[0]["claims"][0]["value"] = "3.0"
+    document = args["context_output_document"] = compact_context_output(inline)
     args["context_output_hash"] = hashlib.sha256(
         json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -1305,7 +1312,9 @@ def test_context_replay_keeps_daily_public_values_and_failed_input_status(tmp_pa
             row["business_date"],
             next(
                 p["selected_value"]
-                for p in row["candidate"]["source_inputs"]["CN_LPR_1Y_5Y"]
+                for p in context_day_source_inputs(
+                    saved["context_output_document"], row, "candidate"
+                )["CN_LPR_1Y_5Y"]
                 if p["dimensions"]["tenor"] == "1y"
             ),
         )
@@ -1361,9 +1370,8 @@ def test_failed_context_snapshot_preserves_invalid_selected_input(tmp_path: Path
     replay = models.record_replay("context-lpr-fixture", compared_with="model-v0001", **args)
     saved = models.replay_details(replay.replay_id)
     assert not replay.passed and saved["context_output_status"] == "incomplete"
-    points = saved["context_output_document"]["days"][0]["candidate"]["source_inputs"][
-        "CN_LPR_1Y_5Y"
-    ]
+    context = saved["context_output_document"]
+    points = context_day_source_inputs(context, context["days"][0], "candidate")["CN_LPR_1Y_5Y"]
     point = next(p for p in points if p["dimensions"]["tenor"] == "1y")
     assert point["selected_value"] == 2.8
     assert point["claims"][0]["quality_status"] == "invalid"

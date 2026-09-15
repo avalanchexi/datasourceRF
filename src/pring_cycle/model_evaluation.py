@@ -45,6 +45,7 @@ from pring_cycle.metric_contracts import (
 from pring_cycle.model_outputs import (
     HISTORY_OUTPUT_SCHEMA,
     REPLAY_OUTPUT_SCHEMA,
+    ContextSourcePoints,
     context_output_document,
     core_output_differences,
     model_output_hash,
@@ -834,6 +835,8 @@ def _evaluate_context_replay(
     )
     output_differences = 0
     output_days: list[dict[str, Any]] = []
+    # Each day's full visible history repeats earlier days; store each point once.
+    source_points = ContextSourcePoints()
     for cutoff in cutoffs:
         for side, definition_version, definitions in replay_sources:
             for metric_id in sorted(source_metrics & scope.requires_certification):
@@ -898,14 +901,14 @@ def _evaluate_context_replay(
                 "cutoff": cutoff.isoformat(),
                 "candidate": {
                     **json.loads(model_output_json(asdict(candidate_projection))),
-                    "source_inputs": _context_source_snapshot(
-                        evidence, candidate, source_metrics, cutoff
+                    "source_inputs": source_points.references(
+                        _context_source_snapshot(evidence, candidate, source_metrics, cutoff)
                     ),
                 },
                 "comparison": {
                     **json.loads(model_output_json(asdict(comparison_projection))),
-                    "source_inputs": _context_source_snapshot(
-                        evidence, comparison, source_metrics, cutoff
+                    "source_inputs": source_points.references(
+                        _context_source_snapshot(evidence, comparison, source_metrics, cutoff)
                     ),
                 },
             }
@@ -943,6 +946,7 @@ def _evaluate_context_replay(
             source_metrics=source_metrics,
             formula_keys=affected_formulas,
             gaps=tuple(dict.fromkeys(gaps)),
+            source_points=source_points,
         ),
     )
 

@@ -20,6 +20,7 @@ from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.model_evaluation import context_replay_gaps, evaluate_context_replay
+from pring_cycle.model_outputs import context_day_source_inputs
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
@@ -2499,7 +2500,8 @@ def test_warrant_context_snapshot_binds_older_coverage_claims(
         saved = models.replay_details(replay.replay_id)
         assert not replay.passed and "core_candidate_outputs_incomplete" in replay.gaps
         assert saved["context_output_status"] == "recorded"
-        points = saved["context_output_document"]["days"][0]["candidate"]["source_inputs"][
+        context = saved["context_output_document"]
+        points = context_day_source_inputs(context, context["days"][0], "candidate")[
             "CN_FUTURES_WARRANTS"
         ]
         old = next(p for p in points if p["dimensions"]["warehouse"] == "synthetic-retired")
@@ -2527,8 +2529,10 @@ def test_warrant_context_snapshot_binds_older_coverage_claims(
     assert before.context_output_differences == after.context_output_differences == 0
     assert before.output_document != after.output_document
     assert before.output_document is not None and after.output_document is not None
-    old = before.output_document["days"][0]["candidate"]["source_inputs"]["CN_FUTURES_WARRANTS"]
-    new = after.output_document["days"][0]["candidate"]["source_inputs"]["CN_FUTURES_WARRANTS"]
+    old, new = (
+        context_day_source_inputs(output, output["days"][0], "candidate")["CN_FUTURES_WARRANTS"]
+        for output in (before.output_document, after.output_document)
+    )
     old_point = next(
         p for p in old if p["period_end"] == "2026-08-24" and p["dimensions"]["symbol"] == "CU"
     )

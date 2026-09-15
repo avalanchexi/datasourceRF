@@ -20,7 +20,9 @@ from pring_cycle.catalog import (
     metric_catalog_v0003,
 )
 from pring_cycle.model_outputs import (
+    CONTEXT_OUTPUT_SCHEMA_V0001,
     MODEL_OUTPUT_SCHEMA,
+    compact_context_output,
     model_output_hash,
     read_model_output,
     store_model_output,
@@ -835,6 +837,7 @@ class ModelRepository:
                 calendar_hash=replay["calendar_hash"],
                 evaluated_days=replay["evaluated_trading_days"],
                 context_output_differences=replay["context_output_differences"],
+                accept_inline_v0001=True,
             )
         return {
             "replay": replay,
@@ -855,6 +858,16 @@ class ModelRepository:
             saved = details["replay"]
             core_status = details["core_output_status"]
             context_status = details["context_output_status"]
+            # A stored inline v0001 document matches a recomputation by its v0002 form, which is
+            # smaller than the inline document already held here.
+            context_document = details["context_output_document"]
+            expected_context_hash = (
+                saved["context_output_hash"]
+                if context_document is None
+                or context_document["schema_version"] != CONTEXT_OUTPUT_SCHEMA_V0001
+                else model_output_hash(compact_context_output(context_document))
+            )
+            del context_document
             # The saved documents were validated above and are compared by hash; release them
             # before recomputing, so two full replay documents are never held at once.
             del details
@@ -888,9 +901,9 @@ class ModelRepository:
                         "candidate_state_differences",
                         "candidate_days_differences",
                         "core_output_hash",
-                        "context_output_hash",
                     )
                 )
+                and evaluation.context_output_hash == expected_context_hash
             )
         except (KeyError, LookupError, TypeError, ValueError):
             return False
