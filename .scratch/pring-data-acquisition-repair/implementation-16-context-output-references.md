@@ -55,3 +55,9 @@
 - 变异检查：旧文档比较改回直接比保存的哈希，`replay_matches_current_evidence` 断言失败；`accept_inline_v0001` 默认值改为 True，写入拒绝断言失败。
 - 干净导出副本（HEAD 加 #16 的 6 个文件，不含票17改动）：ruff 通过；`mypy src`（94 个文件）通过；`test_context_output_references.py`、`test_candidate_replay.py` 与仓单快照用例共 88 通过/37.1 秒。
 - 干净副本补跑：`test_model_replay_rollback.py`、`test_model_lifecycle.py`、`test_model_evaluation_regressions.py`、`tests/e2e/test_v1_cli.py` 共 54 通过/17.2秒。
+
+## 验证缺口（未通过，待验证）
+
+- **材料构建路径待与票17同批验证。** 隔离材料构建会经公开命令执行 `model-accept`、`model-replay`（精确120交易日）和 `model-activate`，走的正是本次修改的 `model_evaluation`、`model_outputs`、`models` 路径。上面的小数据库测试覆盖不到这条重路径。已与前台会话约定：前台会话把 e-ticket17 检出切到 `4618af7` 并叠加票17的6个文件，只做一次材料重建，同时验证 #16 的回放和激活路径以及票17的 Worker 用例。这一次重建也补上切片4的容量证据（新文档字节数、峰值内存）。
+- 重建前，用户需要先决定：压缩C盘后再跑，还是直接跑。当前C盘剩约6.5GB，重建要写入十几GB。
+- 在这次重建完成并记录之前，#16 不算完成验收。
