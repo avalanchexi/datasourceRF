@@ -1,0 +1,14 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                             [100%][0m
+============================= slowest 10 durations =============================
+1510.64s call     tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+332.85s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+305.11s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[optional-gdp]
+209.49s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[success-verified_candidate]
+207.11s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed]
+205.82s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed]
+197.58s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials]
+60.71s call     tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+19.44s call     tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog
+19.32s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[required-market-indices]
+[32m[32m[1m12 passed[0m[32m in 3076.80s (0:51:16)[0m[0m
+exit=0 seconds=3079
