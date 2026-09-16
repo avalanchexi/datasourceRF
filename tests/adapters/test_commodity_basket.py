@@ -895,25 +895,29 @@ def test_damaged_near_contract_batch_cannot_fall_back_to_far_month(
         return encode_document(document)
 
     capture_reviewed_roll_inputs(paths, transport=far_only)
-    arguments = dict(
-        products=("SC",),
-        business_date=date(2026, 8, 14),
-        as_of=datetime(2026, 8, 14, 9, tzinfo=UTC),
-        mode=AsOfMode.PUBLIC,
-    )
-    before = select_commodity_contracts(paths, **arguments)
+
+    def selection() -> dict[str, Any]:
+        return select_commodity_contracts(
+            paths,
+            products=("SC",),
+            business_date=date(2026, 8, 14),
+            as_of=datetime(2026, 8, 14, 9, tzinfo=UTC),
+            mode=AsOfMode.PUBLIC,
+        )
+
+    before = selection()
     assert before["missing"] == []
     assert before["selections"][0]["contract_code"] == "SC2609.INE"
     artifact.write_bytes(b"damaged reviewed near-contract normalization")
-    blocked = select_commodity_contracts(paths, **arguments)
+    blocked = selection()
     assert blocked["selections"] == []
     assert blocked["missing"]
     artifact.write_bytes(original)
-    assert select_commodity_contracts(paths, **arguments) == before
+    assert selection() == before
 
     if damage == "review_normalized":
         artifact.write_bytes(b"damaged old review normalization")
         capture_reviewed_roll_inputs(paths, metadata_public_at="2026-01-02T08:00:00+00:00")
-        superseding = select_commodity_contracts(paths, **arguments)
+        superseding = selection()
         assert superseding["missing"] == []
         assert superseding["selections"][0]["contract_code"] == "SC2609.INE"
