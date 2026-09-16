@@ -7,9 +7,8 @@ import json
 import re
 from bisect import bisect_left, bisect_right
 from collections import OrderedDict
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
-from contextvars import ContextVar
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -19,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, publication_times
+from pring_cycle.read_scope import scope_cache, shared_read_scope
 from pring_cycle.runtime import RuntimePaths
 
 PRODUCT_EXCHANGES = {
@@ -698,34 +698,22 @@ def _damaged_review_contract_scope(
     }
 
 
-_SHARED_READERS: ContextVar[dict[Path, FuturesInputReader] | None] = ContextVar(
-    "futures_input_readers", default=None
-)
-
-
-@contextmanager
-def shared_futures_input_reads() -> Iterator[None]:
+def shared_futures_input_reads() -> AbstractContextManager[None]:
     """Share one consistent read of the captured futures inputs inside this scope.
 
     Use only around work that neither captures nor alters futures inputs, such as a replay.
     """
-    if _SHARED_READERS.get() is not None:
-        yield
-        return
-    token = _SHARED_READERS.set({})
-    try:
-        yield
-    finally:
-        _SHARED_READERS.reset(token)
+    return shared_read_scope()
 
 
 def futures_input_reader(paths: RuntimePaths) -> FuturesInputReader:
-    readers = _SHARED_READERS.get()
+    readers = scope_cache("futures_input_readers")
     if readers is None:
         return FuturesInputReader(paths)
     if paths.database not in readers:
         readers[paths.database] = FuturesInputReader(paths)
-    return readers[paths.database]
+    reader: FuturesInputReader = readers[paths.database]
+    return reader
 
 
 def select_futures_inputs(

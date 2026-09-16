@@ -1,0 +1,6 @@
+{
+  "record": "verification-wip-20260914-e-ticket17-worker-eia-2-vm-restart",
+  "observed": "log shows two passing scenarios (missing, success) then 'Fatal Python error: Bus error'; runner record stayed 'running'",
+  "cause": "WSL virtual machine restarted again (uptime 0 minutes at 2026-09-15T08:07Z); guard log absent, so the memory guard did not fire; other resident services (doris_be, java, mysqld) hold about 2.3GB",
+  "status": "environment failure; partial dots are not counted as recorded passes; the remaining network and parse scenarios rerun as worker-eia-3 and all four rerun in ticket 17 scoped regression"
+}

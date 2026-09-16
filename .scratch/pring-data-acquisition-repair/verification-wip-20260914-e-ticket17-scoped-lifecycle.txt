@@ -1,0 +1,18 @@
+[32m.[0m[31mF[0m[31m                                                                       [100%][0m
+=================================== FAILURES ===================================
+[31m[1m__ test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence __[0m
+[1m[31mtests/models/test_isolated_lifecycle.py[0m:1035: in test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+    [0mfirst, material = isolated_lifecycle_material(tmp_path / [33m"[39;49;00m[33mfirst[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mtests/models/test_isolated_lifecycle.py[0m:1010: in isolated_lifecycle_material
+    [0m[94mraise[39;49;00m [96mAssertionError[39;49;00m([33m"[39;49;00m[33misolated_lifecycle_material_contents_changed[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+[1m[31mE   AssertionError: isolated_lifecycle_material_contents_changed[0m
+============================= slowest 5 durations ==============================
+2273.54s call     tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+8.34s call     tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+0.67s teardown tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+0.02s setup    tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+0.01s teardown tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/models/test_isolated_lifecycle.py::[1mtest_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence[0m - AssertionError: isolated_lifecycle_material_contents_changed
+[31m[31m[1m1 failed[0m, [32m1 passed[0m[31m in 2284.95s (0:38:04)[0m[0m

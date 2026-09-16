@@ -19,6 +19,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
 from zoneinfo import ZoneInfo
 
+from pring_cycle.read_scope import claims_checked_once
+
 if TYPE_CHECKING:
     from pring_cycle.acquisition import AcquisitionReceipt
     from pring_cycle.evidence import EvidenceRepository, MetricSeriesPoint
@@ -737,6 +739,29 @@ def breadth_claims_matching_acquisitions(
     artifacts: Path,
 ) -> set[str]:
     """Recheck the complete adopted pool/quotes/events, including referenced review originals."""
+    selected = {p.selected_claim_id: p for p in points if p.selected_claim_id is not None}
+    # The check reads only each claim's immutable parent originals, so a shared read checks a
+    # claim once.
+    return claims_checked_once(
+        "breadth_claim_checks",
+        (str(artifacts), definition_version),
+        set(selected),
+        lambda claim_ids: _breadth_claims_valid(
+            repository,
+            tuple(selected[claim_id] for claim_id in claim_ids),
+            definition_version=definition_version,
+            artifacts=artifacts,
+        ),
+    )
+
+
+def _breadth_claims_valid(
+    repository: EvidenceRepository,
+    points: tuple[MetricSeriesPoint, ...],
+    *,
+    definition_version: str,
+    artifacts: Path,
+) -> set[str]:
     selected = {p.selected_claim_id: p for p in points if p.selected_claim_id is not None}
     cached: dict[tuple[frozenset[str], str], list[dict[str, Any]] | None] = {}
     valid = set()

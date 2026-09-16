@@ -1,0 +1,69 @@
+stopped after 300.7s
+         696459554 function calls (578693447 primitive calls) in 299.772 seconds
+
+   Ordered by: cumulative time
+   List reduced from 1096 to 60 due to restriction <60>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    48/39    0.876    0.018  300.916    7.716 {method 'acquire' of '_thread.lock' objects}
+        1    0.001    0.001  300.049  300.049 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/worker.py:147(process_pending_run)
+        1    0.000    0.000  300.031  300.031 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:1117(join)
+        1    0.000    0.000  300.031  300.031 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:1155(_wait_for_tstate_lock)
+        1    0.000    0.000  300.031  300.031 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:1018(_bootstrap)
+        1    0.000    0.000  300.031  300.031 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:1058(_bootstrap_inner)
+        1    0.000    0.000  300.031  300.031 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:1001(run)
+        1    0.000    0.000  300.030  300.030 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/worker.py:1633(_lease_heartbeat)
+        1    0.000    0.000  299.992  299.992 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/worker.py:214(_execute_run)
+        2    0.003    0.002  299.911  149.956 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/full_retrieval.py:145(_plan)
+      110    3.191    0.029  261.815    2.380 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/search_evidence.py:114(select)
+        1    0.013    0.013  240.633  240.633 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/full_retrieval.py:38(retrieve)
+      110    0.991    0.009  102.563    0.932 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:525(commodity_claims_matching_acquisitions)
+        9    0.562    0.062   99.291   11.032 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/runs.py:399(heartbeat_lease)
+      321    5.858    0.018   69.335    0.216 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:382(_commodity_document)
+   228902    0.345    0.000   68.486    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/__init__.py:299(loads)
+87596772/641   46.831    0.000   64.314    0.100 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:352(_commodity_meaning)
+        1    0.000    0.000   59.306   59.306 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/full_retrieval.py:301(evaluate)
+      321    2.701    0.008   59.121    0.184 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:220(calculate_commodity_basket)
+   228902    0.256    0.000   58.989    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/decoder.py:333(decode)
+   228902   58.513    0.000   58.513    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/json/decoder.py:344(raw_decode)
+    11/10    0.018    0.002   47.110    4.711 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:637(wait)
+      110    1.572    0.014   39.855    0.362 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:732(breadth_claims_matching_acquisitions)
+    11/10    0.309    0.028   38.588    3.859 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/threading.py:323(wait)
+   333656    0.285    0.000   36.271    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:1015(read_bytes)
+     1101    0.192    0.000   36.125    0.033 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/evidence.py:305(source_claim_acquisitions_many)
+    12677    0.051    0.000   33.485    0.003 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/acquisition.py:325(read_receipt_content)
+   353540    1.584    0.000   32.947    0.000 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/futures_inputs.py:943(select)
+    17841    0.625    0.000   31.419    0.002 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:179(calculate_commodity_returns)
+    18162    5.617    0.000   29.686    0.002 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:77(select_commodity_contracts)
+   333683   29.233    0.000   29.233    0.000 {method 'read' of '_io.BufferedReader' objects}
+     1250    0.530    0.000   21.502    0.017 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:584(parse_daily_breadth_acquisitions)
+      500    0.403    0.001   18.005    0.036 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:1155(parse_window_breadth_acquisitions)
+     1040    1.170    0.001   17.668    0.017 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:375(_commodity_publication)
+   353540    7.865    0.000   16.329    0.000 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/futures_inputs.py:915(_visibility_thresholds)
+   145296    0.483    0.000   15.245    0.000 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:43(_frozen_session)
+220993528   12.919    0.000   13.937    0.000 {built-in method builtins.isinstance}
+     2233    2.647    0.001   13.814    0.006 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/futures_inputs.py:984(_select)
+29658769/1361   10.781    0.000   12.637    0.009 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/commodity_basket.py:318(_commodity_facts)
+     1250    0.250    0.000   12.381    0.010 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:366(load_breadth_universe)
+     1250    0.095    0.000   11.116    0.009 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:332(_validate_breadth_proofs)
+  2318927    7.152    0.000   10.583    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/fractions.py:186(__new__)
+   312000    0.607    0.000   10.367    0.000 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:292(_breadth_artifact)
+   191092    8.839    0.000    8.839    0.000 {method 'decode' of 'bytes' objects}
+  2037114    1.685    0.000    7.788    0.000 {built-in method builtins.any}
+   343087    7.325    0.000    7.325    0.000 {built-in method _hashlib.openssl_sha256}
+   333658    0.102    0.000    6.476    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:1005(open)
+   333658    1.773    0.000    6.367    0.000 {built-in method _io.open}
+ 23894721    6.232    0.000    6.232    0.000 {method 'isoformat' of 'datetime.date' objects}
+  1420816    1.676    0.000    5.851    0.000 {built-in method builtins.max}
+      110    0.030    0.000    5.811    0.053 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/official_context.py:327(official_claims_matching_acquisitions)
+    60750    1.830    0.000    5.182    0.000 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/market_breadth.py:432(daily_breadth_day)
+319337/315441    0.102    0.000    5.157    0.000 {built-in method builtins.next}
+ 57946245    4.957    0.000    4.957    0.000 {method 'get' of 'dict' objects}
+     2075    0.009    0.000    4.774    0.002 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/official_context.py:308(_rebuilt_official_acquisition)
+      277    0.008    0.000    4.736    0.017 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/official_context.py:267(parse_official_acquisition)
+      283    0.008    0.000    4.624    0.016 /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/checkout/src/pring_cycle/official_context.py:208(parse_official_context_document)
+   335636    0.115    0.000    4.599    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:447(__fspath__)
+   336612    0.430    0.000    4.499    0.000 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/pathlib.py:437(__str__)
+      312    0.000    0.000    4.433    0.014 /home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/html/parser.py:135(feed)
+
+

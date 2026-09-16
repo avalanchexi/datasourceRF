@@ -1,0 +1,8 @@
+[32m.[0m[32m.[0m[32m                                                                       [100%][0m
+============================= slowest 5 durations ==============================
+1721.82s call     tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+60.27s call     tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+5.85s teardown tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+0.57s teardown tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+0.02s setup    tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+[32m[32m[1m2 passed[0m[32m in 1789.85s (0:29:49)[0m[0m

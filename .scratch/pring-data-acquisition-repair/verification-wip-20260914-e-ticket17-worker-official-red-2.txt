@@ -1,0 +1,10 @@
+[31mF[0m[31m                                                                        [100%][0m
+=================================== FAILURES ===================================
+[31m[1m_______ test_worker_official_refresh_uses_the_active_registered_catalog ________[0m
+[1m[31mtests/integration/test_worker_registered_catalog.py[0m:89: in test_worker_official_refresh_uses_the_active_registered_catalog
+    [0mofficial = [96mnext[39;49;00m(item [94mfor[39;49;00m item [95min[39;49;00m stored.retrieval_attempts [94mif[39;49;00m item[[33m"[39;49;00m[33mchannel[39;49;00m[33m"[39;49;00m] == [33m"[39;49;00m[33mofficial[39;49;00m[33m"[39;49;00m)[90m[39;49;00m
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   StopIteration[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/integration/test_worker_registered_catalog.py::[1mtest_worker_official_refresh_uses_the_active_registered_catalog[0m - StopIteration
+[31m[31m[1m1 failed[0m[31m in 35.25s[0m[0m

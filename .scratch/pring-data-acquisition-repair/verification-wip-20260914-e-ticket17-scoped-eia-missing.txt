@@ -1,0 +1,7 @@
+[32m.[0m[32m                                                                        [100%][0m
+============================= slowest 5 durations ==============================
+222.10s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials]
+0.37s teardown tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials]
+
+(1 durations < 0.005s hidden.  Use -vv to show these durations.)
+[32m[32m[1m1 passed[0m[32m in 223.62s (0:03:43)[0m[0m

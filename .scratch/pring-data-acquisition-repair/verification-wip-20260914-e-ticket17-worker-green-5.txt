@@ -1,0 +1,11 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                                     [100%][0m
+============================= slowest 10 durations =============================
+1752.64s call     tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog
+328.88s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[optional-gdp]
+284.67s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_without_source_credentials
+27.71s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[required-market-indices]
+0.01s setup    tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[required-market-indices]
+0.01s teardown tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog
+
+(4 durations < 0.005s hidden.  Use -vv to show these durations.)
+[32m[32m[1m4 passed[0m[32m in 2395.24s (0:39:55)[0m[0m

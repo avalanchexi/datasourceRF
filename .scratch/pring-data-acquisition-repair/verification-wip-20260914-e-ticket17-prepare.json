@@ -1,0 +1,10 @@
+{
+  "batch": "e-ticket17",
+  "head": "f14683ad21b7f9172d2b19ddf5814542c18bb242",
+  "files": {
+    "tests/integration/test_worker_registered_catalog.py": "daea638ce611ffad39fa893d0b4f6c71fd0d8053aa420e87e76b00c089bff58f"
+  },
+  "patch_sha256": "0536854f266ff160b38332a7066cb4e0947cb36154c3a4b042925728ada2e1d7",
+  "changed_paths_are_exactly_batch": true,
+  "prepared_at": "2026-09-14T23:01:01.810699+00:00"
+}

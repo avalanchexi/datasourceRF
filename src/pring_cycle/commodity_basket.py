@@ -23,6 +23,7 @@ from pring_cycle.futures_inputs import (
     futures_input_reader,
     shared_futures_input_reads,
 )
+from pring_cycle.read_scope import claims_checked_once
 from pring_cycle.runtime import RuntimePaths
 
 COMMODITY_FORMULA_VERSION = "ex-hog-calendar-settlement-v0002"
@@ -547,68 +548,98 @@ def commodity_claims_matching_acquisitions(
         for p in series
         if p.selected_claim_id is not None
     }
+    # The check reads the claim's immutable parents and the reviewed futures inputs at this
+    # cutoff, so a shared read checks a claim once per cutoff.
+    return claims_checked_once(
+        "commodity_claim_checks",
+        (str(database_path), definition_version, mode, as_of),
+        set(selected),
+        lambda claim_ids: _commodity_claims_valid(
+            repository,
+            {claim_id: selected[claim_id] for claim_id in claim_ids},
+            paths,
+            artifacts,
+            definition_version,
+            mode,
+            as_of,
+        ),
+    )
+
+
+def _commodity_claims_valid(
+    repository: EvidenceRepository,
+    selected: dict[str, tuple[str, MetricSeriesPoint]],
+    paths: RuntimePaths,
+    artifacts: Path,
+    definition_version: str,
+    mode: AsOfMode,
+    as_of: datetime,
+) -> set[str]:
     inputs_by_claim = repository.source_claim_acquisitions_many(tuple(selected))
-    expected_by_day: dict[str, Any] = {}
-    # The level and seven contribution claims of one day share a single result snapshot.
-    documents: dict[tuple[str, ...], dict[str, Any] | Exception] = {}
-    agreement: dict[tuple[tuple[str, ...], str], bool] = {}
-    valid = set()
+    # The level and seven contribution claims of one day share one result snapshot. Groups are
+    # checked one at a time in date order, so at most one snapshot and one day's recalculation
+    # are held while every claim is still compared with its own day's recalculation.
+    groups: dict[tuple[str, ...], list[str]] = {}
     for claim_id, inputs in inputs_by_claim.items():
-        metric, point = selected[claim_id]
+        groups.setdefault(tuple(sorted(i.receipt.acquisition_id for i in inputs)), []).append(
+            claim_id
+        )
+    valid = set()
+    expected_day: str | None = None
+    expected: Any = None
+    for claim_ids in sorted(
+        groups.values(), key=lambda ids: min(selected[i][1].period_end for i in ids)
+    ):
         try:
-            inputs_key = tuple(sorted(i.receipt.acquisition_id for i in inputs))
-            if inputs_key not in documents:
-                try:
-                    documents[inputs_key] = _commodity_document(inputs, artifacts)
-                except (ValueError, KeyError, TypeError, LookupError, OSError) as error:
-                    documents[inputs_key] = error
-            loaded = documents[inputs_key]
-            if isinstance(loaded, Exception):
-                raise loaded
-            document = loaded
-            if (
-                document["definition_version"] != definition_version
-                or document["business_date"] != point.period_end
-            ):
-                continue
-            result = document["result"]
-            if point.period_end not in expected_by_day:
-                expected_by_day[point.period_end] = _commodity_meaning(
-                    calculate_commodity_basket(
-                        paths,
-                        business_date=date.fromisoformat(point.period_end),
-                        mode=mode,
-                        as_of=as_of,
-                    )
-                )
-            # Equivalent later deliveries may have different receipt identities.
-            # Preserve the historical claim's parents, validating their originals,
-            # while comparing the facts selected at the caller's cutoff.
-            comparison = inputs_key, point.period_end
-            if comparison not in agreement:
-                agreement[comparison] = (
-                    _commodity_meaning(result) == expected_by_day[point.period_end]
-                    and not result["missing"]
-                )
-            if not agreement[comparison]:
-                continue
-            claim = next(c for c in point.claims if c.claim_id == claim_id)
-            published = _commodity_publication(result)
-            if any(
-                m["metric_id"] == metric
-                and m["dimensions"] == point.dimensions
-                and m["value"] == claim.value
-                and m["unit"] == claim.unit
-                and claim.provider == "tushare"
-                and claim.source_reference
-                == f"tushare:commodity_basket:{m['field']}:{point.period_end}"
-                and claim.release_at == published
-                and claim.public_available_at == published
-                for m in _commodity_members(result)
-            ):
-                valid.add(claim_id)
+            document = _commodity_document(inputs_by_claim[claim_ids[0]], artifacts)
         except (ValueError, KeyError, TypeError, LookupError, OSError):
             continue
+        result = document["result"]
+        agreement: bool | None = None
+        for claim_id in claim_ids:
+            metric, point = selected[claim_id]
+            try:
+                if (
+                    document["definition_version"] != definition_version
+                    or document["business_date"] != point.period_end
+                ):
+                    continue
+                if expected_day != point.period_end:
+                    # Release the previous day first; a failed recalculation is retried.
+                    expected_day, expected = None, None
+                    expected = _commodity_meaning(
+                        calculate_commodity_basket(
+                            paths,
+                            business_date=date.fromisoformat(point.period_end),
+                            mode=mode,
+                            as_of=as_of,
+                        )
+                    )
+                    expected_day = point.period_end
+                # Equivalent later deliveries may have different receipt identities.
+                # Preserve the historical claim's parents, validating their originals,
+                # while comparing the facts selected at the caller's cutoff.
+                if agreement is None:
+                    agreement = _commodity_meaning(result) == expected and not result["missing"]
+                if not agreement:
+                    continue
+                claim = next(c for c in point.claims if c.claim_id == claim_id)
+                published = _commodity_publication(result)
+                if any(
+                    m["metric_id"] == metric
+                    and m["dimensions"] == point.dimensions
+                    and m["value"] == claim.value
+                    and m["unit"] == claim.unit
+                    and claim.provider == "tushare"
+                    and claim.source_reference
+                    == f"tushare:commodity_basket:{m['field']}:{point.period_end}"
+                    and claim.release_at == published
+                    and claim.public_available_at == published
+                    for m in _commodity_members(result)
+                ):
+                    valid.add(claim_id)
+            except (ValueError, KeyError, TypeError, LookupError, OSError):
+                continue
     return valid
 
 

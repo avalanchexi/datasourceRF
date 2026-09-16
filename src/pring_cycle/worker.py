@@ -36,6 +36,7 @@ from pring_cycle.metric_contracts import (
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.read_scope import shared_read_scope
 from pring_cycle.reports import (
     CliReportAdapter,
     ReportAdapter,
@@ -177,16 +178,19 @@ def process_pending_run(
         )
         heartbeat.start()
         try:
-            _execute_run(
-                paths,
-                runs,
-                queued,
-                report_adapters,
-                retrieval_adapters=retrieval_adapters,
-                retrieval_now=retrieval_now,
-                retrieval_release_resolver=retrieval_release_resolver,
-                execution_now=execution_now,
-            )
+            # A Worker run never captures reviewed futures inputs (only their reviewed import
+            # does) or alters stored claims' parents, so one run shares one read of those.
+            with shared_read_scope():
+                _execute_run(
+                    paths,
+                    runs,
+                    queued,
+                    report_adapters,
+                    retrieval_adapters=retrieval_adapters,
+                    retrieval_now=retrieval_now,
+                    retrieval_release_resolver=retrieval_release_resolver,
+                    execution_now=execution_now,
+                )
         except (LookupError, OSError, TypeError, ValueError) as error:
             RetrievalLedger(paths.database).interrupt(queued.run_id)
             if runs.get(queued.run_id).status != "cancelled":
@@ -838,6 +842,7 @@ def _official_context_retrieval(
         metric_definition(
             metric_id,
             definition_version=definition_version,
+            database_path=paths.database,
         ).certification_status
         == "certified"
         for metric_id in refreshed.metric_ids
@@ -1503,7 +1508,10 @@ def _refresh_context_sources(
             outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
             record(metric_ids, "tushare", outcome, error_type=type(error).__name__, family=family)
             if any(
-                metric_definition(metric_id, definition_version=definition_version).priority != "P2"
+                metric_definition(
+                    metric_id, definition_version=definition_version, database_path=paths.database
+                ).priority
+                != "P2"
                 for metric_id in metric_ids
             ):
                 raise

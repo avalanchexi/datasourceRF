@@ -1,0 +1,6 @@
+{
+  "record": "verification-wip-20260914-e-ticket17-worker-eia-1-io-error",
+  "observed": "every EIA scenario errored at pytest setup/teardown with OSError [Errno 5] Input/output error creating basetemp directories; the runner record stayed 'running'",
+  "cause": "WSL virtual machine restarted (uptime 1 minute when inspected at 2026-09-15T07:51Z); native filesystem writes succeed after restart",
+  "status": "environment failure; not counted as passed or failed"
+}

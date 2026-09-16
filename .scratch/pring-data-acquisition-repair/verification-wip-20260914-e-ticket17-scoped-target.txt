@@ -1,0 +1,7 @@
+[32m.[0m[32m                                                                        [100%][0m
+============================= slowest 5 durations ==============================
+365.23s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+0.50s teardown tests/integration/test_worker_registered_catalog.py::test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+
+(1 durations < 0.005s hidden.  Use -vv to show these durations.)
+[32m[32m[1m1 passed[0m[32m in 367.28s (0:06:07)[0m[0m

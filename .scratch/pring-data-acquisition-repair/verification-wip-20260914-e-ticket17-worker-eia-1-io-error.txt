@@ -1,0 +1,198 @@
+[31mF[0m[31mE[0m[31mE[0m[31mE[0m[31mE[0m[31mE[0m[31mE[0m[31mE[0m[31m                                                                 [100%][0m
+==================================== ERRORS ====================================
+[31m[1m_ ERROR at teardown of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials] _[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:144: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+[31m[1m_ ERROR at setup of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[success-verified_candidate] _[0m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/capture.py[0m:862: in item_capture
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/capture.py[0m:895: in pytest_runtest_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/runner.py[0m:164: in pytest_runtest_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/runner.py[0m:514: in setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/python.py[0m:1674: in setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:720: in _fillfixtures
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:549: in getfixturevalue
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:640: in _get_active_fixturedef
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:1128: in execute
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_hooks.py[0m:512: in __call__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_manager.py[0m:120: in _hookexec
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_callers.py[0m:53: in run_old_style_hookwrapper
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_callers.py[0m:38: in run_old_style_hookwrapper
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/setuponly.py[0m:36: in pytest_fixture_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:1196: in pytest_fixture_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:923: in call_fixture_func
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:264: in tmp_path
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:251: in _mk_tmp
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:135: in mktemp
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/pathlib.py[0m:240: in make_numbered_dir
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: could not create numbered dir with prefix test_worker_full_run_publishes in /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/worker-eia-1 after 10 tries[0m
+
+[33mDuring handling of the above exception, another exception occurred:[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:158: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+[31m[1m_ ERROR at teardown of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[success-verified_candidate] _[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:144: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+[31m[1m_ ERROR at setup of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed] _[0m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/capture.py[0m:862: in item_capture
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/capture.py[0m:895: in pytest_runtest_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/runner.py[0m:164: in pytest_runtest_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/runner.py[0m:514: in setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/python.py[0m:1674: in setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:720: in _fillfixtures
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:549: in getfixturevalue
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:640: in _get_active_fixturedef
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:1128: in execute
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_hooks.py[0m:512: in __call__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_manager.py[0m:120: in _hookexec
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_callers.py[0m:53: in run_old_style_hookwrapper
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_callers.py[0m:38: in run_old_style_hookwrapper
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/setuponly.py[0m:36: in pytest_fixture_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:1196: in pytest_fixture_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:923: in call_fixture_func
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:264: in tmp_path
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:251: in _mk_tmp
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:135: in mktemp
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/pathlib.py[0m:240: in make_numbered_dir
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: could not create numbered dir with prefix test_worker_full_run_publishes in /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/worker-eia-1 after 10 tries[0m
+
+[33mDuring handling of the above exception, another exception occurred:[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:158: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+[31m[1m_ ERROR at teardown of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed] _[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:144: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+[31m[1m_ ERROR at setup of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed] _[0m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/capture.py[0m:862: in item_capture
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/capture.py[0m:895: in pytest_runtest_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/runner.py[0m:164: in pytest_runtest_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/runner.py[0m:514: in setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/python.py[0m:1674: in setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:720: in _fillfixtures
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:549: in getfixturevalue
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:640: in _get_active_fixturedef
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:1128: in execute
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_hooks.py[0m:512: in __call__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_manager.py[0m:120: in _hookexec
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_callers.py[0m:53: in run_old_style_hookwrapper
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pluggy/_callers.py[0m:38: in run_old_style_hookwrapper
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/setuponly.py[0m:36: in pytest_fixture_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:1196: in pytest_fixture_setup
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/fixtures.py[0m:923: in call_fixture_func
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:264: in tmp_path
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:251: in _mk_tmp
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/tmpdir.py[0m:135: in mktemp
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/_pytest/pathlib.py[0m:240: in make_numbered_dir
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: could not create numbered dir with prefix test_worker_full_run_publishes in /home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/e-ticket17/worker-eia-1 after 10 tries[0m
+
+[33mDuring handling of the above exception, another exception occurred:[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:158: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+[31m[1m_ ERROR at teardown of test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed] _[0m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:144: in __exit__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31mE   OSError: [Errno 5] Input/output error[0m
+=================================== FAILURES ===================================
+[31m[1m_ test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials] _[0m
+[1m[31mtests/integration/test_worker_registered_catalog.py[0m:287: in test_worker_full_run_publishes_the_registered_projection_across_eia_conditions
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pring_cycle/runs.py[0m:113: in submit_manual_full
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pring_cycle/runs.py[0m:181: in submit
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:137: in __enter__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m../../venv/lib/python3.12/site-packages/pring_cycle/runs.py[0m:943: in _connect
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00m
+[1m[31m/home/tywin/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/contextlib.py[0m:137: in __enter__
+    [0m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[04m[91m?[39;49;00m[90m[39;49;00mFatal Python error: Bus error
+
+Current thread 0x0000781c987d3740 (most recent call first):
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/_io/wcwidth.py", line 29 in wcwidth
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/_io/wcwidth.py", line 53 in wcswidth
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/terminal.py", line 1505 in _get_line_with_reprcrash_message
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/terminal.py", line 1252 in show_simple
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/terminal.py", line 1342 in short_test_summary
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/terminal.py", line 970 in pytest_terminal_summary
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_callers.py", line 152 in _multicall
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/terminal.py", line 946 in pytest_sessionfinish
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_callers.py", line 152 in _multicall
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/main.py", line 324 in wrap_session
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/main.py", line 336 in pytest_cmdline_main
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/config/__init__.py", line 175 in main
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/_pytest/config/__init__.py", line 201 in console_main
+  File "/home/tywin/.cache/pring-cycle/verification/wip-batches-20260914/venv/lib/python3.12/site-packages/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main

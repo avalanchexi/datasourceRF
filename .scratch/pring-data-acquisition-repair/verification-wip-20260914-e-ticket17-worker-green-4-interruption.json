@@ -1,0 +1,7 @@
+{
+  "record": "verification-wip-20260914-e-ticket17-worker-green-4",
+  "decision": "terminated by the implementer (process group SIGTERM/SIGKILL) at 2026-09-15T05:07Z",
+  "observed": "material rebuilt; progress '..': official targeted refresh and required TuShare failure passed; optional GDP full run stayed in refreshing_evidence for 31+ minutes with no gap plan written, although the same code completed a credential-free full run in 341s",
+  "status": "interrupted; not counted as passed or failed",
+  "follow_up": "profile the full run with a configured TuShare token and failing context families"
+}

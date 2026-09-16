@@ -1,0 +1,7 @@
+{
+  "record": "verification-wip-20260914-e-ticket17-worker-green-3",
+  "decision": "terminated by the implementer (process group SIGTERM/SIGKILL) at 2026-09-15T01:10Z",
+  "observed": "progress '..': official targeted refresh and required TuShare failure passed; optional GDP case ran 67 minutes in FullRunRetrieval.retrieve after the context refresh finished in 4s (GDP validation_failed, later Treasury/interbank families requested)",
+  "status": "interrupted; not counted as passed or failed",
+  "follow_up": "profile full-run gap retrieval on the registered isolated material"
+}

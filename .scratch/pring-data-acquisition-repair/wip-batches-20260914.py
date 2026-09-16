@@ -62,6 +62,14 @@ BATCHES = {
         'tests/integration/test_inventory_period_alignment.py',
         'tests/models/test_isolated_lifecycle.py',
     ],
+    'e-ticket17': [
+        'src/pring_cycle/commodity_basket.py',
+        'src/pring_cycle/futures_inputs.py',
+        'src/pring_cycle/market_breadth.py',
+        'src/pring_cycle/read_scope.py',
+        'src/pring_cycle/worker.py',
+        'tests/integration/test_worker_registered_catalog.py',
+    ],
 }
 
 

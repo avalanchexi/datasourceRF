@@ -1,0 +1,12 @@
+[31mF[0m[31m                                                                        [100%][0m
+=================================== FAILURES ===================================
+[31m[1m_______ test_worker_official_refresh_uses_the_active_registered_catalog ________[0m
+[1m[31mtests/integration/test_worker_registered_catalog.py[0m:81: in test_worker_official_refresh_uses_the_active_registered_catalog
+    [0m[94massert[39;49;00m requested == [AUGUST_PPI_URL][90m[39;49;00m
+[1m[31mE   AssertionError: assert [] == ['https://www...1965007.html'][0m
+[1m[31mE     [0m
+[1m[31mE     Right contains one more item: [0m[33m'[39;49;00m[33mhttps://www.stats.gov.cn/sj/zxfb/202609/t20260909_1965007.html[39;49;00m[33m'[39;49;00m[90m[39;49;00m[0m
+[1m[31mE     Use -v to get more diff[0m
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/integration/test_worker_registered_catalog.py::[1mtest_worker_official_refresh_uses_the_active_registered_catalog[0m - AssertionError: assert [] == ['https://www...1965007.html']
+[31m[31m[1m1 failed[0m[31m in 15.28s[0m[0m

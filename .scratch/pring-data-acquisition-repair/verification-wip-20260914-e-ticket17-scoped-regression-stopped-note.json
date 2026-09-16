@@ -1,0 +1,1 @@
+{"status": "stopped_by_implementer", "note": "stopped a few minutes after start to apply two-axis review fixes; reruns on the fixed version. The mypy step also checked two committed test modules (25 pre-existing arg-type errors from **dict calls in tests/adapters/test_commodity_basket.py and test_futures_inputs.py); project convention is mypy over src only, rerun accordingly."}

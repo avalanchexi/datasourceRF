@@ -1,0 +1,18 @@
+[31mF[0m[31m                                                                        [100%][0m
+=================================== FAILURES ===================================
+[31m[1m_______ test_worker_official_refresh_uses_the_active_registered_catalog ________[0m
+[1m[31mtests/integration/test_worker_registered_catalog.py[0m:90: in test_worker_official_refresh_uses_the_active_registered_catalog
+    [0m[94massert[39;49;00m stored.status == [33m"[39;49;00m[33mcompleted[39;49;00m[33m"[39;49;00m, stored[90m[39;49;00m
+[1m[31mE   AssertionError: RunRecord(run_id='run-b4bb9a1795e6a98a0789', command_type='targeted_refresh', target_business_date='2026-09-11', model...9-14T23:30:55.100970+00:00', 'cache_hit': 0, 'reused_request_id': None}]}, cutoff_mode='explicit', cutoffs_frozen=True)[0m
+[1m[31mE   assert 'action_required' == 'completed'[0m
+[1m[31mE     [0m
+[1m[31mE     [0m[91m- completed[39;49;00m[90m[39;49;00m[0m
+[1m[31mE     [92m+ action_required[39;49;00m[90m[39;49;00m[0m
+============================= slowest 5 durations ==============================
+1621.69s call     tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog
+0.01s teardown tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog
+
+(1 durations < 0.005s hidden.  Use -vv to show these durations.)
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/integration/test_worker_registered_catalog.py::[1mtest_worker_official_refresh_uses_the_active_registered_catalog[0m - AssertionError: RunRecord(run_id='run-b4bb9a1795e6a98a0789', command_type='...
+[31m[31m[1m1 failed[0m[31m in 1623.17s (0:27:03)[0m[0m

@@ -1,0 +1,14 @@
+[31mF[0m[31m                                                                        [100%][0m
+=================================== FAILURES ===================================
+[31m[1m_ test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection _[0m
+[1m[31mtests/integration/test_worker_registered_catalog.py[0m:345: in test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+    [0m[94massert[39;49;00m plan[[33m"[39;49;00m[33minitial[39;49;00m[33m"[39;49;00m][[33m"[39;49;00m[33msystem_as_of[39;49;00m[33m"[39;49;00m] == window_opened.isoformat()[90m[39;49;00m
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[90m[39;49;00m
+[1m[31mE   KeyError: 'system_as_of'[0m
+============================= slowest 10 durations =============================
+363.67s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+
+(2 durations < 0.005s hidden.  Use -vv to show these durations.)
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m tests/integration/test_worker_registered_catalog.py::[1mtest_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection[0m - KeyError: 'system_as_of'
+[31m[31m[1m1 failed[0m, [33m7 deselected[0m[31m in 364.77s (0:06:04)[0m[0m
