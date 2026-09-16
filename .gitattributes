@@ -1,0 +1,6 @@
+# Captured originals are addressed by the sha256 of their exact bytes, so git must
+# store them byte for byte. Without this, a CRLF page fetched on Windows is normalised
+# on the way in and its stored content no longer hashes to its own file name.
+.scratch/**/evidence-*/** -text
+.scratch/**/artifacts/sha256/** -text
+.scratch/pring-data-acquisition-repair/credit-window-inputs-186/** -text
