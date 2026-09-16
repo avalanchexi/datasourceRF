@@ -24,3 +24,28 @@
 ## 连带修正
 
 `tests/integration/test_full_run_retrieval.py::test_p2_projection_separates_acquisition_condition_from_certification` 原先断言"无密钥即不发任何请求"。[票14 的页面回退](implementation-14-eia-html-fallback.md)落地后，任何无可用密钥的分支都会继续尝试无密钥页面，因此该用例改为：页面在夹具中离线，API 渠道保留各自的原有结论（`missing_credentials`/`source_failed`/`validation_failed`），页面渠道记 `source_failed` 并成为该行的最新采集。3 个参数全部通过/163.1秒。该用例不再触网。
+
+## 有界抓取的实际结果（2026-09-17）
+
+按 [请求前冻结的参数](plan-13-bounded-fetch-20260917.md)（允许域 chinamoney/pbc/dce/czce，每缺口 ≤3 次、总计 ≤9 次，串行、间隔 ≥2 秒，只发 GET，连续 2 次非 200 或响应 >5MB 即停）对上述三项缺件各发一次真实请求。记录见 [verification-13-bounded-fetch-20260917.json](verification-13-bounded-fetch-20260917.json)，原件按内容寻址存于 [evidence-13-20260917/](evidence-13-20260917/)。
+
+**第一次尝试：2 次请求即触发停止条件。** 两个 chinamoney 路径都返回 404——那两个 URL 是我**自己拼的**，不是任何官方索引给出的。冻结规则按设计生效：连续两次非 200 后，剩下三个缺口的请求全部标记 `stop_condition_two_failures` 未发出。这里如实记下：停止条件挡住的不是站点故障，是我编造的路径。
+
+**第二次尝试：改用检索返回的真实 URL，2 次请求全部 200。**
+
+| 缺口 | URL | 状态 | 字节 | sha256 |
+|---|---|---|---|---|
+| rrr_history_events | pbc.gov.cn/zhengcehuobisi/…/125795/index.html | 200 | 30,332 | `31151b6e…` |
+| rrr_history_events | camlmac.pbc.gov.cn/…/17085-2.html | 200 | 41,856 | `76a43120…` |
+
+**结论：这两件原件不足以关闭任何缺口。** 页面确实是人民银行域、确实含存款准备金率的**调整日期**（如 2015-04-19），但**不含发布时间**（几点几分），而票13 缺的正是"历史发布时间与使用边界"。按 PUBLIC 口径，只有调整日而无发布时刻，无法判定某个目标交易日当时该事件是否已公开。
+
+三项缺件的当前状态因此是：
+
+| 缺件 | 本次结果 |
+|---|---|
+| DR007 历史首次公开时间 | **未获得**——两次猜测路径 404，未再尝试 |
+| PP / CF / TA 仓单单位官方口径 | **未获得**——被停止条件挡下，本轮未发请求 |
+| 存款准备金率历史事件 | **部分**——拿到 2 件官方原件，含调整日、无发布时间，不足以认证 |
+
+票13 的五项验收条件仍**全部未勾**，[票19 的候选模型](issues/19-immutable-candidate-catalog.md)因此仍被阻塞。

@@ -1,0 +1,62 @@
+{
+  "fetched_at": "2026-09-17T07:04:13.767443+08:00",
+  "budget": 9,
+  "requests": [
+    {
+      "gap": "dr007_history_public_time",
+      "url": "https://www.chinamoney.com.cn/chinese/bkcurvfix/",
+      "status": 404,
+      "error": "Not Found",
+      "seconds": 0.12
+    },
+    {
+      "gap": "dr007_history_public_time",
+      "url": "https://www.chinamoney.com.cn/chinese/rdhomerate/",
+      "status": 404,
+      "error": "Not Found",
+      "seconds": 0.11
+    },
+    {
+      "gap": "warrant_units_pp",
+      "url": "http://www.dce.com.cn/dalianshangpin/sspz/ylx/index.html",
+      "skipped": "stop_condition_two_failures"
+    },
+    {
+      "gap": "warrant_units_cf_ta",
+      "url": "http://www.czce.com.cn/cn/jysj/cdcb/H770310index_1.htm",
+      "skipped": "stop_condition_two_failures"
+    },
+    {
+      "gap": "rrr_history_events",
+      "url": "http://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125440/index.html",
+      "skipped": "stop_condition_two_failures"
+    }
+  ],
+  "total_requests": 2,
+  "second_attempt": {
+    "fetched_at": "2026-09-17T07:05:08.047098+08:00",
+    "note": "second attempt, using URLs returned by search instead of guessed paths",
+    "requests": [
+      {
+        "gap": "rrr_history_events",
+        "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125434/125795/index.html",
+        "status": 200,
+        "bytes": 30332,
+        "seconds": 0.15,
+        "sha256": "31151b6e68d06624910145ad4fa3a9ab85cf88f19e0bc00a8866164b177ecc5d",
+        "mentions_rrr": true,
+        "chars": 26043
+      },
+      {
+        "gap": "rrr_history_events",
+        "url": "https://camlmac.pbc.gov.cn/zhengcehuobisi/125207/125213/125434/125798/17085-2.html",
+        "status": 200,
+        "bytes": 41856,
+        "seconds": 0.21,
+        "sha256": "76a43120b0d0676282f330a6e45800d60ad5d76a55c90f6b57f50b3cc3baedd5",
+        "mentions_rrr": true,
+        "chars": 38370
+      }
+    ]
+  }
+}
