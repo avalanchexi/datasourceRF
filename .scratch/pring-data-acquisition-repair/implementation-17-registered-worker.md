@@ -111,3 +111,13 @@
 - 验证（工作区小库，未重建材料）：`tests/adapters/test_futures_inputs.py`与`test_commodity_basket.py`共91通过/95.8秒；`test_registered_commodity.py`、`test_futures_warrant_completeness.py`及生命周期非重型用例12通过/48.3秒；`ruff check src tests`通过；`mypy`（packages=pring_cycle）96源文件通过。改动使代码哈希与构建器哈希变化，现有材料`8a84b451…`失效，下次重型验证时一并重建。
 
 上述两项与会话(2)的美债时钟修复在同一版本`1fa16c5`上做了一次[联合回归](verification-joint-20260916.md)：adapters 91、replay 86、admission 656、lifecycle 3、worker 67，共903通过/0失败，约108分钟；材料在lifecycle组内重建一次（新身份`ddeace1d…`）。worker组含注册目录8项及Worker执行、完整运行检索全部用例，确认读取器拆分后行为不变。该回归范围限于两批改动，不等同于最终同版本默认全套，票17该条件仍未关闭。
+
+## 冻结树Standards复审的跟进（2026-09-16）
+
+会话(2)对 `31735d6..9929b45` 做冻结树Standards复审，涉及本会话文件的三项已处理：
+
+- 证据完整性（中）：跳过旁文件后，未检查点WAL中的已提交数据既不哈希也不校验。改为存材料前 `PRAGMA wal_checkpoint(TRUNCATE)` 并删除旁文件，复制前断言暂存目录无旁文件——材料本身不含旁文件，校验跳过的只可能是后续读取者新建的。新增反例 `test_checkpointing_folds_committed_wal_content_into_the_hashed_database`：提交后WAL非空，检查点后旁文件消失且只复制主库仍能读回该行。
+- 文档漂移：`isolated_lifecycle_material` 文档串补充"数据库先检查点，清单之外只可能是读取者新建的sqlite旁文件"（docs侧由会话(2)修）。
+- 接口宽度：`fact_key` 与 `damaged_review_contract_scope` 仅被读取侧使用，移入 `futures_input_reads.py`，采集侧公开面收回到 `input_facts`/`publication_time`/`read_artifact` 三项（617行 / 565行）。
+
+验证：旁文件与检查点反例2通过/0.8秒；适配器91通过/106.2秒；`ruff check src tests` 与 `mypy src`（96源文件）通过。改动使材料失效，重型复验随下一批重建一并进行。

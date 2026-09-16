@@ -928,6 +928,19 @@ def material_store() -> Path:
 SQLITE_SIDECARS = ("-wal", "-shm", "-journal")
 
 
+def _checkpoint_database(database: Path) -> None:
+    """Fold committed WAL content back into the file the material stores and hashes."""
+    import sqlite3
+
+    connection = sqlite3.connect(database)
+    try:
+        connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    finally:
+        connection.close()
+    for suffix in SQLITE_SIDECARS:
+        database.with_name(database.name + suffix).unlink(missing_ok=True)
+
+
 def _runtime_contents(root: Path) -> dict[str, str]:
     return {
         str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -950,7 +963,11 @@ def store_isolated_lifecycle_material(paths: RuntimePaths, built: dict[str, Any]
     staging = material_store() / f"{key}.staging-{os.getpid()}"
     shutil.rmtree(staging, ignore_errors=True)
     assert paths.override_root is not None
+    _checkpoint_database(paths.database)
     shutil.copytree(paths.override_root, staging / "runtime")
+    # Everything a copy reads is then hashed: a stored material carries no sidecar, so the
+    # ones a later reader creates are the only files the contents check skips.
+    assert not [p for p in (staging / "runtime").rglob("*") if p.name.endswith(SQLITE_SIDECARS)]
     from pring_cycle.runtime_fingerprint import execution_fingerprint
 
     manifest = models.manifest(candidate)
@@ -984,9 +1001,11 @@ def isolated_lifecycle_material(destination: Path) -> tuple[RuntimePaths, dict[s
     """An independent copy of the activated synthetic model for mutable isolated tests.
 
     A stored build is reused only when its identity matches the current code, dependencies,
-    builders and inputs and every stored runtime file still matches its recorded hash; each
-    caller receives its own full copy, never a shared runtime. This is a rebuildable test
-    cache, not a backup of operational runtime data (see docs/development/local-runtime.md).
+    builders and inputs and every stored runtime file still matches its recorded hash. The
+    database is checkpointed before it is stored, so the only files outside that manifest are
+    the sqlite sidecars a later reader creates. Each caller receives its own full copy, never a
+    shared runtime. This is a rebuildable test cache, not a backup of operational runtime data
+    (see docs/development/local-runtime.md).
     """
     import shutil
 
@@ -1040,6 +1059,32 @@ def test_material_contents_ignore_sqlite_sidecars_but_not_stored_files(tmp_path:
     # Content that belongs to the material is still compared.
     (runtime / "notes.json").write_text('{"changed": true}')
     assert _runtime_contents(tmp_path / "runtime") != built
+
+
+def test_checkpointing_folds_committed_wal_content_into_the_hashed_database(
+    tmp_path: Path,
+) -> None:
+    """Committed data must live in the file the material hashes, never only in a sidecar."""
+    import sqlite3
+
+    database = tmp_path / "pring-cycle.sqlite3"
+    connection = sqlite3.connect(database)
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("CREATE TABLE day (business_date TEXT)")
+    connection.execute("INSERT INTO day VALUES ('2026-09-11')")
+    connection.commit()
+    assert database.with_name(database.name + "-wal").stat().st_size > 0
+
+    _checkpoint_database(database)
+
+    assert not database.with_name(database.name + "-wal").exists()
+    connection.close()
+    # The checkpointed file alone still carries the committed row.
+    copied = tmp_path / "copy.sqlite3"
+    copied.write_bytes(database.read_bytes())
+    reader = sqlite3.connect(f"file:{copied}?immutable=1", uri=True)
+    assert reader.execute("SELECT business_date FROM day").fetchall() == [("2026-09-11",)]
+    reader.close()
 
 
 def test_complete_isolated_candidate_is_calibrated_replayed_and_activated(tmp_path: Path) -> None:

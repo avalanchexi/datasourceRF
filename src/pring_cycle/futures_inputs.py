@@ -344,14 +344,6 @@ def _bind_publications(
         fact["raw_hashes"].append(packet.raw_hash)
 
 
-def fact_key(fact: dict[str, Any]) -> tuple[str, str, str]:
-    return (
-        fact["kind"],
-        str(fact.get("contract_code", fact.get("product", fact.get("exchange", "")))),
-        str(fact.get("business_date", "")),
-    )
-
-
 def _fact(
     kind: str, data: dict[str, Any], parents: tuple[AcquisitionReceipt, ...]
 ) -> dict[str, Any]:
@@ -623,53 +615,3 @@ def bind_futures_input_evidence(
     except Exception as error:
         repository.fail_validation(evidence.receipt.acquisition_id, error)
         raise
-
-
-def damaged_review_contract_scope(
-    repository: AcquisitionRepository,
-    receipt: AcquisitionReceipt,
-    history: tuple[AcquisitionReceipt, ...],
-    artifacts: Path,
-    products: tuple[str, ...],
-) -> dict[str, Any]:
-    """Recover version keys from originals solely to quarantine a damaged batch.
-
-    Reconstructed facts remain invalid. Their original publication times let a
-    superseding intact contract version recover without accepting the damaged one.
-    """
-    if receipt.api_name != "futures_input_evidence":
-        raise ValueError("futures_input_normalization_invalid")
-    packet = json.loads(repository.read_content(receipt.acquisition_id, "raw"))
-    parents = []
-    for publication in packet["publications"]:
-        if (
-            publication["api_name"] != "fut_basic"
-            or publication["parameters"].get("fut_code") not in products
-        ):
-            continue
-        matches = [
-            r
-            for r in history
-            if r.api_name == "fut_basic"
-            and r.raw_hash == publication["raw_hash"]
-            and r.parameters == publication["parameters"]
-            and r.validated_at is not None
-            and receipt.validated_at is not None
-            and r.validated_at <= receipt.validated_at
-        ]
-        if not matches:
-            raise ValueError("futures_input_contract_scope_unknown")
-        parents.append(
-            max(matches, key=lambda r: r.validated_at.isoformat() if r.validated_at else "")
-        )
-    inputs = (*parents, receipt)
-    facts = input_facts(
-        tuple((r, repository.read_content(r.acquisition_id, "raw")) for r in inputs), artifacts
-    )
-    return {
-        "schema_version": BATCH_SCHEMA,
-        "acquisition_ids": [r.acquisition_id for r in inputs],
-        "facts": [
-            {**fact, "normalization_invalid": True} for fact in facts if fact["kind"] == "contract"
-        ],
-    }
