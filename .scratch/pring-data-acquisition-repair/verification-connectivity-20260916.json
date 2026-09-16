@@ -1,0 +1,50 @@
+{
+  "probed_at": "2026-09-16T15:24:30.777658+08:00",
+  "secrets_present": [
+    "EIA_API_KEY",
+    "EXA_API_KEY",
+    "TAVILY_API_KEY",
+    "TUSHARE_TOKEN"
+  ],
+  "tushare_trade_cal": {
+    "code": 0,
+    "seconds": 0.94,
+    "open_days": [
+      "20260907",
+      "20260908",
+      "20260909",
+      "20260910",
+      "20260911",
+      "20260914",
+      "20260915",
+      "20260916",
+      "20260917",
+      "20260918"
+    ],
+    "closed_days": [
+      "20260912",
+      "20260913"
+    ],
+    "target_20260911_is_open": true
+  },
+  "eia_api_key": {
+    "status": 403,
+    "reason": "Forbidden"
+  },
+  "eia_html": {
+    "RBRTED": {
+      "status": 200,
+      "bytes": 457657,
+      "seconds": 2.168,
+      "sha256": "bef3f2b1ecbc90549e3d447c7e1e8bfbc6e5d42b6011df319ede12fc74b76ddf",
+      "mentions_2026": true
+    },
+    "RWTCD": {
+      "status": 200,
+      "bytes": 472505,
+      "seconds": 1.816,
+      "sha256": "a27831eb8d05bd3dfe4215d5b01a6176c9f3855e7d341ddb6dae64ab8f174631",
+      "mentions_2026": true
+    }
+  }
+}
