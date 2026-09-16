@@ -51,3 +51,9 @@
 延后项（已与另一会话确认）：清单中操作员填报的 `pytest_total.measured_seconds` 与真正实测同名，改名为 `reported_seconds` 更准确；现在改会使刚勾选所依据的冻结版本失效，放入下一批。
 
 补充验证：`tests/integration/test_acceptance_timing.py` 11 通过/22.5秒；ruff、mypy 通过。新增用例改动了测试树，因此本条之后的树哈希不再等于冻结记录中的 `07df0da3…`；冻结全套结论仍只归属 `9929b45`，新增用例由本次限定运行覆盖，随下一批全套再合并确认。
+
+## 命名跟进（2026-09-16，任务 C）
+
+冻结树 Standards 复审提出、当时因不愿使刚勾选的冻结版本失效而推迟的一项：清单 `suite_timing` 下，操作员填报的整批耗时用了 `measured_seconds`，与验收文档自行实测的同名，容易被读成同一类值。现改为 `pytest_total.reported_seconds`；验收自测的 `acceptance_internal_phases.measured_seconds` 不变。`reported_total_seconds` 读回该键，`record_direct_cutover` 重建清单的行为不变。文档补一句说明两者用词不同以区分来源。
+
+验证：`test_acceptance_timing.py` 与 `test_rehearsal_cutover.py` 共 23 通过/69.8秒；ruff 与 `mypy src` 通过。该字段是本批新增、无历史制品使用，改名无兼容成本。

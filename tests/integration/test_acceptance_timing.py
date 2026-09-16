@@ -139,7 +139,7 @@ def test_a_real_acceptance_artifact_reaches_the_real_checklist_build(tmp_path: P
     assert manifest["references"]["acceptance"] == acceptance_hash
     timing = manifest["suite_timing"]
     assert timing["acceptance_internal_phases"] == result["suite_timing"]
-    assert timing["pytest_total"]["measured_seconds"] == 1975.0
+    assert timing["pytest_total"]["reported_seconds"] == 1975.0
 
 
 def test_a_failed_regression_blocks_the_real_checklist_quality_check(tmp_path: Path) -> None:
@@ -200,7 +200,7 @@ def test_cutover_reads_a_missed_duration_target_as_reported_not_blocking() -> No
     summary = suite_timing_summary(document, total_seconds=1975.0)
     assert summary["acceptance_internal_phases"] == document["suite_timing"]
     # The whole test run from start to final state is reported separately, never conflated.
-    assert summary["pytest_total"] == {"scope": "pytest_total", "measured_seconds": 1975.0}
+    assert summary["pytest_total"] == {"scope": "pytest_total", "reported_seconds": 1975.0}
 
 
 @pytest.mark.parametrize(

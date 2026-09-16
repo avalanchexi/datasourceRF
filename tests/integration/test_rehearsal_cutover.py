@@ -552,7 +552,7 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
             "measured_seconds": 812.5,
             "target_met": False,
         },
-        "pytest_total": {"scope": "pytest_total", "measured_seconds": 1975.0},
+        "pytest_total": {"scope": "pytest_total", "reported_seconds": 1975.0},
     }
     assert v1_manifest["metric_catalog_version"] == "metric-catalog-v0001"
 
@@ -651,7 +651,7 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
     # A missed duration target is reported, not blocking, and a manifest that reported the
     # whole run's wall clock still rebuilds identically when the cutover is recorded.
     assert manifest["suite_timing"]["acceptance_internal_phases"]["target_met"] is False
-    assert manifest["suite_timing"]["pytest_total"]["measured_seconds"] == 1975.0
+    assert manifest["suite_timing"]["pytest_total"]["reported_seconds"] == 1975.0
 
     stale_acceptance_hash = _artifact(
         paths,

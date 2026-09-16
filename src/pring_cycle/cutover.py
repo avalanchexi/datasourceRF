@@ -323,7 +323,9 @@ def suite_timing_summary(
     if total_seconds is not None:
         if not isfinite(total_seconds) or total_seconds < 0:
             raise ValueError("cutover_suite_total_seconds_invalid")
-        total["measured_seconds"] = total_seconds
+        # Reported by the operator, not measured here: a different word from the acceptance
+        # document's own measured_seconds, so the two are never read as the same kind of value.
+        total["reported_seconds"] = total_seconds
     return {SUITE_TIMING_SCOPE: internal, TOTAL_TIMING_SCOPE: total}
 
 
@@ -331,7 +333,7 @@ def reported_total_seconds(manifest: dict[str, Any]) -> float | None:
     """The whole run's wall clock a manifest already reported, for rebuilding it identically."""
     timing = manifest.get("suite_timing")
     total = timing.get(TOTAL_TIMING_SCOPE) if isinstance(timing, dict) else None
-    measured = total.get("measured_seconds") if isinstance(total, dict) else None
+    measured = total.get("reported_seconds") if isinstance(total, dict) else None
     return float(measured) if isinstance(measured, (int, float)) else None
 
 
