@@ -118,3 +118,69 @@ def test_a_heartbeat_that_lost_ownership_still_stops(tmp_path: Path) -> None:
     beats.join(5)
 
     assert not beats.is_alive(), "losing ownership still ends the heartbeat immediately"
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_run_under_write_contention_still_publishes_and_reports_its_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The whole path holds up while another writer keeps taking the lock.
+
+    Public submission, the persisted run, the Worker's own execution, the published projection
+    and the status query all have to survive a neighbour that writes throughout the run.
+    """
+    from pring_cycle.projections import ProjectionSetRepository
+    from pring_cycle.worker import process_pending_run
+    from tests.integration.test_full_run_retrieval import seed_core_history
+
+    paths, runs = prepared(tmp_path)
+    seed_core_history(paths)
+
+    def page_offline(url: str) -> None:
+        raise OSError("fixture history page offline")
+
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="contended-full-run",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    assert runs.get(submitted.run_id).status == "queued"
+
+    stop_writing = threading.Event()
+    grabs = 0
+
+    def neighbour() -> None:
+        """Keep taking the write lock for short bursts, the way a second writer would."""
+        nonlocal grabs
+        while not stop_writing.wait(0.05):
+            try:
+                with sqlite3.connect(paths.database, timeout=0.2) as connection:
+                    connection.execute("BEGIN IMMEDIATE")
+                    connection.execute(
+                        "UPDATE worker_lease SET heartbeat_at = heartbeat_at "
+                        "WHERE lease_name = 'worker:global-execution'"
+                    )
+                    grabs += 1
+                    time.sleep(0.2)
+            except sqlite3.OperationalError:
+                continue
+
+    writer = threading.Thread(target=neighbour, name="fixture-neighbour-writer", daemon=True)
+    writer.start()
+    try:
+        process_pending_run(paths, report_adapters=())
+    finally:
+        stop_writing.set()
+        writer.join(5)
+
+    assert grabs > 0, "the fixture never actually contended for the write lock"
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "completed", stored.error_classification
+    assert stored.projection_set_id is not None
+    published = ProjectionSetRepository(paths.database).current()
+    assert published.envelope.projection_set_id == stored.projection_set_id
+    assert published.envelope.target_business_date == "2026-08-28"
+    # The lease is released in order once the run ends: no owner is left holding it.
+    assert runs.audit_lease().owner_state in {"absent", "released"}
