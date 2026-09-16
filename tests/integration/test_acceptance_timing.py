@@ -6,6 +6,7 @@ quality artifact and the cutover checklist both report without failing on it.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,124 @@ def test_a_real_acceptance_run_is_read_by_the_cutover_side_unchanged(tmp_path: P
     assert timing["measured_seconds"] < 600 and timing["target_met"] is True
     assert quality_gates_passed(result) is True
     assert suite_timing_summary(result, total_seconds=None)["acceptance_internal_phases"] == timing
+
+
+def cutover_ready_runtime(tmp_path: Path) -> RuntimePaths:
+    """A runtime with an active model and a published projection, as the checklist requires."""
+    from datetime import UTC, datetime
+
+    from pring_cycle.domain import CoreAssetState
+    from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+    from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
+    from pring_cycle.projections import ProjectionSetRepository
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
+    models.activate("model-v0001", explicitly_approved=True)
+    assets = tuple(
+        CoreAssetReadiness(
+            asset=asset,
+            metric_id=metric_id,
+            state=state,
+            reason="validated",
+            observation_count=120,
+            latest_business_date="2026-08-28",
+        )
+        for asset, metric_id, state in (
+            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
+            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
+            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
+        )
+    )
+    P0ProjectionService(ProjectionSetRepository(paths.database)).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        assets=assets,  # type: ignore[arg-type]
+        last_confirmed_stage=None,
+    )
+    return paths
+
+
+def registered_rehearsals(paths: RuntimePaths) -> tuple[str, str]:
+    """Minimal fixture and real rehearsal artifacts, registered under their own provenance."""
+    from pring_cycle.artifacts import store_artifact
+
+    hashes = []
+    for schema, digest, source in (
+        ("fixture-recovery-rehearsal-v0001", "b" * 64, "rehearsal:fixture-recovery:"),
+        ("real-projection-rehearsal-v0001", "d" * 64, "rehearsal:real-projection:"),
+    ):
+        document = {"schema_version": schema, "status": "ok", "normalized_result_hash": digest}
+        hashes.append(
+            store_artifact(
+                paths.database,
+                paths.artifacts,
+                json.dumps(document, sort_keys=True).encode(),
+                media_type="application/json",
+                source_reference=f"{source}{digest}",
+            ).content_hash
+        )
+    return hashes[0], hashes[1]
+
+
+def test_a_real_acceptance_artifact_reaches_the_real_checklist_build(tmp_path: Path) -> None:
+    """The artifact the acceptance command stores is the one the checklist builder reads."""
+    from pring_cycle.cutover import build_cutover_manifest
+
+    paths = cutover_ready_runtime(tmp_path)
+    fixture_hash, real_hash = registered_rehearsals(paths)
+    result = run_v1_acceptance(paths, include_process_probe=False)
+    acceptance_hash = str(result["artifact"]["hash"])
+
+    manifest = build_cutover_manifest(
+        paths,
+        acceptance_hash=acceptance_hash,
+        # The rehearsals here are minimal stand-ins; the checklist blocks on them, not on quality.
+        fixture_rehearsal_hash=fixture_hash,
+        real_rehearsal_hash=real_hash,
+        legacy_system_read_only_stopped=False,
+        suite_total_seconds=1975.0,
+    )
+
+    assert manifest["status"] == "blocked"
+    assert manifest["checks"]["quality_and_performance"] is True
+    assert manifest["references"]["acceptance"] == acceptance_hash
+    timing = manifest["suite_timing"]
+    assert timing["acceptance_internal_phases"] == result["suite_timing"]
+    assert timing["pytest_total"]["measured_seconds"] == 1975.0
+
+
+def test_a_failed_regression_blocks_the_real_checklist_quality_check(tmp_path: Path) -> None:
+    """A functional failure reaches the same check through a stored artifact, not a stub."""
+    from pring_cycle.artifacts import store_artifact
+    from pring_cycle.cutover import build_cutover_manifest
+
+    paths = cutover_ready_runtime(tmp_path)
+    fixture_hash, real_hash = registered_rehearsals(paths)
+    damaged = acceptance_document(
+        regressions={item: {"passed": item != REGRESSION_IDS[0]} for item in REGRESSION_IDS},
+        normalized_result_hash="c" * 64,
+    )
+    stored = store_artifact(
+        paths.database,
+        paths.artifacts,
+        json.dumps(damaged, sort_keys=True).encode(),
+        media_type="application/json",
+        source_reference=f"acceptance:{'c' * 64}",
+    )
+
+    manifest = build_cutover_manifest(
+        paths,
+        acceptance_hash=stored.content_hash,
+        fixture_rehearsal_hash=fixture_hash,
+        real_rehearsal_hash=real_hash,
+        legacy_system_read_only_stopped=False,
+    )
+
+    assert manifest["checks"]["quality_and_performance"] is False
+    assert manifest["status"] == "blocked"
 
 
 def acceptance_document(**overrides: Any) -> dict[str, Any]:

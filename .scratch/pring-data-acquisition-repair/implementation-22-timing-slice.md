@@ -39,3 +39,15 @@
 - 说明：`acceptance.py` 中三处行宽重排不是本切片引入的噪声，而是该文件在 HEAD 上本就不满足 `ruff format`，格式化时一并规范（HEAD 版本单独跑 `ruff format --diff` 同样有差异）。
 
 最终验证：`tests/integration/test_acceptance_timing.py` 9 通过/18.8秒；`tests/integration/test_rehearsal_cutover.py` 12 通过/68.4秒；`tests/acceptance/test_v1_acceptance.py` 与 `tests/e2e/test_v1_cli.py` 随相关回归通过；ruff check/format 通过；`mypy src` 96 源文件通过。
+
+## 冻结树需求轴复审的补充（2026-09-16）
+
+对 `31735d6..9929b45` 整批冻结版本另做一次两轴复审后，需求轴指出三处，已分别处理：
+
+1. **产品性能硬门未按真实形态执行**：默认全套里的验收用例都以 `include_process_probe=False` 调用，独立进程探测（REST p95、首屏、冷启动、Web+Worker 合并 RSS）一次都没跑。已在同一冻结安装上执行 `pring-cycle acceptance --runtime-root <临时> --json`，实测值与制品哈希记入 [`verification-frozen-20260916.md`](verification-frozen-20260916.md)。
+2. **真实制品未经过真实清单路径**：原先真实验收产物只交给 `quality_gates_passed`/`suite_timing_summary`，三类反例又是手写文档。新增两个用例：真实 `run_v1_acceptance` 制品经 `build_cutover_manifest` 构建清单，`quality_and_performance` 为 true 且两个计时口径照常发布；另一个把"某 `REG-*` 失败"的验收制品按合法来源注册后同样经清单构建，该检查为 false 且清单 blocked。两者都带生效模型与已发布投影等真实前置。
+3. **记录夸大**：7523 秒与 8067.81 秒不是两种合法口径（pytest 自计时不可能超过墙钟），已在冻结记录中更正为"脚本时间戳不可信，以 pytest 自报为准"，并补回 json 中缺失的实际命令行参数。
+
+延后项（已与另一会话确认）：清单中操作员填报的 `pytest_total.measured_seconds` 与真正实测同名，改名为 `reported_seconds` 更准确；现在改会使刚勾选所依据的冻结版本失效，放入下一批。
+
+补充验证：`tests/integration/test_acceptance_timing.py` 11 通过/22.5秒；ruff、mypy 通过。新增用例改动了测试树，因此本条之后的树哈希不再等于冻结记录中的 `07df0da3…`；冻结全套结论仍只归属 `9929b45`，新增用例由本次限定运行覆盖，随下一批全套再合并确认。
