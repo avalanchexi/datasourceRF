@@ -1,6 +1,6 @@
 {
   "record": "frozen-same-version-default-suite",
-  "command": "python -m pytest -q --tb=short -o tmp_path_retention_policy=failed",
+  "command": "python -m pytest -q --tb=short -p no:cacheprovider -o tmp_path_retention_policy=failed --basetemp=<run>/tmp --durations=25",
   "head": "9929b45241be9bdbd1f0143c5bacc63357608827",
   "exit_code": 0,
   "duration_seconds": 7523,
@@ -9,5 +9,7 @@
   "inputs_unchanged": true,
   "dependencies_unchanged": true,
   "installed_matches_checkout": true,
-  "log_sha256": "f56f3158a02e41d035ed0519825831d7cab5dc85de5e5b0087940bebbcf8634d"
+  "log_sha256": "f56f3158a02e41d035ed0519825831d7cab5dc85de5e5b0087940bebbcf8634d",
+  "duration_seconds_note": "7523 comes from shell timestamps and is not trusted; pytest reported 8067.81s for the same session",
+  "pytest_reported_seconds": 8067.81
 }

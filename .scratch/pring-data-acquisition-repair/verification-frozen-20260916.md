@@ -16,18 +16,19 @@
 | 状态 | **passed**，退出码 0 |
 | 用例 | **1671 通过，0 失败** |
 | 开始/结束 | 2026-09-16T12:17:08+08:00 / 2026-09-16T14:22:31+08:00 |
-| 墙钟耗时 | 7523 秒（按上面两个时间戳） |
-| pytest 自报耗时 | 8067.81 秒（2:14:27） |
+| pytest 自报耗时 | 8067.81 秒（2:14:27），以此为准 |
+| 脚本按时间戳算得 | 7523 秒（比 pytest 自报少约545秒，见下） |
 | 前后指纹 | HEAD 与树哈希一致（`07df0da3…`），依赖清单一致，安装源码与检出一致 |
 | 记录 | `verification-frozen-20260916.json`、`verification-frozen-20260916-suite.txt`（log sha256 `f56f3158…`）、`-fingerprint-before/after.json` |
 
-两个耗时口径相差约 545 秒，本机 WSL 墙钟此前已出现过倒退（见票17 记录中的 `acquisition_availability_time_invalid` 处理），因此两值都如实保留，不取其一冒充实测；十分钟目标本就不是硬门（见 [票22 计时切片](implementation-22-timing-slice.md)）。
+**更正（2026-09-16 需求轴复审）**：这两个数不是两种合法口径。pytest 自报的会话耗时不可能超过同一区间的墙钟，因此是脚本用 `date` 取的时间戳不可信——本机 WSL 墙钟此前已出现过倒退（见票17 记录中的 `acquisition_availability_time_invalid` 处理）。实际耗时以 pytest 自报的 8067.81 秒为准；`verification-frozen-20260916.json` 中的 `duration_seconds: 7523` 是同一不可信来源，保留但不作为耗时结论。十分钟目标本就不是硬门（见 [票22 计时切片](implementation-22-timing-slice.md)）。
 
 ## 覆盖确认
 
 - 跨期共享硬搜索预算失败行为：`tests/integration/test_full_run_retrieval.py::test_full_run_shares_hard_search_budget_across_periods` 在默认发现范围内并通过（该文件的用例出现在 `--durations=25` 明细中）。
 - 最慢用例前两名均来自 `tests/integration/test_full_run_retrieval.py`（约52.9秒、52.7秒），详见日志。
 - 本次运行包含一次隔离材料重建（材料根 `frozen-20260916/materials`）。
+- **未覆盖（2026-09-16 需求轴复审指出）**：默认全套中的验收用例全部以 `include_process_probe=False` 调用，因此独立进程探测（REST p95、首屏、冷启动、Web+Worker 合并 RSS）在全套中一次都没执行，产品性能硬门只跑了进程内兜底形态。补充证据见 `verification-frozen-20260916-acceptance.json`：在同一冻结安装（与全套同一次非可编辑安装，期间未重装）上以 `pring-cycle acceptance --runtime-root <临时> --json` 执行默认带进程探测的验收，`status=ok`、`network_requests=0`、35项回归与8类故障注入全通过，8个硬门实测值为——REST p95 19.342ms（限500）、首屏 28.267ms（限3000）、冷启动 1.061秒（限15）、Web+Worker合并RSS 114.3MB（限1.5GiB）、回放峰值RSS 91.8MB（限4GiB）、自2018回放 0.31秒（限900）、命令持久受理与单日投影均在限内；制品哈希 `e9ccf6f9…`。
 
 ## 资源
 
