@@ -1,0 +1,134 @@
+{
+  "probed_at": "2026-09-16T21:05:11.187832+08:00",
+  "budget_per_provider": 20,
+  "planned_per_provider": 3,
+  "requests": [
+    {
+      "provider": "tavily",
+      "experiment": "probe-20-20260916-tavily",
+      "gap": "dr007_history_public_time",
+      "http_status": 200,
+      "seconds": 2.118,
+      "error": null,
+      "candidates": 3,
+      "official_candidates": 0,
+      "sample_hosts": [
+        "www.ceicdata.com",
+        "www.macroview.club",
+        "baike.baidu.com"
+      ],
+      "usage": {
+        "credits": 1
+      }
+    },
+    {
+      "provider": "tavily",
+      "experiment": "probe-20-20260916-tavily",
+      "gap": "warrant_units_pp_cf_ta",
+      "http_status": 200,
+      "seconds": 6.06,
+      "error": null,
+      "candidates": 3,
+      "official_candidates": 0,
+      "sample_hosts": [
+        "www.oilchem.net",
+        "www.oilchem.net",
+        "99qh.fx168news.com"
+      ],
+      "usage": {
+        "credits": 1
+      }
+    },
+    {
+      "provider": "tavily",
+      "experiment": "probe-20-20260916-tavily",
+      "gap": "rrr_history_events",
+      "http_status": 200,
+      "seconds": 2.349,
+      "error": null,
+      "candidates": 3,
+      "official_candidates": 1,
+      "sample_hosts": [
+        "baike.baidu.com",
+        "www.pbc.gov.cn",
+        "m.fang.com"
+      ],
+      "usage": {
+        "credits": 1
+      }
+    },
+    {
+      "provider": "exa",
+      "experiment": "probe-20-20260916-exa",
+      "gap": "dr007_history_public_time",
+      "http_status": 200,
+      "seconds": 1.893,
+      "error": null,
+      "candidates": 3,
+      "official_candidates": 1,
+      "sample_hosts": [
+        "www.chinamoney.com.cn",
+        "www.firstcapital.com.cn",
+        "www.knowcat.cn"
+      ],
+      "usage": {
+        "total": 0.007,
+        "search": {
+          "neural": 0.007
+        }
+      }
+    },
+    {
+      "provider": "exa",
+      "experiment": "probe-20-20260916-exa",
+      "gap": "warrant_units_pp_cf_ta",
+      "http_status": 200,
+      "seconds": 2.262,
+      "error": null,
+      "candidates": 3,
+      "official_candidates": 3,
+      "sample_hosts": [
+        "www.czce.com.cn",
+        "www.dce.com.cn",
+        "www.dce.com.cn"
+      ],
+      "usage": {
+        "total": 0.007,
+        "search": {
+          "neural": 0.007
+        }
+      }
+    },
+    {
+      "provider": "exa",
+      "experiment": "probe-20-20260916-exa",
+      "gap": "rrr_history_events",
+      "http_status": 200,
+      "seconds": 5.478,
+      "error": null,
+      "candidates": 3,
+      "official_candidates": 2,
+      "sample_hosts": [
+        "camlmac.pbc.gov.cn",
+        "www.pbc.gov.cn",
+        "basic.10jqka.com.cn"
+      ],
+      "usage": {
+        "total": 0.007,
+        "search": {
+          "neural": 0.007
+        }
+      }
+    }
+  ],
+  "totals": {
+    "tavily": {
+      "requests": 3,
+      "http_ok": 3
+    },
+    "exa": {
+      "requests": 3,
+      "http_ok": 3
+    }
+  }
+}
