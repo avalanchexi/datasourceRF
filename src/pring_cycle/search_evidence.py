@@ -66,6 +66,15 @@ def select_retrieval_input(
     return ModelInputSelector(paths, run, mode=mode).select(scope)
 
 
+@dataclass(frozen=True)
+class _ClaimFamily:
+    """A family of registered metrics and the recheck that decides which claims stay valid."""
+
+    name: str
+    owns: Callable[[str], bool]
+    check: Callable[[tuple[str, ...]], set[str]]
+
+
 class ModelInputSelector:
     """One fixed evaluation instant, with shared reads across periods and members."""
 
@@ -111,115 +120,147 @@ class ModelInputSelector:
             )
         return self._points[metric_id]
 
-    def select(self, scope: RetrievalScope) -> ModelInputSelection:
-        core_inputs = CoreInputValidator(
-            self.core_evidence,
-            tuple(
-                point.selected_claim_id
-                for metric_id in scope.metric_ids
-                if metric_id in CORE_API_IDENTITIES and self.version not in BUILTIN_CATALOG_VERSIONS
-                for point in self.series(metric_id)
-                if point.selected_claim_id is not None
-                and matches_retrieval_period(point.period_end, scope.period)
-            ),
-        )
-        valid_lpr_claim_ids = lpr_claims_matching_acquisitions(
-            self.core_evidence,
-            tuple(
-                point
-                for metric_id in scope.metric_ids
-                if metric_id == "CN_LPR_1Y_5Y" and self.version not in BUILTIN_CATALOG_VERSIONS
-                for point in self.series(metric_id)
-                if point.selected_claim_id is not None
-            ),
-        )
-        official_points = {
-            metric_id: self.series(metric_id)
-            for metric_id in scope.metric_ids
-            if metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS
-            and self.version not in BUILTIN_CATALOG_VERSIONS
-        }
-        valid_official_claim_ids = official_claims_matching_acquisitions(
-            self.core_evidence, official_points, definition_version=self.version
-        )
-        valid_interbank_claim_ids = interbank_claims_matching_acquisitions(
-            self.core_evidence,
-            {
-                metric: self.series(metric)
-                for metric in scope.metric_ids
-                if metric in INTERBANK_METRICS and self.version not in BUILTIN_CATALOG_VERSIONS
-            },
-            definition_version=self.version,
-        )
-        valid_treasury_claim_ids = treasury_claims_matching_acquisitions(
-            self.core_evidence,
-            {
-                metric: self.series(metric)
-                for metric in scope.metric_ids
-                if metric in TREASURY_METRICS and self.version not in BUILTIN_CATALOG_VERSIONS
-            },
-            definition_version=self.version,
-        )
-        valid_margin_claim_ids = tushare_claims_matching_acquisitions(
-            self.core_evidence,
-            self.series("CN_MARGIN_BALANCE")
-            if "CN_MARGIN_BALANCE" in scope.metric_ids
-            and self.version not in BUILTIN_CATALOG_VERSIONS
-            else (),
-            definition_version=self.version,
-        )
-        valid_market_claim_ids = tushare_claims_matching_acquisitions(
-            self.core_evidence,
-            tuple(
-                point
-                for metric_id in scope.metric_ids
-                if metric_id in MARKET_INDEX_IDENTITIES
-                and self.version not in BUILTIN_CATALOG_VERSIONS
-                for point in self.series(metric_id)
-            ),
-            definition_version=self.version,
-            parse=parse_market_index_acquisition,
-        )
-        valid_valuation_claim_ids = tushare_claims_matching_acquisitions(
-            self.core_evidence,
-            self.series("CN_INDEX_VALUATION")
-            if "CN_INDEX_VALUATION" in scope.metric_ids
-            and self.version not in BUILTIN_CATALOG_VERSIONS
-            else (),
-            definition_version=self.version,
-            parse=parse_valuation_acquisition,
-        )
-        valid_breadth_claim_ids = breadth_claims_matching_acquisitions(
-            self.core_evidence,
-            tuple(
-                point
-                for metric in scope.metric_ids
-                if metric
-                in (DAILY_BREADTH_MEASURES | WINDOW_BREADTH_MEASURES | AMOUNT_BREADTH_MEASURES)
-                and self.version not in BUILTIN_CATALOG_VERSIONS
-                for point in self.series(metric)
-            ),
-            definition_version=self.version,
-            artifacts=self.database_path.parent / "artifacts" / "sha256",
-        )
+    def _claim_families(self, scope: RetrievalScope) -> tuple[_ClaimFamily, ...]:
+        """Each registered family's metrics and how its selected claims are rechecked.
+
+        Every family has the same shape at the call site: take this family's metrics from the
+        scope, recheck their selected claims against the acquired originals, and accept only
+        the claims that came back valid. Adding a family means adding one entry here.
+        """
         from pring_cycle.commodity_basket import (
             COMMODITY_METRICS,
             commodity_claims_matching_acquisitions,
         )
 
-        commodity_ids = commodity_claims_matching_acquisitions(
-            self.core_evidence,
-            {
-                metric: self.series(metric)
-                for metric in scope.metric_ids
-                if metric in COMMODITY_METRICS and self.version not in BUILTIN_CATALOG_VERSIONS
-            },
-            database_path=self.database_path,
-            artifacts=self.database_path.parent / "artifacts" / "sha256",
-            definition_version=self.version,
-            mode=self.mode,
-            as_of=self.as_of,
+        artifacts = self.database_path.parent / "artifacts" / "sha256"
+        breadth_measures = (
+            DAILY_BREADTH_MEASURES | WINDOW_BREADTH_MEASURES | AMOUNT_BREADTH_MEASURES
         )
+
+        def points_of(metric_ids: tuple[str, ...]) -> tuple[MetricSeriesPoint, ...]:
+            return tuple(point for metric_id in metric_ids for point in self.series(metric_id))
+
+        def series_by_metric(
+            metric_ids: tuple[str, ...],
+        ) -> dict[str, tuple[MetricSeriesPoint, ...]]:
+            return {metric_id: self.series(metric_id) for metric_id in metric_ids}
+
+        return (
+            _ClaimFamily(
+                "lpr",
+                lambda metric_id: metric_id == "CN_LPR_1Y_5Y",
+                lambda metric_ids: lpr_claims_matching_acquisitions(
+                    self.core_evidence,
+                    tuple(
+                        point
+                        for point in points_of(metric_ids)
+                        if point.selected_claim_id is not None
+                    ),
+                ),
+            ),
+            _ClaimFamily(
+                "official",
+                lambda metric_id: metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS,
+                lambda metric_ids: official_claims_matching_acquisitions(
+                    self.core_evidence,
+                    series_by_metric(metric_ids),
+                    definition_version=self.version,
+                ),
+            ),
+            _ClaimFamily(
+                "interbank",
+                lambda metric_id: metric_id in INTERBANK_METRICS,
+                lambda metric_ids: interbank_claims_matching_acquisitions(
+                    self.core_evidence,
+                    series_by_metric(metric_ids),
+                    definition_version=self.version,
+                ),
+            ),
+            _ClaimFamily(
+                "treasury",
+                lambda metric_id: metric_id in TREASURY_METRICS,
+                lambda metric_ids: treasury_claims_matching_acquisitions(
+                    self.core_evidence,
+                    series_by_metric(metric_ids),
+                    definition_version=self.version,
+                ),
+            ),
+            _ClaimFamily(
+                "margin",
+                lambda metric_id: metric_id == "CN_MARGIN_BALANCE",
+                lambda metric_ids: tushare_claims_matching_acquisitions(
+                    self.core_evidence,
+                    points_of(metric_ids),
+                    definition_version=self.version,
+                ),
+            ),
+            _ClaimFamily(
+                "market_index",
+                lambda metric_id: metric_id in MARKET_INDEX_IDENTITIES,
+                lambda metric_ids: tushare_claims_matching_acquisitions(
+                    self.core_evidence,
+                    points_of(metric_ids),
+                    definition_version=self.version,
+                    parse=parse_market_index_acquisition,
+                ),
+            ),
+            _ClaimFamily(
+                "valuation",
+                lambda metric_id: metric_id == "CN_INDEX_VALUATION",
+                lambda metric_ids: tushare_claims_matching_acquisitions(
+                    self.core_evidence,
+                    points_of(metric_ids),
+                    definition_version=self.version,
+                    parse=parse_valuation_acquisition,
+                ),
+            ),
+            _ClaimFamily(
+                "breadth",
+                lambda metric_id: metric_id in breadth_measures,
+                lambda metric_ids: breadth_claims_matching_acquisitions(
+                    self.core_evidence,
+                    points_of(metric_ids),
+                    definition_version=self.version,
+                    artifacts=artifacts,
+                ),
+            ),
+            _ClaimFamily(
+                "commodity",
+                lambda metric_id: metric_id in COMMODITY_METRICS,
+                lambda metric_ids: commodity_claims_matching_acquisitions(
+                    self.core_evidence,
+                    series_by_metric(metric_ids),
+                    database_path=self.database_path,
+                    artifacts=artifacts,
+                    definition_version=self.version,
+                    mode=self.mode,
+                    as_of=self.as_of,
+                ),
+            ),
+        )
+
+    def select(self, scope: RetrievalScope) -> ModelInputSelection:
+        registered = self.version not in BUILTIN_CATALOG_VERSIONS
+        core_inputs = CoreInputValidator(
+            self.core_evidence,
+            tuple(
+                point.selected_claim_id
+                for metric_id in scope.metric_ids
+                if metric_id in CORE_API_IDENTITIES and registered
+                for point in self.series(metric_id)
+                if point.selected_claim_id is not None
+                and matches_retrieval_period(point.period_end, scope.period)
+            ),
+        )
+        families = self._claim_families(scope)
+        valid_family_claim_ids = {
+            family.name: family.check(
+                tuple(metric_id for metric_id in scope.metric_ids if family.owns(metric_id))
+                if registered
+                else ()
+            )
+            for family in families
+        }
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -305,45 +346,11 @@ class ModelInputSelector:
                         and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
                         and definition.certification_status == "certified"
-                        and (
-                            metric_id not in COMMODITY_METRICS
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in commodity_ids
-                        )
-                        and (
-                            metric_id
-                            not in (
-                                DAILY_BREADTH_MEASURES
-                                | WINDOW_BREADTH_MEASURES
-                                | AMOUNT_BREADTH_MEASURES
-                            )
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_breadth_claim_ids
-                        )
-                        and (
-                            metric_id != "CN_INDEX_VALUATION"
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_valuation_claim_ids
-                        )
-                        and (
-                            metric_id not in MARKET_INDEX_IDENTITIES
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_market_claim_ids
-                        )
-                        and (
-                            metric_id != "CN_MARGIN_BALANCE"
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_margin_claim_ids
-                        )
-                        and (
-                            metric_id not in INTERBANK_METRICS
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_interbank_claim_ids
-                        )
-                        and (
-                            metric_id not in TREASURY_METRICS
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_treasury_claim_ids
+                        and all(
+                            not family.owns(metric_id)
+                            or not registered
+                            or claim.claim_id in valid_family_claim_ids[family.name]
+                            for family in families
                         )
                         and (
                             metric_id not in CORE_API_IDENTITIES
@@ -353,16 +360,6 @@ class ModelInputSelector:
                             metric_id not in CORE_API_IDENTITIES
                             or self.version in BUILTIN_CATALOG_VERSIONS
                             or core_inputs.is_valid(metric_id, point)
-                        )
-                        and (
-                            metric_id != "CN_LPR_1Y_5Y"
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_lpr_claim_ids
-                        )
-                        and (
-                            metric_id not in OFFICIAL_CONTEXT_INTEGRITY_METRICS
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or claim.claim_id in valid_official_claim_ids
                         )
                     ):
                         accepted.append(claim.claim_id)
