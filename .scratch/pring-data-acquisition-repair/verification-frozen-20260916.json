@@ -1,0 +1,13 @@
+{
+  "record": "frozen-same-version-default-suite",
+  "command": "python -m pytest -q --tb=short -o tmp_path_retention_policy=failed",
+  "head": "9929b45241be9bdbd1f0143c5bacc63357608827",
+  "exit_code": 0,
+  "duration_seconds": 7523,
+  "status": "passed",
+  "summary_line": "\u001b[32m\u001b[32m\u001b[1m1671 passed\u001b[0m\u001b[32m in 8067.81s (2:14:27)\u001b[0m\u001b[0m",
+  "inputs_unchanged": true,
+  "dependencies_unchanged": true,
+  "installed_matches_checkout": true,
+  "log_sha256": "f56f3158a02e41d035ed0519825831d7cab5dc85de5e5b0087940bebbcf8634d"
+}
