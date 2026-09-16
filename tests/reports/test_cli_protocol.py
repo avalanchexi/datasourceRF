@@ -100,6 +100,9 @@ if name=='codex':
     Path(sys.argv[sys.argv.index('--output-last-message')+1]).write_text(json.dumps(document))
     if PRIMARY=='codex_other_tool':
         print(json.dumps({'type':'item.completed','item':{'type':'image_view'}}))
+    if PRIMARY=='codex_notice':
+        print(json.dumps({'type':'item.completed','item':{'id':'item_0','type':'error',
+            'message':'Skill descriptions were shortened to fit the skills context budget.'}}))
     print(json.dumps({'type':'thread.started','thread_id':'fixture','model':'fixture-codex-model'}))
     print(json.dumps({'type':'turn.completed','usage':{'input_tokens':100,'output_tokens':50}}))
 else:
@@ -298,6 +301,25 @@ def test_claude_tool_event_is_rejected_even_with_a_valid_structured_result(
     attempt = reports.attempts(result.report_snapshot_id)[0]
     assert attempt.outcome == "tool_use_rejected"
     assert attempt.tool_events == 1
+
+
+def test_a_codex_notice_is_recorded_without_counting_as_tool_use(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """codex reports its own notices as error items; they are not the model using a tool."""
+    install_cli(tmp_path, monkeypatch, primary="codex_notice")
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+
+    result = ReportService(reports, (CliReportAdapter("codex_cli"),)).generate(frozen_bundle())
+
+    assert result.status == "completed"
+    attempt = reports.attempts(result.report_snapshot_id)[0]
+    assert attempt.outcome == "succeeded"
+    assert attempt.tool_events == 0
+    # The notice itself stays visible in the audit rather than being silently dropped.
+    assert attempt.process_audit["cli_notices"] == [
+        "Skill descriptions were shortened to fit the skills context budget."
+    ]
 
 
 def test_codex_unknown_action_is_rejected_even_when_final_json_is_valid(

@@ -1063,9 +1063,16 @@ def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
     }
 
 
+# Item types codex reports that are the CLI speaking about itself, not the model acting:
+# its own notices ("error") and its visible thinking. Anything else counts as tool use, so an
+# unknown type is rejected rather than quietly allowed.
+CODEX_NON_TOOL_ITEMS = {"reasoning", "agent_message", "error"}
+
+
 def _cli_event_audit(adapter: str, stdout: str) -> dict[str, Any]:
     """Count observable complete events independently of process/output acceptance."""
     tools, invalid_lines = 0, 0
+    notices: list[str] = []
     for line in stdout.splitlines():
         if not line.strip():
             continue
@@ -1079,9 +1086,11 @@ def _cli_event_audit(adapter: str, stdout: str) -> dict[str, Any]:
             continue
         if adapter == "codex_cli":
             item = event.get("item")
-            tools += int(
-                isinstance(item, dict) and item.get("type") not in {"reasoning", "agent_message"}
-            )
+            if not isinstance(item, dict):
+                continue
+            if item.get("type") == "error" and isinstance(item.get("message"), str):
+                notices.append(item["message"])
+            tools += int(item.get("type") not in CODEX_NON_TOOL_ITEMS)
         elif event.get("type") == "assistant":
             message = event.get("message")
             if not isinstance(message, dict) or not isinstance(message.get("content"), list):
@@ -1094,7 +1103,11 @@ def _cli_event_audit(adapter: str, stdout: str) -> dict[str, Any]:
                 and block.get("type") == "tool_use"
                 and block.get("name") != "StructuredOutput"
             )
-    return {"tool_events": tools, "unparsed_event_lines": invalid_lines}
+    return {
+        "tool_events": tools,
+        "unparsed_event_lines": invalid_lines,
+        "cli_notices": notices,
+    }
 
 
 def _codex_output(stdout: str, output_path: Path) -> dict[str, Any]:
