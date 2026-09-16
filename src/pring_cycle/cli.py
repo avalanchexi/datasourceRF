@@ -544,6 +544,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             real_rehearsal_hash=namespace.real_rehearsal_hash,
             fixture_rehearsal_hash=namespace.fixture_rehearsal_hash,
             legacy_system_read_only_stopped=namespace.legacy_system_read_only_stopped,
+            suite_total_seconds=namespace.suite_total_seconds,
         )
     if namespace.command == "cutover-record":
         from pring_cycle.cutover import record_direct_cutover
@@ -838,6 +839,8 @@ def _parser() -> argparse.ArgumentParser:
     cutover_manifest.add_argument("--real-rehearsal-hash", required=True)
     cutover_manifest.add_argument("--fixture-rehearsal-hash", required=True)
     cutover_manifest.add_argument("--legacy-system-read-only-stopped", action="store_true")
+    # The whole test run's wall clock, reported beside the acceptance artifact's own phases.
+    cutover_manifest.add_argument("--suite-total-seconds", type=float, default=None)
     cutover_record = _runtime_parser(subparsers, "cutover-record")
     cutover_record.add_argument("--manifest-hash", required=True)
     cutover_record.add_argument("--confirm", required=True)

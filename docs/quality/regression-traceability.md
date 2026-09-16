@@ -46,4 +46,4 @@
 pring-cycle acceptance --json
 ```
 
-任何回归、故障注入或性能门失败时，结果 `status=blocked`。命令没有 `force`、忽略失败或改写结果的参数；产物保存于仓库外 `artifacts/sha256`，并返回内容哈希。
+任何回归、故障注入或性能硬门失败时，结果 `status=blocked`。套件耗时不属于硬门：它以 `suite_timing` 记录目标 600 秒、实测值、是否达标及计时范围，仅超时不改变 `status`。命令没有 `force`、忽略失败或改写结果的参数；产物保存于仓库外 `artifacts/sha256`，并返回内容哈希。

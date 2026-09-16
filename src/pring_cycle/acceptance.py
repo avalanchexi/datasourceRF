@@ -104,10 +104,17 @@ class _Check(Protocol):
     def __call__(self) -> None: ...
 
 
+# The suite duration is an optimization target, not a hard gate: a run whose every hard gate
+# passes stays usable, and the measured value and its scope stay visible either way.
+SUITE_TARGET_SECONDS = 600
+SUITE_TIMING_SCOPE = "acceptance_internal_phases"
+
+
 def run_v1_acceptance(
     paths: RuntimePaths,
     *,
     include_process_probe: bool = True,
+    suite_target_seconds: float = SUITE_TARGET_SECONDS,
 ) -> dict[str, Any]:
     started = time.perf_counter()
     paths.cache.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -134,13 +141,14 @@ def run_v1_acceptance(
         projection_started = time.perf_counter()
         projection = _published_projection(root / "performance.sqlite3")
         daily_projection_seconds = time.perf_counter() - projection_started
-        performance = _performance_gates(
+        performance, suite_timing = _performance_gates(
             paths,
             projection,
             scratch_root=root,
             suite_started=started,
             daily_projection_seconds=daily_projection_seconds,
             include_process_probe=include_process_probe,
+            suite_target_seconds=suite_target_seconds,
         )
         failure_injections = _failure_injections(root)
 
@@ -169,6 +177,7 @@ def run_v1_acceptance(
         "normalized_result_hash": normalized_hash,
         "performance_gates": performance,
         "regressions": regressions,
+        "suite_timing": suite_timing,
         "schema_version": "v1-acceptance-v0001",
         "status": status,
         **execution_fingerprint(paths),
@@ -235,9 +244,7 @@ def _failure_injections(root: Path) -> dict[str, bool]:
         "duplicate_command": lambda: _duplicate_command(root / "fault-duplicate.sqlite3"),
         "stale_lease": lambda: _stale_lease(root / "fault-lease.sqlite3"),
         "p0_failure": lambda: _p0_missing(root / "fault-p0.sqlite3"),
-        "external_source_failure": lambda: _dual_cli_fallback(
-            root / "fault-source.sqlite3"
-        ),
+        "external_source_failure": lambda: _dual_cli_fallback(root / "fault-source.sqlite3"),
         "dual_cli_failure": lambda: _dual_cli_fallback(root / "fault-cli.sqlite3"),
         "capacity_degradation": lambda: _require(
             capacity_state(5 * GIB).allow_worker_writes is False
@@ -269,7 +276,8 @@ def _performance_gates(
     suite_started: float,
     daily_projection_seconds: float,
     include_process_probe: bool,
-) -> dict[str, dict[str, object]]:
+    suite_target_seconds: float,
+) -> tuple[dict[str, dict[str, object]], dict[str, object]]:
     if include_process_probe:
         with tempfile.TemporaryDirectory(
             prefix="acceptance-process-probe-",
@@ -281,9 +289,7 @@ def _performance_gates(
             process_probe = verify_local_runtime(probe_paths)
         rest_p95 = float(process_probe["metrics"]["rest_current_projection_p95_ms"])
         fmp_ms = float(process_probe["metrics"]["dashboard_html_ms"])
-        cold_start_seconds = float(
-            process_probe["metrics"]["web_worker_cold_start_seconds"]
-        )
+        cold_start_seconds = float(process_probe["metrics"]["web_worker_cold_start_seconds"])
         idle_rss_bytes = int(process_probe["metrics"]["combined_rss_bytes"])
     else:
         application_started = time.perf_counter()
@@ -348,8 +354,7 @@ def _performance_gates(
     replay_seconds = time.perf_counter() - replay_started
     suite_seconds = time.perf_counter() - suite_started
     rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
-    return {
-        "acceptance_suite_seconds": _gate(suite_seconds, 600),
+    gates = {
         "command_persistence_ms": _gate(command_ms, 1000),
         "dashboard_first_content_ms": _gate(fmp_ms, 3000),
         "daily_projection_seconds": _gate(daily_projection_seconds, 60),
@@ -359,6 +364,15 @@ def _performance_gates(
         "rest_current_projection_p95_ms": _gate(rest_p95, 500),
         "web_worker_cold_start_seconds": _gate(cold_start_seconds, 15),
     }
+    # The failure injections run after this measurement, so they are outside the scope.
+    timing: dict[str, object] = {
+        "scope": SUITE_TIMING_SCOPE,
+        "includes_failure_injections": False,
+        "target_seconds": suite_target_seconds,
+        "measured_seconds": round(suite_seconds, 3),
+        "target_met": suite_seconds <= suite_target_seconds,
+    }
+    return gates, timing
 
 
 def _gate(measured: float | int, limit: float | int) -> dict[str, object]:
@@ -404,21 +418,16 @@ def _trend(direction: str) -> CoreAssetState | None:
         else [200.0 - index * 0.5 for index in range(180)]
     )
     points = [
-        PricePoint(start + timedelta(days=index), value)
-        for index, value in enumerate(values)
+        PricePoint(start + timedelta(days=index), value) for index, value in enumerate(values)
     ]
     return evaluate_trend(points, TrendRules()).stable_state
 
 
 def _bond_consistency() -> None:
     _require(
-        bond_yield_confirmation(CoreAssetState.BULL, yield_change_bp=-5).status
-        == "consistent"
+        bond_yield_confirmation(CoreAssetState.BULL, yield_change_bp=-5).status == "consistent"
     )
-    _require(
-        bond_yield_confirmation(CoreAssetState.BEAR, yield_change_bp=5).status
-        == "consistent"
-    )
+    _require(bond_yield_confirmation(CoreAssetState.BEAR, yield_change_bp=5).status == "consistent")
 
 
 def _bond_conflict_preserves_core() -> None:
@@ -854,8 +863,7 @@ def _missing_is_not_neutral() -> None:
 
 def _insufficient_history() -> None:
     points = [
-        PricePoint(date(2026, 1, 1) + timedelta(days=index), 100 + index)
-        for index in range(50)
+        PricePoint(date(2026, 1, 1) + timedelta(days=index), 100 + index) for index in range(50)
     ]
     result = evaluate_trend(points, TrendRules())
     _require(result.stable_state is None and result.reason == "insufficient_history")

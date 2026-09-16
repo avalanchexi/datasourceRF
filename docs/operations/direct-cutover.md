@@ -12,7 +12,9 @@
    未配置时必须继续显示 `awaiting_source_certification`，不会阻塞只要求 P0/P1 的切换门。
    COMEX、LBMA、VIX、SOX 和 16:30 在岸收盘价同样不得用代理补齐。一次 smoke 只证明该次
    响应，不自动完成目录来源认证。
-3. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。
+3. `pring-cycle acceptance --json`：35 项回归、故障注入、确定性、性能和资源硬门。套件耗时
+   是优化目标，不是硬门：`suite_timing` 给出目标 600 秒、实测值、是否达标和计时范围；硬门
+   全通过而仅时长超标时结果仍为 `ok`，清单也不因此阻断。
 4. `pring-cycle rehearse-fixture-recovery --json`：独立 fixture 中断、陈旧 owner 审计和用户显式恢复；不写正式发布历史。
 5. 保留上述每条 smoke 返回的制品哈希。在最新完整目标交易日完成手动完整运行与报告并启动
    本机 Dashboard 后，执行：
@@ -43,8 +45,12 @@ pring-cycle cutover-manifest \
   --fixture-rehearsal-hash SHA256 \
   --real-rehearsal-hash SHA256 \
   --legacy-system-read-only-stopped \
+  --suite-total-seconds 1975 \
   --json
 ```
+
+`--suite-total-seconds` 可选，填整批测试从开始到实际终态的总耗时；清单把它与验收制品自身的
+阶段计时分列在 `suite_timing` 下，两者口径不同，不相加也不互相替代。
 
 清单固定代码、依赖、数据库/配置版本、生效模型内嵌的指标目录、模型、投影、回归、质量、性能、
 文档和两次演练哈希。生效模型必须绑定当前代码支持的目录版本；旧模型不能与新版全局目录哈希

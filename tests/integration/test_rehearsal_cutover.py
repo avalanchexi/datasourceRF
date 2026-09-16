@@ -507,6 +507,14 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
             "normalized_result_hash": "a" * 64,
             "performance_gates": {"all": {"passed": True}},
             "regressions": {item: {"passed": True} for item in REGRESSION_IDS},
+            # Every hard gate passed; only the ten-minute duration target was missed.
+            "suite_timing": {
+                "scope": "acceptance_internal_phases",
+                "includes_failure_injections": False,
+                "target_seconds": 600,
+                "measured_seconds": 812.5,
+                "target_met": False,
+            },
             **execution_fingerprint(paths),
             "model_manifest_hashes": model_manifest_hashes(paths),
         },
@@ -528,10 +536,24 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
         fixture_rehearsal_hash=fixture_hash,
         real_rehearsal_hash=minimal_real_hash,
         legacy_system_read_only_stopped=True,
+        suite_total_seconds=1975.0,
     )
     assert v1_manifest["status"] == "blocked"
     assert v1_manifest["checks"]["model_catalog_current"] is False
     assert v1_manifest["checks"]["real_rehearsal"] is False
+    # The slow but clean quality artifact still satisfies its own check, and both timing
+    # scopes are published for the reader.
+    assert v1_manifest["checks"]["quality_and_performance"] is True
+    assert v1_manifest["suite_timing"] == {
+        "acceptance_internal_phases": {
+            "scope": "acceptance_internal_phases",
+            "includes_failure_injections": False,
+            "target_seconds": 600,
+            "measured_seconds": 812.5,
+            "target_met": False,
+        },
+        "pytest_total": {"scope": "pytest_total", "measured_seconds": 1975.0},
+    }
     assert v1_manifest["metric_catalog_version"] == "metric-catalog-v0001"
 
     models.record_acceptance(candidate_id, CALIBRATION_BASELINE)
@@ -605,6 +627,8 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
         fixture_rehearsal_hash=fixture_hash,
         real_rehearsal_hash=real_hash,
         legacy_system_read_only_stopped=True,
+        # The documented flow reports the whole run's wall clock alongside the manifest.
+        suite_total_seconds=1975.0,
     )
     assert manifest["checks"]["model_catalog_current"] is True
     assert manifest["metric_catalog_version"] == catalog_version
@@ -624,6 +648,10 @@ def test_cutover_has_no_force_path_and_requires_the_exact_confirmation(
         return
     assert manifest["status"] == "ready"
     assert manifest["database_revision"] == SCHEMA_HEAD
+    # A missed duration target is reported, not blocking, and a manifest that reported the
+    # whole run's wall clock still rebuilds identically when the cutover is recorded.
+    assert manifest["suite_timing"]["acceptance_internal_phases"]["target_met"] is False
+    assert manifest["suite_timing"]["pytest_total"]["measured_seconds"] == 1975.0
 
     stale_acceptance_hash = _artifact(
         paths,

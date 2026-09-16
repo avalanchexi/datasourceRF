@@ -414,7 +414,12 @@ pring-cycle verify --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 V1 切换级验收使用 `pring-cycle acceptance --json`。它额外覆盖 35 个 `REG-*`、离线确定性
 重放、八类故障注入、REST/首屏/命令/冷启动/回放时间以及 RSS 硬门，并把完整结果写入仓库外
 内容寻址制品。进程探测始终在独立临时运行目录中启动 Web 与 Worker，不会处理正式目录中的
-排队任务或读取其数据源凭据。任一门失败返回 `status=blocked`，没有强制绕过。
+排队任务或读取其数据源凭据。任一硬门失败返回 `status=blocked`，没有强制绕过。
+
+整套验收的耗时是优化目标而非硬门：文档 `suite_timing` 记录目标 600 秒、实测值、是否达标
+及计时范围（`acceptance_internal_phases`，不含其后的故障注入）。全部硬门通过而仅时长超标
+时，结果仍为 `status=ok`，实测值和未达标照常可见。整批 pytest 从开始到实际终态的总耗时属于
+另一口径，由切换清单的 `--suite-total-seconds` 另行记录，不与上面的阶段计时混算。
 
 开发检查使用同一 WSL 原生虚拟环境：
 

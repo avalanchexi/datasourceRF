@@ -7,9 +7,11 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
+from pring_cycle.acceptance import SUITE_TIMING_SCOPE
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import (
     METRIC_CATALOG_V0003,
@@ -27,6 +29,8 @@ from pring_cycle.source_contract_review import source_contract_review
 from pring_cycle.storage import artifact_is_registered, database_connection, database_health
 
 CUTOVER_CONFIRMATION = "DIRECT_CUTOVER_TO_PRING_V1"
+# The whole test run's wall clock, reported beside the acceptance suite's own phase timing.
+TOTAL_TIMING_SCOPE = "pytest_total"
 
 
 @dataclass(frozen=True)
@@ -44,7 +48,10 @@ def build_cutover_manifest(
     real_rehearsal_hash: str,
     fixture_rehearsal_hash: str,
     legacy_system_read_only_stopped: bool,
+    suite_total_seconds: float | None = None,
 ) -> dict[str, Any]:
+    """``suite_total_seconds`` is the whole test run's wall clock, reported beside the
+    acceptance artifact's own phase timing and never mixed into it."""
     referenced = {
         "acceptance": _read_artifact(paths, acceptance_hash, kind="acceptance"),
         "fixture_rehearsal": _read_artifact(
@@ -123,7 +130,7 @@ def build_cutover_manifest(
         "model_source_contract_review": contract_review is None,
         "model_matches_projection": active_model.model_version_id
         == projection.envelope.model_version_id,
-        "quality_and_performance": _quality_gates_passed(referenced["acceptance"]),
+        "quality_and_performance": quality_gates_passed(referenced["acceptance"]),
         "real_rehearsal": _real_rehearsal_passed(
             paths,
             referenced["real_rehearsal"],
@@ -145,6 +152,9 @@ def build_cutover_manifest(
         ),
         "projection_set_id": projection.envelope.projection_set_id,
         "source_contract_review": contract_review,
+        "suite_timing": suite_timing_summary(
+            referenced["acceptance"], total_seconds=suite_total_seconds
+        ),
         "references": {
             "acceptance": acceptance_hash,
             "fixture_rehearsal": fixture_rehearsal_hash,
@@ -190,6 +200,8 @@ def record_direct_cutover(
         legacy_system_read_only_stopped=(
             manifest.get("legacy_system_state") == "read_only_stopped"
         ),
+        # Rebuilding must reproduce the manifest exactly, including what it reported itself.
+        suite_total_seconds=reported_total_seconds(manifest),
     )
     rebuilt_artifact = rebuilt.get("artifact")
     if (
@@ -273,7 +285,12 @@ def _project_root(package_root: Path) -> Path:
     return package_root.parents[1]
 
 
-def _quality_gates_passed(document: dict[str, Any]) -> bool:
+def quality_gates_passed(document: dict[str, Any]) -> bool:
+    """Every hard gate and regression of a quality artifact passed.
+
+    The suite duration is a target rather than a gate, so a slow run that cleared every hard
+    gate still passes here; ``suite_timing_summary`` keeps the measured value visible.
+    """
     gates = document.get("performance_gates")
     regressions = document.get("regressions")
     return (
@@ -286,6 +303,36 @@ def _quality_gates_passed(document: dict[str, Any]) -> bool:
             isinstance(item, dict) and item.get("passed") is True for item in regressions.values()
         )
     )
+
+
+def suite_timing_summary(
+    document: dict[str, Any], *, total_seconds: float | None
+) -> dict[str, dict[str, object]]:
+    """What the quality artifact measured, beside the whole run's wall clock.
+
+    Artifacts written before the suite duration became a reported target carry no timing; they
+    stay readable and report only their scope.
+    """
+    reported = document.get("suite_timing")
+    internal: dict[str, object] = (
+        dict(reported)
+        if isinstance(reported, dict) and reported.get("scope") == SUITE_TIMING_SCOPE
+        else {"scope": SUITE_TIMING_SCOPE}
+    )
+    total: dict[str, object] = {"scope": TOTAL_TIMING_SCOPE}
+    if total_seconds is not None:
+        if not isfinite(total_seconds) or total_seconds < 0:
+            raise ValueError("cutover_suite_total_seconds_invalid")
+        total["measured_seconds"] = total_seconds
+    return {SUITE_TIMING_SCOPE: internal, TOTAL_TIMING_SCOPE: total}
+
+
+def reported_total_seconds(manifest: dict[str, Any]) -> float | None:
+    """The whole run's wall clock a manifest already reported, for rebuilding it identically."""
+    timing = manifest.get("suite_timing")
+    total = timing.get(TOTAL_TIMING_SCOPE) if isinstance(timing, dict) else None
+    measured = total.get("measured_seconds") if isinstance(total, dict) else None
+    return float(measured) if isinstance(measured, (int, float)) else None
 
 
 def _real_rehearsal_passed(
