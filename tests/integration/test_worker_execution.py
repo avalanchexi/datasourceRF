@@ -34,6 +34,7 @@ from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
 
 
@@ -329,6 +330,14 @@ def test_worker_classifies_optional_eia_failures(
             raise failure
 
     monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+    pages: list[str] = []
+
+    def page_offline(url: str) -> None:
+        pages.append(url)
+        raise OSError("fixture history page offline")
+
+    # The key-free page is the fallback once the API cannot serve; it has its own test.
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
 
     worker_module._refresh_context_sources(
         paths,
@@ -336,13 +345,18 @@ def test_worker_classifies_optional_eia_failures(
         definition_version="metric-catalog-v0002",
     )
 
-    attempt = EvidenceRepository(paths.database).latest_retrieval_attempt(
-        "EIA_BRENT_RBRTE",
-        period="2026-08-28",
-        as_of=datetime.now(UTC),
-    )
-    assert attempt is not None
-    assert attempt.outcome == expected_outcome
+    with database_connection(paths.database) as connection:
+        outcomes = dict(
+            connection.execute(
+                "SELECT channel, outcome FROM retrieval_attempt WHERE metric_id=? "
+                "GROUP BY channel HAVING MAX(fetched_at)",
+                ("EIA_BRENT_RBRTE",),
+            ).fetchall()
+        )
+    # The API channel keeps its own classification; the fallback records its own failure.
+    assert outcomes["eia_official_candidate"] == expected_outcome
+    assert outcomes["eia_html_candidate"] == "source_failed"
+    assert pages
 
 
 def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(

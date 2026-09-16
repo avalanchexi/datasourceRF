@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import os
 import signal
+import sqlite3
 import threading
 from collections.abc import Callable, Mapping
 from datetime import UTC, date, datetime, time, timedelta
+from time import monotonic
 from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition, metric_definition
@@ -172,8 +174,9 @@ def process_pending_run(
         runs.acquire_lease(queued.run_id, owner_id=owner_id)
         heartbeat_stop = threading.Event()
         heartbeat = threading.Thread(
-            target=_lease_heartbeat,
+            target=lease_heartbeat,
             args=(runs, owner_id, heartbeat_stop),
+            kwargs={"paths": paths},
             daemon=True,
             name="pring-run-lease-heartbeat",
         )
@@ -1703,13 +1706,43 @@ def _validate_projection_for_run(run: RunRecord, projection: object) -> None:
         raise ValueError("report_projection_model_mismatch")
 
 
-def _lease_heartbeat(
+# A lease lives 120 seconds past its last heartbeat, so a beat blocked by another writer may
+# retry inside that window. Giving up on the first lock error would drop the lease silently.
+LEASE_VALID_SECONDS = 120
+LEASE_HEARTBEAT_SECONDS = 30
+
+
+def lease_heartbeat(
     runs: RunRepository,
     owner_id: str,
     stopped: threading.Event,
+    *,
+    interval_seconds: float = LEASE_HEARTBEAT_SECONDS,
+    on_contention: Callable[[str], None] | None = None,
+    paths: RuntimePaths | None = None,
 ) -> None:
-    while not stopped.wait(30):
+    """Hold the lease until told to stop, or until it is lost or can no longer be written.
+
+    SQLite serialises writers: a run's own long write can outlast this connection's busy
+    timeout and make the beat fail with a lock error. That is contention, not lost ownership,
+    so it is recorded and retried; only losing the lease, or failing for the whole lease
+    window, ends the loop.
+    """
+    last_beat = monotonic()
+    while not stopped.wait(interval_seconds):
         try:
             runs.heartbeat_lease(owner_id)
         except ValueError:
             return
+        except sqlite3.OperationalError as error:
+            detail = f"lease_heartbeat_contended:{type(error).__name__}"
+            if on_contention is not None:
+                on_contention(detail)
+            if paths is not None:
+                write_runtime_event(paths, "worker", detail, level="warning")
+            if monotonic() - last_beat >= LEASE_VALID_SECONDS:
+                if paths is not None:
+                    write_runtime_event(paths, "worker", "lease_heartbeat_abandoned", "error")
+                return
+            continue
+        last_beat = monotonic()
