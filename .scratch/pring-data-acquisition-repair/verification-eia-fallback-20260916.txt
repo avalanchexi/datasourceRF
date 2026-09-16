@@ -1,0 +1,9 @@
+[32m.[0m[32m.[0m[32m                                                                       [100%][0m
+============================= slowest 5 durations ==============================
+245.26s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed]
+242.00s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed]
+0.36s teardown tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed]
+0.27s teardown tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed]
+0.01s setup    tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed]
+[32m[32m[1m2 passed[0m, [33m6 deselected[0m[32m in 488.59s (0:08:08)[0m[0m
+exit=0 seconds=457

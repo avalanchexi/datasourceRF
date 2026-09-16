@@ -20,6 +20,7 @@ from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
 from pring_cycle.eia_context import (
     EiaPetroleumAdapter,
 )
+from pring_cycle.eia_html import fetch_eia_history
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -1294,6 +1295,108 @@ def _eia_context_adapter(api_key: str) -> EiaPetroleumAdapter:
     return EiaPetroleumAdapter(api_key)
 
 
+EIA_METRICS = ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC")
+EIA_HISTORY_SERIES = {"EIA_BRENT_RBRTE": "RBRTE", "EIA_WTI_RWTC": "RWTC"}
+
+
+def acquire_eia_spot_prices(
+    paths: RuntimePaths, api_key: str, *, start_date: date, end_date: date, definition_version: str
+) -> None:
+    _eia_context_adapter(api_key).acquire_spot_prices(
+        paths, start_date=start_date, end_date=end_date, definition_version=definition_version
+    )
+
+
+def refresh_eia_context(
+    paths: RuntimePaths,
+    *,
+    secrets: Mapping[str, str],
+    target: date,
+    definition_version: str,
+    record: Callable[..., None],
+) -> str:
+    """Read the optional Brent and WTI spot prices, by API key when usable and by page otherwise.
+
+    The official history page needs no key but dates its releases to the day, so a value read
+    there carries a coarser publication time than the API's. Both channels are recorded: a key
+    that is absent or rejected stays visible as its own outcome instead of being hidden by the
+    fallback. Either way the rows remain background-only and awaiting source certification.
+    """
+    from pring_cycle.acquisition import acquisition_metrics
+    from pring_cycle.eia_html import refresh_eia_history
+
+    api_key = secrets.get("EIA_API_KEY")
+    if api_key is None:
+        record(
+            EIA_METRICS,
+            "eia_official_candidate",
+            "missing_credentials",
+            condition="EIA_API_KEY_not_configured",
+            request_sent="false",
+        )
+    else:
+        try:
+            with acquisition_metrics(EIA_METRICS):
+                acquire_eia_spot_prices(
+                    paths,
+                    api_key,
+                    start_date=target - timedelta(days=220),
+                    end_date=target,
+                    definition_version=definition_version,
+                )
+        except (OSError, TypeError, ValueError) as error:
+            record(
+                EIA_METRICS,
+                "eia_official_candidate",
+                "source_failed"
+                if isinstance(error, OSError)
+                else "adapter_failed"
+                if isinstance(error, TypeError)
+                else "validation_failed",
+                error_type=type(error).__name__,
+                family="spot_prices",
+            )
+        else:
+            record(
+                EIA_METRICS, "eia_official_candidate", "verified_candidate", family="spot_prices"
+            )
+            return "verified_candidate"
+
+    try:
+        with acquisition_metrics(EIA_METRICS):
+            for metric_id, series_id in EIA_HISTORY_SERIES.items():
+                refresh_eia_history(
+                    paths,
+                    series_id=series_id,
+                    start_date=target - timedelta(days=220),
+                    end_date=target,
+                    definition_version=definition_version,
+                    fetcher=fetch_eia_history,
+                )
+                del metric_id
+    except (OSError, TypeError, ValueError) as error:
+        record(
+            EIA_METRICS,
+            "eia_html_candidate",
+            "source_failed"
+            if isinstance(error, OSError)
+            else "adapter_failed"
+            if isinstance(error, TypeError)
+            else "validation_failed",
+            error_type=type(error).__name__,
+            family="history_page",
+        )
+        return "source_failed"
+    record(
+        EIA_METRICS,
+        "eia_html_candidate",
+        "verified_candidate",
+        family="history_page",
+        publication_precision="release_date_only",
+    )
+    return "verified_candidate"
+
+
 def _refresh_context_sources(
     paths: RuntimePaths,
     target_business_date: str,
@@ -1322,43 +1425,13 @@ def _refresh_context_sources(
                 },
             )
 
-    eia_metrics = ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC")
-    eia_key = secrets.get("EIA_API_KEY")
-    if eia_key is not None:
-        try:
-            with acquisition_metrics(eia_metrics):
-                _eia_context_adapter(eia_key).acquire_spot_prices(
-                    paths,
-                    start_date=target - timedelta(days=220),
-                    end_date=target,
-                    definition_version=definition_version,
-                )
-        except (OSError, TypeError, ValueError) as error:
-            if isinstance(error, OSError):
-                outcome = "source_failed"
-            elif isinstance(error, TypeError):
-                outcome = "adapter_failed"
-            else:
-                outcome = "validation_failed"
-            record(
-                eia_metrics,
-                "eia_official_candidate",
-                outcome,
-                error_type=type(error).__name__,
-                family="spot_prices",
-            )
-        else:
-            record(
-                eia_metrics, "eia_official_candidate", "verified_candidate", family="spot_prices"
-            )
-    else:
-        record(
-            eia_metrics,
-            "eia_official_candidate",
-            "missing_credentials",
-            condition="EIA_API_KEY_not_configured",
-            request_sent="false",
-        )
+    refresh_eia_context(
+        paths,
+        secrets=secrets,
+        target=target,
+        definition_version=definition_version,
+        record=record,
+    )
 
     token = secrets.get("TUSHARE_TOKEN")
     if token is None:

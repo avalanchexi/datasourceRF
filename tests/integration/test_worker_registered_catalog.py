@@ -55,6 +55,7 @@ def test_worker_official_refresh_uses_the_active_registered_catalog(
     runs = RunRepository(paths.database)
     submitted = runs.get(submit_august_ppi_refresh(paths, candidate, now))
     requested = serve_august_ppi(monkeypatch)
+    block_history_page(monkeypatch, [])
 
     refresh_august_ppi(paths, now)
 
@@ -340,6 +341,7 @@ def test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the
     assert models.acceptance_details(candidate, material["acceptance_result_hash"])["passed"]
     # A targeted official refresh first; its adoption is proven separately by the full run.
     serve_august_ppi(monkeypatch)
+    block_history_page(monkeypatch, [])
     submit_august_ppi_refresh(paths, candidate, datetime.now(UTC))
     refresh_august_ppi(paths, datetime.now(UTC))
     requested: list[str] = []
@@ -518,6 +520,7 @@ def test_worker_tushare_failures_keep_required_blocking_and_optional_degrading(
     # Only TuShare is configured; EIA is explicitly absent to isolate the TuShare branch.
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n", encoding="utf-8")
     paths.secrets.chmod(0o600)
+    block_history_page(monkeypatch, [])
     requested: list[str] = []
 
     class ContextOpener:
@@ -566,6 +569,27 @@ def test_worker_tushare_failures_keep_required_blocking_and_optional_degrading(
         assert {"us_tycr", "repo_daily"} <= set(requested), requested
         assert stored.status == "completed", failure
         assert stored.projection_set_id is not None
+
+
+def block_history_page(monkeypatch: pytest.MonkeyPatch, requested: list[str]) -> None:
+    """The key-free fallback page, served from the archived original instead of the network."""
+    import hashlib
+
+    from pring_cycle.eia_html import FetchedEiaHistory
+
+    originals = {
+        "RBRTE": "b078a362332a3d6b34ae2a5dc5a91b98ddfacc7979410b32081f07e9dadc243e",
+        "RWTC": "7da3e5b6632942bfedf02642fde22867d24bb0cf6477eff5ac9e5f9be4d92497",
+    }
+
+    def fetch(url: str) -> FetchedEiaHistory:
+        requested.append(url)
+        series = "RWTC" if "RWTC" in url.upper() else "RBRTE"
+        content = (SCRATCH / "evidence-14" / originals[series]).read_bytes()
+        assert hashlib.sha256(content).hexdigest() == originals[series]
+        return FetchedEiaHistory(content, url, 200, "text/html; charset=utf-8")
+
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", fetch)
 
 
 def eia_opener(scenario: str, requested: list[str]) -> Any:
@@ -632,6 +656,8 @@ def test_worker_full_run_publishes_the_registered_projection_across_eia_conditio
         paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")
         paths.secrets.chmod(0o600)
     requested: list[str] = []
+    pages: list[str] = []
+    block_history_page(monkeypatch, pages)
     monkeypatch.setattr("pring_cycle.eia_context.build_opener", eia_opener(scenario, requested))
     runs = RunRepository(paths.database)
     run = runs.submit_manual_full(
@@ -652,10 +678,16 @@ def test_worker_full_run_publishes_the_registered_projection_across_eia_conditio
     assert projection.envelope.target_business_date == "2026-08-28"
     context_rows = cast(list[dict[str, Any]], projection.datasets["macro"]["international_context"])
     rows = {row["metric_id"]: row for row in context_rows}
+    # Without a usable API key the run falls back to the key-free history page, so the rows
+    # carry its channel; a working key keeps the API channel and sends no page request.
+    fell_back = scenario != "success"
+    assert (len(pages) == 2) is fell_back
     for metric_id in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
         row = rows[metric_id]
-        assert row["acquisition_status"] == expected_status
-        assert row["latest_acquisition"]["channel"] == "eia_official_candidate"
+        assert row["acquisition_status"] == ("verified_candidate" if fell_back else expected_status)
+        assert row["latest_acquisition"]["channel"] == (
+            "eia_html_candidate" if fell_back else "eia_official_candidate"
+        )
         assert row["latest_acquisition"]["definition_version"] == version
         assert row["certification_status"] == "awaiting_source_certification"
         assert row["role"] == "context_only_never_formal_stage"

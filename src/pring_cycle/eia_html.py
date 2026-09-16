@@ -305,7 +305,7 @@ def parse_eia_history_document(
     )
 
 
-def _fetch_history(url: str) -> FetchedEiaHistory:
+def fetch_eia_history(url: str) -> FetchedEiaHistory:
     from urllib.request import Request
 
     request = Request(url, headers={"Accept": "text/html", "User-Agent": "pring-cycle/1.0"})
@@ -363,7 +363,7 @@ def refresh_eia_history(
             on_acquisition_started(acquisition_id)
 
     def fetch() -> bytes:
-        response = (fetcher or _fetch_history)(endpoint)
+        response = (fetcher or fetch_eia_history)(endpoint)
         responses.append(response)
         return response.content
 
