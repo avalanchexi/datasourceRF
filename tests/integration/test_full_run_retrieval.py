@@ -15,6 +15,7 @@ from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
 
 
@@ -48,6 +49,14 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
             raise failure
 
     monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
+    pages: list[str] = []
+
+    def page_offline(url: str) -> None:
+        pages.append(url)
+        raise OSError("fixture history page offline")
+
+    # The key-free fallback is exercised on its own; here it must not reach the network.
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
     run = runs.submit_manual_full(
         target_business_date="2026-08-28",
         client_request_id="p2-acquisition-condition",
@@ -63,6 +72,11 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
         for row in projection.datasets["macro"]["international_context"]
         if row["metric_id"] == "EIA_BRENT_RBRTE"
     )
+    # Every branch here ends at the key-free page, which is offline in this fixture, so the
+    # page channel carries the last word while the API channel keeps its own recorded outcome.
+    assert pages
+    assert row["acquisition_status"] == "source_failed"
+    assert row["latest_acquisition"]["channel"] == "eia_html_candidate"
     expected = (
         "missing_credentials"
         if failure is None
@@ -70,15 +84,21 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
         if isinstance(failure, OSError)
         else "validation_failed"
     )
-    assert row["acquisition_status"] == expected
+    with database_connection(paths.database) as connection:
+        outcomes = dict(
+            connection.execute(
+                "SELECT channel, outcome FROM retrieval_attempt WHERE metric_id=? "
+                "GROUP BY channel HAVING MAX(fetched_at)",
+                ("EIA_BRENT_RBRTE",),
+            ).fetchall()
+        )
+    assert outcomes["eia_official_candidate"] == expected
+    assert outcomes["eia_html_candidate"] == "source_failed"
     assert row["certification_status"] == "awaiting_source_certification"
     assert row["value"] is None
     assert row["role"] == "context_only_never_formal_stage"
-    assert row["latest_acquisition"]["channel"] == "eia_official_candidate"
     assert row["latest_acquisition"]["definition_version"] == "metric-catalog-v0001"
     assert len(requests) == (0 if failure is None else 1)
-    if failure is None:
-        assert row["latest_acquisition"]["request_sent"] is False
 
 
 def test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time(
