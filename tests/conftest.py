@@ -35,12 +35,14 @@ def acquisition_clock(monkeypatch: pytest.MonkeyPatch) -> Callable[[], datetime]
     return now
 
 
-@pytest.fixture
-def runtime_clock(
-    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+def install_runtime_clock(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest, origin: datetime
 ) -> Callable[[], datetime]:
-    """Keep a full run's external clocks on the same advancing UTC timeline."""
-    origin = datetime.now(UTC)
+    """Run one test on an advancing UTC timeline starting at ``origin``.
+
+    Tests whose fixtures are dated originals pin the origin, so that what they assert about
+    evidence freshness stays the same on every day the suite runs.
+    """
     started = monotonic()
 
     def now() -> datetime:
@@ -54,3 +56,11 @@ def runtime_clock(
     if getattr(request.module, "datetime", None) is datetime:
         monkeypatch.setattr(request.module, "datetime", clock_type)
     return now
+
+
+@pytest.fixture
+def runtime_clock(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Callable[[], datetime]:
+    """Keep a full run's external clocks on the same advancing UTC timeline."""
+    return install_runtime_clock(monkeypatch, request, datetime.now(UTC))

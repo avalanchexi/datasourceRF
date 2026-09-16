@@ -4,11 +4,11 @@ import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, replace
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -47,6 +47,7 @@ from pring_cycle.search_discovery import (
 from pring_cycle.search_evidence import ModelInputSelection, select_retrieval_input
 from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
 from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
+from tests.conftest import install_runtime_clock
 
 
 def encode(document: object) -> bytes:
@@ -965,13 +966,23 @@ def test_registered_replay_missing_optional_sources_preserves_required_gdp_gap(
     ), replay.gaps
 
 
-@pytest.mark.usefixtures("runtime_clock")
+# The archived Treasury CSV covers 2026-09-04; the daily freshness limit is 10 days, so these
+# tests run on a pinned timeline instead of the wall clock, which would make them stale in time.
+TREASURY_FIXTURE_DAY = date(2026, 9, 4)
+TREASURY_FRESH_CLOCK = datetime(2026, 9, 5, 12, tzinfo=UTC)
+
+
 @pytest.mark.parametrize(
     "damaged_artifact", [None, "raw", "normalized", "latest_quality", "latest_normalized"]
 )
 def test_registered_treasury_original_supports_system_context_without_inventing_public_time(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_artifact: str | None
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    damaged_artifact: str | None,
 ) -> None:
+    install_runtime_clock(monkeypatch, request, TREASURY_FRESH_CLOCK)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     manifest = admitted_treasury_manifest(paths, capsys)
@@ -1048,6 +1059,20 @@ def test_registered_treasury_original_supports_system_context_without_inventing_
     model_inputs = context.macro["model_input_observation_version_ids"]
     assert isinstance(model_inputs, list)
     assert {claim.claim_id for claim in claims} <= set(model_inputs)
+    # Past the daily freshness limit the same evidence keeps its value but stops being adopted,
+    # so a later reader never treats this session as the current one.
+    stale_cutoff = datetime.combine(TREASURY_FIXTURE_DAY + timedelta(days=11), time(12), UTC)
+    older = build_context_projection(
+        repository, as_of=stale_cutoff, model_manifest=manifest, as_of_mode=AsOfMode.SYSTEM
+    )
+    stale_rows = older.macro["international_context"]
+    assert isinstance(stale_rows, list)
+    (stale_spread,) = [row for row in stale_rows if row["metric_id"] == "UST_2S10S_SPREAD"]
+    assert stale_spread["value"] == pytest.approx(41.0)
+    assert {row["status"] for row in stale_rows if row["metric_id"].startswith("UST")} == {"stale"}
+    assert {claim.claim_id for claim in claims}.isdisjoint(
+        cast(list[str], older.macro["model_input_observation_version_ids"])
+    )
     # A historical target still requires reliable PUBLIC evidence; SYSTEM cannot backfill it.
     run = RunRepository(paths.database).submit(
         command_type="targeted_refresh",
@@ -1161,7 +1186,6 @@ def test_registered_treasury_original_supports_system_context_without_inventing_
         assert spread["value"] is None, "A bad latest pair must not restore the older 39bp spread."
 
 
-@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize(
     "fault",
     [
@@ -1178,8 +1202,13 @@ def test_registered_treasury_original_supports_system_context_without_inventing_
     ],
 )
 def test_registered_treasury_context_rechecks_hash_consistent_receipts(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    fault: str,
 ) -> None:
+    install_runtime_clock(monkeypatch, request, TREASURY_FRESH_CLOCK)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     manifest = admitted_treasury_manifest(paths, capsys)
