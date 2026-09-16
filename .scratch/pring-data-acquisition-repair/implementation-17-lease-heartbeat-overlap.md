@@ -13,9 +13,9 @@
 | DELETE | 读 | ok | 0.0s |
 | DELETE | **写** | **OperationalError: database is locked** | 5.10s |
 
-两点事实由此确定：
+一点事实由此确定，另一点已于同日更正：
 
-1. **读不参与竞争**，票记录里"`source_claim_acquisitions_many → 开连接`"这一段本身不会因写锁失败。真正会失败的是**写与写交叠**。
+1. **更正（2026-09-17）**：原写作"读不参与竞争，票记录里 `source_claim_acquisitions_many → 开连接` 这一段本身不会因写锁失败"——**该结论越界**。上述夹具以 `BEGIN IMMEDIATE` 持 RESERVED 锁，提交发生在释放之后，读侧从未与提交窗口（PENDING/EXCLUSIVE）重叠；回滚日志模式下读者恰恰是在写者提交时才可能 BUSY。补做的交叠实验（读事务横跨写者 COMMIT，WAL/DELETE × 读先/写先四组）四组均为 ok，**这同样只说明该交错下未失败，不能反证读路径永不失败**。按 [273 方案评审](sqlite-claude-plan-review-273.md)"不能排除其他连接、进程或 SQLite 锁竞争"，本记录不再对读路径下结论。确定的是：**写与写交叠超过忙等上限必然失败**。
 2. 运行期连接的忙等上限是 **5 秒**——不是代码里那条 `PRAGMA busy_timeout=5000`（它只作用于迁移期的 alembic 连接和 `_sqlite_connection`），而是 Python `sqlite3.connect` 的默认 `timeout=5.0`。超过 5 秒必然抛锁错误。
 
 ## 定位
@@ -52,6 +52,28 @@ while not stopped.wait(30):
 
 `test_worker_classifies_optional_eia_failures` 未挡住新的无密钥页面回退，既可能触网，断言也只看单一渠道。已改为：页面在夹具中离线，分别断言 API 渠道保留原分类（`source_failed`/`adapter_failed`/`validation_failed`）、页面渠道记 `source_failed`。4 通过。至此所有走 EIA 分支的测试都不触网。
 
+## 两轴复审（2026-09-17）与据此的返工
+
+同日对本批（`9d44c7d~1..HEAD`）做冻结树两轴复审，两轴均有实质发现，已逐条处理：
+
+**Standards**
+- 清单键改名未升 schema：已写过 `measured_seconds` 的历史清单重建会少这个值而永久 `cutover_manifest_stale`。改为读时同时接受新旧键。
+- 心跳把**所有** `OperationalError` 当竞争：磁盘满、I/O 错误、数据库损坏也会被静默重试一整个租约窗口。改为仅匹配锁占用消息，其余照常抛出。
+- 放弃阈值正好等于租约有效期，等于"租约已失效后才报"：改为提前一个心跳间隔放弃。
+- `_claim_families(scope)` 参数未用：删除。
+- 家族结果以 `name` 为字典键：同名家族会互相覆盖；改为结果随家族一起携带。
+- 重复指标 id 会让 `points_of` 重复取点（原实现不会）：按首次出现去重。
+- 测试用 `GROUP BY ... HAVING MAX(fetched_at)` 取"最新一条"不可靠（裸列取值未定义）：改为相关子查询。
+
+**Spec（更严厉，结论是我勾早了）**
+- 该项明文要求"租约心跳与查询交叠时**完成共享预算用例**"，而我的交叠用例只播种核心历史、没有缺口与检索密钥，跨期共享硬搜索预算用例**一次都没在争用下跑过**。
+- "心跳退出与连接释放顺序"只断了终态，且 `audit_lease` 根本没有 `released` 状态，租约从未获取也会通过。
+- 交叠强度不足以让心跳跳过一拍，把"遇锁即退出"改回去该用例不会变红。
+
+**已撤回票17 的勾选**，并按复审意见重做用例 `test_the_shared_budget_run_completes_while_a_writer_blocks_the_heartbeat`：播种 12 天 DR007 缺口与检索密钥、劫持 `search_discovery.urlopen`，心跳间隔压到 0.2 秒与运行全程交错，另起查询线程持续调用 `audit_lease`、`runs.get` 与 `source_claim_acquisitions_many`。断言：查询实际重叠（>20 次）且**零锁错误**；运行 completed；**共享预算实测 `{"tavily": 8, "exa": 4, "ai_websearch": 0}`**，两家请求数各为 8 与 4；投影身份与运行记录一致；顺序严格为 `heartbeat_started → heartbeat_stopped → lease_released`，释放的 owner 为本进程，事后租约为 `absent`。该文件 4 项通过/126.1秒。
+
+注：期间试过让邻居持锁 6.5 秒以强制心跳阻塞，但那会同时饿死运行自身的写入（运行直接以 `database is locked` 失败）——说明这种强度的争用下运行本就无法完成，与工单"交叠时完成共享预算用例"的要求不符。阻塞式心跳竞争由本文件第一个用例单独覆盖。
+
 ## 完整链路验证（2026-09-17 补）
 
 票17 该项还要求"经公开任务提交 → 持久任务 → Worker 执行 → 投影与状态查询"全链路验证，已补上第三个用例 `test_a_run_under_write_contention_still_publishes_and_reports_its_state`：
@@ -65,4 +87,4 @@ while not stopped.wait(30):
 
 ## 范围
 
-票17 该项的公开反例与全链路验证均已具备。**是否勾选由票17 的收口批次统一判断**——该项原文还含"慢关闭已复现机制的修复仍成立"，其历史机制的持锁身份按 273 方案评审属无法从现存证据确认，本记录不代为勾选。
+票17 该项的公开反例与全链路验证均已具备（含复审要求的共享预算争用场景）。**当前仍为未勾**，是否勾选由票17 的收口批次统一判断——该项原文还含"慢关闭已复现机制的修复仍成立"，其历史机制的持锁身份按 273 方案评审属无法从现存证据确认，本记录不代为勾选。

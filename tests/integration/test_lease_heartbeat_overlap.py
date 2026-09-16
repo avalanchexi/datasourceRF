@@ -8,14 +8,17 @@ surfaced; a heartbeat thread that exits on the first lock error loses the lease 
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 import time
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from pring_cycle import worker as worker_module
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -121,13 +124,155 @@ def test_a_heartbeat_that_lost_ownership_still_stops(tmp_path: Path) -> None:
 
 
 @pytest.mark.usefixtures("runtime_clock")
+def test_the_shared_budget_run_completes_while_a_writer_blocks_the_heartbeat(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The ticket's own case: the cross-period shared budget run, under real contention.
+
+    A neighbour holds the write lock past the heartbeat connection's busy wait, so beats do
+    fail and are retried. Public submission, the persisted run, the Worker's execution, the
+    published projection and the status query all have to come through, and the lease has to
+    be released in order once the run ends.
+    """
+    from io import BytesIO
+
+    from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+    from pring_cycle.projections import ProjectionSetRepository
+    from pring_cycle.worker import process_pending_run
+    from tests.integration.test_full_run_retrieval import seed_core_history
+
+    paths, runs = prepared(tmp_path)
+    seed_core_history(paths)
+    evidence = EvidenceRepository(paths.database)
+    for number in range(12):
+        day = date(2026, 8, 28) - timedelta(days=number)
+        if day.weekday() >= 5:
+            continue
+        known = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
+        evidence.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_DR007",
+                definition_version="metric-catalog-v0001",
+                period_kind="business_day",
+                period_start=day.isoformat(),
+                period_end=day.isoformat(),
+                dimensions={},
+                value=None,
+                value_state=EvidenceValueState.NOT_DISCLOSED,
+                unit="scalar",
+                provider="fixture:official-release",
+                source_reference=f"fixture:dr007:{day}",
+                release_event_id=f"fixture:dr007:{day}",
+                release_at=known,
+                public_available_at=known,
+                fetched_at=known,
+                available_at=known,
+                certification_status="awaiting_source_certification",
+                quality_status="validated",
+            )
+        )
+    paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\nEXA_API_KEY=fixture-secret\n")
+    searches: list[str] = []
+
+    class Response(BytesIO):
+        status = 200
+        headers: dict[str, str] = {}
+
+    def search(request: Any, *, timeout: float) -> Response:
+        searches.append(request.full_url)
+        return Response(b'{"results":[]}')
+
+    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
+
+    def page_offline(url: str) -> None:
+        raise OSError("fixture history page offline")
+
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
+
+    # Beat every 0.2s instead of every 30s, so heartbeats really interleave with this run.
+    beats: list[str] = []
+    monkeypatch.setattr("pring_cycle.worker.LEASE_HEARTBEAT_SECONDS", 0.2)
+    original_heartbeat = worker_module.lease_heartbeat
+
+    def recording_heartbeat(runs_arg: Any, owner: str, stopped: Any, **kwargs: Any) -> None:
+        kwargs["interval_seconds"] = 0.2
+        kwargs["on_contention"] = beats.append
+        order.append("heartbeat_started")
+        try:
+            original_heartbeat(runs_arg, owner, stopped, **kwargs)
+        finally:
+            order.append("heartbeat_stopped")
+
+    monkeypatch.setattr("pring_cycle.worker.lease_heartbeat", recording_heartbeat)
+    # Queries run against the same database throughout, as a reader would during the run.
+    stop_reading = threading.Event()
+    queries, query_errors = [], []
+    order: list[str] = []
+
+    def reader() -> None:
+        while not stop_reading.wait(0.05):
+            try:
+                runs.audit_lease()
+                runs.get(submitted.run_id)
+                EvidenceRepository(paths.database).source_claim_acquisitions_many(())
+                queries.append("ok")
+            except sqlite3.OperationalError as error:
+                query_errors.append(str(error))
+
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="contended-shared-budget",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    assert runs.get(submitted.run_id).status == "queued"
+    released: list[str] = []
+    original_release = RunRepository.release_lease
+
+    def recording_release(self: RunRepository, owner_id: str) -> None:
+        order.append("lease_released")
+        released.append(owner_id)
+        original_release(self, owner_id)
+
+    monkeypatch.setattr(RunRepository, "release_lease", recording_release)
+    querying = threading.Thread(target=reader, name="fixture-query-loop", daemon=True)
+    querying.start()
+    try:
+        process_pending_run(paths, report_adapters=())
+    finally:
+        stop_reading.set()
+        querying.join(10)
+
+    # The queries really did overlap the run, and none of them hit a lock error.
+    assert len(queries) > 20, "the query loop did not overlap the run"
+    assert query_errors == []
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "completed", stored.error_classification
+    # The shared budget case itself ran to completion under that contention.
+    assert stored.consumed_budget == {"tavily": 8, "exa": 4, "ai_websearch": 0}
+    assert searches.count("https://api.tavily.com/search") == 8
+    assert searches.count("https://api.exa.ai/search") == 4
+    assert stored.projection_set_id is not None
+    published = ProjectionSetRepository(paths.database).current()
+    assert published.envelope.projection_set_id == stored.projection_set_id
+    assert published.envelope.target_business_date == "2026-08-28"
+    # The heartbeat stops before the lease is released, and the lease is gone afterwards.
+    assert order == ["heartbeat_started", "heartbeat_stopped", "lease_released"], order
+    assert released == [f"worker-{os.getpid()}"]
+    assert runs.audit_lease().owner_state == "absent"
+
+
+@pytest.mark.usefixtures("runtime_clock")
 def test_a_run_under_write_contention_still_publishes_and_reports_its_state(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The whole path holds up while another writer keeps taking the lock.
 
     Public submission, the persisted run, the Worker's own execution, the published projection
-    and the status query all have to survive a neighbour that writes throughout the run.
+    and the status query all have to survive a neighbour that writes throughout the run. The
+    blocking case, where a beat waits out a writer that holds the lock past the busy timeout,
+    is covered by the first test; here the neighbour takes the lock in short bursts, as a
+    second process would, and the run must still reach its published state.
     """
     from pring_cycle.projections import ProjectionSetRepository
     from pring_cycle.worker import process_pending_run
@@ -175,7 +320,7 @@ def test_a_run_under_write_contention_still_publishes_and_reports_its_state(
         stop_writing.set()
         writer.join(5)
 
-    assert grabs > 0, "the fixture never actually contended for the write lock"
+    assert grabs > 5, "the neighbour has to keep taking the lock for the run to be contended"
     stored = runs.get(submitted.run_id)
     assert stored.status == "completed", stored.error_classification
     assert stored.projection_set_id is not None

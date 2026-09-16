@@ -349,7 +349,9 @@ def test_worker_classifies_optional_eia_failures(
         outcomes = dict(
             connection.execute(
                 "SELECT channel, outcome FROM retrieval_attempt WHERE metric_id=? "
-                "GROUP BY channel HAVING MAX(fetched_at)",
+                "AND fetched_at = (SELECT MAX(latest.fetched_at) FROM retrieval_attempt latest "
+                "WHERE latest.metric_id = retrieval_attempt.metric_id "
+                "AND latest.channel = retrieval_attempt.channel)",
                 ("EIA_BRENT_RBRTE",),
             ).fetchall()
         )

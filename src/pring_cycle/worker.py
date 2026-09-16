@@ -1710,6 +1710,13 @@ def _validate_projection_for_run(run: RunRecord, projection: object) -> None:
 # retry inside that window. Giving up on the first lock error would drop the lease silently.
 LEASE_VALID_SECONDS = 120
 LEASE_HEARTBEAT_SECONDS = 30
+# Only a busy write lock is contention. A full disk, an I/O error or a damaged database are
+# also OperationalError, and retrying those for a whole lease window would hide them.
+LOCK_CONTENTION_MESSAGES = ("database is locked", "database table is locked")
+
+
+def _is_lock_contention(error: sqlite3.OperationalError) -> bool:
+    return any(message in str(error) for message in LOCK_CONTENTION_MESSAGES)
 
 
 def lease_heartbeat(
@@ -1735,12 +1742,16 @@ def lease_heartbeat(
         except ValueError:
             return
         except sqlite3.OperationalError as error:
+            if not _is_lock_contention(error):
+                raise
             detail = f"lease_heartbeat_contended:{type(error).__name__}"
             if on_contention is not None:
                 on_contention(detail)
             if paths is not None:
                 write_runtime_event(paths, "worker", detail, level="warning")
-            if monotonic() - last_beat >= LEASE_VALID_SECONDS:
+            # Give up before the lease lapses, so a lost lease is reported rather than hidden
+            # while the run keeps executing on an expired one.
+            if monotonic() - last_beat >= LEASE_VALID_SECONDS - interval_seconds:
                 if paths is not None:
                     write_runtime_event(paths, "worker", "lease_heartbeat_abandoned", "error")
                 return

@@ -120,7 +120,7 @@ class ModelInputSelector:
             )
         return self._points[metric_id]
 
-    def _claim_families(self, scope: RetrievalScope) -> tuple[_ClaimFamily, ...]:
+    def _claim_families(self) -> tuple[_ClaimFamily, ...]:
         """Each registered family's metrics and how its selected claims are rechecked.
 
         Every family has the same shape at the call site: take this family's metrics from the
@@ -138,12 +138,15 @@ class ModelInputSelector:
         )
 
         def points_of(metric_ids: tuple[str, ...]) -> tuple[MetricSeriesPoint, ...]:
-            return tuple(point for metric_id in metric_ids for point in self.series(metric_id))
+            # A metric named twice in one scope still contributes its points once.
+            return tuple(
+                point for metric_id in dict.fromkeys(metric_ids) for point in self.series(metric_id)
+            )
 
         def series_by_metric(
             metric_ids: tuple[str, ...],
         ) -> dict[str, tuple[MetricSeriesPoint, ...]]:
-            return {metric_id: self.series(metric_id) for metric_id in metric_ids}
+            return {metric_id: self.series(metric_id) for metric_id in dict.fromkeys(metric_ids)}
 
         return (
             _ClaimFamily(
@@ -252,15 +255,18 @@ class ModelInputSelector:
                 and matches_retrieval_period(point.period_end, scope.period)
             ),
         )
-        families = self._claim_families(scope)
-        valid_family_claim_ids = {
-            family.name: family.check(
-                tuple(metric_id for metric_id in scope.metric_ids if family.owns(metric_id))
-                if registered
-                else ()
+        families = self._claim_families()
+        checked_families = tuple(
+            (
+                family,
+                family.check(
+                    tuple(metric_id for metric_id in scope.metric_ids if family.owns(metric_id))
+                    if registered
+                    else ()
+                ),
             )
             for family in families
-        }
+        )
         selected_ids: list[str] = []
         missing = []
         for metric_id in scope.metric_ids:
@@ -349,8 +355,8 @@ class ModelInputSelector:
                         and all(
                             not family.owns(metric_id)
                             or not registered
-                            or claim.claim_id in valid_family_claim_ids[family.name]
-                            for family in families
+                            or claim.claim_id in valid_claim_ids
+                            for family, valid_claim_ids in checked_families
                         )
                         and (
                             metric_id not in CORE_API_IDENTITIES

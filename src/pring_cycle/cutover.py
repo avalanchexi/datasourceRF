@@ -333,7 +333,13 @@ def reported_total_seconds(manifest: dict[str, Any]) -> float | None:
     """The whole run's wall clock a manifest already reported, for rebuilding it identically."""
     timing = manifest.get("suite_timing")
     total = timing.get(TOTAL_TIMING_SCOPE) if isinstance(timing, dict) else None
-    measured = total.get("reported_seconds") if isinstance(total, dict) else None
+    # Manifests written before the rename carry the value under the old key; both are read so
+    # an existing artifact still rebuilds to the same hash.
+    measured = (
+        total.get("reported_seconds", total.get("measured_seconds"))
+        if isinstance(total, dict)
+        else None
+    )
     return float(measured) if isinstance(measured, (int, float)) else None
 
 
