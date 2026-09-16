@@ -1,0 +1,13 @@
+{
+  "record": "worker",
+  "head": "1fa16c5",
+  "targets": [
+    "tests/integration/test_worker_registered_catalog.py",
+    "tests/integration/test_worker_execution.py",
+    "tests/integration/test_full_run_retrieval.py"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 3359,
+  "status": "passed",
+  "log_sha256": "06dfbe829e7b4205b5ca62d373e38ebba5b46dfdf308016f564f9815f479587b"
+}

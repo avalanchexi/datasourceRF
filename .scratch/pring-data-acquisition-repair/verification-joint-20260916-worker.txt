@@ -1,0 +1,8 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m      [100%][0m
+============================= slowest 5 durations ==============================
+449.25s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed]
+441.04s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed]
+393.93s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+383.03s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[optional-gdp]
+263.33s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials]
+[32m[32m[1m67 passed[0m[32m in 3559.11s (0:59:19)[0m[0m

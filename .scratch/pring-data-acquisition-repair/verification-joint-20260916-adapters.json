@@ -1,0 +1,12 @@
+{
+  "record": "adapters",
+  "head": "1fa16c5",
+  "targets": [
+    "tests/adapters/test_futures_inputs.py",
+    "tests/adapters/test_commodity_basket.py"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 46,
+  "status": "passed",
+  "log_sha256": "d5dc09f53384ebebee224f52db2fc0d1ef6f778a11d2b45ddf80ec7e0de40b5f"
+}

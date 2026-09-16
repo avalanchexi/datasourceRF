@@ -1,0 +1,9 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m [ 79%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                      [100%][0m
+============================= slowest 5 durations ==============================
+2.09s call     tests/adapters/test_futures_inputs.py::test_futures_inputs_preserve_product_specific_sessions_across_reviewed_revisions[exact]
+2.04s call     tests/adapters/test_futures_inputs.py::test_futures_inputs_preserve_product_specific_sessions_across_reviewed_revisions[date_only]
+1.26s call     tests/adapters/test_futures_inputs.py::test_reused_reader_selections_match_fresh_reads_across_revision_cutoffs
+1.13s call     tests/adapters/test_futures_inputs.py::test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order[True-True]
+1.12s call     tests/adapters/test_commodity_basket.py::test_basket_missing_polypropylene_breaks_chain_without_reweighting_or_rebasing
+[32m[32m[1m91 passed[0m[32m in 48.86s[0m[0m

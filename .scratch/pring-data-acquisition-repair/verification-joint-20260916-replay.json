@@ -1,0 +1,12 @@
+{
+  "record": "replay",
+  "head": "1fa16c5",
+  "targets": [
+    "tests/models/test_candidate_replay.py",
+    "tests/models/test_context_output_references.py"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 25,
+  "status": "passed",
+  "log_sha256": "ff341594072399b22ea22bb71a65028b30b9c48298cb031cba0231af0dec705d"
+}

@@ -1,0 +1,9 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m [ 83%]
+[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                           [100%][0m
+============================= slowest 5 durations ==============================
+1.05s call     tests/models/test_context_output_references.py::test_inline_v0001_is_read_and_matched_but_never_written_again
+0.89s call     tests/models/test_candidate_replay.py::test_saved_replay_detects_lpr_vintage_change_with_unchanged_context_difference_count
+0.83s call     tests/models/test_candidate_replay.py::test_context_replay_keeps_daily_public_values_and_failed_input_status
+0.80s call     tests/models/test_context_output_references.py::test_replay_stores_each_source_point_once_and_every_day_resolves_its_snapshot
+0.76s call     tests/models/test_context_output_references.py::test_replay_rejects_damaged_source_point_references[orphan_point]
+[32m[32m[1m86 passed[0m[32m in 26.50s[0m[0m

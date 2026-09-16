@@ -1,0 +1,11 @@
+{
+  "record": "admission",
+  "head": "1fa16c5",
+  "targets": [
+    "tests/models/test_candidate_admission.py"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 984,
+  "status": "passed",
+  "log_sha256": "99df1977768fbd53e0233fd964bf2fcdf59c3655e87924b06d923a01b3a3b9b1"
+}

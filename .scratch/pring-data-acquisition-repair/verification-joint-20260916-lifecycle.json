@@ -1,0 +1,11 @@
+{
+  "record": "lifecycle",
+  "head": "1fa16c5",
+  "targets": [
+    "tests/models/test_isolated_lifecycle.py"
+  ],
+  "exit_code": 0,
+  "duration_seconds": 1752,
+  "status": "passed",
+  "log_sha256": "73d57aee9caa1c8150dc9a9244368b6eb15b1b5616d68aef7b1c03b1fc8023ef"
+}
