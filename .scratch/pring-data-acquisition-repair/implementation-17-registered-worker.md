@@ -103,3 +103,9 @@
 宽口径`mypy src tests/integration/test_worker_registered_catalog.py`沿导入拉入测试模块后报24错、2文件：`tests/adapters/test_commodity_basket.py`20处为票19旧有；`tests/models/test_candidate_admission.py`4处由#16（4618af7）引入，已转#16修复。本票测试文件自身无错。项目配置门槛为`packages=["pring_cycle"]`，标准命令全通过。
 
 `scoped-lifecycle-clean`：无其他进程接触材料时整文件重跑，2通过/1789.9秒（完整构建与材料复制），确认前一次复制失败仅由实施者读取产生的sqlite旁文件引起。是否让内容校验忽略sqlite旁文件，另立事项，不进本票。
+
+## 代码健康（票17审查遗留，2026-09-16）
+
+- 期货读取器模块拆分：`futures_inputs.py`只保留采集、证据绑定与事实重建（1151→679行）；新增`futures_input_reads.py`（509行）承载`FuturesInputReader`、`_BatchIndex`、选择缓存、`select_futures_inputs`、`futures_input_reader`、`shared_futures_input_reads`与`_meaning`。读取侧经明确接缝读取采集侧：`input_facts`、`fact_key`、`read_artifact`、`publication_time`、`damaged_review_contract_scope`由私有改为公开命名，其余保持私有。消费方（commodity_basket、model_evaluation、适配器测试）改为从新模块导入，行为不变。
+- 材料内容校验忽略sqlite旁文件：`_runtime_contents`跳过`-wal`/`-shm`/`-journal`，任何读取者都不会再造成假的`isolated_lifecycle_material_contents_changed`；新增反例`test_material_contents_ignore_sqlite_sidecars_but_not_stored_files`（未修复时失败），仍比较材料自身文件。复制材料时不跳过旁文件，未检查点的WAL内容不会丢失。
+- 验证（工作区小库，未重建材料）：`tests/adapters/test_futures_inputs.py`与`test_commodity_basket.py`共91通过/95.8秒；`test_registered_commodity.py`、`test_futures_warrant_completeness.py`及生命周期非重型用例12通过/48.3秒；`ruff check src tests`通过；`mypy`（packages=pring_cycle）96源文件通过。改动使代码哈希与构建器哈希变化，现有材料`8a84b451…`失效，下次重型验证时一并重建。

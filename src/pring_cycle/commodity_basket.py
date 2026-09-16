@@ -17,12 +17,12 @@ from pring_cycle.evidence import (
     SourceClaimAcquisition,
     SourceClaimInput,
 )
-from pring_cycle.futures_inputs import (
-    PRODUCT_EXCHANGES,
+from pring_cycle.futures_input_reads import (
     FuturesInputReader,
     futures_input_reader,
     shared_futures_input_reads,
 )
+from pring_cycle.futures_inputs import PRODUCT_EXCHANGES
 from pring_cycle.read_scope import claims_checked_once
 from pring_cycle.runtime import RuntimePaths
 

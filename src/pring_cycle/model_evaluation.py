@@ -677,7 +677,7 @@ def evaluate_context_replay(
     requested_end: str,
     replay_days: tuple[str, ...] | None = None,
 ) -> ContextReplayEvaluation:
-    from pring_cycle.futures_inputs import shared_futures_input_reads
+    from pring_cycle.futures_input_reads import shared_futures_input_reads
 
     # A replay only reads captured futures inputs, so every cutoff shares one read of them.
     with shared_futures_input_reads():

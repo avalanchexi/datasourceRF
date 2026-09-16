@@ -924,11 +924,15 @@ def material_store() -> Path:
     return Path(cache) / "pring-cycle" / "test-materials"
 
 
+# Any reader of a WAL database creates these next to it, so they are not material contents.
+SQLITE_SIDECARS = ("-wal", "-shm", "-journal")
+
+
 def _runtime_contents(root: Path) -> dict[str, str]:
     return {
         str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in sorted(root.rglob("*"))
-        if path.is_file()
+        if path.is_file() and not path.name.endswith(SQLITE_SIDECARS)
     }
 
 
@@ -1010,6 +1014,32 @@ def isolated_lifecycle_material(destination: Path) -> tuple[RuntimePaths, dict[s
         raise AssertionError("isolated_lifecycle_material_contents_changed")
     shutil.copytree(stored / "runtime", destination, dirs_exist_ok=True)
     return RuntimePaths.discover(destination), document
+
+
+def test_material_contents_ignore_sqlite_sidecars_but_not_stored_files(tmp_path: Path) -> None:
+    """Reading a stored material's database must not make the material look changed."""
+    import sqlite3
+
+    runtime = tmp_path / "runtime" / "data"
+    runtime.mkdir(parents=True)
+    (runtime / "notes.json").write_text("{}")
+    connection = sqlite3.connect(runtime / "pring-cycle.sqlite3")
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("CREATE TABLE day (business_date TEXT)")
+    connection.commit()
+    connection.close()
+    built = _runtime_contents(tmp_path / "runtime")
+    assert sorted(built) == ["data/notes.json", "data/pring-cycle.sqlite3"]
+
+    reader = sqlite3.connect(f"file:{runtime / 'pring-cycle.sqlite3'}?mode=ro", uri=True)
+    reader.execute("SELECT * FROM day").fetchall()
+    reader.close()
+    (runtime / "pring-cycle.sqlite3-wal").touch()
+
+    assert _runtime_contents(tmp_path / "runtime") == built
+    # Content that belongs to the material is still compared.
+    (runtime / "notes.json").write_text('{"changed": true}')
+    assert _runtime_contents(tmp_path / "runtime") != built
 
 
 def test_complete_isolated_candidate_is_calibrated_replayed_and_activated(tmp_path: Path) -> None:

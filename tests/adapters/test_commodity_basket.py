@@ -13,7 +13,8 @@ import pytest
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.evidence import AsOfMode
-from pring_cycle.futures_inputs import bind_futures_input_evidence, select_futures_inputs
+from pring_cycle.futures_input_reads import select_futures_inputs
+from pring_cycle.futures_inputs import bind_futures_input_evidence
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
 

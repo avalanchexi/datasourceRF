@@ -92,7 +92,7 @@ def test_futures_inputs_keep_real_months_settlement_and_unknown_public_time(tmp_
         start_date=date(2026, 8, 28),
         end_date=date(2026, 8, 28),
     )
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     visible = select_futures_inputs(
         paths,
@@ -169,7 +169,7 @@ def test_futures_inputs_reject_another_month_in_requested_contract_response(tmp_
 
 @pytest.mark.usefixtures("acquisition_clock")
 def test_futures_inputs_keep_missing_settlement_as_explicit_gap(tmp_path: Path) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -339,7 +339,7 @@ def save_futures_evidence_review(
 
 @pytest.mark.usefixtures("acquisition_clock")
 def test_futures_inputs_use_reviewed_publication_originals_at_exact_cutoff(tmp_path: Path) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -413,7 +413,7 @@ def test_futures_inputs_reject_month_metadata_that_disagrees_with_contract_code(
 
 @pytest.mark.usefixtures("acquisition_clock")
 def test_futures_inputs_keep_unknown_calendar_day_distinct_from_closed_day(tmp_path: Path) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -485,7 +485,7 @@ def test_futures_inputs_reject_settlement_outside_requested_period(
 def test_futures_inputs_preserve_pre_night_session_versions_after_later_revision(
     tmp_path: Path, precision: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -570,7 +570,7 @@ def test_futures_inputs_preserve_pre_night_session_versions_after_later_revision
 def test_futures_inputs_ignore_unadopted_later_price_original_and_recover_when_restored(
     tmp_path: Path,
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -772,7 +772,7 @@ def four_exchange_transport(payload: dict[str, Any]) -> bytes:
 def test_futures_inputs_keep_each_exchange_calendar_and_exclude_not_yet_listed_contracts(
     tmp_path: Path,
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -854,7 +854,7 @@ def test_futures_inputs_reject_calendar_with_wrong_scope_or_invalid_open_state(
 def test_futures_inputs_query_reviewed_night_session_by_product_and_business_date(
     tmp_path: Path,
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -917,7 +917,7 @@ def test_futures_inputs_query_reviewed_night_session_by_product_and_business_dat
 def test_futures_inputs_report_missing_session_without_inventing_a_night_start(
     tmp_path: Path,
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -983,7 +983,7 @@ def test_futures_inputs_reject_duplicate_identities_within_one_delivery(
 def test_futures_inputs_ignore_damaged_prices_outside_requested_product_or_day(
     tmp_path: Path, outside_scope: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1074,7 +1074,7 @@ def test_futures_inputs_reject_review_dated_after_evidence_was_received(tmp_path
 def test_futures_inputs_report_same_public_time_conflict_independently_of_capture_order(
     tmp_path: Path, conflicting: bool, reverse_order: bool
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1147,7 +1147,7 @@ def test_futures_inputs_report_same_public_time_conflict_independently_of_captur
 def test_futures_inputs_report_calendar_gaps_between_target_day_and_expiry(
     tmp_path: Path, calendar_gap: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1271,7 +1271,7 @@ def test_futures_inputs_reject_unaccepted_or_inconsistent_evidence_packets(
 def test_futures_inputs_withhold_damaged_adopted_evidence_and_restore_exact_results(
     tmp_path: Path, material: str, damage: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1333,7 +1333,7 @@ def test_futures_inputs_withhold_damaged_adopted_evidence_and_restore_exact_resu
 def test_futures_inputs_do_not_apply_publication_to_a_different_delivery(
     tmp_path: Path, binding: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1464,7 +1464,7 @@ def capture_sc_settlement_versions(paths: RuntimePaths, scenario: str) -> list[s
 def test_futures_inputs_distinguish_later_revisions_from_equivalent_public_versions(
     tmp_path: Path, scenario: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1503,7 +1503,7 @@ def test_futures_inputs_distinguish_later_revisions_from_equivalent_public_versi
 def test_futures_inputs_preserve_product_specific_sessions_across_reviewed_revisions(
     tmp_path: Path, precision: str
 ) -> None:
-    from pring_cycle.futures_inputs import select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1641,7 +1641,7 @@ def test_futures_inputs_preserve_product_specific_sessions_across_reviewed_revis
 def test_futures_inputs_attach_post_capture_review_without_requesting_new_responses(
     tmp_path: Path,
 ) -> None:
-    from pring_cycle import futures_inputs
+    from pring_cycle import futures_input_reads, futures_inputs
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1660,7 +1660,7 @@ def test_futures_inputs_attach_post_capture_review_without_requesting_new_respon
     repository = AcquisitionRepository(paths.database, paths.artifacts)
     first_cutoff = repository.get(first.acquisition_ids[-1]).validated_at
     assert first_cutoff is not None
-    before_system = futures_inputs.select_futures_inputs(
+    before_system = futures_input_reads.select_futures_inputs(
         paths,
         products=("SC",),
         business_date=date(2026, 8, 28),
@@ -1702,7 +1702,7 @@ def test_futures_inputs_attach_post_capture_review_without_requesting_new_respon
         json.loads(first_raw)["request_id"]
         != json.loads(repository.read_content(second_contract.acquisition_id, "raw"))["request_id"]
     )
-    before_public = futures_inputs.select_futures_inputs(
+    before_public = futures_input_reads.select_futures_inputs(
         paths,
         products=("SC",),
         business_date=date(2026, 8, 28),
@@ -1721,7 +1721,7 @@ def test_futures_inputs_attach_post_capture_review_without_requesting_new_respon
         paths, acquisition_ids=first.acquisition_ids, evidence_hash=packet
     )
     assert requests == requests_before_binding
-    after_public = futures_inputs.select_futures_inputs(
+    after_public = futures_input_reads.select_futures_inputs(
         paths,
         products=("SC",),
         business_date=date(2026, 8, 28),
@@ -1739,7 +1739,7 @@ def test_futures_inputs_attach_post_capture_review_without_requesting_new_respon
         for f in after_public["contracts"] + after_public["settlements"] + after_public["calendar"]
     )
     assert (
-        futures_inputs.select_futures_inputs(
+        futures_input_reads.select_futures_inputs(
             paths,
             products=("SC",),
             business_date=date(2026, 8, 28),
@@ -1757,7 +1757,8 @@ def test_futures_inputs_attach_post_capture_review_without_requesting_new_respon
 def test_futures_inputs_reject_post_capture_review_of_unusable_originals(
     tmp_path: Path, failure: str
 ) -> None:
-    from pring_cycle.futures_inputs import bind_futures_input_evidence, select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
+    from pring_cycle.futures_inputs import bind_futures_input_evidence
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1825,7 +1826,8 @@ def test_futures_inputs_do_not_promote_old_prices_when_their_public_times_are_re
     tmp_path: Path,
     newer_metadata: bool,
 ) -> None:
-    from pring_cycle.futures_inputs import bind_futures_input_evidence, select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
+    from pring_cycle.futures_inputs import bind_futures_input_evidence
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1909,7 +1911,8 @@ def test_futures_inputs_do_not_promote_old_prices_when_their_public_times_are_re
 
 @pytest.mark.usefixtures("acquisition_clock")
 def test_futures_inputs_keep_newer_public_price_after_a_later_expiry_notice(tmp_path: Path) -> None:
-    from pring_cycle.futures_inputs import bind_futures_input_evidence, select_futures_inputs
+    from pring_cycle.futures_input_reads import select_futures_inputs
+    from pring_cycle.futures_inputs import bind_futures_input_evidence
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -2017,7 +2020,7 @@ def test_futures_inputs_keep_newer_public_price_after_a_later_expiry_notice(tmp_
 def test_reused_reader_selections_match_fresh_reads_across_revision_cutoffs(
     tmp_path: Path,
 ) -> None:
-    from pring_cycle.futures_inputs import (
+    from pring_cycle.futures_input_reads import (
         FuturesInputReader,
         futures_input_reader,
         select_futures_inputs,
