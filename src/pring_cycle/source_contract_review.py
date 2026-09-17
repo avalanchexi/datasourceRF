@@ -20,6 +20,8 @@ from pring_cycle.source_families import (
     OFFICIAL_CONTEXT_FAMILY_BY_METRIC,
     TUSHARE_CPI_FIELDS,
     TUSHARE_CPI_SOURCE_CODE,
+    TUSHARE_MONEY_FIELDS,
+    TUSHARE_MONEY_SOURCE_CODE,
     TUSHARE_PMI_FIELDS,
     TUSHARE_PMI_SOURCE_CODE,
     TUSHARE_PPI_FIELDS,
@@ -186,7 +188,11 @@ def require_registered_source_contract(
             "CN_PMI_INVENTORY",
             "CN_PMI_PRICES",
         } and definition.source_codes == (*supported.source_codes, TUSHARE_PMI_SOURCE_CODE)
-        if dual_ppi or dual_pmi:
+        dual_money = definition.metric_id == "CN_M1_M2" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_MONEY_SOURCE_CODE,
+        )
+        if dual_ppi or dual_pmi or dual_money:
             supported = replace(supported, source_codes=definition.source_codes)
         family = OFFICIAL_CONTEXT_FAMILY_BY_METRIC[definition.metric_id]
         fields = (
@@ -203,26 +209,31 @@ def require_registered_source_contract(
         ) != set(supported.allowed_units):
             raise ValueError("registered_official_source_contract_unsupported")
         provider_matches = provider == OFFICIAL_CONTEXT_FAMILIES[family].provider
-        if (dual_ppi or dual_pmi) and provider == "tushare":
-            # These APIs contain values and a statistical month, not a publication fact.
-            # Until independently bound publication evidence is supported, this delivery
-            # is SYSTEM-only; normalized metadata cannot prove its own PUBLIC timestamp.
-            if release_at is not None or public_available_at is not None:
-                contract = "ppi" if dual_ppi else "pmi"
-                raise ValueError(f"registered_{contract}_publication_evidence_required")
-            delivery_fields = (
-                tuple(
+        if (dual_ppi or dual_pmi or dual_money) and provider == "tushare":
+            if dual_ppi:
+                contract, api = "ppi", "cn_ppi"
+                delivery_fields = tuple(
                     (field, {"category": category, "measure": measure})
                     for field, category, measure in TUSHARE_PPI_FIELDS
                 )
-                if dual_ppi
-                else tuple(
+            elif dual_pmi:
+                contract, api = "pmi", "cn_pmi"
+                delivery_fields = tuple(
                     (field, {"series": series, "measure": "level"})
                     for field, metric_id, series in TUSHARE_PMI_FIELDS
                     if metric_id == definition.metric_id
                 )
-            )
-            api = "cn_ppi" if dual_ppi else "cn_pmi"
+            else:
+                contract, api = "money", "cn_m"
+                delivery_fields = tuple(
+                    (field, {"aggregate": aggregate, "measure": measure})
+                    for field, aggregate, measure, _unit in TUSHARE_MONEY_FIELDS
+                )
+            # These APIs contain values and a statistical month, not a publication fact.
+            # Until independently bound publication evidence is supported, this delivery
+            # is SYSTEM-only; normalized metadata cannot prove its own PUBLIC timestamp.
+            if release_at is not None or public_available_at is not None:
+                raise ValueError(f"registered_{contract}_publication_evidence_required")
             provider_matches = bool(acquisition_ids) and any(
                 dimensions == member_dimensions
                 and source_reference == f"tushare:{api}:{field}:{period_end}"

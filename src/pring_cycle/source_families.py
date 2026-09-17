@@ -7,6 +7,17 @@ from dataclasses import dataclass
 TUSHARE_PPI_SOURCE_CODE = "tushare:cn_ppi:official-sampled-v0001"
 TUSHARE_CPI_SOURCE_CODE = "tushare:cn_cpi:official-sampled-v0001"
 TUSHARE_PMI_SOURCE_CODE = "tushare:cn_pmi:official-sampled-v0001"
+TUSHARE_MONEY_SOURCE_CODE = "tushare:cn_m:official-sampled-v0001"
+TUSHARE_MONEY_FIELDS = tuple(
+    (
+        aggregate if measure == "balance" else f"{aggregate}_{measure}",
+        aggregate,
+        measure,
+        "hundred_million_cny" if measure == "balance" else "percent",
+    )
+    for aggregate in ("m1", "m2")
+    for measure in ("balance", "yoy")
+)
 TUSHARE_PMI_FIELDS = (
     ("pmi010000", "CN_PMI_ACTIVITY", "manufacturing"),
     ("pmi010400", "CN_PMI_ACTIVITY", "production"),

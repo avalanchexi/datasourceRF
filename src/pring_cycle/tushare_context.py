@@ -34,7 +34,12 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
-from pring_cycle.source_families import TUSHARE_CPI_FIELDS, TUSHARE_PMI_FIELDS, TUSHARE_PPI_FIELDS
+from pring_cycle.source_families import (
+    TUSHARE_CPI_FIELDS,
+    TUSHARE_MONEY_FIELDS,
+    TUSHARE_PMI_FIELDS,
+    TUSHARE_PPI_FIELDS,
+)
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
@@ -547,7 +552,9 @@ class TushareContextAdapter:
             *_monthly_scalars("cn_ppi", ppi, ppi_fields),
         )
 
-    def money(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
+    def money(
+        self, *, start_month: str, end_month: str, include_month_on_month: bool = True
+    ) -> tuple[ContextScalar, ...]:
         fields = tuple(
             _Field(
                 "CN_M1_M2",
@@ -557,6 +564,7 @@ class TushareContextAdapter:
             )
             for aggregate in ("m1", "m2")
             for measure in ("balance", "yoy", "mom")
+            if include_month_on_month or measure != "mom"
         )
         rows = self._call(
             "cn_m",
@@ -2157,6 +2165,20 @@ def parse_pmi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[Cont
         scalar_fields=tuple(
             _Field(metric, field, {"series": series, "measure": "level"}, "diffusion_index_points")
             for field, metric, series in TUSHARE_PMI_FIELDS
+        ),
+    )
+
+
+def parse_money_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild the four money members shared with the registered PBC contract."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_m",
+        contract="money",
+        scalar_fields=tuple(
+            _Field("CN_M1_M2", field, {"aggregate": aggregate, "measure": measure}, unit)
+            for field, aggregate, measure, unit in TUSHARE_MONEY_FIELDS
         ),
     )
 
