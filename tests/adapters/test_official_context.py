@@ -272,6 +272,51 @@ def test_official_context_revision_without_new_time_remains_system_only(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
+def test_scoped_fallback_preserves_revision_time_for_the_whole_announcement(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
+
+    # Synthetic revisions keep the same printed publication time.
+    def document(core_yoy: float) -> bytes:
+        return official_table_document(
+            title="2026年6月份居民消费价格",
+            release_at="2026-07-09 09:30",
+            header=("指标", "环比（%）", "同比（%）", "累计平均同比（%）"),
+            rows=(("居民消费价格", 0.1, 0.8, 0.9), ("不包括食品和能源", 0.0, core_yoy, 1.2)),
+        )
+
+    for metric, core_yoy in (
+        ("CN_CORE_CPI", 1.0),
+        ("CN_CORE_CPI", 1.1),
+        ("CN_CPI_HEADLINE", 1.1),
+    ):
+        refresh_official_context_document(
+            paths,
+            family="nbs_core_cpi",
+            source_url=source_url,
+            expected_period="2026-06",
+            fetched_at=datetime.now(UTC),
+            metric_ids=(metric,),
+            fetcher=lambda url, core_yoy=core_yoy: FetchedOfficialContextDocument(
+                document(core_yoy), "text/html", url, 200
+            ),
+        )
+    evidence = EvidenceRepository(paths.database)
+    headline = evidence.metric_series(
+        "CN_CPI_HEADLINE", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+    )
+    assert len(headline) == 3
+    assert all(claim.public_available_at is None for point in headline for claim in point.claims)
+    assert (
+        evidence.metric_series("CN_CPI_HEADLINE", mode=AsOfMode.PUBLIC, as_of=datetime.now(UTC))
+        == ()
+    )
+
+
 def test_official_context_smoke_returns_sanitized_contract_evidence() -> None:
     content = core_cpi_document(2026, 6, (-0.1, 1.0, 1.2))
     source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"

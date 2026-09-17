@@ -34,7 +34,7 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
-from pring_cycle.source_families import TUSHARE_PPI_FIELDS
+from pring_cycle.source_families import TUSHARE_CPI_FIELDS, TUSHARE_PPI_FIELDS
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
@@ -567,11 +567,7 @@ class TushareContextAdapter:
             _Field(
                 "CN_CPI_HEADLINE", field, {"measure": measure, "category": "headline"}, "percent"
             )
-            for field, measure in (
-                ("nt_yoy", "yoy"),
-                ("nt_mom", "mom"),
-                ("nt_accu", "cumulative_average_yoy"),
-            )
+            for field, measure in TUSHARE_CPI_FIELDS
         )
         ppi_fields = tuple(
             _Field(
@@ -2141,29 +2137,58 @@ def parse_margin_acquisition(
     )
 
 
-def parse_ppi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
-    """Rebuild the reviewed PPI delivery from its exact API, fields and period range."""
-    fields = ("month", *(field for field, _, _ in TUSHARE_PPI_FIELDS))
+def _parse_monthly_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+    *,
+    api_name: str,
+    contract: str,
+    scalar_fields: tuple[_Field, ...],
+) -> tuple[ContextScalar, ...]:
+    fields = ("month", *(field.source_field for field in scalar_fields))
     if (
         receipt.state != "validated"
         or receipt.provider != "tushare"
-        or receipt.api_name != "cn_ppi"
+        or receipt.api_name != api_name
         or receipt.parser_version != "tushare-context-parser-v0002"
         or receipt.fields != ",".join(fields)
         or set(receipt.parameters) != {"start_m", "end_m"}
     ):
-        raise ValueError("registered_ppi_acquisition_identity_mismatch")
+        raise ValueError(f"registered_{contract}_acquisition_identity_mismatch")
     document = json.loads(raw)
     if not isinstance(document, dict) or document.get("code") != 0:
         raise ValueError("tushare_source_failed")
     rows = _response_rows(document, required_fields=fields)
     _validate_response_periods(rows, receipt.parameters)
-    return _monthly_scalars(
-        "cn_ppi",
-        rows,
-        tuple(
+    return _monthly_scalars(api_name, rows, scalar_fields)
+
+
+def parse_ppi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild the reviewed PPI delivery from its exact API, fields and period range."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_ppi",
+        contract="ppi",
+        scalar_fields=tuple(
             _Field("CN_PPI", field, {"category": category, "measure": measure}, "percent")
             for field, category, measure in TUSHARE_PPI_FIELDS
+        ),
+    )
+
+
+def parse_cpi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild headline CPI from cn_cpi without manufacturing publication evidence."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_cpi",
+        contract="cpi",
+        scalar_fields=tuple(
+            _Field(
+                "CN_CPI_HEADLINE", field, {"category": "headline", "measure": measure}, "percent"
+            )
+            for field, measure in TUSHARE_CPI_FIELDS
         ),
     )
 

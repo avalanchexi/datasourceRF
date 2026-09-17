@@ -5,6 +5,12 @@ from dataclasses import dataclass
 # Opt-in delivery contract, bound into a newly reviewed immutable metric definition.
 # This identifier does not itself confer source certification.
 TUSHARE_PPI_SOURCE_CODE = "tushare:cn_ppi:official-sampled-v0001"
+TUSHARE_CPI_SOURCE_CODE = "tushare:cn_cpi:official-sampled-v0001"
+TUSHARE_CPI_FIELDS = (
+    ("nt_yoy", "yoy"),
+    ("nt_mom", "mom"),
+    ("nt_accu", "cumulative_average_yoy"),
+)
 TUSHARE_PPI_FIELDS = tuple(
     (f"ppi{suffix}_{field}", category, measure)
     for suffix, category in (

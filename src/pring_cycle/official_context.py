@@ -37,6 +37,7 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.tushare_context import (
     ContextScalar,
+    parse_cpi_acquisition,
     parse_ppi_acquisition,
     tushare_claims_matching_acquisitions,
 )
@@ -381,10 +382,15 @@ def official_claims_matching_acquisitions(
         if valid:
             valid_claim_ids.add(claim_id)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
-        ppi = points_by_metric.get("CN_PPI", ())
-        if ppi:
+        for metric_id, parse_delivery in (
+            ("CN_PPI", parse_ppi_acquisition),
+            ("CN_CPI_HEADLINE", parse_cpi_acquisition),
+        ):
+            points = points_by_metric.get(metric_id, ())
+            if not points:
+                continue
             delivered = tushare_claims_matching_acquisitions(
-                repository, ppi, definition_version=definition_version, parse=parse_ppi_acquisition
+                repository, points, definition_version=definition_version, parse=parse_delivery
             )
             valid_claim_ids.update(
                 repository.source_claims_matching_registered_contract(
@@ -488,8 +494,19 @@ def ingest_acquired_official_release(
     *,
     definition_version: str,
     clock: Callable[[], datetime] = utc_now,
+    metric_ids: tuple[str, ...] | None = None,
 ) -> OfficialContextIngestionResult:
     parsed, receipt = acquired.value, acquired.receipt
+    requested = (
+        frozenset(scalar.metric_id for scalar in parsed.scalars)
+        if metric_ids is None
+        else _official_metric_scope(parsed.family, metric_ids)
+    )
+    # Keep the original and its normalized full announcement intact for revalidation.
+    # A retrieval scope controls which claims are admitted, not what the source published.
+    scalars = tuple(scalar for scalar in parsed.scalars if scalar.metric_id in requested)
+    if not scalars:
+        raise ValueError("official_context_requested_metrics_missing")
     if receipt.received_at is None or receipt.validated_at is None or receipt.raw_hash is None:
         raise ValueError("official_acquisition_incomplete")
     content = AcquisitionRepository(paths.database, paths.artifacts).read_content(
@@ -502,6 +519,8 @@ def ingest_acquired_official_release(
     )
     source_reference = f"{parsed.source_url}#sha256={artifact.content_hash}"
     repository = EvidenceRepository(paths.database)
+    # Publication uncertainty belongs to the whole revised announcement, including
+    # revisions learned through a previously requested sibling metric.
     previous = [
         repository.latest_provider_claim(
             metric_id=scalar.metric_id,
@@ -577,12 +596,12 @@ def ingest_acquired_official_release(
             quality_status="validated",
             acquisition_id=receipt.acquisition_id,
         )
-        for scalar in parsed.scalars
+        for scalar in scalars
     )
     stored = repository.append_source_claims(claims, availability_clock=clock)
     family = parsed.family
     expected_period = parsed.period
-    metric_ids = tuple(sorted({scalar.metric_id for scalar in parsed.scalars}))
+    metric_ids = tuple(sorted({scalar.metric_id for scalar in scalars}))
     for metric_id in metric_ids:
         repository.record_retrieval_attempt(
             metric_id=metric_id,
@@ -611,6 +630,13 @@ def ingest_acquired_official_release(
     )
 
 
+def _official_metric_scope(family: str, metric_ids: tuple[str, ...] | None) -> frozenset[str]:
+    requested = _FAMILY_METRICS[family] if metric_ids is None else frozenset(metric_ids)
+    if not requested or not requested.issubset(_FAMILY_METRICS[family]):
+        raise ValueError("official_context_metric_scope_invalid")
+    return requested
+
+
 def refresh_official_context_document(
     paths: RuntimePaths,
     *,
@@ -622,8 +648,10 @@ def refresh_official_context_document(
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
     parser_text_limit: int | None = None,
+    metric_ids: tuple[str, ...] | None = None,
 ) -> OfficialContextIngestionResult:
     _validate_source_identity(family, source_url)
+    requested = _official_metric_scope(family, metric_ids)
     if fetched_at.tzinfo is None:
         raise ValueError("official_context_fetched_at_must_be_timezone_aware")
     acquisition_ids: list[str] = []
@@ -695,11 +723,11 @@ def refresh_official_context_document(
             on_started=started,
         )
         return ingest_acquired_official_release(
-            paths, acquired, definition_version=definition_version
+            paths, acquired, definition_version=definition_version, metric_ids=metric_ids
         )
     except (OSError, TypeError, ValueError) as error:
         repository = EvidenceRepository(paths.database)
-        for metric_id in sorted(_FAMILY_METRICS[family]):
+        for metric_id in sorted(requested):
             repository.record_retrieval_attempt(
                 metric_id=metric_id,
                 channel="official_direct_candidate",

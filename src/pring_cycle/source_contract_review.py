@@ -18,6 +18,8 @@ from pring_cycle.metric_contracts import official_source_members
 from pring_cycle.source_families import (
     OFFICIAL_CONTEXT_FAMILIES,
     OFFICIAL_CONTEXT_FAMILY_BY_METRIC,
+    TUSHARE_CPI_FIELDS,
+    TUSHARE_CPI_SOURCE_CODE,
     TUSHARE_PPI_FIELDS,
     TUSHARE_PPI_SOURCE_CODE,
 )
@@ -319,6 +321,12 @@ def require_registered_source_contract(
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
         supported = replace(supported, release_event_family="nbs_core_cpi")
+    dual_cpi = definition.metric_id == "CN_CPI_HEADLINE" and definition.source_codes == (
+        *supported.source_codes,
+        TUSHARE_CPI_SOURCE_CODE,
+    )
+    if dual_cpi:
+        supported = replace(supported, source_codes=definition.source_codes)
     if family == "treasury":
         # Keep the existing scalar economic definition, with an explicit official transport.
         from pring_cycle.treasury_context import TREASURY_SOURCE_CODES, treasury_yield_endpoint
@@ -568,7 +576,20 @@ def require_registered_source_contract(
             dimensions == {"category": category, "measure": measure}
             for measure in ("mom", "yoy", "cumulative_average_yoy")
         )
-    if provider != supported_provider or period_kind != "month" or not valid_dimensions:
+    provider_matches = provider == supported_provider
+    if dual_cpi and provider == "tushare":
+        # The statistical month in cn_cpi is not evidence of a publication timestamp.
+        if release_at is not None or public_available_at is not None:
+            raise ValueError("registered_cpi_publication_evidence_required")
+        provider_matches = bool(acquisition_ids) and any(
+            dimensions == {"category": "headline", "measure": measure}
+            and source_reference == f"tushare:cn_cpi:{field}:{period_end}"
+            for field, measure in TUSHARE_CPI_FIELDS
+        )
+        start, end = date.fromisoformat(period_start), date.fromisoformat(period_end)
+        if start != date(end.year, end.month, 1) or end.day != monthrange(end.year, end.month)[1]:
+            raise ValueError("registered_cpi_source_period_mismatch")
+    if not provider_matches or period_kind != "month" or not valid_dimensions:
         raise ValueError(f"registered_{family}_source_identity_mismatch")
 
 

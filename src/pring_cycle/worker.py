@@ -841,6 +841,7 @@ def _official_context_retrieval(
         fetched_at=now,
         definition_version=definition_version,
         on_acquisition_started=on_acquisition_started,
+        metric_ids=scope.metric_ids,
     )
     if not all(
         metric_definition(

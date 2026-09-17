@@ -107,7 +107,7 @@ def test_full_acquisition_discovers_missing_ppi_from_registered_official_listing
             scalars = adapter.prices(start_month="2026-08", end_month="2026-08")
             if not source_state.startswith("current_tushare_with_time"):
                 return scalars
-            # An explicit synthetic publication fact in the reviewed test channel.
+            # Normalized timestamps without independent source evidence must be rejected.
             published = datetime(2026, 9, 9, 1, 30, tzinfo=UTC)
             return tuple(
                 replace(scalar, release_at=published, public_available_at=published)
