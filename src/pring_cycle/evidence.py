@@ -58,6 +58,23 @@ class EvidenceValueState(StrEnum):
     NOT_DISCLOSED = "not_disclosed"
 
 
+OBSERVED_RELEASE = "observed_release"
+PRESUMED_NEXT_DAY = "presumed_next_day"
+PUBLIC_TIME_BASES = (OBSERVED_RELEASE, PRESUMED_NEXT_DAY)
+
+
+def presumed_public_time(announced_on: date, release_timezone: str) -> datetime:
+    """The first instant a value with no published release time may be used.
+
+    Midnight beginning the day after the announcement, in the timezone the metric is released
+    on. The presumption only ever moves visibility later, so a value can never be used before
+    someone could have seen it; that is the whole reason it is allowed to stand in for a time
+    the source never published.
+    """
+    zone = ZoneInfo(release_timezone)
+    return datetime.combine(announced_on + timedelta(days=1), time.min, zone).astimezone(UTC)
+
+
 @dataclass(frozen=True)
 class SourceClaimInput:
     metric_id: str
@@ -78,6 +95,7 @@ class SourceClaimInput:
     available_at: datetime
     certification_status: str
     quality_status: str
+    public_time_basis: str = OBSERVED_RELEASE
     acquisition_id: str | None = None
     acquisition_ids: tuple[str, ...] = ()
 
@@ -103,6 +121,7 @@ class ClaimView:
     available_at: datetime
     certification_status: str
     quality_status: str
+    public_time_basis: str
     supersedes_claim_id: str | None
 
 
@@ -1285,6 +1304,7 @@ class EvidenceRepository:
             connection.executescript(_RELEASE_EVENT_EXTENSIONS_SCHEMA)
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
             connection.executescript(ACQUISITION_SCHEMA)
+            _add_public_time_basis(connection)
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -1367,6 +1387,11 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
         raise ValueError("evidence_unit_mismatch")
     if set(claim.dimensions) != set(definition.dimensions):
         raise ValueError("evidence_dimensions_mismatch")
+    if claim.public_time_basis not in PUBLIC_TIME_BASES:
+        raise ValueError("evidence_public_time_basis_invalid")
+    if claim.public_time_basis == PRESUMED_NEXT_DAY and claim.public_available_at is None:
+        # A presumption that leaves the time unknown records nothing and hides that it tried.
+        raise ValueError("evidence_presumed_public_time_required")
     if claim.certification_status == "certified" and definition.certification_status != "certified":
         raise ValueError("evidence_source_not_certified_by_model")
     if claim.certification_status == "certified":
@@ -1479,8 +1504,8 @@ def _append_source_claim(
             value, value_state, unit, provider, source_reference,
             release_event_id, release_at, public_available_at, fetched_at,
             available_at, certification_status, quality_status,
-            supersedes_claim_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            public_time_basis, supersedes_claim_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
@@ -1503,6 +1528,7 @@ def _append_source_claim(
             _iso(claim.available_at),
             claim.certification_status,
             claim.quality_status,
+            claim.public_time_basis,
             supersedes_claim_id,
         ),
     )
@@ -1523,6 +1549,7 @@ def _claim_view(row: sqlite3.Row) -> ClaimView:
         available_at=_required_datetime(row["available_at"]),
         certification_status=str(row["certification_status"]),
         quality_status=str(row["quality_status"]),
+        public_time_basis=str(row["public_time_basis"] or OBSERVED_RELEASE),
         supersedes_claim_id=(
             str(row["supersedes_claim_id"]) if row["supersedes_claim_id"] is not None else None
         ),
@@ -1643,6 +1670,24 @@ ON source_claim(
     definition_version, source_reference, available_at
 );
 """
+
+
+def _add_public_time_basis(connection: sqlite3.Connection) -> None:
+    """Add the public time basis column to a database built from the v1 baseline.
+
+    `_EVIDENCE_SCHEMA` is the frozen v1 snapshot that migration 0002 hashes, so a column added
+    after v1 cannot go inside it. Runtime databases receive this column from migration 0022;
+    databases built directly from the schema get it here, and the two paths agree.
+    """
+    columns = {
+        str(row["name"]) for row in connection.execute("PRAGMA table_info(source_claim)").fetchall()
+    }
+    if "public_time_basis" not in columns:
+        connection.execute(
+            "ALTER TABLE source_claim ADD COLUMN public_time_basis TEXT "
+            f"NOT NULL DEFAULT '{OBSERVED_RELEASE}'"
+        )
+
 
 _RELEASE_EVENT_EXTENSIONS_SCHEMA = """
 CREATE TRIGGER IF NOT EXISTS release_event_no_update
