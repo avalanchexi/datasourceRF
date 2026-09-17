@@ -1,0 +1,182 @@
+{
+  "probed_at": "2026-09-17T18:14:31.551576+08:00",
+  "budget": 16,
+  "requests_sent": 10,
+  "attempts": [
+    {
+      "metric_id": "CN_PPI",
+      "url": "https://www.stats.gov.cn/sj/zxfb/",
+      "note": "NBS latest releases index",
+      "status": 200,
+      "content_type": "text/html",
+      "seconds": 9.29,
+      "bytes": 73001,
+      "sha256": "81ef277274394d7cdf2a3116a9146677489b222624b402f2c72610cf025b5e0f",
+      "mentions": {
+        "cpi": true,
+        "ppi": true,
+        "pmi": true,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    },
+    {
+      "metric_id": "CN_PMI_ACTIVITY",
+      "url": "https://www.stats.gov.cn/sj/zxfb/",
+      "note": "NBS latest releases index",
+      "status": 200,
+      "content_type": "text/html",
+      "seconds": 0.13,
+      "bytes": 73001,
+      "sha256": "81ef277274394d7cdf2a3116a9146677489b222624b402f2c72610cf025b5e0f",
+      "mentions": {
+        "cpi": true,
+        "ppi": true,
+        "pmi": true,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    },
+    {
+      "metric_id": "CN_GDP",
+      "url": "https://www.stats.gov.cn/sj/zxfb/",
+      "note": "NBS latest releases index",
+      "status": 200,
+      "content_type": "text/html",
+      "seconds": 0.15,
+      "bytes": 73001,
+      "sha256": "81ef277274394d7cdf2a3116a9146677489b222624b402f2c72610cf025b5e0f",
+      "mentions": {
+        "cpi": true,
+        "ppi": true,
+        "pmi": true,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    },
+    {
+      "metric_id": "CN_M1_M2",
+      "url": "https://www.pbc.gov.cn/diaochatongjisi/116219/116319/index.html",
+      "note": "PBC survey and statistics index, same page CN_SF_TOTAL already uses",
+      "status": 200,
+      "content_type": "text/html",
+      "seconds": 0.16,
+      "bytes": 89073,
+      "sha256": "6314e36292fec63514dd55ed2a6a6efa3d07ff020c93f690d2505bc28ec99fdb",
+      "mentions": {
+        "cpi": false,
+        "ppi": false,
+        "pmi": false,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    },
+    {
+      "metric_id": "CBOE_VIX_INDEX",
+      "url": "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+      "note": "Cboe published CSV",
+      "status": 200,
+      "content_type": "text/csv",
+      "seconds": 1.55,
+      "bytes": 472717,
+      "sha256": "c235a6d4213272afb6743b80eaa15b938dd85f6b3bc5ef4e04379643a483fb9c",
+      "mentions": {
+        "cpi": false,
+        "ppi": false,
+        "pmi": false,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    },
+    {
+      "metric_id": "NASDAQ_SOX_INDEX",
+      "url": "https://indexes.nasdaq.com/Index/History/SOX",
+      "note": "Nasdaq index history",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "seconds": 1.45,
+      "bytes": 69165,
+      "sha256": "69fd34f2b0dbcd2a743167d8ca77b38c686b02759ea98291ae98e5010d49d49a",
+      "mentions": {
+        "cpi": false,
+        "ppi": false,
+        "pmi": false,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    },
+    {
+      "metric_id": "CN_USDCNY_CLOSE_1630",
+      "url": "https://www.chinamoney.com.cn/chinese/bkccpr/",
+      "note": "CFETS central parity and rates board",
+      "status": 200,
+      "content_type": "text/html",
+      "seconds": 0.25,
+      "bytes": 24469,
+      "sha256": "f817d6f534aab85bad724c8477099c26492583fa827d462683d69f0d5d0bcebf",
+      "mentions": {
+        "cpi": false,
+        "ppi": false,
+        "pmi": false,
+        "gdp": false,
+        "money": false,
+        "parity": true
+      }
+    },
+    {
+      "metric_id": "USD_CNH_TMA",
+      "url": "https://www.tma.org.hk/en_market_info.aspx",
+      "note": "TMA market information",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "seconds": 2.79,
+      "bytes": 82389,
+      "sha256": "89133da03e511c7f6458fa5fa1c57f51bf3bc4e9d1312db056378d2c481c106f",
+      "mentions": {
+        "cpi": false,
+        "ppi": false,
+        "pmi": false,
+        "gdp": false,
+        "money": false,
+        "parity": false
+      }
+    }
+  ],
+  "second_batch": {
+    "note": "two follow-up targets, both URLs taken from already-fetched pages or the catalogue, not composed",
+    "attempts": [
+      {
+        "metric_id": "CN_M1_M2",
+        "url": "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html",
+        "note": "PBC survey and statistics section index, link taken from the page already fetched",
+        "status": 200,
+        "seconds": 0.15,
+        "bytes": 57168,
+        "sha256": "f9f6764c67be424b57e306a488cc103ab0f75503d03a6f7bc4e546778b51b2ce",
+        "mentions": {
+          "money": false,
+          "gdp": false
+        }
+      },
+      {
+        "metric_id": "CN_GDP",
+        "url": "https://www.stats.gov.cn/sj/zxfbhjd/",
+        "note": "NBS quarterly releases index, the URL CN_INDUSTRIAL_VA already uses",
+        "status": 200,
+        "seconds": 0.43,
+        "bytes": 75398,
+        "sha256": "f64b559d7b7bee3ee2a2c2bc70136818c4b356ac6f456aaf493f59bd3281b8d3",
+        "mentions": {
+          "money": false,
+          "gdp": false
+        }
+      }
+    ]
+  }
+}
