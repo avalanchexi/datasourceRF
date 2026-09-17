@@ -6,11 +6,11 @@ import hashlib
 import json
 import math
 import re
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date, datetime
 from typing import Any
 
-from pring_cycle.catalog import metric_catalog
+from pring_cycle.catalog import MetricDefinition, metric_catalog
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
 from pring_cycle.runtime import RuntimePaths
@@ -21,6 +21,41 @@ from pring_cycle.source_contract_review import (
     require_reviewed_source_mappings,
 )
 from pring_cycle.storage import artifact_is_registered
+
+_P2_IDENTITY_MIGRATION: dict[str, Any] = {
+    "version": "p2-official-identity-v0001",
+    "replacements": {"CN_USDCNH_FXCM": "CN_USDCNH_TMA_SPOT_RATE"},
+    "removed_metric_ids": [
+        "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "LBMA_GOLD_PRICE_PM_USD_OZT",
+    ],
+    "history_policy": "retain_separate",
+}
+
+
+def _admission_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
+    expected = {item.metric_id: item for item in metric_catalog()}
+    if "metric_identity_migration" not in manifest:
+        return expected
+    if manifest["metric_identity_migration"] != _P2_IDENTITY_MIGRATION:
+        raise ValueError("certification_identity_migration_unsupported")
+    for metric_id in _P2_IDENTITY_MIGRATION["removed_metric_ids"]:
+        del expected[metric_id]
+    previous = expected.pop("CN_USDCNH_FXCM")
+    expected["CN_USDCNH_TMA_SPOT_RATE"] = replace(
+        previous,
+        metric_id="CN_USDCNH_TMA_SPOT_RATE",
+        name_cn="TMA 美元兑离岸人民币即期参考汇率",
+        unit="cnh_per_usd",
+        allowed_units=("cnh_per_usd",),
+        dimensions=(),
+        source_codes=("TMA_USD_CNY_HK_SPOT_RATE",),
+        source_candidates=(),
+        frequency="daily",
+        release_event_family="tma_usd_cny_hk_spot_rate",
+        release_timezone="Asia/Hong_Kong",
+    )
+    return expected
 
 
 def admit_source_certified_candidate(
@@ -103,7 +138,7 @@ def _validate_manifest(
     if manifest.get("metric_catalog_version") in {"metric-catalog-v0001", "metric-catalog-v0002"}:
         raise ValueError("certification_new_catalog_required")
     rules = ContextProjectionRules.from_manifest(manifest)
-    expected = {item.metric_id: item for item in metric_catalog()}
+    expected = _admission_catalog(manifest)
     definitions = {item["metric_id"]: item for item in manifest["metric_definitions"]}
     if set(definitions) != set(expected):
         raise ValueError("certification_catalog_scope_mismatch")
@@ -114,6 +149,22 @@ def _validate_manifest(
     }
     for definition in rules.metric_definitions:
         baseline = expected[definition.metric_id]
+        if definition.metric_id == "CN_USDCNH_TMA_SPOT_RATE" and any(
+            getattr(definition, field) != getattr(baseline, field)
+            for field in (
+                "name_cn",
+                "unit",
+                "allowed_units",
+                "dimensions",
+                "source_codes",
+                "source_candidates",
+                "frequency",
+                "release_event_family",
+                "release_rule",
+                "release_timezone",
+            )
+        ):
+            raise ValueError("certification_tma_identity_mismatch")
         if set(definitions[definition.metric_id]) != set(asdict(definition)):
             raise ValueError(f"certification_definition_fields_unsupported:{definition.metric_id}")
         if definition.frequency not in {"daily", "monthly", "quarterly", "event"}:
