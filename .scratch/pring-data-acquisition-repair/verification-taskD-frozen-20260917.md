@@ -28,6 +28,18 @@
 
 **五次哈希完全一致，HEAD 全程未动**——两段跑的是同一棵树。原始记录见 `taskD-fingerprints-20260917.txt`。
 
+**补记（收口复审指出的记账缺口）**：[冻结参数](plan-taskD-frozen-suite-20260917.md)要求每次采样记 HEAD + `git status --porcelain` + `src` 哈希，第一段的两次照做了并额外记了五个 builder 文件的哈希；**第二段的三次只记了 HEAD、`src` 哈希和磁盘，漏了 porcelain 与 builder 哈希**——是我重写第二段脚本时删掉的。因此那 1:05:38 的材料段当时没有留下"`tests/` 也没动"的证据。事后只读复核（2026-09-17 15:0x）：`git status --porcelain -- tests/` 为空，`tests/` 相对已提交的 `b26c5d1` 无差异，五个 builder 文件的哈希与第一段开跑前记录的逐字节相同：
+
+| 文件 | 哈希 |
+|---|---|
+| `tests/conftest.py` | `6b1c1182…` |
+| `tests/models/test_candidate_admission.py` | `33703d34…` |
+| `tests/models/test_isolated_lifecycle.py` | `96bba33d…` |
+| `tests/adapters/test_commodity_basket.py` | `bc598f5f…` |
+| `tests/fixtures/isolated_lifecycle_inputs.py` | `2e21dc70…` |
+
+这条是**事后追认**，不等同于当时采样；它能成立是因为这些文件至今未被改动过。下次跑冻结全套，两段必须用同一个采样函数。
+
 ## 必须声明的两件事
 
 **一、树上带着两个不属于本批的未提交改动。** 全程存在 `src/pring_cycle/assets/dashboard.css`（+208 行）与 `dashboard.js`（±10 行）的未提交修改，以及 11 个 `.scratch` 文档的未提交修改。它们不是本批工作，历次复审都明确排除在范围外。`src` 聚合哈希只覆盖 `*.py`，**不覆盖这两个资源文件**，而 `tests/web/test_dashboard_contract.py` 确实读取它们——也就是说本次全套验证的是**含这两处改动**的树。该用例通过，但这不构成对那两处改动的认证，它们仍未提交、未复审。
@@ -51,6 +63,18 @@
 **同一份代码只换文件系统，从 4.5 秒变成 25 秒；逐提交对比无任何回归。** 30 秒预算在本机（仓库位于 `/mnt/d`）只剩约 1.2 倍余量，全套负载一压就超时，而超时报的是错误的东西——该用例检验的是运行期视图保持可用，不是它们有多快。因此把两处预算改为 180 秒并写明它是防挂死的护栏（`b26c5d1`），同时把实测数字留在注释里。
 
 差点被我当成本批的代码回归：基线 4.8 秒对 HEAD 23 秒看着像铁证，但两边测量位置不同（基线在 ext4 worktree、HEAD 在 DrvFs 主仓）。补了同版本同文件系统的对照才看清。
+
+## 收口两轴复审（2026-09-17）
+
+固定点 `56d47cd`，两轴并行。
+
+**标准轴：零硬性违规。** 前两轮的每一项修复都在 HEAD 上逐条核实仍成立。另确认两处口径：`timeout=180` 与 `docs/development/local-runtime.md` 的环境边界一致（源码可在 `/mnt/d`、运行态在 WSL 原生盘，25 秒是合法的导入成本）；改名只动 pytest 总耗时，**未波及验收文档自身的 `measured_seconds`**，符合"另一口径不混算"。它还指出家族注册表顺带消掉了一处真实的 Repeated Switches（九次重复的判断链收成一个 `all(...)`）。三个判断项：`timeout=180` 的四行注释与字面量在两处重复；已知的测试脚手架重复（同意可延后）；`lease_heartbeat` 的 `paths` 参数在生产路径上恒非空，三处 `if paths is not None` 在测试外是死的。**更正本记录的一处不准确**：`page_offline` 是 5 处 / 4 个文件（`test_daily_reacquisition`、`test_full_run_retrieval`、`test_lease_heartbeat_overlap` ×2、`test_worker_execution`），相关子查询 SQL 在 2 个文件。
+
+**需求轴：line 33 实质达成，条款 3 有记账缺口**（已按上文补记）。它逐条核对：条款 1 两段之和即默认全套，且与被取代的 2026-09-16 那次对得上（1667 + 2 个新增交叠用例 + 当时因运行方式失败的字节码用例 = 1670）；条款 2 三轮两轴复审，其中两轮否决过勾选；条款 4、5 由票面文字与本记录的范围声明承担，本批不构成对票22 的反向依赖。
+
+**对两条披露的裁定：均不动摇结论。** 未提交的 dashboard 改动使 1670 这个数字无法从已提交树逐字节复现，`test_dashboard_contract.py` 确实读它们——但 line 33 所指的行为都不涉及这两个资源，且本记录如实写明而非隐去。第二段被外部杀掉两次没有产生半截证据：第三次完整跑完且指纹一致；守护没触发意味着**守护未被检验**，不等于阈值被突破。
+
+**归属更正**：根 `.gitattributes` 与票13 问卷属**票13 范围**，不计入票17 的收口。
 
 ## 范围
 
