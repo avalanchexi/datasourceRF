@@ -1369,9 +1369,12 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
         raise ValueError("evidence_dimensions_mismatch")
     if claim.certification_status == "certified" and definition.certification_status != "certified":
         raise ValueError("evidence_source_not_certified_by_model")
-    # The replacement TMA identity cannot inherit the legacy unreviewed broker path.
-    # Its own delivery contract is required even while the source is a candidate.
-    if claim.certification_status == "certified" or claim.metric_id == "CN_USDCNH_TMA_SPOT_RATE":
+    # Replacement FX identities cannot inherit the legacy unreviewed broker path.
+    # Their own delivery contract is required even while the source is a candidate.
+    if claim.certification_status == "certified" or claim.metric_id in {
+        "CN_USDCNH_TMA_SPOT_RATE",
+        "CN_USDCNY_ECB_REFERENCE_CROSS",
+    }:
         require_registered_source_contract(
             definition,
             provider=claim.provider,

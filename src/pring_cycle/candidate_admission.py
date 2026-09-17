@@ -31,17 +31,41 @@ _P2_IDENTITY_MIGRATION: dict[str, Any] = {
     ],
     "history_policy": "retain_separate",
 }
+_P2_ECB_IDENTITY_MIGRATION: dict[str, Any] = {
+    **_P2_IDENTITY_MIGRATION,
+    "version": "p2-ecb-reference-cross-v0001",
+    "replacements": {"CN_USDCNH_FXCM": "CN_USDCNY_ECB_REFERENCE_CROSS"},
+}
 
 
 def _admission_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
     expected = {item.metric_id: item for item in metric_catalog()}
     if "metric_identity_migration" not in manifest:
         return expected
-    if manifest["metric_identity_migration"] != _P2_IDENTITY_MIGRATION:
+    migration = manifest["metric_identity_migration"]
+    if migration not in (_P2_IDENTITY_MIGRATION, _P2_ECB_IDENTITY_MIGRATION):
         raise ValueError("certification_identity_migration_unsupported")
     for metric_id in _P2_IDENTITY_MIGRATION["removed_metric_ids"]:
         del expected[metric_id]
     previous = expected.pop("CN_USDCNH_FXCM")
+    if migration == _P2_ECB_IDENTITY_MIGRATION:
+        expected["CN_USDCNY_ECB_REFERENCE_CROSS"] = replace(
+            previous,
+            metric_id="CN_USDCNY_ECB_REFERENCE_CROSS",
+            name_cn="ECB 美元兑人民币参考交叉汇率",
+            unit="cny_per_usd",
+            allowed_units=("cny_per_usd",),
+            dimensions=(),
+            source_codes=("ECB_EUR_REFERENCE_CNY_USD_CROSS_V0001",),
+            source_candidates=(
+                "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/"
+                "euro_reference_exchange_rates/html/index.en.html",
+            ),
+            frequency="daily",
+            release_event_family="ecb_eur_reference_cross",
+            release_timezone="Europe/Berlin",
+        )
+        return expected
     expected["CN_USDCNH_TMA_SPOT_RATE"] = replace(
         previous,
         metric_id="CN_USDCNH_TMA_SPOT_RATE",
@@ -149,7 +173,11 @@ def _validate_manifest(
     }
     for definition in rules.metric_definitions:
         baseline = expected[definition.metric_id]
-        if definition.metric_id == "CN_USDCNH_TMA_SPOT_RATE" and any(
+        identity = {
+            "CN_USDCNH_TMA_SPOT_RATE": "tma",
+            "CN_USDCNY_ECB_REFERENCE_CROSS": "ecb",
+        }.get(definition.metric_id)
+        if identity is not None and any(
             getattr(definition, field) != getattr(baseline, field)
             for field in (
                 "name_cn",
@@ -164,7 +192,7 @@ def _validate_manifest(
                 "release_timezone",
             )
         ):
-            raise ValueError("certification_tma_identity_mismatch")
+            raise ValueError(f"certification_{identity}_identity_mismatch")
         if set(definitions[definition.metric_id]) != set(asdict(definition)):
             raise ValueError(f"certification_definition_fields_unsupported:{definition.metric_id}")
         if definition.frequency not in {"daily", "monthly", "quarterly", "event"}:
