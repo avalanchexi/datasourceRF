@@ -100,6 +100,9 @@ def admit_complete_candidate(paths: RuntimePaths, capsys: pytest.CaptureFixture[
             item["source_codes"] = [registered_sources[item["metric_id"]]]
         if item["metric_id"] == "CN_GDP":
             item["certification_status"] = "certified"
+        if item["metric_id"] == "CN_PPI":
+            item["source_codes"] = [*item["source_codes"], "tushare:cn_ppi:official-sampled-v0001"]
+            item["source_candidates"] = ["https://www.stats.gov.cn/sj/zxfb/"]
     package_hash = request["package_hashes"][0]
     package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
     package["definition_bindings"] = {

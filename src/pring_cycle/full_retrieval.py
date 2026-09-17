@@ -12,7 +12,9 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import own_acquisitions
 from pring_cycle.catalog import MetricDefinition
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import ContextProjectionRules
+from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
 from pring_cycle.full_run_requirements import (
     formula_requirements,
     preceding_periods,
@@ -20,8 +22,15 @@ from pring_cycle.full_run_requirements import (
 )
 from pring_cycle.metric_contracts import evidence_frequency
 from pring_cycle.models import ModelRepository
+from pring_cycle.official_context import official_family_for_metrics
+from pring_cycle.official_listing import is_release_listing
 from pring_cycle.projections import ProjectionSetRepository
-from pring_cycle.retrieval import RetrievalBudget, RetrievalRequest, run_retrieval_cascade
+from pring_cycle.retrieval import (
+    RetrievalBudget,
+    RetrievalRequest,
+    matches_retrieval_period,
+    run_retrieval_cascade,
+)
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
@@ -64,7 +73,10 @@ class FullRunRetrieval:
                 definition_version=version,
                 public_as_of=min(known_at, utc_now(), _target_end(run)),
             )
-            if release != "released":
+            discover_release = release == "unknown_release_configuration" and _has_release_listing(
+                scope
+            )
+            if release != "released" and not discover_release:
                 if release == document["release_status"]:
                     continue
                 runs.record_retrieval_attempt(
@@ -106,6 +118,18 @@ class FullRunRetrieval:
                 metric_ids=scope.metric_ids,
                 period=scope.period,
             ):
+                adapters = _production_retrieval_adapters(
+                    self.paths,
+                    scope,
+                    utc_now(),
+                    definition_version=version,
+                    run_id=run.run_id,
+                    scope_run=scoped,
+                )
+                if discover_release:
+                    # A configured official listing can establish the release fact. Until
+                    # its dated original is validated, unknown publication cannot open search.
+                    adapters = {key: value for key, value in adapters.items() if key == "official"}
                 result = run_retrieval_cascade(
                     RetrievalRequest(
                         release_event_id=scope.release_event_id,
@@ -114,14 +138,7 @@ class FullRunRetrieval:
                         released=True,
                         persistent_accounting=True,
                     ),
-                    _production_retrieval_adapters(
-                        self.paths,
-                        scope,
-                        utc_now(),
-                        definition_version=version,
-                        run_id=run.run_id,
-                        scope_run=scoped,
-                    ),
+                    adapters,
                     budget,
                 )
             for attempt in result.attempts:
@@ -148,9 +165,40 @@ class FullRunRetrieval:
         rules = ContextProjectionRules.from_manifest(
             ModelRepository(self.paths.database).manifest(run.model_version_id)
         )
-        groups: dict[tuple[str, str, str], list[str]] = defaultdict(list)
+        groups: dict[tuple[str, str, str, str | None], list[str]] = defaultdict(list)
         requirements: list[dict[str, Any]] = []
         selector = ModelInputSelector(self.paths, run)
+        delivered_periods: dict[str, set[str]] = {}
+
+        def official_candidate(definition: MetricDefinition, period: str) -> str | None:
+            url = _official_candidate((definition,))
+            if url is None:
+                return None
+            if definition.metric_id not in delivered_periods:
+                # Freshness is whether TuShare delivered the period, independently of
+                # PUBLIC eligibility. Missing publication proof is not a missing row.
+                delivered_periods[definition.metric_id] = {
+                    point.period_end
+                    for point in EvidenceRepository(self.paths.database).metric_series(
+                        definition.metric_id,
+                        mode=AsOfMode.SYSTEM,
+                        as_of=selector.as_of,
+                        definition_version=rules.metric_catalog_version,
+                    )
+                    if any(
+                        claim.provider == "tushare"
+                        and claim.quality_status == "validated"
+                        and claim.value_state is EvidenceValueState.REPORTED_VALUE
+                        for claim in point.claims
+                    )
+                }
+            if any(
+                matches_retrieval_period(end, period)
+                for end in delivered_periods[definition.metric_id]
+            ):
+                return None
+            return url
+
         calendar = required_calendar(self.paths, run, selector)
         daily_window = tuple(calendar["dates"])
         period_by_metric = {
@@ -217,16 +265,40 @@ class FullRunRetrieval:
                 )
                 if not selection.complete:
                     groups[
-                        (definition.release_event_family, required_period, definition.priority)
+                        (
+                            definition.release_event_family,
+                            required_period,
+                            definition.priority,
+                            official_candidate(definition, required_period),
+                        )
                     ].append(definition.metric_id)
+        # Looking for a new release does not make it a required input. If the official
+        # page has not published it, the existing latest period retains its old semantics.
+        preceding = (
+            date.fromisoformat(run.target_business_date).replace(day=1) - timedelta(days=1)
+        ).isoformat()[:7]
+        for definition in rules.metric_definitions:
+            period = period_by_metric[definition.metric_id]
+            if (
+                definition.frequency == "monthly"
+                and period is not None
+                and period < preceding
+                and (candidate := official_candidate(definition, preceding)) is not None
+                and is_release_listing(
+                    official_family_for_metrics((definition.metric_id,)), candidate
+                )
+            ):
+                groups[
+                    (definition.release_event_family, preceding, definition.priority, candidate)
+                ].append(definition.metric_id)
         scopes = [
             asdict(
                 RetrievalScope(
-                    f"full:{family}:{period}", tuple(sorted(metrics)), period, priority, None
+                    f"full:{family}:{period}", tuple(sorted(metrics)), period, priority, source_url
                 )
             )
-            for (family, period, priority), metrics in sorted(
-                groups.items(), key=lambda item: (item[0][2], item[0])
+            for (family, period, priority, source_url), metrics in sorted(
+                groups.items(), key=lambda item: (item[0][2], item[0][:3], item[0][3] or "")
             )
         ]
         for document in scopes:
@@ -547,6 +619,36 @@ def _scope(document: dict[str, Any]) -> RetrievalScope:
         document["priority"],
         document["source_url"],
     )
+
+
+def _official_candidate(definitions: tuple[MetricDefinition, ...]) -> str | None:
+    # The frozen built-in catalogs predate reviewed fallback contracts. Candidate URLs
+    # become operative through a newly admitted catalog, without rewriting those identities.
+    if any(item.definition_version in BUILTIN_CATALOG_VERSIONS for item in definitions):
+        return None
+    try:
+        official_family_for_metrics(tuple(item.metric_id for item in definitions))
+    except ValueError:
+        return None
+    return next(
+        (
+            url
+            for url in definitions[0].source_candidates
+            if url.startswith("https://")
+            and all(url in item.source_candidates for item in definitions[1:])
+        ),
+        None,
+    )
+
+
+def _has_release_listing(scope: RetrievalScope) -> bool:
+    if scope.source_url is None:
+        return False
+    try:
+        family = official_family_for_metrics(scope.metric_ids)
+    except ValueError:
+        return False
+    return is_release_listing(family, scope.source_url)
 
 
 def _target_end(run: RunRecord) -> datetime:

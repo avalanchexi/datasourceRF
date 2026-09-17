@@ -374,7 +374,32 @@ class RetrievalLedger:
 
         def started(acquisition_id: str) -> None:
             nonlocal request_id
-            request_id = self.reserve(run_id, channel, release_event_id, query)
+            with self._connect() as connection:
+                acquisition = connection.execute(
+                    "SELECT parameters_json FROM acquisition_request WHERE acquisition_id=?",
+                    (acquisition_id,),
+                ).fetchone()
+                previous = (
+                    connection.execute(
+                        "SELECT a.state FROM retrieval_physical_request p "
+                        "JOIN acquisition_request a USING(acquisition_id) WHERE p.request_id=?",
+                        (request_id,),
+                    ).fetchone()
+                    if request_id is not None
+                    else None
+                )
+            if request_id is not None:
+                if previous is None or previous["state"] != "validated":
+                    raise ValueError("retrieval_previous_acquisition_not_validated")
+                self.complete(
+                    request_id,
+                    outcome="candidate_source",
+                    classification="intermediate_acquisition_validated",
+                )
+                request_id = None
+            parameters = json.loads(acquisition["parameters_json"]) if acquisition else {}
+            request_query = parameters.get("source_url", query) if channel == "official" else query
+            request_id = self.reserve(run_id, channel, release_event_id, request_query)
             self.attach_acquisition(request_id, acquisition_id)
 
         try:

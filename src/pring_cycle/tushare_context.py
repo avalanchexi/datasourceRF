@@ -34,6 +34,7 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
+from pring_cycle.source_families import TUSHARE_PPI_FIELDS
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
@@ -575,20 +576,11 @@ class TushareContextAdapter:
         ppi_fields = tuple(
             _Field(
                 "CN_PPI",
-                f"ppi{suffix}_{measure_field}",
+                source_field,
                 {"measure": measure, "category": category},
                 "percent",
             )
-            for suffix, category in (
-                ("", "headline"),
-                ("_mp", "means_of_production"),
-                ("_cg", "consumer_goods"),
-            )
-            for measure_field, measure in (
-                ("yoy", "yoy"),
-                ("mom", "mom"),
-                ("accu", "cumulative_average_yoy"),
-            )
+            for source_field, category, measure in TUSHARE_PPI_FIELDS
         )
         cpi = self._call(
             "cn_cpi",
@@ -2146,6 +2138,33 @@ def parse_margin_acquisition(
             definition_version=None,
         )
         for scalar in scalars
+    )
+
+
+def parse_ppi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild the reviewed PPI delivery from its exact API, fields and period range."""
+    fields = ("month", *(field for field, _, _ in TUSHARE_PPI_FIELDS))
+    if (
+        receipt.state != "validated"
+        or receipt.provider != "tushare"
+        or receipt.api_name != "cn_ppi"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_m", "end_m"}
+    ):
+        raise ValueError("registered_ppi_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _monthly_scalars(
+        "cn_ppi",
+        rows,
+        tuple(
+            _Field("CN_PPI", field, {"category": category, "measure": measure}, "percent")
+            for field, category, measure in TUSHARE_PPI_FIELDS
+        ),
     )
 
 

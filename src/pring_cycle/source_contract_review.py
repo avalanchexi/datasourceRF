@@ -15,7 +15,12 @@ from pring_cycle.adapters import CORE_SOURCE_CODES
 from pring_cycle.catalog import METRIC_CATALOG_V0003, MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.metric_contracts import official_source_members
-from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES, OFFICIAL_CONTEXT_FAMILY_BY_METRIC
+from pring_cycle.source_families import (
+    OFFICIAL_CONTEXT_FAMILIES,
+    OFFICIAL_CONTEXT_FAMILY_BY_METRIC,
+    TUSHARE_PPI_FIELDS,
+    TUSHARE_PPI_SOURCE_CODE,
+)
 from pring_cycle.storage import artifact_is_registered, database_connection
 
 SOURCE_MAPPING_REFERENCE_CONTRACT_VERSION = "source-mapping-reference-v0001"
@@ -168,6 +173,12 @@ def require_registered_source_contract(
     )
     if members is not None:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+        dual_ppi = definition.metric_id == "CN_PPI" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_PPI_SOURCE_CODE,
+        )
+        if dual_ppi:
+            supported = replace(supported, source_codes=definition.source_codes)
         family = OFFICIAL_CONTEXT_FAMILY_BY_METRIC[definition.metric_id]
         fields = (
             "source_codes",
@@ -182,7 +193,19 @@ def require_registered_source_contract(
             definition.allowed_units or (definition.unit,)
         ) != set(supported.allowed_units):
             raise ValueError("registered_official_source_contract_unsupported")
-        if provider != OFFICIAL_CONTEXT_FAMILIES[family].provider or not any(
+        provider_matches = provider == OFFICIAL_CONTEXT_FAMILIES[family].provider
+        if dual_ppi and provider == "tushare":
+            # cn_ppi contains values and a statistical month, not a publication fact.
+            # Until independently bound publication evidence is supported, this delivery
+            # is SYSTEM-only; normalized metadata cannot prove its own PUBLIC timestamp.
+            if release_at is not None or public_available_at is not None:
+                raise ValueError("registered_ppi_publication_evidence_required")
+            provider_matches = bool(acquisition_ids) and any(
+                dimensions == {"category": category, "measure": measure}
+                and source_reference == f"tushare:cn_ppi:{field}:{period_end}"
+                for field, category, measure in TUSHARE_PPI_FIELDS
+            )
+        if not provider_matches or not any(
             member.dimensions == dimensions
             and member.unit == unit
             and member.period_kind == period_kind

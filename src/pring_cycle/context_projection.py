@@ -495,6 +495,7 @@ def build_context_projection(
         "price_pressure": price.state,
         "price_chain": {
             "state": price.state,
+            "evidence": _row_documents(rows_by_metric, _PRICE),
             "support": [asdict(item) for item in price.support],
             "counterevidence": [asdict(item) for item in price.counterevidence],
             "gaps": [asdict(item) for item in price.gaps],

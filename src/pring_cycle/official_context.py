@@ -31,10 +31,15 @@ from pring_cycle.evidence import (
     publication_times,
 )
 from pring_cycle.http_transport import open_no_redirects as urlopen
+from pring_cycle.official_listing import is_release_listing, release_url
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
-from pring_cycle.tushare_context import ContextScalar
+from pring_cycle.tushare_context import (
+    ContextScalar,
+    parse_ppi_acquisition,
+    tushare_claims_matching_acquisitions,
+)
 
 MAX_OFFICIAL_CONTEXT_BYTES = 4_000_000
 
@@ -376,6 +381,16 @@ def official_claims_matching_acquisitions(
         if valid:
             valid_claim_ids.add(claim_id)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        ppi = points_by_metric.get("CN_PPI", ())
+        if ppi:
+            delivered = tushare_claims_matching_acquisitions(
+                repository, ppi, definition_version=definition_version, parse=parse_ppi_acquisition
+            )
+            valid_claim_ids.update(
+                repository.source_claims_matching_registered_contract(
+                    tuple(delivered), definition_version=definition_version
+                )
+            )
         mapped_claim_ids = tuple(
             claim_id
             for claim_id, (metric_id, point) in selected_points.items()
@@ -619,6 +634,37 @@ def refresh_official_context_document(
             on_acquisition_started(acquisition_id)
 
     try:
+        if is_release_listing(family, source_url):
+            listing_url = source_url
+            listing_responses: list[FetchedOfficialContextDocument] = []
+
+            def fetch_listing() -> bytes:
+                response = (fetcher or _fetch_official_context_document)(listing_url)
+                listing_responses.append(response)
+                return response.content
+
+            def parse_listing(content: bytes) -> str:
+                _validate_fetched_document(family, listing_url, listing_responses[0])
+                if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
+                    raise ValueError("official_context_document_size_invalid")
+                resolved = release_url(
+                    content, family=family, listing_url=listing_url, period=expected_period
+                )
+                _validate_source_identity(family, resolved)
+                return resolved
+
+            discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
+                provider=_validate_source_identity(family, listing_url),
+                api_name="official_listing_get",
+                parameters={"source_url": listing_url, "period": expected_period, "family": family},
+                fields="href,title",
+                parser_version="official-release-listing-v0001",
+                fetch=fetch_listing,
+                parse=parse_listing,
+                normalize=lambda resolved: {"source_url": resolved},
+                on_started=started,
+            )
+            source_url = discovered.value
         response_holder: list[FetchedOfficialContextDocument] = []
 
         def fetch() -> bytes:
