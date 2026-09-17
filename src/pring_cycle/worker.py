@@ -54,7 +54,7 @@ from pring_cycle.retrieval import (
     matches_retrieval_period,
     run_retrieval_cascade,
 )
-from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
+from pring_cycle.runs import LEASE_VALID_SECONDS, RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import (
@@ -1706,9 +1706,8 @@ def _validate_projection_for_run(run: RunRecord, projection: object) -> None:
         raise ValueError("report_projection_model_mismatch")
 
 
-# A lease lives 120 seconds past its last heartbeat, so a beat blocked by another writer may
-# retry inside that window. Giving up on the first lock error would drop the lease silently.
-LEASE_VALID_SECONDS = 120
+# A beat blocked by another writer may retry inside the lease's own lifetime, which RunRepository
+# owns. Giving up on the first lock error would drop the lease silently.
 LEASE_HEARTBEAT_SECONDS = 30
 # Only a busy write lock is contention. A full disk, an I/O error or a damaged database are
 # also OperationalError, and retrying those for a whole lease window would hide them.
@@ -1743,8 +1742,12 @@ def lease_heartbeat(
             return
         except sqlite3.OperationalError as error:
             if not _is_lock_contention(error):
+                # Not contention: a full disk, an I/O error or a damaged database. It ends the
+                # loop either way, but it must not end it silently the way the fixed bug did.
+                if paths is not None:
+                    write_runtime_event(paths, "worker", f"lease_heartbeat_failed:{error}", "error")
                 raise
-            detail = f"lease_heartbeat_contended:{type(error).__name__}"
+            detail = f"lease_heartbeat_contended:{error}"
             if on_contention is not None:
                 on_contention(detail)
             if paths is not None:

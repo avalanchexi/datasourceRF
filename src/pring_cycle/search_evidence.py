@@ -70,7 +70,6 @@ def select_retrieval_input(
 class _ClaimFamily:
     """A family of registered metrics and the recheck that decides which claims stay valid."""
 
-    name: str
     owns: Callable[[str], bool]
     check: Callable[[tuple[str, ...]], set[str]]
 
@@ -150,7 +149,6 @@ class ModelInputSelector:
 
         return (
             _ClaimFamily(
-                "lpr",
                 lambda metric_id: metric_id == "CN_LPR_1Y_5Y",
                 lambda metric_ids: lpr_claims_matching_acquisitions(
                     self.core_evidence,
@@ -162,7 +160,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "official",
                 lambda metric_id: metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS,
                 lambda metric_ids: official_claims_matching_acquisitions(
                     self.core_evidence,
@@ -171,7 +168,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "interbank",
                 lambda metric_id: metric_id in INTERBANK_METRICS,
                 lambda metric_ids: interbank_claims_matching_acquisitions(
                     self.core_evidence,
@@ -180,7 +176,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "treasury",
                 lambda metric_id: metric_id in TREASURY_METRICS,
                 lambda metric_ids: treasury_claims_matching_acquisitions(
                     self.core_evidence,
@@ -189,7 +184,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "margin",
                 lambda metric_id: metric_id == "CN_MARGIN_BALANCE",
                 lambda metric_ids: tushare_claims_matching_acquisitions(
                     self.core_evidence,
@@ -198,7 +192,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "market_index",
                 lambda metric_id: metric_id in MARKET_INDEX_IDENTITIES,
                 lambda metric_ids: tushare_claims_matching_acquisitions(
                     self.core_evidence,
@@ -208,7 +201,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "valuation",
                 lambda metric_id: metric_id == "CN_INDEX_VALUATION",
                 lambda metric_ids: tushare_claims_matching_acquisitions(
                     self.core_evidence,
@@ -218,7 +210,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "breadth",
                 lambda metric_id: metric_id in breadth_measures,
                 lambda metric_ids: breadth_claims_matching_acquisitions(
                     self.core_evidence,
@@ -228,7 +219,6 @@ class ModelInputSelector:
                 ),
             ),
             _ClaimFamily(
-                "commodity",
                 lambda metric_id: metric_id in COMMODITY_METRICS,
                 lambda metric_ids: commodity_claims_matching_acquisitions(
                     self.core_evidence,

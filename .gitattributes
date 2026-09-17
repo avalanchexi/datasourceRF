@@ -1,6 +1,9 @@
-# Captured originals are addressed by the sha256 of their exact bytes, so git must
-# store them byte for byte. Without this, a CRLF page fetched on Windows is normalised
-# on the way in and its stored content no longer hashes to its own file name.
+# Captured originals are addressed by the sha256 of their exact bytes, so git must store them
+# byte for byte. A CRLF page fetched on Windows is otherwise normalised on the way in and its
+# stored content no longer hashes to its own file name.
+#
+# Each capture directory already carries its own `.gitattributes` saying `* -text`, and that
+# stays the explicit form. This is the backstop for the failure that actually happened: a new
+# `evidence-*` directory was added without one, and two PBOC pages were normalised before
+# anyone noticed. Directories outside that naming convention still need their own file.
 .scratch/**/evidence-*/** -text
-.scratch/**/artifacts/sha256/** -text
-.scratch/pring-data-acquisition-repair/credit-window-inputs-186/** -text

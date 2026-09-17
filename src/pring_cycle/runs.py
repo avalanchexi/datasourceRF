@@ -15,6 +15,11 @@ from zoneinfo import ZoneInfo
 from pring_cycle.run_cutoffs import cutoff_contract, upgrade_run_cutoffs
 from pring_cycle.storage import database_connection
 
+# A lease is written with this lifetime past each heartbeat, and read back with it to decide
+# whether an owner is still alive. The Worker's heartbeat loop needs the same number to know
+# how long it may keep retrying, so it imports this rather than carrying its own copy.
+LEASE_VALID_SECONDS = 120
+
 RUN_STEPS = (
     "queued",
     "preflight",
@@ -370,7 +375,7 @@ class RunRepository:
                 heartbeat = _parse_time(row["heartbeat_at"])
                 if (
                     str(row["owner_id"]) != owner_id
-                    and (observed_at - heartbeat).total_seconds() <= 120
+                    and (observed_at - heartbeat).total_seconds() <= LEASE_VALID_SECONDS
                 ):
                     raise ValueError("worker_lease_active")
                 if str(row["owner_id"]) != owner_id:
@@ -392,7 +397,9 @@ class RunRepository:
                     process,
                     observed_at.isoformat(),
                     observed_at.isoformat(),
-                    datetime.fromtimestamp(observed_at.timestamp() + 120, UTC).isoformat(),
+                    datetime.fromtimestamp(
+                        observed_at.timestamp() + LEASE_VALID_SECONDS, UTC
+                    ).isoformat(),
                 ),
             )
 
@@ -406,7 +413,9 @@ class RunRepository:
                 """,
                 (
                     observed_at.isoformat(),
-                    datetime.fromtimestamp(observed_at.timestamp() + 120, UTC).isoformat(),
+                    datetime.fromtimestamp(
+                        observed_at.timestamp() + LEASE_VALID_SECONDS, UTC
+                    ).isoformat(),
                     owner_id,
                 ),
             ).rowcount
@@ -442,7 +451,9 @@ class RunRepository:
                 heartbeat = _parse_time(row["heartbeat_at"])
                 age = (observed_at - heartbeat).total_seconds()
                 alive = is_alive(int(row["process_id"]))
-                owner_state = "stale" if age > 120 else "active" if alive else "dead"
+                owner_state = (
+                    "stale" if age > LEASE_VALID_SECONDS else "active" if alive else "dead"
+                )
             except (TypeError, ValueError, OSError):
                 owner_state = "corrupt"
             if owner_state == "active":

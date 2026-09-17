@@ -33,8 +33,12 @@ def prepared(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     return paths, RunRepository(paths.database)
 
 
-def held_write(database: Path, seconds: float) -> tuple[threading.Thread, threading.Event]:
-    """Hold the write lock for ``seconds``, the way a long evidence or output write does."""
+def held_write(database: Path, max_seconds: float) -> tuple[threading.Thread, threading.Event]:
+    """Hold the write lock the way a long evidence or output write does.
+
+    The caller releases it by setting the returned event; ``max_seconds`` is only the backstop
+    that lets the thread end if the caller never does.
+    """
     holding, release = threading.Event(), threading.Event()
 
     def writer() -> None:
@@ -45,7 +49,7 @@ def held_write(database: Path, seconds: float) -> tuple[threading.Thread, thread
                 "WHERE lease_name = 'worker:global-execution'"
             )
             holding.set()
-            release.wait(seconds)
+            release.wait(max_seconds)
 
     thread = threading.Thread(target=writer, name="fixture-long-write")
     thread.start()
@@ -67,7 +71,7 @@ def test_a_heartbeat_blocked_by_a_long_write_keeps_the_lease(tmp_path: Path) -> 
     )
     runs.acquire_lease(run.run_id, owner_id="worker-overlap")
     # The overlap: another writer holds the lock past this connection's busy timeout.
-    thread, release = held_write(paths.database, seconds=6.5)
+    thread, release = held_write(paths.database, max_seconds=6.5)
     stopped = threading.Event()
     contention: list[str] = []
 
@@ -124,15 +128,19 @@ def test_a_heartbeat_that_lost_ownership_still_stops(tmp_path: Path) -> None:
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_the_shared_budget_run_completes_while_a_writer_blocks_the_heartbeat(
+def test_the_shared_budget_run_completes_while_queries_overlap_the_heartbeat(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The ticket's own case: the cross-period shared budget run, under real contention.
+    """The ticket's own case: the cross-period shared budget run, with the beats interleaved.
 
-    A neighbour holds the write lock past the heartbeat connection's busy wait, so beats do
-    fail and are retried. Public submission, the persisted run, the Worker's execution, the
-    published projection and the status query all have to come through, and the lease has to
-    be released in order once the run ends.
+    There is deliberately no blocking writer here. One that holds the lock past the busy wait
+    starves the run's own writes as well, so the run cannot finish and the clause this covers
+    asks for it to finish; the blocking beat is covered on its own by the first test. What
+    overlaps instead is what the ticket names: heartbeats and queries. Beats fire every 0.2s
+    and a reader walks the run's own historical chain throughout, and the assertion is that
+    neither side reports a lock error while public submission, the persisted run, the Worker's
+    execution, the published projection and the status query all come through, with the lease
+    released in order once the run ends.
     """
     from io import BytesIO
 
@@ -190,13 +198,14 @@ def test_the_shared_budget_run_completes_while_a_writer_blocks_the_heartbeat(
     monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
 
     # Beat every 0.2s instead of every 30s, so heartbeats really interleave with this run.
-    beats: list[str] = []
+    order: list[str] = []
+    contended: list[str] = []
     monkeypatch.setattr("pring_cycle.worker.LEASE_HEARTBEAT_SECONDS", 0.2)
     original_heartbeat = worker_module.lease_heartbeat
 
     def recording_heartbeat(runs_arg: Any, owner: str, stopped: Any, **kwargs: Any) -> None:
         kwargs["interval_seconds"] = 0.2
-        kwargs["on_contention"] = beats.append
+        kwargs["on_contention"] = contended.append
         order.append("heartbeat_started")
         try:
             original_heartbeat(runs_arg, owner, stopped, **kwargs)
@@ -207,7 +216,6 @@ def test_the_shared_budget_run_completes_while_a_writer_blocks_the_heartbeat(
     # Queries run against the same database throughout, as a reader would during the run.
     stop_reading = threading.Event()
     queries, query_errors = [], []
-    order: list[str] = []
 
     def reader() -> None:
         while not stop_reading.wait(0.05):
@@ -246,9 +254,12 @@ def test_the_shared_budget_run_completes_while_a_writer_blocks_the_heartbeat(
     # The queries really did overlap the run, and none of them hit a lock error.
     assert len(queries) > 20, "the query loop did not overlap the run"
     assert query_errors == []
+    # Nor did the beats: this overlap is not strong enough to make one retry, and saying so
+    # keeps the case honest about what it does and does not exercise.
+    assert contended == []
     stored = runs.get(submitted.run_id)
     assert stored.status == "completed", stored.error_classification
-    # The shared budget case itself ran to completion under that contention.
+    # The shared budget case itself ran to completion while those beats interleaved.
     assert stored.consumed_budget == {"tavily": 8, "exa": 4, "ai_websearch": 0}
     assert searches.count("https://api.tavily.com/search") == 8
     assert searches.count("https://api.exa.ai/search") == 4
@@ -327,5 +338,5 @@ def test_a_run_under_write_contention_still_publishes_and_reports_its_state(
     published = ProjectionSetRepository(paths.database).current()
     assert published.envelope.projection_set_id == stored.projection_set_id
     assert published.envelope.target_business_date == "2026-08-28"
-    # The lease is released in order once the run ends: no owner is left holding it.
-    assert runs.audit_lease().owner_state in {"absent", "released"}
+    # The lease is released once the run ends: no owner is left holding it.
+    assert runs.audit_lease().owner_state == "absent"
