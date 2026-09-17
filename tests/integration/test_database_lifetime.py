@@ -62,7 +62,11 @@ def test_repeated_run_reads_do_not_exhaust_open_files(tmp_path: Path) -> None:
         ],
         capture_output=True,
         text=True,
-        timeout=30,
+        # A guard against a hang, not a performance budget. Measured 2026-09-17 at one version:
+        # ~4.5s with the repository on a WSL-native filesystem, ~25s with it on /mnt/d, where
+        # 30s left so little room that a loaded full suite tripped it and reported a timeout
+        # instead of the unavailability this test is about.
+        timeout=180,
         check=False,
     )
     assert result.returncode == 0, result.stderr
@@ -156,7 +160,11 @@ def test_repeated_runtime_views_remain_available(tmp_path: Path) -> None:
         ],
         capture_output=True,
         text=True,
-        timeout=30,
+        # A guard against a hang, not a performance budget. Measured 2026-09-17 at one version:
+        # ~4.5s with the repository on a WSL-native filesystem, ~25s with it on /mnt/d, where
+        # 30s left so little room that a loaded full suite tripped it and reported a timeout
+        # instead of the unavailability this test is about.
+        timeout=180,
         check=False,
     )
     assert result.returncode == 0, result.stderr
