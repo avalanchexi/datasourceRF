@@ -64,9 +64,15 @@
         : null;
     if (!command) return;
     const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Shanghai" });
-    const targetInput = document.querySelector("#manual-run-target input");
+    // Dash 4.2 把 DatePickerSingle 渲染成 id 所在的 input 本身；旧版是一个包住 input
+    // 的容器。两种结构都要读到，否则用户选的目标交易日会被静默替换成今天。
+    const targetInput =
+      document.querySelector("input#manual-run-target") ||
+      document.querySelector("#manual-run-target input");
     const targetDate =
-      command === "manual_full" && targetInput instanceof HTMLInputElement
+      command === "manual_full" &&
+      targetInput instanceof HTMLInputElement &&
+      targetInput.value
         ? targetInput.value
         : today;
     submitCommand({

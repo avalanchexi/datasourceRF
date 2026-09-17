@@ -23,24 +23,28 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface-canvas: #111715;
-  --surface-panel: #19211f;
-  --surface-muted: #222c29;
-  --surface-elevated: #27312e;
-  --ink-strong: #e9eeeb;
-  --ink-body: #d7dfdb;
-  --ink-muted: #aebbb5;
-  --line: #3a4743;
-  --accent: #63aaa3;
-  --accent-strong: #82c1bb;
-  --focus: #78b6ed;
-  --state-up: #ef7078;
-  --state-down: #59c58a;
-  --state-warning: #e2b04e;
-  --asset-bond: #76a4d0;
-  --asset-equity: #ca86ae;
-  --asset-commodity: #bea75e;
-  --shadow: 0 12px 36px rgb(0 0 0 / 28%);
+  --surface-canvas: #031227;
+  --surface-panel: rgb(10 31 58 / 72%);
+  --surface-muted: rgb(20 47 80 / 52%);
+  --surface-elevated: rgb(10 29 54 / 92%);
+  --ink-strong: #eef6ff;
+  --ink-body: #d3e2f5;
+  --ink-muted: #9db3cf;
+  --line: rgb(146 190 239 / 22%);
+  --line-strong: rgb(91 158 250 / 50%);
+  --accent: #5ce1ed;
+  --accent-strong: #8af0f8;
+  --focus: #79b4ff;
+  --state-up: #ff686f;
+  --state-down: #4bd49b;
+  --state-warning: #f2ad46;
+  --asset-bond: #4b97ff;
+  --asset-equity: #b78af5;
+  --asset-commodity: #f2ad46;
+  --shadow: 0 18px 54px rgb(0 7 20 / 45%);
+  --glass-blur: blur(24px) saturate(118%);
+  --glass-radius: 13px;
+  --glass-inset: inset 0 1px rgb(255 255 255 / 5%);
 }
 
 * { box-sizing: border-box; }
@@ -331,6 +335,174 @@ a:visited { color: #765078; }
   font-size: 14px;
 }
 .command-feedback:not(:empty) { padding: 12px 16px; }
+
+/* 暗色玻璃层：只在 data-theme="dark" 下生效，亮色排版不受影响。
+   降级安全：面板底色本身已是可读的半透明深蓝，不支持 backdrop-filter 时仍然合规。 */
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(1200px 820px at 14% -12%, rgb(30 92 168 / 40%), transparent 62%),
+    radial-gradient(920px 720px at 92% -4%, rgb(92 225 237 / 13%), transparent 56%),
+    radial-gradient(1040px 900px at 52% 118%, rgb(63 44 128 / 32%), transparent 60%),
+    var(--surface-canvas);
+  background-attachment: fixed;
+}
+
+:root[data-theme="dark"] .topbar {
+  border-bottom-color: var(--line);
+  background: rgb(6 20 41 / 72%);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 10px 34px rgb(0 6 18 / 38%);
+}
+
+:root[data-theme="dark"] .asset-card,
+:root[data-theme="dark"] .domain-panel,
+:root[data-theme="dark"] .evidence-drawer,
+:root[data-theme="dark"] .transition-section,
+:root[data-theme="dark"] .tab-content,
+:root[data-theme="dark"] .command-feedback,
+:root[data-theme="dark"] .source-contract-notice {
+  border: 1px solid var(--line);
+  border-radius: var(--glass-radius);
+  background: var(--surface-panel);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: 0 18px 54px rgb(0 7 20 / 34%), var(--glass-inset);
+}
+
+/* 空状态保留虚线语义，只换玻璃底 */
+:root[data-theme="dark"] .empty-state {
+  border-radius: var(--glass-radius);
+  background: rgb(10 31 58 / 46%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* 资产卡左侧色条改为发光描边，保留三资产身份色 */
+:root[data-theme="dark"] .asset-card {
+  border-top: 1px solid var(--line);
+  border-left: 3px solid var(--asset-bond);
+  box-shadow: 0 18px 54px rgb(0 7 20 / 34%), var(--glass-inset),
+    -14px 0 30px -22px var(--asset-bond);
+}
+:root[data-theme="dark"] .asset-card.asset-stock {
+  border-left-color: var(--asset-equity);
+  box-shadow: 0 18px 54px rgb(0 7 20 / 34%), var(--glass-inset),
+    -14px 0 30px -22px var(--asset-equity);
+}
+:root[data-theme="dark"] .asset-card.asset-commodity {
+  border-left-color: var(--asset-commodity);
+  box-shadow: 0 18px 54px rgb(0 7 20 / 34%), var(--glass-inset),
+    -14px 0 30px -22px var(--asset-commodity);
+}
+
+:root[data-theme="dark"] .domain-panel { border-top: 1px solid var(--line); }
+
+:root[data-theme="dark"] .stage-panel {
+  border-top-color: var(--accent);
+  border-bottom-color: var(--line);
+}
+
+:root[data-theme="dark"] .nav-link:hover { background: rgb(75 151 255 / 12%); }
+:root[data-theme="dark"] .nav-link[aria-current="page"] {
+  border-radius: 7px;
+  background: linear-gradient(90deg, rgb(75 151 255 / 24%), rgb(75 151 255 / 5%));
+  box-shadow: inset 3px 0 0 var(--accent), 0 0 22px rgb(46 120 224 / 18%);
+}
+
+:root[data-theme="dark"] .quiet-button {
+  border-color: var(--line);
+  border-radius: 8px;
+  background: rgb(20 47 80 / 62%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+:root[data-theme="dark"] .quiet-button:hover {
+  border-color: var(--line-strong);
+  background: rgb(30 66 108 / 72%);
+}
+:root[data-theme="dark"] .primary-button {
+  border-color: rgb(146 190 239 / 34%);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #3d8bfa, #2f6fd8);
+  box-shadow: 0 8px 26px rgb(16 93 211 / 34%);
+  color: #fff;
+}
+:root[data-theme="dark"] .primary-button:hover {
+  background: linear-gradient(180deg, #4f98ff, #3a7ce4);
+}
+
+:root[data-theme="dark"] .tab {
+  border-radius: 8px 8px 0 0 !important;
+  background: rgb(20 47 80 / 44%) !important;
+}
+:root[data-theme="dark"] .tab--selected {
+  border-top-color: var(--accent) !important;
+  background: var(--surface-panel) !important;
+}
+
+:root[data-theme="dark"] .detail-json { background: rgb(3 13 30 / 55%); }
+:root[data-theme="dark"] a:visited { color: #b78af5; }
+
+/* Dash 4.2 的 DatePickerSingle 自带浅色皮肤，且日历通过 portal 渲染到 body，
+   所以这里按实际 dash-datepicker-* 类名覆盖，而不是旧版 react-dates 类名。 */
+:root[data-theme="dark"] .dash-datepicker-input-wrapper {
+  border: 1px solid var(--line) !important;
+  border-radius: 8px !important;
+  background: rgb(20 47 80 / 62%) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-input {
+  background: transparent !important;
+  color: var(--ink-strong) !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+}
+:root[data-theme="dark"] .dash-datepicker-input::placeholder { color: var(--ink-muted) !important; }
+
+:root[data-theme="dark"] .dash-datepicker-content,
+:root[data-theme="dark"] .dash-datepicker-calendar-wrapper,
+:root[data-theme="dark"] .dash-datepicker-calendar-container {
+  border-color: var(--line) !important;
+  background: var(--surface-elevated) !important;
+  color: var(--ink-body) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-content {
+  border: 1px solid var(--line) !important;
+  border-radius: var(--glass-radius) !important;
+  box-shadow: 0 18px 54px rgb(0 7 20 / 52%) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-controls,
+:root[data-theme="dark"] .dash-datepicker-month-nav,
+:root[data-theme="dark"] .dash-datepicker-calendar-week {
+  background: transparent !important;
+  color: var(--ink-muted) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-controls input,
+:root[data-theme="dark"] .dash-datepicker-controls button,
+:root[data-theme="dark"] .dash-datepicker-month-nav button {
+  border-color: var(--line) !important;
+  background: rgb(20 47 80 / 62%) !important;
+  color: var(--ink-strong) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-calendar-date-inside {
+  background: transparent !important;
+  color: var(--ink-body) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-calendar-date-outside {
+  background: transparent !important;
+  color: var(--ink-muted) !important;
+  opacity: 0.62;
+}
+:root[data-theme="dark"] .dash-datepicker-calendar-date-inside:hover,
+:root[data-theme="dark"] .dash-datepicker-calendar-date-highlighted {
+  background: rgb(75 151 255 / 24%) !important;
+  color: var(--ink-strong) !important;
+}
+:root[data-theme="dark"] .dash-datepicker-calendar-date-selected {
+  background: var(--accent) !important;
+  color: #04121f !important;
+  font-weight: 700 !important;
+}
 
 @media (max-width: 1180px) {
   .application-grid { grid-template-columns: 160px minmax(0, 1fr); }
