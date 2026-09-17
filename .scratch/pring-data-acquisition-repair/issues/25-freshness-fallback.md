@@ -33,6 +33,25 @@ Decision: 2026-09-17 用户定"默认 TuShare 是官方通道""TuShare 数据更
 2. 变异检查：拿掉官方适配器该用例必须变红，证明它真在检验这条路径。
 3. 若核实中发现该路径对这 8 项实际上**走不通**（例如 `scope.source_url` 为空导致官方适配器根本不挂载），那才是真正要实现的部分——届时如实记录并实现。
 
+## 核实结果：对 7 项确实走不通
+
+缺口的 `source_url` 来自目录的 `source_candidates`（`full_retrieval.py:545`），而官方适配器只在 `scope.source_url is not None` 时挂载（`worker.py:688`）。逐项查过官方族 21 项：
+
+| | 数量 | 指标 |
+|---|---|---|
+| 有官方候选 URL，回退路径**活的** | 14 | `CN_CAPACITY_UTILIZATION`、`CN_CORE_CPI`、`CN_FINISHED_GOODS_INVENTORY`、`CN_INDUSTRIAL_FINANCE`、`CN_INDUSTRIAL_VA`、`CN_INVENTORY_TURNOVER`、`CN_LOAN_STRUCTURE`、`CN_OMO_7D_AMOUNT`、`CN_OMO_7D_RATE`、`CN_RRR_EVENT`、`CN_SF_COMPONENTS`、`CN_SF_TOTAL`、`CN_TOOL_LIQUIDITY_MONTHLY`、`CN_USDCNY_CENTRAL_PARITY` |
+| 无候选 URL，回退路径**死的** | **7** | `CN_CPI_HEADLINE`、`CN_GDP`、`CN_M1_M2`、`CN_PMI_ACTIVITY`、`CN_PMI_INVENTORY`、`CN_PMI_PRICES`、`CN_PPI` |
+
+**这 7 项恰好就是双通道 8 项去掉 `CN_SF_TOTAL` 的全部。** 原因不难理解：正因为 TuShare 覆盖了它们，当初没人给它们配官方候选 URL。而用户新定的规则要求 TuShare 缺该期时回退到官方页——**回退不了**，缺口里没有 URL，官方适配器根本不挂载。
+
+`source_candidates` 对这 7 项的当前值是指标 id 本身，那是 `_SOURCE_CODES.get(metric_id, (metric_id,))` 的默认回退值，**不是任何人选定的来源**。
+
+## 因此本票要实现的
+
+给这 7 项补上官方候选 URL，使回退路径真正连通；并用公开反例钉住"TuShare 缺该期 → 官方页补上 → 运行完成且 `provider` 显示官方"。
+
+**候选 URL 必须是实际可达、可解析的官方页**，不能凭印象填——票13 的有界抓取已经证明我编造路径会 404。因此本票实现顺序是：先按冻结参数探测这 7 项的官方页（与[票27 的探测](27-metric-identity-corrections.md)同批做），取到再配。取不到的项如实记为"回退路径仍不通"，不伪造。
+
 ## 待设计的可观察行为
 
 - 触发条件是**新鲜度**：上游有没有该指标该期次的行。**不是数值比对**——不需要容差，也不需要区分修订差异与真实错误。
