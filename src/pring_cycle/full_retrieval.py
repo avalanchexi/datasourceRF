@@ -274,13 +274,17 @@ class FullRunRetrieval:
                     ].append(definition.metric_id)
         # Looking for a new release does not make it a required input. If the official
         # page has not published it, the existing latest period retains its old semantics.
-        preceding = (
-            date.fromisoformat(run.target_business_date).replace(day=1) - timedelta(days=1)
-        ).isoformat()[:7]
+        target = date.fromisoformat(run.target_business_date)
+        quarter_end = date(target.year, (target.month - 1) // 3 * 3 + 1, 1) - timedelta(days=1)
+        preceding_period = {
+            "monthly": (target.replace(day=1) - timedelta(days=1)).isoformat()[:7],
+            "quarterly": f"{quarter_end.year}-Q{(quarter_end.month - 1) // 3 + 1}",
+        }
         for definition in rules.metric_definitions:
             period = period_by_metric[definition.metric_id]
+            preceding = preceding_period.get(definition.frequency)
             if (
-                definition.frequency == "monthly"
+                preceding is not None
                 and period is not None
                 and period < preceding
                 and (candidate := official_candidate(definition, preceding)) is not None

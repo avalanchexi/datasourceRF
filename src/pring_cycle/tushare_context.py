@@ -36,6 +36,7 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
 from pring_cycle.source_families import (
     TUSHARE_CPI_FIELDS,
+    TUSHARE_GDP_FIELDS,
     TUSHARE_MONEY_FIELDS,
     TUSHARE_PMI_FIELDS,
     TUSHARE_PPI_FIELDS,
@@ -105,6 +106,12 @@ class ContextScalar:
     public_available_at: datetime | None = None
     definition_version: str | None = None
     acquisition_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ContextDelivery:
+    scalars: tuple[ContextScalar, ...]
+    rejected_fields: tuple[dict[str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -328,10 +335,30 @@ class TushareContextAdapter:
                     ):
                         raise ValueError(f"registered_{family}_acquisition_values_mismatch")
             warrant_inputs = self._warrant_receipt_inputs()
+            gdp_deliveries = {
+                receipt.acquisition_id: _gdp_delivery(
+                    _gdp_acquisition_rows(
+                        receipt, self._acquisitions.read_content(receipt.acquisition_id, "raw")
+                    )
+                )
+                for receipt in self._receipts
+                if receipt.api_name == "cn_gdp"
+            }
             linked = []
             for scalar in scalars:
                 matching = [r for r in self._receipts if r.api_name == scalar.api_name]
                 inputs = matching or self._receipts
+                if scalar.api_name == "cn_gdp":
+                    inputs = [
+                        receipt
+                        for receipt in matching
+                        if any(
+                            output.period_end == scalar.period_end
+                            for output in gdp_deliveries[receipt.acquisition_id].scalars
+                        )
+                    ]
+                    if not inputs:
+                        raise ValueError("registered_gdp_acquisition_member_missing")
                 if self._window_breadth and scalar.api_name == "window_breadth":
                     output = next(
                         day
@@ -439,6 +466,8 @@ class TushareContextAdapter:
                 rejected = [
                     item for item in self._field_rejections if item["api_name"] == receipt.api_name
                 ]
+                if receipt.api_name == "cn_gdp":
+                    rejected = list(gdp_deliveries[receipt.acquisition_id].rejected_fields)
                 if rejected:
                     receipt_document = {
                         "accepted_scalars": receipt_document,
@@ -714,56 +743,18 @@ class TushareContextAdapter:
         end_value = _quarter_value(end_quarter)
         if _quarter_ordinal(end_value) < _quarter_ordinal(start_value):
             raise ValueError("tushare_quarter_range_invalid")
-        fields = (
-            ("total", "gdp", "gdp_yoy"),
-            ("primary", "pi", "pi_yoy"),
-            ("secondary", "si", "si_yoy"),
-            ("tertiary", "ti", "ti_yoy"),
-        )
         rows = self._call(
             "cn_gdp",
             {"start_q": start_value, "end_q": end_value},
             (
                 "quarter",
-                *(field for _aggregate, level, yoy in fields for field in (level, yoy)),
+                *(field for _aggregate, level, yoy in TUSHARE_GDP_FIELDS for field in (level, yoy)),
             ),
         )
-        scalars: list[ContextScalar] = []
-        for row in rows:
-            year_start, _quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
-            for aggregate, level_field, yoy_field in fields:
-                level = _number(row.get(level_field))
-                if level is not None:
-                    scalars.append(
-                        ContextScalar(
-                            metric_id="CN_GDP",
-                            api_name="cn_gdp",
-                            source_field=level_field,
-                            period_kind="year_to_quarter",
-                            period_start=year_start,
-                            period_end=quarter_end,
-                            dimensions={
-                                "aggregate": aggregate,
-                                "measure": "nominal_ytd_level",
-                            },
-                            value=level,
-                            unit="hundred_million_cny",
-                        )
-                    )
-                yoy = _number(row.get(yoy_field))
-                if yoy is not None and self._acquisitions is not None:
-                    # Q2 delivery disagrees with the documented single-quarter
-                    # meaning. Do not relabel every vintage as cumulative either.
-                    self._field_rejections.append(
-                        {
-                            "metric_id": "CN_GDP",
-                            "api_name": "cn_gdp",
-                            "source_field": yoy_field,
-                            "period_end": quarter_end,
-                            "reason": "gdp_yoy_period_semantics_unverified",
-                        }
-                    )
-        return tuple(scalars)
+        delivery = _gdp_delivery(rows)
+        if self._acquisitions is not None:
+            self._field_rejections.extend(delivery.rejected_fields)
+        return delivery.scalars
 
     def treasury_yields(
         self,
@@ -2228,13 +2219,78 @@ def parse_social_financing_total_acquisition(
     )
 
 
+def _gdp_delivery(rows: ContextRows) -> ContextDelivery:
+    scalars: list[ContextScalar] = []
+    rejected: list[dict[str, str]] = []
+    for row in rows:
+        year_start, _quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
+        for aggregate, level_field, yoy_field in TUSHARE_GDP_FIELDS:
+            level = _number(row.get(level_field))
+            if level is not None:
+                scalars.append(
+                    ContextScalar(
+                        metric_id="CN_GDP",
+                        api_name="cn_gdp",
+                        source_field=level_field,
+                        period_kind="year_to_quarter",
+                        period_start=year_start,
+                        period_end=quarter_end,
+                        dimensions={"aggregate": aggregate, "measure": "nominal_ytd_level"},
+                        value=level,
+                        unit="hundred_million_cny",
+                    )
+                )
+            # Q2 delivery disagrees with the documented single-quarter meaning.
+            # Do not relabel every vintage as cumulative either.
+            if _number(row.get(yoy_field)) is not None:
+                rejected.append(
+                    {
+                        "metric_id": "CN_GDP",
+                        "api_name": "cn_gdp",
+                        "source_field": yoy_field,
+                        "period_end": quarter_end,
+                        "reason": "gdp_yoy_period_semantics_unverified",
+                    }
+                )
+    return ContextDelivery(tuple(scalars), tuple(rejected))
+
+
+def _gdp_acquisition_rows(receipt: AcquisitionReceipt, raw: bytes) -> ContextRows:
+    fields = (
+        "quarter",
+        *(f for _aggregate, level, yoy in TUSHARE_GDP_FIELDS for f in (level, yoy)),
+    )
+    if (
+        receipt.state not in {"received", "validated"}
+        or receipt.provider != "tushare"
+        or receipt.api_name != "cn_gdp"
+        or receipt.parser_version != "tushare-gdp-parser-v0003"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_q", "end_q"}
+    ):
+        raise ValueError("registered_gdp_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return rows
+
+
+def parse_gdp_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> ContextDelivery:
+    """Rebuild the accepted GDP levels and rejected-growth audit from one original."""
+    if receipt.state != "validated":
+        raise ValueError("registered_gdp_acquisition_identity_mismatch")
+    return _gdp_delivery(_gdp_acquisition_rows(receipt, raw))
+
+
 def tushare_claims_matching_acquisitions(
     repository: EvidenceRepository,
     points: tuple[MetricSeriesPoint, ...],
     *,
     definition_version: str,
     parse: Callable[
-        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...]
+        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...] | ContextDelivery
     ] = parse_margin_acquisition,
 ) -> set[str]:
     """Keep selected TuShare scalars bound to complete raw and normalized deliveries."""
@@ -2252,8 +2308,24 @@ def tushare_claims_matching_acquisitions(
                 identity = item.receipt.acquisition_id
                 if identity not in parsed:
                     parsed[identity] = None
-                    scalars = parse(item.receipt, item.raw)
+                    delivery = parse(item.receipt, item.raw)
+                    scalars = (
+                        delivery.scalars if isinstance(delivery, ContextDelivery) else delivery
+                    )
                     normalized = json.loads(item.normalized)
+                    rejected = (
+                        list(delivery.rejected_fields)
+                        if isinstance(delivery, ContextDelivery)
+                        else []
+                    )
+                    if rejected:
+                        if (
+                            not isinstance(normalized, dict)
+                            or set(normalized) != {"accepted_scalars", "rejected_fields"}
+                            or normalized["rejected_fields"] != rejected
+                        ):
+                            raise ValueError("registered_tushare_rejected_fields_mismatch")
+                        normalized = normalized["accepted_scalars"]
                     if not isinstance(normalized, list):
                         raise ValueError("registered_tushare_normalized_mismatch")
                     economic = []

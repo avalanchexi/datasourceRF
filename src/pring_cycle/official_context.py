@@ -38,6 +38,7 @@ from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.tushare_context import (
     ContextScalar,
     parse_cpi_acquisition,
+    parse_gdp_acquisition,
     parse_money_acquisition,
     parse_pmi_acquisition,
     parse_ppi_acquisition,
@@ -393,12 +394,16 @@ def official_claims_matching_acquisitions(
             ("CN_PMI_PRICES", parse_pmi_acquisition),
             ("CN_M1_M2", parse_money_acquisition),
             ("CN_SF_TOTAL", parse_social_financing_total_acquisition),
+            ("CN_GDP", parse_gdp_acquisition),
         ):
             points = points_by_metric.get(metric_id, ())
             if not points:
                 continue
             delivered = tushare_claims_matching_acquisitions(
-                repository, points, definition_version=definition_version, parse=parse_delivery
+                repository,
+                points,
+                definition_version=definition_version,
+                parse=parse_delivery,
             )
             valid_claim_ids.update(
                 repository.source_claims_matching_registered_contract(

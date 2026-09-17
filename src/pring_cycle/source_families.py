@@ -9,6 +9,13 @@ TUSHARE_CPI_SOURCE_CODE = "tushare:cn_cpi:official-sampled-v0001"
 TUSHARE_PMI_SOURCE_CODE = "tushare:cn_pmi:official-sampled-v0001"
 TUSHARE_MONEY_SOURCE_CODE = "tushare:cn_m:official-sampled-v0001"
 TUSHARE_SF_TOTAL_SOURCE_CODE = "tushare:sf_month:official-sampled-v0001"
+TUSHARE_GDP_SOURCE_CODE = "tushare:cn_gdp:official-sampled-v0001"
+TUSHARE_GDP_FIELDS = (
+    ("total", "gdp", "gdp_yoy"),
+    ("primary", "pi", "pi_yoy"),
+    ("secondary", "si", "si_yoy"),
+    ("tertiary", "ti", "ti_yoy"),
+)
 TUSHARE_SF_TOTAL_FIELDS = (
     ("inc_cumval", "ytd_increment", 1.0, "year_to_month"),
     ("stk_endval", "stock_end", 10_000.0, "month"),

@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlsplit
 
 def is_release_listing(family: str, source_url: str) -> bool:
     path = urlsplit(source_url).path
-    if family in {"nbs_core_cpi", "nbs_ppi", "nbs_pmi"}:
+    if family in {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp"}:
         return path in {"/sj/zxfb/", "/sj/zxfbhjd/"}
     return (
         family in {"pbc_money", "pbc_social_financing"}
@@ -38,22 +38,33 @@ class _ReleaseLinks(HTMLParser):
 
 
 def release_url(content: bytes, *, family: str, listing_url: str, period: str) -> str:
+    if family == "nbs_gdp" and not re.fullmatch(r"[0-9]{4}-Q[1-4]", period):
+        raise ValueError("official_context_period_invalid")
     parser = _ReleaseLinks()
     parser.feed(content.decode("utf-8-sig"))
-    year, month = period.split("-")
-    report = {
-        "nbs_core_cpi": "居民消费价格",
-        "nbs_ppi": "工业生产者出厂价格",
-        "nbs_pmi": "中国采购经理指数运行情况",
-        "pbc_money": "金融统计数据报告",
-        "pbc_social_financing": "金融统计数据报告",
-    }[family]
-    period_label = rf"0?{int(month)}月份?"
-    if family in {"pbc_money", "pbc_social_financing"}:
-        aggregate = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年|"}.get(int(month))
-        if aggregate is not None:
-            period_label = rf"(?:{period_label}|{aggregate})"
-    pattern = rf"{year}年{period_label}{report}"
+    year, part = period.split("-")
+    if family == "nbs_gdp":
+        quarter_label = {
+            "Q1": "一季度",
+            "Q2": "二季度和上半年",
+            "Q3": "三季度",
+            "Q4": "四季度和全年",
+        }[part]
+        pattern = rf"{year}年{quarter_label}国内生产总值初步核算结果$"
+    else:
+        report = {
+            "nbs_core_cpi": "居民消费价格",
+            "nbs_ppi": "工业生产者出厂价格",
+            "nbs_pmi": "中国采购经理指数运行情况",
+            "pbc_money": "金融统计数据报告",
+            "pbc_social_financing": "金融统计数据报告",
+        }[family]
+        period_label = rf"0?{int(part)}月份?"
+        if family in {"pbc_money", "pbc_social_financing"}:
+            aggregate = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年|"}.get(int(part))
+            if aggregate is not None:
+                period_label = rf"(?:{period_label}|{aggregate})"
+        pattern = rf"{year}年{period_label}{report}"
     matches = {
         urljoin(listing_url, href) for href, title in parser.links if re.match(pattern, title)
     }
