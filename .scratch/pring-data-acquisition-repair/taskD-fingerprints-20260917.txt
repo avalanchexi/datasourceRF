@@ -1,0 +1,66 @@
+== before segment 1 ==
+2026-09-17T12:00:10+08:00
+b26c5d18f9d520adfda1c054a116e6b9ffb8d9a4
+ M .scratch/pring-data-acquisition-repair/business-decisions-draft.md
+ M .scratch/pring-data-acquisition-repair/implementation-10-registered-amount-breadth.md
+ M .scratch/pring-data-acquisition-repair/implementation-all-tasks-20260913.md
+ M .scratch/pring-data-acquisition-repair/issues/05-margin-certification.md
+ M .scratch/pring-data-acquisition-repair/issues/06-market-index-certification.md
+ M .scratch/pring-data-acquisition-repair/issues/07-valuation-certification.md
+ M .scratch/pring-data-acquisition-repair/issues/08-breadth-daily-universe.md
+ M .scratch/pring-data-acquisition-repair/issues/09-breadth-window-metrics.md
+ M .scratch/pring-data-acquisition-repair/issues/10-breadth-amount-share.md
+ M .scratch/pring-data-acquisition-repair/issues/11-futures-contract-evidence.md
+ M .scratch/pring-data-acquisition-repair/spec.md
+ M src/pring_cycle/assets/dashboard.css
+ M src/pring_cycle/assets/dashboard.js
+3e6417c0a1793d5d3598e40bd218b8f3c120785fd2b1997a7499de3d1091ab85  -
+6b1c1182a7b009a58f4447ebec0e7e8df1662d56b4e43ecef451e6fae03a3798  tests/conftest.py
+33703d3434179202eb3456c817aa7359175b09d44080471c828d5920cc17dbe4  tests/models/test_candidate_admission.py
+96bba33d16645392253f47093ac1bd943a96a2b83909855c19019ae217a1783e  tests/models/test_isolated_lifecycle.py
+bc598f5f9d279152beea5a6d01c77b93419d8bc3712784246dd368f6e231dcec  tests/adapters/test_commodity_basket.py
+2e21dc706f4a8e35fae1419f894d61305bf424dc429d8b2b7c77176e71e6689d  tests/fixtures/isolated_lifecycle_inputs.py
+c_free_mb=9120
+mem_available_mb=8124
+== after segment 1 / before segment 2 ==
+2026-09-17T13:02:20+08:00
+b26c5d18f9d520adfda1c054a116e6b9ffb8d9a4
+ M .scratch/pring-data-acquisition-repair/business-decisions-draft.md
+ M .scratch/pring-data-acquisition-repair/implementation-10-registered-amount-breadth.md
+ M .scratch/pring-data-acquisition-repair/implementation-all-tasks-20260913.md
+ M .scratch/pring-data-acquisition-repair/issues/05-margin-certification.md
+ M .scratch/pring-data-acquisition-repair/issues/06-market-index-certification.md
+ M .scratch/pring-data-acquisition-repair/issues/07-valuation-certification.md
+ M .scratch/pring-data-acquisition-repair/issues/08-breadth-daily-universe.md
+ M .scratch/pring-data-acquisition-repair/issues/09-breadth-window-metrics.md
+ M .scratch/pring-data-acquisition-repair/issues/10-breadth-amount-share.md
+ M .scratch/pring-data-acquisition-repair/issues/11-futures-contract-evidence.md
+ M .scratch/pring-data-acquisition-repair/spec.md
+ M src/pring_cycle/assets/dashboard.css
+ M src/pring_cycle/assets/dashboard.js
+3e6417c0a1793d5d3598e40bd218b8f3c120785fd2b1997a7499de3d1091ab85  -
+6b1c1182a7b009a58f4447ebec0e7e8df1662d56b4e43ecef451e6fae03a3798  tests/conftest.py
+33703d3434179202eb3456c817aa7359175b09d44080471c828d5920cc17dbe4  tests/models/test_candidate_admission.py
+96bba33d16645392253f47093ac1bd943a96a2b83909855c19019ae217a1783e  tests/models/test_isolated_lifecycle.py
+bc598f5f9d279152beea5a6d01c77b93419d8bc3712784246dd368f6e231dcec  tests/adapters/test_commodity_basket.py
+2e21dc706f4a8e35fae1419f894d61305bf424dc429d8b2b7c77176e71e6689d  tests/fixtures/isolated_lifecycle_inputs.py
+c_free_mb=7245
+mem_available_mb=8438
+== before segment 2 (retry) ==
+2026-09-17T13:45:18+08:00
+b26c5d18f9d520adfda1c054a116e6b9ffb8d9a4
+3e6417c0a1793d5d3598e40bd218b8f3c120785fd2b1997a7499de3d1091ab85  -
+c_free_mb=7250
+mem_available_mb=8047
+== before segment 2 (retry) ==
+2026-09-17T13:46:08+08:00
+b26c5d18f9d520adfda1c054a116e6b9ffb8d9a4
+3e6417c0a1793d5d3598e40bd218b8f3c120785fd2b1997a7499de3d1091ab85  -
+c_free_mb=7250
+mem_available_mb=8041
+== after segment 2 (retry) ==
+2026-09-17T14:49:57+08:00
+b26c5d18f9d520adfda1c054a116e6b9ffb8d9a4
+3e6417c0a1793d5d3598e40bd218b8f3c120785fd2b1997a7499de3d1091ab85  -
+c_free_mb=14805
+mem_available_mb=8317
