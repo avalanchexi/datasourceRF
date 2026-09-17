@@ -34,7 +34,7 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
-from pring_cycle.source_families import TUSHARE_CPI_FIELDS, TUSHARE_PPI_FIELDS
+from pring_cycle.source_families import TUSHARE_CPI_FIELDS, TUSHARE_PMI_FIELDS, TUSHARE_PPI_FIELDS
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
@@ -501,55 +501,9 @@ class TushareContextAdapter:
         return result
 
     def pmi(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
-        fields = (
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi010000",
-                {"series": "manufacturing", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi010400",
-                {"series": "production", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi010500",
-                {"series": "new_orders", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_INVENTORY",
-                "pmi010700",
-                {"series": "raw_materials", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi011100",
-                {"series": "purchase_volume", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_PRICES",
-                "pmi011200",
-                {"series": "purchase_prices", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_PRICES",
-                "pmi011300",
-                {"series": "output_prices", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_INVENTORY",
-                "pmi011400",
-                {"series": "finished_goods", "measure": "level"},
-                "diffusion_index_points",
-            ),
+        fields = tuple(
+            _Field(metric, field, {"series": series, "measure": "level"}, "diffusion_index_points")
+            for field, metric, series in TUSHARE_PMI_FIELDS
         )
         rows = self._call(
             "cn_pmi",
@@ -2189,6 +2143,20 @@ def parse_cpi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[Cont
                 "CN_CPI_HEADLINE", field, {"category": "headline", "measure": measure}, "percent"
             )
             for field, measure in TUSHARE_CPI_FIELDS
+        ),
+    )
+
+
+def parse_pmi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild all PMI siblings from the one exact physical cn_pmi response."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_pmi",
+        contract="pmi",
+        scalar_fields=tuple(
+            _Field(metric, field, {"series": series, "measure": "level"}, "diffusion_index_points")
+            for field, metric, series in TUSHARE_PMI_FIELDS
         ),
     )
 

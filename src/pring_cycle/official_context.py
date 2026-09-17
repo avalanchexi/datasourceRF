@@ -38,6 +38,7 @@ from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.tushare_context import (
     ContextScalar,
     parse_cpi_acquisition,
+    parse_pmi_acquisition,
     parse_ppi_acquisition,
     tushare_claims_matching_acquisitions,
 )
@@ -385,6 +386,9 @@ def official_claims_matching_acquisitions(
         for metric_id, parse_delivery in (
             ("CN_PPI", parse_ppi_acquisition),
             ("CN_CPI_HEADLINE", parse_cpi_acquisition),
+            ("CN_PMI_ACTIVITY", parse_pmi_acquisition),
+            ("CN_PMI_INVENTORY", parse_pmi_acquisition),
+            ("CN_PMI_PRICES", parse_pmi_acquisition),
         ):
             points = points_by_metric.get(metric_id, ())
             if not points:

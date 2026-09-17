@@ -6,6 +6,17 @@ from dataclasses import dataclass
 # This identifier does not itself confer source certification.
 TUSHARE_PPI_SOURCE_CODE = "tushare:cn_ppi:official-sampled-v0001"
 TUSHARE_CPI_SOURCE_CODE = "tushare:cn_cpi:official-sampled-v0001"
+TUSHARE_PMI_SOURCE_CODE = "tushare:cn_pmi:official-sampled-v0001"
+TUSHARE_PMI_FIELDS = (
+    ("pmi010000", "CN_PMI_ACTIVITY", "manufacturing"),
+    ("pmi010400", "CN_PMI_ACTIVITY", "production"),
+    ("pmi010500", "CN_PMI_ACTIVITY", "new_orders"),
+    ("pmi010700", "CN_PMI_INVENTORY", "raw_materials"),
+    ("pmi011100", "CN_PMI_ACTIVITY", "purchase_volume"),
+    ("pmi011200", "CN_PMI_PRICES", "purchase_prices"),
+    ("pmi011300", "CN_PMI_PRICES", "output_prices"),
+    ("pmi011400", "CN_PMI_INVENTORY", "finished_goods"),
+)
 TUSHARE_CPI_FIELDS = (
     ("nt_yoy", "yoy"),
     ("nt_mom", "mom"),
