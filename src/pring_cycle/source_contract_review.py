@@ -26,6 +26,8 @@ from pring_cycle.source_families import (
     TUSHARE_PMI_SOURCE_CODE,
     TUSHARE_PPI_FIELDS,
     TUSHARE_PPI_SOURCE_CODE,
+    TUSHARE_SF_TOTAL_FIELDS,
+    TUSHARE_SF_TOTAL_SOURCE_CODE,
 )
 from pring_cycle.storage import artifact_is_registered, database_connection
 
@@ -192,7 +194,11 @@ def require_registered_source_contract(
             *supported.source_codes,
             TUSHARE_MONEY_SOURCE_CODE,
         )
-        if dual_ppi or dual_pmi or dual_money:
+        dual_sf = definition.metric_id == "CN_SF_TOTAL" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_SF_TOTAL_SOURCE_CODE,
+        )
+        if dual_ppi or dual_pmi or dual_money or dual_sf:
             supported = replace(supported, source_codes=definition.source_codes)
         family = OFFICIAL_CONTEXT_FAMILY_BY_METRIC[definition.metric_id]
         fields = (
@@ -209,7 +215,7 @@ def require_registered_source_contract(
         ) != set(supported.allowed_units):
             raise ValueError("registered_official_source_contract_unsupported")
         provider_matches = provider == OFFICIAL_CONTEXT_FAMILIES[family].provider
-        if (dual_ppi or dual_pmi or dual_money) and provider == "tushare":
+        if (dual_ppi or dual_pmi or dual_money or dual_sf) and provider == "tushare":
             if dual_ppi:
                 contract, api = "ppi", "cn_ppi"
                 delivery_fields = tuple(
@@ -223,11 +229,17 @@ def require_registered_source_contract(
                     for field, metric_id, series in TUSHARE_PMI_FIELDS
                     if metric_id == definition.metric_id
                 )
-            else:
+            elif dual_money:
                 contract, api = "money", "cn_m"
                 delivery_fields = tuple(
                     (field, {"aggregate": aggregate, "measure": measure})
                     for field, aggregate, measure, _unit in TUSHARE_MONEY_FIELDS
+                )
+            else:
+                contract, api = "sf_total", "sf_month"
+                delivery_fields = tuple(
+                    (field, {"measure": measure})
+                    for field, measure, _multiplier, _kind in TUSHARE_SF_TOTAL_FIELDS
                 )
             # These APIs contain values and a statistical month, not a publication fact.
             # Until independently bound publication evidence is supported, this delivery

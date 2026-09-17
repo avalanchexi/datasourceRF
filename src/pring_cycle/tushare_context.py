@@ -39,6 +39,7 @@ from pring_cycle.source_families import (
     TUSHARE_MONEY_FIELDS,
     TUSHARE_PMI_FIELDS,
     TUSHARE_PPI_FIELDS,
+    TUSHARE_SF_TOTAL_FIELDS,
 )
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
@@ -143,6 +144,7 @@ class _Field:
     dimensions: dict[str, str]
     unit: str
     multiplier: float = 1.0
+    period_kind: str = "month"
 
 
 ContextRows = tuple[dict[str, object], ...]
@@ -604,6 +606,18 @@ class TushareContextAdapter:
             "sf_month",
             {"start_m": _month_value(start_month), "end_m": _month_value(end_month)},
             ("month", *(item.source_field for item in fields)),
+        )
+        return _monthly_scalars("sf_month", rows, fields)
+
+    def social_financing_total(
+        self, *, start_month: str, end_month: str
+    ) -> tuple[ContextScalar, ...]:
+        """Collect the registered total's annual flow and month-end stock members."""
+        fields = _social_financing_total_fields()
+        rows = self._call(
+            "sf_month",
+            {"start_m": _month_value(start_month), "end_m": _month_value(end_month)},
+            ("month", *(field.source_field for field in fields)),
         )
         return _monthly_scalars("sf_month", rows, fields)
 
@@ -1952,8 +1966,12 @@ def _monthly_scalars(
                     metric_id=field.metric_id,
                     api_name=api_name,
                     source_field=field.source_field,
-                    period_kind="month",
-                    period_start=period_start,
+                    period_kind=field.period_kind,
+                    period_start=(
+                        f"{period_start[:4]}-01-01"
+                        if field.period_kind == "year_to_month"
+                        else period_start
+                    ),
                     period_end=period_end,
                     dimensions=field.dimensions,
                     value=value * field.multiplier,
@@ -2180,6 +2198,33 @@ def parse_money_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[Co
             _Field("CN_M1_M2", field, {"aggregate": aggregate, "measure": measure}, unit)
             for field, aggregate, measure, unit in TUSHARE_MONEY_FIELDS
         ),
+    )
+
+
+def _social_financing_total_fields() -> tuple[_Field, ...]:
+    return tuple(
+        _Field(
+            "CN_SF_TOTAL",
+            field,
+            {"measure": measure},
+            "hundred_million_cny",
+            multiplier=multiplier,
+            period_kind=period_kind,
+        )
+        for field, measure, multiplier, period_kind in TUSHARE_SF_TOTAL_FIELDS
+    )
+
+
+def parse_social_financing_total_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Rebuild stock units and annual cumulative periods from the exact sf_month response."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="sf_month",
+        contract="sf_total",
+        scalar_fields=_social_financing_total_fields(),
     )
 
 

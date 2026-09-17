@@ -9,7 +9,10 @@ def is_release_listing(family: str, source_url: str) -> bool:
     path = urlsplit(source_url).path
     if family in {"nbs_core_cpi", "nbs_ppi", "nbs_pmi"}:
         return path in {"/sj/zxfb/", "/sj/zxfbhjd/"}
-    return family == "pbc_money" and path == "/diaochatongjisi/116219/index.html"
+    return (
+        family in {"pbc_money", "pbc_social_financing"}
+        and path == "/diaochatongjisi/116219/index.html"
+    )
 
 
 class _ReleaseLinks(HTMLParser):
@@ -43,9 +46,10 @@ def release_url(content: bytes, *, family: str, listing_url: str, period: str) -
         "nbs_ppi": "工业生产者出厂价格",
         "nbs_pmi": "中国采购经理指数运行情况",
         "pbc_money": "金融统计数据报告",
+        "pbc_social_financing": "金融统计数据报告",
     }[family]
     period_label = rf"0?{int(month)}月份?"
-    if family == "pbc_money":
+    if family in {"pbc_money", "pbc_social_financing"}:
         aggregate = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年|"}.get(int(month))
         if aggregate is not None:
             period_label = rf"(?:{period_label}|{aggregate})"

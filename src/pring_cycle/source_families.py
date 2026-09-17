@@ -8,6 +8,11 @@ TUSHARE_PPI_SOURCE_CODE = "tushare:cn_ppi:official-sampled-v0001"
 TUSHARE_CPI_SOURCE_CODE = "tushare:cn_cpi:official-sampled-v0001"
 TUSHARE_PMI_SOURCE_CODE = "tushare:cn_pmi:official-sampled-v0001"
 TUSHARE_MONEY_SOURCE_CODE = "tushare:cn_m:official-sampled-v0001"
+TUSHARE_SF_TOTAL_SOURCE_CODE = "tushare:sf_month:official-sampled-v0001"
+TUSHARE_SF_TOTAL_FIELDS = (
+    ("inc_cumval", "ytd_increment", 1.0, "year_to_month"),
+    ("stk_endval", "stock_end", 10_000.0, "month"),
+)
 TUSHARE_MONEY_FIELDS = tuple(
     (
         aggregate if measure == "balance" else f"{aggregate}_{measure}",

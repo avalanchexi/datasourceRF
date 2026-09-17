@@ -41,6 +41,7 @@ from pring_cycle.tushare_context import (
     parse_money_acquisition,
     parse_pmi_acquisition,
     parse_ppi_acquisition,
+    parse_social_financing_total_acquisition,
     tushare_claims_matching_acquisitions,
 )
 
@@ -391,6 +392,7 @@ def official_claims_matching_acquisitions(
             ("CN_PMI_INVENTORY", parse_pmi_acquisition),
             ("CN_PMI_PRICES", parse_pmi_acquisition),
             ("CN_M1_M2", parse_money_acquisition),
+            ("CN_SF_TOTAL", parse_social_financing_total_acquisition),
         ):
             points = points_by_metric.get(metric_id, ())
             if not points:
