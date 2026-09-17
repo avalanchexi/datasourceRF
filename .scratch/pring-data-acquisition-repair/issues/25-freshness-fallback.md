@@ -7,7 +7,7 @@ Decision: 2026-09-17 用户定"默认 TuShare 是官方通道""TuShare 数据更
 
 **What to build:** 用户能看到某个指标某个期次是由哪条通道交付的；TuShare 尚未发布该期时，该指标该期自动改用官方页的值，其余指标不受影响。
 
-**Blocked by:** 无。
+**Blocked by:** 19 — 补候选 URL 必须写入新的不可变目录版本（见下）。
 
 **Dependency rationale:** 两条通道都已存在（`tushare_context.py`、`official_context.py`），本票只加选择规则与留痕，不新增采集能力。
 
@@ -51,6 +51,37 @@ Decision: 2026-09-17 用户定"默认 TuShare 是官方通道""TuShare 数据更
 给这 7 项补上官方候选 URL，使回退路径真正连通；并用公开反例钉住"TuShare 缺该期 → 官方页补上 → 运行完成且 `provider` 显示官方"。
 
 **候选 URL 必须是实际可达、可解析的官方页**，不能凭印象填——票13 的有界抓取已经证明我编造路径会 404。因此本票实现顺序是：先按冻结参数探测这 7 项的官方页（与[票27 的探测](27-metric-identity-corrections.md)同批做），取到再配。取不到的项如实记为"回退路径仍不通"，不伪造。
+
+## 第二道守卫：补 URL 需要新的目录版本（2026-09-17 实测）
+
+[探测](../verification-2527-probe-20260917.md)取到了 5 项的官方页后，直接往 `_SOURCE_CANDIDATES` 里加，立刻被拒：
+
+```
+ValueError: metric_catalog_v0003_canonical_hash_mismatch
+```
+
+`metric-catalog-v0003` 的规范内容（全部定义按 `sort_keys` 序列化）被 sha256 钉死（`catalog.py:402`）。**候选 URL 是定义的一部分，改它就改了目录身份。**
+
+这正是 [ADR-0013](../../../docs/adr/0013-tushare-delivery-with-official-sampling.md) 写的路径：
+
+> 认证结果写入**新的不可变指标目录和模型版本**，先完成 120 个中国交易日的点时重放，再由显式命令激活。
+
+所以补 URL 不是改一行常量，而是**新开目录版本 → 候选准入 → 120 交易日重放 → 显式激活**，即[票19](19-immutable-candidate-catalog.md)的机制。
+
+## 本票的最终范围与依赖
+
+**Blocked by:** 票19 —— 补候选 URL 必须写入新目录版本。
+
+| 已完成 | 内容 |
+|---|---|
+| 探测 | 5 项的官方页已取得并存证（CPI 表头、PPI、PMI×3 共用 `stats.gov.cn/sj/zxfb/`，与同族 `CN_CORE_CPI` 同页） |
+| 用例 | `tests/catalog/test_official_fallback_candidates.py` 钉住两件事：①当前无法回退的 7 项是哪些，列表缩小必须显式改；②同族指标不得指向不同页面 |
+
+| 待票19 之后 | 内容 |
+|---|---|
+| 新目录版本 | 给 5 项写入已取得的官方页 |
+| 公开反例 | TuShare 缺该期 → 官方页补上 → 运行完成、`provider` 显示官方 |
+| 仍不通的 2 项 | `CN_M1_M2`、`CN_GDP` 的发布页未找到，回退路径保持不通 |
 
 ## 待设计的可观察行为
 
