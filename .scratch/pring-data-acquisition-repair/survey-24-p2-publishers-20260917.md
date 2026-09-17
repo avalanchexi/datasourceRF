@@ -27,9 +27,24 @@
 
 两者都是黄金价格，一个是 COMEX 期货结算价、一个是伦敦现货定盘。**都要、还是只要一个**，也需要确认——两项都取意味着两条受限通道（CME DataMine 付费、IBA 授权），而它们的信息量高度重叠。
 
+## TuShare 对这 6 项的覆盖（2026-09-17 核实）
+
+先看既有通道再谈新增。代码里已用的 TuShare 接口不含 `index_global` 与 `fx_daily`，但 TuShare 本身提供：
+
+| 接口 | 覆盖情况 | 门槛 |
+|---|---|---|
+| `index_global` | **20 个国际指数**：XIN9、HSI、HKTECH、HKAH、N225、KS11、AS51、SENSEX、TWII、CKLSE、SPTSX、DJI、SPX、IXIC、FTSE、FCHI、GDAXI、RUT、CSX5P、IBOVESPA、RTS。**VIX 与 SOX 都不在其中。** | 6000 积分 |
+| `fx_daily` | 覆盖 USD/CNH，标的代码 **`USDCNH.FXCM`** | 2000 积分（5000+ 频次更高） |
+
+**结论：TuShare 补不了 VIX 与 SOX**——必须走各自的官方站（Cboe 免费 CSV、Nasdaq 指数站）。黄金两项同样不在 `index_global` 里。
+
+## 目录里 FXCM 的真正来源
+
+`CN_USDCNH_FXCM` 这个 id 里的 "FXCM"，来自 **TuShare 自己的标的代码 `USDCNH.FXCM`**，不是有人刻意挑了 FXCM 当基准。这削弱了"故意拿经纪商当基准"的指控，但**不改变口径问题本身**：该序列的报价源确实是 FXCM 这家零售经纪商，而离岸人民币最接近基准的是香港财资市场公会（TMA）的 USD/CNH 即期定盘。区别只在于这是**沿用上游代码时顺带继承的缺陷**，而非独立的错误判断。
+
 ## 本次没做的
 
 - 未验证任一 URL 当前可达（只核实了发布方与授权条件）。
-- 未核实 TuShare 是否已覆盖其中某几项（它有 `index_global`、`fx_daily` 等接口，**可能已覆盖 VIX / SOX / 汇率**）。这一步应在接任何新源之前做——与调查一的结论同理：先看既有通道，再谈新增。
+- 未核实本项目 TuShare 令牌的**积分等级**——`index_global` 要 6000 分、`fx_daily` 要 2000 分，令牌够不够未知。这要发请求才能确认，属实现阶段。
 
-**Sources:** [Cboe VIX 历史数据](https://www.cboe.com/tradable-products/vix/vix-historical-data)、[FRED VIXCLS](https://fred.stlouisfed.org/series/VIXCLS)、[Nasdaq SOX 历史](https://indexes.nasdaqomx.com/Index/History/SOX)、[LBMA 金价 FAQ](https://www.lbma.org.uk/prices-and-data/lbma-gold-price/lbma-gold-price)、[ICE 贵金属基准](https://www.ice.com/iba/lbma-precious-metals)、[CME 每日结算](https://www.cmegroup.com/market-data/daily-settlements.html)、[CME 黄金结算](https://www.cmegroup.com/markets/metals/precious/gold.settlements.html)、[中国货币网](https://www.chinamoney.com.cn/chinese/bkrmbidx/)、[HKMA CNH HIBOR 定盘](https://www.hkma.gov.hk/eng/news-and-media/press-releases/2013/04/20130425-3/)、[HKEX USD/CNH 期货](https://www.hkex.com.hk/Products/Listed-Derivatives/Foreign-Exchange/USD-CNH-Futures?sc_lang=en)
+**Sources:** [Cboe VIX 历史数据](https://www.cboe.com/tradable-products/vix/vix-historical-data)、[FRED VIXCLS](https://fred.stlouisfed.org/series/VIXCLS)、[Nasdaq SOX 历史](https://indexes.nasdaqomx.com/Index/History/SOX)、[LBMA 金价 FAQ](https://www.lbma.org.uk/prices-and-data/lbma-gold-price/lbma-gold-price)、[ICE 贵金属基准](https://www.ice.com/iba/lbma-precious-metals)、[CME 每日结算](https://www.cmegroup.com/market-data/daily-settlements.html)、[CME 黄金结算](https://www.cmegroup.com/markets/metals/precious/gold.settlements.html)、[中国货币网](https://www.chinamoney.com.cn/chinese/bkrmbidx/)、[HKMA CNH HIBOR 定盘](https://www.hkma.gov.hk/eng/news-and-media/press-releases/2013/04/20130425-3/)、[HKEX USD/CNH 期货](https://www.hkex.com.hk/Products/Listed-Derivatives/Foreign-Exchange/USD-CNH-Futures?sc_lang=en)、[TuShare index_global](https://tushare.pro/document/2?doc_id=211)、[TuShare fx_daily](https://tushare.pro/document/2?doc_id=179)
