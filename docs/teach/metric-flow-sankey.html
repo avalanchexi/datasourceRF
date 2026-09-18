@@ -1,0 +1,379 @@
+<title>Pring 指标流向</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500&family=Noto+Serif+SC:wght@500;600&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --canvas: #031227;
+    --panel: rgb(10 31 58 / 72%);
+    --elevated: rgb(10 29 54 / 94%);
+    --ink-strong: #eef6ff;
+    --ink-body: #d3e2f5;
+    --ink-muted: #9db3cf;
+    --line: rgb(146 190 239 / 22%);
+    --line-strong: rgb(91 158 250 / 50%);
+    --accent: #5ce1ed;
+    --up: #ff686f;
+    --down: #4bd49b;
+    --warning: #f2ad46;
+    --bond: #4b97ff;
+    --equity: #b78af5;
+    --commodity: #f2ad46;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1200px 820px at 14% -12%, rgb(30 92 168 / 40%), transparent 62%),
+      radial-gradient(920px 720px at 92% -4%, rgb(92 225 237 / 13%), transparent 56%),
+      radial-gradient(1040px 900px at 52% 118%, rgb(63 44 128 / 32%), transparent 60%),
+      var(--canvas);
+    background-attachment: fixed;
+    color: var(--ink-body);
+    font-family: "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 44px 80px; }
+  .mono { font-family: "IBM Plex Mono", "Noto Sans Mono CJK SC", monospace; font-variant-numeric: tabular-nums; }
+
+  header { border-bottom: 1px solid var(--line); padding-bottom: 26px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-muted); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Noto Serif SC", "Source Han Serif SC", serif; font-weight: 600;
+    font-size: clamp(28px, 5vw, 42px); line-height: 1.15; margin: 0 0 12px; color: var(--ink-strong);
+    text-wrap: balance;
+  }
+  .lede { margin: 0; max-width: 64ch; color: var(--ink-muted); font-size: 15px; }
+
+  h2 {
+    font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 12px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px;
+  }
+  .sub { margin: 0 0 20px; font-size: 14px; color: var(--ink-muted); max-width: 70ch; }
+  section { margin-top: 46px; }
+
+  .tally { display: grid; grid-template-columns: repeat(auto-fit, minmax(146px, 1fr)); gap: 14px; margin-top: 28px; }
+  .tally > div {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 13px; padding: 15px 17px;
+  }
+  .tally dt {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-muted); margin: 0 0 6px;
+  }
+  .tally dd {
+    margin: 0; font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums;
+    font-size: 26px; line-height: 1; color: var(--ink-strong);
+  }
+  .tally dd span { font-size: 13px; color: var(--ink-muted); margin-left: 4px; }
+  .tally .ok dd { color: var(--down); }
+  .tally .warn dd { color: var(--warning); }
+  .tally .bad dd { color: var(--up); }
+
+  .board {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 13px;
+    padding: 20px 14px 14px; overflow-x: auto;
+  }
+  svg.sankey { display: block; min-width: 1020px; width: 100%; }
+  .col-head {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase; fill: var(--ink-muted);
+  }
+  .node-label { font-size: 12.5px; fill: var(--ink-body); }
+  .node-count { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; fill: var(--ink-muted); }
+  .link { mix-blend-mode: screen; transition: opacity .15s ease; }
+  svg.sankey:hover .link { opacity: 0.28; }
+  svg.sankey .link:hover { opacity: 0.95; }
+  @media (prefers-reduced-motion: reduce) { .link { transition: none; } }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; font-size: 13px; color: var(--ink-muted); }
+  .legend i { font-style: normal; display: inline-flex; align-items: center; gap: 7px; }
+  .dot { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+
+  .breaks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+  .brk {
+    background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--c);
+    border-radius: 0 13px 13px 0; padding: 17px 19px;
+  }
+  .brk h3 { margin: 0 0 4px; font-size: 15px; font-weight: 400; color: var(--ink-strong); }
+  .brk .n {
+    font-family: "IBM Plex Mono", monospace; font-size: 22px; color: var(--c); line-height: 1;
+    display: block; margin-bottom: 10px;
+  }
+  .brk p { margin: 0; font-size: 13.5px; color: var(--ink-muted); line-height: 1.65; }
+  .brk p + p { margin-top: 8px; }
+  .brk code { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-body); }
+
+  .deriv { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
+  .dv { background: var(--panel); border: 1px solid var(--line); border-radius: 13px; padding: 17px 19px; }
+  .dv h3 {
+    margin: 0 0 3px; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; font-weight: 500;
+    color: var(--ink-strong); word-break: break-word;
+  }
+  .dv .f {
+    font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--accent);
+    letter-spacing: 0.04em; margin: 0 0 11px;
+  }
+  .dv ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .dv li {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-muted);
+    padding-left: 15px; position: relative; word-break: break-word;
+  }
+  .dv li::before { content: "├"; position: absolute; left: 0; color: var(--line-strong); }
+  .dv li:last-child::before { content: "└"; }
+
+  footer {
+    margin-top: 54px; padding-top: 22px; border-top: 1px solid var(--line);
+    color: var(--ink-muted); font-size: 13px;
+  }
+  footer p { margin: 0 0 7px; max-width: 76ch; }
+  footer code { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--ink-body); }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">metric-catalog-v0003 · 2026-09-18</p>
+    <h1>Pring 指标流向</h1>
+    <p class="lede">
+      61 项指标从采集通道到最终去向的全路径。带宽即指标条数，一条丝带就是一组走同一条路的指标。
+      三处断点用颜色标出——它们解释了为什么进得了模型的只有 4 项。
+    </p>
+
+    <dl class="tally">
+      <div><dt>登记指标</dt><dd>61</dd></div>
+      <div class="ok"><dt>进入投影</dt><dd>4<span>/ 61</span></dd></div>
+      <div class="warn"><dt>停在证据层</dt><dd>48</dd></div>
+      <div class="bad"><dt>无通道</dt><dd>6</dd></div>
+      <div class="bad"><dt>已认证却未采集</dt><dd>1</dd></div>
+      <div><dt>系统内部</dt><dd>2</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <h2>一 · 流向</h2>
+    <p class="sub">
+      悬停任意丝带可单独高亮。四列依次是采集通道、解析处理、认证门、最终去向；
+      每一列的总宽度都等于 61，没有指标在图中途消失。
+    </p>
+    <div class="board">
+      <svg class="sankey" id="sankey" role="img" aria-label="61 项指标从采集通道经解析与认证门流向最终去向的桑基图"></svg>
+      <div class="legend">
+        <i><span class="dot" style="background:#4bd49b"></span>进入投影</i>
+        <i><span class="dot" style="background:#5ce1ed"></span>已采集，停在证据层</i>
+        <i><span class="dot" style="background:#f2ad46"></span>已认证却从未采集</i>
+        <i><span class="dot" style="background:#ff686f"></span>无通道</i>
+        <i><span class="dot" style="background:#9db3cf"></span>系统内部，不采集</i>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>二 · 三处断点</h2>
+    <p class="sub">每一处都在图上有对应的丝带；这里说明它们断在哪、为什么断。</p>
+    <div class="breaks">
+      <article class="brk" style="--c: var(--warning)">
+        <h3>交易日历从未被采集</h3>
+        <span class="n">1 项</span>
+        <p><code>CN_TRADE_CALENDAR</code> 是 P0、已认证的指标，采集请求数为 <code>0</code>——不是失败，是从未发起。</p>
+        <p>缺口计划把它归为运营性证据不予采集，而需求检查又要求它有 120 个交易日，否则整个运行降级。两处规则口径相反。</p>
+        <p><b style="color:var(--ink-body)">后果最重</b>：三个核心资产各有 43,300 条已认证声明，却因为没有日历定观察轨道而无法形成牛熊状态，正式阶段因此从未产出过。</p>
+      </article>
+      <article class="brk" style="--c: var(--accent)">
+        <h3>认证门卡住 56 项</h3>
+        <span class="n">48 项停在证据层</span>
+        <p>这 48 项有通道、有解析、取得到值、存了证据，但 <code>certification_status</code> 仍是 <code>awaiting_source_certification</code>，因此不被选点、不进投影。</p>
+        <p>其中 18 项的认证材料已按 ADR-0013 备齐，只差走完认证工序；另有 5 项卡在历史公开时间或外部原件。</p>
+      </article>
+      <article class="brk" style="--c: var(--up)">
+        <h3>六项国际行情无通道</h3>
+        <span class="n">6 项</span>
+        <p><code>CBOE_VIX_INDEX</code>、<code>NASDAQ_SOX_INDEX</code>、<code>LBMA_GOLD_PRICE_PM_USD_OZT</code>、<code>COMEX_GC_…</code>、<code>CN_USDCNH_FXCM</code>、<code>CN_USDCNY_CLOSE_1630</code>。</p>
+        <p>只在目录里有定义，没有适配器，也从未产生过声明。TuShare 的国际指数接口只覆盖 20 个指数，VIX 与 SOX 都不在其中。</p>
+      </article>
+    </div>
+  </section>
+
+  <section>
+    <h2>三 · 派生血缘</h2>
+    <p class="sub">
+      派生指标的输入是别的指标，不是通道——所以它们在上图里只占「冻结公式」一束，真实的依赖关系画在这里。
+      父项不可用时派生项一并不可用，不以零值或均值填补。
+    </p>
+    <div class="deriv">
+      <article class="dv">
+        <h3>CN_DR007_POLICY_SPREAD</h3>
+        <p class="f">dr007_policy_spread · 基点</p>
+        <ul><li>CN_DR007</li><li>CN_OMO_7D_RATE</li></ul>
+      </article>
+      <article class="dv">
+        <h3>CN_CREDIT_IMPULSE</h3>
+        <p class="f">credit_impulse · 百分点</p>
+        <ul><li>CN_SF_TOTAL</li><li>CN_GDP</li></ul>
+      </article>
+      <article class="dv">
+        <h3>CN_ORDER_INVENTORY_SPREAD</h3>
+        <p class="f">order_inventory_spread · 扩散指数点</p>
+        <ul><li>CN_PMI_ACTIVITY</li><li>CN_PMI_INVENTORY</li></ul>
+      </article>
+      <article class="dv">
+        <h3>CN_PRODUCTION_ORDER_SPREAD</h3>
+        <p class="f">production_order_spread · 扩散指数点</p>
+        <ul><li>CN_PMI_ACTIVITY</li></ul>
+      </article>
+      <article class="dv">
+        <h3>UST_2S10S_SPREAD</h3>
+        <p class="f">ust_2s10s_spread · 基点</p>
+        <ul><li>UST2Y_NOMINAL_YIELD</li><li>UST10Y_NOMINAL_YIELD</li></ul>
+      </article>
+      <article class="dv">
+        <h3>两项同族改写</h3>
+        <p class="f">loan_monthly_change · omo_net_injection</p>
+        <ul><li>CN_LOAN_STRUCTURE → 自身月度变化</li><li>CN_OMO_7D_AMOUNT → 净投放</li></ul>
+      </article>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      流量取自注册指标目录 <code>metric-catalog-v0003</code>、官方来源族 <code>OFFICIAL_CONTEXT_FAMILIES</code>、
+      TuShare / EIA / 美债 / CHINAMONEY 上下文适配器，以及 <code>context_projection</code> 的冻结公式表。
+      每列合计均为 61。
+    </p>
+    <p>
+      本图描述机制与通路，不代表任何来源已通过认证。「进入投影」指该指标的声明可被选点，
+      不代表当期真有可用值——运行库 7 次投影全部降级，核心资产数据集为空。
+    </p>
+  </footer>
+</div>
+
+<script>
+  // 每条流：[通道, 解析, 认证门, 终点, 指标数]
+  const FLOWS = [
+    ["TuShare 核心", "TuShare 核心解析 v0002", "已认证", "进入投影", 3],
+    ["CHINAMONEY", "CHINAMONEY LPR 解析 v0002", "已认证", "进入投影", 1],
+    ["未接通道", "无解析", "已认证", "已认证却从未采集", 1],
+
+    ["TuShare", "TuShare 核心解析 v0002", "待来源认证", "停在证据层", 10],
+    ["TuShare", "广度三段解析", "待来源认证", "停在证据层", 5],
+    ["TuShare", "商品篮加权", "待来源认证", "停在证据层", 2],
+    ["TuShare", "仓单解析", "待来源认证", "停在证据层", 1],
+    ["TuShare", "美债 CSV 解析", "待来源认证", "停在证据层", 2],
+
+    ["官方页 + TuShare", "官方页解析 v0004", "待来源认证", "停在证据层", 8],
+    ["官方页", "官方页解析 v0004", "待来源认证", "停在证据层", 13],
+    ["EIA 页面", "EIA 页面解析", "待来源认证", "停在证据层", 2],
+    ["冻结公式", "冻结公式", "待来源认证", "停在证据层", 5],
+
+    ["系统内部", "无解析", "待来源认证", "系统内部，不采集", 2],
+    ["未接通道", "无解析", "待来源认证", "无通道", 6]
+  ];
+
+  const COLORS = {
+    "进入投影": "#4bd49b",
+    "停在证据层": "#5ce1ed",
+    "已认证却从未采集": "#f2ad46",
+    "无通道": "#ff686f",
+    "系统内部，不采集": "#9db3cf"
+  };
+
+  const COLS = ["采集通道", "解析处理", "认证门", "最终去向"];
+  const UNIT = 12.4;       // 每个指标的像素高度
+  const GAP = 11;          // 同列节点间距
+  const NODE_W = 13;
+  const PAD_TOP = 44;
+  const LABEL_W = 178;
+
+  function build() {
+    const svg = document.getElementById("sankey");
+    const width = 1020;
+    const colX = [LABEL_W, LABEL_W + 246, LABEL_W + 492, LABEL_W + 700];
+
+    // 每列的节点，按首次出现顺序
+    const cols = [[], [], [], []];
+    FLOWS.forEach((f) => {
+      for (let i = 0; i < 4; i++) {
+        if (!cols[i].some((n) => n.name === f[i])) cols[i].push({ name: f[i], total: 0 });
+      }
+    });
+    FLOWS.forEach((f) => {
+      for (let i = 0; i < 4; i++) cols[i].find((n) => n.name === f[i]).total += f[4];
+    });
+
+    // 纵向排布
+    const heights = cols.map((c) => c.reduce((s, n) => s + n.total * UNIT, 0) + (c.length - 1) * GAP);
+    const maxH = Math.max(...heights);
+    cols.forEach((c) => {
+      let y = PAD_TOP + (maxH - (c.reduce((s, n) => s + n.total * UNIT, 0) + (c.length - 1) * GAP)) / 2;
+      c.forEach((n) => { n.y = y; n.h = n.total * UNIT; n.cursorIn = y; n.cursorOut = y; y += n.h + GAP; });
+    });
+
+    const height = PAD_TOP + maxH + 22;
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("height", height);
+
+    const ns = "http://www.w3.org/2000/svg";
+    const add = (tag, attrs, parent) => {
+      const el = document.createElementNS(ns, tag);
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+      (parent || svg).appendChild(el);
+      return el;
+    };
+
+    COLS.forEach((name, i) => {
+      const t = add("text", { x: colX[i], y: 22, class: "col-head" });
+      t.textContent = name;
+    });
+
+    // 丝带（先画，压在节点下）
+    FLOWS.forEach((f) => {
+      const color = COLORS[f[3]];
+      for (let i = 0; i < 3; i++) {
+        const a = cols[i].find((n) => n.name === f[i]);
+        const b = cols[i + 1].find((n) => n.name === f[i + 1]);
+        const h = f[4] * UNIT;
+        const x0 = colX[i] + NODE_W;
+        const x1 = colX[i + 1];
+        const y0 = a.cursorOut;
+        const y1 = b.cursorIn;
+        const mx = (x0 + x1) / 2;
+        const d =
+          `M${x0},${y0} C${mx},${y0} ${mx},${y1} ${x1},${y1} ` +
+          `L${x1},${y1 + h} C${mx},${y1 + h} ${mx},${y0 + h} ${x0},${y0 + h} Z`;
+        const p = add("path", { d: d, fill: color, opacity: 0.38, class: "link" });
+        const title = add("title", {}, p);
+        title.textContent = `${f[i]} → ${f[i + 1]} · ${f[4]} 项 · 去向：${f[3]}`;
+        a.cursorOut += h;
+        b.cursorIn += h;
+      }
+    });
+
+    // 节点与标签
+    cols.forEach((c, i) => {
+      c.forEach((n) => {
+        const isTerminal = i === 3;
+        const fill = isTerminal ? COLORS[n.name] : "#9db3cf";
+        add("rect", { x: colX[i], y: n.y, width: NODE_W, height: n.h, fill: fill, opacity: isTerminal ? 0.95 : 0.55, rx: 2 });
+        const cy = n.y + n.h / 2;
+        if (i === 0) {
+          const t = add("text", { x: colX[i] - 10, y: cy - 1, class: "node-label", "text-anchor": "end" });
+          t.textContent = n.name;
+          const c2 = add("text", { x: colX[i] - 10, y: cy + 14, class: "node-count", "text-anchor": "end" });
+          c2.textContent = n.total + " 项";
+        } else {
+          const t = add("text", { x: colX[i] + NODE_W + 10, y: cy - 1, class: "node-label" });
+          t.textContent = n.name;
+          const c2 = add("text", { x: colX[i] + NODE_W + 10, y: cy + 14, class: "node-count" });
+          c2.textContent = n.total + " 项";
+        }
+      });
+    });
+  }
+
+  build();
+</script>
