@@ -1473,6 +1473,16 @@ def _metric_rows(
             )
         )
     warrant_history = None
+    if definition.metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS":
+        claim_ids = tuple(
+            point.selected_claim_id for point in series if point.selected_claim_id is not None
+        )
+        incomplete_source_claims.update(
+            set(claim_ids)
+            - repository.source_claims_matching_registered_contract(
+                claim_ids, definition_version=definition.definition_version
+            )
+        )
     if (
         definition.metric_id == "CN_FUTURES_WARRANTS"
         and definition.definition_version not in BUILTIN_CATALOG_VERSIONS

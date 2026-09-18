@@ -44,6 +44,8 @@ _MUTATING_COMMANDS = {
     "eia-smoke",
     "eia-html-refresh",
     "treasury-csv-refresh",
+    "ecb-reference-import",
+    "ecb-reference-refresh",
     "lpr-smoke",
     "core-history-refresh",
 }
@@ -213,6 +215,35 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
                 paths,
                 start_date=date.fromisoformat(namespace.start),
                 end_date=date.fromisoformat(namespace.end),
+                definition_version=namespace.definition_version,
+            )
+        )
+    if namespace.command in {"ecb-reference-import", "ecb-reference-refresh"}:
+        from pring_cycle.ecb_reference import (
+            import_ecb_reference_cross,
+            refresh_ecb_reference_cross,
+        )
+
+        start_date, end_date = (
+            date.fromisoformat(namespace.start),
+            date.fromisoformat(namespace.end),
+        )
+        if namespace.command == "ecb-reference-import":
+            return asdict(
+                import_ecb_reference_cross(
+                    paths,
+                    namespace.input.read_bytes(),
+                    source_url=namespace.url,
+                    start_date=start_date,
+                    end_date=end_date,
+                    definition_version=namespace.definition_version,
+                )
+            )
+        return asdict(
+            refresh_ecb_reference_cross(
+                paths,
+                start_date=start_date,
+                end_date=end_date,
                 definition_version=namespace.definition_version,
             )
         )
@@ -792,6 +823,14 @@ def _parser() -> argparse.ArgumentParser:
     treasury_csv.add_argument("--start", required=True)
     treasury_csv.add_argument("--end", required=True)
     treasury_csv.add_argument("--definition-version", default="metric-catalog-v0001")
+    for command in ("ecb-reference-import", "ecb-reference-refresh"):
+        ecb_reference = _runtime_parser(subparsers, command)
+        ecb_reference.add_argument("--start", required=True)
+        ecb_reference.add_argument("--end", required=True)
+        ecb_reference.add_argument("--definition-version", required=True)
+        if command == "ecb-reference-import":
+            ecb_reference.add_argument("--input", type=Path, required=True)
+            ecb_reference.add_argument("--url", required=True)
     eia_contract = _runtime_parser(subparsers, "eia-contract")
     eia_contract.add_argument("--input", type=Path, required=True)
     eia_contract.add_argument("--start", required=True)

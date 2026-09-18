@@ -129,7 +129,7 @@ def test_old_broker_quote_cannot_be_copied_into_ecb_cross(
     submit(paths, save(paths, request))
     candidate = json.loads(capsys.readouterr().out)["model_version_id"]
     version = ModelRepository(paths.database).manifest(candidate)["metric_catalog_version"]
-    with pytest.raises(ValueError, match="registered_source_contract_not_implemented"):
+    with pytest.raises(ValueError, match="registered_ecb_source_identity_mismatch"):
         evidence.append_source_claim(
             replace(
                 claim,

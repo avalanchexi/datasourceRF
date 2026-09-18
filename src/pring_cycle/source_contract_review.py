@@ -127,6 +127,25 @@ def require_registered_source_contract(
     """New catalog identity alone does not certify an existing parser's output."""
     if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
         return
+    if definition.metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS":
+        from pring_cycle.ecb_reference import require_ecb_reference_claim
+
+        require_ecb_reference_claim(
+            definition,
+            database_path=database_path,
+            provider=provider,
+            source_reference=source_reference,
+            period_kind=period_kind,
+            period_start=period_start,
+            period_end=period_end,
+            dimensions=dimensions,
+            unit=unit,
+            value=value,
+            acquisition_ids=acquisition_ids,
+            release_at=release_at,
+            public_available_at=public_available_at,
+        )
+        return
     if definition.metric_id in CORE_SOURCE_CODES:
         # Deferred because the adapter's selected-claim checks also use Evidence types.
         from pring_cycle.source_adapters import CORE_API_IDENTITIES
