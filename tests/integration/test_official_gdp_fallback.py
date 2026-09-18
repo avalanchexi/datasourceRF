@@ -26,6 +26,7 @@ from pring_cycle.runs import RetrievalScope, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.tushare_context import TushareContextAdapter, ingest_context_scalars
+from tests.fixtures.delivery_assertions import assert_certified_points, assert_certified_rows
 from tests.models.test_candidate_admission import (
     bind_synthetic_review,
     encode,
@@ -320,7 +321,8 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
         return
     assert len(rows) == len(points)
     provider = "tushare" if delivered else "国家统计局"
-    assert all(c["provider"] == provider for r in rows for c in r["claims"] if c["selected"])
+    assert_certified_points(points, provider)
+    assert_certified_rows(rows, provider)
 
 
 @pytest.mark.usefixtures("runtime_clock")

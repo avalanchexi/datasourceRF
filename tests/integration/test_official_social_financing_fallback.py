@@ -23,6 +23,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
+from tests.fixtures.delivery_assertions import assert_certified_points, assert_certified_rows
 from tests.models.test_candidate_admission import (
     bind_synthetic_review,
     encode,
@@ -257,7 +258,8 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
         assert len(rows) == 1 and rows[0]["claims"] == [] and rows[0]["value"] is None
         return
     assert len(rows) == len(expected)
-    assert all(c["provider"] == provider for r in rows for c in r["claims"] if c["selected"])
+    assert_certified_points(points, provider)
+    assert_certified_rows(rows, provider)
 
 
 @pytest.mark.usefixtures("runtime_clock")

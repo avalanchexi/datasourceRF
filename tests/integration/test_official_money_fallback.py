@@ -23,6 +23,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
+from tests.fixtures.delivery_assertions import assert_certified_points, assert_certified_rows
 from tests.models.test_candidate_admission import (
     bind_synthetic_review,
     encode,
@@ -204,7 +205,8 @@ def test_money_fallback_keeps_required_members_and_delivery_provenance(
         return
     assert len(rows) == 4
     provider = "tushare" if delivered else "中国人民银行"
-    assert all(c["provider"] == provider for row in rows for c in row["claims"] if c["selected"])
+    assert_certified_points(after, provider)
+    assert_certified_rows(rows, provider)
 
 
 @pytest.mark.usefixtures("runtime_clock")

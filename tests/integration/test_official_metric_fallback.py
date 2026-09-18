@@ -27,6 +27,7 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
+from tests.fixtures.delivery_assertions import assert_certified_points, assert_certified_rows
 from tests.models.test_candidate_admission import (
     bind_synthetic_review,
     encode,
@@ -158,6 +159,8 @@ def test_cpi_acquisition_falls_back_only_for_missing_metrics(
     else:
         assert len(headline) == (3 if official_available else 0)
         assert all(point.selected_value != 9.0 for point in headline)
+    if headline:
+        assert_certified_points(headline, "tushare" if headline_present else "国家统计局")
     core = series("CN_CORE_CPI")
     if not official_available:
         assert core == ()
@@ -197,6 +200,7 @@ def test_cpi_acquisition_falls_back_only_for_missing_metrics(
         # Failure leaves an explicit gap; it never synthesizes an empty observation.
         return
     assert len(core) == 3
+    assert_certified_points(core, "国家统计局")
     assert {point.dimensions["measure"]: point.selected_value for point in core} == {
         "mom": 0.1,
         "yoy": 1.0,
@@ -231,12 +235,7 @@ def test_cpi_acquisition_falls_back_only_for_missing_metrics(
             row for row in context.macro["price_chain"]["evidence"] if row["metric_id"] == metric
         ]
         assert len(rows) == 3
-        assert all(
-            claim["provider"] == provider
-            for row in rows
-            for claim in row["claims"]
-            if claim["selected"]
-        )
+        assert_certified_rows(rows, provider)
 
 
 @pytest.mark.usefixtures("runtime_clock")
