@@ -8,7 +8,11 @@ from datetime import UTC, date
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
-from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
+from pring_cycle.catalog_registry import (
+    BUILTIN_CATALOG_VERSIONS,
+    SYSTEM_TARGET_CUTOFF_VERSION,
+    require_registered_manifest,
+)
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
@@ -85,7 +89,12 @@ class ModelInputSelector:
         self.version = str(manifest["metric_catalog_version"])
         self.database_path = paths.database
         self.evidence = TargetBoundEvidenceRepository(
-            EvidenceRepository(paths.database), date.fromisoformat(run.target_business_date), {}
+            EvidenceRepository(paths.database),
+            date.fromisoformat(run.target_business_date),
+            {},
+            allow_system_at_target=(
+                manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
+            ),
         )
         self.core_evidence = EvidenceRepository(paths.database)
         self.target_business_date = run.target_business_date
@@ -148,6 +157,17 @@ class ModelInputSelector:
             return {metric_id: self.series(metric_id) for metric_id in dict.fromkeys(metric_ids)}
 
         return (
+            _ClaimFamily(
+                lambda metric_id: metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS",
+                lambda metric_ids: self.core_evidence.source_claims_matching_registered_contract(
+                    tuple(
+                        point.selected_claim_id
+                        for point in points_of(metric_ids)
+                        if point.selected_claim_id is not None
+                    ),
+                    definition_version=self.version,
+                ),
+            ),
             _ClaimFamily(
                 lambda metric_id: metric_id == "CN_LPR_1Y_5Y",
                 lambda metric_ids: lpr_claims_matching_acquisitions(

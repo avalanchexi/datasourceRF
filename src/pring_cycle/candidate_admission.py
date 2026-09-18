@@ -11,6 +11,7 @@ from datetime import date, datetime
 from typing import Any
 
 from pring_cycle.catalog import MetricDefinition, metric_catalog
+from pring_cycle.catalog_registry import SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
 from pring_cycle.runtime import RuntimePaths
@@ -246,9 +247,13 @@ def _validate_manifest(
         raise ValueError("certification_trend_volatility_window_invalid")
     if manifest.get("stage_mapping") != certified_model_v0001_manifest()["stage_mapping"]:
         raise ValueError("certification_stage_mapping_invalid")
+    if manifest.get("point_in_time_rule_version") not in {
+        "public-cutoff-v0002",
+        SYSTEM_TARGET_CUTOFF_VERSION,
+    }:
+        raise ValueError("certification_rule_version_unsupported:point_in_time_rule_version")
     versions = {
         "selection_rule_version": "selection-v0001",
-        "point_in_time_rule_version": "public-cutoff-v0002",
         "visible_context_window_rule_version": "exact-core-calendar-120-v0001",
         "replay_acceptance_rule_version": "active-baseline-exact-120-v0001",
     }

@@ -39,5 +39,12 @@ pring-cycle ecb-reference-refresh \
 `release_at`、`public_available_at` 保持为空，SYSTEM 从实际读取并校验后可见；不会补造历史 PUBLIC。
 目录原有认证状态保持，投影复核失败时显示 `source_failed`，留存数值仅供审计。
 
-当前命令已可独立采集；完整 Worker 调用、目标交易日下 SYSTEM-only 证据的采用边界、真实来源
-认证和版本回放仍待交付。采集成功不等于认证、正式激活或系统切换。
+新候选模型可声明 `point_in_time_rule_version: dual-cutoff-v0003`。设运行截止为 A、目标交易日
+上海时间日末为 T：SYSTEM 要求 `available_at ≤ A`，且 `public_available_at ≤ T` 或
+`available_at ≤ T`；PUBLIC 仍要求非空的 `public_available_at ≤ min(A, T)`。这些条件在选择
+修订版本前执行。因此后来采集的未知发布时间数据不会填入较早目标日，日期精度导致 PUBLIC
+次日才可用的证据可在实际校验当天按 SYSTEM 使用。认证、质量及模型输入条件仍须满足。
+旧模型保留原有规则；准入后的完整模型清单须一致，不能通过临时改写规则字段切换口径。
+
+当前命令已可独立采集；完整 Worker 调用、真实来源认证和版本回放仍待交付。采集成功不等于
+认证、正式激活或系统切换。
