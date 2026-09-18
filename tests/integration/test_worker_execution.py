@@ -283,7 +283,7 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
 
     monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
 
-    worker_module._refresh_context_sources(
+    worker_module.refresh_context_sources(
         paths,
         "2026-08-28",
         definition_version="metric-catalog-v0002",
@@ -339,7 +339,7 @@ def test_worker_classifies_optional_eia_failures(
     # The key-free page is the fallback once the API cannot serve; it has its own test.
     monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
 
-    worker_module._refresh_context_sources(
+    worker_module.refresh_context_sources(
         paths,
         "2026-08-28",
         definition_version="metric-catalog-v0002",
@@ -649,7 +649,7 @@ def test_resumed_run_reuses_its_published_projection_without_external_refresh(
         raise AssertionError("published_projection_must_skip_external_refresh")
 
     monkeypatch.setattr(worker_module, "_refresh_core_sources", unexpected_refresh)
-    monkeypatch.setattr(worker_module, "_refresh_context_sources", unexpected_refresh)
+    monkeypatch.setattr(worker_module, "refresh_context_sources", unexpected_refresh)
 
     process_pending_run(paths, report_adapters=())
 

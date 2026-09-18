@@ -322,7 +322,7 @@ def _execute_run(
                 paths, run.target_business_date, definition_version=definition_version
             )
         with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-            _refresh_context_sources(
+            refresh_context_sources(
                 paths, run.target_business_date, definition_version=definition_version
             )
         full_retrieval.retrieve(run)
@@ -1400,13 +1400,16 @@ def refresh_eia_context(
     return "verified_candidate"
 
 
-def _refresh_context_sources(
+def refresh_context_sources(
     paths: RuntimePaths,
     target_business_date: str,
     *,
     definition_version: str,
 ) -> None:
+    """Refresh context sources for a frozen catalog, retaining each acquisition outcome."""
     from pring_cycle.acquisition import acquisition_metrics
+    from pring_cycle.catalog_registry import registered_definitions
+    from pring_cycle.ecb_reference import ECB_HISTORY_URL, ECB_METRIC, refresh_ecb_reference_cross
 
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
@@ -1435,6 +1438,49 @@ def _refresh_context_sources(
         definition_version=definition_version,
         record=record,
     )
+
+    if definition_version not in BUILTIN_CATALOG_VERSIONS and any(
+        definition["metric_id"] == ECB_METRIC
+        for definition in registered_definitions(paths.database, definition_version)
+    ):
+        acquisition_ids: list[str] = []
+        try:
+            with acquisition_metrics((ECB_METRIC,)):
+                refresh_ecb_reference_cross(
+                    paths,
+                    start_date=target - timedelta(days=220),
+                    end_date=target,
+                    definition_version=definition_version,
+                    on_acquisition_started=acquisition_ids.append,
+                )
+        except (OSError, TypeError, ValueError) as error:
+            # The adapter normally records the detailed transport/validation failure. Preserve
+            # that receipt; also cover errors after capture so an older success cannot hide one.
+            failed_at = datetime.now(UTC)
+            latest = repository.latest_retrieval_attempt(
+                ECB_METRIC, period=None, as_of=failed_at, definition_version=definition_version
+            )
+            if (
+                latest is None
+                or latest.outcome not in {"source_failed", "validation_failed"}
+                or not acquisition_ids
+                or latest.safe_metadata.get("acquisition_ids") != ",".join(acquisition_ids)
+            ):
+                repository.record_retrieval_attempt(
+                    metric_id=ECB_METRIC,
+                    channel="ecb_reference_http",
+                    outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+                    fetched_at=failed_at,
+                    acquisition_ids=tuple(acquisition_ids),
+                    safe_metadata={
+                        "source_url": ECB_HISTORY_URL,
+                        "start_date": str(target - timedelta(days=220)),
+                        "period": target_business_date,
+                        "target_business_date": target_business_date,
+                        "definition_version": definition_version,
+                        "error_type": type(error).__name__,
+                    },
+                )
 
     token = secrets.get("TUSHARE_TOKEN")
     if token is None:
