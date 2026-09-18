@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals tests/models/test_candidate_admission.py::test_registered_interbank_acquisition_preserves_public_boundary tests/models/test_candidate_admission.py::test_registered_interbank_joint_receipts_preserve_filtered_members tests/models/test_candidate_admission.py::test_registered_interbank_rejects_mixed_api_claim_links -q --durations=10
+............................                                             [100%]
+============================= slowest 10 durations =============================
+4.87s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[False-missing-raw-CN_DR007]
+4.79s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-damaged-normalized-CN_DR007]
+4.29s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-damaged-raw-CN_DR007]
+4.29s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-missing-normalized-CN_SHIBOR_ON_1W_3M]
+4.27s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-missing-normalized-CN_DR007]
+4.16s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-missing-raw-CN_DR007]
+4.05s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-damaged-raw-CN_SHIBOR_ON_1W_3M]
+3.90s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-missing-raw-CN_SHIBOR_ON_1W_3M]
+3.82s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[True-damaged-normalized-CN_SHIBOR_ON_1W_3M]
+3.60s call     tests/models/test_candidate_admission.py::test_registered_interbank_public_projection_rejects_damaged_originals[False-missing-raw-CN_SHIBOR_ON_1W_3M]
+28 passed in 85.30s (0:01:25)
+Exit: 0; elapsed: 85.91s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

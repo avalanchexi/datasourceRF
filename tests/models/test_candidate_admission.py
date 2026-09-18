@@ -2998,6 +2998,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
     request, _ = prepared_request(paths)
     submit(paths, save(paths, request))
     model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
     version = request["manifest"]["metric_catalog_version"]
     # Synthetic TuShare transport, with independent CFETS 2026-08-28 values.
     # The CFETS original is not a historical TuShare delivery receipt.
@@ -3137,7 +3138,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
         int(wrong_dr_value or conflicting_dr_row) if public_known else 4
     )
     context = build_context_projection(
-        repository, as_of=now, target_business_date="2026-08-28", model_manifest=request["manifest"]
+        repository, as_of=now, target_business_date="2026-08-28", model_manifest=manifest
     )
     assert set(imported.claim_ids).intersection(context.observation_version_ids) == (
         set(imported.claim_ids) if public_known else set()
@@ -3147,7 +3148,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
         as_of=datetime(2026, 8, 29, tzinfo=UTC),
         as_of_mode=AsOfMode.PUBLIC,
         target_business_date="2026-08-28",
-        model_manifest=request["manifest"],
+        model_manifest=manifest,
     )
     actual_inputs = public_context.macro["model_input_observation_version_ids"]
     assert isinstance(actual_inputs, list)
@@ -3171,6 +3172,7 @@ def test_registered_interbank_joint_receipts_preserve_filtered_members(
     request, _ = prepared_request(paths)
     submit(paths, save(paths, request))
     model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
     version = request["manifest"]["metric_catalog_version"]
     metrics = ("CN_DR007",) if dr_only else ("CN_DR007", "CN_SHIBOR_ON_1W_3M")
 
@@ -3234,7 +3236,7 @@ def test_registered_interbank_joint_receipts_preserve_filtered_members(
             repository,
             as_of=datetime(2026, 8, 29, tzinfo=UTC),
             as_of_mode=AsOfMode.PUBLIC,
-            model_manifest=request["manifest"],
+            model_manifest=manifest,
             target_business_date="2026-08-28",
         )
         inputs = context.macro["model_input_observation_version_ids"]
@@ -3352,7 +3354,7 @@ def test_registered_interbank_rejects_mixed_api_claim_links(
 @pytest.mark.parametrize("artifact_kind", ["normalized", "raw"])
 @pytest.mark.parametrize("artifact_state", ["damaged", "missing"])
 @pytest.mark.parametrize("late_revision", [False, True])
-def test_registered_interbank_public_replay_rejects_damaged_originals(
+def test_registered_interbank_public_projection_rejects_damaged_originals(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     metric_id: str,
@@ -3365,8 +3367,6 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
     manifests, claims, receipts = {}, {}, {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
-        # Public component evaluation only; stored manifests retain admission gates.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         responses = {
             "repo_daily": {
@@ -3458,19 +3458,41 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
                     fetched_at=datetime.now(UTC),
                     definition_version=manifest["metric_catalog_version"],
                 )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.output_document is not None and before.evaluated_cutoffs == 1
+    checks = 0
+
+    def inspect_day(day: str):
+        nonlocal checks
+        checks += 1
+        # PUBLIC daily cutoffs match the replay boundary (China end of day).
+        cutoff = datetime.fromisoformat(day + "T23:59:59.999999+08:00")
+        contexts, selections = {}, {}
+        for side, manifest in manifests.items():
+            contexts[side] = build_context_projection(
+                EvidenceRepository(paths.database),
+                model_manifest=manifest,
+                target_business_date=day,
+                as_of=cutoff,
+                as_of_mode=AsOfMode.PUBLIC,
+                persist_derived=False,
+            )
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date=day,
+                client_request_id=f"interbank-component-{checks}-{side}",
+                model_version_id=manifest["model_version_id"],
+                system_as_of=cutoff,
+                release_event_id="synthetic:interbank-component",
+                metric_ids=(metric_id,),
+                period=day,
+            )
+            selections[side] = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        return contexts, selections
+
+    before, before_selections = inspect_day("2026-08-28")
     for side in ("comparison", "candidate"):
-        actual = before.output_document["days"][0][side]["macro"][
-            "model_input_observation_version_ids"
-        ]
+        assert before_selections[side].complete
+        assert claims[side] == set(before_selections[side].selected_claim_ids)
+        actual = before[side].macro["model_input_observation_version_ids"]
         assert claims[side] <= set(actual)
     receipt = receipts["candidate"]
     replay_day = "2026-08-28"
@@ -3591,20 +3613,9 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
         claims["candidate"] = {claim.claim_id for claim in updated}
         assert original_candidate_ids.isdisjoint(claims["candidate"])
         replay_day = "2026-08-31"
-        revised = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start=replay_day,
-            requested_end=replay_day,
-        )
-        assert not revised.gaps, revised.gaps
-        assert revised.output_document is not None
-        adopted = set(
-            revised.output_document["days"][0]["candidate"]["macro"][
-                "model_input_observation_version_ids"
-            ]
-        )
+        revised, revised_selections = inspect_day(replay_day)
+        assert all(selection.complete for selection in revised_selections.values())
+        adopted = set(revised["candidate"].macro["model_input_observation_version_ids"])
         assert claims["candidate"] <= adopted
         assert next_day_claims["candidate"] <= adopted
         assert original_candidate_ids.isdisjoint(adopted)
@@ -3615,45 +3626,35 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
         damaged_path.unlink()
     else:
         damaged_path.write_bytes(b"damaged candidate interbank artifact")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start=replay_day,
-        requested_end=replay_day,
-    )
+    after, after_selections = inspect_day(replay_day)
+    assert after_selections["comparison"].complete
     if late_revision:
         # Current daily data remains complete; the damaged earlier direction
         # parent must be excluded rather than replaced by its superseded version.
-        assert not after.gaps, after.gaps
+        assert after_selections["candidate"].complete
     else:
-        assert f"candidate_context_selection_invalid:{metric_id}" in after.gaps
-    assert after.output_document is not None
-    after_day = after.output_document["days"][0]
-    assert not claims["candidate"] & set(
-        after_day["candidate"]["macro"]["model_input_observation_version_ids"]
-    )
-    assert claims["comparison"] <= set(
-        after_day["comparison"]["macro"]["model_input_observation_version_ids"]
-    )
-    assert original_candidate_ids.isdisjoint(
-        after_day["candidate"]["macro"]["model_input_observation_version_ids"]
-    )
+        assert not after_selections["candidate"].complete
+        assert after_selections["candidate"].missing_members
+        assert not after_selections["candidate"].selected_claim_ids
+    adopted = {
+        side: set(context.macro["model_input_observation_version_ids"])
+        for side, context in after.items()
+    }
+    assert claims["candidate"].isdisjoint(adopted["candidate"])
+    assert claims["comparison"] <= adopted["comparison"]
+    assert original_candidate_ids.isdisjoint(adopted["candidate"])
     if late_revision:
         for side in ("comparison", "candidate"):
-            assert next_day_claims[side] <= set(
-                after_day[side]["macro"]["model_input_observation_version_ids"]
+            assert next_day_claims[side] <= adopted[side]
+            assert next_day_claims[side] == set(after_selections[side].selected_claim_ids)
+        early, early_selections = inspect_day("2026-08-28")
+        for side in ("comparison", "candidate"):
+            assert early_selections[side].complete
+            assert (
+                early_selections[side].selected_claim_ids
+                == before_selections[side].selected_claim_ids
             )
-        early = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-        )
-        assert not early.gaps, early.gaps
-        assert early.output_document is not None
-        assert early.output_document["days"] == before.output_document["days"]
+            assert early[side].macro == before[side].macro
 
 
 @pytest.mark.parametrize(

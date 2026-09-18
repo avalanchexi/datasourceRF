@@ -265,17 +265,14 @@ class ModelInputSelector:
                 and matches_retrieval_period(point.period_end, scope.period)
             ),
         )
-        families = self._claim_families()
+        families = self._claim_families() if registered else ()
         checked_families = tuple(
             (
                 family,
-                family.check(
-                    tuple(metric_id for metric_id in scope.metric_ids if family.owns(metric_id))
-                    if registered
-                    else ()
-                ),
+                family.check(metric_ids),
             )
             for family in families
+            if (metric_ids := tuple(m for m in scope.metric_ids if family.owns(m)))
         )
         selected_ids: list[str] = []
         missing = []
