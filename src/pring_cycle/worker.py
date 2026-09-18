@@ -336,7 +336,10 @@ def _execute_run(
             full_retrieval.recover_legacy_plan(run)
     full_retrieval.evaluate(run)
     plan = runs.full_retrieval_plan(run.run_id)
-    if plan["final"]["daily_window"]["status"] == "available" and any(
+    if plan["final"]["daily_window"]["status"] != "available":
+        runs.mark_action_required(run.run_id, "p0_required_calendar_unavailable")
+        return
+    if any(
         not gap["complete"] and gap["metric_id"] in model_manifest["core_metrics"].values()
         for gap in plan["final"]["gaps"]
     ):

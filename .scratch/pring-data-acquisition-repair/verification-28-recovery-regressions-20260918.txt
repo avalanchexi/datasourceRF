@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/integration/test_worker_calendar_gate.py tests/integration/test_worker_execution.py::test_resumed_run_reuses_its_published_projection_without_external_refresh tests/integration/test_worker_execution.py::test_report_command_reads_the_published_projection_and_never_rewrites_it tests/integration/test_worker_execution.py::test_report_run_reads_its_bound_projection_when_current_pointer_advances tests/integration/test_full_run_retrieval.py::test_full_run_recovers_adoption_after_projection_checkpoint tests/integration/test_full_run_retrieval.py::test_upgrade_resumes_verified_evidence_at_original_cutoff tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices tests/integration/test_full_run_retrieval.py::test_conflicting_calendar_cannot_claim_complete_window -q --durations=10
+............                                                             [100%]
+============================= slowest 10 durations =============================
+28.57s call     tests/integration/test_full_run_retrieval.py::test_full_run_recovers_adoption_after_projection_checkpoint
+19.29s call     tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices[reuse]
+17.37s call     tests/integration/test_full_run_retrieval.py::test_upgrade_resumes_verified_evidence_at_original_cutoff
+4.99s call     tests/integration/test_full_run_retrieval.py::test_conflicting_calendar_cannot_claim_complete_window
+4.08s call     tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices[before_cutoff]
+4.06s call     tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices[conflict]
+3.98s call     tests/integration/test_worker_calendar_gate.py::test_missing_independent_calendar_blocks_publication_and_preserves_previous_result[False]
+3.73s call     tests/integration/test_worker_calendar_gate.py::test_missing_independent_calendar_blocks_publication_and_preserves_previous_result[True]
+3.55s call     tests/integration/test_full_run_retrieval.py::test_resumed_run_uses_verified_calendar_response_independent_of_prices[cancel]
+0.61s call     tests/integration/test_worker_execution.py::test_report_command_reads_the_published_projection_and_never_rewrites_it
+12 passed in 92.22s (0:01:32)
+Exit: 0; elapsed: 92.96s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

@@ -23,6 +23,7 @@ from pring_cycle.evidence import (
     publication_times,
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import TushareCoreAdapter
@@ -230,6 +231,11 @@ def test_manual_run_cannot_backdate_daily_core_availability(
     monkeypatch.setattr("pring_cycle.acquisition.datetime", StableDateTime)
     monkeypatch.setattr("pring_cycle.core_history.datetime", StableDateTime)
     monkeypatch.setattr("pring_cycle.worker.datetime", StableDateTime)
+
+    def offline_optional(*args, **kwargs):
+        raise OSError("fixture optional source unavailable")
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", offline_optional)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
@@ -286,6 +292,18 @@ def test_manual_run_cannot_backdate_daily_core_availability(
     # The isolated legacy model permits SYSTEM evidence; unknown publication
     # is a PUBLIC availability gap, not a fabricated transport failure.
     assert runs.get(run.run_id).status == "completed"
+    plan = runs.full_retrieval_plan(run.run_id)
+    window = plan["final"]["daily_window"]
+    assert window["status"] == "available"
+    assert window["basis"] == "validated_independent_calendar_response"
+    assert len(window["dates"]) == 120
+    assert any(
+        item["api_name"] == "trade_cal" and item["state"] == "validated"
+        for item in plan["acquisitions"]
+    )
+    projection = ProjectionSetRepository(paths.database).current()
+    assert len(projection.datasets["core_assets"]["assets"]) == 3
+    assert projection.datasets["cycle_overview"]["current_stage"] == "stage_iii"
     assert (
         evidence.metric_series(
             "CN_EQUITY_CORE_000985",
