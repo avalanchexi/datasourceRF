@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts tests/models/test_candidate_admission.py::test_cpi_public_projection_reports_invalid_selected_artifacts tests/models/test_candidate_admission.py::test_lpr_public_projection_rechecks_selected_acquisition_artifacts -q --durations=10
+......................                                                   [100%]
+============================= slowest 10 durations =============================
+4.43s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[True-normalized-CN_PMI_ACTIVITY]
+4.37s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[True-normalized-CN_PMI_INVENTORY]
+4.04s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[True-normalized-CN_PMI_PRICES]
+3.90s call     tests/models/test_candidate_admission.py::test_lpr_public_projection_rechecks_selected_acquisition_artifacts[False-changed-raw]
+3.86s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[True-raw-CN_PMI_ACTIVITY]
+3.82s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[True-raw-CN_PMI_PRICES]
+3.75s call     tests/models/test_candidate_admission.py::test_cpi_public_projection_reports_invalid_selected_artifacts[CN_CPI_HEADLINE]
+3.75s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[True-raw-CN_PMI_INVENTORY]
+3.60s call     tests/models/test_candidate_admission.py::test_lpr_public_projection_rechecks_selected_acquisition_artifacts[True-missing-raw]
+3.57s call     tests/models/test_candidate_admission.py::test_pmi_public_projection_reports_invalid_selected_artifacts[False-raw-CN_PMI_ACTIVITY]
+22 passed in 80.64s (0:01:20)
+Exit: 0; elapsed: 81.16s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

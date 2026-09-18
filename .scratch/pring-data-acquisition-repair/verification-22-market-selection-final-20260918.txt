@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/models/test_candidate_admission.py::test_registered_margin_public_selection_rejects_damaged_originals tests/models/test_candidate_admission.py::test_registered_market_index_public_selection_rejects_damaged_originals tests/models/test_candidate_admission.py::test_registered_valuation_public_selection_rejects_damaged_originals tests/models/test_candidate_admission.py::test_registered_daily_breadth_public_selection_rechecks_originals tests/models/test_candidate_admission.py::test_registered_amount_breadth_public_selection_rechecks_candidate_inputs -q --durations=10
+.......                                                                  [100%]
+============================= slowest 10 durations =============================
+4.65s call     tests/models/test_candidate_admission.py::test_registered_market_index_public_selection_rejects_damaged_originals[CN_COMMODITY_BROAD_NHCI-NHCI.NH]
+3.53s call     tests/models/test_candidate_admission.py::test_registered_amount_breadth_public_selection_rechecks_candidate_inputs
+3.48s call     tests/models/test_candidate_admission.py::test_registered_daily_breadth_public_selection_rechecks_originals[daily]
+3.47s call     tests/models/test_candidate_admission.py::test_registered_daily_breadth_public_selection_rechecks_originals[review]
+3.41s call     tests/models/test_candidate_admission.py::test_registered_valuation_public_selection_rejects_damaged_originals
+3.35s call     tests/models/test_candidate_admission.py::test_registered_market_index_public_selection_rejects_damaged_originals[CN_EQ_CSI500-000905.SH]
+2.93s call     tests/models/test_candidate_admission.py::test_registered_margin_public_selection_rejects_damaged_originals
+0.05s setup    tests/models/test_candidate_admission.py::test_registered_margin_public_selection_rejects_damaged_originals
+
+(2 durations < 0.005s hidden.  Use -vv to show these durations.)
+7 passed in 26.84s
+Exit: 0; elapsed: 27.44s
+Related feedback only. Complete affected heavy acceptance before closing the slice.
