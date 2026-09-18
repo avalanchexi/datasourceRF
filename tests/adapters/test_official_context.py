@@ -272,6 +272,51 @@ def test_official_context_revision_without_new_time_remains_system_only(
     )
 
 
+@pytest.mark.usefixtures("runtime_clock")
+def test_scoped_fallback_preserves_revision_time_for_the_whole_announcement(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
+
+    # Synthetic revisions keep the same printed publication time.
+    def document(core_yoy: float) -> bytes:
+        return official_table_document(
+            title="2026年6月份居民消费价格",
+            release_at="2026-07-09 09:30",
+            header=("指标", "环比（%）", "同比（%）", "累计平均同比（%）"),
+            rows=(("居民消费价格", 0.1, 0.8, 0.9), ("不包括食品和能源", 0.0, core_yoy, 1.2)),
+        )
+
+    for metric, core_yoy in (
+        ("CN_CORE_CPI", 1.0),
+        ("CN_CORE_CPI", 1.1),
+        ("CN_CPI_HEADLINE", 1.1),
+    ):
+        refresh_official_context_document(
+            paths,
+            family="nbs_core_cpi",
+            source_url=source_url,
+            expected_period="2026-06",
+            fetched_at=datetime.now(UTC),
+            metric_ids=(metric,),
+            fetcher=lambda url, core_yoy=core_yoy: FetchedOfficialContextDocument(
+                document(core_yoy), "text/html", url, 200
+            ),
+        )
+    evidence = EvidenceRepository(paths.database)
+    headline = evidence.metric_series(
+        "CN_CPI_HEADLINE", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+    )
+    assert len(headline) == 3
+    assert all(claim.public_available_at is None for point in headline for claim in point.claims)
+    assert (
+        evidence.metric_series("CN_CPI_HEADLINE", mode=AsOfMode.PUBLIC, as_of=datetime.now(UTC))
+        == ()
+    )
+
+
 def test_official_context_smoke_returns_sanitized_contract_evidence() -> None:
     content = core_cpi_document(2026, 6, (-0.1, 1.0, 1.2))
     source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
@@ -985,3 +1030,254 @@ def test_nbs_capacity_contract_accepts_live_multilevel_table() -> None:
         ("yoy_change", -1.0),
         ("ytd_rate", 73.3),
     }
+
+
+def test_official_refresh_follows_listing_for_requested_period(tmp_path: Path) -> None:
+    from pring_cycle.acquisition import AcquisitionRepository
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    listing = "https://www.stats.gov.cn/sj/zxfb/"
+    article = listing + "202607/t20260709_1.html"
+    documents = {article: core_cpi_document(2026, 6, (-0.1, 1.0, 1.2))}
+    documents[listing] = """<html><body>
+      <a href="202608/t20260809_2.html">2026年7月份居民消费价格</a>
+      <a href="202607/t20260709_1.html">2026年6月份居民消费价格</a>
+      <a href="202607/t20260709_1.html">2026年6月份居民消费价格</a>
+    </body></html>""".encode()
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        return FetchedOfficialContextDocument(
+            content=documents[url], media_type="text/html", final_url=url, http_status=200
+        )
+
+    result = refresh_official_context_document(
+        paths,
+        family="nbs_core_cpi",
+        source_url=listing,
+        expected_period="2026-06",
+        fetched_at=datetime.now(UTC),
+        fetcher=fetch,
+    )
+    evidence = EvidenceRepository(paths.database)
+    trace = evidence.trace(result.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
+    assert result.period == "2026-06"
+    assert result.observation_count == 3
+    assert trace.claims[0].value == -0.1
+    assert trace.claims[0].source_reference.startswith(article + "#sha256=")
+    assert trace.claims[0].provider == "国家统计局"
+    assert trace.claims[0].certification_status == "awaiting_source_certification"
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipts = acquisitions.history()
+    assert {r.parameters["source_url"] for r in receipts} == {listing, article}
+    assert all(r.state == "validated" for r in receipts)
+    for receipt in receipts:
+        assert (
+            acquisitions.read_content(receipt.acquisition_id, "raw")
+            == documents[receipt.parameters["source_url"]]
+        )
+
+
+@pytest.mark.parametrize(
+    ("family", "period", "listing", "title", "filename", "expected_count"),
+    [
+        (
+            "nbs_core_cpi",
+            "2026-08",
+            "https://www.stats.gov.cn/sj/zxfb/",
+            "2026年8月份居民消费价格同比上涨0.8%",
+            "202609/t20260909_1965263.html",
+            6,
+        ),
+        (
+            "nbs_ppi",
+            "2026-08",
+            "https://www.stats.gov.cn/sj/zxfb/",
+            "2026年8月份工业生产者出厂价格同比上涨3.8% 环比上涨0.4%",
+            "202609/t20260909_1965262.html",
+            9,
+        ),
+        (
+            "nbs_pmi",
+            "2026-08",
+            "https://www.stats.gov.cn/sj/zxfb/",
+            "2026年8月中国采购经理指数运行情况",
+            "202608/t20260831_1965154.html",
+            8,
+        ),
+        (
+            "pbc_money",
+            "2026-07",
+            "https://www.pbc.gov.cn/diaochatongjisi/116219/",
+            "2026年7月金融统计数据报告",
+            "116225/2026081416320925645/index.html",
+            4,
+        ),
+    ],
+)
+def test_official_refresh_resolves_family_period_from_listing(
+    tmp_path: Path,
+    family: str,
+    period: str,
+    listing: str,
+    title: str,
+    filename: str,
+    expected_count: int,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    article_url = listing + filename
+    article = (
+        Path(__file__).parents[1] / "fixtures" / "official_period_fallback" / (family + ".html")
+    ).read_bytes()
+    listing_url = listing + ("index.html" if family == "pbc_money" else "")
+    documents = {
+        listing_url: f'<html><a href="{filename}">{title}</a></html>'.encode(),
+        article_url: article,
+    }
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        return FetchedOfficialContextDocument(
+            content=documents[url], media_type="text/html", final_url=url, http_status=200
+        )
+
+    result = refresh_official_context_document(
+        paths,
+        family=family,
+        source_url=listing_url,
+        expected_period=period,
+        fetched_at=datetime.now(UTC),
+        fetcher=fetch,
+    )
+    assert result.observation_count == expected_count
+    assert result.period == period
+    evidence = EvidenceRepository(paths.database)
+    for observation_id in result.observation_ids:
+        trace = evidence.trace(observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
+        assert trace.claims[0].source_reference.startswith(article_url + "#sha256=")
+
+
+def test_listing_response_rejection_retains_original(tmp_path: Path) -> None:
+    from pring_cycle.acquisition import AcquisitionRepository
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    listing = "https://www.stats.gov.cn/sj/zxfb/"
+    body = b"not an HTML release listing"
+    with pytest.raises(ValueError, match="official_context_response_media_type_invalid"):
+        refresh_official_context_document(
+            paths,
+            family="nbs_core_cpi",
+            source_url=listing,
+            expected_period="2026-06",
+            fetched_at=datetime.now(UTC),
+            fetcher=lambda url: FetchedOfficialContextDocument(
+                content=body, media_type="text/plain", final_url=url, http_status=200
+            ),
+        )
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    receipts = acquisitions.history()
+    assert len(receipts) == 1
+    assert acquisitions.read_content(receipts[0].acquisition_id, "raw") == body
+    assert not EvidenceRepository(paths.database).metric_series(
+        "CN_CORE_CPI", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+    )
+
+
+@pytest.mark.parametrize(
+    ("anchors", "error"),
+    [
+        (
+            '<a href="https://untrusted.example/value">2026年6月份居民消费价格</a>',
+            "official_context_source_url_not_official",
+        ),
+        (
+            '<a href="202607/first.html">2026年6月份居民消费价格</a>'
+            '<a href="202607/second.html">2026年6月份居民消费价格</a>',
+            "official_context_release_link_not_unique",
+        ),
+        (
+            '<a href="202608/latest.html">2026年7月份居民消费价格</a>',
+            "official_context_release_link_not_unique",
+        ),
+    ],
+)
+def test_official_listing_rejects_untrusted_ambiguous_or_wrong_period_release(
+    tmp_path: Path,
+    anchors: str,
+    error: str,
+) -> None:
+    from pring_cycle.acquisition import AcquisitionRepository
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    listing = "https://www.stats.gov.cn/sj/zxfb/"
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        assert url == listing
+        return FetchedOfficialContextDocument(
+            content=anchors.encode(), media_type="text/html", final_url=url, http_status=200
+        )
+
+    with pytest.raises(ValueError, match=error):
+        refresh_official_context_document(
+            paths,
+            family="nbs_core_cpi",
+            source_url=listing,
+            expected_period="2026-06",
+            fetched_at=datetime.now(UTC),
+            fetcher=fetch,
+        )
+    receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert len(receipts) == 1
+    assert receipts[0].raw_hash is not None
+    assert not EvidenceRepository(paths.database).metric_series(
+        "CN_CORE_CPI", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
+    )
+
+
+@pytest.mark.parametrize(
+    ("period", "label"),
+    [
+        ("2025-03", "一季度"),
+        ("2025-06", "上半年"),
+        ("2025-09", "前三季度"),
+        ("2025-12", ""),
+        ("2025-12", "全年"),
+    ],
+)
+def test_official_money_listing_accepts_aggregate_period_titles(
+    tmp_path: Path,
+    period: str,
+    label: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    listing = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+    article = "https://www.pbc.gov.cn/diaochatongjisi/report.html"
+    title = f"2025年{label}金融统计数据报告"
+    # Synthetic values isolate title/period identity; this is not a historical source package.
+    documents = {
+        listing: f'<a href="{article}">{title}</a>'.encode(),
+        article: (
+            f"<h1>{title}</h1><p>文章来源：2026-01-15 09:30:00</p>"
+            "<p>广义货币(M2)余额300万亿元，同比增长8%；"
+            "狭义货币(M1)余额100万亿元，同比增长2%。</p>"
+        ).encode(),
+    }
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        return FetchedOfficialContextDocument(
+            content=documents[url], media_type="text/html", final_url=url, http_status=200
+        )
+
+    result = refresh_official_context_document(
+        paths,
+        family="pbc_money",
+        source_url=listing,
+        expected_period=period,
+        fetched_at=datetime.now(UTC),
+        fetcher=fetch,
+    )
+    assert result.observation_count == 4
+    assert result.period == period

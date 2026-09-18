@@ -1,0 +1,16 @@
+# Official release fixtures
+
+Exact response bytes fetched on 2026-09-17 for the bounded article follow-up. Tests use these as archived transport responses, not as source-certification packages. The local research receipts are in `.scratch/pring-data-acquisition-repair/evidence-25-articles-20260917/receipts.json` in the main workspace.
+
+| File | Original URL | SHA256 |
+|---|---|---|
+| nbs_core_cpi.html | https://www.stats.gov.cn/sj/zxfb/202609/t20260909_1965263.html | `a04f01c303c85edff794081d3651efe89bb679b1e5bad08aaa07a115dde74fbe` |
+| nbs_ppi.html | https://www.stats.gov.cn/sj/zxfb/202609/t20260909_1965262.html | `46fda2cc27a2052cb357b288e44d60f8c36daccdfd8bd5d61e755ea881981b57` |
+| nbs_pmi.html | https://www.stats.gov.cn/sj/zxfb/202608/t20260831_1965154.html | `a561911c92b4ea4ea58ed808d5fe4ef61a1dfb79a31f593ba46ad4692aa5af46` |
+| pbc_money.html | https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html | `933f3546fc3f8232014dc9e2cab854a331ff5da5a9509d3063ada2d3678dfcef` |
+| nbs_gdp.html | https://www.stats.gov.cn/sj/zxfb/202607/t20260716_1964142.html | `60b12f6257d62842e7ea13e5c79bf868438fb382e7857bd6f88ab4110c588915` |
+| nbs_gdp_q1.html | https://www.stats.gov.cn/sj/zxfb/202604/t20260417_1963336.html | `61f8de5fbdb2ca88130504d13a0af85ebb92004b04b85772ae3c619003767a18` |
+| nbs_gdp_q3.html | https://www.stats.gov.cn/sj/zxfb/202510/t20251021_1961646.html | `0f7c85e52242f3e1905d3313aa744028f51d48f60bcff899b712da400f135a5c` |
+| nbs_gdp_q4.html | https://www.stats.gov.cn/sj/zxfb/202601/t20260120_1962349.html | `9d9bc9ece5d52a9ba07d6d9ed01e0d865b4d72b385c1b2a9873501e2d5532765` |
+
+The GDP fixtures reuse the earlier `evidence-13` and `evidence-macro-normalized` originals; they were not downloaded in the article follow-up batch.

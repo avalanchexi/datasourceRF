@@ -31,10 +31,20 @@ from pring_cycle.evidence import (
     publication_times,
 )
 from pring_cycle.http_transport import open_no_redirects as urlopen
+from pring_cycle.official_listing import is_release_listing, release_url
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
-from pring_cycle.tushare_context import ContextScalar
+from pring_cycle.tushare_context import (
+    ContextScalar,
+    parse_cpi_acquisition,
+    parse_gdp_acquisition,
+    parse_money_acquisition,
+    parse_pmi_acquisition,
+    parse_ppi_acquisition,
+    parse_social_financing_total_acquisition,
+    tushare_claims_matching_acquisitions,
+)
 
 MAX_OFFICIAL_CONTEXT_BYTES = 4_000_000
 
@@ -376,6 +386,30 @@ def official_claims_matching_acquisitions(
         if valid:
             valid_claim_ids.add(claim_id)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        for metric_id, parse_delivery in (
+            ("CN_PPI", parse_ppi_acquisition),
+            ("CN_CPI_HEADLINE", parse_cpi_acquisition),
+            ("CN_PMI_ACTIVITY", parse_pmi_acquisition),
+            ("CN_PMI_INVENTORY", parse_pmi_acquisition),
+            ("CN_PMI_PRICES", parse_pmi_acquisition),
+            ("CN_M1_M2", parse_money_acquisition),
+            ("CN_SF_TOTAL", parse_social_financing_total_acquisition),
+            ("CN_GDP", parse_gdp_acquisition),
+        ):
+            points = points_by_metric.get(metric_id, ())
+            if not points:
+                continue
+            delivered = tushare_claims_matching_acquisitions(
+                repository,
+                points,
+                definition_version=definition_version,
+                parse=parse_delivery,
+            )
+            valid_claim_ids.update(
+                repository.source_claims_matching_registered_contract(
+                    tuple(delivered), definition_version=definition_version
+                )
+            )
         mapped_claim_ids = tuple(
             claim_id
             for claim_id, (metric_id, point) in selected_points.items()
@@ -473,8 +507,19 @@ def ingest_acquired_official_release(
     *,
     definition_version: str,
     clock: Callable[[], datetime] = utc_now,
+    metric_ids: tuple[str, ...] | None = None,
 ) -> OfficialContextIngestionResult:
     parsed, receipt = acquired.value, acquired.receipt
+    requested = (
+        frozenset(scalar.metric_id for scalar in parsed.scalars)
+        if metric_ids is None
+        else _official_metric_scope(parsed.family, metric_ids)
+    )
+    # Keep the original and its normalized full announcement intact for revalidation.
+    # A retrieval scope controls which claims are admitted, not what the source published.
+    scalars = tuple(scalar for scalar in parsed.scalars if scalar.metric_id in requested)
+    if not scalars:
+        raise ValueError("official_context_requested_metrics_missing")
     if receipt.received_at is None or receipt.validated_at is None or receipt.raw_hash is None:
         raise ValueError("official_acquisition_incomplete")
     content = AcquisitionRepository(paths.database, paths.artifacts).read_content(
@@ -487,6 +532,8 @@ def ingest_acquired_official_release(
     )
     source_reference = f"{parsed.source_url}#sha256={artifact.content_hash}"
     repository = EvidenceRepository(paths.database)
+    # Publication uncertainty belongs to the whole revised announcement, including
+    # revisions learned through a previously requested sibling metric.
     previous = [
         repository.latest_provider_claim(
             metric_id=scalar.metric_id,
@@ -562,12 +609,12 @@ def ingest_acquired_official_release(
             quality_status="validated",
             acquisition_id=receipt.acquisition_id,
         )
-        for scalar in parsed.scalars
+        for scalar in scalars
     )
     stored = repository.append_source_claims(claims, availability_clock=clock)
     family = parsed.family
     expected_period = parsed.period
-    metric_ids = tuple(sorted({scalar.metric_id for scalar in parsed.scalars}))
+    metric_ids = tuple(sorted({scalar.metric_id for scalar in scalars}))
     for metric_id in metric_ids:
         repository.record_retrieval_attempt(
             metric_id=metric_id,
@@ -596,6 +643,13 @@ def ingest_acquired_official_release(
     )
 
 
+def _official_metric_scope(family: str, metric_ids: tuple[str, ...] | None) -> frozenset[str]:
+    requested = _FAMILY_METRICS[family] if metric_ids is None else frozenset(metric_ids)
+    if not requested or not requested.issubset(_FAMILY_METRICS[family]):
+        raise ValueError("official_context_metric_scope_invalid")
+    return requested
+
+
 def refresh_official_context_document(
     paths: RuntimePaths,
     *,
@@ -607,8 +661,10 @@ def refresh_official_context_document(
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
     parser_text_limit: int | None = None,
+    metric_ids: tuple[str, ...] | None = None,
 ) -> OfficialContextIngestionResult:
     _validate_source_identity(family, source_url)
+    requested = _official_metric_scope(family, metric_ids)
     if fetched_at.tzinfo is None:
         raise ValueError("official_context_fetched_at_must_be_timezone_aware")
     acquisition_ids: list[str] = []
@@ -619,6 +675,37 @@ def refresh_official_context_document(
             on_acquisition_started(acquisition_id)
 
     try:
+        if is_release_listing(family, source_url):
+            listing_url = source_url
+            listing_responses: list[FetchedOfficialContextDocument] = []
+
+            def fetch_listing() -> bytes:
+                response = (fetcher or _fetch_official_context_document)(listing_url)
+                listing_responses.append(response)
+                return response.content
+
+            def parse_listing(content: bytes) -> str:
+                _validate_fetched_document(family, listing_url, listing_responses[0])
+                if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
+                    raise ValueError("official_context_document_size_invalid")
+                resolved = release_url(
+                    content, family=family, listing_url=listing_url, period=expected_period
+                )
+                _validate_source_identity(family, resolved)
+                return resolved
+
+            discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
+                provider=_validate_source_identity(family, listing_url),
+                api_name="official_listing_get",
+                parameters={"source_url": listing_url, "period": expected_period, "family": family},
+                fields="href,title",
+                parser_version="official-release-listing-v0001",
+                fetch=fetch_listing,
+                parse=parse_listing,
+                normalize=lambda resolved: {"source_url": resolved},
+                on_started=started,
+            )
+            source_url = discovered.value
         response_holder: list[FetchedOfficialContextDocument] = []
 
         def fetch() -> bytes:
@@ -649,11 +736,11 @@ def refresh_official_context_document(
             on_started=started,
         )
         return ingest_acquired_official_release(
-            paths, acquired, definition_version=definition_version
+            paths, acquired, definition_version=definition_version, metric_ids=metric_ids
         )
     except (OSError, TypeError, ValueError) as error:
         repository = EvidenceRepository(paths.database)
-        for metric_id in sorted(_FAMILY_METRICS[family]):
+        for metric_id in sorted(requested):
             repository.record_retrieval_attempt(
                 metric_id=metric_id,
                 channel="official_direct_candidate",

@@ -15,7 +15,22 @@ from pring_cycle.adapters import CORE_SOURCE_CODES
 from pring_cycle.catalog import METRIC_CATALOG_V0003, MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.metric_contracts import official_source_members
-from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES, OFFICIAL_CONTEXT_FAMILY_BY_METRIC
+from pring_cycle.source_families import (
+    OFFICIAL_CONTEXT_FAMILIES,
+    OFFICIAL_CONTEXT_FAMILY_BY_METRIC,
+    TUSHARE_CPI_FIELDS,
+    TUSHARE_CPI_SOURCE_CODE,
+    TUSHARE_GDP_FIELDS,
+    TUSHARE_GDP_SOURCE_CODE,
+    TUSHARE_MONEY_FIELDS,
+    TUSHARE_MONEY_SOURCE_CODE,
+    TUSHARE_PMI_FIELDS,
+    TUSHARE_PMI_SOURCE_CODE,
+    TUSHARE_PPI_FIELDS,
+    TUSHARE_PPI_SOURCE_CODE,
+    TUSHARE_SF_TOTAL_FIELDS,
+    TUSHARE_SF_TOTAL_SOURCE_CODE,
+)
 from pring_cycle.storage import artifact_is_registered, database_connection
 
 SOURCE_MAPPING_REFERENCE_CONTRACT_VERSION = "source-mapping-reference-v0001"
@@ -187,6 +202,29 @@ def require_registered_source_contract(
     )
     if members is not None:
         supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+        dual_ppi = definition.metric_id == "CN_PPI" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_PPI_SOURCE_CODE,
+        )
+        dual_pmi = definition.metric_id in {
+            "CN_PMI_ACTIVITY",
+            "CN_PMI_INVENTORY",
+            "CN_PMI_PRICES",
+        } and definition.source_codes == (*supported.source_codes, TUSHARE_PMI_SOURCE_CODE)
+        dual_money = definition.metric_id == "CN_M1_M2" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_MONEY_SOURCE_CODE,
+        )
+        dual_sf = definition.metric_id == "CN_SF_TOTAL" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_SF_TOTAL_SOURCE_CODE,
+        )
+        dual_gdp = definition.metric_id == "CN_GDP" and definition.source_codes == (
+            *supported.source_codes,
+            TUSHARE_GDP_SOURCE_CODE,
+        )
+        if dual_ppi or dual_pmi or dual_money or dual_sf or dual_gdp:
+            supported = replace(supported, source_codes=definition.source_codes)
         family = OFFICIAL_CONTEXT_FAMILY_BY_METRIC[definition.metric_id]
         fields = (
             "source_codes",
@@ -201,7 +239,50 @@ def require_registered_source_contract(
             definition.allowed_units or (definition.unit,)
         ) != set(supported.allowed_units):
             raise ValueError("registered_official_source_contract_unsupported")
-        if provider != OFFICIAL_CONTEXT_FAMILIES[family].provider or not any(
+        provider_matches = provider == OFFICIAL_CONTEXT_FAMILIES[family].provider
+        if (dual_ppi or dual_pmi or dual_money or dual_sf or dual_gdp) and provider == "tushare":
+            if dual_ppi:
+                contract, api = "ppi", "cn_ppi"
+                delivery_fields = tuple(
+                    (field, {"category": category, "measure": measure})
+                    for field, category, measure in TUSHARE_PPI_FIELDS
+                )
+            elif dual_pmi:
+                contract, api = "pmi", "cn_pmi"
+                delivery_fields = tuple(
+                    (field, {"series": series, "measure": "level"})
+                    for field, metric_id, series in TUSHARE_PMI_FIELDS
+                    if metric_id == definition.metric_id
+                )
+            elif dual_money:
+                contract, api = "money", "cn_m"
+                delivery_fields = tuple(
+                    (field, {"aggregate": aggregate, "measure": measure})
+                    for field, aggregate, measure, _unit in TUSHARE_MONEY_FIELDS
+                )
+            elif dual_sf:
+                contract, api = "sf_total", "sf_month"
+                delivery_fields = tuple(
+                    (field, {"measure": measure})
+                    for field, measure, _multiplier, _kind in TUSHARE_SF_TOTAL_FIELDS
+                )
+            else:
+                contract, api = "gdp", "cn_gdp"
+                delivery_fields = tuple(
+                    (field, {"aggregate": aggregate, "measure": "nominal_ytd_level"})
+                    for aggregate, field, _yoy in TUSHARE_GDP_FIELDS
+                )
+            # These APIs contain values and a statistical period, not a publication fact.
+            # Until independently bound publication evidence is supported, this delivery
+            # is SYSTEM-only; normalized metadata cannot prove its own PUBLIC timestamp.
+            if release_at is not None or public_available_at is not None:
+                raise ValueError(f"registered_{contract}_publication_evidence_required")
+            provider_matches = bool(acquisition_ids) and any(
+                dimensions == member_dimensions
+                and source_reference == f"tushare:{api}:{field}:{period_end}"
+                for field, member_dimensions in delivery_fields
+            )
+        if not provider_matches or not any(
             member.dimensions == dimensions
             and member.unit == unit
             and member.period_kind == period_kind
@@ -315,6 +396,12 @@ def require_registered_source_contract(
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
         supported = replace(supported, release_event_family="nbs_core_cpi")
+    dual_cpi = definition.metric_id == "CN_CPI_HEADLINE" and definition.source_codes == (
+        *supported.source_codes,
+        TUSHARE_CPI_SOURCE_CODE,
+    )
+    if dual_cpi:
+        supported = replace(supported, source_codes=definition.source_codes)
     if family == "treasury":
         # Keep the existing scalar economic definition, with an explicit official transport.
         from pring_cycle.treasury_context import TREASURY_SOURCE_CODES, treasury_yield_endpoint
@@ -564,7 +651,20 @@ def require_registered_source_contract(
             dimensions == {"category": category, "measure": measure}
             for measure in ("mom", "yoy", "cumulative_average_yoy")
         )
-    if provider != supported_provider or period_kind != "month" or not valid_dimensions:
+    provider_matches = provider == supported_provider
+    if dual_cpi and provider == "tushare":
+        # The statistical month in cn_cpi is not evidence of a publication timestamp.
+        if release_at is not None or public_available_at is not None:
+            raise ValueError("registered_cpi_publication_evidence_required")
+        provider_matches = bool(acquisition_ids) and any(
+            dimensions == {"category": "headline", "measure": measure}
+            and source_reference == f"tushare:cn_cpi:{field}:{period_end}"
+            for field, measure in TUSHARE_CPI_FIELDS
+        )
+        start, end = date.fromisoformat(period_start), date.fromisoformat(period_end)
+        if start != date(end.year, end.month, 1) or end.day != monthrange(end.year, end.month)[1]:
+            raise ValueError("registered_cpi_source_period_mismatch")
+    if not provider_matches or period_kind != "month" or not valid_dimensions:
         raise ValueError(f"registered_{family}_source_identity_mismatch")
 
 

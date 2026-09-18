@@ -1249,3 +1249,61 @@ def test_manual_next_eligible_time_matches_remaining_event_allowance(
     assert datetime.fromisoformat(second["queries"][-1]["next_eligible_at"]) == datetime(
         2026, 9, 6, 16, tzinfo=UTC
     )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_official_listing_and_article_have_separate_completed_receipts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pring_cycle.official_context import FetchedOfficialContextDocument
+
+    paths, runs = prepared_runtime(tmp_path)
+    paths.secrets.write_text("")
+    listing = "https://www.stats.gov.cn/sj/zxfb/"
+    article = listing + "202609/t20260909_1965262.html"
+    documents = {
+        listing: (
+            '<a href="202609/t20260909_1965262.html">2026年8月份工业生产者出厂价格</a>'
+        ).encode(),
+        article: (
+            Path(__file__).parents[1] / "fixtures/official_period_fallback/nbs_ppi.html"
+        ).read_bytes(),
+    }
+    cutoff = datetime.now(UTC)
+    submitted = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-09-11",
+        client_request_id="official-listing-and-article",
+        model_version_id="model-v0001",
+        system_as_of=cutoff,
+        release_event_id="ppi:2026-08",
+        metric_ids=("CN_PPI",),
+        period="2026-08",
+        source_url=listing,
+    )
+    before_http = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        before_http.append(runs.get(submitted.run_id).retrieval_ledger)
+        return FetchedOfficialContextDocument(
+            content=documents[url], media_type="text/html", final_url=url, http_status=200
+        )
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
+    stored = runs.get(submitted.run_id)
+    requests = stored.retrieval_ledger["requests"]
+    assert len(before_http) == 2
+    assert all(view["requests"][-1]["state"] == "reserved" for view in before_http)
+    assert len(requests) == 2
+    assert all(request["state"] == "completed" for request in requests)
+    assert {
+        query["query_text"]
+        for query in stored.retrieval_ledger["queries"]
+        if query["physical_request_id"] is not None
+    } == {listing, article}
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    assert {
+        acquisitions.get(request["acquisition_id"]).parameters["source_url"] for request in requests
+    } == {listing, article}

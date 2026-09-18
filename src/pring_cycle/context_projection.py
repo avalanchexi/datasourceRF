@@ -494,6 +494,7 @@ def build_context_projection(
         "overheat_state": overheat.state,
         "overheat": {
             "state": overheat.state,
+            "evidence": _row_documents(rows_by_metric, _OVERHEAT),
             "support": [asdict(item) for item in overheat.support],
             "counterevidence": [asdict(item) for item in overheat.counterevidence],
             "gaps": [asdict(item) for item in overheat.gaps],
@@ -501,6 +502,7 @@ def build_context_projection(
         "price_pressure": price.state,
         "price_chain": {
             "state": price.state,
+            "evidence": _row_documents(rows_by_metric, _PRICE),
             "support": [asdict(item) for item in price.support],
             "counterevidence": [asdict(item) for item in price.counterevidence],
             "gaps": [asdict(item) for item in price.gaps],
