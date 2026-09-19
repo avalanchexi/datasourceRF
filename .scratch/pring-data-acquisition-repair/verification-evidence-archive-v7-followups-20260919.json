@@ -1,0 +1,42 @@
+{
+  "state": "archived",
+  "scope": "v7 follow-ups: intended money HTTP mutation detected; independent public process acceptance passed. Synthetic software verification, not real source certification.",
+  "files": {
+    "verification-current-followups-v7-20260919.json": {
+      "sha256": "18045c8db07e6d710eac3487f4dd64d2ce60ce4243f98fe9ed40cf088905876b",
+      "bytes": 528
+    },
+    "verification-current-worker-delivery-mutations-20260919.json": {
+      "sha256": "b05331dcc6971011ea3705b66e56d94c52e52ae3b6d0f0deadb54a9ab754b7f6",
+      "bytes": 11517
+    },
+    "verification-current-worker-money-supervisor-20260919.json": {
+      "sha256": "40b7310b5268121de31e2666703e34304b9ce4fa622e8399a1aa121198728c82",
+      "bytes": 877
+    },
+    "verification-current-worker-mutation-money_field_missing-20260919.txt": {
+      "sha256": "6a5eb46b9deca3eb18eda1bf202f673d408384f3b1d11238a841bdcd92a751e2",
+      "bytes": 1599
+    },
+    "verification-current-worker-money-boundary-20260919.jsonl": {
+      "sha256": "db1f4f01a2a22447a176eeab058ae735b5f4beea7e7e98a5de7648c55b9a517e",
+      "bytes": 494
+    },
+    "verification-current-process-acceptance-20260919.json": {
+      "sha256": "25cc648c1b453865bc4ea5e61e8b31541c1d05bb7a2d02388a2660efd53ace20",
+      "bytes": 4123
+    },
+    "verification-current-process-acceptance-terminal-20260919.json": {
+      "sha256": "46bf70f1eae1774b0cd6f3291c21d8590775888b846152791747e0de66c63171",
+      "bytes": 1821
+    },
+    "verification-current-process-acceptance-20260919.err": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "slow-test-inventory-20260918.md": {
+      "sha256": "a1287bd7c76181b5e19bc388b0532512b214be9af9e0ad4cf9d02abf4e26fd2a",
+      "bytes": 19440
+    }
+  }
+}

@@ -10,7 +10,6 @@ from typing import Any
 import pytest
 
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, SourceClaimInput
-from pring_cycle.model_evaluation import evaluate_context_replay
 from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -19,6 +18,7 @@ from tests.adapters.test_commodity_basket import (
     capture_reviewed_basket_inputs,
     fixed_weight_basket_transport,
 )
+from tests.fixtures.public_context import check_public_context
 from tests.models.test_candidate_admission import (
     bind_synthetic_review,
     encode,
@@ -381,7 +381,7 @@ def test_registered_revision_preserves_old_public_system_results_and_parent_arti
 
 
 @pytest.mark.usefixtures("acquisition_clock")
-def test_public_replay_rechecks_registered_commodity_originals(
+def test_public_selection_rechecks_registered_commodity_originals(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     from pring_cycle.commodity_basket import persist_commodity_basket
@@ -393,7 +393,6 @@ def test_public_replay_rechecks_registered_commodity_originals(
     output = None
     for side in ("comparison", "candidate"):
         manifest = admitted_commodity_manifest(paths, capsys, side=side)
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         output = persist_commodity_basket(
             paths,
@@ -404,29 +403,42 @@ def test_public_replay_rechecks_registered_commodity_originals(
         )
     assert output is not None
 
-    def replay():
-        return evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-03-10",
-            requested_end="2026-03-10",
-        )
+    def inspect():
+        return {
+            side: check_public_context(
+                paths,
+                manifest,
+                metric_ids=("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"),
+                day="2026-03-10",
+            )
+            for side, manifest in manifests.items()
+        }
 
-    before = replay()
-    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+    before = inspect()
+    assert all(result.selection.complete for result in before.values())
+    assert all(len(result.selection.selected_claim_ids) == 8 for result in before.values())
     digest = output["result_hash"]
     artifact = paths.artifacts / digest[:2] / digest
     raw = artifact.read_bytes()
     try:
         artifact.write_bytes(b"damaged candidate result")
-        after = replay()
-        assert "candidate_context_selection_invalid:CN_COMMODITY_EX_HOG_BASKET" in after.gaps
-        assert not any(gap.startswith("comparison_") for gap in after.gaps)
+        after = inspect()
+        assert not after["candidate"].selection.complete
+        assert after["candidate"].selection.selected_claim_ids == ()
+        assert after["candidate"].selection.missing_members
+        assert after["comparison"].selection.complete
+        assert (
+            after["comparison"].selection.selected_claim_ids
+            == before["comparison"].selection.selected_claim_ids
+        )
     finally:
         artifact.write_bytes(raw)
-    restored = replay()
-    assert restored.evaluated_cutoffs == 1 and not restored.gaps, restored.gaps
+    restored = inspect()
+    for side in manifests:
+        assert restored[side].selection.complete
+        assert (
+            restored[side].selection.selected_claim_ids == before[side].selection.selected_claim_ids
+        )
 
 
 @pytest.mark.usefixtures("acquisition_clock")

@@ -1,0 +1,27 @@
+{
+  "state": "archived",
+  "result": "1848 passed in 8865.15s; exit 0; frozen inputs unchanged; no residual descendants",
+  "scope": "Default full suite only. Follow-up mutation and process acceptance remain pending.",
+  "files": {
+    "verification-current-full-v7-20260919.json": {
+      "sha256": "2a4b36a0c09b7cc9a9c5cce3898d7e873c8cc00b63d34edc0145b1a4036e3d23",
+      "bytes": 904254
+    },
+    "verification-current-full-v7-20260919.txt": {
+      "sha256": "6691f1cab2f4d285d18e0ebd7c6d8fc47c9597e358909a540dba951b87b5e1b7",
+      "bytes": 270225
+    },
+    "verification-current-full-v7-events-20260919.jsonl": {
+      "sha256": "8deb32def423bcdaf3ad0e1e5b09eacf3f9fe59026e59a646f4730fc1e9a7060",
+      "bytes": 2676287
+    },
+    "verification-current-full-v7-collection-20260919.json": {
+      "sha256": "3f49b9054855033020ad3b9f603c9653815315af8919bdc40975511b2b49a595",
+      "bytes": 509092
+    },
+    "verification-current-full-v7-descendants-20260919.json": {
+      "sha256": "acf096c9ad60040d5e90b58436b50acd96b834a1e803d350897c0b7e31688b39",
+      "bytes": 1239
+    }
+  }
+}

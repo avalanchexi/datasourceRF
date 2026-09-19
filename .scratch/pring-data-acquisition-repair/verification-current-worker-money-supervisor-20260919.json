@@ -1,0 +1,31 @@
+{
+  "state": "finished",
+  "command": [
+    "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+    "-m",
+    "pytest",
+    "-o",
+    "faulthandler_timeout=0",
+    "-c",
+    "/tmp/datasourceRF-current-verify-20260919-v7/project/pyproject.toml",
+    "-p",
+    "mutation_reports",
+    "/tmp/datasourceRF-current-money-field-mutation-20260919/test_money_field_missing.py::test_integrated_worker_preserves_delivery_time_and_source_in_publication[True]",
+    "-x",
+    "-vv",
+    "--tb=short",
+    "--basetemp",
+    "/tmp/datasourceRF-current-money-field-mutation-20260919/pytest"
+  ],
+  "marker": "current-worker-money-mutation-20260919",
+  "limit_seconds": 1800,
+  "pid": 2329035,
+  "start_ticks": "24916540",
+  "exit_code": 1,
+  "reason": null,
+  "elapsed_seconds": 53.32614462697529,
+  "tracked_identities": {
+    "2329035": "24916540"
+  },
+  "residual_processes": {}
+}

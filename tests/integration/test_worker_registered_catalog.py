@@ -20,8 +20,9 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.worker import process_pending_run
-from tests.models.test_isolated_lifecycle import SCRATCH, isolated_lifecycle_material
+from tests.models.test_isolated_lifecycle import SCRATCH, isolated_lifecycle_material, trading_days
 
 TARGET_BUSINESS_DATE = "2026-09-11"
 JULY_PPI = SCRATCH / (
@@ -733,6 +734,14 @@ def test_worker_full_run_publishes_the_registered_projection_across_eia_conditio
     paths, material = isolated_lifecycle_material(tmp_path / "runtime")
     candidate = material["candidate_model_version_id"]
     version = material["metric_catalog_version"]
+    # Replay material contains context-family calendars; a full Worker run also needs
+    # independent core-calendar evidence. Acquire the archived calendar publicly without
+    # configuring a TuShare token, so the EIA credential scenarios stay independent.
+    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *h: real_core_opener())
+    days = trading_days()
+    TushareCoreAdapter("fixture-only", clock=lambda: datetime.now(UTC)).acquire_calendar(
+        AcquisitionRepository(paths.database, paths.artifacts), days[0], days[-1]
+    )
     if scenario != "missing":
         # EIA only: the optional P2 branch must not affect the registered projection.
         paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")

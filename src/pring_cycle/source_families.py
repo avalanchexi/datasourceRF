@@ -10,6 +10,17 @@ TUSHARE_PMI_SOURCE_CODE = "tushare:cn_pmi:official-sampled-v0001"
 TUSHARE_MONEY_SOURCE_CODE = "tushare:cn_m:official-sampled-v0001"
 TUSHARE_SF_TOTAL_SOURCE_CODE = "tushare:sf_month:official-sampled-v0001"
 TUSHARE_GDP_SOURCE_CODE = "tushare:cn_gdp:official-sampled-v0001"
+
+TUSHARE_OFFICIAL_DELIVERY_CODES = {
+    "CN_PPI": TUSHARE_PPI_SOURCE_CODE,
+    "CN_CPI_HEADLINE": TUSHARE_CPI_SOURCE_CODE,
+    "CN_PMI_ACTIVITY": TUSHARE_PMI_SOURCE_CODE,
+    "CN_PMI_INVENTORY": TUSHARE_PMI_SOURCE_CODE,
+    "CN_PMI_PRICES": TUSHARE_PMI_SOURCE_CODE,
+    "CN_M1_M2": TUSHARE_MONEY_SOURCE_CODE,
+    "CN_SF_TOTAL": TUSHARE_SF_TOTAL_SOURCE_CODE,
+    "CN_GDP": TUSHARE_GDP_SOURCE_CODE,
+}
 TUSHARE_GDP_FIELDS = (
     ("total", "gdp", "gdp_yoy"),
     ("primary", "pi", "pi_yoy"),

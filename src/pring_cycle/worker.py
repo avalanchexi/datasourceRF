@@ -66,6 +66,7 @@ from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
+    ContextObservationsMissingError,
     ContextScalar,
     TushareContextAdapter,
 )
@@ -1414,6 +1415,7 @@ def refresh_context_sources(
     from pring_cycle.acquisition import acquisition_metrics
     from pring_cycle.catalog_registry import registered_definitions
     from pring_cycle.ecb_reference import ECB_HISTORY_URL, ECB_METRIC, refresh_ecb_reference_cross
+    from pring_cycle.source_families import TUSHARE_OFFICIAL_DELIVERY_CODES
 
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
@@ -1503,6 +1505,18 @@ def refresh_context_sources(
     daily_start = target - timedelta(days=220)
     breadth_start = target - timedelta(days=420)
     adapter = _context_adapter(token)
+    reviewed_deliveries = {
+        metric_id: source_code
+        in metric_definition(
+            metric_id, definition_version=definition_version, database_path=paths.database
+        ).source_codes
+        for metric_id, source_code in TUSHARE_OFFICIAL_DELIVERY_CODES.items()
+    }
+    financing = (
+        adapter.social_financing_total
+        if reviewed_deliveries["CN_SF_TOTAL"]
+        else adapter.social_financing
+    )
     families: tuple[
         tuple[
             str,
@@ -1568,12 +1582,16 @@ def refresh_context_sources(
         (
             "money",
             ("CN_M1_M2",),
-            lambda: adapter.money(start_month=start_month, end_month=end_month),
+            lambda: adapter.money(
+                start_month=start_month,
+                end_month=end_month,
+                include_month_on_month=not reviewed_deliveries["CN_M1_M2"],
+            ),
         ),
         (
             "social_financing",
             ("CN_SF_TOTAL",),
-            lambda: adapter.social_financing(
+            lambda: financing(
                 start_month=start_month,
                 end_month=end_month,
             ),
@@ -1631,6 +1649,11 @@ def refresh_context_sources(
                 family=family,
             )
         except (TypeError, ValueError) as error:
+            if isinstance(error, ContextObservationsMissingError) and all(
+                reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids
+            ):
+                record(metric_ids, "tushare", "missing_values", family=family)
+                continue
             outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
             record(metric_ids, "tushare", outcome, error_type=type(error).__name__, family=family)
             if any(

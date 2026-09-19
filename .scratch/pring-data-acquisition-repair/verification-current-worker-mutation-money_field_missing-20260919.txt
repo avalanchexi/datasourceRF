@@ -1,0 +1,26 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.4.2, pluggy-1.6.0 -- /home/tywin/.local/share/pring-cycle/dev-venv/bin/python
+rootdir: /tmp/datasourceRF-current-verify-20260919-v7/project
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collecting ... collected 1 item
+
+::test_integrated_worker_preserves_delivery_time_and_source_in_publication[True] <- ../../datasourceRF-current-money-field-mutation-20260919/test_money_field_missing.py FAILED [100%]
+
+=================================== FAILURES ===================================
+_ test_integrated_worker_preserves_delivery_time_and_source_in_publication[True] _
+/tmp/datasourceRF-current-money-field-mutation-20260919/test_money_field_missing.py:229: in test_integrated_worker_preserves_delivery_time_and_source_in_publication
+    assert stored.status == "completed", stored.error_classification
+E   AssertionError: worker_failure:ValueError:tushare_response_required_field_missing
+E   assert 'action_required' == 'completed'
+E     
+E     - completed
+E     + action_required
+=========================== short test summary info ============================
+FAILED ::test_integrated_worker_preserves_delivery_time_and_source_in_publication[True] - AssertionError: worker_failure:ValueError:tushare_response_required_field_missing
+assert 'action_required' == 'completed'
+  
+  - completed
+  + action_required
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+============================== 1 failed in 52.69s ==============================

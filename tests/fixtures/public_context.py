@@ -29,18 +29,9 @@ def check_public_context(
     metric_ids: tuple[str, ...],
     day: str,
     period: str | None = None,
-    visible_evidence_start: str | None = None,
 ) -> PublicContextCheck:
     cutoff = datetime.fromisoformat(day + "T23:59:59.999999+08:00")
-    context = build_context_projection(
-        EvidenceRepository(paths.database),
-        model_manifest=manifest,
-        target_business_date=day,
-        visible_evidence_start=visible_evidence_start,
-        as_of=cutoff,
-        as_of_mode=AsOfMode.PUBLIC,
-        persist_derived=False,
-    )
+    context = project_public_context(paths, manifest, day=day)
     run = RunRepository(paths.database).submit(
         command_type="targeted_refresh",
         target_business_date=day,
@@ -52,3 +43,16 @@ def check_public_context(
         period=period or day,
     )
     return PublicContextCheck(context, select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC))
+
+
+def project_public_context(
+    paths: RuntimePaths, manifest: dict[str, Any], *, day: str
+) -> ContextProjection:
+    return build_context_projection(
+        EvidenceRepository(paths.database),
+        model_manifest=manifest,
+        target_business_date=day,
+        as_of=datetime.fromisoformat(day + "T23:59:59.999999+08:00"),
+        as_of_mode=AsOfMode.PUBLIC,
+        persist_derived=False,
+    )

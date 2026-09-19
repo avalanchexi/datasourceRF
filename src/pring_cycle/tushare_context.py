@@ -161,6 +161,13 @@ ContextRequestWrapper = Callable[
 ]
 
 
+class ContextObservationsMissingError(ValueError):
+    """A structurally parsed delivery contains no scalar observations."""
+
+    def __init__(self) -> None:
+        super().__init__("tushare_context_observations_missing")
+
+
 class TushareContextAdapter:
     def __init__(self, token: str, *, transport: Transport | None = None) -> None:
         if not token:
@@ -1503,7 +1510,7 @@ def ingest_context_scalars(
     if fetched_at.tzinfo is None:
         raise ValueError("tushare_context_fetched_at_must_be_timezone_aware")
     if not scalars:
-        raise ValueError("tushare_context_observations_missing")
+        raise ContextObservationsMissingError()
     # Missing publication evidence stays unknown. A fetch time cannot establish
     # when the market first had access to the observation or its revision.
     repository = EvidenceRepository(paths.database)
