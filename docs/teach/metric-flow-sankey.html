@@ -138,11 +138,15 @@
 
 <div class="wrap">
   <header>
-    <p class="eyebrow">metric-catalog-v0003 · 2026-09-18</p>
+    <p class="eyebrow">metric-catalog-v0003 · 2026-09-19</p>
     <h1>Pring 指标流向</h1>
     <p class="lede">
       61 项指标从采集通道到最终去向的全路径。带宽即指标条数，一条丝带就是一组走同一条路的指标。
       三处断点用颜色标出——它们解释了为什么进得了模型的只有 4 项。
+    </p>
+    <p class="lede" style="margin-top: 12px;">
+      读图时记住一件事：中间那道认证门<b style="color: var(--ink-body)">不是 48 件待办</b>，
+      而是一件没做的事——认证是目录版本的属性，铸造第二个版本之前，谁都过不去。
     </p>
 
     <dl class="tally">
@@ -185,10 +189,12 @@
         <p><b style="color:var(--ink-body)">后果最重</b>：三个核心资产各有 43,300 条已认证声明，却因为没有日历定观察轨道而无法形成牛熊状态，正式阶段因此从未产出过。</p>
       </article>
       <article class="brk" style="--c: var(--accent)">
-        <h3>认证门卡住 56 项</h3>
+        <h3>认证不是逐项开关</h3>
         <span class="n">48 项停在证据层</span>
         <p>这 48 项有通道、有解析、取得到值、存了证据，但 <code>certification_status</code> 仍是 <code>awaiting_source_certification</code>，因此不被选点、不进投影。</p>
-        <p>其中 18 项的认证材料已按 ADR-0013 备齐，只差走完认证工序；另有 5 项卡在历史公开时间或外部原件。</p>
+        <p><b style="color:var(--ink-body)">它不是 48 件待办。</b> 认证状态由 <code>catalog.py</code> 里一个硬编码集合算出，是<b style="color:var(--ink-body)">目录版本的属性</b>，不是可逐项翻转的数据库字段——「给某个指标发认证」这个动作并不存在。</p>
+        <p>要认证任何一项，只能铸造一个新的不可变目录版本，并走完 ADR-0013 的整条路：准入 → 120 个交易日点时重放 → 显式激活。目录版本被内容哈希钉死，改一个字段即被拒绝。</p>
+        <p><code>metric-catalog-v0003</code> 当初铸造时只认证了 5 项，此后<b style="color:var(--ink-body)">没有铸造过新版本</b>。这一件事没做，就是这 48 项的全部原因。</p>
       </article>
       <article class="brk" style="--c: var(--up)">
         <h3>六项国际行情无通道</h3>
@@ -248,6 +254,12 @@
     <p>
       本图描述机制与通路，不代表任何来源已通过认证。「进入投影」指该指标的声明可被选点，
       不代表当期真有可用值——运行库 7 次投影全部降级，核心资产数据集为空。
+    </p>
+    <p>
+      认证口径见 <code>docs/adr/0013-tushare-delivery-with-official-sampling.md</code> 与
+      <code>docs/adr/0012-atomic-model-versions-and-parallel-replay.md</code>：宁可让认证成为一次昂贵的、
+      原子的、可回放的动作，也不允许逐项开关——因为逐项开关会让历史投影的口径随时间漂移。
+      门槛高是设计取舍，不是缺陷；代价是至今一次都没跨过。
     </p>
   </footer>
 </div>
