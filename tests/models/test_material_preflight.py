@@ -707,3 +707,133 @@ def test_preflight_identifies_a_damaged_historical_formula_parent(
             } in credit[0]["invalid_parent_claims"]
         else:
             assert credit == []
+
+
+def test_density_counts_only_values_public_by_their_own_business_date(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Coverage is a point-in-time question: a value published later was not there that day.
+
+    Counting a row because it has *some* publication time lets a window look fully covered
+    when every value only became public after the window closed.
+    """
+    paths = RuntimePaths.discover(tmp_path)
+    initialize_runtime(paths)
+    candidate = admit_complete_candidate(paths, capsys)
+    version = ModelRepository(paths.database).manifest(candidate)["metric_catalog_version"]
+    now = install_runtime_clock(monkeypatch, request, datetime(2026, 9, 15, 10, tzinfo=UTC))
+    days = trading_days()
+    window = days[-20:]
+    calendar_raw = json.dumps(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["cal_date", "is_open"],
+                "items": [[day.strftime("%Y%m%d"), 1] for day in days],
+            },
+        }
+    ).encode()
+    TushareCoreAdapter(
+        "synthetic-token", transport=lambda _: calendar_raw, clock=now
+    ).acquire_calendar(AcquisitionRepository(paths.database, paths.artifacts), days[0], days[-1])
+    raw = json.dumps(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["trade_date", "exchange_id", "rzye", "rzmre"],
+                "items": [
+                    [day.strftime("%Y%m%d"), exchange, 100_000_000, 10_000_000]
+                    for day in window
+                    for exchange in ("SSE", "SZSE", "BSE")
+                ],
+            },
+        }
+    ).encode()
+
+    # Every session's value only became public well after the window closed.
+    published = datetime(2026, 9, 14, 8, tzinfo=UTC)
+
+    def released_after_the_window(scalars: tuple[ContextScalar, ...]) -> tuple[ContextScalar, ...]:
+        return tuple(
+            replace(scalar, release_at=published, public_available_at=published)
+            for scalar in scalars
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+    adapter.acquire_scalars(
+        paths,
+        lambda: released_after_the_window(
+            adapter.margin_financing(start_date=window[0], end_date=window[-1])
+        ),
+        definition_version=version,
+    )
+    main(
+        [
+            "model-input-preflight",
+            "--runtime-root",
+            str(tmp_path),
+            "--model",
+            candidate,
+            "--start",
+            window[0].isoformat(),
+            "--end",
+            window[-1].isoformat(),
+            "--json",
+        ]
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    assert result["calendar"]["status"] == "available"
+    coverage = [
+        gap
+        for gap in result["gaps"]
+        if gap["metric_id"] == "CN_MARGIN_BALANCE" and gap["reason"] == "daily_coverage_missing"
+    ]
+    assert coverage, "a window whose values were all published later is not covered"
+
+
+def test_operational_evidence_stays_visible_instead_of_vanishing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A P0 the preflight does not score still has to appear, or the catalogue is short.
+
+    Skipping these ids outright makes them indistinguishable from metrics that passed.
+    The run planner they mirror keeps a row for each one.
+    """
+    paths = RuntimePaths.discover(tmp_path)
+    initialize_runtime(paths)
+    candidate = admit_complete_candidate(paths, capsys)
+    manifest = ModelRepository(paths.database).manifest(candidate)
+    operational = {
+        definition["metric_id"]
+        for definition in manifest["metric_definitions"]
+        if definition["role"] == "operational_evidence"
+        or definition["metric_id"]
+        in {"CN_TRADE_CALENDAR", "CN_RELEASE_SCHEDULE", "SOURCE_OBSERVED_AVAILABILITY"}
+    }
+    assert operational, "the manifest must carry the operational evidence this pins"
+
+    main(
+        [
+            "model-input-preflight",
+            "--runtime-root",
+            str(tmp_path),
+            "--model",
+            candidate,
+            "--start",
+            "2026-08-28",
+            "--end",
+            "2026-08-28",
+            "--json",
+        ]
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    listed = {entry["metric_id"] for entry in result["operational_evidence"]}
+    assert operational <= listed
+    assert all(
+        entry["status"] == "operational_evidence" for entry in result["operational_evidence"]
+    )

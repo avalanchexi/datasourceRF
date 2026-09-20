@@ -36,6 +36,12 @@ from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.source_adapters import CoreInputValidator, TushareCoreAdapter
 
 
+def public_cutoff(day: date | str) -> datetime:
+    """The instant a session's public knowledge is read at, in the market's own zone."""
+    session = date.fromisoformat(day) if isinstance(day, str) else day
+    return datetime.combine(session, time.max, tzinfo=ZoneInfo("Asia/Shanghai"))
+
+
 def preflight_model_inputs(
     paths: RuntimePaths, model_version_id: str, *, requested_start: str, requested_end: str
 ) -> dict[str, Any]:
@@ -62,7 +68,7 @@ def _preflight_model_inputs(
     evidence = EvidenceRepository(paths.database)
     gaps: list[dict[str, Any]] = []
     optional_gaps: list[dict[str, Any]] = []
-    cutoff = datetime.combine(end, time.max, tzinfo=ZoneInfo("Asia/Shanghai"))
+    cutoff = public_cutoff(end)
     run = RunRecord(
         run_id="material-preflight",
         command_type="manual_full",
@@ -97,12 +103,18 @@ def _preflight_model_inputs(
     ) or (end.isoformat(),)
     present = []
     density_missing: dict[str, set[str]] = {}
+    # These carry no scalar to score, but dropping them would make a P0 the preflight
+    # never looked at read exactly like one that passed. The run planner lists them too.
+    operational_evidence: list[dict[str, Any]] = []
     for definition in rules.metric_definitions:
         if definition.role == "operational_evidence" or definition.metric_id in {
             "CN_TRADE_CALENDAR",
             "CN_RELEASE_SCHEDULE",
             "SOURCE_OBSERVED_AVAILABILITY",
         }:
+            operational_evidence.append(
+                {"metric_id": definition.metric_id, "status": "operational_evidence"}
+            )
             continue
         if definition.certification_status == "derived_from_certified_inputs":
             continue
@@ -156,8 +168,11 @@ def _preflight_model_inputs(
                 for item in vintages
                 if item.certification_status == "certified"
                 and item.quality_status == "validated"
-                and item.public_available_at is not None
                 and item.period_end in checked_days
+                # Coverage is point in time: a value first published after its own
+                # session was not observable that day, whatever time it carries.
+                and item.public_available_at is not None
+                and item.public_available_at <= public_cutoff(item.period_end)
             }
             minimum = (
                 len(checked_days)
@@ -182,9 +197,7 @@ def _preflight_model_inputs(
 
     # Keep only one day's cached series alive during a full window diagnostic.
     for day in checked_days:
-        historical_cutoff = datetime.combine(
-            date.fromisoformat(day), time.max, tzinfo=ZoneInfo("Asia/Shanghai")
-        )
+        historical_cutoff = public_cutoff(day)
         historical_selector = ModelInputSelector(
             paths,
             replace(
@@ -312,6 +325,7 @@ def _preflight_model_inputs(
         "pending_checks": ["calendar", "originals", "dimensions", "point_in_time", "parents"],
         "gaps": gaps,
         "optional_gaps": optional_gaps,
+        "operational_evidence": sorted(operational_evidence, key=lambda item: item["metric_id"]),
         "calendar": calendar,
     }
 
@@ -346,9 +360,7 @@ def _core_history_gaps(
     )
     gaps: dict[tuple[str, str, str | None, str], dict[str, Any]] = {}
     for index, day in enumerate(days):
-        cutoff = datetime.combine(
-            date.fromisoformat(day), time.max, tzinfo=ZoneInfo("Asia/Shanghai")
-        )
+        cutoff = public_cutoff(day)
         for metric in metrics:
             if not vintages[metric]:
                 continue  # The inventory check already reports this wholly missing source.
