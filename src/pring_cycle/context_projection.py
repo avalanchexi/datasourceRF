@@ -10,7 +10,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition
-from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.domain.macro import (
     EvidenceSignal,
     SignatureCard,
@@ -260,6 +260,9 @@ def build_context_projection(
             repository,
             target_date,
             {metric_id: definition.frequency for metric_id, definition in definitions.items()},
+            allow_system_at_target=(
+                model_manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
+            ),
         )
         repository = target_repository  # type: ignore[assignment]
         if visible_evidence_start is not None:
@@ -274,6 +277,9 @@ def build_context_projection(
                 target_date,
                 {metric_id: definition.frequency for metric_id, definition in definitions.items()},
                 visible_start=visible_start,
+                allow_system_at_target=(
+                    model_manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
+                ),
             )
         else:
             visible_repository = target_repository
@@ -488,6 +494,7 @@ def build_context_projection(
         "overheat_state": overheat.state,
         "overheat": {
             "state": overheat.state,
+            "evidence": _row_documents(rows_by_metric, _OVERHEAT),
             "support": [asdict(item) for item in overheat.support],
             "counterevidence": [asdict(item) for item in overheat.counterevidence],
             "gaps": [asdict(item) for item in overheat.gaps],
@@ -495,6 +502,7 @@ def build_context_projection(
         "price_pressure": price.state,
         "price_chain": {
             "state": price.state,
+            "evidence": _row_documents(rows_by_metric, _PRICE),
             "support": [asdict(item) for item in price.support],
             "counterevidence": [asdict(item) for item in price.counterevidence],
             "gaps": [asdict(item) for item in price.gaps],
@@ -587,20 +595,18 @@ class TargetBoundEvidenceRepository:
         frequencies: Mapping[str, str],
         *,
         visible_start: date | None = None,
+        allow_system_at_target: bool = False,
     ) -> None:
         self._repository = repository
         self._target_date = target_date
         self._frequencies = frequencies
         self._visible_start = visible_start
+        self._allow_system_at_target = allow_system_at_target
 
     def metric_series(self, *args: Any, **kwargs: Any) -> tuple[MetricSeriesPoint, ...]:
         tolerance = float(kwargs.get("tolerance", 0.0))
-        query_kwargs = dict(kwargs)
-        query_kwargs["public_as_of"] = datetime.combine(
-            self._target_date,
-            time.max,
-            tzinfo=ZoneInfo("Asia/Shanghai"),
-        )
+        query_kwargs = self._query_at_target(kwargs)
+        use_system = query_kwargs["allow_system_at_public_cutoff"]
         return tuple(
             bounded
             for point in self._repository.metric_series(*args, **query_kwargs)
@@ -609,6 +615,7 @@ class TargetBoundEvidenceRepository:
                     point,
                     self._target_date,
                     tolerance=tolerance,
+                    allow_system_at_target=use_system,
                 )
             )
             is not None
@@ -623,16 +630,23 @@ class TargetBoundEvidenceRepository:
         return self._target_date
 
     def has_target_history(self, *args: Any, **kwargs: Any) -> bool:
+        query_kwargs = self._query_at_target(kwargs)
+        return any(
+            _certified_point(point) and date.fromisoformat(point.period_start) <= self._target_date
+            for point in self._repository.metric_series(*args, **query_kwargs)
+        )
+
+    def _query_at_target(self, kwargs: Mapping[str, Any]) -> dict[str, Any]:
         query_kwargs = dict(kwargs)
         query_kwargs["public_as_of"] = datetime.combine(
             self._target_date,
             time.max,
             tzinfo=ZoneInfo("Asia/Shanghai"),
         )
-        return any(
-            _certified_point(point) and date.fromisoformat(point.period_start) <= self._target_date
-            for point in self._repository.metric_series(*args, **query_kwargs)
+        query_kwargs["allow_system_at_public_cutoff"] = (
+            self._allow_system_at_target and kwargs["mode"] is AsOfMode.SYSTEM
         )
+        return query_kwargs
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._repository, name)
@@ -643,14 +657,22 @@ def _point_at_target(
     target_date: date,
     *,
     tolerance: float,
+    allow_system_at_target: bool = False,
 ) -> MetricSeriesPoint | None:
     if date.fromisoformat(point.period_start) > target_date:
         return None
     claims = tuple(
         claim
         for claim in point.claims
-        if claim.public_available_at is not None
-        and claim.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date() <= target_date
+        if (
+            claim.public_available_at is not None
+            and claim.public_available_at.astimezone(ZoneInfo("Asia/Shanghai")).date()
+            <= target_date
+        )
+        or (
+            allow_system_at_target
+            and claim.available_at.astimezone(ZoneInfo("Asia/Shanghai")).date() <= target_date
+        )
     )
     if not claims:
         return None
@@ -1473,6 +1495,16 @@ def _metric_rows(
             )
         )
     warrant_history = None
+    if definition.metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS":
+        claim_ids = tuple(
+            point.selected_claim_id for point in series if point.selected_claim_id is not None
+        )
+        incomplete_source_claims.update(
+            set(claim_ids)
+            - repository.source_claims_matching_registered_contract(
+                claim_ids, definition_version=definition.definition_version
+            )
+        )
     if (
         definition.metric_id == "CN_FUTURES_WARRANTS"
         and definition.definition_version not in BUILTIN_CATALOG_VERSIONS

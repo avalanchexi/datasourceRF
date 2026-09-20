@@ -28,6 +28,14 @@ def prepare(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     return paths, RunRepository(paths.database)
 
 
+@pytest.fixture
+def unavailable_optional_eia(monkeypatch: pytest.MonkeyPatch) -> None:
+    def offline(*args, **kwargs):
+        raise OSError("fixture optional EIA source unavailable")
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", offline)
+
+
 @pytest.mark.parametrize(
     "failure", [None, OSError("fixture offline"), ValueError("fixture schema")]
 )
@@ -225,6 +233,7 @@ def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
         }
 
 
+@pytest.mark.usefixtures("unavailable_optional_eia")
 def test_full_run_preserves_explicit_historical_cutoff_even_when_executed_later(
     tmp_path: Path,
 ) -> None:
@@ -242,7 +251,7 @@ def test_full_run_preserves_explicit_historical_cutoff_even_when_executed_later(
     assert stored.system_as_of == stored.report_cutoff == cutoff
     assert stored.cutoff_mode == "explicit"
     assert stored.cutoffs_frozen is True
-    assert stored.error_classification == "p0_unavailable"
+    assert stored.error_classification == "p0_required_calendar_unavailable"
     with pytest.raises(ValueError, match="run_cutoff_already_frozen"):
         runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC))
 
@@ -1073,7 +1082,7 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
 
 
 @pytest.mark.parametrize("case", ["reuse", "cancel", "before_cutoff", "conflict"])
-@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.usefixtures("runtime_clock", "unavailable_optional_eia")
 def test_resumed_run_uses_verified_calendar_response_independent_of_prices(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
 ) -> None:
@@ -1171,9 +1180,17 @@ def test_resumed_run_uses_verified_calendar_response_independent_of_prices(
         run.run_id, client_request_id="resume-with-calendar-proof", confirm_external_calls=True
     )
     process_pending_run(paths, report_adapters=())
-    assert runs.get(run.run_id).status == "completed"
     plan = runs.full_retrieval_plan(run.run_id)
     calendar = plan["initial"]["daily_window"]
+    stored = runs.get(run.run_id)
+    if case in {"before_cutoff", "conflict"}:
+        assert stored.status == "action_required"
+        assert stored.error_classification == "p0_required_calendar_unavailable"
+        assert stored.projection_set_id is None
+        with pytest.raises(LookupError):
+            ProjectionSetRepository(paths.database).current()
+    else:
+        assert stored.status == "completed", stored.error_classification
     if case == "before_cutoff":
         assert calendar["status"] == "unavailable"
         assert runs.get(run.run_id).system_as_of == cutoff
@@ -1193,6 +1210,7 @@ def test_resumed_run_uses_verified_calendar_response_independent_of_prices(
     assert receipt["api_name"] == "trade_cal" and receipt["state"] == "validated"
 
 
+@pytest.mark.usefixtures("unavailable_optional_eia")
 def test_conflicting_calendar_cannot_claim_complete_window(tmp_path: Path) -> None:
     paths, runs = prepare(tmp_path)
     seed_core_history(paths)
@@ -1229,6 +1247,10 @@ def test_conflicting_calendar_cannot_claim_complete_window(tmp_path: Path) -> No
     calendar = runs.full_retrieval_plan(run.run_id)["initial"]["daily_window"]
     assert calendar["status"] == "unavailable"
     assert calendar["basis"] == "calendar_source_conflict"
+    stored = runs.get(run.run_id)
+    assert stored.status == "action_required"
+    assert stored.error_classification == "p0_required_calendar_unavailable"
+    assert stored.projection_set_id is None
 
 
 @pytest.mark.parametrize(

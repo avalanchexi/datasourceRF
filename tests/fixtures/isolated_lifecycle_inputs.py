@@ -32,7 +32,13 @@ class _Capture:
 
 
 def main() -> None:
-    origin, started = datetime.now(UTC), time.monotonic()
+    profile = sys.argv[2] if len(sys.argv) > 2 else "legacy"
+    # The integrated fixture must precede its fixed September 18 Worker clock even when
+    # rebuilt on a later real date. This builder is included in the material fingerprint.
+    origin = (
+        datetime(2026, 9, 18, tzinfo=UTC) if profile == "acquisition-repairs" else datetime.now(UTC)
+    )
+    started = time.monotonic()
 
     def now() -> datetime:
         return origin + timedelta(seconds=time.monotonic() - started)
@@ -47,7 +53,9 @@ def main() -> None:
     capture = _Capture()
     paths = RuntimePaths.discover(Path(sys.argv[1]))
     with contextlib.redirect_stdout(capture.buffer):
-        candidate = lifecycle.prepare_isolated_candidate_inputs(paths, capture, now)
+        candidate = lifecycle.prepare_isolated_candidate_inputs(
+            paths, capture, now, profile=profile
+        )
     print(json.dumps({"candidate_model_version_id": candidate}), flush=True)
 
 

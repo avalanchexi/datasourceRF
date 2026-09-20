@@ -27,6 +27,8 @@ BUILTIN_CATALOG_VERSIONS = frozenset(
     }
 )
 
+SYSTEM_TARGET_CUTOFF_VERSION = "dual-cutoff-v0003"
+
 CATALOG_REGISTRY_SCHEMA = """
 CREATE TABLE registered_metric_catalog (
     catalog_version TEXT PRIMARY KEY,
@@ -109,7 +111,16 @@ def registered_metric_definition(
 def require_registered_manifest(database_path: Path, manifest: Mapping[str, Any]) -> None:
     version = str(manifest["metric_catalog_version"])
     if version in BUILTIN_CATALOG_VERSIONS:
+        if manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION:
+            raise ValueError("model_manifest_binding_mismatch")
         return
     definitions = registered_definitions(database_path, version)
     if _definition_document(manifest["metric_definitions"]) != _definition_document(definitions):
         raise ValueError("model_metric_catalog_binding_mismatch")
+    with database_connection(f"{database_path.resolve().as_uri()}?mode=ro", uri=True) as connection:
+        admitted = connection.execute(
+            "SELECT manifest_json FROM model_version WHERE model_version_id=?",
+            (manifest.get("model_version_id"),),
+        ).fetchone()
+    if admitted is None or json.loads(admitted[0]) != manifest:
+        raise ValueError("model_manifest_binding_mismatch")

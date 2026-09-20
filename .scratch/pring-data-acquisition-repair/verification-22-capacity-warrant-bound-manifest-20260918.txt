@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_projection_rechecks_each_catalog_mapping tests/models/test_candidate_admission.py::test_capacity_q1_public_projection_keeps_old_cutoff_but_rejects_bad_latest_revision tests/models/test_candidate_admission.py::test_warrant_public_selection_requires_every_returned_warehouse -q --durations=10
+............                                                             [100%]
+============================= slowest 10 durations =============================
+4.36s call     tests/models/test_candidate_admission.py::test_capacity_q1_public_projection_keeps_old_cutoff_but_rejects_bad_latest_revision[mapping]
+4.33s call     tests/models/test_candidate_admission.py::test_capacity_q1_public_projection_keeps_old_cutoff_but_rejects_bad_latest_revision[basis]
+4.20s call     tests/models/test_candidate_admission.py::test_capacity_q1_public_projection_keeps_old_cutoff_but_rejects_bad_latest_revision[normalized]
+4.05s call     tests/models/test_candidate_admission.py::test_capacity_q1_public_projection_keeps_old_cutoff_but_rejects_bad_latest_revision[raw]
+3.58s call     tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_projection_rechecks_each_catalog_mapping[damaged-mapping]
+3.52s call     tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_projection_rechecks_each_catalog_mapping[missing-raw]
+3.46s call     tests/models/test_candidate_admission.py::test_warrant_public_selection_requires_every_returned_warehouse[True]
+3.42s call     tests/models/test_candidate_admission.py::test_warrant_public_selection_requires_every_returned_warehouse[False]
+3.40s call     tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_projection_rechecks_each_catalog_mapping[missing-mapping]
+3.29s call     tests/models/test_candidate_admission.py::test_registered_capacity_q1_public_projection_rechecks_each_catalog_mapping[damaged-normalized]
+12 passed in 45.84s
+Exit: 0; elapsed: 46.42s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

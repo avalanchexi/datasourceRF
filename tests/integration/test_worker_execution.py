@@ -12,9 +12,6 @@ import pytest
 
 import pring_cycle.worker as worker_module
 from pring_cycle.catalog import metric_definition
-from pring_cycle.context_projection import (
-    build_context_projection as actual_build_context_projection,
-)
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import (
     AsOfMode,
@@ -45,6 +42,44 @@ def runtime(tmp_path: Path) -> RuntimePaths:
     models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     return paths
+
+
+def seed_independent_calendar(paths: RuntimePaths, days: list[date]) -> None:
+    claims = []
+    for day in days:
+        known = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
+        claims.append(
+            SourceClaimInput(
+                metric_id="CN_TRADE_CALENDAR",
+                definition_version="metric-catalog-v0001",
+                period_kind="business_day",
+                period_start=day.isoformat(),
+                period_end=day.isoformat(),
+                dimensions={},
+                value=1.0,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="scalar",
+                provider="fixture:independent-calendar",
+                source_reference=f"fixture:calendar:{day}",
+                release_event_id=f"fixture:calendar:{day}",
+                release_at=known,
+                public_available_at=known,
+                fetched_at=known,
+                available_at=known,
+                certification_status="certified",
+                quality_status="validated",
+            )
+        )
+    EvidenceRepository(paths.database).append_source_claims(tuple(claims))
+
+
+@pytest.fixture
+def unavailable_optional_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    def offline(*args, **kwargs):
+        raise OSError("fixture optional source unavailable")
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", offline)
+    monkeypatch.setattr("pring_cycle.official_context.urlopen", offline)
 
 
 @pytest.mark.parametrize(
@@ -177,6 +212,7 @@ def test_runtime_policy_rate_does_not_require_duplicate_daily_claims() -> None:
     )
 
 
+@pytest.mark.usefixtures("unavailable_optional_http")
 def test_core_readiness_ignores_observations_after_historical_target(
     tmp_path: Path,
 ) -> None:
@@ -192,11 +228,17 @@ def test_core_readiness_ignores_observations_after_historical_target(
     )
     evidence = EvidenceRepository(paths.database)
     future_ids = set()
+    days = []
+    day = target
+    while len(days) < 160:
+        if day.weekday() < 5:
+            days.append(day)
+        day -= timedelta(days=1)
+    days.reverse()
+    seed_independent_calendar(paths, days)
     for metric, (api, code) in CORE_API_IDENTITIES.items():
         claims = []
-        days = [target - timedelta(days=159 - index) for index in range(160)]
-        days.append(date(2026, 8, 28))
-        for index, day in enumerate(days):
+        for index, day in enumerate([*days, date(2026, 8, 28)]):
             known = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
             claims.append(
                 SourceClaimInput(
@@ -230,7 +272,7 @@ def test_core_readiness_ignores_observations_after_historical_target(
     assert {item["latest_business_date"] for item in assets} == {target.isoformat()}
     assert {item["observation_count"] for item in assets} == {120}
     assert all(len(item["observation_version_ids"]) == 120 for item in assets)
-    assert projection.envelope.evidence_window_start == (target - timedelta(days=119)).isoformat()
+    assert projection.envelope.evidence_window_start == days[-120].isoformat()
     adoption = runs.full_retrieval_plan(run.run_id)["adoption"]
     assert len(adoption["selected_claim_ids"]) == 480
     assert future_ids.isdisjoint(adoption["selected_claim_ids"])
@@ -283,7 +325,7 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
 
     monkeypatch.setattr("pring_cycle.eia_context.build_opener", Opener)
 
-    worker_module._refresh_context_sources(
+    worker_module.refresh_context_sources(
         paths,
         "2026-08-28",
         definition_version="metric-catalog-v0002",
@@ -339,7 +381,7 @@ def test_worker_classifies_optional_eia_failures(
     # The key-free page is the fallback once the API cannot serve; it has its own test.
     monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", page_offline)
 
-    worker_module._refresh_context_sources(
+    worker_module.refresh_context_sources(
         paths,
         "2026-08-28",
         definition_version="metric-catalog-v0002",
@@ -361,20 +403,18 @@ def test_worker_classifies_optional_eia_failures(
     assert pages
 
 
+@pytest.mark.usefixtures("unavailable_optional_http")
 def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     paths = runtime(tmp_path)
-    captured_manifest: dict[str, object] = {}
-
-    def model_bound_context(*args: object, **kwargs: object):  # type: ignore[no-untyped-def]
-        manifest = kwargs.get("model_manifest")
-        assert isinstance(manifest, dict)
-        captured_manifest.update(manifest)
-        return actual_build_context_projection(*args, **kwargs)  # type: ignore[arg-type]
-
-    monkeypatch.setattr("pring_cycle.worker.build_context_projection", model_bound_context)
+    days = []
+    day = date(2026, 8, 28)
+    while len(days) < 120:
+        if day.weekday() < 5:
+            days.append(day)
+        day -= timedelta(days=1)
+    seed_independent_calendar(paths, days)
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date="2026-08-28",
@@ -387,15 +427,15 @@ def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(
 
     assert processed == submitted.run_id
     assert runs.get(submitted.run_id).status == "action_required"
-    assert runs.get(submitted.run_id).error_classification == "p0_unavailable"
+    assert (
+        runs.get(submitted.run_id).error_classification == "p0_required_calendar_period_missing"
+    )
+    assert runs.get(submitted.run_id).projection_set_id is None
+    assert ReportRepository(paths.database).history() == ()
     assert runs.next_queued() is None
-    assert captured_manifest["model_version_id"] == "model-v0001"
-    assert captured_manifest["metric_catalog_version"] == "metric-catalog-v0001"
-    formulas = captured_manifest["derived_formula_versions"]
-    assert isinstance(formulas, dict)
-    assert "omo_net_injection" not in formulas
 
 
+@pytest.mark.usefixtures("unavailable_optional_http")
 def test_worker_completes_a_valid_noncanonical_projection_and_report(
     tmp_path: Path,
 ) -> None:
@@ -407,6 +447,7 @@ def test_worker_completes_a_valid_noncanonical_projection_and_report(
         if day.weekday() < 5:
             days.append(day)
         day -= timedelta(days=1)
+    seed_independent_calendar(paths, days)
     for index, observed in enumerate(reversed(days)):
         cutoff = datetime.combine(observed, datetime.min.time(), tzinfo=UTC)
         for metric_id, value in (
@@ -649,7 +690,7 @@ def test_resumed_run_reuses_its_published_projection_without_external_refresh(
         raise AssertionError("published_projection_must_skip_external_refresh")
 
     monkeypatch.setattr(worker_module, "_refresh_core_sources", unexpected_refresh)
-    monkeypatch.setattr(worker_module, "_refresh_context_sources", unexpected_refresh)
+    monkeypatch.setattr(worker_module, "refresh_context_sources", unexpected_refresh)
 
     process_pending_run(paths, report_adapters=())
 

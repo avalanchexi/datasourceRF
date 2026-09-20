@@ -34,6 +34,7 @@ from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.metric_contracts import (
     evidence_frequency,
     evidence_max_age_days,
+    minimum_context_daily_observations,
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
@@ -66,6 +67,7 @@ from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
+    ContextObservationsMissingError,
     ContextScalar,
     TushareContextAdapter,
 )
@@ -322,7 +324,7 @@ def _execute_run(
                 paths, run.target_business_date, definition_version=definition_version
             )
         with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-            _refresh_context_sources(
+            refresh_context_sources(
                 paths, run.target_business_date, definition_version=definition_version
             )
         full_retrieval.retrieve(run)
@@ -336,7 +338,10 @@ def _execute_run(
             full_retrieval.recover_legacy_plan(run)
     full_retrieval.evaluate(run)
     plan = runs.full_retrieval_plan(run.run_id)
-    if plan["final"]["daily_window"]["status"] == "available" and any(
+    if plan["final"]["daily_window"]["status"] != "available":
+        runs.mark_action_required(run.run_id, "p0_required_calendar_unavailable")
+        return
+    if any(
         not gap["complete"] and gap["metric_id"] in model_manifest["core_metrics"].values()
         for gap in plan["final"]["gaps"]
     ):
@@ -841,6 +846,7 @@ def _official_context_retrieval(
         fetched_at=now,
         definition_version=definition_version,
         on_acquisition_started=on_acquisition_started,
+        metric_ids=scope.metric_ids,
     )
     if not all(
         metric_definition(
@@ -1199,7 +1205,7 @@ def _direct_metric_is_ready(
     if len(target_trading_days) != 120:
         return False
     required_dates = set(target_trading_days)
-    minimum_observations = (len(required_dates) * 95 + 99) // 100
+    minimum_observations = minimum_context_daily_observations(len(required_dates))
     density_members = required_members or ({},)
     for required in density_members:
         observed = {
@@ -1400,13 +1406,17 @@ def refresh_eia_context(
     return "verified_candidate"
 
 
-def _refresh_context_sources(
+def refresh_context_sources(
     paths: RuntimePaths,
     target_business_date: str,
     *,
     definition_version: str,
 ) -> None:
+    """Refresh context sources for a frozen catalog, retaining each acquisition outcome."""
     from pring_cycle.acquisition import acquisition_metrics
+    from pring_cycle.catalog_registry import registered_definitions
+    from pring_cycle.ecb_reference import ECB_HISTORY_URL, ECB_METRIC, refresh_ecb_reference_cross
+    from pring_cycle.source_families import TUSHARE_OFFICIAL_DELIVERY_CODES
 
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
@@ -1436,6 +1446,49 @@ def _refresh_context_sources(
         record=record,
     )
 
+    if definition_version not in BUILTIN_CATALOG_VERSIONS and any(
+        definition["metric_id"] == ECB_METRIC
+        for definition in registered_definitions(paths.database, definition_version)
+    ):
+        acquisition_ids: list[str] = []
+        try:
+            with acquisition_metrics((ECB_METRIC,)):
+                refresh_ecb_reference_cross(
+                    paths,
+                    start_date=target - timedelta(days=220),
+                    end_date=target,
+                    definition_version=definition_version,
+                    on_acquisition_started=acquisition_ids.append,
+                )
+        except (OSError, TypeError, ValueError) as error:
+            # The adapter normally records the detailed transport/validation failure. Preserve
+            # that receipt; also cover errors after capture so an older success cannot hide one.
+            failed_at = datetime.now(UTC)
+            latest = repository.latest_retrieval_attempt(
+                ECB_METRIC, period=None, as_of=failed_at, definition_version=definition_version
+            )
+            if (
+                latest is None
+                or latest.outcome not in {"source_failed", "validation_failed"}
+                or not acquisition_ids
+                or latest.safe_metadata.get("acquisition_ids") != ",".join(acquisition_ids)
+            ):
+                repository.record_retrieval_attempt(
+                    metric_id=ECB_METRIC,
+                    channel="ecb_reference_http",
+                    outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+                    fetched_at=failed_at,
+                    acquisition_ids=tuple(acquisition_ids),
+                    safe_metadata={
+                        "source_url": ECB_HISTORY_URL,
+                        "start_date": str(target - timedelta(days=220)),
+                        "period": target_business_date,
+                        "target_business_date": target_business_date,
+                        "definition_version": definition_version,
+                        "error_type": type(error).__name__,
+                    },
+                )
+
     token = secrets.get("TUSHARE_TOKEN")
     if token is None:
         record(
@@ -1453,6 +1506,18 @@ def _refresh_context_sources(
     daily_start = target - timedelta(days=220)
     breadth_start = target - timedelta(days=420)
     adapter = _context_adapter(token)
+    reviewed_deliveries = {
+        metric_id: source_code
+        in metric_definition(
+            metric_id, definition_version=definition_version, database_path=paths.database
+        ).source_codes
+        for metric_id, source_code in TUSHARE_OFFICIAL_DELIVERY_CODES.items()
+    }
+    financing = (
+        adapter.social_financing_total
+        if reviewed_deliveries["CN_SF_TOTAL"]
+        else adapter.social_financing
+    )
     families: tuple[
         tuple[
             str,
@@ -1518,12 +1583,16 @@ def _refresh_context_sources(
         (
             "money",
             ("CN_M1_M2",),
-            lambda: adapter.money(start_month=start_month, end_month=end_month),
+            lambda: adapter.money(
+                start_month=start_month,
+                end_month=end_month,
+                include_month_on_month=not reviewed_deliveries["CN_M1_M2"],
+            ),
         ),
         (
             "social_financing",
             ("CN_SF_TOTAL",),
-            lambda: adapter.social_financing(
+            lambda: financing(
                 start_month=start_month,
                 end_month=end_month,
             ),
@@ -1581,6 +1650,11 @@ def _refresh_context_sources(
                 family=family,
             )
         except (TypeError, ValueError) as error:
+            if isinstance(error, ContextObservationsMissingError) and all(
+                reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids
+            ):
+                record(metric_ids, "tushare", "missing_values", family=family)
+                continue
             outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
             record(metric_ids, "tushare", outcome, error_type=type(error).__name__, family=family)
             if any(

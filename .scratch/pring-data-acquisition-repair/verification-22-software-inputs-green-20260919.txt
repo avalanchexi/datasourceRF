@@ -1,0 +1,11 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/maintenance/test_verification_inputs.py -q --durations=10
+.....                                                                    [100%]
+============================= slowest 10 durations =============================
+1.15s call     tests/maintenance/test_verification_inputs.py::test_this_repository_pins_software_and_not_evidence
+0.02s call     tests/maintenance/test_verification_inputs.py::test_evidence_notes_leave_the_software_receipt_unchanged
+
+(8 durations < 0.005s hidden.  Use -vv to show these durations.)
+5 passed in 1.30s
+Exit: 0; elapsed: 1.72s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

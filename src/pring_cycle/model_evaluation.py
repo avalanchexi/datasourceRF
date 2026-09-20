@@ -7,7 +7,6 @@ import time
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
-from datetime import time as clock_time
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -19,7 +18,11 @@ from pring_cycle.context_projection import (
     build_context_projection,
     context_metric_ids,
 )
-from pring_cycle.context_replay_scope import CONTEXT_FORMULA_INPUTS, ContextReplayScope
+from pring_cycle.context_replay_scope import (
+    ContextReplayScope,
+    context_input_warmup_days,
+    find_formula_documents,
+)
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.domain.stage import derive_formal_stage
 from pring_cycle.domain.trend import (
@@ -38,8 +41,10 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.metric_contracts import (
     REQUIRED_DIMENSION_MEMBERS,
+    china_business_day_end,
     evidence_frequency,
     evidence_max_age_days,
+    minimum_context_daily_observations,
     required_dimension_members,
 )
 from pring_cycle.model_outputs import (
@@ -205,7 +210,7 @@ def history_output_document(
         "days": [
             {
                 "business_date": day,
-                "cutoff": _china_business_day_end(date.fromisoformat(day)).isoformat(),
+                "cutoff": china_business_day_end(date.fromisoformat(day)).isoformat(),
                 "assets": {
                     asset: asdict(point)
                     for asset, point in evaluated.core_outputs_by_day[day].items()
@@ -397,7 +402,7 @@ def evaluate_history(
         )
     )
     all_observed_days = sorted({vintage.period_end for vintage in vintages})
-    history_input_start = _history_input_start(manifest, requested_start)
+    history_input_start = model_history_input_start(manifest, requested_start)
     input_days = [
         day for day in all_observed_days if history_input_start <= day <= end_date.isoformat()
     ]
@@ -434,7 +439,7 @@ def evaluate_history(
         previous_points: list[PricePoint] = []
         segment_start = 0
         for index, day in enumerate(input_days):
-            cutoff = _china_business_day_end(date.fromisoformat(day))
+            cutoff = china_business_day_end(date.fromisoformat(day))
             visible = {
                 point.period_end: point
                 for point in evidence.metric_series(
@@ -617,7 +622,7 @@ def _ma_position(distance_pct: float | None) -> CoreAssetState | None:
     return None
 
 
-def _history_input_start(manifest: dict[str, object], requested_start: str) -> str:
+def model_history_input_start(manifest: dict[str, object], requested_start: str) -> str:
     if manifest.get("model_version_id") == "model-v0001":
         return min(CALIBRATION_INPUT_START, requested_start)
     return min(
@@ -768,7 +773,7 @@ def _evaluate_context_replay(
                     vintages,
                     start_date=start_date,
                     end_date=end_date,
-                    warmup_days=_metric_warmup_days(metric_id, affected_formulas),
+                    warmup_days=context_input_warmup_days(metric_id, affected_formulas),
                     required_days=days,
                 )
             )
@@ -829,7 +834,7 @@ def _evaluate_context_replay(
     evidence.preload_metric_series(preload_metrics)
 
     cutoffs = tuple(
-        _china_business_day_end(date.fromisoformat(day))
+        china_business_day_end(date.fromisoformat(day))
         for day in days
         if requested_start <= day <= requested_end
     )
@@ -918,7 +923,7 @@ def _evaluate_context_replay(
         ):
             output_differences += 1
         for key, version in candidate_formula_versions.items():
-            formula_documents = _formula_documents(candidate_document, version)
+            formula_documents = find_formula_documents(candidate_document, version)
             available = [
                 item for item in formula_documents if item.get("status") in {"available", "current"}
             ]
@@ -1019,10 +1024,6 @@ def _context_source_snapshot(
     return result
 
 
-def _china_business_day_end(day: date) -> datetime:
-    return datetime.combine(day, clock_time.max, ZoneInfo("Asia/Shanghai"))
-
-
 def _context_coverage_gaps(
     side: str,
     metric_id: str,
@@ -1117,7 +1118,7 @@ def _single_context_coverage_gaps(
             day for day in required_days if start_date.isoformat() <= day <= end_date.isoformat()
         }
         observed = {item.period_end for item in valid if item.period_end in required}
-        minimum_observations = (len(required) * 95 + 99) // 100
+        minimum_observations = minimum_context_daily_observations(len(required))
         if len(observed) < minimum_observations:
             gaps.append(f"{side}_context_coverage_density:{metric_id}{suffix}")
     return gaps
@@ -1335,17 +1336,6 @@ def _context_selection_gaps(
     return tuple(f"{side}_context_selection_{status}:{metric_id}" for status in sorted(statuses))
 
 
-def _metric_warmup_days(metric_id: str, affected_formulas: set[str]) -> int:
-    return max(
-        (
-            _CONTEXT_FORMULA_WARMUP_DAYS.get(key, 0)
-            for key in affected_formulas
-            if metric_id in CONTEXT_FORMULA_INPUTS.get(key, ())
-        ),
-        default=0,
-    )
-
-
 def _weekday_replay_days(start_date: date, end_date: date) -> tuple[str, ...]:
     days = []
     current = start_date
@@ -1356,28 +1346,4 @@ def _weekday_replay_days(start_date: date, end_date: date) -> tuple[str, ...]:
     return tuple(days)
 
 
-def _formula_documents(value: object, formula_version: str) -> list[dict[str, Any]]:
-    found: list[dict[str, Any]] = []
-    if isinstance(value, dict):
-        if value.get("formula_version") == formula_version:
-            found.append(value)
-        for child in value.values():
-            found.extend(_formula_documents(child, formula_version))
-    elif isinstance(value, list):
-        for child in value:
-            found.extend(_formula_documents(child, formula_version))
-    return found
-
-
 _ASSETS = ("bond", "stock", "commodity")
-
-_CONTEXT_FORMULA_WARMUP_DAYS = {
-    "credit_impulse": 730,
-    "dr007_policy_spread": 10,
-    "loan_monthly_change": 62,
-    "omo_net_injection": 10,
-    "order_inventory_spread": 62,
-    "production_order_spread": 62,
-    "real_inventory_approximation": 95,
-    "ust_2s10s_spread": 10,
-}

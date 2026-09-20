@@ -20,8 +20,9 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.worker import process_pending_run
-from tests.models.test_isolated_lifecycle import SCRATCH, isolated_lifecycle_material
+from tests.models.test_isolated_lifecycle import SCRATCH, isolated_lifecycle_material, trading_days
 
 TARGET_BUSINESS_DATE = "2026-09-11"
 JULY_PPI = SCRATCH / (
@@ -30,6 +31,14 @@ JULY_PPI = SCRATCH / (
 AUGUST_PPI_URL = "https://www.stats.gov.cn/sj/zxfb/202609/t20260909_1965007.html"
 # A delivered TuShare response with an invalid schema: the parser must reject it.
 INVALID_TUSHARE_RESPONSE = b'{"code":0,"data":{"fields":[],"items":[[]]}}'
+
+
+@pytest.fixture(autouse=True)
+def offline_official_transport(monkeypatch: pytest.MonkeyPatch) -> None:
+    def unavailable(*args: Any, **kwargs: Any) -> None:
+        raise OSError("fixture official source unavailable")
+
+    monkeypatch.setattr("pring_cycle.official_context.urlopen", unavailable)
 
 
 def august_ppi_document() -> bytes:
@@ -43,9 +52,10 @@ def august_ppi_document() -> bytes:
     )
 
 
+@pytest.mark.parametrize("use_listing", [False, True])
 @pytest.mark.usefixtures("runtime_clock")
 def test_worker_official_refresh_uses_the_active_registered_catalog(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, use_listing: bool
 ) -> None:
     paths, material = isolated_lifecycle_material(tmp_path / "runtime")
     candidate = material["candidate_model_version_id"]
@@ -53,14 +63,15 @@ def test_worker_official_refresh_uses_the_active_registered_catalog(
     version = material["metric_catalog_version"]
     now = datetime.now(UTC)
     runs = RunRepository(paths.database)
-    submitted = runs.get(submit_august_ppi_refresh(paths, candidate, now))
+    source_url = "https://www.stats.gov.cn/sj/zxfb/" if use_listing else AUGUST_PPI_URL
+    submitted = runs.get(submit_august_ppi_refresh(paths, candidate, now, source_url=source_url))
     requested = serve_august_ppi(monkeypatch)
     block_history_page(monkeypatch, [])
 
     refresh_august_ppi(paths, now)
 
     stored = runs.get(submitted.run_id)
-    assert requested == [AUGUST_PPI_URL]
+    assert requested == ([source_url, AUGUST_PPI_URL] if use_listing else [AUGUST_PPI_URL])
     official = next(item for item in stored.retrieval_attempts if item["channel"] == "official")
     assert stored.status == "completed", stored
     assert official["outcome"] == "verified"
@@ -77,18 +88,29 @@ def serve_august_ppi(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         status = 200
         headers = {"Content-Type": "text/html"}
 
+        def __init__(self, body: bytes, url: str) -> None:
+            super().__init__(body)
+            self.url = url
+
         def geturl(self) -> str:
-            return AUGUST_PPI_URL
+            return self.url
 
     def fetch(request: Any, **kwargs: Any) -> Response:
         requested.append(request.full_url)
-        return Response(content)
+        if request.full_url == "https://www.stats.gov.cn/sj/zxfb/":
+            listing = f'<a href="{AUGUST_PPI_URL}">2026年8月份工业生产者出厂价格</a>'
+            return Response(listing.encode(), request.full_url)
+        if request.full_url != AUGUST_PPI_URL:
+            raise OSError("unrelated fixture official source unavailable")
+        return Response(content, request.full_url)
 
     monkeypatch.setattr("pring_cycle.official_context.urlopen", fetch)
     return requested
 
 
-def submit_august_ppi_refresh(paths: RuntimePaths, candidate: str, now: datetime) -> str:
+def submit_august_ppi_refresh(
+    paths: RuntimePaths, candidate: str, now: datetime, *, source_url: str = AUGUST_PPI_URL
+) -> str:
     return (
         RunRepository(paths.database)
         .submit(
@@ -101,10 +123,71 @@ def submit_august_ppi_refresh(paths: RuntimePaths, candidate: str, now: datetime
             release_event_id="nbs-ppi:2026-08",
             metric_ids=("CN_PPI",),
             period="2026-08",
-            source_url=AUGUST_PPI_URL,
+            source_url=source_url,
         )
         .run_id
     )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from pring_cycle.projections import ProjectionSetRepository
+    from pring_cycle.reports import ReportRepository
+
+    paths, material = isolated_lifecycle_material(tmp_path / "runtime")
+    candidate = material["candidate_model_version_id"]
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n")
+    paths.secrets.chmod(0o600)
+    requested = serve_august_ppi(monkeypatch)
+    block_history_page(monkeypatch, [])
+    monkeypatch.setattr(
+        "pring_cycle.source_adapters.build_opener", lambda *h: extended_core_opener()
+    )
+    context_requests: list[str] = []
+    monkeypatch.setattr(
+        "pring_cycle.tushare_context.build_opener",
+        lambda *h: extended_context_opener(context_requests),
+    )
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date=TARGET_BUSINESS_DATE,
+        client_request_id="full-automatic-ppi-fallback",
+        model_version_id=candidate,
+        system_as_of=datetime.now(UTC),
+    )
+
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "completed", stored.error_classification
+    assert AUGUST_PPI_URL in requested
+    assert "cn_cpi" in context_requests
+    projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id or "")
+    plan = runs.full_retrieval_plan(stored.run_id)
+    adopted = set(plan["adoption"]["selected_claim_ids"])
+    august = refreshed_august_ppi(
+        paths, as_of=stored.system_as_of, version=material["metric_catalog_version"]
+    )
+    assert {point.selected_claim_id for point in august} <= adopted
+
+    snapshot_id = next(
+        item["reference"]
+        for item in runs.reusable_checkpoints(stored.run_id)
+        if item["kind"] == "report_snapshot"
+    )
+    report = ReportRepository(paths.database).get(snapshot_id)
+    assert report.projection_set_id == projection.envelope.projection_set_id
+    for prices in (projection.datasets["macro"]["price_chain"], report.body["price_context"]):
+        rows = [row for row in prices["evidence"] if row["metric_id"] == "CN_PPI"]
+        assert rows and all(row["period"] == "2026-08-31" for row in rows)
+        assert all(
+            claim["provider"] == "国家统计局" and claim["certification_status"] == "certified"
+            for row in rows
+            for claim in row["claims"]
+            if claim["selected"]
+        )
 
 
 def refresh_august_ppi(paths: RuntimePaths, now: datetime) -> None:
@@ -651,6 +734,14 @@ def test_worker_full_run_publishes_the_registered_projection_across_eia_conditio
     paths, material = isolated_lifecycle_material(tmp_path / "runtime")
     candidate = material["candidate_model_version_id"]
     version = material["metric_catalog_version"]
+    # Replay material contains context-family calendars; a full Worker run also needs
+    # independent core-calendar evidence. Acquire the archived calendar publicly without
+    # configuring a TuShare token, so the EIA credential scenarios stay independent.
+    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *h: real_core_opener())
+    days = trading_days()
+    TushareCoreAdapter("fixture-only", clock=lambda: datetime.now(UTC)).acquire_calendar(
+        AcquisitionRepository(paths.database, paths.artifacts), days[0], days[-1]
+    )
     if scenario != "missing":
         # EIA only: the optional P2 branch must not affect the registered projection.
         paths.secrets.write_text("EIA_API_KEY=fixture-eia-key\n", encoding="utf-8")

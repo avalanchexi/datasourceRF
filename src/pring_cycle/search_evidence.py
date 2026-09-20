@@ -8,7 +8,11 @@ from datetime import UTC, date
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
-from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
+from pring_cycle.catalog_registry import (
+    BUILTIN_CATALOG_VERSIONS,
+    SYSTEM_TARGET_CUTOFF_VERSION,
+    require_registered_manifest,
+)
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
@@ -20,6 +24,7 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
+    event_period_limit,
     evidence_max_age_days,
     required_dimension_members,
 )
@@ -85,7 +90,12 @@ class ModelInputSelector:
         self.version = str(manifest["metric_catalog_version"])
         self.database_path = paths.database
         self.evidence = TargetBoundEvidenceRepository(
-            EvidenceRepository(paths.database), date.fromisoformat(run.target_business_date), {}
+            EvidenceRepository(paths.database),
+            date.fromisoformat(run.target_business_date),
+            {},
+            allow_system_at_target=(
+                manifest.get("point_in_time_rule_version") == SYSTEM_TARGET_CUTOFF_VERSION
+            ),
         )
         self.core_evidence = EvidenceRepository(paths.database)
         self.target_business_date = run.target_business_date
@@ -97,6 +107,7 @@ class ModelInputSelector:
         )
         self.mode = mode
         self._points: dict[str, tuple[MetricSeriesPoint, ...]] = {}
+        self._adoptable: dict[tuple[str, str], tuple[MetricSeriesPoint, ...]] = {}
 
     def series(self, metric_id: str) -> tuple[MetricSeriesPoint, ...]:
         if metric_id not in self._points:
@@ -119,7 +130,43 @@ class ModelInputSelector:
             )
         return self._points[metric_id]
 
-    def _claim_families(self) -> tuple[_ClaimFamily, ...]:
+    def adoptable(self, metric_id: str, period: str) -> tuple[MetricSeriesPoint, ...]:
+        """The points this period can adopt, which is all a family recheck has to cover.
+
+        A claim outside the period is never consulted below, so rechecking it reads
+        originals no decision depends on; over a replay that repeats one full recheck of
+        the whole stored series per day.
+        """
+        key = metric_id, period
+        if key not in self._adoptable:
+            points = self.series(metric_id)
+            if metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS:
+                # An event stays in force until changed, so the period reaches back past its
+                # own end. Only the latest event each member knows of is ever adopted, and a
+                # bad newer event never falls back to an older one, so the rest cannot matter.
+                limit = event_period_limit(period)
+                latest: dict[tuple[tuple[str, str], ...], str] = {}
+                for point in points:
+                    if point.period_end[: len(limit)] > limit:
+                        continue
+                    member = tuple(sorted(point.dimensions.items()))
+                    if point.period_end > latest.get(member, ""):
+                        latest[member] = point.period_end
+                # A member may hold several points at that latest period; keep them all,
+                # because the conflict between them is exactly what the caller must see.
+                self._adoptable[key] = tuple(
+                    point
+                    for point in points
+                    if point.period_end[: len(limit)] <= limit
+                    and point.period_end == latest[tuple(sorted(point.dimensions.items()))]
+                )
+            else:
+                self._adoptable[key] = tuple(
+                    point for point in points if matches_retrieval_period(point.period_end, period)
+                )
+        return self._adoptable[key]
+
+    def _claim_families(self, period: str) -> tuple[_ClaimFamily, ...]:
         """Each registered family's metrics and how its selected claims are rechecked.
 
         Every family has the same shape at the call site: take this family's metrics from the
@@ -139,15 +186,31 @@ class ModelInputSelector:
         def points_of(metric_ids: tuple[str, ...]) -> tuple[MetricSeriesPoint, ...]:
             # A metric named twice in one scope still contributes its points once.
             return tuple(
-                point for metric_id in dict.fromkeys(metric_ids) for point in self.series(metric_id)
+                point
+                for metric_id in dict.fromkeys(metric_ids)
+                for point in self.adoptable(metric_id, period)
             )
 
         def series_by_metric(
             metric_ids: tuple[str, ...],
         ) -> dict[str, tuple[MetricSeriesPoint, ...]]:
-            return {metric_id: self.series(metric_id) for metric_id in dict.fromkeys(metric_ids)}
+            return {
+                metric_id: self.adoptable(metric_id, period)
+                for metric_id in dict.fromkeys(metric_ids)
+            }
 
         return (
+            _ClaimFamily(
+                lambda metric_id: metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS",
+                lambda metric_ids: self.core_evidence.source_claims_matching_registered_contract(
+                    tuple(
+                        point.selected_claim_id
+                        for point in points_of(metric_ids)
+                        if point.selected_claim_id is not None
+                    ),
+                    definition_version=self.version,
+                ),
+            ),
             _ClaimFamily(
                 lambda metric_id: metric_id == "CN_LPR_1Y_5Y",
                 lambda metric_ids: lpr_claims_matching_acquisitions(
@@ -245,17 +308,14 @@ class ModelInputSelector:
                 and matches_retrieval_period(point.period_end, scope.period)
             ),
         )
-        families = self._claim_families()
+        families = self._claim_families(scope.period) if registered else ()
         checked_families = tuple(
             (
                 family,
-                family.check(
-                    tuple(metric_id for metric_id in scope.metric_ids if family.owns(metric_id))
-                    if registered
-                    else ()
-                ),
+                family.check(metric_ids),
             )
             for family in families
+            if (metric_ids := tuple(m for m in scope.metric_ids if family.owns(m)))
         )
         selected_ids: list[str] = []
         missing = []
@@ -300,26 +360,12 @@ class ModelInputSelector:
                     missing.append(f"{metric_id}:dimension_contract_unavailable")
                     continue
                 expected = ({},)
-            points = self.series(metric_id)
+            # Exactly the points the family recheck covered, so nothing can be adopted
+            # that was never rechecked.
+            points = self.adoptable(metric_id, scope.period)
+            event_metric = metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS
             for member in expected:
-                event_metric = metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS
-                event_limit = (
-                    f"{scope.period[:4]}-{int(scope.period[-1]) * 3:02d}"
-                    if "-Q" in scope.period
-                    else scope.period
-                )
-                matches = [
-                    p
-                    for p in points
-                    if (
-                        (
-                            p.period_end[: len(event_limit)] <= event_limit
-                            if event_metric
-                            else matches_retrieval_period(p.period_end, scope.period)
-                        )
-                        and p.dimensions == member
-                    )
-                ]
+                matches = [p for p in points if p.dimensions == member]
                 if event_metric and matches:
                     # Pick the latest known event before checking quality. A bad
                     # newer event must not silently resurrect an older rate.

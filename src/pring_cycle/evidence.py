@@ -921,6 +921,7 @@ class EvidenceRepository:
         mode: AsOfMode,
         as_of: datetime,
         public_as_of: datetime | None = None,
+        allow_system_at_public_cutoff: bool = False,
         tolerance: float = 0.0,
         definition_version: str | None = None,
     ) -> tuple[MetricSeriesPoint, ...]:
@@ -928,6 +929,8 @@ class EvidenceRepository:
             raise ValueError("as_of_must_be_timezone_aware")
         if public_as_of is not None and public_as_of.tzinfo is None:
             raise ValueError("public_as_of_must_be_timezone_aware")
+        if allow_system_at_public_cutoff and (public_as_of is None or mode is not AsOfMode.SYSTEM):
+            raise ValueError("system_target_cutoff_requires_system_and_public_boundary")
         definition_clause = " AND definition_version=?" if definition_version is not None else ""
         time_column = {
             AsOfMode.PUBLIC: "public_available_at",
@@ -939,6 +942,11 @@ class EvidenceRepository:
             if public_as_of is not None
             else ""
         )
+        if allow_system_at_public_cutoff:
+            public_clause = (
+                " AND (julianday(public_available_at) <= julianday(?)"
+                " OR julianday(available_at) <= julianday(?))"
+            )
         parameters: tuple[object, ...] = (
             (metric_id, definition_version, _iso(as_of))
             if definition_version is not None
@@ -946,6 +954,8 @@ class EvidenceRepository:
         )
         if public_as_of is not None:
             parameters += (_iso(public_as_of),)
+            if allow_system_at_public_cutoff:
+                parameters += (_iso(public_as_of),)
         cache_key = (
             (metric_id, definition_version, mode)
             if definition_version is not None and public_as_of is None
@@ -1012,9 +1022,16 @@ class EvidenceRepository:
                 ).fetchall()
             rows_by_observation: dict[str, list[sqlite3.Row]] = {}
             for row in rows:
-                if public_as_of is not None and (
-                    row["public_available_at"] is None
-                    or _required_datetime(row["public_available_at"]) > public_as_of
+                if (
+                    public_as_of is not None
+                    and (
+                        row["public_available_at"] is None
+                        or _required_datetime(row["public_available_at"]) > public_as_of
+                    )
+                    and not (
+                        allow_system_at_public_cutoff
+                        and _required_datetime(row["available_at"]) <= public_as_of
+                    )
                 ):
                     continue
                 rows_by_observation.setdefault(str(row["observation_id"]), []).append(row)
@@ -1369,7 +1386,12 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
         raise ValueError("evidence_dimensions_mismatch")
     if claim.certification_status == "certified" and definition.certification_status != "certified":
         raise ValueError("evidence_source_not_certified_by_model")
-    if claim.certification_status == "certified":
+    # Replacement FX identities cannot inherit the legacy unreviewed broker path.
+    # Their own delivery contract is required even while the source is a candidate.
+    if claim.certification_status == "certified" or claim.metric_id in {
+        "CN_USDCNH_TMA_SPOT_RATE",
+        "CN_USDCNY_ECB_REFERENCE_CROSS",
+    }:
         require_registered_source_contract(
             definition,
             provider=claim.provider,

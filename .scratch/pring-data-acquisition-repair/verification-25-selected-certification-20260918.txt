@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/integration/test_official_metric_fallback.py tests/integration/test_official_pmi_fallback.py tests/integration/test_official_money_fallback.py tests/integration/test_official_social_financing_fallback.py tests/integration/test_official_gdp_fallback.py tests/integration/test_official_full_run_fallback.py tests/integration/test_official_negative_cache.py -q --durations=10
+.................................................................        [100%]
+============================= slowest 10 durations =============================
+5.54s call     tests/integration/test_official_social_financing_fallback.py::test_sf_total_fallback_preserves_delivered_values_and_component_scope[no_matching_period-True]
+5.38s call     tests/integration/test_official_social_financing_fallback.py::test_sf_total_fallback_preserves_delivered_values_and_component_scope[no_matching_period-False]
+5.17s call     tests/integration/test_official_social_financing_fallback.py::test_sf_total_fallback_preserves_delivered_values_and_component_scope[transport_failed-False]
+4.98s call     tests/integration/test_official_social_financing_fallback.py::test_sf_total_fallback_preserves_delivered_values_and_component_scope[available-False]
+4.90s call     tests/integration/test_official_social_financing_fallback.py::test_sf_total_fallback_preserves_delivered_values_and_component_scope[transport_failed-True]
+4.81s call     tests/integration/test_official_social_financing_fallback.py::test_sf_total_fallback_preserves_delivered_values_and_component_scope[available-True]
+4.00s call     tests/integration/test_official_gdp_fallback.py::test_gdp_fallback_respects_delivered_period_without_loosening_required_members[available-False]
+3.96s call     tests/integration/test_official_gdp_fallback.py::test_gdp_fallback_respects_delivered_period_without_loosening_required_members[available-True]
+3.59s call     tests/integration/test_official_gdp_fallback.py::test_gdp_discovers_next_completed_quarter_without_making_unpublished_values_required[True]
+3.51s call     tests/integration/test_official_gdp_fallback.py::test_gdp_fallback_respects_delivered_period_without_loosening_required_members[no_matching_period-True]
+65 passed in 171.96s (0:02:51)
+Exit: 0; elapsed: 172.59s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

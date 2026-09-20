@@ -228,6 +228,7 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
                 "real_inventory_approximation": inventory.get("real_inventory_approximation"),
             },
             "price_context": macro.get("price_chain"),
+            "activity_context": macro.get("overheat"),
             "change_reasons": latest_history,
         },
     )

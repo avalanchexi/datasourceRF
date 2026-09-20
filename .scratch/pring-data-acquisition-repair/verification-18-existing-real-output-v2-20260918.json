@@ -1,0 +1,284 @@
+{
+  "state": "finished",
+  "result": "passed",
+  "corrects": "verification-18-existing-real-output-20260918.json used a project-filesystem SQLite runtime; this v2 reruns the local review in WSL native storage",
+  "runtime_on_wsl_native_filesystem": true,
+  "scope": "retained_real_cli_historical_core_explanation_only",
+  "full_bundle_explanation_passed": false,
+  "current_target_market_report_passed": false,
+  "new_provider_calls": 0,
+  "production_writes": 0,
+  "formal_publication": false,
+  "source_inputs_unchanged": true,
+  "source_inputs": {
+    "/home/tywin/.cache/pring-cycle/verification/repair-18-real-20260916b-codex_cli/reports.sqlite3": "07deac8971e3366dce66d6e6a0cddac6802d10a4ef4d1bc4570542888aba0f11",
+    "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-18/real-20260916b-codex_cli.json": "2d738af9e8d6b700db1bf932f54b6409627532b180f2d4d36c475e22a1631eeb",
+    "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-18/real-20260916b-bundle.json": "bd9838724e58e5c59b26ea455e81a0afaf7e67fa2b7da97d624a1152ca639d06",
+    "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/evidence-18/frozen-bundle.json": "44e6f39226dada99b01a1b7fceb68f61a9be715404b50d27da3110bd2e6ab7ba",
+    "/mnt/d/cursor/datasourceRF/.scratch/pring-data-acquisition-repair/verify-18-existing-real-output-v2-20260918.py": "906d4153c2e8f9c976934c703a31a6c63fce5d864021ec3a03b97c6669998d85",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/__init__.py": "dd509c1cac4cf43f991c77518b45586d450470193b4b5bfe44cc81b7be7b4a5d",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/__main__.py": "90f07b3062f3e45cb95f285b21528798ca5c38b5d68566f4b87b797e15f7b55c",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/acceptance.py": "8da17518b550bcf71b231288551ce804b64b5a02a515b4c64894ae36e3be58fd",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/acquisition.py": "0a89c254284af2f6bf8052086380a4b8b44aa47a64e2bf7af9969074cc3599b8",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/adapters.py": "05e6856cd7bb8e382f17dc36f1f78c4a08cccf6ab7073689f82b23bb7a546ff0",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/artifacts.py": "114427470f2c3f8140eb22d214465620e99a1b2a7baa8c3c1717b8ba4e750ea4",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/candidate_admission.py": "f99578897c2623f667e95ac083312a8b5275c39b641c1c3b371e1dbbfb015db2",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/catalog.py": "fe8dd4e21d563448c31af535f3886fc7fb053133de6346d5d9c4a627a91e7c5c",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/catalog_registry.py": "b64494d43eda859e3d759173bcdf8776b64c9cc78c132124aaaf44b22441810e",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/cli.py": "ad2b0250f214565fbd3f6a1ce813ae393f6bb409fc164148f27d2fe257b7ffbf",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/commodity_basket.py": "e7ea65a00d7099a6a90bf0825f5fcbd2f9ba3c381b2295c1fa81cd41076ea480",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/context_projection.py": "a6d4e82376ed1e120f423aeeddbbc57235b3c662628319a9d26fe45ae4cc0c60",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/context_replay_scope.py": "0cf789d2c9332a277b530a11fca77486f22139886d68bf76fa00919e3c18d7d0",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/core_fixture.py": "753866e32817a3b4237d4610f5f81bb20aa9e544caf57820f6fcf90853786f83",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/core_history.py": "bca200e5d2bdaab71fe3f819e7d0183f6b27bd3b13e2acae17ed64b879764d13",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/cutover.py": "646659c26b009c16368ee567fe0d4808a93d0552a71ba82f22e3b8222888736a",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/dashboard.py": "c20ed7f758341d0e197638bdd7eac66b4ab1e95e7a993966c961c142219c3040",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/domain/__init__.py": "368e65aca5bf1c4589db3ffbb016a5ba58e80ce7286a399ede62ef94df5c9557",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/domain/macro.py": "7023fa9aca5849ee2ab3c4b0f3aef759daa72fd2aba0e95b5dec0a681383c623",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/domain/market.py": "769989f099ecc4026cf5b8eddb0174706190931abd2116ac29cf524e938db699",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/domain/stage.py": "c2ae536eca1ec08484f3d7ad8521bb337a90951c905e3f33528fc5be4358ffac",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/domain/trend.py": "bcbdec85dceefe2fea11bb9c565e319f124d8b1a86432aad9d4b326d99cad9cc",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/domain/types.py": "8a006b95399bc66867a9024af6b9a908415320c1dcf6f7053c96de091aaf3e27",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/ecb_reference.py": "b7a6ec670cc95978c7ca68024f087e99644513b947489e5e630e46a20788ec23",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/eia_context.py": "466e6ec01702758b0465b42276ff0f5cd9c6b244f2812fbb10062346a5891fe0",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/eia_html.py": "7020929e6d1a0e414290874b2bd20778c0bf8928d0cd5fb6c1a1feef02a188f8",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/evidence.py": "00fafbfded1375c10fcf91a0bbca0583ad85cee27394f7db517ea3308006e546",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/full_retrieval.py": "8b21d8e4a6dfd01ef3983fdcf87a5a3280b9531ff2f57c5a39cee60db97033ca",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/full_run_requirements.py": "eea86ff5a7f0a5628eaa90ad75e015c134d5c466f17a52375ee05a0c8164eefa",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/futures_input_reads.py": "4e3bb27f78a162ff430276073ebf6ab0ec0ce96772335bacfa670ad9e4cdb7bd",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/futures_inputs.py": "8e8df35206a61a06aa7ba48c753f0dfc58ef85dd6a71cdb0ea07218c2d23b68e",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/health_types.py": "e1d24a6033210871330ae8b15cb07cdeec683491027b7e40e64c45a4615ab6ed",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/http_transport.py": "a3b1262f73a7a3f391eb1011f3727e05bd9bac501b1ac1e9b7ad39ac8176af19",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/interbank_evidence.py": "6ac8971b73b235307e14fe7b04048e62a4aae0bd29d16381fe7907f5165ccaae",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/logging.py": "cc5d18ce9fe9667fdc21a764acd8b1fafd1c7015f024430520465ef3f91d1841",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/maintenance.py": "7e68d72d06704ba4632232f1ccd7f604027c0ffa84b91f82f245acca15c03692",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/market_amount.py": "2f0a73704d4d0abf1feb1f571d3f3db3c66a0e7ccfa4f1f55e4311f1c17d6b69",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/market_breadth.py": "260eecf309f75c8e0e3cb34d4e91f3d36cb3ceab8078bd84b69b74131f771d85",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/metric_contracts.py": "1dec37bf3b4b2de0a4d4e585960514f3eba091199a23325b6b65f9db2f0e8658",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/env.py": "86d3d3b16cf04660a7fc0fd72e51c33c689222748005db141facc9c30a533fee",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0001_runtime.py": "9244e879ec08d4f572a0a9f7effed72072be4c41545c0a2d088639c305f3f1a9",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0002_v1_domain.py": "bb9b05963e51457cf70ab7d362de2aa821462889e40453aa7913bd67cda26d98",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0003_cutover.py": "46ba381dccd488d8e4ad10bb81550c8faa0cc83a790c5081f5f55b8dccb4ad91",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0004_evidence_extensions.py": "f6d87a6cd83c33095ffba643f992d2c0db4bb45ef6661e14180a9cc63268340f",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0005_run_step_events.py": "f4aa57e8b13164ab29c459e8c294c31fd94db459044e69975f66a1d0d2beb896",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0006_p0_assessment_history.py": "65e5a713fa2d2369ed3db0fa8b25725652db1f4e65a425e799613e211e35d1b6",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0007_release_event_immutability.py": "d97019375ba40ff9f9c0f043c6ad44f8e954a8889bfb7ff3a0c80e13bd10fb20",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0008_retrieval_run_ledger.py": "1413387494ccbdd3a00013ceb003a72170fcd30ee6baf383d45340f65c0861ab",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0009_model_replay_context.py": "5f1aa965d514db9d9173c824a5f2d9cbb154d6523402def0e10fa4c1fa49d6e6",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0010_context_replay_indexes.py": "2e25e638cd774a819eb459db5861193fe7fa8797ad4a380c2bb62216317f9048",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0011_report_nullable_stage.py": "08b95b1b127c84ec248f94cf89b92b7b2afd95248af619a7e1ac00ea4f138b71",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0012_model_replay_exact_calendar.py": "2276f7ce84a1e454de99f7ae8dbff127f0e882a0d090c7dce648d0428bdcc0db",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0013_source_claim_provider_identity_index.py": "1d7563177960894bc2bd46ac798cd0f0c3264ddcfe3c5cfa8a5bb677c02df4db",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0014_acquisition_receipts.py": "7c45a716ae063e1968231ab20587e205d21de5b2cd52387e476c3ba5181da626",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0015_retrieval_physical_requests.py": "1ea3ea2b3ab7378d564f344d7064ab57cf2cce9ddc6308d7868575df9063022c",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0016_search_candidate_validation.py": "9eb7270231857684a8eb3904430b1ddd5d79585751b4452e7188fdeaed32b607",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0017_report_process_audit.py": "696e13b12484daeaf319e5853386ccad9ef600b23de8a2c625a56ae1e9addcc1",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0018_full_run_retrieval.py": "b0dd2f7c889c05cbb8da0e59856c98e6358547afff62f19b8723bc4e3283a65d",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0019_registered_metric_catalog.py": "2e827460b7bb8dfe6c766d307c590d4ed89818e160b886cff3a4b237ab20ae69",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0020_model_evaluation_outputs.py": "6442d4ccf58788447fd46eeb7e3e5aaebb462ee9cc584b2292c72c4d910d5ca2",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/migrations/versions/0021_context_replay_outputs.py": "7c31cd044535ebcd0eae6c65421186b322b651b0f9bbe9ac5399ceb3aaa0a2ec",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/model_evaluation.py": "c6915f2816c7cf791b796dab48e4c72a8a22165568c404e33ee77ceb7d5da8a9",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/model_outputs.py": "80d3debf0a88c4fe277a57bdc46a674206ba080eef8c7faafd011e3b75f29907",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/models.py": "1663b0350a6321bc6e210a942311749d1dcf9595fa864edee1ee31f9660e5801",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/navigation.py": "a7203c94b1015896518725a3b0c9f78a173854beb39153a8d1f982d0b720e614",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/official_context.py": "16885514c19e4dcdae4fed1624ff4eb04ab435f9b971acf8bbe49bf4585e6e4f",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/official_listing.py": "296ab5c13c594958e75c15911d6074f9a382eddf6e63fab77230468a1f0ed962",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/official_lpr.py": "9f7339b36e288cbe808299a76c8b3a61fa67683197245112a2319f8982b4936f",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/p0.py": "8cc460ce27e5820127af10e16feb11c4291f9c207240242674b86d2c801002c5",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/projections.py": "90b041fc3b3b966e364ea7c7f6efd6dc79fa51e8b2231e2a5639611b7773fa18",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/published_events.py": "b3463f972b2b500c7a867e865acfc45968360b9bd636cd7fd574631d203c7c62",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/read_scope.py": "edfdf300cdb1e9db60201499566e44d4ec014b02d6e563d7aa0fd7794c8ebc68",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/rehearsals.py": "492aac51500c810256366baa5e205998e66f9aec42b2866e3a2618bcfa690a1e",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/release_calendar.py": "6c3694a0321e9bd5e321beda5be76e87d8f2eb8f0f8c2543ec36ac30c53712f5",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/report_review.py": "a42333e6ef83c7c3cd1e3fa375b5f91a952857b4f8ee21f57300138be16838c3",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/reports.py": "0430ddcc0bda81769743795588a4fc89c5fe53a6ea0276c99b59310e7eb58da2",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/retrieval.py": "d62159e50d31bd71ca5ad0ed2f665960c303dc7d42212cdd77d6287e27f439df",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/retrieval_ledger.py": "42e9aca86d8a0340e61d67fe25430f94924fb52ae359219909342439642e163f",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/run_cutoffs.py": "02f4d542a9b58500d2820188466b99d34f786b57fe479437cf4107fe1ac18f7c",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/runs.py": "090894c92767dd221ea029d351ad3c054612dafe271fdb7a25cdd2c442a940b7",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/runtime.py": "30ffd317f672cd948f519771b04e7fd5814d354e02eef72d6ae3a5895c4874ca",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/runtime_fingerprint.py": "d5976a3fe7530a27262dedbab4f763c259e296faa478cf82e72bb69f689ce46e",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/search_discovery.py": "402f2cd11b9e0ef4298044c5605572f526c01453361fafd242e438f94d2feefa",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/search_evidence.py": "2a7a00e346b0ff2db726d80b3d79a01e1310b4ee468428db98290357a21af460",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/secrets.py": "95e6a7a39d2d7f249cb120f94e0382fe8447941c3220f9acea0410a6970bd7a5",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/source_adapters.py": "a9c0e5f7db4d822e61da40b6f623621b3bc85f942a0982d1823592648fb07a4d",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/source_certification.py": "88f0188cb0bfccc3406962af00458cfe2ebeda134ba01533ae81ca010bf81b20",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/source_contract_review.py": "f16ee6c27e8dd8cbf92c862057776c3aebddd89ab8d90a790ad1409c5ba3fb3f",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/source_families.py": "4df418a3cf52e6283c3fdacc6e295d740775a60f41cd85f7393a75329d6c0545",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/source_history.py": "2a0009db28e46bb9786a72f36e186857e2e6801134f5a90919e0af2a1ed7fa29",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/storage.py": "e2c9953a6493b12538b9ac530d97d194417cb3293ee0e3975346ac4a703ec94b",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/targeted_context.py": "3601a81cd1b505c38f4762cf2c885ee2214851ec8b5f3dd523eb35b124a5cdeb",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/treasury_context.py": "041baa8ee9f3dd3444e1f0fe3d7de4acc54b0192d696c79de484996028b75c93",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/tushare_context.py": "a6bbd25cf29a16007c1e2eb39aed27f470bd737fba71bf608888682a6be99d61",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/verification.py": "e12b4fb51073dc9d1108e077562e8ee60b4a6b3286bc2103f26b2208ecd917e1",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/warrant_inputs.py": "6765eda87b2d4edd3f2435f43ad8038153fc0307ce7fe8fcc5aeecbbf60b823e",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/web.py": "d9ca3215046a8082013ab622be39a18797a0dd897ff5870db1912bf300fea530",
+    "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/worker.py": "01b126bbed8a319c5c3c544c7cb4564e209bf6000bd647f504f4175aa78ab0fd"
+  },
+  "source_database_unchanged": true,
+  "original_report_body_unchanged": true,
+  "retained_real_attempt_unchanged": true,
+  "output_hash_reconstructed_exactly": "975975a32b3765d44a23b977d588d5852e04e1529aa6b81780aa3a778eb81c5e",
+  "paragraphs_reviewed": 3,
+  "public_review_method": "ReportRepository.record_explanation_review",
+  "review": {
+    "review_id": "report-review-66b3ceed646345bba5994fd0da7ef600",
+    "report_snapshot_id": "report-9a944929561a9e0e3756",
+    "output_hash": "975975a32b3765d44a23b977d588d5852e04e1529aa6b81780aa3a778eb81c5e",
+    "bundle_hash": "27bf79782bb2e0be360c9fb14465ed8fcd8dfd011bc6fa1af9f71397101d7f34",
+    "reviewer": "Codex /root documented semantic review 2026-09-18",
+    "reviewed_at": "2026-09-18T07:55:21.994575+00:00",
+    "method": "documented_paragraph_review_v1",
+    "status": "passed",
+    "identity_and_references": "passed",
+    "semantic_support": "reviewed",
+    "sections": [
+      {
+        "index": 0,
+        "verdict": "supported",
+        "assessment": "逐句核对目标日和三项核心资产末日均为2026-08-03、三状态均bull、P0通过声明、stage_iii及canonical_combination，均与冻结包一致。三个证据ID逐一对应冻结原包末日观测，模型引用在白名单内。末句明确仅描述历史包；P1/P2不足和冲突不支持推广为当前市场或新的来源认证，也未被用来重分正式阶段。此处认可对既有包的解释，不重新认证包内原始市场事实。",
+        "support": [
+          {
+            "pointer": "/target_business_date",
+            "value": "2026-08-03"
+          },
+          {
+            "pointer": "/core_states",
+            "value": {
+              "bond": "bull",
+              "stock": "bull",
+              "commodity": "bull"
+            }
+          },
+          {
+            "pointer": "/structured_context/core_asset_facts",
+            "value": [
+              {
+                "asset": "bond",
+                "metric_id": "CN_BOND_CORE_000012",
+                "state": "bull",
+                "latest_business_date": "2026-08-03",
+                "evidence_id": "03abcc16e4160073180632d2bc6b38e44db4fa6a7f851fcf10eed0a8e956e49a"
+              },
+              {
+                "asset": "stock",
+                "metric_id": "CN_EQUITY_CORE_000985",
+                "state": "bull",
+                "latest_business_date": "2026-08-03",
+                "evidence_id": "9218cd3ae25b48361d906f40e1c6b02702778d6d52b9435224e1d364a5053f52"
+              },
+              {
+                "asset": "commodity",
+                "metric_id": "CN_COMMODITY_CORE_NHII",
+                "state": "bull",
+                "latest_business_date": "2026-08-03",
+                "evidence_id": "3d17c1f1bf1cde5a622d9ef0d55f1081df71cf4a802547c6bc0d9ce29319f8cd"
+              }
+            ]
+          },
+          {
+            "pointer": "/support/0",
+            "value": "三核心资产价格状态通过 P0 门禁。"
+          },
+          {
+            "pointer": "/current_stage",
+            "value": "stage_iii"
+          },
+          {
+            "pointer": "/stage_reason",
+            "value": "canonical_combination"
+          }
+        ],
+        "counterevidence": [
+          {
+            "pointer": "/counterevidence/0",
+            "value": "p1_evidence_incomplete:34/42"
+          },
+          {
+            "pointer": "/counterevidence/1",
+            "value": "p2_evidence_incomplete:2/13"
+          },
+          {
+            "pointer": "/counterevidence/5",
+            "value": "历史目录已被来源审查隔离；本段仅解释旧记录，不证明当前市场或新来源认证。"
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "verdict": "supported",
+        "assessment": "34/42、2/13、政策传导冲突、库存冲突及P2降级逐项对应冻结包治理缺口；范围限制对应明确explanation_scope。该段无观测ID引用，只陈述包内治理元数据，以下JSON Pointer单独绑定支持事实。三核心P0通过是仍成立的相反方向证据，不能据此补足被省略事实；原文没有作此推断。",
+        "support": [
+          {
+            "pointer": "/governance_gaps",
+            "value": [
+              "p1_evidence_incomplete:34/42",
+              "p2_evidence_incomplete:2/13",
+              "policy_context_degraded:transmission_conflict",
+              "inventory_context_degraded:conflict",
+              "p2_context_degraded"
+            ]
+          },
+          {
+            "pointer": "/structured_context/explanation_scope",
+            "value": "仅历史三核心状态和治理限制；不解释被省略的宏观、库存或派生值。"
+          }
+        ],
+        "counterevidence": [
+          {
+            "pointer": "/support/0",
+            "value": "三核心资产价格状态通过 P0 门禁。"
+          },
+          {
+            "pointer": "/current_stage",
+            "value": "stage_iii"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "verdict": "supported",
+        "assessment": "2026-08-31 20:51:41.285300 UTC精确对应report_cutoff；三个latest_business_date和目标日都是2026-08-03，因此截点不等于观测日期。历史隔离及不证明当前市场/新来源认证逐字受包内counterevidence约束；无新增行情数字或交易指令。P0通过及stage_iii只支持该历史包，不能反证为当前适用。治理说明由包内元数据支持，不假称新增独立来源认证。",
+        "support": [
+          {
+            "pointer": "/report_cutoff",
+            "value": "2026-08-31T20:51:41.285300+00:00"
+          },
+          {
+            "pointer": "/target_business_date",
+            "value": "2026-08-03"
+          },
+          {
+            "pointer": "/structured_context/core_asset_facts/0/latest_business_date",
+            "value": "2026-08-03"
+          },
+          {
+            "pointer": "/structured_context/core_asset_facts/1/latest_business_date",
+            "value": "2026-08-03"
+          },
+          {
+            "pointer": "/structured_context/core_asset_facts/2/latest_business_date",
+            "value": "2026-08-03"
+          },
+          {
+            "pointer": "/counterevidence/5",
+            "value": "历史目录已被来源审查隔离；本段仅解释旧记录，不证明当前市场或新来源认证。"
+          }
+        ],
+        "counterevidence": [
+          {
+            "pointer": "/support/0",
+            "value": "三核心资产价格状态通过 P0 门禁。"
+          },
+          {
+            "pointer": "/current_stage",
+            "value": "stage_iii"
+          }
+        ]
+      }
+    ]
+  },
+  "copied_database": "/home/tywin/.cache/pring-cycle/verification/repair-18-real-review-v2-20260918/reports.sqlite3",
+  "copied_database_sha256": "8909e0d948930fd06f109b8926b4d95a6a4cae58aa4995723eaea21f213a2480",
+  "elapsed_seconds": 0.17649480598629452
+}

@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+    "tests/fixtures/isolated_lifecycle_inputs.py",
+    "/tmp/datasourceRF-preflight-inputs-20260920-v4",
+    "acquisition-repairs"
+  ],
+  "pid": 2797875,
+  "runtime_root": "/tmp/datasourceRF-preflight-inputs-20260920-v4",
+  "identity_file": "/mnt/d/cursor/datasourceRF-integrated-20260918/.scratch/pring-data-acquisition-repair/verification-19-preflight-input-identity-20260920-v4.json",
+  "state": "finished",
+  "elapsed_seconds": 277.11577793199103,
+  "c_free_gib": 13.25,
+  "exit_code": 0,
+  "reason": null,
+  "frozen_inputs_unchanged": true
+}

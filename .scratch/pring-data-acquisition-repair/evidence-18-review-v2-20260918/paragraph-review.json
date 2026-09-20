@@ -1,0 +1,157 @@
+{
+  "review_id": "report-review-66b3ceed646345bba5994fd0da7ef600",
+  "report_snapshot_id": "report-9a944929561a9e0e3756",
+  "output_hash": "975975a32b3765d44a23b977d588d5852e04e1529aa6b81780aa3a778eb81c5e",
+  "bundle_hash": "27bf79782bb2e0be360c9fb14465ed8fcd8dfd011bc6fa1af9f71397101d7f34",
+  "reviewer": "Codex /root documented semantic review 2026-09-18",
+  "reviewed_at": "2026-09-18T07:55:21.994575+00:00",
+  "method": "documented_paragraph_review_v1",
+  "status": "passed",
+  "identity_and_references": "passed",
+  "semantic_support": "reviewed",
+  "sections": [
+    {
+      "index": 0,
+      "verdict": "supported",
+      "assessment": "逐句核对目标日和三项核心资产末日均为2026-08-03、三状态均bull、P0通过声明、stage_iii及canonical_combination，均与冻结包一致。三个证据ID逐一对应冻结原包末日观测，模型引用在白名单内。末句明确仅描述历史包；P1/P2不足和冲突不支持推广为当前市场或新的来源认证，也未被用来重分正式阶段。此处认可对既有包的解释，不重新认证包内原始市场事实。",
+      "support": [
+        {
+          "pointer": "/target_business_date",
+          "value": "2026-08-03"
+        },
+        {
+          "pointer": "/core_states",
+          "value": {
+            "bond": "bull",
+            "stock": "bull",
+            "commodity": "bull"
+          }
+        },
+        {
+          "pointer": "/structured_context/core_asset_facts",
+          "value": [
+            {
+              "asset": "bond",
+              "metric_id": "CN_BOND_CORE_000012",
+              "state": "bull",
+              "latest_business_date": "2026-08-03",
+              "evidence_id": "03abcc16e4160073180632d2bc6b38e44db4fa6a7f851fcf10eed0a8e956e49a"
+            },
+            {
+              "asset": "stock",
+              "metric_id": "CN_EQUITY_CORE_000985",
+              "state": "bull",
+              "latest_business_date": "2026-08-03",
+              "evidence_id": "9218cd3ae25b48361d906f40e1c6b02702778d6d52b9435224e1d364a5053f52"
+            },
+            {
+              "asset": "commodity",
+              "metric_id": "CN_COMMODITY_CORE_NHII",
+              "state": "bull",
+              "latest_business_date": "2026-08-03",
+              "evidence_id": "3d17c1f1bf1cde5a622d9ef0d55f1081df71cf4a802547c6bc0d9ce29319f8cd"
+            }
+          ]
+        },
+        {
+          "pointer": "/support/0",
+          "value": "三核心资产价格状态通过 P0 门禁。"
+        },
+        {
+          "pointer": "/current_stage",
+          "value": "stage_iii"
+        },
+        {
+          "pointer": "/stage_reason",
+          "value": "canonical_combination"
+        }
+      ],
+      "counterevidence": [
+        {
+          "pointer": "/counterevidence/0",
+          "value": "p1_evidence_incomplete:34/42"
+        },
+        {
+          "pointer": "/counterevidence/1",
+          "value": "p2_evidence_incomplete:2/13"
+        },
+        {
+          "pointer": "/counterevidence/5",
+          "value": "历史目录已被来源审查隔离；本段仅解释旧记录，不证明当前市场或新来源认证。"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "verdict": "supported",
+      "assessment": "34/42、2/13、政策传导冲突、库存冲突及P2降级逐项对应冻结包治理缺口；范围限制对应明确explanation_scope。该段无观测ID引用，只陈述包内治理元数据，以下JSON Pointer单独绑定支持事实。三核心P0通过是仍成立的相反方向证据，不能据此补足被省略事实；原文没有作此推断。",
+      "support": [
+        {
+          "pointer": "/governance_gaps",
+          "value": [
+            "p1_evidence_incomplete:34/42",
+            "p2_evidence_incomplete:2/13",
+            "policy_context_degraded:transmission_conflict",
+            "inventory_context_degraded:conflict",
+            "p2_context_degraded"
+          ]
+        },
+        {
+          "pointer": "/structured_context/explanation_scope",
+          "value": "仅历史三核心状态和治理限制；不解释被省略的宏观、库存或派生值。"
+        }
+      ],
+      "counterevidence": [
+        {
+          "pointer": "/support/0",
+          "value": "三核心资产价格状态通过 P0 门禁。"
+        },
+        {
+          "pointer": "/current_stage",
+          "value": "stage_iii"
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "verdict": "supported",
+      "assessment": "2026-08-31 20:51:41.285300 UTC精确对应report_cutoff；三个latest_business_date和目标日都是2026-08-03，因此截点不等于观测日期。历史隔离及不证明当前市场/新来源认证逐字受包内counterevidence约束；无新增行情数字或交易指令。P0通过及stage_iii只支持该历史包，不能反证为当前适用。治理说明由包内元数据支持，不假称新增独立来源认证。",
+      "support": [
+        {
+          "pointer": "/report_cutoff",
+          "value": "2026-08-31T20:51:41.285300+00:00"
+        },
+        {
+          "pointer": "/target_business_date",
+          "value": "2026-08-03"
+        },
+        {
+          "pointer": "/structured_context/core_asset_facts/0/latest_business_date",
+          "value": "2026-08-03"
+        },
+        {
+          "pointer": "/structured_context/core_asset_facts/1/latest_business_date",
+          "value": "2026-08-03"
+        },
+        {
+          "pointer": "/structured_context/core_asset_facts/2/latest_business_date",
+          "value": "2026-08-03"
+        },
+        {
+          "pointer": "/counterevidence/5",
+          "value": "历史目录已被来源审查隔离；本段仅解释旧记录，不证明当前市场或新来源认证。"
+        }
+      ],
+      "counterevidence": [
+        {
+          "pointer": "/support/0",
+          "value": "三核心资产价格状态通过 P0 门禁。"
+        },
+        {
+          "pointer": "/current_stage",
+          "value": "stage_iii"
+        }
+      ]
+    }
+  ]
+}

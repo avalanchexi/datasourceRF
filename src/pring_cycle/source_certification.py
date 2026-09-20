@@ -244,7 +244,7 @@ def refresh_source_certified_candidate(
     from pring_cycle.official_lpr import refresh_lpr_release
     from pring_cycle.secrets import parse_data_source_secrets
     from pring_cycle.source_adapters import TushareCoreAdapter
-    from pring_cycle.worker import _refresh_context_sources
+    from pring_cycle.worker import refresh_context_sources
 
     models = ModelRepository(paths.database)
     model = models.get(model_version_id)
@@ -275,7 +275,7 @@ def refresh_source_certified_candidate(
         end=target,
         definition_version=definition_version,
     )
-    _refresh_context_sources(
+    refresh_context_sources(
         paths,
         target_business_date,
         definition_version=definition_version,

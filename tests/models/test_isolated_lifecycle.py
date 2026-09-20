@@ -76,9 +76,14 @@ def trading_days() -> tuple[date, ...]:
     )
 
 
-def admit_complete_candidate(paths: RuntimePaths, capsys: pytest.CaptureFixture[str]) -> str:
+def admit_complete_candidate(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], *, profile: str = "legacy"
+) -> str:
     # The reviewed Q1 capacity mapping is bound at admission, as its registered contract requires.
-    request, _, _, _, _ = prepared_capacity_mapping_request(paths, side="isolated-lifecycle")
+    side = {"legacy": "isolated-lifecycle", "acquisition-repairs": "integrated-acquisition"}[
+        profile
+    ]
+    request, _, _, _, _ = prepared_capacity_mapping_request(paths, side=side)
     # Reviewed derived families use their registered contracts; GDP is a required
     # credit-impulse input, so its P2 definition must be certified too.
     manifest = request["manifest"]
@@ -100,6 +105,11 @@ def admit_complete_candidate(paths: RuntimePaths, capsys: pytest.CaptureFixture[
             item["source_codes"] = [registered_sources[item["metric_id"]]]
         if item["metric_id"] == "CN_GDP":
             item["certification_status"] = "certified"
+        if item["metric_id"] == "CN_PPI":
+            item["source_codes"] = [*item["source_codes"], "tushare:cn_ppi:official-sampled-v0001"]
+            item["source_candidates"] = ["https://www.stats.gov.cn/sj/zxfb/"]
+    if profile == "acquisition-repairs":
+        apply_acquisition_repairs(manifest)
     package_hash = request["package_hashes"][0]
     package = json.loads((paths.artifacts / package_hash[:2] / package_hash).read_bytes())
     package["definition_bindings"] = {
@@ -112,6 +122,54 @@ def admit_complete_candidate(paths: RuntimePaths, capsys: pytest.CaptureFixture[
     return str(json.loads(capsys.readouterr().out)["model_version_id"])
 
 
+def apply_acquisition_repairs(manifest: dict[str, Any]) -> None:
+    """Build the new synthetic catalog explicitly; historical lifecycle material stays separate."""
+    deliveries = {
+        "CN_CPI_HEADLINE": "tushare:cn_cpi:official-sampled-v0001",
+        "CN_PMI_ACTIVITY": "tushare:cn_pmi:official-sampled-v0001",
+        "CN_PMI_INVENTORY": "tushare:cn_pmi:official-sampled-v0001",
+        "CN_PMI_PRICES": "tushare:cn_pmi:official-sampled-v0001",
+        "CN_M1_M2": "tushare:cn_m:official-sampled-v0001",
+        "CN_SF_TOTAL": "tushare:sf_month:official-sampled-v0001",
+        "CN_GDP": "tushare:cn_gdp:official-sampled-v0001",
+    }
+    removed = ["COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT", "LBMA_GOLD_PRICE_PM_USD_OZT"]
+    manifest["metric_identity_migration"] = {
+        "version": "p2-ecb-reference-cross-v0001",
+        "replacements": {"CN_USDCNH_FXCM": "CN_USDCNY_ECB_REFERENCE_CROSS"},
+        "removed_metric_ids": removed,
+        "history_policy": "retain_separate",
+    }
+    manifest["point_in_time_rule_version"] = "dual-cutoff-v0003"
+    manifest["metric_definitions"] = [
+        item for item in manifest["metric_definitions"] if item["metric_id"] not in removed
+    ]
+    for item in manifest["metric_definitions"]:
+        metric = item["metric_id"]
+        if metric in deliveries:
+            item["source_codes"] = [*item["source_codes"], deliveries[metric]]
+            item["source_candidates"] = [
+                "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+                if metric in {"CN_M1_M2", "CN_SF_TOTAL"}
+                else "https://www.stats.gov.cn/sj/zxfb/"
+            ]
+        if metric == "CN_USDCNH_FXCM":
+            item.update(
+                metric_id="CN_USDCNY_ECB_REFERENCE_CROSS",
+                name_cn="ECB 美元兑人民币参考交叉汇率",
+                unit="cny_per_usd",
+                allowed_units=["cny_per_usd"],
+                dimensions=[],
+                source_codes=["ECB_EUR_REFERENCE_CNY_USD_CROSS_V0001"],
+                source_candidates=[
+                    "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+                ],
+                release_event_family="ecb_eur_reference_cross",
+                release_rule="source_schedule_required",
+                release_timezone="Europe/Berlin",
+            )
+
+
 def import_core_histories(
     paths: RuntimePaths, definition_version: str, clock: Callable[[], datetime]
 ) -> None:
@@ -122,6 +180,10 @@ def import_core_histories(
     days = trading_days()
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     evidence = EvidenceRepository(paths.database)
+    calendar_raw = (CORE_TRANSPORT / receipts["calendar"]["local_file"]).read_bytes()
+    TushareCoreAdapter(
+        "synthetic-token", transport=lambda _: calendar_raw, clock=clock
+    ).acquire_calendar(acquisitions, days[0], days[-1])
     for metric_id, (api, code) in CORE_API_IDENTITIES.items():
         raw = (CORE_TRANSPORT / receipts[metric_id]["local_file"]).read_bytes()
         closes = {row[1]: float(row[2]) for row in json.loads(raw)["data"]["items"]}
@@ -771,22 +833,27 @@ def import_commodity_basket(paths: RuntimePaths, definition_version: str) -> Non
         acquisition_ids=acquired.acquisition_ids,
         evidence_hash=save_synthetic_document(paths, {**packet, "review_hash": review}),
     )
-    for day in days[1:]:
-        business_date = date.fromisoformat(day)
-        result = persist_commodity_basket(
-            paths,
-            business_date=business_date,
-            as_of=datetime(
-                business_date.year, business_date.month, business_date.day, 12, tzinfo=UTC
-            ),
-            mode=AsOfMode.PUBLIC,
-            definition_version=definition_version,
-        )
-        assert result["missing"] == [], (day, result["missing"])
+    from pring_cycle.futures_input_reads import shared_futures_input_reads
+
+    # Inputs and their reviews above are now fixed. The loop only adds derived
+    # results, so all dates can reuse one verified read of the futures inputs.
+    with shared_futures_input_reads():
+        for day in days[1:]:
+            business_date = date.fromisoformat(day)
+            result = persist_commodity_basket(
+                paths,
+                business_date=business_date,
+                as_of=datetime(
+                    business_date.year, business_date.month, business_date.day, 12, tzinfo=UTC
+                ),
+                mode=AsOfMode.PUBLIC,
+                definition_version=definition_version,
+            )
+            assert result["missing"] == [], (day, result["missing"])
 
 
 def prepare_isolated_candidate_inputs(
-    paths: RuntimePaths, capsys: Any, clock: Callable[[], datetime]
+    paths: RuntimePaths, capsys: Any, clock: Callable[[], datetime], *, profile: str = "legacy"
 ) -> str:
     """Admit the complete synthetic candidate and import every family's replay inputs.
 
@@ -799,7 +866,7 @@ def prepare_isolated_candidate_inputs(
     models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
 
-    candidate_id = admit_complete_candidate(paths, capsys)
+    candidate_id = admit_complete_candidate(paths, capsys, profile=profile)
     version = models.manifest(candidate_id)["metric_catalog_version"]
     import_core_histories(paths, version, clock)
     for catalog in (version, "metric-catalog-v0001"):
@@ -815,7 +882,9 @@ def prepare_isolated_candidate_inputs(
     return candidate_id
 
 
-def build_complete_isolated_lifecycle(paths: RuntimePaths) -> dict[str, Any]:
+def build_complete_isolated_lifecycle(
+    paths: RuntimePaths, *, profile: str = "legacy"
+) -> dict[str, Any]:
     """Admit, calibrate, replay and activate the complete synthetic candidate publicly.
 
     Each stage runs in its own process so the large evaluation documents of calibration,
@@ -830,6 +899,7 @@ def build_complete_isolated_lifecycle(paths: RuntimePaths) -> dict[str, Any]:
             sys.executable,
             str(Path(__file__).parents[1] / "fixtures/isolated_lifecycle_inputs.py"),
             str(paths.override_root),
+            profile,
         ],
         capture_output=True,
         text=True,
@@ -899,7 +969,7 @@ def _content_hashes(roots: tuple[Path, ...]) -> dict[str, str]:
     }
 
 
-def material_identity(paths: RuntimePaths) -> dict[str, Any]:
+def material_identity(paths: RuntimePaths, *, profile: str = "legacy") -> dict[str, Any]:
     """Everything a stored material depends on; any change requires a new build."""
     from pring_cycle.runtime_fingerprint import execution_fingerprint
 
@@ -907,6 +977,7 @@ def material_identity(paths: RuntimePaths) -> dict[str, Any]:
     # The migration head is part of the code; a not-yet-created destination has no revision.
     return {
         "schema_version": MATERIAL_SCHEMA,
+        "profile": profile,
         "code_hash": fingerprint["code_hash"],
         "configuration_version": fingerprint["configuration_version"],
         "dependency_hash": fingerprint["dependency_hash"],
@@ -949,11 +1020,13 @@ def _runtime_contents(root: Path) -> dict[str, str]:
     }
 
 
-def store_isolated_lifecycle_material(paths: RuntimePaths, built: dict[str, Any]) -> Path:
+def store_isolated_lifecycle_material(
+    paths: RuntimePaths, built: dict[str, Any], *, profile: str = "legacy"
+) -> Path:
     """Keep a verified build as immutable material unless an identical one is stored."""
     import shutil
 
-    identity = material_identity(paths)
+    identity = material_identity(paths, profile=profile)
     key = hashlib.sha256(encode(identity)).hexdigest()
     stored = material_store() / key
     if (stored / "material.json").is_file():
@@ -997,7 +1070,9 @@ def store_isolated_lifecycle_material(paths: RuntimePaths, built: dict[str, Any]
     return stored
 
 
-def isolated_lifecycle_material(destination: Path) -> tuple[RuntimePaths, dict[str, Any]]:
+def isolated_lifecycle_material(
+    destination: Path, *, profile: str = "legacy"
+) -> tuple[RuntimePaths, dict[str, Any]]:
     """An independent copy of the activated synthetic model for mutable isolated tests.
 
     A stored build is reused only when its identity matches the current code, dependencies,
@@ -1009,7 +1084,7 @@ def isolated_lifecycle_material(destination: Path) -> tuple[RuntimePaths, dict[s
     """
     import shutil
 
-    identity = material_identity(RuntimePaths.discover(destination))
+    identity = material_identity(RuntimePaths.discover(destination), profile=profile)
     key = hashlib.sha256(encode(identity)).hexdigest()
     stored = material_store() / key
     if not (stored / "material.json").is_file():
@@ -1017,7 +1092,9 @@ def isolated_lifecycle_material(destination: Path) -> tuple[RuntimePaths, dict[s
         shutil.rmtree(build.parent, ignore_errors=True)
         build_paths = RuntimePaths.discover(build)
         store_isolated_lifecycle_material(
-            build_paths, build_complete_isolated_lifecycle(build_paths)
+            build_paths,
+            build_complete_isolated_lifecycle(build_paths, profile=profile),
+            profile=profile,
         )
         shutil.rmtree(build.parent, ignore_errors=True)
     document = json.loads((stored / "material.json").read_text())
@@ -1145,3 +1222,252 @@ def test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence(
         stored_original.write_bytes(original)
     third, _ = isolated_lifecycle_material(tmp_path / "fourth")
     assert ModelRepository(third.database).active().model_version_id == candidate
+
+
+def test_complete_context_replay_rejects_a_damaged_candidate_original(tmp_path: Path) -> None:
+    """The full replay orchestrator must reject damage seen by component selectors."""
+    from pring_cycle.evidence import AsOfMode
+    from pring_cycle.model_evaluation import evaluate_context_replay
+    from pring_cycle.model_outputs import context_day_source_inputs
+
+    paths, material = isolated_lifecycle_material(
+        tmp_path / "runtime", profile="acquisition-repairs"
+    )
+    models = ModelRepository(paths.database)
+    manifests = {
+        side: models.manifest(material[f"{side}_model_version_id"])
+        for side in ("candidate", "comparison")
+    }
+
+    def replay():
+        return evaluate_context_replay(
+            paths.database,
+            manifests["candidate"],
+            manifests["comparison"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+
+    before = replay()
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    before_day = before.output_document["days"][0]
+    evidence = EvidenceRepository(paths.database)
+    (point,) = [
+        p
+        for p in evidence.metric_series(
+            "CN_DR007",
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC),
+            definition_version=manifests["candidate"]["metric_catalog_version"],
+        )
+        if p.period_end == "2026-08-28"
+    ]
+    assert (
+        point.selected_claim_id
+        in before_day["candidate"]["macro"]["model_input_observation_version_ids"]
+    )
+    assert point.selected_claim_id is not None
+    ((receipt, _),) = evidence.source_claim_originals(point.selected_claim_id)
+    assert receipt.raw_hash is not None
+    comparison_claims = tuple(
+        claim.claim_id
+        for p in evidence.metric_series(
+            "CN_DR007",
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC),
+            definition_version=manifests["comparison"]["metric_catalog_version"],
+        )
+        for claim in p.claims
+    )
+    # This complete legacy comparison has no DR007 delivery. Its entire public
+    # output stays unchanged; independent paired DR deliveries are tested in
+    # test_registered_interbank_public_projection_rejects_damaged_originals.
+    assert comparison_claims == ()
+    artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
+    original = artifact.read_bytes()
+    try:
+        artifact.write_bytes(b"damaged candidate interbank replay original")
+        after = replay()
+        assert "candidate_context_selection_invalid:CN_DR007" in after.gaps
+        assert not any(gap.startswith("comparison_") for gap in after.gaps)
+        assert after.evaluated_cutoffs == 1 and after.output_document is not None
+        after_day = after.output_document["days"][0]
+        assert (
+            point.selected_claim_id
+            not in after_day["candidate"]["macro"]["model_input_observation_version_ids"]
+        )
+        assert after_day["comparison"]["macro"] == before_day["comparison"]["macro"]
+        assert context_day_source_inputs(
+            after.output_document, after_day, "comparison"
+        ) == context_day_source_inputs(before.output_document, before_day, "comparison")
+    finally:
+        artifact.write_bytes(original)
+    restored = replay()
+    assert not restored.gaps, restored.gaps
+    assert restored.evaluated_cutoffs == 1
+    assert restored.output_document == before.output_document
+
+
+@pytest.mark.parametrize("retired_warehouse", [False, True])
+def test_complete_context_snapshot_binds_older_warrant_coverage(
+    tmp_path: Path, retired_warehouse: bool
+) -> None:
+    from pring_cycle.evidence import AsOfMode
+    from pring_cycle.model_evaluation import evaluate_context_replay
+    from pring_cycle.model_outputs import context_day_source_inputs
+    from pring_cycle.tushare_context import TushareContextAdapter
+
+    paths, material = isolated_lifecycle_material(
+        tmp_path / "runtime", profile="acquisition-repairs"
+    )
+    models = ModelRepository(paths.database)
+    candidate = models.manifest(material["candidate_model_version_id"])
+    comparison = models.manifest(material["comparison_model_version_id"])
+    evidence = EvidenceRepository(paths.database)
+    cutoff = datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC)
+    (current,) = [
+        p
+        for p in evidence.metric_series(
+            "CN_FUTURES_WARRANTS",
+            mode=AsOfMode.PUBLIC,
+            as_of=cutoff,
+            definition_version=candidate["metric_catalog_version"],
+        )
+        if p.period_end == "2026-08-24"
+        and p.dimensions["symbol"] == "CU"
+        and p.dimensions["measure"] == "registered_receipts"
+    ]
+    (claim,) = [c for c in current.claims if c.claim_id == current.selected_claim_id]
+
+    def replay():
+        return evaluate_context_replay(
+            paths.database,
+            candidate,
+            comparison,
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+        )
+
+    before = replay()
+    assert not before.gaps, before.gaps
+    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    if retired_warehouse:
+        evidence.append_source_claim(
+            SourceClaimInput(
+                metric_id="CN_FUTURES_WARRANTS",
+                definition_version=candidate["metric_catalog_version"],
+                period_kind="business_day",
+                period_start="2026-08-24",
+                period_end="2026-08-24",
+                dimensions={**current.dimensions, "warehouse": "synthetic-retired"},
+                value=current.selected_value,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit=claim.unit,
+                provider=claim.provider,
+                source_reference=claim.source_reference,
+                release_event_id="synthetic-retired-invalid",
+                release_at=claim.release_at,
+                public_available_at=claim.public_available_at,
+                fetched_at=datetime.now(UTC),
+                available_at=datetime.now(UTC),
+                certification_status="certified",
+                quality_status="invalid",
+            )
+        )
+        evaluated = replay()
+        assert not evaluated.gaps, evaluated.gaps
+        document = evaluated.output_document
+        assert document is not None
+        recorded = models.record_replay(
+            candidate["model_version_id"],
+            compared_with=comparison["model_version_id"],
+            requested_start="2026-08-28",
+            requested_end="2026-08-28",
+            quality_passed=True,
+            regression_passed=True,
+            performance_passed=True,
+            stage_differences=0,
+            core_state_differences=0,
+            gaps=(),
+            evaluated_trading_days=1,
+            calendar_hash=document["calendar_hash"],
+            context_output_differences=evaluated.context_output_differences,
+            context_output_document=document,
+            context_output_hash=hashlib.sha256(encode(document)).hexdigest(),
+        )
+        assert not recorded.passed
+        assert "core_candidate_outputs_incomplete" in recorded.gaps
+        saved = models.replay_details(recorded.replay_id)
+        assert saved["context_output_status"] == "recorded"
+        context = saved["context_output_document"]
+        points = context_day_source_inputs(context, context["days"][0], "candidate")[
+            "CN_FUTURES_WARRANTS"
+        ]
+        retired = next(p for p in points if p["dimensions"]["warehouse"] == "synthetic-retired")
+        assert retired["claims"][0]["quality_status"] == "invalid"
+        return
+
+    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
+    raw = encode(
+        {
+            "code": 0,
+            "fixture_revision": "later-same-value-warrant-coverage",
+            "data": {
+                "fields": [
+                    "trade_date",
+                    "symbol",
+                    "warehouse",
+                    "pre_vol",
+                    "vol",
+                    "vol_chg",
+                    "unit",
+                    "exchange",
+                ],
+                "items": [
+                    [
+                        "20260824",
+                        "CU",
+                        current.dimensions["warehouse"],
+                        100,
+                        current.selected_value,
+                        0,
+                        "吨",
+                        "SHFE",
+                    ]
+                ],
+            },
+        }
+    )
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+    revision = adapter.acquire_scalars(
+        paths,
+        lambda: tuple(
+            replace(s, release_at=public_at, public_available_at=public_at)
+            for s in adapter.futures_warrants(
+                start_date=date(2026, 8, 24), end_date=date(2026, 8, 24), symbol="CU"
+            )
+        ),
+        definition_version=candidate["metric_catalog_version"],
+    )
+    after = replay()
+    assert not after.gaps, after.gaps
+    assert before.context_output_differences == after.context_output_differences
+    assert after.output_document is not None
+    assert before.output_document != after.output_document
+
+    def old_copper(document):
+        points = context_day_source_inputs(document, document["days"][0], "candidate")[
+            "CN_FUTURES_WARRANTS"
+        ]
+        return next(
+            p
+            for p in points
+            if p["period_end"] == "2026-08-24" and p["dimensions"] == current.dimensions
+        )
+
+    old_point, new_point = old_copper(before.output_document), old_copper(after.output_document)
+    assert old_point["selected_value"] == new_point["selected_value"] == current.selected_value
+    assert old_point["selected_claim_id"] == current.selected_claim_id
+    assert new_point["selected_claim_id"] in revision.claim_ids
+    assert old_point["selected_claim_id"] != new_point["selected_claim_id"]

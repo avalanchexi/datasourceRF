@@ -12,6 +12,7 @@ from pring_cycle.evidence import (
     EvidenceValueState,
     MetricSeriesPoint,
 )
+from pring_cycle.metric_contracts import minimum_context_daily_observations
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
     ContextScalar,
@@ -73,7 +74,7 @@ class WarrantHistoryCoverage:
         required = set(required_trading_days)
         if len(required_trading_days) != 120 or len(required) != 120:
             return False
-        minimum_observations = (len(required) * 95 + 99) // 100
+        minimum_observations = minimum_context_daily_observations(len(required))
         return all(
             len(required.intersection(self.complete_periods.get(symbol, ())))
             >= minimum_observations

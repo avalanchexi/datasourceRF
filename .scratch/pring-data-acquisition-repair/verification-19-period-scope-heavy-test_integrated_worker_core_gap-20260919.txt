@@ -1,0 +1,7 @@
+[32m.[0m[32m                                                                        [100%][0m
+============================= slowest 10 durations =============================
+10.79s call     tests/integration/test_integrated_worker_core_gap.py::test_missing_core_delivery_blocks_a_full_run_and_keeps_its_original
+0.01s setup    tests/integration/test_integrated_worker_core_gap.py::test_missing_core_delivery_blocks_a_full_run_and_keeps_its_original
+
+(1 durations < 0.005s hidden.  Use -vv to show these durations.)
+[32m[32m[1m1 passed[0m[32m in 11.74s[0m[0m

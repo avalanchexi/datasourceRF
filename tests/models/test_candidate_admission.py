@@ -20,7 +20,7 @@ from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.model_evaluation import context_replay_gaps, evaluate_context_replay
-from pring_cycle.model_outputs import context_day_source_inputs
+from pring_cycle.model_outputs import normalized_context_output
 from pring_cycle.models import (
     CALIBRATION_BASELINE,
     ModelRepository,
@@ -48,6 +48,7 @@ from pring_cycle.search_evidence import ModelInputSelection, select_retrieval_in
 from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
 from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
 from tests.conftest import install_runtime_clock
+from tests.fixtures.public_context import check_public_context, project_public_context
 
 
 def encode(document: object) -> bytes:
@@ -1510,7 +1511,7 @@ def admitted_source_variant(
         (1, "truncated_normalized"),
     ],
 )
-def test_rrr_component_replay_requires_complete_publication(
+def test_rrr_public_projection_requires_complete_publication(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     candidate_count: int,
@@ -1553,9 +1554,6 @@ def test_rrr_component_replay_requires_complete_publication(
         manifest = admitted_source_variant(paths, capsys, side)
         model_id = manifest["model_version_id"]
         manifests[side] = manifest
-        # Isolate the public component-replay seam. This does not execute the
-        # complete package's 27-input acceptance or mutate either stored model.
-        manifests[side].pop("source_certification_packages")
         receipt = acquired.receipt
         if side == "candidate" and fault == "truncated_normalized":
             receipt = (
@@ -1661,23 +1659,22 @@ def test_rrr_component_replay_requires_complete_publication(
                 assert row["status"] == "awaiting_source_certification"
                 assert row["value"] is None
                 assert all(claim["value"] is None for claim in row["claims"])
-    replay = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    if fault == "uncertified":
-        assert "candidate_context_evidence_missing:CN_RRR_EVENT" in replay.gaps
-    else:
-        assert ("candidate_context_selection_members_missing:CN_RRR_EVENT" in replay.gaps) is (
-            candidate_count == 1 or fault != "none"
+    checked = {
+        side: check_public_context(
+            paths, manifest, metric_ids=("CN_RRR_EVENT",), day="2026-08-28", period="2025-05"
         )
+        for side, manifest in manifests.items()
+    }
+    assert checked["comparison"].selection.complete
+    assert checked["candidate"].selection.complete is (candidate_count == 2 and fault == "none")
     if candidate_count == 2 and fault == "none":
-        assert not replay.gaps
-        assert replay.evaluated_cutoffs == 1
-        assert replay.context_output_differences == 0
+        outputs = {
+            side: normalized_context_output(
+                {"macro": item.context.macro, "inventory": item.context.inventory}
+            )
+            for side, item in checked.items()
+        }
+        assert outputs["candidate"] == outputs["comparison"]
         # Synthetic later announcement in the same month, with a single scope.
         # Before its effective date it must not change the public replay; after
         # that date the earlier announcement must still retain both members.
@@ -1698,21 +1695,44 @@ def test_rrr_component_replay_requires_complete_publication(
             definition_version=manifests["candidate"]["metric_catalog_version"],
         )
         assert len(later.claim_ids) == 1
-        for replay_day, expected_differences in (("2025-05-21", 0), ("2025-05-26", 1)):
-            event_replay = evaluate_context_replay(
-                paths.database,
-                manifests["candidate"],
-                manifests["comparison"],
-                requested_start=replay_day,
-                requested_end=replay_day,
+        for evaluation_day, expected_differences in (("2025-05-21", 0), ("2025-05-26", 1)):
+            outputs = {
+                side: check_public_context(
+                    paths,
+                    manifest,
+                    metric_ids=("CN_RRR_EVENT",),
+                    day=evaluation_day,
+                    period="2025-05",
+                )
+                for side, manifest in manifests.items()
+            }
+            for side, item in outputs.items():
+                assert item.selection.complete
+                inputs = set(item.context.macro["model_input_observation_version_ids"])
+                # Older publication members remain valid history. A later
+                # effective event can replace one scope in the current projection.
+                old_ids = set(checked[side].selection.selected_claim_ids)
+                assert old_ids <= set(item.selection.selected_claim_ids)
+                if not expected_differences or side == "comparison":
+                    assert old_ids <= inputs
+                if side == "candidate":
+                    if expected_differences:
+                        assert set(later.claim_ids) <= inputs
+                    else:
+                        assert set(later.claim_ids).isdisjoint(inputs)
+            normalized = {
+                side: normalized_context_output(
+                    {"macro": item.context.macro, "inventory": item.context.inventory}
+                )
+                for side, item in outputs.items()
+            }
+            assert (normalized["candidate"] != normalized["comparison"]) is bool(
+                expected_differences
             )
-            assert not event_replay.gaps
-            assert event_replay.evaluated_cutoffs == 1
-            assert event_replay.context_output_differences == expected_differences
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_rrr_direction_replay_compares_values_without_version_identity(
+def test_rrr_direction_projection_compares_values_without_version_identity(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -1721,8 +1741,6 @@ def test_rrr_direction_replay_compares_values_without_version_identity(
     manifests = {}
     for side in ("candidate", "comparison"):
         manifests[side] = admitted_source_variant(paths, capsys, side)
-        # Public component replay only; stored candidates retain their packages.
-        manifests[side].pop("source_certification_packages")
         for day, after_rate in (("01", "2.0"), ("15", "1.75")):
             raw = (
                 "<html><body><h1>2025年5月准备金公告</h1>"
@@ -1742,16 +1760,21 @@ def test_rrr_direction_replay_compares_values_without_version_identity(
                 clock=lambda: now,
                 definition_version=manifests[side]["metric_catalog_version"],
             )
-    replay = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not replay.gaps
-    assert replay.evaluated_cutoffs == 1
-    assert replay.context_output_differences == 0
+    outputs = {
+        side: project_public_context(paths, manifest, day="2026-08-28")
+        for side, manifest in manifests.items()
+    }
+    normalized = {
+        side: normalized_context_output({"macro": item.macro, "inventory": item.inventory})
+        for side, item in outputs.items()
+    }
+    assert normalized["candidate"] == normalized["comparison"]
+    for item in outputs.values():
+        rows = [
+            r for r in item.macro["policy_action"]["evidence"] if r["metric_id"] == "CN_RRR_EVENT"
+        ]
+        assert rows and all(r["status"] == "current" for r in rows)
+        assert item.macro["model_input_observation_version_ids"]
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -2397,188 +2420,6 @@ def test_warrant_value_revision_remains_system_usable_with_unknown_public(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-@pytest.mark.parametrize("retired_warehouse", [False, True])
-def test_warrant_context_snapshot_binds_older_coverage_claims(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], retired_warehouse: bool
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    manifests = {}
-    public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
-    periods = ("20260824", "20260825", "20260826", "20260827", "20260828")
-
-    def transport(payload: dict[str, Any]) -> bytes:
-        symbol = str(payload["params"]["symbol"])
-        unit = "桶" if symbol == "SC" else "张" if symbol in {"CF", "PTA"} else "吨"
-        start, end = payload["params"]["start_date"], payload["params"]["end_date"]
-        return encode(
-            {
-                "code": 0,
-                "data": {
-                    "fields": [
-                        "trade_date",
-                        "symbol",
-                        "warehouse",
-                        "pre_vol",
-                        "vol",
-                        "vol_chg",
-                        "unit",
-                        "exchange",
-                    ],
-                    "items": [
-                        [period, symbol, "synthetic-warehouse", None, 100, None, unit, "synthetic"]
-                        for period in periods
-                        if start <= period <= end
-                    ],
-                },
-            }
-        )
-
-    adapter = TushareContextAdapter("synthetic-token", transport=transport)
-    for side in ("comparison", "candidate"):
-        manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_FUTURES_WARRANTS")
-        # Public component verification only, not a complete model admission/replay.
-        manifest.pop("source_certification_packages")
-        manifests[side] = manifest
-        adapter.acquire_scalars(
-            paths,
-            lambda: tuple(
-                replace(s, release_at=public_at, public_available_at=public_at)
-                for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
-                for s in adapter.futures_warrants(
-                    start_date=date(2026, 8, 24), end_date=date(2026, 8, 28), symbol=symbol
-                )
-            ),
-            definition_version=manifest["metric_catalog_version"],
-        )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    if retired_warehouse:
-        evidence = EvidenceRepository(paths.database)
-        current = next(
-            p
-            for p in evidence.metric_series(
-                "CN_FUTURES_WARRANTS",
-                mode=AsOfMode.PUBLIC,
-                as_of=public_at,
-                definition_version=manifests["candidate"]["metric_catalog_version"],
-            )
-            if p.period_end == "2026-08-24" and p.dimensions["symbol"] == "CU"
-        )
-        claim = current.claims[0]
-        evidence.append_source_claim(
-            SourceClaimInput(
-                metric_id="CN_FUTURES_WARRANTS",
-                definition_version=manifests["candidate"]["metric_catalog_version"],
-                period_kind="business_day",
-                period_start="2026-08-24",
-                period_end="2026-08-24",
-                dimensions={**current.dimensions, "warehouse": "synthetic-retired"},
-                value=100,
-                value_state=EvidenceValueState.REPORTED_VALUE,
-                unit=claim.unit,
-                provider=claim.provider,
-                source_reference=claim.source_reference,
-                release_event_id="synthetic-retired-invalid",
-                release_at=public_at,
-                public_available_at=public_at,
-                fetched_at=datetime.now(UTC),
-                available_at=datetime.now(UTC),
-                certification_status="certified",
-                quality_status="invalid",
-            )
-        )
-        models = ModelRepository(paths.database)
-        for side, manifest in manifests.items():
-            # Save a component-only fixture under its own identity. The missing
-            # core/120-day evidence still prevents a passed model replay.
-            manifest["model_version_id"] = f"warrant-context-storage-{side}"
-            models.create_candidate(manifest)
-        evaluated = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-        )
-        assert not evaluated.gaps, evaluated.gaps
-        document = evaluated.output_document
-        replay = models.record_replay(
-            manifests["candidate"]["model_version_id"],
-            compared_with=manifests["comparison"]["model_version_id"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-            quality_passed=True,
-            regression_passed=True,
-            performance_passed=True,
-            stage_differences=0,
-            core_state_differences=0,
-            gaps=(),
-            evaluated_trading_days=1,
-            calendar_hash=document["calendar_hash"],
-            context_output_differences=evaluated.context_output_differences,
-            context_output_document=document,
-            context_output_hash=hashlib.sha256(encode(document)).hexdigest(),
-        )
-        saved = models.replay_details(replay.replay_id)
-        assert not replay.passed and "core_candidate_outputs_incomplete" in replay.gaps
-        assert saved["context_output_status"] == "recorded"
-        context = saved["context_output_document"]
-        points = context_day_source_inputs(context, context["days"][0], "candidate")[
-            "CN_FUTURES_WARRANTS"
-        ]
-        old = next(p for p in points if p["dimensions"]["warehouse"] == "synthetic-retired")
-        assert old["claims"][0]["quality_status"] == "invalid"
-        return
-    revised_at = public_at + timedelta(hours=1)
-    adapter.acquire_scalars(
-        paths,
-        lambda: tuple(
-            replace(s, release_at=revised_at, public_available_at=revised_at)
-            for s in adapter.futures_warrants(
-                start_date=date(2026, 8, 24), end_date=date(2026, 8, 24), symbol="CU"
-            )
-        ),
-        definition_version=manifests["candidate"]["metric_catalog_version"],
-    )
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not after.gaps, after.gaps
-    assert before.context_output_differences == after.context_output_differences == 0
-    assert before.output_document != after.output_document
-    assert before.output_document is not None and after.output_document is not None
-
-    def warrant_points(document: dict[str, Any]) -> list[dict[str, Any]]:
-        return context_day_source_inputs(document, document["days"][0], "candidate")[
-            "CN_FUTURES_WARRANTS"
-        ]
-
-    old_point = next(
-        point
-        for point in warrant_points(before.output_document)
-        if point["period_end"] == "2026-08-24" and point["dimensions"]["symbol"] == "CU"
-    )
-    new_point = next(
-        point
-        for point in warrant_points(after.output_document)
-        if point["period_end"] == "2026-08-24" and point["dimensions"]["symbol"] == "CU"
-    )
-    assert old_point["selected_value"] == new_point["selected_value"] == 100
-    assert old_point["selected_claim_id"] != new_point["selected_claim_id"]
-
-
-@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("missing_current", [False, True])
 @pytest.mark.parametrize("redeliver_old", [False, True])
 def test_warrant_same_day_revision_preserves_public_history_and_replaces_members(
@@ -2752,7 +2593,7 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
 
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("missing_current", [False, True])
-def test_warrant_component_replay_requires_every_returned_warehouse(
+def test_warrant_public_selection_requires_every_returned_warehouse(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], missing_current: bool
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -2761,8 +2602,6 @@ def test_warrant_component_replay_requires_every_returned_warehouse(
     public_at = datetime(2026, 8, 28, 9, tzinfo=UTC)
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_FUTURES_WARRANTS")
-        # Isolate the public component replay. Stored candidate packages are unchanged.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
 
         def transport(payload: dict[str, Any], *, side: str = side) -> bytes:
@@ -2815,19 +2654,26 @@ def test_warrant_component_replay_requires_every_returned_warehouse(
         adapter.acquire_scalars(
             paths, retrieve, definition_version=manifest["metric_catalog_version"]
         )
-    replay = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
+    checked = {
+        side: check_public_context(
+            paths, manifest, metric_ids=("CN_FUTURES_WARRANTS",), day="2026-08-28"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert checked["comparison"].selection.complete
+    assert len(checked["comparison"].selection.selected_claim_ids) == 9
+    assert checked["candidate"].selection.complete is not missing_current
     if missing_current:
-        assert "candidate_context_selection_members_missing:CN_FUTURES_WARRANTS" in replay.gaps
+        assert checked["candidate"].selection.missing_members
     else:
-        assert not replay.gaps
-        assert replay.evaluated_cutoffs == 1
-        assert replay.context_output_differences == 0
+        assert len(checked["candidate"].selection.selected_claim_ids) == 9
+        outputs = {
+            side: normalized_context_output(
+                {"macro": result.context.macro, "inventory": result.context.inventory}
+            )
+            for side, result in checked.items()
+        }
+        assert outputs["candidate"] == outputs["comparison"]
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -2998,6 +2844,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
     request, _ = prepared_request(paths)
     submit(paths, save(paths, request))
     model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
     version = request["manifest"]["metric_catalog_version"]
     # Synthetic TuShare transport, with independent CFETS 2026-08-28 values.
     # The CFETS original is not a historical TuShare delivery receipt.
@@ -3137,7 +2984,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
         int(wrong_dr_value or conflicting_dr_row) if public_known else 4
     )
     context = build_context_projection(
-        repository, as_of=now, target_business_date="2026-08-28", model_manifest=request["manifest"]
+        repository, as_of=now, target_business_date="2026-08-28", model_manifest=manifest
     )
     assert set(imported.claim_ids).intersection(context.observation_version_ids) == (
         set(imported.claim_ids) if public_known else set()
@@ -3147,7 +2994,7 @@ def test_registered_interbank_acquisition_preserves_public_boundary(
         as_of=datetime(2026, 8, 29, tzinfo=UTC),
         as_of_mode=AsOfMode.PUBLIC,
         target_business_date="2026-08-28",
-        model_manifest=request["manifest"],
+        model_manifest=manifest,
     )
     actual_inputs = public_context.macro["model_input_observation_version_ids"]
     assert isinstance(actual_inputs, list)
@@ -3171,6 +3018,7 @@ def test_registered_interbank_joint_receipts_preserve_filtered_members(
     request, _ = prepared_request(paths)
     submit(paths, save(paths, request))
     model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    manifest = ModelRepository(paths.database).manifest(model_id)
     version = request["manifest"]["metric_catalog_version"]
     metrics = ("CN_DR007",) if dr_only else ("CN_DR007", "CN_SHIBOR_ON_1W_3M")
 
@@ -3234,7 +3082,7 @@ def test_registered_interbank_joint_receipts_preserve_filtered_members(
             repository,
             as_of=datetime(2026, 8, 29, tzinfo=UTC),
             as_of_mode=AsOfMode.PUBLIC,
-            model_manifest=request["manifest"],
+            model_manifest=manifest,
             target_business_date="2026-08-28",
         )
         inputs = context.macro["model_input_observation_version_ids"]
@@ -3352,7 +3200,7 @@ def test_registered_interbank_rejects_mixed_api_claim_links(
 @pytest.mark.parametrize("artifact_kind", ["normalized", "raw"])
 @pytest.mark.parametrize("artifact_state", ["damaged", "missing"])
 @pytest.mark.parametrize("late_revision", [False, True])
-def test_registered_interbank_public_replay_rejects_damaged_originals(
+def test_registered_interbank_public_projection_rejects_damaged_originals(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     metric_id: str,
@@ -3365,8 +3213,6 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
     manifests, claims, receipts = {}, {}, {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
-        # Public component evaluation only; stored manifests retain admission gates.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         responses = {
             "repo_daily": {
@@ -3458,19 +3304,41 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
                     fetched_at=datetime.now(UTC),
                     definition_version=manifest["metric_catalog_version"],
                 )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.output_document is not None and before.evaluated_cutoffs == 1
+    checks = 0
+
+    def inspect_day(day: str):
+        nonlocal checks
+        checks += 1
+        # PUBLIC daily cutoffs match the replay boundary (China end of day).
+        cutoff = datetime.fromisoformat(day + "T23:59:59.999999+08:00")
+        contexts, selections = {}, {}
+        for side, manifest in manifests.items():
+            contexts[side] = build_context_projection(
+                EvidenceRepository(paths.database),
+                model_manifest=manifest,
+                target_business_date=day,
+                as_of=cutoff,
+                as_of_mode=AsOfMode.PUBLIC,
+                persist_derived=False,
+            )
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date=day,
+                client_request_id=f"interbank-component-{checks}-{side}",
+                model_version_id=manifest["model_version_id"],
+                system_as_of=cutoff,
+                release_event_id="synthetic:interbank-component",
+                metric_ids=(metric_id,),
+                period=day,
+            )
+            selections[side] = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+        return contexts, selections
+
+    before, before_selections = inspect_day("2026-08-28")
     for side in ("comparison", "candidate"):
-        actual = before.output_document["days"][0][side]["macro"][
-            "model_input_observation_version_ids"
-        ]
+        assert before_selections[side].complete
+        assert claims[side] == set(before_selections[side].selected_claim_ids)
+        actual = before[side].macro["model_input_observation_version_ids"]
         assert claims[side] <= set(actual)
     receipt = receipts["candidate"]
     replay_day = "2026-08-28"
@@ -3591,20 +3459,9 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
         claims["candidate"] = {claim.claim_id for claim in updated}
         assert original_candidate_ids.isdisjoint(claims["candidate"])
         replay_day = "2026-08-31"
-        revised = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start=replay_day,
-            requested_end=replay_day,
-        )
-        assert not revised.gaps, revised.gaps
-        assert revised.output_document is not None
-        adopted = set(
-            revised.output_document["days"][0]["candidate"]["macro"][
-                "model_input_observation_version_ids"
-            ]
-        )
+        revised, revised_selections = inspect_day(replay_day)
+        assert all(selection.complete for selection in revised_selections.values())
+        adopted = set(revised["candidate"].macro["model_input_observation_version_ids"])
         assert claims["candidate"] <= adopted
         assert next_day_claims["candidate"] <= adopted
         assert original_candidate_ids.isdisjoint(adopted)
@@ -3615,45 +3472,35 @@ def test_registered_interbank_public_replay_rejects_damaged_originals(
         damaged_path.unlink()
     else:
         damaged_path.write_bytes(b"damaged candidate interbank artifact")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start=replay_day,
-        requested_end=replay_day,
-    )
+    after, after_selections = inspect_day(replay_day)
+    assert after_selections["comparison"].complete
     if late_revision:
         # Current daily data remains complete; the damaged earlier direction
         # parent must be excluded rather than replaced by its superseded version.
-        assert not after.gaps, after.gaps
+        assert after_selections["candidate"].complete
     else:
-        assert f"candidate_context_selection_invalid:{metric_id}" in after.gaps
-    assert after.output_document is not None
-    after_day = after.output_document["days"][0]
-    assert not claims["candidate"] & set(
-        after_day["candidate"]["macro"]["model_input_observation_version_ids"]
-    )
-    assert claims["comparison"] <= set(
-        after_day["comparison"]["macro"]["model_input_observation_version_ids"]
-    )
-    assert original_candidate_ids.isdisjoint(
-        after_day["candidate"]["macro"]["model_input_observation_version_ids"]
-    )
+        assert not after_selections["candidate"].complete
+        assert after_selections["candidate"].missing_members
+        assert not after_selections["candidate"].selected_claim_ids
+    adopted = {
+        side: set(context.macro["model_input_observation_version_ids"])
+        for side, context in after.items()
+    }
+    assert claims["candidate"].isdisjoint(adopted["candidate"])
+    assert claims["comparison"] <= adopted["comparison"]
+    assert original_candidate_ids.isdisjoint(adopted["candidate"])
     if late_revision:
         for side in ("comparison", "candidate"):
-            assert next_day_claims[side] <= set(
-                after_day[side]["macro"]["model_input_observation_version_ids"]
+            assert next_day_claims[side] <= adopted[side]
+            assert next_day_claims[side] == set(after_selections[side].selected_claim_ids)
+        early, early_selections = inspect_day("2026-08-28")
+        for side in ("comparison", "candidate"):
+            assert early_selections[side].complete
+            assert (
+                early_selections[side].selected_claim_ids
+                == before_selections[side].selected_claim_ids
             )
-        early = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-        )
-        assert not early.gaps, early.gaps
-        assert early.output_document is not None
-        assert early.output_document["days"] == before.output_document["days"]
+            assert early[side].macro == before[side].macro
 
 
 @pytest.mark.parametrize(
@@ -4205,7 +4052,7 @@ def test_registered_pmi_original_reaches_selection_and_context(
 @pytest.mark.parametrize("metric_id", ["CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"])
 @pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
 @pytest.mark.parametrize("later_revision", [False, True])
-def test_pmi_public_replay_reports_invalid_selected_artifacts(
+def test_pmi_public_projection_reports_invalid_selected_artifacts(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     metric_id: str,
@@ -4220,8 +4067,6 @@ def test_pmi_public_replay_reports_invalid_selected_artifacts(
     receipts = {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
-        # Public component seam only; stored manifests and full-model admission stay unchanged.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         for period, folder, digest, url, acquired_at in (
             (
@@ -4260,18 +4105,16 @@ def test_pmi_public_replay_reports_invalid_selected_artifacts(
                 (imported.claim_ids[0],)
             )[imported.claim_ids[0]]
             receipts[side, period] = acquisition.receipt
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    before = {
+        side: check_public_context(
+            paths, manifest, metric_ids=(metric_id,), day="2026-08-28", period="2026-07"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert all(check.selection.complete for check in before.values())
     for side in ("comparison", "candidate"):
-        day = before.output_document["days"][0][side]
-        assert claims[side, "2026-07"] <= set(day["macro"]["model_input_observation_version_ids"])
+        context = before[side].context
+        assert claims[side, "2026-07"] <= set(context.macro["model_input_observation_version_ids"])
     current_claims = claims["candidate", "2026-07"]
     evaluation_day = "2026-08-28"
     if later_revision:
@@ -4308,41 +4151,41 @@ def test_pmi_public_replay_reports_invalid_selected_artifacts(
     }
     (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b"damaged PMI artifact")
     if later_revision:
-        historical = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-        )
-        assert not historical.gaps, historical.gaps
-        assert historical.evaluated_cutoffs == 1 and historical.output_document is not None
+        historical = {
+            side: check_public_context(
+                paths, manifest, metric_ids=(metric_id,), day="2026-08-28", period="2026-07"
+            )
+            for side, manifest in manifests.items()
+        }
+        assert all(check.selection.complete for check in historical.values())
         historical_inputs = set(
-            historical.output_document["days"][0]["candidate"]["macro"][
-                "model_input_observation_version_ids"
-            ]
+            historical["candidate"].context.macro["model_input_observation_version_ids"]
         )
         assert claims["candidate", "2026-07"] <= historical_inputs
         assert historical_inputs.isdisjoint(current_claims)
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start=evaluation_day,
-        requested_end=evaluation_day,
+    after = {
+        side: check_public_context(
+            paths, manifest, metric_ids=(metric_id,), day=evaluation_day, period="2026-07"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    assert after["candidate"].selection.selected_claim_ids == ()
+    assert after["comparison"].selection.complete
+    assert (
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
     )
-    assert f"candidate_context_selection_invalid:{metric_id}" in after.gaps
-    assert not any(gap.startswith("comparison_") for gap in after.gaps)
-    assert after.evaluated_cutoffs == 1 and after.output_document is not None
-    day = after.output_document["days"][0]
-    candidate_inputs = set(day["candidate"]["macro"]["model_input_observation_version_ids"])
+    contexts = {side: check.context for side, check in after.items()}
+    candidate_inputs = set(contexts["candidate"].macro["model_input_observation_version_ids"])
     assert candidate_inputs.isdisjoint(current_claims)
     assert candidate_inputs.isdisjoint(claims["candidate", "2026-07"])
     assert candidate_inputs.isdisjoint(claims["candidate", "2026-06"])
     assert claims["comparison", "2026-07"] <= set(
-        day["comparison"]["macro"]["model_input_observation_version_ids"]
+        contexts["comparison"].macro["model_input_observation_version_ids"]
     )
-    assert current_claims <= set(day["candidate"]["observation_version_ids"])
+    assert current_claims <= set(contexts["candidate"].observation_version_ids)
 
 
 @pytest.mark.parametrize(
@@ -6068,9 +5911,6 @@ def prepare_credit_component_pair(
     parent_ids = {}
     for side in ("comparison", "candidate"):
         manifest = admitted_gdp_manifest(paths, capsys, side=side)
-        # The full admitted model stays immutable. This public component replay
-        # exercises only credit inputs, not real certification or a 120-day gate.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         version = manifest["metric_catalog_version"]
         for parent in fixture["parents"]:
@@ -6149,7 +5989,7 @@ def prepare_credit_component_pair(
     return manifests, parent_ids
 
 
-def test_credit_public_component_replay_requires_historical_window_artifacts(
+def test_credit_public_projection_requires_historical_window_artifacts(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -6161,18 +6001,12 @@ def test_credit_public_component_replay_requires_historical_window_artifacts(
     }
     repository = EvidenceRepository(paths.database)
     cutoff = datetime(2026, 8, 28, 15, 59, 59, 999999, tzinfo=UTC)
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.evaluated_cutoffs == 1
-    assert before.output_document is not None
+    before = {
+        side: project_public_context(paths, manifest, day="2026-08-28")
+        for side, manifest in manifests.items()
+    }
     for side in ("comparison", "candidate"):
-        macro = before.output_document["days"][0][side]["macro"]
+        macro = before[side].macro
         assert macro["credit"]["formula"]["status"] == "available"
         impulse = next(
             row for row in macro["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
@@ -6199,25 +6033,19 @@ def test_credit_public_component_replay_requires_historical_window_artifacts(
     artifact = paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash
     assert hashlib.sha256(artifact.read_bytes()).hexdigest() == receipt.raw_hash
     artifact.write_bytes(b"damaged synthetic historical GDP release")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert after.gaps == ("candidate_context_formula_output_missing:credit_impulse",)
-    assert after.evaluated_cutoffs == 1
-    assert after.output_document is not None
-    candidate = after.output_document["days"][0]["candidate"]["macro"]
+    after = {
+        side: project_public_context(paths, manifest, day="2026-08-28")
+        for side, manifest in manifests.items()
+    }
+    candidate = after["candidate"].macro
     assert candidate["credit"]["formula"]["status"] == "incomplete_source_artifacts"
     assert historical.selected_claim_id not in candidate["model_input_observation_version_ids"]
     assert not any(
         row["metric_id"] == "CN_CREDIT_IMPULSE" and row["value"] is not None
         for row in candidate["credit"]["evidence"]
     )
-    comparison = after.output_document["days"][0]["comparison"]["macro"]
-    assert comparison == before.output_document["days"][0]["comparison"]["macro"]
+    comparison = after["comparison"].macro
+    assert comparison == before["comparison"].macro
     for side in ("comparison", "candidate"):
         assert (
             ModelRepository(paths.database).get(manifests[side]["model_version_id"])
@@ -6226,7 +6054,7 @@ def test_credit_public_component_replay_requires_historical_window_artifacts(
 
 
 @pytest.mark.parametrize("known_public", [True, False], ids=["known-public", "unknown-public"])
-def test_credit_public_component_replay_preserves_revision_cutoffs(
+def test_credit_public_projection_preserves_revision_cutoffs(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], known_public: bool
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -6238,18 +6066,12 @@ def test_credit_public_component_replay_preserves_revision_cutoffs(
     }
     repository = EvidenceRepository(paths.database)
     version = manifests["candidate"]["metric_catalog_version"]
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.evaluated_cutoffs == 1
-    assert before.output_document is not None
+    before = {
+        side: project_public_context(paths, manifest, day="2026-08-28")
+        for side, manifest in manifests.items()
+    }
     for side in ("comparison", "candidate"):
-        credit = before.output_document["days"][0][side]["macro"]["credit"]
+        credit = before[side].macro["credit"]
         assert credit["formula"]["status"] == "available"
         impulse = next(row for row in credit["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE")
         assert impulse["value"] == pytest.approx(-2.5142857142857142)
@@ -6300,24 +6122,17 @@ def test_credit_public_component_replay_preserves_revision_cutoffs(
     assert new_ytd.public_available_at == (
         datetime(2026, 8, 30, 1, 30, tzinfo=UTC) if known_public else None
     )
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-31",
-    )
-    assert not after.gaps, after.gaps
-    assert after.evaluated_cutoffs == 2
-    assert after.output_document is not None
-    assert [day["business_date"] for day in after.output_document["days"]] == [
-        "2026-08-28",
-        "2026-08-31",
+    after = [
+        {
+            side: project_public_context(paths, manifest, day=day)
+            for side, manifest in manifests.items()
+        }
+        for day in ("2026-08-28", "2026-08-31")
     ]
-    historical, current = after.output_document["days"]
+    historical, current = after
     for side in ("comparison", "candidate"):
-        assert historical[side]["macro"] == before.output_document["days"][0][side]["macro"]
-        macro = current[side]["macro"]
+        assert historical[side].macro == before[side].macro
+        macro = current[side].macro
         adopts_revision = side == "candidate" and known_public
         expected_ids = (
             (parent_ids[side] - {old_ytd.selected_claim_id}) | {new_ytd.claim_id}
@@ -6344,7 +6159,7 @@ def test_credit_public_component_replay_preserves_revision_cutoffs(
         )
 
 
-def test_credit_public_component_replay_requires_latest_month_difference_baseline(
+def test_credit_public_projection_requires_latest_month_difference_baseline(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -6377,24 +6192,18 @@ def test_credit_public_component_replay_requires_latest_month_difference_baselin
             point.selected_claim_id for point in social if point.period_end < "2024-07-31"
         }
         assert len(old_ids[side]) == 2
-    incomplete = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert incomplete.gaps == ("candidate_context_formula_output_missing:credit_impulse",)
-    assert incomplete.evaluated_cutoffs == 1
-    assert incomplete.output_document is not None
-    candidate = incomplete.output_document["days"][0]["candidate"]["macro"]
+    incomplete = {
+        side: project_public_context(paths, manifest, day="2026-08-28")
+        for side, manifest in manifests.items()
+    }
+    candidate = incomplete["candidate"].macro
     assert candidate["credit"]["formula"]["status"] == "missing_certified_inputs"
     assert old_ids["candidate"].isdisjoint(candidate["model_input_observation_version_ids"])
     assert not any(
         row["metric_id"] == "CN_CREDIT_IMPULSE" and row["value"] is not None
         for row in candidate["credit"]["evidence"]
     )
-    comparison = incomplete.output_document["days"][0]["comparison"]["macro"]
+    comparison = incomplete["comparison"].macro
     assert comparison["credit"]["formula"]["status"] == "available"
     control = next(
         row for row in comparison["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
@@ -6436,18 +6245,12 @@ def test_credit_public_component_replay_requires_latest_month_difference_baselin
         )
         if claim.claim_id in imported.claim_ids and claim.dimensions == {"measure": "ytd_increment"}
     ]
-    complete = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not complete.gaps, complete.gaps
-    assert complete.evaluated_cutoffs == 1
-    assert complete.output_document is not None
+    complete = {
+        side: project_public_context(paths, manifest, day="2026-08-28")
+        for side, manifest in manifests.items()
+    }
     for side in ("comparison", "candidate"):
-        macro = complete.output_document["days"][0][side]["macro"]
+        macro = complete[side].macro
         assert macro["credit"]["formula"]["status"] == "available"
         impulse = next(
             row for row in macro["credit"]["evidence"] if row["metric_id"] == "CN_CREDIT_IMPULSE"
@@ -6464,7 +6267,7 @@ def test_credit_public_component_replay_requires_latest_month_difference_baselin
             ModelRepository(paths.database).get(manifests[side]["model_version_id"])
             == stored_models[side]
         )
-    assert complete.output_document["days"][0]["comparison"]["macro"] == comparison
+    assert complete["comparison"].macro == comparison
 
 
 @pytest.mark.parametrize("mode", [AsOfMode.PUBLIC, AsOfMode.SYSTEM])
@@ -7185,7 +6988,7 @@ def test_registered_capacity_q1_consumes_an_explicitly_reviewed_same_interval_ma
 
 @pytest.mark.parametrize("artifact", ["mapping", "raw", "normalized"])
 @pytest.mark.parametrize("failure", ["damaged", "missing"])
-def test_registered_capacity_q1_public_replay_rechecks_each_catalog_mapping(
+def test_registered_capacity_q1_public_projection_rechecks_each_catalog_mapping(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     artifact: str,
@@ -7214,8 +7017,6 @@ def test_registered_capacity_q1_public_replay_rechecks_each_catalog_mapping(
             clock=lambda: acquired_at,
             definition_version=version,
         )
-        # This is a one-day component replay, not the full model's 120-day acceptance.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         mappings[side] = mapping
         claims[side] = set(imported.claim_ids)
@@ -7240,19 +7041,23 @@ def test_registered_capacity_q1_public_replay_rechecks_each_catalog_mapping(
     assert not repository.source_claims_matching_registered_contract(
         (comparison_ytd_id,), definition_version=target_version
     )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+
+    def inspect():
+        return {
+            side: check_public_context(
+                paths,
+                manifest,
+                metric_ids=("CN_CAPACITY_UTILIZATION",),
+                day="2026-08-28",
+                period="2026-Q1",
+            )
+            for side, manifest in manifests.items()
+        }
+
+    before = inspect()
+    assert all(check.selection.complete for check in before.values())
     for side in ("comparison", "candidate"):
-        inputs = before.output_document["days"][0][side]["macro"][
-            "model_input_observation_version_ids"
-        ]
+        inputs = before[side].context.macro["model_input_observation_version_ids"]
         assert set(inputs) == claims[side]
     damaged: str | None
     if artifact == "mapping":
@@ -7273,31 +7078,23 @@ def test_registered_capacity_q1_public_replay_rechecks_each_catalog_mapping(
         artifact_path.unlink()
     else:
         artifact_path.write_bytes(b"damaged artifact")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert set(after.gaps) == {
-        f"{side}_context_selection_invalid:CN_CAPACITY_UTILIZATION" for side in affected
-    }
-    assert after.evaluated_cutoffs == 1 and after.output_document is not None
-    day = after.output_document["days"][0]
+    after = inspect()
     for side in ("comparison", "candidate"):
-        adopted = set(day[side]["macro"]["model_input_observation_version_ids"])
+        assert after[side].selection.complete is (side not in affected)
+        if side in affected:
+            assert after[side].selection.missing_members
+        adopted = set(after[side].context.macro["model_input_observation_version_ids"])
         if side not in affected:
             assert adopted == claims[side]
         elif artifact == "mapping":
             assert ytd_ids[side] not in adopted
         else:
             assert not claims[side] & adopted
-        assert claims[side] <= set(day[side]["observation_version_ids"])
+        assert claims[side] <= set(after[side].context.observation_version_ids)
 
 
 @pytest.mark.parametrize("artifact", ["raw", "normalized", "mapping", "basis"])
-def test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revision(
+def test_capacity_q1_public_projection_keeps_old_cutoff_but_rejects_bad_latest_revision(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], artifact: str
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -7357,8 +7154,6 @@ def test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revis
         submit(paths, save(paths, request))
         model_id = json.loads(capsys.readouterr().out)["model_version_id"]
         manifest = ModelRepository(paths.database).manifest(model_id)
-        # Two-day component verification, not full 120-day model acceptance.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         imported = ingest_official_context_document(
             paths,
@@ -7399,20 +7194,31 @@ def test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revis
             assert {claim.public_available_at for point in points for claim in point.claims} == {
                 datetime(2026, 4, 17, 2, tzinfo=UTC)
             }
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-04-16",
-        requested_end="2026-04-17",
-    )
-    assert not before.gaps and before.evaluated_cutoffs == 2
-    assert before.output_document is not None
+
+    def inspect():
+        return [
+            {
+                side: check_public_context(
+                    paths,
+                    manifest,
+                    metric_ids=("CN_CAPACITY_UTILIZATION",),
+                    day=day,
+                    period="2026-Q1",
+                )
+                for side, manifest in manifests.items()
+            }
+            for day in ("2026-04-16", "2026-04-17")
+        ]
+
+    before = inspect()
+    assert all(check.selection.complete for day in before for check in day.values())
     for index, expected in enumerate((original_claims["candidate"], revised_claims)):
-        day = before.output_document["days"][index]
-        assert set(day["candidate"]["macro"]["model_input_observation_version_ids"]) == expected
+        day = before[index]
         assert (
-            set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+            set(day["candidate"].context.macro["model_input_observation_version_ids"]) == expected
+        )
+        assert (
+            set(day["comparison"].context.macro["model_input_observation_version_ids"])
             == (original_claims["comparison"])
         )
     (receipt,) = (
@@ -7428,21 +7234,17 @@ def test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revis
     }[artifact]
     assert damaged is not None
     (paths.artifacts / damaged[:2] / damaged).write_bytes(b"damaged later revision")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-04-16",
-        requested_end="2026-04-17",
-    )
-    assert after.gaps == ("candidate_context_selection_invalid:CN_CAPACITY_UTILIZATION",)
-    assert after.evaluated_cutoffs == 2 and after.output_document is not None
-    earlier, latest = after.output_document["days"]
+    after = inspect()
+    earlier, latest = after
+    assert all(check.selection.complete for check in earlier.values())
+    assert not latest["candidate"].selection.complete
+    assert latest["candidate"].selection.missing_members
+    assert latest["comparison"].selection.complete
     assert (
-        set(earlier["candidate"]["macro"]["model_input_observation_version_ids"])
+        set(earlier["candidate"].context.macro["model_input_observation_version_ids"])
         == (original_claims["candidate"])
     )
-    latest_inputs = set(latest["candidate"]["macro"]["model_input_observation_version_ids"])
+    latest_inputs = set(latest["candidate"].context.macro["model_input_observation_version_ids"])
     assert not latest_inputs & original_claims["candidate"]
     if artifact in {"mapping", "basis"}:
         revised_ytd = next(
@@ -7451,10 +7253,10 @@ def test_capacity_q1_public_replay_keeps_old_cutoff_but_rejects_bad_latest_revis
         assert latest_inputs == revised_claims - {revised_ytd}
     else:
         assert not latest_inputs & revised_claims
-    assert revised_claims <= set(latest["candidate"]["observation_version_ids"])
+    assert revised_claims <= set(latest["candidate"].context.observation_version_ids)
     for day in (earlier, latest):
         assert (
-            set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+            set(day["comparison"].context.macro["model_input_observation_version_ids"])
             == (original_claims["comparison"])
         )
 
@@ -8138,7 +7940,7 @@ def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_syste
 
 
 @pytest.mark.parametrize("metric_id", ["CN_CPI_HEADLINE", "CN_CORE_CPI"])
-def test_cpi_public_replay_reports_invalid_selected_artifacts(
+def test_cpi_public_projection_reports_invalid_selected_artifacts(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], metric_id: str
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -8154,8 +7956,6 @@ def test_cpi_public_replay_reports_invalid_selected_artifacts(
     receipts = {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
-        # Single-day component evidence, not the full model's certification or 120-day replay.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         imported = ingest_official_context_document(
             paths,
@@ -8172,37 +7972,40 @@ def test_cpi_public_replay_reports_invalid_selected_artifacts(
             (imported.claim_ids[0],)
         )[imported.claim_ids[0]]
         receipts[side] = acquisition.receipt
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.evaluated_cutoffs == 1 and before.output_document is not None
+    before = {
+        side: check_public_context(
+            paths, manifest, metric_ids=(metric_id,), day="2026-08-28", period="2026-07"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert all(check.selection.complete for check in before.values())
     for side in ("comparison", "candidate"):
-        day = before.output_document["days"][0][side]
-        assert set(day["macro"]["model_input_observation_version_ids"]) == claims[side]
+        context = before[side].context
+        assert set(context.macro["model_input_observation_version_ids"]) == claims[side]
     content_hash = receipts["candidate"].normalized_hash
     assert content_hash is not None and content_hash != receipts["comparison"].normalized_hash
     (paths.artifacts / content_hash[:2] / content_hash).write_bytes(b"damaged CPI normalized")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert after.gaps == (f"candidate_context_selection_invalid:{metric_id}",)
-    assert after.evaluated_cutoffs == 1 and after.output_document is not None
-    day = after.output_document["days"][0]
-    assert day["candidate"]["macro"]["model_input_observation_version_ids"] == []
+    after = {
+        side: check_public_context(
+            paths, manifest, metric_ids=(metric_id,), day="2026-08-28", period="2026-07"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    assert after["candidate"].selection.selected_claim_ids == ()
+    assert after["comparison"].selection.complete
     assert (
-        set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
+    )
+    contexts = {side: check.context for side, check in after.items()}
+    assert contexts["candidate"].macro["model_input_observation_version_ids"] == []
+    assert (
+        set(contexts["comparison"].macro["model_input_observation_version_ids"])
         == claims["comparison"]
     )
-    assert claims["candidate"] <= set(day["candidate"]["observation_version_ids"])
+    assert claims["candidate"] <= set(contexts["candidate"].observation_version_ids)
 
 
 @pytest.mark.parametrize("month", [1, 7])
@@ -8996,7 +8799,7 @@ def test_lpr_selection_rejects_normalized_damage_after_ingestion(
 @pytest.mark.parametrize("artifact_kind", ["raw", "normalized"])
 @pytest.mark.parametrize("damage", ["changed", "missing"])
 @pytest.mark.parametrize("later_revision", [False, True])
-def test_lpr_public_replay_rechecks_selected_acquisition_artifacts(
+def test_lpr_public_projection_rechecks_selected_acquisition_artifacts(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     artifact_kind: str,
@@ -9012,9 +8815,6 @@ def test_lpr_public_replay_rechecks_selected_acquisition_artifacts(
     content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_LPR_1Y_5Y")
-        # Exercise the public component replay; the full model still lacks its
-        # core and 120-day evidence. The stored admitted manifest is unchanged.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         ingested = ingest_lpr_document(
             paths,
@@ -9030,19 +8830,16 @@ def test_lpr_public_replay_rechecks_selected_acquisition_artifacts(
             (ingested.claim_ids[0],)
         )[ingested.claim_ids[0]]
         acquisitions[side] = acquisition.receipt
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert not before.gaps, before.gaps
-    assert before.evaluated_cutoffs == 1
-    assert before.output_document is not None
+    before = {
+        side: check_public_context(
+            paths, manifest, metric_ids=("CN_LPR_1Y_5Y",), day="2026-08-28", period="2026-08"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert all(check.selection.complete for check in before.values())
     for side in ("comparison", "candidate"):
-        day = before.output_document["days"][0][side]
-        assert set(day["macro"]["model_input_observation_version_ids"]) == claims[side]
+        context = before[side].context
+        assert set(context.macro["model_input_observation_version_ids"]) == claims[side]
     current_claims = claims["candidate"]
     evaluation_day = "2026-08-28"
     if later_revision:
@@ -9076,38 +8873,41 @@ def test_lpr_public_replay_rechecks_selected_acquisition_artifacts(
         artifact.unlink()
 
     if later_revision:
-        historical = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-        )
-        assert not historical.gaps, historical.gaps
-        assert historical.output_document is not None
-        historical_ids = historical.output_document["days"][0]["candidate"]["macro"][
+        historical = {
+            side: check_public_context(
+                paths, manifest, metric_ids=("CN_LPR_1Y_5Y",), day="2026-08-28", period="2026-08"
+            )
+            for side, manifest in manifests.items()
+        }
+        assert all(check.selection.complete for check in historical.values())
+        historical_ids = historical["candidate"].context.macro[
             "model_input_observation_version_ids"
         ]
         assert set(historical_ids) == claims["candidate"]
         assert set(historical_ids).isdisjoint(current_claims)
 
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start=evaluation_day,
-        requested_end=evaluation_day,
-    )
-    assert after.gaps == ("candidate_context_selection_invalid:CN_LPR_1Y_5Y",)
-    assert after.output_document is not None
-    day = after.output_document["days"][0]
-    assert day["candidate"]["macro"]["model_input_observation_version_ids"] == []
+    after = {
+        side: check_public_context(
+            paths, manifest, metric_ids=("CN_LPR_1Y_5Y",), day=evaluation_day, period="2026-08"
+        )
+        for side, manifest in manifests.items()
+    }
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    assert after["candidate"].selection.selected_claim_ids == ()
+    assert after["comparison"].selection.complete
     assert (
-        set(day["comparison"]["macro"]["model_input_observation_version_ids"])
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
+    )
+    contexts = {side: check.context for side, check in after.items()}
+    assert contexts["candidate"].macro["model_input_observation_version_ids"] == []
+    assert (
+        set(contexts["comparison"].macro["model_input_observation_version_ids"])
         == claims["comparison"]
     )
-    assert current_claims <= set(day["candidate"]["observation_version_ids"])
-    rows = day["candidate"]["macro"]["credit"]["evidence"]
+    assert current_claims <= set(contexts["candidate"].observation_version_ids)
+    rows = contexts["candidate"].macro["credit"]["evidence"]
     lpr_rows = [row for row in rows if row["metric_id"] == "CN_LPR_1Y_5Y"]
     assert len(lpr_rows) == 2 and all(row["status"] == "source_failed" for row in lpr_rows)
     assert {row["dimensions"]["tenor"]: row["value"] for row in lpr_rows} == {
@@ -10659,7 +10459,7 @@ def test_registered_margin_selection_requires_readable_originals(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_registered_margin_public_replay_rejects_damaged_originals(
+def test_registered_margin_public_selection_rejects_damaged_originals(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -10668,9 +10468,6 @@ def test_registered_margin_public_replay_rejects_damaged_originals(
     receipts = {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_MARGIN_BALANCE")
-        # Only the existing public component replay is scoped here. Stored full
-        # candidate manifests retain their package bindings and all 61 definitions.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         raw = encode(
             {
@@ -10710,26 +10507,35 @@ def test_registered_margin_public_replay_rejects_damaged_originals(
             (result.claim_ids[0],)
         )[result.claim_ids[0]]
         receipts[side] = linked.receipt
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+
+    def inspect():
+        return {
+            side: check_public_context(
+                paths, manifest, metric_ids=("CN_MARGIN_BALANCE",), day="2026-08-28"
+            )
+            for side, manifest in manifests.items()
+        }
+
+    before = inspect()
+    for checked in before.values():
+        assert checked.selection.complete
+        assert checked.selection.selected_claim_ids
     digest = receipts["candidate"].raw_hash
     assert digest is not None and digest != receipts["comparison"].raw_hash
     (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate margin source")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
+    after = inspect()
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    removed = set(before["candidate"].selection.selected_claim_ids) - set(
+        after["candidate"].selection.selected_claim_ids
     )
-    assert "candidate_context_selection_invalid:CN_MARGIN_BALANCE" in after.gaps
-    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+    assert len(removed) == len(before["candidate"].selection.selected_claim_ids)
+    assert after["comparison"].selection.complete
+    assert (
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
+    )
+    assert after["comparison"].context.macro == before["comparison"].context.macro
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -11141,7 +10947,7 @@ def test_registered_market_index_selection_requires_its_originals(
 @pytest.mark.parametrize(
     "metric_id,source_code", [("CN_EQ_CSI500", "000905.SH"), ("CN_COMMODITY_BROAD_NHCI", "NHCI.NH")]
 )
-def test_registered_market_index_public_replay_rejects_damaged_originals(
+def test_registered_market_index_public_selection_rejects_damaged_originals(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], metric_id: str, source_code: str
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -11150,8 +10956,6 @@ def test_registered_market_index_public_replay_rejects_damaged_originals(
     receipts = {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id=metric_id)
-        # Public component replay only; stored candidates retain all 61 definitions.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
 
         def transport(payload: dict[str, Any], synthetic_side: str = side) -> bytes:
@@ -11191,26 +10995,33 @@ def test_registered_market_index_public_replay_rejects_damaged_originals(
                 r.acquisition_id, "raw"
             )
         )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+
+    def inspect():
+        return {
+            side: check_public_context(paths, manifest, metric_ids=(metric_id,), day="2026-08-28")
+            for side, manifest in manifests.items()
+        }
+
+    before = inspect()
+    for checked in before.values():
+        assert checked.selection.complete
+        assert checked.selection.selected_claim_ids
     digest = receipts["candidate"].raw_hash
     assert digest is not None and digest != receipts["comparison"].raw_hash
     (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate index source")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
+    after = inspect()
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    removed = set(before["candidate"].selection.selected_claim_ids) - set(
+        after["candidate"].selection.selected_claim_ids
     )
-    assert f"candidate_context_selection_invalid:{metric_id}" in after.gaps
-    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+    assert len(removed) == len(before["candidate"].selection.selected_claim_ids)
+    assert after["comparison"].selection.complete
+    assert (
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
+    )
+    assert after["comparison"].context.macro == before["comparison"].context.macro
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -11577,7 +11388,7 @@ def test_registered_valuation_selection_rejects_damaged_index_originals(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_registered_valuation_public_replay_rejects_damaged_originals(
+def test_registered_valuation_public_selection_rejects_damaged_originals(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -11586,8 +11397,6 @@ def test_registered_valuation_public_replay_rejects_damaged_originals(
     receipts = {}
     for side in ("comparison", "candidate"):
         manifest = admitted_source_variant(paths, capsys, side, metric_id="CN_INDEX_VALUATION")
-        # Public component scope only; stored candidates keep all 61 definitions.
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
 
         def transport(payload: dict[str, Any], synthetic_side: str = side) -> bytes:
@@ -11625,26 +11434,35 @@ def test_registered_valuation_public_replay_rejects_damaged_originals(
             if r.parameters["ts_code"] == "000852.SH"
             and side.encode() in acquisitions.read_content(r.acquisition_id, "raw")
         )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+
+    def inspect():
+        return {
+            side: check_public_context(
+                paths, manifest, metric_ids=("CN_INDEX_VALUATION",), day="2026-08-28"
+            )
+            for side, manifest in manifests.items()
+        }
+
+    before = inspect()
+    for checked in before.values():
+        assert checked.selection.complete
+        assert checked.selection.selected_claim_ids
     digest = receipts["candidate"].raw_hash
     assert digest is not None and digest != receipts["comparison"].raw_hash
     (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate valuation source")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
+    after = inspect()
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    removed = set(before["candidate"].selection.selected_claim_ids) - set(
+        after["candidate"].selection.selected_claim_ids
     )
-    assert "candidate_context_selection_invalid:CN_INDEX_VALUATION" in after.gaps
-    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+    assert len(removed) == 3
+    assert after["comparison"].selection.complete
+    assert (
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
+    )
+    assert after["comparison"].context.macro == before["comparison"].context.macro
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -12640,7 +12458,7 @@ def test_registered_daily_breadth_respects_publication_evidence(
 
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("damaged_input", ["daily", "review"])
-def test_registered_daily_breadth_public_replay_rechecks_originals(
+def test_registered_daily_breadth_public_selection_rechecks_originals(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], damaged_input: str
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -12648,7 +12466,6 @@ def test_registered_daily_breadth_public_replay_rechecks_originals(
     manifests, hashes = {}, {}
     for side in ("comparison", "candidate"):
         manifest = admitted_daily_breadth_manifest(paths, capsys, side=side)
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         universe = synthetic_breadth_universe(paths)
         universe["synthetic_side"] = side
@@ -12699,27 +12516,35 @@ def test_registered_daily_breadth_public_replay_rechecks_originals(
                 and json.loads(acquisitions.read_content(r.acquisition_id, "raw"))["synthetic_side"]
                 == side
             )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+
+    def inspect():
+        return {
+            side: check_public_context(
+                paths, manifest, metric_ids=("CN_EQ_ADV_DEC", "CN_EQ_AD_RATIO"), day="2026-08-28"
+            )
+            for side, manifest in manifests.items()
+        }
+
+    before = inspect()
+    for checked in before.values():
+        assert checked.selection.complete
+        assert checked.selection.selected_claim_ids
     assert hashes["candidate"] != hashes["comparison"]
     digest = hashes["candidate"]
     (paths.artifacts / digest[:2] / digest).write_bytes(b"damaged candidate breadth original")
-    after = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
+    after = inspect()
+    assert not after["candidate"].selection.complete
+    assert after["candidate"].selection.missing_members
+    removed = set(before["candidate"].selection.selected_claim_ids) - set(
+        after["candidate"].selection.selected_claim_ids
     )
-    assert "candidate_context_selection_invalid:CN_EQ_ADV_DEC" in after.gaps
-    assert "candidate_context_selection_invalid:CN_EQ_AD_RATIO" in after.gaps
-    assert not any(gap.startswith("comparison_") for gap in after.gaps)
+    assert len(removed) == len(before["candidate"].selection.selected_claim_ids)
+    assert after["comparison"].selection.complete
+    assert (
+        after["comparison"].selection.selected_claim_ids
+        == before["comparison"].selection.selected_claim_ids
+    )
+    assert after["comparison"].context.macro == before["comparison"].context.macro
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -13026,7 +12851,7 @@ def admitted_window_breadth_manifest(
         (False, "changed_scalar"),
         (False, "damaged_before_validation"),
         (False, "damaged_before_selection"),
-        (False, "damaged_before_replay"),
+        (False, "damaged_before_public_selection"),
         (False, "builtin_zero"),
         (False, "missing_source_reference"),
     ],
@@ -13505,7 +13330,7 @@ def test_registered_window_breadth_uses_full_window_with_hidden_warmup(
         recovered = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
         assert recovered.complete and len(recovered.selected_claim_ids) == 3
 
-    if scenario == "damaged_before_replay":
+    if scenario == "damaged_before_public_selection":
         comparison = admitted_window_breadth_manifest(paths, capsys, side="comparison")
         comparison_inputs = {**window_inputs, "synthetic_side": "comparison"}
         comparison_review = save(
@@ -13533,29 +13358,33 @@ def test_registered_window_breadth_uses_full_window_with_hidden_warmup(
             ),
             definition_version=comparison["metric_catalog_version"],
         )
-        manifest.pop("source_certification_packages")
-        comparison.pop("source_certification_packages")
-        before = evaluate_context_replay(
-            paths.database,
-            manifest,
-            comparison,
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
-        )
-        assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+
+        def inspect():
+            return {
+                side: check_public_context(
+                    paths,
+                    current_manifest,
+                    metric_ids=("CN_EQ_NEW_HIGH_LOW_120", "CN_EQ_ABOVE_MA120"),
+                    day="2026-08-28",
+                )
+                for side, current_manifest in (("candidate", manifest), ("comparison", comparison))
+            }
+
+        before = inspect()
+        assert all(checked.selection.complete for checked in before.values())
+        assert all(len(checked.selection.selected_claim_ids) == 3 for checked in before.values())
         assert review_hash != comparison_review
         original = paths.artifacts / review_hash[:2] / review_hash
-        original.write_bytes(b"damaged candidate review for replay")
-        after = evaluate_context_replay(
-            paths.database,
-            manifest,
-            comparison,
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
+        original.write_bytes(b"damaged candidate window review")
+        after = inspect()
+        assert not after["candidate"].selection.complete
+        assert not after["candidate"].selection.selected_claim_ids
+        assert after["candidate"].selection.missing_members
+        assert after["comparison"].selection.complete
+        assert (
+            after["comparison"].selection.selected_claim_ids
+            == before["comparison"].selection.selected_claim_ids
         )
-        assert "candidate_context_selection_invalid:CN_EQ_NEW_HIGH_LOW_120" in after.gaps
-        assert "candidate_context_selection_invalid:CN_EQ_ABOVE_MA120" in after.gaps
-        assert not any(gap.startswith("comparison_") for gap in after.gaps)
 
 
 def china_window_input_dates() -> tuple[date, ...]:
@@ -15014,7 +14843,7 @@ def test_registered_amount_breadth_rejects_publication_before_amount_day(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_registered_amount_breadth_public_replay_rechecks_candidate_inputs(
+def test_registered_amount_breadth_public_selection_rechecks_candidate_inputs(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -15022,7 +14851,6 @@ def test_registered_amount_breadth_public_replay_rechecks_candidate_inputs(
     manifests, original_hashes = {}, {}
     for side in ("comparison", "candidate"):
         manifest = admitted_amount_breadth_manifest(paths, capsys, side=side)
-        manifest.pop("source_certification_packages")
         manifests[side] = manifest
         adapter, universe_hash, amount = synthetic_amount_breadth_inputs(paths)
         old_hash = amount["evidence"][1]["artifact_hash"]
@@ -15052,39 +14880,48 @@ def test_registered_amount_breadth_public_replay_rechecks_candidate_inputs(
         adapter.acquire_scalars(
             paths, retrieve, definition_version=manifest["metric_catalog_version"]
         )
-    before = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert before.evaluated_cutoffs == 1 and not before.gaps, before.gaps
+
+    def inspect():
+        return {
+            side: check_public_context(
+                paths, manifest, metric_ids=("CN_EQ_ADV_AMOUNT_SHARE",), day="2026-08-28"
+            )
+            for side, manifest in manifests.items()
+        }
+
+    before = inspect()
+    for checked in before.values():
+        assert checked.selection.complete
+        assert checked.selection.selected_claim_ids
     assert original_hashes["candidate"] != original_hashes["comparison"]
     digest = original_hashes["candidate"]
     artifact = paths.artifacts / digest[:2] / digest
     raw = artifact.read_bytes()
     try:
         artifact.write_bytes(b"damaged candidate amount original")
-        after = evaluate_context_replay(
-            paths.database,
-            manifests["candidate"],
-            manifests["comparison"],
-            requested_start="2026-08-28",
-            requested_end="2026-08-28",
+        after = inspect()
+        assert not after["candidate"].selection.complete
+        assert after["candidate"].selection.missing_members
+        removed = set(before["candidate"].selection.selected_claim_ids) - set(
+            after["candidate"].selection.selected_claim_ids
         )
-        assert "candidate_context_selection_invalid:CN_EQ_ADV_AMOUNT_SHARE" in after.gaps
-        assert not any(gap.startswith("comparison_") for gap in after.gaps)
+        assert len(removed) == len(before["candidate"].selection.selected_claim_ids)
+        assert after["comparison"].selection.complete
+        assert (
+            after["comparison"].selection.selected_claim_ids
+            == before["comparison"].selection.selected_claim_ids
+        )
+        assert after["comparison"].context.macro == before["comparison"].context.macro
+
     finally:
         artifact.write_bytes(raw)
-    restored = evaluate_context_replay(
-        paths.database,
-        manifests["candidate"],
-        manifests["comparison"],
-        requested_start="2026-08-28",
-        requested_end="2026-08-28",
-    )
-    assert restored.evaluated_cutoffs == 1 and not restored.gaps, restored.gaps
+    restored = inspect()
+    for side in manifests:
+        assert restored[side].selection.complete
+        assert (
+            restored[side].selection.selected_claim_ids == before[side].selection.selected_claim_ids
+        )
+        assert restored[side].context.macro == before[side].context.macro
 
 
 @pytest.mark.usefixtures("runtime_clock")

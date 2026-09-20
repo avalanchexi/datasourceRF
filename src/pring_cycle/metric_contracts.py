@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 
@@ -9,6 +11,27 @@ from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 # daily cadence, so consumers must not interpret that field as a requirement
 # for a newly reported rate on every trading day.
 EFFECTIVE_UNTIL_CHANGED_METRICS = frozenset({"CN_OMO_7D_RATE"})
+
+
+def china_business_day_end(day: date) -> datetime:
+    """The instant a session's public knowledge is read at, in the market's own zone."""
+    return datetime.combine(day, time.max, ZoneInfo("Asia/Shanghai"))
+
+
+def event_period_limit(period: str) -> str:
+    """The latest period an event-metric selection for ``period`` may still be in force at.
+
+    A quarter is bounded by its last month, because an event in force through the quarter
+    is dated by month.
+    """
+    if "-Q" in period:
+        return f"{period[:4]}-{int(period[-1]) * 3:02d}"
+    return period
+
+
+def minimum_context_daily_observations(required_days: int) -> int:
+    """Round the existing 95% context replay coverage requirement upwards."""
+    return (required_days * 95 + 99) // 100
 
 
 def evidence_frequency(metric_id: str, declared_frequency: str) -> str:

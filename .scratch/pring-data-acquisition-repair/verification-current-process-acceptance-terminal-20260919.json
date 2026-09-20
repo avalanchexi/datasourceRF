@@ -1,0 +1,66 @@
+{
+  "state": "finished",
+  "full_receipt": "verification-current-full-v7-20260919.json",
+  "command": [
+    "/home/tywin/.local/share/pring-cycle/dev-venv/bin/python",
+    "-m",
+    "pring_cycle",
+    "acceptance",
+    "--runtime-root",
+    "/tmp/datasourceRF-current-process-acceptance-20260919/runtime",
+    "--json"
+  ],
+  "imported": "/tmp/datasourceRF-current-verify-20260918-v2/site/pring_cycle/__init__.py",
+  "runtime": "/tmp/datasourceRF-current-process-acceptance-20260919/runtime",
+  "scope": "public acceptance, default include_process_probe=True; isolated synthetic runtime",
+  "pid": 2329635,
+  "exit_code": 0,
+  "elapsed_seconds": 4.399577467003837,
+  "frozen_inputs_unchanged": true,
+  "residual_processes": [],
+  "passed": true,
+  "log_sha256": "25cc648c1b453865bc4ea5e61e8b31541c1d05bb7a2d02388a2660efd53ace20",
+  "err_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "performance_gates": {
+    "command_persistence_ms": {
+      "limit": 1000,
+      "measured": 4.615,
+      "passed": true
+    },
+    "daily_projection_seconds": {
+      "limit": 60,
+      "measured": 0.027,
+      "passed": true
+    },
+    "dashboard_first_content_ms": {
+      "limit": 3000,
+      "measured": 14.387,
+      "passed": true
+    },
+    "idle_rss_bytes": {
+      "limit": 1610612736,
+      "measured": 106151936,
+      "passed": true
+    },
+    "replay_peak_rss_bytes": {
+      "limit": 4294967296,
+      "measured": 92200960,
+      "passed": true
+    },
+    "replay_since_2018_seconds": {
+      "limit": 900,
+      "measured": 0.216,
+      "passed": true
+    },
+    "rest_current_projection_p95_ms": {
+      "limit": 500,
+      "measured": 5.588,
+      "passed": true
+    },
+    "web_worker_cold_start_seconds": {
+      "limit": 15,
+      "measured": 0.751,
+      "passed": true
+    }
+  }
+}

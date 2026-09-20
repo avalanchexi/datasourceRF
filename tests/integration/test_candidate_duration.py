@@ -20,6 +20,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.web import create_web_application
 from pring_cycle.worker import process_pending_run
+from tests.integration.test_worker_execution import seed_independent_calendar
 
 
 def rendered_text(component: object) -> str:
@@ -33,8 +34,13 @@ def rendered_text(component: object) -> str:
 
 
 def test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    def unavailable_optional_source(*_args: object, **_kwargs: object) -> None:
+        raise OSError("fixture optional source unavailable")
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", unavailable_optional_source)
+    monkeypatch.setattr("pring_cycle.official_context.urlopen", unavailable_optional_source)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
@@ -47,6 +53,7 @@ def test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots(
             calendar.append(day)
         day -= timedelta(days=1)
     calendar.reverse()
+    seed_independent_calendar(paths, calendar)
     claims = []
     for index, observed in enumerate(calendar):
         cutoff = datetime.combine(observed, datetime.min.time(), tzinfo=UTC)

@@ -34,6 +34,14 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
+from pring_cycle.source_families import (
+    TUSHARE_CPI_FIELDS,
+    TUSHARE_GDP_FIELDS,
+    TUSHARE_MONEY_FIELDS,
+    TUSHARE_PMI_FIELDS,
+    TUSHARE_PPI_FIELDS,
+    TUSHARE_SF_TOTAL_FIELDS,
+)
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
@@ -101,6 +109,12 @@ class ContextScalar:
 
 
 @dataclass(frozen=True)
+class ContextDelivery:
+    scalars: tuple[ContextScalar, ...]
+    rejected_fields: tuple[dict[str, str], ...]
+
+
+@dataclass(frozen=True)
 class ContextIngestionResult:
     observation_count: int
     observation_ids: tuple[str, ...]
@@ -137,6 +151,7 @@ class _Field:
     dimensions: dict[str, str]
     unit: str
     multiplier: float = 1.0
+    period_kind: str = "month"
 
 
 ContextRows = tuple[dict[str, object], ...]
@@ -144,6 +159,13 @@ ContextRequestOperation = Callable[[Callable[[str], None] | None], ContextRows]
 ContextRequestWrapper = Callable[
     [str, dict[str, str], tuple[str, ...], ContextRequestOperation], ContextRows
 ]
+
+
+class ContextObservationsMissingError(ValueError):
+    """A structurally parsed delivery contains no scalar observations."""
+
+    def __init__(self) -> None:
+        super().__init__("tushare_context_observations_missing")
 
 
 class TushareContextAdapter:
@@ -320,10 +342,30 @@ class TushareContextAdapter:
                     ):
                         raise ValueError(f"registered_{family}_acquisition_values_mismatch")
             warrant_inputs = self._warrant_receipt_inputs()
+            gdp_deliveries = {
+                receipt.acquisition_id: _gdp_delivery(
+                    _gdp_acquisition_rows(
+                        receipt, self._acquisitions.read_content(receipt.acquisition_id, "raw")
+                    )
+                )
+                for receipt in self._receipts
+                if receipt.api_name == "cn_gdp"
+            }
             linked = []
             for scalar in scalars:
                 matching = [r for r in self._receipts if r.api_name == scalar.api_name]
                 inputs = matching or self._receipts
+                if scalar.api_name == "cn_gdp":
+                    inputs = [
+                        receipt
+                        for receipt in matching
+                        if any(
+                            output.period_end == scalar.period_end
+                            for output in gdp_deliveries[receipt.acquisition_id].scalars
+                        )
+                    ]
+                    if not inputs:
+                        raise ValueError("registered_gdp_acquisition_member_missing")
                 if self._window_breadth and scalar.api_name == "window_breadth":
                     output = next(
                         day
@@ -431,6 +473,8 @@ class TushareContextAdapter:
                 rejected = [
                     item for item in self._field_rejections if item["api_name"] == receipt.api_name
                 ]
+                if receipt.api_name == "cn_gdp":
+                    rejected = list(gdp_deliveries[receipt.acquisition_id].rejected_fields)
                 if rejected:
                     receipt_document = {
                         "accepted_scalars": receipt_document,
@@ -500,55 +544,9 @@ class TushareContextAdapter:
         return result
 
     def pmi(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
-        fields = (
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi010000",
-                {"series": "manufacturing", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi010400",
-                {"series": "production", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi010500",
-                {"series": "new_orders", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_INVENTORY",
-                "pmi010700",
-                {"series": "raw_materials", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_ACTIVITY",
-                "pmi011100",
-                {"series": "purchase_volume", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_PRICES",
-                "pmi011200",
-                {"series": "purchase_prices", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_PRICES",
-                "pmi011300",
-                {"series": "output_prices", "measure": "level"},
-                "diffusion_index_points",
-            ),
-            _Field(
-                "CN_PMI_INVENTORY",
-                "pmi011400",
-                {"series": "finished_goods", "measure": "level"},
-                "diffusion_index_points",
-            ),
+        fields = tuple(
+            _Field(metric, field, {"series": series, "measure": "level"}, "diffusion_index_points")
+            for field, metric, series in TUSHARE_PMI_FIELDS
         )
         rows = self._call(
             "cn_pmi",
@@ -566,29 +564,16 @@ class TushareContextAdapter:
             _Field(
                 "CN_CPI_HEADLINE", field, {"measure": measure, "category": "headline"}, "percent"
             )
-            for field, measure in (
-                ("nt_yoy", "yoy"),
-                ("nt_mom", "mom"),
-                ("nt_accu", "cumulative_average_yoy"),
-            )
+            for field, measure in TUSHARE_CPI_FIELDS
         )
         ppi_fields = tuple(
             _Field(
                 "CN_PPI",
-                f"ppi{suffix}_{measure_field}",
+                source_field,
                 {"measure": measure, "category": category},
                 "percent",
             )
-            for suffix, category in (
-                ("", "headline"),
-                ("_mp", "means_of_production"),
-                ("_cg", "consumer_goods"),
-            )
-            for measure_field, measure in (
-                ("yoy", "yoy"),
-                ("mom", "mom"),
-                ("accu", "cumulative_average_yoy"),
-            )
+            for source_field, category, measure in TUSHARE_PPI_FIELDS
         )
         cpi = self._call(
             "cn_cpi",
@@ -605,7 +590,9 @@ class TushareContextAdapter:
             *_monthly_scalars("cn_ppi", ppi, ppi_fields),
         )
 
-    def money(self, *, start_month: str, end_month: str) -> tuple[ContextScalar, ...]:
+    def money(
+        self, *, start_month: str, end_month: str, include_month_on_month: bool = True
+    ) -> tuple[ContextScalar, ...]:
         fields = tuple(
             _Field(
                 "CN_M1_M2",
@@ -615,6 +602,7 @@ class TushareContextAdapter:
             )
             for aggregate in ("m1", "m2")
             for measure in ("balance", "yoy", "mom")
+            if include_month_on_month or measure != "mom"
         )
         rows = self._call(
             "cn_m",
@@ -654,6 +642,18 @@ class TushareContextAdapter:
             "sf_month",
             {"start_m": _month_value(start_month), "end_m": _month_value(end_month)},
             ("month", *(item.source_field for item in fields)),
+        )
+        return _monthly_scalars("sf_month", rows, fields)
+
+    def social_financing_total(
+        self, *, start_month: str, end_month: str
+    ) -> tuple[ContextScalar, ...]:
+        """Collect the registered total's annual flow and month-end stock members."""
+        fields = _social_financing_total_fields()
+        rows = self._call(
+            "sf_month",
+            {"start_m": _month_value(start_month), "end_m": _month_value(end_month)},
+            ("month", *(field.source_field for field in fields)),
         )
         return _monthly_scalars("sf_month", rows, fields)
 
@@ -750,56 +750,18 @@ class TushareContextAdapter:
         end_value = _quarter_value(end_quarter)
         if _quarter_ordinal(end_value) < _quarter_ordinal(start_value):
             raise ValueError("tushare_quarter_range_invalid")
-        fields = (
-            ("total", "gdp", "gdp_yoy"),
-            ("primary", "pi", "pi_yoy"),
-            ("secondary", "si", "si_yoy"),
-            ("tertiary", "ti", "ti_yoy"),
-        )
         rows = self._call(
             "cn_gdp",
             {"start_q": start_value, "end_q": end_value},
             (
                 "quarter",
-                *(field for _aggregate, level, yoy in fields for field in (level, yoy)),
+                *(field for _aggregate, level, yoy in TUSHARE_GDP_FIELDS for field in (level, yoy)),
             ),
         )
-        scalars: list[ContextScalar] = []
-        for row in rows:
-            year_start, _quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
-            for aggregate, level_field, yoy_field in fields:
-                level = _number(row.get(level_field))
-                if level is not None:
-                    scalars.append(
-                        ContextScalar(
-                            metric_id="CN_GDP",
-                            api_name="cn_gdp",
-                            source_field=level_field,
-                            period_kind="year_to_quarter",
-                            period_start=year_start,
-                            period_end=quarter_end,
-                            dimensions={
-                                "aggregate": aggregate,
-                                "measure": "nominal_ytd_level",
-                            },
-                            value=level,
-                            unit="hundred_million_cny",
-                        )
-                    )
-                yoy = _number(row.get(yoy_field))
-                if yoy is not None and self._acquisitions is not None:
-                    # Q2 delivery disagrees with the documented single-quarter
-                    # meaning. Do not relabel every vintage as cumulative either.
-                    self._field_rejections.append(
-                        {
-                            "metric_id": "CN_GDP",
-                            "api_name": "cn_gdp",
-                            "source_field": yoy_field,
-                            "period_end": quarter_end,
-                            "reason": "gdp_yoy_period_semantics_unverified",
-                        }
-                    )
-        return tuple(scalars)
+        delivery = _gdp_delivery(rows)
+        if self._acquisitions is not None:
+            self._field_rejections.extend(delivery.rejected_fields)
+        return delivery.scalars
 
     def treasury_yields(
         self,
@@ -1548,7 +1510,7 @@ def ingest_context_scalars(
     if fetched_at.tzinfo is None:
         raise ValueError("tushare_context_fetched_at_must_be_timezone_aware")
     if not scalars:
-        raise ValueError("tushare_context_observations_missing")
+        raise ContextObservationsMissingError()
     # Missing publication evidence stays unknown. A fetch time cannot establish
     # when the market first had access to the observation or its revision.
     repository = EvidenceRepository(paths.database)
@@ -2002,8 +1964,12 @@ def _monthly_scalars(
                     metric_id=field.metric_id,
                     api_name=api_name,
                     source_field=field.source_field,
-                    period_kind="month",
-                    period_start=period_start,
+                    period_kind=field.period_kind,
+                    period_start=(
+                        f"{period_start[:4]}-01-01"
+                        if field.period_kind == "year_to_month"
+                        else period_start
+                    ),
                     period_end=period_end,
                     dimensions=field.dimensions,
                     value=value * field.multiplier,
@@ -2149,13 +2115,189 @@ def parse_margin_acquisition(
     )
 
 
+def _parse_monthly_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+    *,
+    api_name: str,
+    contract: str,
+    scalar_fields: tuple[_Field, ...],
+) -> tuple[ContextScalar, ...]:
+    fields = ("month", *(field.source_field for field in scalar_fields))
+    if (
+        receipt.state != "validated"
+        or receipt.provider != "tushare"
+        or receipt.api_name != api_name
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_m", "end_m"}
+    ):
+        raise ValueError(f"registered_{contract}_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _monthly_scalars(api_name, rows, scalar_fields)
+
+
+def parse_ppi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild the reviewed PPI delivery from its exact API, fields and period range."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_ppi",
+        contract="ppi",
+        scalar_fields=tuple(
+            _Field("CN_PPI", field, {"category": category, "measure": measure}, "percent")
+            for field, category, measure in TUSHARE_PPI_FIELDS
+        ),
+    )
+
+
+def parse_cpi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild headline CPI from cn_cpi without manufacturing publication evidence."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_cpi",
+        contract="cpi",
+        scalar_fields=tuple(
+            _Field(
+                "CN_CPI_HEADLINE", field, {"category": "headline", "measure": measure}, "percent"
+            )
+            for field, measure in TUSHARE_CPI_FIELDS
+        ),
+    )
+
+
+def parse_pmi_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild all PMI siblings from the one exact physical cn_pmi response."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_pmi",
+        contract="pmi",
+        scalar_fields=tuple(
+            _Field(metric, field, {"series": series, "measure": "level"}, "diffusion_index_points")
+            for field, metric, series in TUSHARE_PMI_FIELDS
+        ),
+    )
+
+
+def parse_money_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> tuple[ContextScalar, ...]:
+    """Rebuild the four money members shared with the registered PBC contract."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="cn_m",
+        contract="money",
+        scalar_fields=tuple(
+            _Field("CN_M1_M2", field, {"aggregate": aggregate, "measure": measure}, unit)
+            for field, aggregate, measure, unit in TUSHARE_MONEY_FIELDS
+        ),
+    )
+
+
+def _social_financing_total_fields() -> tuple[_Field, ...]:
+    return tuple(
+        _Field(
+            "CN_SF_TOTAL",
+            field,
+            {"measure": measure},
+            "hundred_million_cny",
+            multiplier=multiplier,
+            period_kind=period_kind,
+        )
+        for field, measure, multiplier, period_kind in TUSHARE_SF_TOTAL_FIELDS
+    )
+
+
+def parse_social_financing_total_acquisition(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> tuple[ContextScalar, ...]:
+    """Rebuild stock units and annual cumulative periods from the exact sf_month response."""
+    return _parse_monthly_acquisition(
+        receipt,
+        raw,
+        api_name="sf_month",
+        contract="sf_total",
+        scalar_fields=_social_financing_total_fields(),
+    )
+
+
+def _gdp_delivery(rows: ContextRows) -> ContextDelivery:
+    scalars: list[ContextScalar] = []
+    rejected: list[dict[str, str]] = []
+    for row in rows:
+        year_start, _quarter_start, quarter_end = _quarter_bounds(str(row.get("quarter")))
+        for aggregate, level_field, yoy_field in TUSHARE_GDP_FIELDS:
+            level = _number(row.get(level_field))
+            if level is not None:
+                scalars.append(
+                    ContextScalar(
+                        metric_id="CN_GDP",
+                        api_name="cn_gdp",
+                        source_field=level_field,
+                        period_kind="year_to_quarter",
+                        period_start=year_start,
+                        period_end=quarter_end,
+                        dimensions={"aggregate": aggregate, "measure": "nominal_ytd_level"},
+                        value=level,
+                        unit="hundred_million_cny",
+                    )
+                )
+            # Q2 delivery disagrees with the documented single-quarter meaning.
+            # Do not relabel every vintage as cumulative either.
+            if _number(row.get(yoy_field)) is not None:
+                rejected.append(
+                    {
+                        "metric_id": "CN_GDP",
+                        "api_name": "cn_gdp",
+                        "source_field": yoy_field,
+                        "period_end": quarter_end,
+                        "reason": "gdp_yoy_period_semantics_unverified",
+                    }
+                )
+    return ContextDelivery(tuple(scalars), tuple(rejected))
+
+
+def _gdp_acquisition_rows(receipt: AcquisitionReceipt, raw: bytes) -> ContextRows:
+    fields = (
+        "quarter",
+        *(f for _aggregate, level, yoy in TUSHARE_GDP_FIELDS for f in (level, yoy)),
+    )
+    if (
+        receipt.state not in {"received", "validated"}
+        or receipt.provider != "tushare"
+        or receipt.api_name != "cn_gdp"
+        or receipt.parser_version != "tushare-gdp-parser-v0003"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_q", "end_q"}
+    ):
+        raise ValueError("registered_gdp_acquisition_identity_mismatch")
+    document = json.loads(raw)
+    if not isinstance(document, dict) or document.get("code") != 0:
+        raise ValueError("tushare_source_failed")
+    rows = _response_rows(document, required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return rows
+
+
+def parse_gdp_acquisition(receipt: AcquisitionReceipt, raw: bytes) -> ContextDelivery:
+    """Rebuild the accepted GDP levels and rejected-growth audit from one original."""
+    if receipt.state != "validated":
+        raise ValueError("registered_gdp_acquisition_identity_mismatch")
+    return _gdp_delivery(_gdp_acquisition_rows(receipt, raw))
+
+
 def tushare_claims_matching_acquisitions(
     repository: EvidenceRepository,
     points: tuple[MetricSeriesPoint, ...],
     *,
     definition_version: str,
     parse: Callable[
-        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...]
+        [AcquisitionReceipt, bytes], tuple[ContextScalar, ...] | ContextDelivery
     ] = parse_margin_acquisition,
 ) -> set[str]:
     """Keep selected TuShare scalars bound to complete raw and normalized deliveries."""
@@ -2173,8 +2315,24 @@ def tushare_claims_matching_acquisitions(
                 identity = item.receipt.acquisition_id
                 if identity not in parsed:
                     parsed[identity] = None
-                    scalars = parse(item.receipt, item.raw)
+                    delivery = parse(item.receipt, item.raw)
+                    scalars = (
+                        delivery.scalars if isinstance(delivery, ContextDelivery) else delivery
+                    )
                     normalized = json.loads(item.normalized)
+                    rejected = (
+                        list(delivery.rejected_fields)
+                        if isinstance(delivery, ContextDelivery)
+                        else []
+                    )
+                    if rejected:
+                        if (
+                            not isinstance(normalized, dict)
+                            or set(normalized) != {"accepted_scalars", "rejected_fields"}
+                            or normalized["rejected_fields"] != rejected
+                        ):
+                            raise ValueError("registered_tushare_rejected_fields_mismatch")
+                        normalized = normalized["accepted_scalars"]
                     if not isinstance(normalized, list):
                         raise ValueError("registered_tushare_normalized_mismatch")
                     economic = []

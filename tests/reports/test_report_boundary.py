@@ -326,8 +326,10 @@ def test_same_day_regeneration_creates_versions_without_overwriting(tmp_path: Pa
     assert [item.version for item in reports.history()] == [2, 1]
 
 
+@pytest.mark.parametrize("activity_provider", [None, "tushare", "国家统计局"])
 def test_projection_observation_versions_are_preserved_in_the_report_bundle(
     tmp_path: Path,
+    activity_provider: str | None,
 ) -> None:
     projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
     assets = tuple(
@@ -346,23 +348,43 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
             ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
         )
     )
+    activity = (
+        {
+            "state": "fixture_activity",
+            "evidence": [
+                {
+                    "metric_id": "CN_PMI_ACTIVITY",
+                    "observation_version_ids": ["version-pmi"],
+                    "claims": [{"provider": activity_provider, "selected": True}],
+                }
+            ],
+        }
+        if activity_provider is not None
+        else None
+    )
     P0ProjectionService(projections).publish(
         target_business_date="2026-08-28",
         system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
         assets=assets,  # type: ignore[arg-type]
         last_confirmed_stage=None,
+        macro_document={"overheat": activity} if activity else None,
     )
 
     report_bundle = evidence_bundle_from_projection(projections.current())
     evidence_ids = report_bundle.allowed_evidence_ids
 
-    assert evidence_ids == ("version-bond", "version-commodity", "version-stock")
+    expected_ids = {"version-bond", "version-commodity", "version-stock"}
+    if activity:
+        expected_ids.add("version-pmi")
+        assert report_bundle.structured_context["activity_context"] == activity
+    assert set(evidence_ids) == expected_ids
     assert set(report_bundle.structured_context) == {
         "transition_watch",
         "macro_confirmation",
         "policy_context",
         "inventory_context",
         "price_context",
+        "activity_context",
         "change_reasons",
     }
 
