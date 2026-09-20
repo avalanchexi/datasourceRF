@@ -19,6 +19,33 @@ export PATH="$PRING_CYCLE_DEV_ENV/bin:$PATH"
 环境，正常 Python 导入产生的字节码也留在该环境中，不会写回源码树。后续使用 `uv run` 时
 同样保留此选项，避免 uv 把项目切回 editable 安装。
 
+### 源码改动后必须重装
+
+因为装进虚拟环境的是副本而不是链接，改源码**不会**让虚拟环境里的 `pring_cycle` 跟着变。
+而 `uv sync` 只按版本号判断是否需要装：`pyproject.toml` 里的版本一直是 `0.1.0`，所以它会
+报告 `Audited N packages` 并且什么都不装，即使源码已经改了几十个文件。
+
+于是虚拟环境可以无限期地落后于源码，**没有任何提示**。测试仍然会跑，只是跑的是旧代码：
+删掉的模块还在、新增的模块不存在，失败表现为 `ImportError` 或 `ModuleNotFoundError`，看起来
+像代码坏了，实际上是环境旧了。一次全套要跑几十分钟，这种失败要到最后才暴露。
+
+拉取、合并、切分支或改动 `src/` 之后，重装项目自身：
+
+```bash
+UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" \
+  uv sync --extra dev --no-editable --reinstall-package pring-cycle
+```
+
+`--reinstall-package pring-cycle` 只重装项目本身，依赖仍走锁文件和缓存，实测约 1 秒，
+可以无条件执行。验证环境与源码一致：
+
+```bash
+ls "$PRING_CYCLE_DEV_ENV"/lib/python3.12/site-packages/pring_cycle/*.py | wc -l
+ls src/pring_cycle/*.py | wc -l
+```
+
+两个数字不相等就是环境落后了，此时任何测试结果都不可信。
+
 `uv.lock` 固定 FastAPI、Dash 4.2、SQLAlchemy、Alembic 和其他依赖版本。应用启动和日常离线
 验收不安装依赖，也不访问包索引。
 

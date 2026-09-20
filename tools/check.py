@@ -21,11 +21,47 @@ HEAVY_FILES = {
 }
 
 
+def _stale_environment() -> str | None:
+    """Name the modules that differ between the source tree and what will be imported.
+
+    ``--no-editable`` installs a copy, and ``uv sync`` only reinstalls when the version
+    changes, which it never does. So the interpreter can import a package that is missing
+    modules the tree has, or still carries ones it deleted, with nothing to say so. The
+    failures look like ImportError in unrelated tests, and a full suite only reaches them
+    after the wait its whole point was to avoid.
+    """
+    import importlib.util
+
+    spec = importlib.util.find_spec("pring_cycle")
+    if spec is None or not spec.origin:
+        return "pring_cycle is not importable; install it into this environment first"
+    installed_dir = Path(spec.origin).parent
+    if installed_dir == ROOT / "src" / "pring_cycle":
+        return None  # An editable or path install already reads the tree.
+    tree = {path.name for path in (ROOT / "src" / "pring_cycle").glob("*.py")}
+    installed = {path.name for path in installed_dir.glob("*.py")}
+    if tree == installed:
+        return None
+    missing = sorted(tree - installed)
+    extra = sorted(installed - tree)
+    parts = []
+    if missing:
+        parts.append(f"missing {len(missing)}: {', '.join(missing[:5])}")
+    if extra:
+        parts.append(f"stale {len(extra)}: {', '.join(extra[:5])}")
+    return "; ".join(parts)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", choices=("quick", "full"))
     parser.add_argument("tests", nargs="*", help="Explicit test files or pytest node IDs")
     parser.add_argument("--collect-only", action="store_true")
+    parser.add_argument(
+        "--allow-stale-environment",
+        action="store_true",
+        help="Run even when the installed pring_cycle differs from src/",
+    )
     args = parser.parse_args()
     if args.mode == "quick":
         if not args.tests:
@@ -38,6 +74,17 @@ def main() -> int:
                 parser.error(f"explicit heavy acceptance is required for: {node}")
     elif args.tests:
         parser.error("full always uses complete default discovery; omit selectors")
+    drift = _stale_environment()
+    if drift is not None and not args.allow_stale_environment:
+        print(
+            f"The installed pring_cycle does not match src/: {drift}.\n"
+            "Whatever this run reports would be about the installed copy, not the tree. Run:\n"
+            "  uv sync --extra dev --no-editable --reinstall-package pring-cycle\n"
+            "Pass --allow-stale-environment to run against the installed copy on purpose.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 2
     command = [sys.executable, "-m", "pytest", *args.tests, "-q", "--durations=10"]
     if args.collect_only:
         command.append("--collect-only")
