@@ -425,6 +425,29 @@ pring-cycle model-rollback --model NEXT_MODEL --as-of-date YYYY-MM-DD \
 证据、报告或密钥，也不用于恢复；它不是 ADR-0011 所指的运行数据备份，删除后可重新构建。
 材料中的全部来源认证与发布时间均为合成测试数据，不构成真实来源认证。
 
+### 回收堆积的材料
+
+身份键覆盖源码，所以**每改一次代码就多存一份材料**，每份约 3 GB，旧的再也不会被读取，也
+没有任何东西负责删除它们。构建期间的 `<身份键>.build-<pid>/` 目录在构建成功后才会清除，
+因此被中断的构建（进程被杀、崩溃）会把部分副本永久留下。
+
+WSL 的虚拟磁盘默认位于 Windows 的 C 盘，这些堆积最终表现为 C 盘耗尽，再反过来拖慢一切。
+
+`tools/reclaim.py` 按保留策略回收，默认只报告不删除：
+
+```bash
+python tools/reclaim.py                      # 报告：保留最近 3 份及 2 天内的
+python tools/reclaim.py --keep 3 --days 0    # 只保留最近 3 份
+python tools/reclaim.py --apply              # 按上述策略实际删除
+```
+
+它不会删除 pid 仍存活的 `.build-` 目录，因此可以在测试运行期间执行。删错的代价是下次
+重建（约一小时），所以保留份数至少为 1。
+
+WSL 内删除不会让 Windows 侧的 C 盘立刻变大——虚拟磁盘只增不减。需要在 Windows 侧执行
+`wsl --shutdown` 后压缩 `ext4.vhdx`（`Optimize-VHD -Mode Full`，或 `diskpart` 的
+`compact vdisk`）才会真正归还。
+
 ## 统一离线验收
 
 以下命令在临时 SQLite 和制品目录中重复初始化，执行原子制品写入/登记/读回，启动正式
