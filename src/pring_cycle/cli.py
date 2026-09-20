@@ -384,6 +384,15 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             explicitly_approved=namespace.confirm,
         )
         return asdict(activated)
+    if namespace.command == "model-input-preflight":
+        from pring_cycle.material_preflight import preflight_model_inputs
+
+        return preflight_model_inputs(
+            paths,
+            namespace.model,
+            requested_start=namespace.start,
+            requested_end=namespace.end,
+        )
     if namespace.command == "model-replay":
         from pring_cycle.model_evaluation import replay_models
 
@@ -730,6 +739,10 @@ def _parser() -> argparse.ArgumentParser:
     model_activate = _runtime_parser(subparsers, "model-activate")
     model_activate.add_argument("--model", required=True)
     model_activate.add_argument("--confirm", action="store_true")
+    model_preflight = _runtime_parser(subparsers, "model-input-preflight")
+    model_preflight.add_argument("--model", required=True)
+    model_preflight.add_argument("--start", required=True)
+    model_preflight.add_argument("--end", required=True)
     model_replay = _runtime_parser(subparsers, "model-replay")
     model_replay.add_argument("--model", required=True)
     model_replay.add_argument("--compared-with", required=True)

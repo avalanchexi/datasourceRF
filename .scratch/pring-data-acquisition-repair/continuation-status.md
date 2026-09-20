@@ -1,3 +1,142 @@
+## 2026-09-19 最新续接：新准备315秒成功，v2整窗预检在途
+
+构建最后120日商品篮子循环现共享已捕获期货输入读取。公开两日persist/读取/退出scope后坏原件与恢复保护1 passed / 3.92秒；相关注册商品篮子+预检37 passed / 134.04秒，41304退出0，Ruff/格式/diff-check通过。生产代码未再改，沿用上轮同内容五源mypy结果。v2冷准备48166退出0、315.336秒、输入未变；旧1061.052秒。profile/inputs/依赖/配置hash相同，新code/builders不同。两侧PUBLIC 120日期/960条篮子及分项的值、维度、状态相同（equivalence json已两树归档），不外推全部验证提速。
+
+当前唯一任务：v2整窗预检监督52884，CLI2400111，/tmp/datasourceRF-complete-preflight-20260919-v2-driver.py；输入/tmp/datasourceRF-preflight-inputs-20260919-v2。实际ps仍Rs/约50秒/RSS2.67GiB，C盘14.52GiB。看整合树verification-19-preflight-complete-inputs-terminal-20260919-v2.json、complete-inputs-result-20260919-v2.json及runtime-before对应文件，继续poll52884，不重复启动。源码保持冻结；终态还要核gaps/只读哈希/身份，exit0不是ready。
+
+旧24054主动SIGTERM 565.733秒，无完整结果但输入/材料未变，其证据已归档。新代码checks_complete=false；后续按v2实际缺口完成全目录/维度/完整有效材料及生命周期接入、两轴审查和同版本必需验证。未提交当前WIP，旧c5f0796全套不能替代新验证。新目录59项（已批准删除两黄金，P1仍42），不按旧61硬编码。
+
+## 2026-09-19 最新续接：四EIA专项通过，进入v7全套
+
+最近实际核对：v7默认全套1848 passed / 8865.15秒，监督8103及独立后代96343退出0，冻结输入不变、无残留。后续队列17690已退出0：money HTTP缺m1_yoy变异正确检出、公开独立进程验收35回归/8故障/8性能门通过、网络0。全套五件及后续九件证据已归档两树。最终两轴独立复核225输入匹配、未解决问题各0，见review-current-software-terminal-20260919.md。本批已提交整合分支c5f079601e23fb2ad60a322473060e6095ea14ed；#19独立预检与真实来源、候选、回放、切换仍开放。C盘最近实测约14.53GiB，无重型验证在途。
+
+专项20862已退出0：4 passed / 1586.94秒，四条件均setup/call/teardown通过；输入不变，driver_error null，监督退出0/无原因/无残留，pytest2229031已消失。五件原始终态已归档，verification-evidence-archive-eia-calendar-terminal-20260919.json。此前“专项运行中”为历史。
+
+v7已实际启动：监督8103 / pytest2244636 start_ticks24028245；独立后代96343；后续串行队列17690。实际默认发现1848项。安装包、解释器依赖、两套材料完整identity和内容均启动前核验通过；准备两轴新增阻断0。实时主树verification-current-full-v7-20260919.json及实际句柄为准，禁止重复启动。默认全发现/原顺序，移除-x收集全部失败，不拼接旧批次。C约14.41GiB，运行保留3GiB/4小时保护。输入继续冻结，成功后串行money变异和公开进程验收；#19独立材料预检及真实来源等条件仍开放。
+
+## 2026-09-19 最新续接：v6失败已定位EIA夹具日历缺件
+
+v6监督10505已退出1：914passed/1failed，EIA缺凭据节点p0_required_calendar_unavailable，磁盘未触发，输入不变。watch87002无残留，queue83045未启动后续。原现场和六件终态已归档。旧“v6运行中”段落均为历史。
+
+快速副本复现required_calendar：red-v2 0.36秒不可用；旧v1声明seed不适新目录；公开核心日历收据green-receipt 0.43秒，120日至8/28可用。诊断及初版设置错误日志全部保留。整合test_worker_registered_catalog.py仅补EIA四场景的公开日历获取，生产不变；Ruff/格式通过。两轴增量阻断均0；专项20862已实际启动并收集4项，missing与success条件均通过，当前network条件运行中。监督终态读verification-eia-calendar-worker-supervisor-20260919.json，外层汇总verification-eia-calendar-worker-20260919.json。C盘约12.60GiB，原版本输入仅该测试改变；不要重复启动专项或全套，不复用旧通过数。详见diagnosis-eia-calendar-fixture-20260919.md。
+
+磁盘准备：六个未运行浏览器二进制目录已逐文件SHA256核验归档D盘，释放C盘原副本；保留Playwright仍被引用的1208/1234及全部用户profile。C空闲实增1956012032字节，归档后14.42GiB。详见resource-idle-browser-cache-20260919.json；启动仍需实时复核14GiB余量。
+
+v7六个外部驱动已准备并通过两轴增量审查，默认完整发现/顺序不变，移除全套-x，保留4小时/3GiB运行保护和14GiB启动余量。仅准备尚未启动，须先收四EIA真实终态。见review-current-full-v7-preparation-20260919.md及对应preparation归档。
+
+## 2026-09-18 最新续接：v6 同版本完整验证运行中
+
+本轮实时核对：v6已完成914项、尚无失败。可选GDP失败降级setup/call/teardown均通过，call 374.10秒；此前#28门禁/非典型、完整Worker双分支、登记目录刷新、PPI回退、固定目标日旧投影保护及必需来源阻断已通过。当前EIA missing-missing_credentials运行中，尚未越过v5磁盘中断节点；C盘约12.61GiB，监督10505仍存活。仍保留3GiB保护，不将旧通过或本次专项通过称为全套终态。
+
+监督10505 / pytest2180959（start_ticks23353480），独立后代87002，后续队列83045。实际默认发现1848项，原始顺序一致；所有源码/测试/工具及安装/依赖/两profile完整身份与材料内容启动前校验通过，changed_test_inputs={}。v5已因C磁盘保护退出2、914passed，不能视为通过；没有残留进程，旧队列未执行。
+
+已将本任务五份Python崩溃转储经SHA256核验迁至D盘，C空闲实增3553271808字节；v6启动余量15828451328字节（14.74GiB）。保留启动14GiB、运行3GiB和4小时保护。瞬时磁盘骤降根因尚未证实，不声称根治。准备两轴新增阻断均0，固定驱动及磁盘证据已归档，运行收据只读主树实时文件。不要重复启动，不改绑定输入。
+
+后续仍先收全套真实终态/无残留，再由既定队列跑money缺字段变异和公开独立进程验收；真实来源和#19独立预检等原条件继续开放。下方均为历史检查点。
+
+## 2026-09-18 最新续接：v5 因 C 盘保护中断，禁止视为全套通过
+
+监督17191实际退出2，914 passed / 5168.61秒；监督总耗时5180.20秒，原因c_disk_below_3_gib（采样余量1.65GiB）。冻结输入不变。独立watch33286已finished、无残留进程；队列22236已not_started_full_unsuccessful，money变异和独立进程验收均未启动。中断于EIA missing-missing_credentials场景，未取得该节点通过终态。原日志/事件/发现清单/后代/队列均归档，见verification-evidence-archive-v5-terminal-20260918.json。
+
+停止后Windows及WSL读取C盘均恢复约11GiB，临时骤降来源未证实；Windows分页文件位于D盘。正在核查并释放已空闲的WSL块，未重启测试，不降低3GiB保护门。保留失败/中断现场及有效材料；下方均为历史检查点。
+
+## 2026-09-18 最新续接：v5 默认完整验证正在运行
+
+最近核对：v5已完成914项，尚无失败。可选GDP来源失败降级场景setup/call/teardown均通过，call 474.85秒；当前进入EIA缺凭据等剩余默认回归。监督句柄17191仍存活，pytest2126609通过实际ps核验，C盘约11.02GiB。慢清单已按实际阶段事件更新；不启动第二批，不把914项称为全套终态。此前#28门禁、完整Worker双分支、PPI回退和固定目标日旧投影保护通过证据保留。
+
+v5 监督句柄17191 / pytest2126609（start_ticks22776471），后代监督33286，后续串行队列22236。实际已收集1848项、原始默认顺序逐项一致；无选择器、排除或重排。先等待本批实际终态，不重复启动或改绑定输入。
+
+新快照 `/tmp/datasourceRF-current-verify-20260918-v5/project` 只更新候选天数夹具；安装复用v2/site，源码逐字节一致。legacy d67db187…、acquisition-repairs 0297b123…的完整identity/key及所有runtime内容哈希在启动前实际核对通过。原冷构建节点仍保留。C盘启动后约11.1GiB，低于3GiB或4小时由监督器停止并保留终态。
+
+[187项相关终态及恢复限制](verification-calendar-related-fixtures-recovered-20260918.json)不替代本批全套。v5成功且后代无残留后，队列才执行money必需字段变异和默认独立进程验收。准备与恢复两轴审查未解决各0。旧v2/v3/v4失败收据及旧冻结树保持。下方为历史时点。
+
+
+补充续接：187项相关回归的外层收据驱动TypeError已如实恢复，见 recovered 收据及 diagnosis-duration-calendar-fixture-20260918.md；禁止重新执行该批来补驱动状态。v5已越过旧失败节点，P0核心缺失重型通过；完整Worker两个分支的setup/call/teardown均通过：True call 870.66秒、False call 917.82秒；全套随后继续库存/租约等默认回归，当前仍未完整终态。False独立副本也已在无进程引用后回收3,216,064,084逻辑字节，事件记录保留。True场景已完成且无进程引用的独立副本按事件审计回收3,223,096,785逻辑字节；有效材料与失败现场保留，不声称C盘立即缩小。监督17191、watch33286、队列22236均继续使用，不能重复启动。
+
+等待期间完成#19市场15项合同交接静态核对，新增 implementation-19-market-contract-handoff-20260918.md 和 verification-19-market-contract-index-20260918.json；七组205个实际收集节点，两轴各0。两个工作树的票19只加说明，验收勾选不变。独立材料预检仍未实现：context_replay_gaps只验认证状态，不能冒充原件/维度/父项完整预检。docs/agents/testing.md补上2项28.06秒与187项923.74秒的实测选择建议，仍未提交。
+
+v4终态/新夹具诊断/相关回归终态/v5固定驱动已分别归档到整合树，见 verification-evidence-archive-v4-terminal-20260918.json、verification-evidence-archive-related-terminal-20260918.json、verification-evidence-archive-v5-preparation-20260918.json。#28原票及直接原始诊断证据原先仅在主树，现已补入整合树，清单 verification-evidence-archive-28-docs-20260918.json。运行中的v5收据未复制，不读取整合树旧副本猜测实时状态。
+
+绑定源码/测试/工具从相关回归启动后没有修改；只新增/更新文档与外部验证驱动。当前整合HEAD仍ae62706，candidate_duration夹具改动待与其他已审WIP在真实终态后提交。下一步仍先收v5完整终态、独立watch与队列，再按实际结果收口；若失败，保留原现场作具体诊断，不拼接旧通过。
+
+## 2026-09-18 最新续接：187 项相关回归通过，准备 v5
+
+句柄84232已结束：187 passed / 923.74 秒，quick exit 0 / 924.76 秒，测试监督无原因/无残留。外层收据驱动 Popen 序列化错误 exit 1 已保存；[恢复收据](verification-calendar-related-fixtures-recovered-20260918.json)真实区分测试与驱动结果，并明确输入哈希只证明运行中审计至结束区间。没有重复测试。
+
+v5七个驱动已准备，复用安装前需核源码一致、材料完整identity及内容；新快照仅替换已审候选天数夹具，v2旧冻结树不变。v5尚未启动；实际状态随后以verification-current-full-v5-20260918.json为准。源码/测试/工具继续冻结，待新批自身完整终态、money字段变异和默认独立进程验收后收口。下方为历史时点。
+
+## 2026-09-18 最新续接：v4 已失败退出，日历夹具修正通过定向验证
+
+v3、v4 均已结束，没有旧完整验证在后台运行。v3 失败来自外部 observer 重排引入历史内存峰值污染；恢复默认顺序后，v4 验收部分通过，随后候选天数夹具缺独立日历而失败：416 passed、1 failed / 151.27 秒，输入不变、后代无残留。两轮后续队列均未执行 money 变异和正式独立进程验收。
+
+候选天数夹具已在公开证据入口补日历，并隔离意外 EIA/官方 HTTP：离线 RED 1 failed、1 passed / 2.53 秒 → GREEN 2 passed / 28.06 秒；两轴复核未解决各 0，见 [诊断与修正](diagnosis-duration-calendar-fixture-20260918.md)。当前唯一相关回归句柄 84232，13 个直接 Worker 调用文件；以 `verification-calendar-related-fixtures-20260918.json` 及 supervisor 收据核终态。运行期间不改 src/tests/tools，不启动重型批次。
+
+下一步：收相关批次终态，处理实际失败（若有），再冻结新测试快照开始 v5 默认全套；v5 尚未启动。保留旧冻结树及有效材料，先核完整身份再复用。#18 证据提交 ae62706 有效，真实来源与 19/20/21/22 真实交付条件继续开放。下方为历史时点，不能据旧句柄判断当前运行状态。
+
+## 2026-09-18 #18真实解释条件补齐，当前全套继续
+
+#18复用9月16日留存真实CLI输出，三段语义、支持/反证与身份分别核验；原报告/尝试/库不变，0新模型调用。v2在WSL原生副本经当前冻结公开接口追加passed审查，两轴未解决0，整合分支提交`ae62706`，两项解释条件勾选至6/6；Execution仍待共同收尾。见[证据及范围](implementation-18-semantic-review-20260918.md)。首次/mnt/d副本位置不合规记录保留，v2补正，不冒充完整新市场报告。
+
+当前同版本全套仍为句柄99871/pytest2067422，watch43546、后续队列3413；最近legacy冷生命周期正在执行120日model-replay，未完成。不要重复启动。新增[真实来源交接](remaining-source-handoff-20260918.md)纠正旧登录/密钥阻塞，汇总仍缺历史来源与时间证据；不以此勾选19真实候选或20/21/22真实交付。应用/测试未变，只有证据文档提交；冻结收据仍绑定f80b8e5时的源码WIP，下方为先前状态。
+
+## 2026-09-18 最新续接：六项重型通过、两轴0，全套仍运行
+
+当前活动批次v3（监督句柄99871 / pytest2067422，独立后代监督43546），默认1848项。六个优先重型节点已passed：Worker False829.37秒、完整context损坏回放75.84秒、仓单覆盖False41.52/True43.64秒、Worker True882.08秒、P0核心缺失51.63秒。现在运行legacy原始强制冷构建测试，之后仍有其余默认回归；不能据六项关闭全套。
+
+后续队列句柄3413正在等全套及后代真实成功终态，随后自动串行money HTTP缺字段变异、公开CLI默认独立进程acceptance。状态 `verification-current-followups-20260918.json`；不要重复启动。两驱动的监督缺项均已修正并两轴复核0，自检证明无孤儿误通过。
+
+最终组合Standards/Spec均0未解决问题，独立核对223源码/测试/工具文件与冻结身份相同，见 `review-current-integration-20260918.md`。整合树另改docs/agents/testing.md补本机诊断陷阱；已复制诊断/慢用例文档和60件已终态证据/固定驱动（6.84MB），清单 `verification-evidence-archive-initial-20260918.json`，运行中v3收据未复制。产品/测试无修改；剩余源码WIP和夹具迁移尚未提交，待最终验证终态及输入复核后统一收口。
+
+旧合成缓存8513e337…已在新Worker False通过、确认无进程引用后按用户清理授权回收3.166GB逻辑空间；清单与内容索引在cleanup-obsolete-worker-material-20260918/保留。有效0297b123…、旧失败运行库、v2SIGSEGV现场和历史收据保留。C盘最近约11.2GiB空闲。
+
+下一步：持续收99871、43546、3413真实终态；若失败保留现场并诊断，不盲目重启。成功后更新慢清单、#25/#27/#28及19/22软件证据；复制最终收据到整合树，核代码/测试与冻结源逐字节一致、文档链接、审查范围，再提交当前整合分支。真实来源/19真实候选/18/20/21/22正式切换仍沿原依赖开放，不冒充软件测试通过。下方均为历史记录。
+
+## 2026-09-18 v3 同版本完整验证运行中
+
+已独立复现 v2 的 faulthandler SIGSEGV：原生计时器3/3崩溃，关闭计时器和普通Python线程采样各3/3完成30000次SQLite连接；详见[诊断记录](diagnosis-verification-faulthandler-20260918.md)。v3仅更换自加的诊断计时方式，复用完全相同的v2冻结project/site。1848默认发现全部保留，False场景优先；legacy强制冷构建排在消费者之前。监督句柄99871 / pytest2067422为启动身份，实际状态以 `verification-current-full-v3-20260918.json`、事件文件和独立descendants收据联合核验。
+
+Spec复核指出驱动缺少与v2材料身份相等的强制启动前断言；收到时已启动，随即独立断言并保存 `verification-current-full-v3-reuse-precheck-20260918.json`：完整环境、两profile key/identity均相等，acquisition-repairs缓存存在。该文件名含precheck但实际是启动后即时补核，不冒称启动前执行；运行中的驱动与输入未改，未来驱动需前置此门。v2失败收据及失败现场继续保留，v3尚未完成，不宣称通过。
+
+## 2026-09-18 当前完整验证已崩溃退出，诊断中
+
+本批 `verification-current-full-20260918.json` 已 finished/exit -11（SIGSEGV），单调耗时 3181.21 秒，冻结输入前后相同；监督器未触发资源/时间终止。1848 项仅完成前 4 项：完整 context 损坏回放 2067.65 秒（含冷材料构建）、两项仓单覆盖快照 51.44/38.61 秒、Worker True 788.92 秒。Worker False 在 180 秒 faulthandler 线程栈输出中崩溃，不能算通过或全套完成。子进程核验已 finished，residual_processes 为空。
+
+内核 RIP 0x49d07e 在当前 Python 二进制中解析为 dump_frame；寄存器 R15=0，与 dump_frame 解引用空指针相符。失败运行库及冻结安装保留，正在独立复现诊断计时器问题，尚未更改产品代码或重启完整批次。已有效的 acquisition-repairs 材料 0297b123… 保留；legacy 材料尚未构建。下方“运行中”段落是此前历史状态。
+
+## 2026-09-18 当前冻结完整验证已启动（非终态）
+
+整合分支HEAD `f80b8e5`叠加已审剩余WIP，独立快照及wheel安装位于`/tmp/datasourceRF-current-verify-20260918-v2`。默认发现1848项，无选择器/排除；优先3项新增完整context回放门、#25/#27完整Worker与P0缺失，再执行其余全部测试。监督PID2028817、pytest PID2029339仅为启动身份，实际终态以[收据](verification-current-full-20260918.json)和进程start_ticks核对。句柄76787用于本会话收取输出，不等于通过。
+
+两种材料均为冷构建：acquisition-repairs `0297b123…`、legacy `d67db187…`；旧材料未冒充新身份。监督器每30秒记录单调耗时/C盘余量，低于3GiB或4小时结束整个进程组并保留原因；失败现场保留，已通过且无进程占用的大型临时副本按审计记录回收。监督器自检实际证明父进程退出后仍会清理子进程。初次安装预检因虚拟环境无pip失败、未启动测试；v2改用既有uv离线wheel安装，原安装日志保留。
+
+#28真实日历发布门禁已提交4be17e2；选择器空家族调用消除已提交b6caf3a，同6例231秒→56秒。#25采用点认证断言提交e98e8c8；组件身份修复首批f80b8e5，剩余家族及3项完整回放新增仍待当前全套证明。组件通过范围与移出的回放编排证明见[实施记录](implementation-22-bound-component-fixtures-20260918.md)，不同版本结果不加总。当前Ruff与98源文件mypy通过，Worker/ECB相关24项通过60.81秒。
+
+后续：收当前全套实际终态；#25八项取数阶段的实际移除官方适配器变异已完成（基线8通过18.91秒、移除后8项精确预期失败13.96秒，见verification-current-official-adapter-mutation-20260918.json），不以HTTP故障冒充移除适配器，也不额外重复它。必需money字段缺失的Worker变异已准备、尚未执行；投影/报告留痕两项复用本批completed且真实采用的公开输出，各自删除selected provider并验证指定失败。不能把输出边界检查称为删除生产传递逻辑的全链变异。真实来源认证、19真实完整候选、18/20/21及22真实切换仍按原依赖开放，未据本轮软件结果提前勾选。
+
+## 2026-09-18 #25/#27监督批次终态与#28修复开始
+
+`verification-2527-worker-resumed-1968406.json`已finished/exit1：1 passed、1 failed，pytest1528.77秒，单调1530.51秒，源码/安装/原测试输入前后相同。失败为False场景的官方失败回执断言只允许OSError，实际出现RetrievalBudgetBlocked；具体限额/负缓存归因核查中，不能算完整验收通过。旧epoch材料和失败运行库保留用于定位，不重启同一重型批次。
+
+#28两个缺独立日历公开回归在修复包副本中2 passed/10.32秒，随后已把门禁落入整合树源码，正在验证日历齐备/冲突/截止/恢复；这改变了代码指纹，后续完整验证必须用新身份材料。旧core-gap与HTTP变异驱动绑定旧包/旧测试，暂不直接启动；纳入新共同冻结版本。快速入口提交9201208不受该产品修复影响。
+
+## 2026-09-18 implement：#22快速入口已提交，#28已有明确RED
+
+整合树`codex/integrated-acquisition-20260918`提交`9201208`交付`tools/check.py quick/full`、测试指南与AGENTS入口，[切片记录](implementation-22-quick-feedback-20260918.md)。10项快速测试通过，错误选择器退出4，默认全量收集1843项（仅收集）；未宣称本版全套完成。
+
+#28原历史“全空/无阶段”已反证；[公开复现](verification-28-calendar-publication-red-20260918.txt)确认另一实际缺陷：日历unavailable仍completed并发布投影/报告；缺日历反例5.23秒，有日历非典型对照通过。拟补发布前日历门禁并保留旧投影。原#25/#27 batch已停止且无终态，新监督批次`verification-2527-worker-resumed-1968406.json`仍须按实际receipt/进程核状态；修改Worker前收回该冻结输入的结果。新增日历回归文件不属于旧批次绑定输入，不改旧测试或源码。
+
+## 2026-09-18 剩余28票实施中的提效安排
+
+12:30实施进展：原25/27 pytest PID1909064及driver已不存在，旧日志第二用例无终态、无最终收据；[恢复核验](verification-2527-resume-audit-20260918.json)证明100源/安装文件及原测试输入未变。已用同一有效材料启动新的完整Worker文件验证，PID1968472/start_ticks21161302，记录`verification-2527-worker-resumed-1968406.json`，旧日志保持。该PID仅为当时启动记录，后续必须再核实际状态。C盘当时约14.6GiB，监督器持续监控。
+
+28实际库核验已推翻原“核心资产全空/从未产出阶段”现象：7次投影各3项核心资产、3次Stage III，当前也是Stage III，见[收据](verification-28-observed-projections-20260918.json)。先完成当前版本有效日历要求的回归核对，不按已被反证的根因新增适配器或放宽门槛。
+
+用户明确已有to-spec/to-tickets且implement进行中；继续原票，按[剩余任务提效补充](remaining-work-efficiency-20260918.md)安排验证与等待，不另起性能项目。Q1–Q4已确认：相关快速反馈约3分钟、按影响触发重型验收、新增显式快速入口、pytest默认完整发现；这些工具与规则尚待原票内落实。
+
+当前先核[25/27接线批次](implementation-25-worker-reviewed-delivery-20260918.md)的真实终态与冻结身份：434相关通过不等于完整Worker通过，旧句柄16639不证明当前仍运行。下一新增软件主线优先[28交易日历](issues/28-trade-calendar-never-acquired.md)的根因复核与公开反例，纳入后续共同Worker验证；同一时刻一个重型任务，冻结输入保持一致。19提供有效隔离材料复用，22组织共同最终全套，来源、候选、18/20/21及真实切换仍按原条件推进。
+
+用户28票清单与原票共同对账：01/02/03/15/16/17/26勾满，23延期、24superseded；09实际3/11，04–11多为blocked，13进行中，不能据未勾满从头重做软件。具体映射和完成证据见上述补充。下方“当前/下一步”均为历史时点，不覆盖本节；本次仅更新执行文档，未跑测试或更改任务勾选。
+
 ## 2026-09-16 冻结同版本默认全套通过 / 下一步取决于外部授权
 
 [冻结记录](verification-frozen-20260916.md)：HEAD `9929b45`，干净检出非可编辑安装，**1671通过、0失败、退出码0**，前后指纹一致，验证期间无并行修改绑定输入。墙钟7523秒与pytest自报8067.81秒两个口径都保留（本机WSL墙钟曾倒退）；十分钟按[计时切片](implementation-22-timing-slice.md)已改为优化目标而非硬门，该切片的两轴审查还查出并修复了一处真实缺陷（切换清单重建漏回传套件总耗时，按文档流程必然失败）。
@@ -407,3 +546,28 @@
 开发运行继续使用Ubuntu-22.04中已锁定的非editable Python环境及native临时目录。不要重跑已完成真实采集脚本复用旧演练目录；不要在WSL未安装新源码时把测试当工作区验证。代码基点81个Python文件的指纹保存在本批目录，旧79/80文件指纹只服务其各自历史批次。
 
 本轮没有接管dashboard.css、dashboard.js及玻璃样式任务等其他工作区改动；提交时仍需精确列出归属文件。
+
+## 2026-09-18 v3 验证串行队列补充（当前运行）
+
+- 全套监督会话99871，pytest2067422；独立后代监督会话43546。仅此一项重型工作正在执行。
+- 后续队列会话3413，驱动 `finish-current-verification-20260918.py`，状态在 `verification-current-followups-20260918.json`。它等待v3 full成功及后代finished空残留，先运行 `verify-current-worker-money-mutation-v3-20260918.py`，再运行 `verify-current-process-acceptance-20260918.py`，任何失败停止；不要人工重复启动这两项。
+- 两后续驱动的Standards/Spec复审阻断项0；money监督自检确认普通exit1不被误报，脱离session且忽略TERM的孤儿被清理并保留失败分类。receipt `verification-command-supervisor-selfcheck-20260918.json`。
+- 慢用例文档生成器 `summarize-current-test-costs-20260918.py` 已形成初版 `slow-test-inventory-20260918.md`，队列成功后会更新；冷材料、热用例和中断批次分开，不合并不同批次通过数。
+- 准备与审查不等于实际通过；此刻来源/测试输入保持冻结，产品代码无新增修改。最终收全套、后续队列及子进程真实终态，再更新票勾选和可审阅提交。
+
+## 2026-09-19 当前状态（软件输入身份切片 + #19 整窗预检归因）
+
+- 无重型任务在途。v2 整窗预检、v3 输入准备均已终态退出 0；v3 整窗预检一次启动后在 30 分钟观察上限被主动中止（`exit_code=-15`、`reason=preflight_time_limit`、1830.30 秒、结果文件空），未重跑。
+- 工作树为整合树 `/mnt/d/cursor/datasourceRF-integrated-20260918`。dev-venv 的已安装 `pring_cycle` 是**主目录**旧构建，缺 `material_preflight.py` 等；必须 `cwd=整合树` 且 `PYTHONPATH=src:.` 才加载本树代码。主目录缺 `material_identity` 绑定的五个材料目录，受影响验收不能在主目录跑。
+- 新增 `tools/inputs.py` 软件输入清单并接入 #19 预检驱动，软件身份与材料身份分开绑定、运行前后各校验一次；新测试 `tests/maintenance/test_verification_inputs.py` 5 项，相关回归 10 passed / 1.38 秒，默认发现 1882 项收集通过。记录见 [软件输入身份切片](implementation-22-software-input-identity-20260919.md)。
+- 下一步：按[整窗成本诊断](diagnosis-19-preflight-window-cost-20260919.md)在 #19 内修复商品族原件重复校验（单日 107.32/123.73 秒），先写重复读取反例再改实现。未提交、未两轴审查，#19/#22 均未新增勾选。
+
+## 2026-09-20 本轮终态（整窗预检跑通；全套因 C 盘中止）
+
+- **无重型在途**。冻结副本 `/tmp/datasourceRF-current-verify-20260920-v8/project`（204M）与安装制品 `site`（4.1M）保留，重跑全套无需重建。
+- **#19 整窗预检首次跑通**：exit 0、310.18 秒、120 个交易日、独立日历 available、必需 gaps **0**、可选 130（全部为已知外部阻塞的 P2 来源）。三项身份校验均 unchanged。详见[预检实施记录](implementation-19-material-preflight-20260919.md)。`checks_complete=false` 保持，#19 验收不勾选。
+- **#19 族校验按期收窄已完成并通过验证**：相关回归 954 passed / 2453.40 秒，受影响重型 4/4 exit 0 / 5859.47 秒。单日预检 123.73→26.82 秒。两轮 code-review 共 10 条发现全部修复。详见[实施记录](implementation-19-period-scoped-recheck-20260919.md)。
+- **#22 同版本默认全套未完成**：`c_disk_reserve` 中止于 45%、3331.87 秒、0 失败字符。这是环境中断不是产品失败，**也不构成任何通过结论**。详见[磁盘中断诊断](diagnosis-22-full-suite-disk-abort-20260920.md)。
+- **C 盘 2.44GiB，WSL 内删除无法使其回升**；重跑全套须先由用户压缩 VHD 或在 Windows 侧腾出空间。用户已确认：先做审查与记录，全套等空间解决；**提交推迟到全套通过后**。
+- **#28 已完成**（`Execution: completed`、四项验收全勾、提交 4be17e2 与 c5f0796）。提效文档 2026-09-18 把它列为「0/4 下一关键路径」的说法已过时，引用票况须回票面核对。
+- 下一张票的只读评估见[预检剩余检查评估](plan-19-preflight-remaining-checks-20260920.md)：五项 `pending_checks` 逐项的已覆盖/仍缺，建议从「维度专项反例」起步。

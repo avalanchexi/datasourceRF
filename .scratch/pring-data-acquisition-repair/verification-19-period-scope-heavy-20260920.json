@@ -1,0 +1,31 @@
+{
+  "imported_package_path": "/mnt/d/cursor/datasourceRF-integrated-20260918/src/pring_cycle",
+  "files": [
+    {
+      "file": "tests/models/test_isolated_lifecycle.py",
+      "exit_code": 0,
+      "seconds": 2238.7292027040385,
+      "summary": "\u001b[32m\u001b[32m\u001b[1m7 passed\u001b[0m\u001b[32m in 2238.01s (0:37:18)\u001b[0m\u001b[0m"
+    },
+    {
+      "file": "tests/integration/test_worker_registered_catalog.py",
+      "exit_code": 0,
+      "seconds": 2318.574862115027,
+      "summary": "\u001b[32m\u001b[32m\u001b[1m10 passed\u001b[0m\u001b[32m in 2317.54s (0:38:37)\u001b[0m\u001b[0m"
+    },
+    {
+      "file": "tests/integration/test_integrated_worker_delivery.py",
+      "exit_code": 0,
+      "seconds": 1288.6005599060445,
+      "summary": "\u001b[32m\u001b[32m\u001b[1m2 passed\u001b[0m\u001b[32m in 1282.10s (0:21:22)\u001b[0m\u001b[0m"
+    },
+    {
+      "file": "tests/integration/test_integrated_worker_core_gap.py",
+      "exit_code": 0,
+      "seconds": 13.484724099980667,
+      "summary": "\u001b[32m\u001b[32m\u001b[1m1 passed\u001b[0m\u001b[32m in 11.98s\u001b[0m\u001b[0m"
+    }
+  ],
+  "total_seconds": 5859.466192733962,
+  "software_inputs_unchanged": true
+}

@@ -1,0 +1,110 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/maintenance/test_verification_inputs.py -q --durations=10
+FFFFF                                                                    [100%]
+=================================== FAILURES ===================================
+___________ test_evidence_notes_leave_the_software_receipt_unchanged ___________
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-341/test_evidence_notes_leave_the_0')
+
+    def test_evidence_notes_leave_the_software_receipt_unchanged(tmp_path: Path) -> None:
+>       inputs = load_inputs()
+                 ^^^^^^^^^^^^^
+
+tests/maintenance/test_verification_inputs.py:50: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_inputs() -> ModuleType:
+        """tools/ is verification tooling beside the package, not part of the wheel."""
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+>       import tools.inputs
+E       ModuleNotFoundError: No module named 'tools.inputs'
+
+tests/maintenance/test_verification_inputs.py:26: ModuleNotFoundError
+_____________ test_source_change_invalidates_the_software_receipt ______________
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-341/test_source_change_invalidates0')
+
+    def test_source_change_invalidates_the_software_receipt(tmp_path: Path) -> None:
+>       inputs = load_inputs()
+                 ^^^^^^^^^^^^^
+
+tests/maintenance/test_verification_inputs.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_inputs() -> ModuleType:
+        """tools/ is verification tooling beside the package, not part of the wheel."""
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+>       import tools.inputs
+E       ModuleNotFoundError: No module named 'tools.inputs'
+
+tests/maintenance/test_verification_inputs.py:26: ModuleNotFoundError
+___________________ test_the_build_declared_readme_is_pinned ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-341/test_the_build_declared_readme0')
+
+    def test_the_build_declared_readme_is_pinned(tmp_path: Path) -> None:
+>       inputs = load_inputs()
+                 ^^^^^^^^^^^^^
+
+tests/maintenance/test_verification_inputs.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_inputs() -> ModuleType:
+        """tools/ is verification tooling beside the package, not part of the wheel."""
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+>       import tools.inputs
+E       ModuleNotFoundError: No module named 'tools.inputs'
+
+tests/maintenance/test_verification_inputs.py:26: ModuleNotFoundError
+_____________ test_caches_inside_the_software_trees_are_not_pinned _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-341/test_caches_inside_the_softwar0')
+
+    def test_caches_inside_the_software_trees_are_not_pinned(tmp_path: Path) -> None:
+>       inputs = load_inputs()
+                 ^^^^^^^^^^^^^
+
+tests/maintenance/test_verification_inputs.py:85: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_inputs() -> ModuleType:
+        """tools/ is verification tooling beside the package, not part of the wheel."""
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+>       import tools.inputs
+E       ModuleNotFoundError: No module named 'tools.inputs'
+
+tests/maintenance/test_verification_inputs.py:26: ModuleNotFoundError
+_____________ test_this_repository_pins_software_and_not_evidence ______________
+
+    def test_this_repository_pins_software_and_not_evidence() -> None:
+>       inputs = load_inputs()
+                 ^^^^^^^^^^^^^
+
+tests/maintenance/test_verification_inputs.py:94: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def load_inputs() -> ModuleType:
+        """tools/ is verification tooling beside the package, not part of the wheel."""
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
+>       import tools.inputs
+E       ModuleNotFoundError: No module named 'tools.inputs'
+
+tests/maintenance/test_verification_inputs.py:26: ModuleNotFoundError
+============================= slowest 10 durations =============================
+0.01s call     tests/maintenance/test_verification_inputs.py::test_evidence_notes_leave_the_software_receipt_unchanged
+
+(9 durations < 0.005s hidden.  Use -vv to show these durations.)
+=========================== short test summary info ============================
+FAILED tests/maintenance/test_verification_inputs.py::test_evidence_notes_leave_the_software_receipt_unchanged
+FAILED tests/maintenance/test_verification_inputs.py::test_source_change_invalidates_the_software_receipt
+FAILED tests/maintenance/test_verification_inputs.py::test_the_build_declared_readme_is_pinned
+FAILED tests/maintenance/test_verification_inputs.py::test_caches_inside_the_software_trees_are_not_pinned
+FAILED tests/maintenance/test_verification_inputs.py::test_this_repository_pins_software_and_not_evidence
+5 failed in 0.18s
+Exit: 1; elapsed: 0.61s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

@@ -1,0 +1,238 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest 'tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-none]' tests/models/test_candidate_admission.py::test_credit_public_projection_requires_latest_month_difference_baseline -q --durations=10
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_rrr_public_projection_requires_complete_publication[2-none] _______
+
+tmp_path = PosixPath('/tmp/pytest-of-tywin/pytest-287/test_rrr_public_projection_req0')
+capsys = <_pytest.capture.CaptureFixture object at 0x79c8b350eb70>
+candidate_count = 2, fault = 'none'
+
+    @pytest.mark.usefixtures("runtime_clock")
+    @pytest.mark.parametrize(
+        "candidate_count,fault",
+        [
+            (1, "none"),
+            (2, "none"),
+            (2, "missing_lineage"),
+            (2, "uncertified"),
+            (2, "early_public"),
+            (1, "truncated_normalized"),
+        ],
+    )
+    def test_rrr_public_projection_requires_complete_publication(
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+        candidate_count: int,
+        fault: str,
+    ) -> None:
+        paths = RuntimePaths.discover(tmp_path / "runtime")
+        initialize_runtime(paths)
+        digest = "27d57bb20481abc714ea45c9d99dd532652df8ee92c263b1a15cc222c256a3d9"
+        raw = (
+            Path(__file__).parents[2]
+            / ".scratch/pring-data-acquisition-repair"
+            / "evidence-search-preexperiment-20260908-n4-v1"
+            / digest
+        ).read_bytes()
+        now = datetime(2026, 9, 8, 6, tzinfo=UTC)
+        url = "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/2025092212554653911/index.html"
+        parsed = parse_official_context_document(
+            raw, family="pbc_rrr_notice", source_url=url, expected_period="2025-05", fetched_at=now
+        )
+        assert len(parsed.scalars) == 2
+        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+            provider=parsed.provider,
+            api_name="document_import",
+            parameters={"source_url": url, "period": "2025-05", "family": "pbc_rrr_notice"},
+            fields="",
+            parser_version="official-context-parser-v0004",
+            fetch=lambda: raw,
+            parse=lambda body: parse_official_context_document(
+                body,
+                family="pbc_rrr_notice",
+                source_url=url,
+                expected_period="2025-05",
+                fetched_at=now,
+            ),
+            normalize=asdict,
+            clock=lambda: now,
+        )
+        manifests = {}
+        for side, count in (("comparison", 2), ("candidate", candidate_count)):
+            manifest = admitted_source_variant(paths, capsys, side)
+            model_id = manifest["model_version_id"]
+            manifests[side] = manifest
+            receipt = acquired.receipt
+            if side == "candidate" and fault == "truncated_normalized":
+                receipt = (
+                    AcquisitionRepository(paths.database, paths.artifacts)
+                    .capture(
+                        provider=parsed.provider,
+                        api_name="document_import",
+                        parameters={"source_url": url, "period": "2025-05", "family": "pbc_rrr_notice"},
+                        fields="",
+                        parser_version="official-context-parser-v0004",
+                        fetch=lambda: raw,
+                        parse=lambda body: parse_official_context_document(
+                            body,
+                            family="pbc_rrr_notice",
+                            source_url=url,
+                            expected_period="2025-05",
+                            fetched_at=now,
+                        ),
+                        normalize=lambda document: {
+                            **asdict(document),
+                            "scalars": [asdict(document.scalars[0])],
+                        },
+                        clock=lambda: now,
+                    )
+                    .receipt
+                )
+            stored = EvidenceRepository(paths.database).append_source_claims(
+                tuple(
+                    SourceClaimInput(
+                        metric_id=s.metric_id,
+                        definition_version=manifest["metric_catalog_version"],
+                        period_kind=s.period_kind,
+                        period_start=s.period_start,
+                        period_end=s.period_end,
+                        dimensions=s.dimensions,
+                        value=s.value,
+                        value_state=EvidenceValueState.REPORTED_VALUE,
+                        unit=s.unit,
+                        provider=parsed.provider,
+                        source_reference=f"{url}#sha256={digest}",
+                        release_event_id=parsed.release_event_id
+                        + (
+                            ":synthetic-early-public"
+                            if side == "candidate" and fault == "early_public"
+                            else ""
+                        ),
+                        release_at=(
+                            datetime(2025, 5, 6, 2, tzinfo=UTC)
+                            if side == "candidate" and fault == "early_public"
+                            else parsed.release_at
+                        ),
+                        public_available_at=(
+                            datetime(2025, 5, 6, 2, tzinfo=UTC)
+                            if side == "candidate" and fault == "early_public"
+                            else parsed.public_available_at
+                        ),
+                        fetched_at=now,
+                        available_at=now,
+                        certification_status=(
+                            "awaiting_source_certification"
+                            if side == "candidate" and fault == "uncertified"
+                            else "certified"
+                        ),
+                        quality_status="validated",
+                        acquisition_id=(
+                            None
+                            if side == "candidate" and fault == "missing_lineage" and index == 1
+                            else receipt.acquisition_id
+                        ),
+                    )
+                    for index, s in enumerate(parsed.scalars[:count])
+                )
+            )
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date="2026-08-28",
+                client_request_id="rrr-members-" + side,
+                model_version_id=model_id,
+                system_as_of=now,
+                release_event_id=parsed.release_event_id,
+                metric_ids=("CN_RRR_EVENT",),
+                period="2025-05",
+            )
+            selection = select_retrieval_input(paths, run)
+            complete = count == 2 and not (side == "candidate" and fault != "none")
+            assert selection.complete is complete
+            context = build_context_projection(
+                EvidenceRepository(paths.database),
+                as_of=now,
+                model_manifest=manifests[side],
+                target_business_date="2026-08-28",
+            )
+            inputs = context.macro["model_input_observation_version_ids"]
+            assert isinstance(inputs, list)
+            ids = {item.claim_id for item in stored}
+            assert (ids <= set(inputs)) is complete
+            if side == "candidate" and fault == "uncertified":
+                policy = context.macro["policy_action"]
+                assert isinstance(policy, dict)
+                rows = [row for row in policy["evidence"] if row["metric_id"] == "CN_RRR_EVENT"]
+                assert len(rows) == 2
+                for row in rows:
+                    assert row["status"] == "awaiting_source_certification"
+                    assert row["value"] is None
+                    assert all(claim["value"] is None for claim in row["claims"])
+        checked = {
+            side: check_public_context(
+                paths, manifest, metric_ids=("CN_RRR_EVENT",), day="2026-08-28", period="2025-05"
+            )
+            for side, manifest in manifests.items()
+        }
+        assert checked["comparison"].selection.complete
+        assert checked["candidate"].selection.complete is (candidate_count == 2 and fault == "none")
+        if candidate_count == 2 and fault == "none":
+            outputs = {
+                side: normalized_context_output(
+                    {"macro": item.context.macro, "inventory": item.context.inventory}
+                )
+                for side, item in checked.items()
+            }
+            assert outputs["candidate"] == outputs["comparison"]
+            # Synthetic later announcement in the same month, with a single scope.
+            # Before its effective date it must not change the public replay; after
+            # that date the earlier announcement must still retain both members.
+            later_raw = (
+                "<html><body><h1>2025年5月准备金公告</h1>"
+                "<p>发布时间：2025-05-20 10:00:00</p>"
+                "<p>5月25日，中国人民银行下调金融机构存款准备金率0.25个百分点"
+                "（不含已执行5%存款准备金率的金融机构）。</p></body></html>"
+            ).encode()
+            later = ingest_official_context_document(
+                paths,
+                later_raw,
+                family="pbc_rrr_notice",
+                source_url="https://www.pbc.gov.cn/synthetic-later-rrr-notice",
+                expected_period="2025-05",
+                fetched_at=now,
+                clock=lambda: now,
+                definition_version=manifests["candidate"]["metric_catalog_version"],
+            )
+            assert len(later.claim_ids) == 1
+            for evaluation_day, expected_differences in (("2025-05-21", 0), ("2025-05-26", 1)):
+                outputs = {
+                    side: check_public_context(
+                        paths,
+                        manifest,
+                        metric_ids=("CN_RRR_EVENT",),
+                        day=evaluation_day,
+                        period="2025-05",
+                    )
+                    for side, manifest in manifests.items()
+                }
+                for side, item in outputs.items():
+                    assert item.selection.complete
+                    inputs = set(item.context.macro["model_input_observation_version_ids"])
+>                   assert set(checked[side].selection.selected_claim_ids) <= inputs
+E                   AssertionError: assert {'213133e0347...3d8a5f867937'} <= {'213133e0347...c4c055adefed'}
+E                     
+E                     Extra items in the left set:
+E                     '58f8a27618e3c492d505b34a292ee55fa126ee4c9cbc32c5d1c43d8a5f867937'
+
+tests/models/test_candidate_admission.py:1712: AssertionError
+============================= slowest 10 durations =============================
+16.02s call     tests/models/test_candidate_admission.py::test_credit_public_projection_requires_latest_month_difference_baseline
+3.48s call     tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-none]
+0.05s setup    tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-none]
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+=========================== short test summary info ============================
+FAILED tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-none]
+1 failed, 1 passed in 21.66s
+Exit: 1; elapsed: 22.32s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

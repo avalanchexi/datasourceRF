@@ -34,6 +34,7 @@ from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.metric_contracts import (
     evidence_frequency,
     evidence_max_age_days,
+    minimum_context_daily_observations,
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
@@ -1204,7 +1205,7 @@ def _direct_metric_is_ready(
     if len(target_trading_days) != 120:
         return False
     required_dates = set(target_trading_days)
-    minimum_observations = (len(required_dates) * 95 + 99) // 100
+    minimum_observations = minimum_context_daily_observations(len(required_dates))
     density_members = required_members or ({},)
     for required in density_members:
         observed = {

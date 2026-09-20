@@ -1,0 +1,268 @@
+{
+  "imported_from": "/mnt/d/cursor/datasourceRF-integrated-20260918/src/pring_cycle/material_preflight.py",
+  "window": [
+    "2026-08-28",
+    "2026-08-28"
+  ],
+  "total_seconds": 136.46575152000878,
+  "phases": {
+    "select:CN_COMMODITY_EX_HOG_BASKET": {
+      "calls": 1,
+      "seconds": 53.99094904802041,
+      "max_seconds": 53.99094904802041
+    },
+    "select:CN_COMMODITY_SLEEVE_CONTRIBUTION": {
+      "calls": 1,
+      "seconds": 53.33333063899772,
+      "max_seconds": 53.33333063899772
+    },
+    "_core_history_gaps": {
+      "calls": 1,
+      "seconds": 12.021088234963827,
+      "max_seconds": 12.021088234963827
+    },
+    "select:CN_EQ_NEW_HIGH_LOW_120": {
+      "calls": 1,
+      "seconds": 3.8268872859771363,
+      "max_seconds": 3.8268872859771363
+    },
+    "select:CN_EQ_ABOVE_MA120": {
+      "calls": 1,
+      "seconds": 3.79819319001399,
+      "max_seconds": 3.79819319001399
+    },
+    "build_context_projection": {
+      "calls": 1,
+      "seconds": 2.778725997020956,
+      "max_seconds": 2.778725997020956
+    },
+    "evidence.metric_series": {
+      "calls": 7136,
+      "seconds": 2.228172721574083,
+      "max_seconds": 0.09811742103192955
+    },
+    "select:CN_EQ_ADV_AMOUNT_SHARE": {
+      "calls": 1,
+      "seconds": 1.5909327910048887,
+      "max_seconds": 1.5909327910048887
+    },
+    "select:CN_EQ_AD_RATIO": {
+      "calls": 1,
+      "seconds": 1.0019056529854424,
+      "max_seconds": 1.0019056529854424
+    },
+    "select:CN_EQ_ADV_DEC": {
+      "calls": 1,
+      "seconds": 0.9826630480238236,
+      "max_seconds": 0.9826630480238236
+    },
+    "selector.series": {
+      "calls": 139,
+      "seconds": 0.5894637368619442,
+      "max_seconds": 0.14187865098938346
+    },
+    "select:CN_OMO_7D_RATE": {
+      "calls": 1,
+      "seconds": 0.3519235760322772,
+      "max_seconds": 0.3519235760322772
+    },
+    "select:CN_PMI_ACTIVITY": {
+      "calls": 1,
+      "seconds": 0.2421448800014332,
+      "max_seconds": 0.2421448800014332
+    },
+    "select:CN_INDUSTRIAL_FINANCE": {
+      "calls": 1,
+      "seconds": 0.22964489104924724,
+      "max_seconds": 0.22964489104924724
+    },
+    "select:CN_SF_TOTAL": {
+      "calls": 1,
+      "seconds": 0.226946547976695,
+      "max_seconds": 0.226946547976695
+    },
+    "select:CN_INDUSTRIAL_VA": {
+      "calls": 1,
+      "seconds": 0.18259230197872967,
+      "max_seconds": 0.18259230197872967
+    },
+    "select:CN_PPI": {
+      "calls": 1,
+      "seconds": 0.16130985296331346,
+      "max_seconds": 0.16130985296331346
+    },
+    "select:CN_CPI_HEADLINE": {
+      "calls": 1,
+      "seconds": 0.1478219170239754,
+      "max_seconds": 0.1478219170239754
+    },
+    "select:CN_LOAN_STRUCTURE": {
+      "calls": 1,
+      "seconds": 0.13592885300749913,
+      "max_seconds": 0.13592885300749913
+    },
+    "evidence.source_claim_vintages": {
+      "calls": 55,
+      "seconds": 0.13302152283722535,
+      "max_seconds": 0.016710633994080126
+    },
+    "select:CN_CAPACITY_UTILIZATION": {
+      "calls": 1,
+      "seconds": 0.08185250201495364,
+      "max_seconds": 0.08185250201495364
+    },
+    "select:CN_SHIBOR_ON_1W_3M": {
+      "calls": 1,
+      "seconds": 0.05508753203321248,
+      "max_seconds": 0.05508753203321248
+    },
+    "select:CN_INDEX_VALUATION": {
+      "calls": 1,
+      "seconds": 0.044597469037398696,
+      "max_seconds": 0.044597469037398696
+    },
+    "select:CN_TOOL_LIQUIDITY_MONTHLY": {
+      "calls": 1,
+      "seconds": 0.04028120101429522,
+      "max_seconds": 0.04028120101429522
+    },
+    "select:CN_OMO_7D_AMOUNT": {
+      "calls": 1,
+      "seconds": 0.039516218996141106,
+      "max_seconds": 0.039516218996141106
+    },
+    "select:CN_M1_M2": {
+      "calls": 1,
+      "seconds": 0.038600465981289744,
+      "max_seconds": 0.038600465981289744
+    },
+    "select:CN_EQUITY_CORE_000985": {
+      "calls": 1,
+      "seconds": 0.03187818097649142,
+      "max_seconds": 0.03187818097649142
+    },
+    "select:CN_SF_COMPONENTS": {
+      "calls": 1,
+      "seconds": 0.03025681496364996,
+      "max_seconds": 0.03025681496364996
+    },
+    "select:CN_COMMODITY_CORE_NHII": {
+      "calls": 1,
+      "seconds": 0.02864109299844131,
+      "max_seconds": 0.02864109299844131
+    },
+    "select:CN_BOND_CORE_000012": {
+      "calls": 1,
+      "seconds": 0.02651552396127954,
+      "max_seconds": 0.02651552396127954
+    },
+    "select:CN_FUTURES_WARRANTS": {
+      "calls": 1,
+      "seconds": 0.0257616380113177,
+      "max_seconds": 0.0257616380113177
+    },
+    "select:CN_GDP": {
+      "calls": 1,
+      "seconds": 0.02120274497428909,
+      "max_seconds": 0.02120274497428909
+    },
+    "select:CN_RRR_EVENT": {
+      "calls": 1,
+      "seconds": 0.01646670000627637,
+      "max_seconds": 0.01646670000627637
+    },
+    "select:CN_MARGIN_BALANCE": {
+      "calls": 1,
+      "seconds": 0.013247395982034504,
+      "max_seconds": 0.013247395982034504
+    },
+    "select:CN_PMI_INVENTORY": {
+      "calls": 1,
+      "seconds": 0.01169439498335123,
+      "max_seconds": 0.01169439498335123
+    },
+    "select:CN_DR007": {
+      "calls": 1,
+      "seconds": 0.011489239986985922,
+      "max_seconds": 0.011489239986985922
+    },
+    "select:CN_PMI_PRICES": {
+      "calls": 1,
+      "seconds": 0.011085887963417917,
+      "max_seconds": 0.011085887963417917
+    },
+    "select:CN_LPR_1Y_5Y": {
+      "calls": 1,
+      "seconds": 0.011040551005862653,
+      "max_seconds": 0.011040551005862653
+    },
+    "_parent_material_diagnostics": {
+      "calls": 1,
+      "seconds": 0.01048941898625344,
+      "max_seconds": 0.01048941898625344
+    },
+    "select:CN_EQ_CSI500": {
+      "calls": 1,
+      "seconds": 0.009215680009219795,
+      "max_seconds": 0.009215680009219795
+    },
+    "select:CN_INVENTORY_TURNOVER": {
+      "calls": 1,
+      "seconds": 0.008682709012646228,
+      "max_seconds": 0.008682709012646228
+    },
+    "_calendar_material": {
+      "calls": 1,
+      "seconds": 0.008649177965708077,
+      "max_seconds": 0.008649177965708077
+    },
+    "selector.__init__": {
+      "calls": 2,
+      "seconds": 0.008574830018915236,
+      "max_seconds": 0.00443970802007243
+    },
+    "select:CN_EQ_CSI300": {
+      "calls": 1,
+      "seconds": 0.008501735050231218,
+      "max_seconds": 0.008501735050231218
+    },
+    "select:CN_FINISHED_GOODS_INVENTORY": {
+      "calls": 1,
+      "seconds": 0.008348768984433264,
+      "max_seconds": 0.008348768984433264
+    },
+    "select:CN_COMMODITY_BROAD_NHCI": {
+      "calls": 1,
+      "seconds": 0.007782289001625031,
+      "max_seconds": 0.007782289001625031
+    },
+    "select:CN_EQ_CSI1000": {
+      "calls": 1,
+      "seconds": 0.007136790954973549,
+      "max_seconds": 0.007136790954973549
+    },
+    "select:CN_BOND_10Y_930916": {
+      "calls": 1,
+      "seconds": 0.006765587022528052,
+      "max_seconds": 0.006765587022528052
+    },
+    "select:CN_BOND_FULL_PRICE_CNY030": {
+      "calls": 1,
+      "seconds": 0.006707969994749874,
+      "max_seconds": 0.006707969994749874
+    },
+    "select:CN_CORE_CPI": {
+      "calls": 1,
+      "seconds": 0.006512866006232798,
+      "max_seconds": 0.006512866006232798
+    }
+  },
+  "checked_business_dates": [
+    "2026-08-28"
+  ],
+  "gaps": 0,
+  "optional_gaps": 11,
+  "material_identity_unchanged": true,
+  "runtime_contents_unchanged": true,
+  "changed_runtime_files": []
+}

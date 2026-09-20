@@ -11,6 +11,22 @@ from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 EFFECTIVE_UNTIL_CHANGED_METRICS = frozenset({"CN_OMO_7D_RATE"})
 
 
+def event_period_limit(period: str) -> str:
+    """The latest period an event-metric selection for ``period`` may still be in force at.
+
+    A quarter is bounded by its last month, because an event in force through the quarter
+    is dated by month.
+    """
+    if "-Q" in period:
+        return f"{period[:4]}-{int(period[-1]) * 3:02d}"
+    return period
+
+
+def minimum_context_daily_observations(required_days: int) -> int:
+    """Round the existing 95% context replay coverage requirement upwards."""
+    return (required_days * 95 + 99) // 100
+
+
 def evidence_frequency(metric_id: str, declared_frequency: str) -> str:
     if metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS:
         return "event"

@@ -180,6 +180,10 @@ def import_core_histories(
     days = trading_days()
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     evidence = EvidenceRepository(paths.database)
+    calendar_raw = (CORE_TRANSPORT / receipts["calendar"]["local_file"]).read_bytes()
+    TushareCoreAdapter(
+        "synthetic-token", transport=lambda _: calendar_raw, clock=clock
+    ).acquire_calendar(acquisitions, days[0], days[-1])
     for metric_id, (api, code) in CORE_API_IDENTITIES.items():
         raw = (CORE_TRANSPORT / receipts[metric_id]["local_file"]).read_bytes()
         closes = {row[1]: float(row[2]) for row in json.loads(raw)["data"]["items"]}
@@ -829,18 +833,23 @@ def import_commodity_basket(paths: RuntimePaths, definition_version: str) -> Non
         acquisition_ids=acquired.acquisition_ids,
         evidence_hash=save_synthetic_document(paths, {**packet, "review_hash": review}),
     )
-    for day in days[1:]:
-        business_date = date.fromisoformat(day)
-        result = persist_commodity_basket(
-            paths,
-            business_date=business_date,
-            as_of=datetime(
-                business_date.year, business_date.month, business_date.day, 12, tzinfo=UTC
-            ),
-            mode=AsOfMode.PUBLIC,
-            definition_version=definition_version,
-        )
-        assert result["missing"] == [], (day, result["missing"])
+    from pring_cycle.futures_input_reads import shared_futures_input_reads
+
+    # Inputs and their reviews above are now fixed. The loop only adds derived
+    # results, so all dates can reuse one verified read of the futures inputs.
+    with shared_futures_input_reads():
+        for day in days[1:]:
+            business_date = date.fromisoformat(day)
+            result = persist_commodity_basket(
+                paths,
+                business_date=business_date,
+                as_of=datetime(
+                    business_date.year, business_date.month, business_date.day, 12, tzinfo=UTC
+                ),
+                mode=AsOfMode.PUBLIC,
+                definition_version=definition_version,
+            )
+            assert result["missing"] == [], (day, result["missing"])
 
 
 def prepare_isolated_candidate_inputs(

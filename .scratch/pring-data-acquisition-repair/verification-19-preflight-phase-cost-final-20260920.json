@@ -1,0 +1,63 @@
+{
+  "imported_from": "/mnt/d/cursor/datasourceRF-integrated-20260918/src/pring_cycle/material_preflight.py",
+  "window": [
+    "2026-08-28",
+    "2026-08-28"
+  ],
+  "total_seconds": 26.824127212981693,
+  "phases": {
+    "_core_history_gaps": {
+      "calls": 1,
+      "seconds": 12.50552410603268,
+      "max_seconds": 12.50552410603268
+    },
+    "selector.select": {
+      "calls": 42,
+      "seconds": 9.787762029853184,
+      "max_seconds": 8.322661620972212
+    },
+    "build_context_projection": {
+      "calls": 1,
+      "seconds": 3.9819086819770746,
+      "max_seconds": 3.9819086819770746
+    },
+    "evidence.metric_series": {
+      "calls": 7136,
+      "seconds": 2.22009207616793,
+      "max_seconds": 0.050735290977172554
+    },
+    "selector.series": {
+      "calls": 102,
+      "seconds": 0.3678064689738676,
+      "max_seconds": 0.06227949203457683
+    },
+    "evidence.source_claim_vintages": {
+      "calls": 55,
+      "seconds": 0.13411500805523247,
+      "max_seconds": 0.017025362001731992
+    },
+    "_parent_material_diagnostics": {
+      "calls": 1,
+      "seconds": 0.009720448986627162,
+      "max_seconds": 0.009720448986627162
+    },
+    "_calendar_material": {
+      "calls": 1,
+      "seconds": 0.009142883005551994,
+      "max_seconds": 0.009142883005551994
+    },
+    "selector.__init__": {
+      "calls": 2,
+      "seconds": 0.007607618987094611,
+      "max_seconds": 0.004087748995516449
+    }
+  },
+  "checked_business_dates": [
+    "2026-08-28"
+  ],
+  "gaps": 0,
+  "optional_gaps": 11,
+  "material_identity_unchanged": true,
+  "runtime_contents_unchanged": true,
+  "changed_runtime_files": []
+}

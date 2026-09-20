@@ -1,0 +1,14 @@
+40.31s call     tests/integration/test_full_run_retrieval.py::test_resume_rechecks_unknown_release_without_mutating_initial_plan[False]
+37.18s call     tests/integration/test_full_run_retrieval.py::test_resume_rechecks_unknown_release_without_mutating_initial_plan[True]
+34.60s call     tests/models/test_candidate_admission.py::test_registered_window_breadth_outputs_fixed_120_days_with_hidden_warmup
+29.55s call     tests/integration/test_full_run_retrieval.py::test_full_run_shares_hard_search_budget_across_periods
+28.78s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[gdp_no_levels]
+28.78s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_schema]
+28.77s call     tests/integration/test_full_run_retrieval.py::test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection[treasury_partial]
+28.33s call     tests/integration/test_full_run_retrieval.py::test_full_run_searches_real_gap_and_publishes_traceable_adoption
+28.29s call     tests/integration/test_full_run_retrieval.py::test_newly_acquired_historical_publication_fact_can_open_full_run_search
+28.15s call     tests/integration/test_full_run_retrieval.py::test_full_run_recovers_adoption_after_projection_checkpoint
+[32m[32m[1m765 passed[0m[32m in 2426.51s (0:40:26)[0m[0m
+Exit: 0; elapsed: 2427.96s
+Related feedback only. Complete affected heavy acceptance before closing the slice.
+The 180s feedback target was exceeded; record the slow phases.

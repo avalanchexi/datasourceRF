@@ -1,0 +1,8 @@
+[32m.[0m[32m.[0m[32m                                                                       [100%][0m
+============================= slowest 10 durations =============================
+660.03s call     tests/integration/test_integrated_worker_delivery.py::test_integrated_worker_preserves_delivery_time_and_source_in_publication[True]
+640.07s call     tests/integration/test_integrated_worker_delivery.py::test_integrated_worker_preserves_delivery_time_and_source_in_publication[False]
+0.01s setup    tests/integration/test_integrated_worker_delivery.py::test_integrated_worker_preserves_delivery_time_and_source_in_publication[True]
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+[32m[32m[1m2 passed[0m[32m in 1300.97s (0:21:40)[0m[0m

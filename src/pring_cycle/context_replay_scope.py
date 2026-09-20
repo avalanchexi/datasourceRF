@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from pring_cycle.context_projection import ContextProjectionRules
 
@@ -131,3 +132,39 @@ class ContextReplayScope:
                 and (item.priority == "P1" or item.certification_status == "certified")
             },
         )
+
+
+def find_formula_documents(value: object, formula_version: str) -> list[dict[str, Any]]:
+    found: list[dict[str, Any]] = []
+    if isinstance(value, dict):
+        if value.get("formula_version") == formula_version:
+            found.append(value)
+        for child in value.values():
+            found.extend(find_formula_documents(child, formula_version))
+    elif isinstance(value, list):
+        for child in value:
+            found.extend(find_formula_documents(child, formula_version))
+    return found
+
+
+_CONTEXT_FORMULA_WARMUP_DAYS = {
+    "credit_impulse": 730,
+    "dr007_policy_spread": 10,
+    "loan_monthly_change": 62,
+    "omo_net_injection": 10,
+    "order_inventory_spread": 62,
+    "production_order_spread": 62,
+    "real_inventory_approximation": 95,
+    "ust_2s10s_spread": 10,
+}
+
+
+def context_input_warmup_days(metric_id: str, affected_formulas: set[str]) -> int:
+    return max(
+        (
+            _CONTEXT_FORMULA_WARMUP_DAYS.get(key, 0)
+            for key in affected_formulas
+            if metric_id in CONTEXT_FORMULA_INPUTS.get(key, ())
+        ),
+        default=0,
+    )

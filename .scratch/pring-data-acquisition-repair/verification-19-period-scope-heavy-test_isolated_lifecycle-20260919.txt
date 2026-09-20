@@ -1,0 +1,14 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                                  [100%][0m
+============================= slowest 10 durations =============================
+1123.99s call     tests/models/test_isolated_lifecycle.py::test_complete_context_replay_rejects_a_damaged_candidate_original
+988.94s call     tests/models/test_isolated_lifecycle.py::test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+68.24s call     tests/models/test_isolated_lifecycle.py::test_isolated_material_copy_keeps_the_activated_candidate_and_its_evidence
+41.13s call     tests/models/test_isolated_lifecycle.py::test_complete_context_snapshot_binds_older_warrant_coverage[False]
+37.80s call     tests/models/test_isolated_lifecycle.py::test_complete_context_snapshot_binds_older_warrant_coverage[True]
+0.01s call     tests/models/test_isolated_lifecycle.py::test_checkpointing_folds_committed_wal_content_into_the_hashed_database
+0.01s setup    tests/models/test_isolated_lifecycle.py::test_complete_context_snapshot_binds_older_warrant_coverage[False]
+0.01s call     tests/models/test_isolated_lifecycle.py::test_material_contents_ignore_sqlite_sidecars_but_not_stored_files
+0.01s setup    tests/models/test_isolated_lifecycle.py::test_material_contents_ignore_sqlite_sidecars_but_not_stored_files
+
+(1 durations < 0.005s hidden.  Use -vv to show these durations.)
+[32m[32m[1m7 passed[0m[32m in 2260.74s (0:37:40)[0m[0m

@@ -1,0 +1,17 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication tests/models/test_candidate_admission.py::test_rrr_direction_projection_compares_values_without_version_identity tests/models/test_candidate_admission.py::test_credit_public_projection_requires_historical_window_artifacts tests/models/test_candidate_admission.py::test_credit_public_projection_preserves_revision_cutoffs tests/models/test_candidate_admission.py::test_credit_public_projection_requires_latest_month_difference_baseline 'tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-damaged_before_public_selection]' -q --durations=10
+............                                                             [100%]
+============================= slowest 10 durations =============================
+25.89s call     tests/models/test_candidate_admission.py::test_registered_window_breadth_uses_full_window_with_hidden_warmup[False-damaged_before_public_selection]
+17.42s call     tests/models/test_candidate_admission.py::test_credit_public_projection_requires_historical_window_artifacts
+16.91s call     tests/models/test_candidate_admission.py::test_credit_public_projection_requires_latest_month_difference_baseline
+16.13s call     tests/models/test_candidate_admission.py::test_credit_public_projection_preserves_revision_cutoffs[unknown-public]
+15.66s call     tests/models/test_candidate_admission.py::test_credit_public_projection_preserves_revision_cutoffs[known-public]
+4.28s call     tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-none]
+4.21s call     tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-uncertified]
+3.53s call     tests/models/test_candidate_admission.py::test_rrr_direction_projection_compares_values_without_version_identity
+3.43s call     tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[2-early_public]
+3.39s call     tests/models/test_candidate_admission.py::test_rrr_public_projection_requires_complete_publication[1-none]
+12 passed in 119.64s (0:01:59)
+Exit: 0; elapsed: 120.33s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

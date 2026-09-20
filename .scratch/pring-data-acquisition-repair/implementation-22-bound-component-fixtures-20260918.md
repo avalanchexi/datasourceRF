@@ -19,3 +19,11 @@ Status: partial-current-family-regressions-passed
 ## Spec
 
 本切片无阻断项。**完整回放的聚合分类、覆盖检查和输出封装是从这些组件节点移出的证明**，不能宣称等价恢复；当前版本完整合法生命周期与代表性损坏回放门仍必须执行。warrant输出持久化、RRR/credit/capacity等剩余旧夹具继续逐组处理，最终全套未执行。
+
+## 后续家族与完整回放门
+
+产能利用率及仓单成员12项通过45.84秒；RRR/信用/窗口12项通过119.64秒；商品原件1项通过7.99秒。源/测试全量Ruff通过，98源文件mypy通过。默认发现1848项（仅收集，6.23秒），未改变pytest默认范围。
+
+两轴复审：Standards硬违规0、气味判断0。Spec指出RRR生效日差异可能由缺成员造成，以及信用补齐后比较侧整体不变断言漏迁。已补双日双侧selection完整、旧公告成员保留及later生效边界；旧同scope事件可被后来生效事件替换，不要求仍进入当前投影。RRR复核1通过5.47秒；信用比较macro断言原样补回，1通过16.02秒。Spec确认两项关闭。
+
+原warrant旧coverage/record_replay两参数从失效小夹具移入test_isolated_lifecycle的合法完整材料；额外增加DR007代表性完整context回放编排原件损坏/恢复门。保留record_replay记录后仍因缺core输出不通过的边界；没有临时删manifest字段或伪造replay文档。审查修正完整材料仓单有三个measure，明确选择registered_receipts；DR旧比较目录本无数据，显式标明，独立双目录来源隔离另有组件证明。这3项仍待共同冻结重型运行，不计通过。

@@ -1,0 +1,13 @@
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                               [100%][0m
+============================= slowest 10 durations =============================
+329.21s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[network-source_failed]
+326.56s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[success-verified_candidate]
+326.05s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[missing-missing_credentials]
+325.81s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_for_a_fixed_target_retrieves_gaps_and_failure_keeps_the_projection
+325.57s call     tests/integration/test_worker_registered_catalog.py::test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report
+313.19s call     tests/integration/test_worker_registered_catalog.py::test_worker_full_run_publishes_the_registered_projection_across_eia_conditions[parse-validation_failed]
+301.89s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[optional-gdp]
+27.67s call     tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog[False]
+21.86s call     tests/integration/test_worker_registered_catalog.py::test_worker_tushare_failures_keep_required_blocking_and_optional_degrading[required-market-indices]
+18.86s call     tests/integration/test_worker_registered_catalog.py::test_worker_official_refresh_uses_the_active_registered_catalog[True]
+[32m[32m[1m10 passed[0m[32m in 2317.54s (0:38:37)[0m[0m

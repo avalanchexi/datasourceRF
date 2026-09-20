@@ -1,0 +1,10 @@
+Scope: quick; execution
+/home/tywin/.local/share/pring-cycle/dev-venv/bin/python -m pytest tests/models/test_registered_commodity.py::test_public_selection_rechecks_registered_commodity_originals -q --durations=10
+.                                                                        [100%]
+============================= slowest 10 durations =============================
+6.96s call     tests/models/test_registered_commodity.py::test_public_selection_rechecks_registered_commodity_originals
+
+(2 durations < 0.005s hidden.  Use -vv to show these durations.)
+1 passed in 7.99s
+Exit: 0; elapsed: 9.10s
+Related feedback only. Complete affected heavy acceptance before closing the slice.

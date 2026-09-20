@@ -60,6 +60,74 @@ def admitted_commodity_manifest(
 
 
 @pytest.mark.usefixtures("acquisition_clock")
+def test_shared_input_read_keeps_daily_results_and_rechecks_after_scope(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from pring_cycle.commodity_basket import persist_commodity_basket
+    from pring_cycle.futures_input_reads import shared_futures_input_reads
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_commodity_manifest(paths, capsys)
+    capture_reviewed_basket_inputs(paths)
+    version = manifest["metric_catalog_version"]
+    evidence = EvidenceRepository(paths.database)
+    results = []
+    runs = []
+    with shared_futures_input_reads():
+        for day, expected in ((9, 1033.3333333333333), (10, 1012.6666666666666)):
+            cutoff = datetime(2026, 3, day, 9, tzinfo=UTC)
+            period = date(2026, 3, day).isoformat()
+            result = persist_commodity_basket(
+                paths,
+                business_date=date(2026, 3, day),
+                as_of=cutoff,
+                mode=AsOfMode.PUBLIC,
+                definition_version=version,
+            )
+            assert result["missing"] == []
+            results.append(result)
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date=period,
+                client_request_id=f"shared-basket-{day}",
+                model_version_id=manifest["model_version_id"],
+                system_as_of=cutoff,
+                release_event_id=f"synthetic:shared-basket:{day}",
+                metric_ids=("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"),
+                period=period,
+            )
+            runs.append(run)
+            selected = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+            assert selected.complete
+            assert set(selected.selected_claim_ids) == set(result["claim_ids"])
+            series = evidence.metric_series(
+                "CN_COMMODITY_EX_HOG_BASKET",
+                definition_version=version,
+                mode=AsOfMode.PUBLIC,
+                as_of=cutoff,
+            )
+            assert next(
+                p for p in series if p.period_end == period
+            ).selected_value == pytest.approx(expected)
+    assert set(results[0]["claim_ids"]).isdisjoint(results[1]["claim_ids"])
+    originals = evidence.source_claim_acquisitions_many(results[-1]["claim_ids"])
+    parent = next(
+        p for p in originals[results[-1]["claim_ids"][0]] if p.receipt.api_name == "fut_daily"
+    )
+    digest = parent.receipt.raw_hash
+    assert digest is not None
+    path = paths.artifacts / digest[:2] / digest
+    original = path.read_bytes()
+    path.write_bytes(b"damaged after shared read")
+    with shared_futures_input_reads():
+        assert not select_retrieval_input(paths, runs[-1], mode=AsOfMode.PUBLIC).complete
+    path.write_bytes(original)
+    with shared_futures_input_reads():
+        assert select_retrieval_input(paths, runs[-1], mode=AsOfMode.PUBLIC).complete
+
+
+@pytest.mark.usefixtures("acquisition_clock")
 def test_registered_basket_is_readable_with_all_seven_contributions(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -527,3 +595,104 @@ def test_system_result_with_unknown_publication_is_not_public_evidence(
         )
         == ()
     )
+
+
+@pytest.mark.usefixtures("acquisition_clock")
+def test_period_selection_rechecks_only_the_claims_it_can_adopt(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A recheck that covers the whole series reads originals no decision depends on.
+
+    Selection consults a family's verdict only for the points its period can adopt, so
+    rechecking earlier days costs one full recalculation per stored day and changes nothing.
+    """
+    from pring_cycle import commodity_basket
+    from pring_cycle.commodity_basket import persist_commodity_basket
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_commodity_manifest(paths, capsys)
+    capture_reviewed_basket_inputs(paths)
+    stored = {
+        day: persist_commodity_basket(
+            paths,
+            business_date=date(2026, 3, day),
+            mode=AsOfMode.PUBLIC,
+            as_of=datetime(2026, 3, day, 9, tzinfo=UTC),
+            definition_version=manifest["metric_catalog_version"],
+        )
+        for day in (9, 10)
+    }
+    assert all(output["missing"] == [] for output in stored.values())
+
+    rechecked: list[str] = []
+    original = commodity_basket.commodity_claims_matching_acquisitions
+
+    def record(repository, points, **kwargs):  # type: ignore[no-untyped-def]
+        rechecked.extend(point.period_end for series in points.values() for point in series)
+        return original(repository, points, **kwargs)
+
+    monkeypatch.setattr(commodity_basket, "commodity_claims_matching_acquisitions", record)
+
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-03-10",
+        client_request_id="period-scoped-recheck",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+        release_event_id="synthetic:commodity-period-scope",
+        metric_ids=("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"),
+        period="2026-03-10",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+
+    assert selection.complete
+    assert set(selection.selected_claim_ids) == set(stored[10]["claim_ids"])
+    assert set(rechecked) == {"2026-03-10"}
+
+
+@pytest.mark.usefixtures("acquisition_clock")
+def test_a_damaged_original_outside_the_period_leaves_the_selection_complete(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Narrowing the recheck cannot change an outcome: earlier days are never adopted here."""
+    from pring_cycle.commodity_basket import persist_commodity_basket
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_commodity_manifest(paths, capsys)
+    capture_reviewed_basket_inputs(paths)
+    earlier = persist_commodity_basket(
+        paths,
+        business_date=date(2026, 3, 9),
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 3, 9, 9, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    current = persist_commodity_basket(
+        paths,
+        business_date=date(2026, 3, 10),
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert earlier["missing"] == [] and current["missing"] == []
+
+    digest = earlier["result_hash"]
+    damaged = paths.artifacts / digest[:2] / digest
+    damaged.write_bytes(b"{}")
+
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-03-10",
+        client_request_id="damaged-earlier-day",
+        model_version_id=manifest["model_version_id"],
+        system_as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+        release_event_id="synthetic:commodity-damaged-earlier",
+        metric_ids=("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"),
+        period="2026-03-10",
+    )
+    selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+
+    assert selection.complete
+    assert set(selection.selected_claim_ids) == set(current["claim_ids"])

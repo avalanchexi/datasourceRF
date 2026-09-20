@@ -1,4 +1,5 @@
 """Explicit related-test feedback; ordinary pytest discovery remains complete."""
+
 from __future__ import annotations
 
 import argparse
@@ -16,6 +17,7 @@ HEAVY_FILES = {
     "tests/integration/test_worker_registered_catalog.py",
     "tests/integration/test_integrated_worker_delivery.py",
     "tests/integration/test_integrated_worker_core_gap.py",
+    "tests/models/test_material_preflight.py",
 }
 
 
