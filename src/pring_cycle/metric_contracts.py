@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 
@@ -9,6 +11,11 @@ from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 # daily cadence, so consumers must not interpret that field as a requirement
 # for a newly reported rate on every trading day.
 EFFECTIVE_UNTIL_CHANGED_METRICS = frozenset({"CN_OMO_7D_RATE"})
+
+
+def china_business_day_end(day: date) -> datetime:
+    """The instant a session's public knowledge is read at, in the market's own zone."""
+    return datetime.combine(day, time.max, ZoneInfo("Asia/Shanghai"))
 
 
 def event_period_limit(period: str) -> str:

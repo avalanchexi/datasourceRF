@@ -7,7 +7,6 @@ import time
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime, timedelta
-from datetime import time as clock_time
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -42,6 +41,7 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.metric_contracts import (
     REQUIRED_DIMENSION_MEMBERS,
+    china_business_day_end,
     evidence_frequency,
     evidence_max_age_days,
     minimum_context_daily_observations,
@@ -210,7 +210,7 @@ def history_output_document(
         "days": [
             {
                 "business_date": day,
-                "cutoff": _china_business_day_end(date.fromisoformat(day)).isoformat(),
+                "cutoff": china_business_day_end(date.fromisoformat(day)).isoformat(),
                 "assets": {
                     asset: asdict(point)
                     for asset, point in evaluated.core_outputs_by_day[day].items()
@@ -439,7 +439,7 @@ def evaluate_history(
         previous_points: list[PricePoint] = []
         segment_start = 0
         for index, day in enumerate(input_days):
-            cutoff = _china_business_day_end(date.fromisoformat(day))
+            cutoff = china_business_day_end(date.fromisoformat(day))
             visible = {
                 point.period_end: point
                 for point in evidence.metric_series(
@@ -834,7 +834,7 @@ def _evaluate_context_replay(
     evidence.preload_metric_series(preload_metrics)
 
     cutoffs = tuple(
-        _china_business_day_end(date.fromisoformat(day))
+        china_business_day_end(date.fromisoformat(day))
         for day in days
         if requested_start <= day <= requested_end
     )
@@ -1022,10 +1022,6 @@ def _context_source_snapshot(
                 }
             )
     return result
-
-
-def _china_business_day_end(day: date) -> datetime:
-    return datetime.combine(day, clock_time.max, ZoneInfo("Asia/Shanghai"))
 
 
 def _context_coverage_gaps(

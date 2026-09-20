@@ -87,3 +87,37 @@ Ruff、格式、`mypy src/pring_cycle/material_preflight.py`、`git diff --check
 - **Spec**：上一轮 (a)(c) 两条发现均已关闭；范围蔓延一项——`public_cutoff` 抽取本属标准轴延后项、不在 #19 要求内，但它直接服务于密度修复所需的逐日截止，判定为合理并记录；另有一条「看似实现而实现可能有误」由本会话自己发现并记为未决，见上节。
 
 **这一节的意义在于：不要在后续把本批当作「已通过两轴复核」引用。** 若需要补齐，应对 `dc65c98..cdb4bc8` 重新发起一次独立两轴，其发现按既有做法并入下一切片，而不是回溯改写本批的通过状态。
+
+## 两轴复核结果与修复（2026-09-20，cdb4bc8 之后）
+
+先前记录称「本批未完成独立两轴」。那一节现予更正：内置 `code-review` 与四个子代理最终全部交付，共六份结论。**评审在已提交的 `cdb4bc8` 中找出一条我自审时明确放过去的缺陷。**
+
+### 高危：密度口径对日期粒度来源恒为假（已修）
+
+`cdb4bc8` 的判据是 `public_available_at <= public_cutoff(item.period_end)`（值须在自己那天结束前公开）。我当时把口径之争记为「未决」就提交了，理由是「两种读法都合理」。**这个判断错了——仓库自己的编码约定已经定了答案**：
+
+- `evidence.publication_times()`（evidence.py:49-51）对日期粒度发布返回 **published_date+1 的 00:00（上海）**，这是全仓唯一的转换约定。
+- `market_breadth.py:538` 强制 `published_date >= 会话日`，`market_amount.py:221` 同样只拒绝早于会话日。
+- 两条合起来使这类 claim 的 `public_available_at` **恒大于** `public_cutoff(period_end)`，判据永远为假，完整且合法的材料会被整窗判为 `daily_coverage_missing`——伪缺件同样违反「材料无法通过时列出具体缺件」。
+
+**实测边界**：当前 v4 已准备材料的 38 个日频指标全部是 datetime 粒度，次日零点编码 **0 条**，因此真实预检没有报出伪缺口（实测 7 日窗口必需 gaps 为 0）。即该缺陷是**潜伏的**：代码明确支持日期粒度发布，而现有材料与全部测试都不走那条路径，所以 1891 项通过掩盖了它。
+
+修复为与**评估截止**比较（`cutoff`，窗口末日）。它仍关闭原缺陷（整窗之后才发布仍被判缺），且不对 T+1 来源造伪缺件；「当天是否看得见」本就由逐日 PUBLIC selector 独立负责，并按 `evidence_max_age_days` 容忍滞后。
+
+四份评审中 spec3 持相反意见（认为逐日截止才对，T+1 应靠登记发布时延解决）。未按人数取舍：分歧只存在于「代码支持但当前材料未使用」的路径上，而在该路径上伪缺件的危害明确大于漏报，因为逐日检查已独立覆盖可见性。
+
+**新反例具备判别力**：`test_a_source_publishing_the_next_morning_still_counts_as_covered` 精确复制 `publication_times` 的次日零点编码。实测把实现退回旧口径后该用例变红、原用例仍绿——这正证明原用例无法区分两种口径（它把发布时间设在整窗之后，两种改法都绿），评审这一点说对了。
+
+### 一概念四个名字（已修）
+
+`public_cutoff` 与既有 `model_evaluation._china_business_day_end(day: date)` **函数体完全相同**。我合并了本文件三处内联，却又给同一概念造了第四个名字。现收敛为 `metric_contracts.china_business_day_end`，`model_evaluation` 的私有副本删除，两处调用改为共享定义；同时去掉 `date | str` 的 isinstance 嗅探，由调用点转换。
+
+### 运维证据的常量状态会读成「已检查」（已修）
+
+`cdb4bc8` 对三项一律输出 `status: "operational_evidence"`，材料全缺时与通过项逐字节相同——正是该字段声称要消除的观感；`CN_TRADE_CALENDAR` 还会同时出现在 `gaps` 与该数组，两处语义冲突。现改为 `role` 记类别、`status` 如实声明检查状态：日历 `checked_separately`（它确有专项检查与独立 `calendar` 字段），另两项 `not_checked`。原记录中「『P0 运维证据不伪装标量』由此恢复」的表述过宽，实际只恢复了可见性，该条验收仍未关闭。
+
+### 本次验证状态
+
+预检文件 **31 passed / 108.62 秒**；相关回归 17 文件（新增 `tests/evidence/test_point_in_time.py`）**946 passed / 3069.31 秒、退出 0**；Ruff、格式、三源文件 mypy 通过。
+
+**同版本默认全套未跑。** 本次改动涉及 `material_preflight.py`、`metric_contracts.py`、`model_evaluation.py` 三个产品文件，按 #22 的门应补一次全套（约 3 小时），届时材料缓存亦会因 `code_hash` 变化而冷构建。在补完之前，本提交**不得**被引用为已通过同版本全套。

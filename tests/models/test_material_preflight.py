@@ -832,8 +832,102 @@ def test_operational_evidence_stays_visible_instead_of_vanishing(
     )
 
     result = json.loads(capsys.readouterr().out)
-    listed = {entry["metric_id"] for entry in result["operational_evidence"]}
-    assert operational <= listed
-    assert all(
-        entry["status"] == "operational_evidence" for entry in result["operational_evidence"]
+    listed = {entry["metric_id"]: entry for entry in result["operational_evidence"]}
+    assert operational <= set(listed)
+    assert all(entry["role"] == "operational_evidence" for entry in listed.values())
+    # The status must not read as a verdict this command never reached.
+    assert listed["CN_TRADE_CALENDAR"]["status"] == "checked_separately"
+    assert listed["CN_RELEASE_SCHEDULE"]["status"] == "not_checked"
+    assert listed["SOURCE_OBSERVED_AVAILABILITY"]["status"] == "not_checked"
+
+
+def test_a_source_publishing_the_next_morning_still_counts_as_covered(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Publication lag is normal, and this repository encodes a date as the next midnight.
+
+    `publication_times` turns a date-only publication into 00:00 of the following day,
+    so requiring a session's value to be public before that session ended would report
+    every legitimate day of such a source as uncovered.
+    """
+    paths = RuntimePaths.discover(tmp_path)
+    initialize_runtime(paths)
+    candidate = admit_complete_candidate(paths, capsys)
+    version = ModelRepository(paths.database).manifest(candidate)["metric_catalog_version"]
+    now = install_runtime_clock(monkeypatch, request, datetime(2026, 8, 28, 10, tzinfo=UTC))
+    days = trading_days()
+    window = days[-20:]
+    calendar_raw = json.dumps(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["cal_date", "is_open"],
+                "items": [[day.strftime("%Y%m%d"), 1] for day in days],
+            },
+        }
+    ).encode()
+    TushareCoreAdapter(
+        "synthetic-token", transport=lambda _: calendar_raw, clock=now
+    ).acquire_calendar(AcquisitionRepository(paths.database, paths.artifacts), days[0], days[-1])
+    raw = json.dumps(
+        {
+            "code": 0,
+            "data": {
+                "fields": ["trade_date", "exchange_id", "rzye", "rzmre"],
+                "items": [
+                    [day.strftime("%Y%m%d"), exchange, 100_000_000, 10_000_000]
+                    for day in window
+                    for exchange in ("SSE", "SZSE", "BSE")
+                ],
+            },
+        }
+    ).encode()
+
+    def published_next_midnight(scalars: tuple[ContextScalar, ...]) -> tuple[ContextScalar, ...]:
+        """Exactly what publication_times produces for a date-only publication."""
+        from zoneinfo import ZoneInfo
+
+        def public_at(period_end: str) -> datetime:
+            session = date.fromisoformat(period_end)
+            return datetime.combine(
+                session + timedelta(days=1), datetime.min.time(), ZoneInfo("Asia/Shanghai")
+            ).astimezone(UTC)
+
+        return tuple(
+            replace(scalar, release_at=None, public_available_at=public_at(scalar.period_end))
+            for scalar in scalars
+        )
+
+    adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
+    adapter.acquire_scalars(
+        paths,
+        lambda: published_next_midnight(
+            adapter.margin_financing(start_date=window[0], end_date=window[-1])
+        ),
+        definition_version=version,
     )
+    main(
+        [
+            "model-input-preflight",
+            "--runtime-root",
+            str(tmp_path),
+            "--model",
+            candidate,
+            "--start",
+            window[0].isoformat(),
+            "--end",
+            window[-1].isoformat(),
+            "--json",
+        ]
+    )
+
+    result = json.loads(capsys.readouterr().out)
+    coverage = [
+        gap
+        for gap in result["gaps"]
+        if gap["metric_id"] == "CN_MARGIN_BALANCE" and gap["reason"] == "daily_coverage_missing"
+    ]
+    assert coverage == [], "a source that publishes the next morning is still covered"
