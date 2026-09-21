@@ -448,6 +448,58 @@ WSL 内删除不会让 Windows 侧的 C 盘立刻变大——虚拟磁盘只增�
 `wsl --shutdown` 后压缩 `ext4.vhdx`（`Optimize-VHD -Mode Full`，或 `diskpart` 的
 `compact vdisk`）才会真正归还。
 
+压缩脚本若要自己写，注意两处编码：PowerShell 5.1 按系统 ANSI 读 `.ps1`，diskpart 也按
+系统 ANSI 读它的脚本文件。路径含非 ASCII 字符（例如中文用户名）时，UTF-8 会让两者分别
+报"字符串缺少终止符"和"系统找不到指定的路径"。脚本正文写成纯 ASCII，路径由
+`$env:LOCALAPPDATA` 拼出，diskpart 脚本用 `[Text.Encoding]::Default` 写入。
+
+## 全套验证为什么会停在 45%
+
+2026-09-18 至 09-20 之间，同版本全套验证连续三次停在 45% 附近，表现各不相同：
+
+| 日期 | 结果 | 直接原因 |
+| --- | --- | --- |
+| 09-18 | 914 passed 后中止 | 监督按 C 盘保护 SIGTERM，余量 1.65 GiB |
+| 09-20 | 45% 中止，失败计数 0 | 同上，C 盘 13.24 → 2.60 GiB |
+| 09-20 | 45% 被系统杀 | 内存不足；可用内存降至 482 MB，swap 已用 4 GB 且无法增长 |
+
+45% 不是某个测试的缺陷，而是重型 Worker 与隔离生命周期测试开始大量写盘的位置：一轮
+验证的 `--basetemp` 可以涨到 20 GB 以上，加上每次代码改动新增一份约 3 GB 的材料。
+WSL 虚拟磁盘和 swap 文件都在 C 盘，磁盘一满，swap 无处增长，内存压力就变成进程被杀。
+
+**因此看到 45% 中止，先查 C 盘余量，不要先怀疑测试。** 中止不构成任何通过结论，
+45% 的进度也不能记为部分通过。
+
+2026-09-21 清理并压缩虚拟磁盘后（C 盘可用 3.6 GB → 160 GB），同版本全套首次完整跑完：
+
+```
+1891 passed / 1 failed / 6234.04 秒 (1:43:54)
+峰值内存 910 MB
+```
+
+峰值内存远低于机器上限，说明历次中断是磁盘约束，不是套件吃内存。
+
+### 时间花在哪里
+
+同一轮的 `--durations=30` 显示成本高度集中：
+
+```
+913.44s  test_complete_isolated_candidate_is_calibrated_replayed_and_activated
+539.78s  test_integrated_worker_preserves_delivery_time_and_source[False]
+530.05s  test_integrated_worker_preserves_delivery_time_and_source[True]
+300.34s  test_worker_full_run_publishes_the_registered_projection[parse-validation_failed]
+291.05s  ...[network-source_failed]
+280.91s  test_worker_full_run_for_a_fixed_target_retrieves_gaps...
+272.41s  ...[success-verified_candidate]
+272.37s  ...[missing-missing_credentials]
+271.18s  test_full_worker_falls_back_to_official_ppi...
+247.71s  test_worker_tushare_failures_keep_required_blocking...
+```
+
+**前 10 项合计 3919 秒，占总时长 63%；第 11 名骤降到 78 秒。** 其余 1882 项分摊剩下的
+37%。这决定了提速的方向：并行的下界是最慢单项的 913 秒，真正的杠杆在这 10 项各自
+重建整条流水线的成本上，不在把 1882 个小测试分散到更多核上。
+
 ## 统一离线验收
 
 以下命令在临时 SQLite 和制品目录中重复初始化，执行原子制品写入/登记/读回，启动正式
