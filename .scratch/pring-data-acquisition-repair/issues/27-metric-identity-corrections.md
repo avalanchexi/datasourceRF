@@ -1,8 +1,9 @@
 Status: ready-for-agent
-Execution: not-started
+Execution: in-progress
 Scope: 来自[规格24](../spec-24-source-identity-20260917.md)第三、四节
 Decision: 2026-09-17 用户确认：USD/CNH 改用 TMA 定盘并重命名；删除 COMEX_GC 与 LBMA_GOLD；VIX/SOX/USDCNY_CLOSE_1630 走各自官方通道。
-Correction: 2026-09-17 23:42 的[后续决定](../decision-27-ecb-reference-cross-20260917.md)已**用独立 ECB 身份替代原计划 TMA 新项**，本票下方仍写 TMA 的部分作废。影响面见[身份迁移盘点](../survey-27-identity-migration-20260921.md)——本票不是小改动。
+Correction: 2026-09-17 23:42 的[后续决定](../decision-27-ecb-reference-cross-20260917.md)已**用独立 ECB 身份替代原计划 TMA 新项**，本票下方仍写 TMA 的部分作废。
+Correction: 2026-09-22 事实对齐——**身份迁移软件已由五个提交落地**（`61de7e0`、`06bccc3`、`dc44076`、`26a0b84`、`fd330c2`），验收一、二已有实现与反例，剩验收三的三条官方通道。**照本票原文从头实施会重做已有工作**，先读[事实对齐](../finding-27-migration-facts-20260922.md)；[身份迁移盘点](../survey-27-identity-migration-20260921.md)是在「尚未动手」假设下写的，其「闸仍待解决」的前提已过时。
 
 # 27: 修正五项 P2 国际行情的口径与身份
 
