@@ -62,6 +62,13 @@ projection.datasets["cycle_overview"]["current_stage"] == "stage_iii"
 两类分类也确实分开使用：`worker.py:342` 的 `p0_required_calendar_unavailable`（日历本身不可用）
 与 `worker.py:348` 的 `p0_required_calendar_period_missing`（有日历但核心价格缺期）。
 
+> **2026-09-22 实施时订正**：下面这节把 token 分支称作「唯一确定的实质剩余工作」，**判过头了**。
+> 票面允许的归属是「要么进入某个通道的例行刷新，要么进入缺口计划」，日历走的正是前者，验收 3
+> 因此已满足。无 token 等于不做真实采集，是本仓库广泛依赖的合法状态——`test_full_run_retrieval.py`
+> 的 `prepare()` 从不写 secrets，四处用例正是在这个状态下断言 `p0_required_calendar_unavailable`；
+> 若让缺 token 改变失败分类，这些用例全会被破坏，而它们的语义本就是「材料不足」而非「配置缺失」。
+> token 那条是独立的**可用性**观察（生产用户没配 token 时，分类指向日历而非配置），不属于本票。
+
 ### 验收 3 「两处规则对齐，不再出现『不采集但又必需』」——**部分满足，剩一个分支**
 
 票面允许两种对齐方式之一：「交易日历有明确的采集归属：**要么进入某个通道的例行刷新**，

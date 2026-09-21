@@ -84,3 +84,48 @@ def test_missing_independent_calendar_blocks_publication_and_preserves_previous_
             projections.current()
     else:
         assert projections.current().envelope.projection_set_id == previous_id
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_an_independent_calendar_lets_the_run_publish_what_the_assets_say(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, runtime_clock
+) -> None:
+    """The mirror of the gate above: with the calendar present, the run gets to answer.
+
+    Blocking publication when the calendar is missing is only half of #28. The other half is
+    that a run holding one publishes a projection whose core assets are populated and whose
+    stage is whatever the trend rules make of them -- including empty, when three assets
+    genuinely do not form a typical combination. An empty stage is a conclusion here, not the
+    silence that a missing calendar produced.
+    """
+
+    def offline(*args, **kwargs):
+        raise OSError("fixture external source unavailable")
+
+    monkeypatch.setattr("pring_cycle.eia_html.open_no_redirects", offline)
+    monkeypatch.setattr("pring_cycle.official_context.urlopen", offline)
+    paths, runs = prepare(tmp_path)
+    seed_core_history(paths)
+
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="independent-calendar-present",
+        model_version_id="model-v0001",
+        system_as_of=runtime_clock(),
+    )
+    process_pending_run(paths, report_adapters=())
+
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "completed", stored.error_classification
+    window = runs.full_retrieval_plan(submitted.run_id)["final"]["daily_window"]
+    assert window["status"] == "available"
+    assert len(window["dates"]) == 120
+
+    projection = ProjectionSetRepository(paths.database).get(stored.projection_set_id or "")
+    assets = projection.datasets["core_assets"]["assets"]
+    assert {asset["asset"] for asset in assets} == {"bond", "stock", "commodity"}
+    overview = projection.datasets["cycle_overview"]
+    # These three assets do not form a canonical combination, so an empty stage is the answer
+    # -- and it arrives with a reason, which is what separates it from the gate's silence.
+    assert overview["current_stage"] is None
+    assert overview["stage_reason"] == "noncanonical_combination"
