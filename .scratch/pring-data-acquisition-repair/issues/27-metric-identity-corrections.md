@@ -2,6 +2,7 @@ Status: ready-for-agent
 Execution: not-started
 Scope: 来自[规格24](../spec-24-source-identity-20260917.md)第三、四节
 Decision: 2026-09-17 用户确认：USD/CNH 改用 TMA 定盘并重命名；删除 COMEX_GC 与 LBMA_GOLD；VIX/SOX/USDCNY_CLOSE_1630 走各自官方通道。
+Correction: 2026-09-17 23:42 的[后续决定](../decision-27-ecb-reference-cross-20260917.md)已**用独立 ECB 身份替代原计划 TMA 新项**，本票下方仍写 TMA 的部分作废。影响面见[身份迁移盘点](../survey-27-identity-migration-20260921.md)——本票不是小改动。
 
 # 27: 修正五项 P2 国际行情的口径与身份
 
@@ -15,7 +16,7 @@ Decision: 2026-09-17 用户确认：USD/CNH 改用 TMA 定盘并重命名；删�
 
 | 指标 | 动作 | 依据 |
 |---|---|---|
-| `CN_USDCNH_FXCM` | 改用香港财资市场公会（TMA）USD/CNH 即期定盘，**重命名去掉 FXCM** | 离岸人民币无单一官方即期价，TMA 定盘最接近基准；原 id 的 FXCM 来自 TuShare 标的代码 `USDCNH.FXCM`，属沿用上游代码时继承的缺陷 |
+| `CN_USDCNH_FXCM` | ~~改用 TMA 定盘并重命名~~ → **改为新建独立指标 `CN_USDCNY_ECB_REFERENCE_CROSS`**（P2 / context-only，单位 `cny_per_usd`，公式为同日同一 ECB 发布的 CNY/EUR ÷ USD/EUR）；旧 FXCM 定义与历史继续可追溯，不拼接、不回写旧观测 | [ECB 决定](../decision-27-ecb-reference-cross-20260917.md)：TMA 暂无授权且保留缺口的决定保持。**TMA 侧无适配器**，照原文实施必撞 `registered_source_contract_not_implemented` |
 | `COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT` | **删除** | 与 LBMA 金价高度重叠，历史批量需 CME DataMine 付费 |
 | `LBMA_GOLD_PRICE_PM_USD_OZT` | **删除** | 历史需 ICE Benchmark Administration 授权，只能走 FRED 转发；为一项 P2 背景指标建整套非官方身份语义不划算 |
 | `CBOE_VIX_INDEX` | 接 Cboe 官方免费 CSV，正常认证 | TuShare `index_global` 的 20 个指数不含 VIX |

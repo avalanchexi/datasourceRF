@@ -1,7 +1,8 @@
 Status: ready-for-agent
-Execution: not-started
+Execution: in-progress
 Scope: 阻断所有正式阶段产出；优先级高于票13 的认证工序
 Decision: 2026-09-18 为前端改版查证"核心资产数据集为何全空"时发现。见[发现记录](../finding-empty-trade-calendar-20260918.md)。
+Correction: 2026-09-21 只读核对发现下方「现象」与「根因」两节多处已过时，四项验收里三项其实已被覆盖。**照本票原文实施会做错东西**，先读[事实对齐](../finding-28-calendar-facts-20260921.md)。
 
 # 28: 交易日历从未被采集，运行因此全部降级
 
@@ -36,6 +37,29 @@ Decision: 2026-09-18 为前端改版查证"核心资产数据集为何全空"时
 - [ ] 公开反例：日历缺失时的失败分类与非典型组合在查询结果中可区分。
 - [ ] 两处规则对齐，有用例证明不会再出现"不采集但又必需"的组合。
 - [ ] 不放宽 `trend-v0001` 的稳定性要求，不为产出阶段而降低门槛。
+
+## 2026-09-21 事实对齐（只读，未勾选验收）
+
+`4be17e2`「Block new Worker publication without an independent calendar (#28)」已于 2026-09-18
+落地，但本票面此前从未更新。逐条核对见[事实对齐](../finding-28-calendar-facts-20260921.md)，摘要：
+
+- **根因三条过时**：`trade_cal` 会被 `worker.py:323` 的 `_refresh_core_sources` 采集（在缺口计划之前）；
+  适配器 `source_adapters.py:164` 一直都在；「7 次投影无正式阶段」已由 `4be17e2` 的实施记录反证。
+- **验收 1 已被覆盖**：`test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability`
+  断言 `daily_window` available、`plan["acquisitions"]` 含 validated 的 `trade_cal`、
+  `core_assets` 3 条资产、且 `current_stage == "stage_iii"`——系统确实能产出正式阶段。
+  唯一隐患是这些断言寄居在一个主旨不同的测试里，可能随它改写而无声消失。
+- **验收 2 已被覆盖**：`test_worker_calendar_gate.py` 钉住缺日历侧；两类分类分开使用
+  （`worker.py:342` 的 `p0_required_calendar_unavailable` 与 `:348` 的 `p0_required_calendar_period_missing`）。
+- **验收 3 只剩一个分支**：正常路径上日历已有明确归属（例行刷新），`full_retrieval.py:213` 的
+  `operational_evidence` 标注不再是缺陷。但 `_refresh_core_sources`（`worker.py:1700`）在
+  `TUSHARE_TOKEN` 缺失时**静默 return**，此时无人负责日历而 `required_calendar` 仍必需它，
+  「不采集但又必需」原样成立；运行以 `p0_required_calendar_unavailable` 停下，分类指向
+  「日历不可用」，真实原因却是没配 token。**这是目前唯一确定的实质剩余工作。**
+- **验收 4 未被违反**：缺日历即拒绝发布，方向与放宽相反。
+
+实施切片应做三件事：补上 token 缺失分支的可分失败分类；给验收 1 一条以本票为主旨的用例；
+逐项勾选并附证据。**不要新建日历采集器**——`4be17e2` 的实施记录已写明不新增重复采集器。
 
 ## 与票13 的关系
 

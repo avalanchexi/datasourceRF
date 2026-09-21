@@ -1,4 +1,5 @@
 Status: ready-for-agent
+Execution: in-progress
 Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口、拆分及依赖并发布。
 
 # 22: 当前目标日真实验收、模型生效与切换

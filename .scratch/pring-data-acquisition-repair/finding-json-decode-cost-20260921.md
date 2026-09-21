@@ -26,7 +26,7 @@
 | 320,947 | `evidence.py:998` / `evidence.py:1055`（均在 `metric_series`，`evidence.py:917`） | `row["dimensions_json"]` | 均值 28 B |
 | 89,420 | `acquisition.py:387`（`receipt_from_row`，`acquisition.py:385`） | `row["parameters_json"]` | 均值 59 B |
 | 54,010 | `market_breadth.py:627`（`parse_daily_breadth_acquisitions`，:586） | 采集原件 `raw` | 96–224 B |
-| 42,220 | `catalog_registry.py:106` + `:111`（`registered_definitions`，:74） | `manifest_json` + `definitions_json` | 40,394 B + 33,767 B |
+| 42,220 | `catalog_registry.py:89` + `:95`（`registered_definitions`，:74） | `manifest_json` + `definitions_json` | 40,394 B + 33,767 B |
 | 26,620 | `market_breadth.py:1258`（`parse_window_breadth_acquisitions`，:1180） | 采集原件 `raw` | 同上 |
 | 3,295 | `tushare_context.py:2294` | — | — |
 | 1,986 | `tushare_context.py:2007` | — | — |
@@ -52,7 +52,7 @@ pstats 对 `loads` 的逐调用方 `cumtime` 加总只有 17.48 秒，而 `loads
 | 调用点 | 次数 | 解析字节总量 | 实测秒 |
 |---|---:|---:|---:|
 | `commodity_basket.py:445`+`:447` | 874 | ~10.6 GB | **53.6** |
-| `catalog_registry.py:106`+`:111` | 42,220 | 1,566 MB | **6.33** |
+| `catalog_registry.py:89`+`:95` | 42,220 | 1,566 MB | **6.33** |
 | `evidence.py:998`+`:1055` | 320,947 | 8.9 MB | 0.21 |
 | `market_breadth.py:627` | 54,010 | 8.6 MB | 0.13 |
 | `acquisition.py:387` | 89,420 | 5.3 MB | 0.07 |
@@ -79,7 +79,7 @@ pstats 对 `loads` 的逐调用方 `cumtime` 加总只有 17.48 秒，而 `loads
 
 | 调用点 | 解析次数 | 素材中不同载荷数 | 重复率下界 |
 |---|---:|---:|---:|
-| `catalog_registry.py:106`+`:111` | 42,220 | **2**（`registered_metric_catalog` 仅 1 行；`definitions_json` 与其 `manifest_json` 各 1 份） | **99.995%** |
+| `catalog_registry.py:89`+`:95` | 42,220 | **2**（`registered_metric_catalog` 仅 1 行；`definitions_json` 与其 `manifest_json` 各 1 份） | **99.995%** |
 | `evidence.py:998`+`:1055` | 320,947 | **176**（`source_claim` 23,886 行，`dimensions_json` 176 个不同值） | **99.945%** |
 | `acquisition.py:387` | 89,420 | **795**（`acquisition_request` 1,556 行，`parameters_json` 795 个不同值） | **99.11%** |
 | `market_breadth.py:627`+`:1258` | 80,630 | **251**（`daily`/`suspend_d`/`trade_cal`/`breadth_universe` 共 999 行，251 个不同 `raw_hash`） | **99.69%** |
@@ -182,6 +182,12 @@ norm: ..."contract_unit":"吨","delivery_month"...
 共同点是：**缓存的 key 是已经哈希校验过的内容摘要，作用域是一次一致读取，失败路径不进缓存**。3.1 里 `raw`/`normalized` 的自比问题，恰恰是这套模式覆盖不到的情形——因为那道校验比较的是两份内容本身。
 
 ---
+
+> **2026-09-21 订正**：本文件原把 `registered_definitions` 的两处 `json.loads` 记为
+> `catalog_registry.py:106` 与 `:111`——**该文件只有 126 行，那两行不在这个函数里**。
+> 实际位置是 `:89`（解析 `manifest_json`）与 `:95`（解析 `definitions_json`），已在上文改正。
+> 调用点归属与次数、字节数、6.33 秒的实测都不受影响，错的只是行号。
+> 复核见[复用可行性](finding-registered-definitions-reuse-20260921.md)。
 
 ## 四、给下一轮的落点
 

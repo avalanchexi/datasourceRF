@@ -1,5 +1,5 @@
 Status: ready-for-agent
-Execution: not-started
+Execution: blocked
 Scope: 来自[规格24](../spec-24-source-identity-20260917.md)第一节
 Decision: 2026-09-17 用户定"默认 TuShare 是官方通道""TuShare 数据更新不及时时用官方数据"。
 

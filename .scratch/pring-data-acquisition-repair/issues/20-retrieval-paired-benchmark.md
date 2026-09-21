@@ -1,4 +1,5 @@
 Status: ready-for-agent
+Execution: blocked
 Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口、拆分及依赖并发布。
 
 # 20: 真实缺口Tavily与Exa配对测量

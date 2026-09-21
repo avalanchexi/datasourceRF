@@ -1,5 +1,5 @@
 Status: done
-Execution: complete
+Execution: completed
 Latest runtime checkpoint: 2026-09-17 同版本冻结全套在 `b26c5d1` 上两段合计 1682 通过、零失败，五次指纹的 `src` 哈希一致；收口两轴复审（固定点 `56d47cd`）标准轴零硬性违规、需求轴判定达成。17 项验收条件全部勾选，**以本票范围关闭**。见[冻结全套记录](../verification-taskD-frozen-20260917.md)。前一检查点：2026-09-11连接生命周期修复已通过176关联38项，随后冻结182的默认全套183实际1287通过/5410.54秒，见[212验收](../verification-full-suite-acceptance-212.json)。默认发现及绑定测试文件包含原共享预算失败用例；结果属于当时版本，后续信用脉冲/Worker改动仍需最终同版本全套。[273方案评审](../sqlite-claude-plan-review-273.md)区分已证明故障机制与第59次无法从既有证据确认的具体持锁身份。用户已明确锁诊断[另列后续23](23-sqlite-diagnostics-followup.md)，不新增本期门槛。新目录Worker及本票其余原验收仍开放；未提交或关闭本票，旧失败收据不变。
 Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口、拆分及依赖并发布。
 
