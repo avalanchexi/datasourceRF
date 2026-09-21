@@ -16,6 +16,7 @@ from pring_cycle.catalog import (
     METRIC_CATALOG_VERSION,
     MetricDefinition,
 )
+from pring_cycle.read_scope import scope_cache
 from pring_cycle.storage import database_connection
 
 BUILTIN_CATALOG_VERSIONS = frozenset(
@@ -72,7 +73,24 @@ def _register_admitted_catalog(connection: sqlite3.Connection, manifest: dict[st
 
 
 def registered_definitions(database_path: Path, version: str) -> list[dict[str, Any]]:
-    """Read a registered identity; never create a database or invent a catalog."""
+    """Read a registered identity; never create a database or invent a catalog.
+
+    A registered catalog is a single row that only candidate admission writes, and admission
+    never runs inside a shared read. So one read answers every caller in that scope, and the
+    returned list is shared with all of them: it must be treated as read-only, down to the
+    dictionaries and lists nested inside it. Nothing enforces that; callers today only read
+    (``registered_metric_definition`` copies before it converts, and the binding check only
+    serialises). Outside a scope nothing is shared and every caller reads and verifies again.
+
+    Only a verified read is shared. A failure is never remembered -- an unregistered version
+    is a fact about this moment, not a verdict, and admission can register the row this read
+    missed -- so every caller re-reads and re-verifies until one succeeds.
+    """
+    shared = scope_cache("registered_catalog_definitions")
+    key = (str(database_path.resolve()), version)
+    if shared is not None and key in shared:
+        reused: list[dict[str, Any]] = shared[key]
+        return reused
     with database_connection(f"{database_path.resolve().as_uri()}?mode=ro", uri=True) as connection:
         row = connection.execute(
             """SELECT c.definitions_hash, c.definitions_json, m.manifest_json
@@ -92,7 +110,13 @@ def registered_definitions(database_path: Path, version: str) -> list[dict[str, 
         or _definition_document(admitted["metric_definitions"]) != document
     ):
         raise ValueError("registered_metric_catalog_admission_mismatch")
+    # Parsed separately from the admitted manifest above, and it must stay that way. Returning
+    # that one instead would tie this result to model_version.manifest_json; a later scope cache
+    # on ModelRepository.manifest would then be enough to hand require_registered_manifest the
+    # same object on both sides, and its binding check would compare an object with itself.
     definitions: list[dict[str, Any]] = json.loads(document)
+    if shared is not None:
+        shared[key] = definitions
     return definitions
 
 

@@ -175,11 +175,22 @@ if _definition_document(manifest["metric_definitions"]) != _definition_document(
 从此**不可达**。这就是 `_commodity_document` 那一型，只是需要两步才走到——记在这里，免得下一轮
 分两次把它走完。
 
+> **2026-09-21 两轴审查订正**：上面这段的因果写得太满。**仅给 `ModelRepository.manifest`
+> 加缓存并不足以造成自比**——本函数 `:89` 自己解析一次 `admitted_manifest_json`，
+> `ModelRepository.manifest`（`models.py:1048`）另行解析一次，两份独立解析不会因为其中一份被
+> 缓存就共享身份。要让 `:118` 两边变成同一个对象，还需要两条路径共享同一个解析缓存（或同一个
+> 对象）。**禁令本身保留**——它防的是一条只需再走一步的路——但理由不能写成必然事实。
+> 实现里那条注释已按此改正。
+
 还有一条同型的：实测 `_definition_document(json.loads(document)) == document` 成立（素材
 `5d75499a…`），因为定义里的值类型集合实测为 `{str, list}`、list 里也只有 `str`。但这是**素材的性质，
 不是结构保证**——`definitions_json` 是从 manifest 里原样搬来的 JSON（`:57`），没有任何地方拿
 `MetricDefinition` 的字段表去约束它，混进一个浮点数就不再幂等。所以**不要**用存库的 `document`
 字符串替代 `:118` 右边的 `_definition_document(definitions)`；要换必须先有测试钉住幂等。
+
+> **2026-09-21 两轴审查订正**：「混进一个浮点数就不再幂等」这个具体反例**不成立**——审查方用内存
+> 探针实测，含 `0.1` 的定义经序列化→解析→再序列化仍得到同一字符串。禁令保留（幂等确实没有任何
+> 结构保证，只是素材的性质），但不要再引用这个反例。
 
 ### 2.4 可变性：一条需要新写下来的不变量
 
