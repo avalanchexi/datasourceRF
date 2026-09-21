@@ -19,7 +19,6 @@ import argparse
 import os
 import re
 import shutil
-import sys
 import time
 from pathlib import Path
 
@@ -59,7 +58,9 @@ def _gib(size: int) -> str:
     return f"{size / 1024 ** 3:.1f}G"
 
 
-def _classify(store: Path, keep: int, days: float) -> tuple[list[tuple[Path, str]], list[tuple[Path, str]]]:
+def _classify(
+    store: Path, keep: int, days: float
+) -> tuple[list[tuple[Path, str]], list[tuple[Path, str]]]:
     """Split the store into what may go and what is kept, each with its reason."""
     if not store.is_dir():
         return [], []

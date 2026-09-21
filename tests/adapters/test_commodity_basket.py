@@ -921,3 +921,58 @@ def test_damaged_near_contract_batch_cannot_fall_back_to_far_month(
         superseding = selection()
         assert superseding["missing"] == []
         assert superseding["selections"][0]["contract_code"] == "SC2609.INE"
+
+
+def test_comparing_commodity_meaning_never_builds_the_structure_it_compares() -> None:
+    """Deciding whether two results agree must not cost a full rebuild of one of them.
+
+    ``_commodity_meaning`` drops receipt-identity keys and turns the settlement fields into
+    exact Fractions, and agreement used to be decided by building that whole structure and
+    comparing it. One such structure is about 160k nodes, so a profile of a single full
+    Worker test showed 141 million calls into it: almost all of that is spent constructing
+    nodes that a disagreement three levels up has already made irrelevant.
+
+    The comparison keeps the same meaning -- same dropped keys, same Fraction precision --
+    but decides it while walking, so a disagreement stops the walk (see ADR-0014's sibling
+    work on verification cost).
+    """
+    from pring_cycle.commodity_basket import _commodity_meaning, _commodity_meaning_equal
+
+    def result(settle: str, symbol: str, missing: list[str]) -> dict[str, Any]:
+        return {
+            "days": [
+                {
+                    "level": "101.5",
+                    "contracts": [
+                        {
+                            "settle": settle,
+                            "pre_settle": "100.0",
+                            "contract_multiplier": "10",
+                            "source_symbol": symbol,
+                            "acquisition_ids": ["a-1"],
+                            "raw_hashes": ["h-1"],
+                            "public_available_at": "2026-08-20T09:00:00+00:00",
+                        }
+                    ],
+                }
+            ],
+            "missing": missing,
+        }
+
+    same_meaning = (result("100.25", "AU2512", []), result("100.25", "ignored", []))
+    # Identity-only keys are dropped by meaning, so these two agree despite differing symbols.
+    assert _commodity_meaning(same_meaning[0]) == _commodity_meaning(same_meaning[1])
+    assert _commodity_meaning_equal(*same_meaning)
+
+    # "100.25" and "100.250" are different strings but the same exact Fraction.
+    equal_fraction = (result("100.25", "AU2512", []), result("100.250", "AU2512", []))
+    assert _commodity_meaning(equal_fraction[0]) == _commodity_meaning(equal_fraction[1])
+    assert _commodity_meaning_equal(*equal_fraction)
+
+    # A settlement that differs in value disagrees, and so does a differing non-settle field.
+    for left, right in (
+        (result("100.25", "AU2512", []), result("100.26", "AU2512", [])),
+        (result("100.25", "AU2512", []), result("100.25", "AU2512", ["CU"])),
+    ):
+        assert _commodity_meaning(left) != _commodity_meaning(right)
+        assert not _commodity_meaning_equal(left, right)

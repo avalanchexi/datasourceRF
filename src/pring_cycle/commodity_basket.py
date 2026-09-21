@@ -351,6 +351,13 @@ def _commodity_members(result: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _commodity_meaning(value: Any) -> Any:
+    """The meaning of a result, built. Kept as what ``_commodity_meaning_equal`` is checked against.
+
+    Nothing in production builds this any more: deciding agreement walks both sides instead
+    (see ``_commodity_meaning_equal``). It stays because the equivalence test needs a second,
+    obviously-correct implementation to compare against -- a comparison that only checked
+    itself would prove nothing.
+    """
     if isinstance(value, dict):
         return {
             key: (
@@ -371,6 +378,54 @@ def _commodity_meaning(value: Any) -> Any:
     if isinstance(value, list):
         return [_commodity_meaning(child) for child in value]
     return value
+
+
+_COMMODITY_EXACT_FIELDS = {"settle", "pre_settle", "contract_multiplier"}
+_COMMODITY_IDENTITY_FIELDS = {
+    "available_at",
+    "acquisition_ids",
+    "raw_hashes",
+    "evidence_hashes",
+    "source_symbol",
+}
+
+
+def _commodity_meaning_equal(left: Any, right: Any) -> bool:
+    """Decide agreement while walking, instead of building a structure to throw away.
+
+    This answers exactly the question ``_commodity_meaning(left) == _commodity_meaning(right)``
+    answers -- the same identity-only keys are ignored, the same three settlement fields are
+    compared as exact Fractions rather than as the strings that spell them. What it does not do
+    is materialise either side: one result is roughly 160k nodes, and a disagreement near the
+    top makes every node below it irrelevant, so building them first spends most of its time
+    on values no one reads.
+    """
+    if isinstance(left, dict):
+        if not isinstance(right, dict):
+            return False
+        keys = {key for key in left if key not in _COMMODITY_IDENTITY_FIELDS}
+        if keys != {key for key in right if key not in _COMMODITY_IDENTITY_FIELDS}:
+            return False
+        for key in keys:
+            child, other = left[key], right[key]
+            if key in _COMMODITY_EXACT_FIELDS and child is not None:
+                # A None on one side only is a disagreement, as it is for the built structure.
+                if other is None or Fraction(child) != Fraction(other):
+                    return False
+            elif not _commodity_meaning_equal(child, other):
+                return False
+        return True
+    if isinstance(right, dict):
+        return False
+    if isinstance(left, list):
+        return (
+            isinstance(right, list)
+            and len(left) == len(right)
+            and all(_commodity_meaning_equal(a, b) for a, b in zip(left, right, strict=True))
+        )
+    if isinstance(right, list):
+        return False
+    return bool(left == right)
 
 
 def _commodity_publication(result: dict[str, Any]) -> datetime | None:
@@ -596,6 +651,12 @@ def _commodity_claims_valid(
             continue
         result = document["result"]
         agreement: bool | None = None
+        # The publication time is a property of the group's result, not of a claim, and the
+        # loop never rebinds or writes result. Computing it per claim walked the same ~160k
+        # nodes four times over on average. It stays inside the try so that a malformed
+        # result still invalidates the claim it was first reached from, exactly as before.
+        published: datetime | None = None
+        published_known = False
         for claim_id in claim_ids:
             metric, point = selected[claim_id]
             try:
@@ -607,24 +668,26 @@ def _commodity_claims_valid(
                 if expected_day != point.period_end:
                     # Release the previous day first; a failed recalculation is retried.
                     expected_day, expected = None, None
-                    expected = _commodity_meaning(
-                        calculate_commodity_basket(
-                            paths,
-                            business_date=date.fromisoformat(point.period_end),
-                            mode=mode,
-                            as_of=as_of,
-                        )
+                    expected = calculate_commodity_basket(
+                        paths,
+                        business_date=date.fromisoformat(point.period_end),
+                        mode=mode,
+                        as_of=as_of,
                     )
                     expected_day = point.period_end
                 # Equivalent later deliveries may have different receipt identities.
                 # Preserve the historical claim's parents, validating their originals,
                 # while comparing the facts selected at the caller's cutoff.
                 if agreement is None:
-                    agreement = _commodity_meaning(result) == expected and not result["missing"]
+                    agreement = _commodity_meaning_equal(result, expected) and not result[
+                        "missing"
+                    ]
                 if not agreement:
                     continue
                 claim = next(c for c in point.claims if c.claim_id == claim_id)
-                published = _commodity_publication(result)
+                if not published_known:
+                    published = _commodity_publication(result)
+                    published_known = True
                 if any(
                     m["metric_id"] == metric
                     and m["dimensions"] == point.dimensions

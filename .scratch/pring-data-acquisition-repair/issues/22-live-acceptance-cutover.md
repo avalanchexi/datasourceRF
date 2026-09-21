@@ -95,3 +95,31 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-12 to-tickets：按已批准规格、三轮业务决定及原22票拆分发布本票增量。补四处调用、合同及最终同版本证据交接，保留真实产品全部门和18/20/21依赖；23仍延期。本轮仅任务文档，新增软件/认证条件均未勾选，未实施或运行测试。
 
 - 2026-09-13 to-tickets：依据已发布规格及提效访谈Q1–Q5确认，沿用原22票划分。发布计时生成→制品→切换消费的独立切片，明确其无真实整票阻塞；补最终同版本验证、机器余量和9月11日真实验收条件，保留18/20/21真实依赖且未勾选任何新增条件。 本轮只发布任务文档，未实施、运行测试或操作真实模型。
+
+- 2026-09-21 验证成本收口（本票内小切片，不新开性能项目）：按 2026-09-18 的范围纠正，提效落实在剩余任务内。本次先取得可信基线，再据基线动手，两者都记录在案。
+
+  **基线**：同版本默认全套首次完整跑完，1891 passed / 1 failed / 6234.04 秒，峰值内存 910 MB。此前 09-18 至 09-20 九轮全套合计 14.4 小时，其中六轮以失败或环境中断结束（6.7 小时），三次停在 45% 的共同原因是 C 盘余量而非测试缺陷，详见[本机开发与运行](../../../docs/development/local-runtime.md)与[崩溃转储删除记录](../resource-task-crash-dumps-deleted-20260921.md)。唯一失败是 `test_installed_cli_keeps_bytecode_outside_the_source_tree`，源码树内存在 09-19 遗留的 `__pycache__`，属于真实的边界违例，待清理后复验。
+
+  **何时跑全套**：`tools/check.py full` 改为需要显式 `--freeze`，无此声明时硬性拒绝并说明理由；日常用 `quick` 加相关测试文件，受影响的重型验收仍单独显式运行。判定由人做出，工具不推断工作区状态。决定与依据见 [ADR-0014](../../../docs/adr/0014-full-suite-only-at-freeze-points.md)。pytest 默认完整发现范围不变，功能门与产品性能硬门不变。
+
+  **热点**：对 471 秒的 `test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report` 取 cProfile，按自身耗时前列为 `_commodity_meaning` 75.07 秒（141,391,168 次调用 / 880 个顶层入口）、`json.raw_decode` 65.01 秒（548,960 次）、`_commodity_facts` 24.63 秒。热点在产品代码而非测试装置，因此同一改动对真实完整运行同样生效。
+
+  原实现以 `_commodity_meaning(result) == expected` 判定一致：先完整构造一份约 16 万节点的结构再整体比较，其中绝大部分节点在更高层已经判定不一致后才被构造。改为 `_commodity_meaning_equal` 边遍历边判定、不一致即短路，丢弃的字段与 `Fraction` 精度口径完全不变；`_commodity_meaning` 保留为等价性测试的参照实现，由 `test_comparing_commodity_meaning_never_builds_the_structure_it_compares` 双向对照。相关回归 94 passed。
+
+  未做且仍开放：`json.raw_decode` 的 65 秒需要改调用方读取方式，单列切片与单独验证，本次不动；`Fraction` 是精度保证，不在提效范围内（见 ADR-0002）。本条只记录软件侧验证成本，不改变本票的真实验收条件与勾选状态。
+
+- 2026-09-21 实测修正与新线索：前一条记录里"热点在 `_commodity_meaning`"的判断需要按实测收窄，另有一条更大的线索尚未查证。
+
+  **实测收益远小于按 profile 推算的值**。同一用例同一口径（`call` 阶段）：改动前 271.18 秒，改动后 261.54 秒，**省 9.64 秒，约 3.6%**。此前按 profile 的 `cumtime` 推算的"约 29 秒"是错的：那次 profile 下该用例耗时 471 秒，无 profile 对照为 271 秒，**插桩把它放大了 1.74 倍**，函数调用密集处放大最甚。调用次数是真实的，秒数不是；两者不可混用。本条记录实测值，不记录推算值。
+
+  已落地两处改动，均通过 ruff、mypy 与 92 项相关回归：一是以 `_commodity_meaning_equal` 边遍历边判定替代"构造整份结构再比较"；二是把 `_commodity_publication` 这个循环不变量在 `_commodity_claims_valid` 的 per-claim 循环内改为惰性只算一次（1760 次降至约 440 次），仍留在原 `try` 内，错误时机不变。
+
+  **未查证的线索：`_commodity_claims_valid` 占该用例 68%**（440 次调用，`cumtime` 322.56 秒 / 471 秒）。该路径已有去重机制 `claims_checked_once`（`read_scope.py:38`），其 `context` 为 `(database_path, definition_version, mode, as_of)`，而 `scope_cache` 返回 `None` 时完全不去重。测试仅调用 `process_pending_run` 两次、每次一个读作用域，却产生约 100 次实际检查。尚未确定原因是作用域未覆盖、`as_of` 随调用变化导致 key 从不命中，还是这 100 次本就必要。**在查清之前不得据此改动缓存键**：缩小 key 而材料实际已变，会让失效的结果被复用。
+
+  **来自 [JSON 解析调查](../finding-json-decode-cost-20260921.md)**：`raw_decode` 的次数与耗时指向不同位置。次数前列是 `evidence.py` 的小载荷（`dimensions_json` 32 万次、28 字节），但耗时集中在 `_commodity_document` 的 874 次解析上，实测约 53.6 秒——它每次解析中位 12.6 MB、最大 24 MB 的快照，一次调用解析 `raw` 与 `normalized` 两份。该项经同载荷验证未被 cProfile 放大（插桩/裸跑比值 0.9）。
+
+  结论为**不可按内容缓存解析结果**：`raw` 与 `normalized` 今天不同仅因 `ensure_ascii`，第一个分歧点是 `吨` 对 `吨`。一旦商品结果文档不再含非 ASCII 字符，两者逐字节相同，缓存会把同一对象返回两次，使 `document != json.loads(snapshot.normalized)` 恒为假——**校验静默失效，不抛异常、无测试变红**。把校验有效性系于"数据里碰巧有没有一个汉字"不可接受。另记：`parse_float=Decimal` 与普通 `json.loads` 在同一批 `raw` 上混用，任何以字节为键的缓存都必须把解码口径并入键。
+
+  **来自 [facts 遍历调查](../finding-commodity-facts-cost-20260921.md)**：合并三处遍历可行但收益仅为上述不变量外提的四分之一，且会前移 `KeyError` 时机；其中"任一 `public_available_at` 为空则整体为 `None`"必须以独立标志实现，写成 `max(t for t in ... if t is not None)` 会让本应被拒的 claim 通过。该项未实施。
+
+  按 [ADR-0014](../../../docs/adr/0014-full-suite-only-at-freeze-points.md)，上述改动的完整验证留待冻结节点，本条不宣称全套结论。
