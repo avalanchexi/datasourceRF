@@ -123,3 +123,23 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
   **来自 [facts 遍历调查](../finding-commodity-facts-cost-20260921.md)**：合并三处遍历可行但收益仅为上述不变量外提的四分之一，且会前移 `KeyError` 时机；其中"任一 `public_available_at` 为空则整体为 `None`"必须以独立标志实现，写成 `max(t for t in ... if t is not None)` 会让本应被拒的 claim 通过。该项未实施。
 
   按 [ADR-0014](../../../docs/adr/0014-full-suite-only-at-freeze-points.md)，上述改动的完整验证留待冻结节点，本条不宣称全套结论。
+
+- 2026-09-21 `_commodity_claims_valid` 线索已查证并收口（本票内小切片，不新开性能项目）。查证过程与全部实测见[claims_valid 成本调查](../finding-claims-valid-cost-20260921.md)。
+
+  **前一条记录里的线索前提不成立。** 那里怀疑「`as_of` 随调用变化导致 key 从不命中」或「`scope_cache` 返回 `None` 时完全不去重」。带探针实跑两轮（248.00 / 252.05 秒，数据逐项一致）后两条都被推翻：720 次 `claims_checked_once` 的 `in_scope` 全部为真，其中 **280 次全部命中缓存**；`as_of` 在一次 run 内恒定。去重机制按设计在工作，**不需要也不应改动缓存键**。
+
+  真实成本是：440 次实际检查只覆盖 **110 个日快照**，每个被检查 4 遍 = 2 个 commodity metric × 2 次 `process_pending_run`。跨 run 的那一倍是 `shared_read_scope` 的边界，不可省；同 run 内两个 metric 的那一倍是纯重复，它们各自解析同一天的同一份快照、各自重算同一天的篮子。前一条记录写的「约 100 次实际检查」对应的是 110 个不同的天，不是检查次数。
+
+  调用点唯一：`search_evidence.py:312 select`。顺带否掉另一个嫌疑——`model_evaluation` 那个逐日 cutoff 循环属于 `evaluate_context_replay`，`src/` 里没有任何调用方，不在 Worker 路径上。
+
+  **照搬 `require_commodity_results` 的 `checked[ids]` 会撑爆内存**：同组两次解析的间隔恒为 110 次（`full_retrieval` 的计划把 metric 排外层、日期排内层），定长缓存命中为 0，要吃掉重复得常驻 110 份中位 12.6 MB 的快照 ≈ 1.4 GB，与该函数「至多持有一份快照和一天的重算」的既有约束冲突。因此改为缓存**结论**而非材料：新增 `_commodity_group_verdict`，只留 `definition_version`、`business_date`、`_commodity_members` 新建的 8 个标量字典、`published` 与 `agreement`，约 1 KB/天；快照与重算结果都不驻留，内存约束不变。五道原件校验一道不少，只在首次执行；失败不入缓存，错误时机不变。
+
+  **三处执行路径变化、返回值不变**已记录在案：`agreement`、`published` 与 `calculate_commodity_basket` 的失败重试，都从 per-claim 的 `try` 移到 group 层，异常由「跳过该 claim」变为「跳过整组」。逐条核对 `valid` 集合不变（三者都是组内不变量）；重算重试那一条还多一层——重试用同一天同一 `mode`/`as_of`，必然同样失败，省掉的是一次注定失败的重算，原注释「a failed recalculation is retried」已随之改正。与[facts 遍历调查](../finding-commodity-facts-cost-20260921.md)约束 6 同型。
+
+  **两轴审查后的调整**：规格轴指出「失败不入缓存」只有实现没有测试，已补 `test_a_damaged_original_is_read_again_by_the_next_metric_in_one_read`，并临时注入「缓存失败」的回归确认该测试如期变红（`1 == 2`）后还原；规格轴还指出上述第三处变化当时未记录，已补。标准轴指出缓存键没有点名 `expected_for` 闭包读到的 `paths`（今天靠 `commodity_artifact_root_mismatch` 守卫才必然一致），键已补上 `str(paths.database)`；`dict[str, Any]` 已换成 frozen dataclass `_CommodityGroupVerdict`，`members` 收为 `tuple` 并在 docstring 写明它现在是跨调用共享的只读对象。未采纳的几条及理由记在调查文件里，以免下轮重查。
+
+  **验证**：新增红测试 `test_one_read_shares_one_day_of_original_and_recalculation_across_commodity_metrics`（改前 `2 == 1` 失败，改后通过）；commodity 两文件 35 passed / 38.07 秒；`select` 与回放两条调用路径 110 passed / 574.54 秒；受影响重型文件 `test_worker_registered_catalog.py` **10 passed / 1963.61 秒**（含素材重建）；mypy 102 文件无问题，ruff check 与本轮两文件的 format 均通过。审查调整后源码又改过一次，因此上述三项与重型收据都是对定稿代码重跑的结果，未沿用审查前那一轮（审查前的重型收据为 10 passed / 2075.62 秒）。
+
+  **收益按实测记录，不按推算**。同探针复跑确认 `_commodity_document` 与 `calculate_commodity_basket` 各由 440 次降至 **220 次**（剩下的两次即两次 run），入口与去重调用次数一个没变；`_commodity_claims_valid` 合计耗时 156.53 → 80.95 秒。用例耗时同口径（单独运行、带探针）252.05 → 174.38 秒，无探针单独运行 166.36 秒，整个重型文件内运行 188.30 秒——三种口径各自成对比较，不可相减。
+
+  仍开放：`registered_definitions` 的 6.33 秒重复解析（[JSON 解析调查](../finding-json-decode-cost-20260921.md)排第一的落点，本次未动）；`commodity_basket.py:649` 的 `checked[ids]` 式复用；[facts 遍历调查](../finding-commodity-facts-cost-20260921.md)的三处遍历合并（收益为不变量外提的四分之一，未实施）。按 [ADR-0014](../../../docs/adr/0014-full-suite-only-at-freeze-points.md)，本条不宣称全套结论，本票真实验收条件与勾选状态不变。

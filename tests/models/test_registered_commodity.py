@@ -652,6 +652,135 @@ def test_period_selection_rechecks_only_the_claims_it_can_adopt(
 
 
 @pytest.mark.usefixtures("acquisition_clock")
+def test_one_read_shares_one_day_of_original_and_recalculation_across_commodity_metrics(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The level and its sleeve contributions come from one snapshot, so one read verifies it.
+
+    A full run plans one scope per metric, so the two commodity metrics reach selection as
+    two separate calls. Both resolve to the same day's snapshot and the same recalculation,
+    and neither depends on which metric asked: the original is still parsed and checked in
+    full the first time, and the second call reuses that verdict rather than repeating it.
+    Measured on the full Worker test, that repetition was 220 parses and 220 recalculations
+    (see finding-claims-valid-cost-20260921.md).
+    """
+    from pring_cycle import commodity_basket
+    from pring_cycle.commodity_basket import persist_commodity_basket
+    from pring_cycle.read_scope import shared_read_scope
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_commodity_manifest(paths, capsys)
+    capture_reviewed_basket_inputs(paths)
+    stored = persist_commodity_basket(
+        paths,
+        business_date=date(2026, 3, 10),
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert stored["missing"] == []
+
+    parsed: list[tuple[str, ...]] = []
+    recalculated: list[date] = []
+    read_document = commodity_basket._commodity_document
+    recalculate = commodity_basket.calculate_commodity_basket
+
+    def record_document(inputs: Any, artifacts: Path) -> dict[str, Any]:
+        parsed.append(tuple(sorted(i.receipt.acquisition_id for i in inputs)))
+        return read_document(inputs, artifacts)
+
+    def record_recalculation(
+        run_paths: RuntimePaths, *, business_date: date, mode: AsOfMode, as_of: datetime
+    ) -> dict[str, Any]:
+        recalculated.append(business_date)
+        return recalculate(run_paths, business_date=business_date, mode=mode, as_of=as_of)
+
+    monkeypatch.setattr(commodity_basket, "_commodity_document", record_document)
+    monkeypatch.setattr(commodity_basket, "calculate_commodity_basket", record_recalculation)
+
+    selected: set[str] = set()
+    with shared_read_scope():
+        for metric_id in ("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"):
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date="2026-03-10",
+                client_request_id=f"one-read-{metric_id}",
+                model_version_id=manifest["model_version_id"],
+                system_as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+                release_event_id="synthetic:commodity-one-read",
+                metric_ids=(metric_id,),
+                period="2026-03-10",
+            )
+            selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+            assert selection.complete
+            selected.update(selection.selected_claim_ids)
+
+    assert selected == set(stored["claim_ids"])
+    assert len(parsed) == 1
+    assert len(recalculated) == 1
+
+
+@pytest.mark.usefixtures("acquisition_clock")
+def test_a_damaged_original_is_read_again_by_the_next_metric_in_one_read(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Sharing a verdict must not turn one failed read into a remembered verdict.
+
+    A snapshot that cannot be read leaves no verdict to share, so the next metric reaching
+    the same day reads it again and fails in the same place. Remembering the failure would
+    move where later callers see it, which is the one thing reuse must not change.
+    """
+    from pring_cycle import commodity_basket
+    from pring_cycle.commodity_basket import persist_commodity_basket
+    from pring_cycle.read_scope import shared_read_scope
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    manifest = admitted_commodity_manifest(paths, capsys)
+    capture_reviewed_basket_inputs(paths)
+    stored = persist_commodity_basket(
+        paths,
+        business_date=date(2026, 3, 10),
+        mode=AsOfMode.PUBLIC,
+        as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+        definition_version=manifest["metric_catalog_version"],
+    )
+    assert stored["missing"] == []
+
+    digest = stored["result_hash"]
+    damaged = paths.artifacts / digest[:2] / digest
+    damaged.write_bytes(b"{}")
+
+    attempts: list[tuple[str, ...]] = []
+    read_document = commodity_basket._commodity_document
+
+    def record_document(inputs: Any, artifacts: Path) -> dict[str, Any]:
+        attempts.append(tuple(sorted(i.receipt.acquisition_id for i in inputs)))
+        return read_document(inputs, artifacts)
+
+    monkeypatch.setattr(commodity_basket, "_commodity_document", record_document)
+
+    with shared_read_scope():
+        for metric_id in ("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"):
+            run = RunRepository(paths.database).submit(
+                command_type="targeted_refresh",
+                target_business_date="2026-03-10",
+                client_request_id=f"damaged-current-{metric_id}",
+                model_version_id=manifest["model_version_id"],
+                system_as_of=datetime(2026, 3, 10, 9, tzinfo=UTC),
+                release_event_id="synthetic:commodity-damaged-current",
+                metric_ids=(metric_id,),
+                period="2026-03-10",
+            )
+            selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
+            assert not set(selection.selected_claim_ids) & set(stored["claim_ids"])
+
+    assert len(attempts) == 2
+    assert len(set(attempts)) == 1
+
+
+@pytest.mark.usefixtures("acquisition_clock")
 def test_a_damaged_original_outside_the_period_leaves_the_selection_complete(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

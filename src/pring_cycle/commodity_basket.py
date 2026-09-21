@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from fractions import Fraction
 from pathlib import Path
@@ -23,7 +25,7 @@ from pring_cycle.futures_input_reads import (
     shared_futures_input_reads,
 )
 from pring_cycle.futures_inputs import PRODUCT_EXCHANGES
-from pring_cycle.read_scope import claims_checked_once
+from pring_cycle.read_scope import claims_checked_once, scope_cache
 from pring_cycle.runtime import RuntimePaths
 
 COMMODITY_FORMULA_VERSION = "ex-hog-calendar-settlement-v0002"
@@ -621,6 +623,66 @@ def commodity_claims_matching_acquisitions(
     )
 
 
+@dataclass(frozen=True)
+class _CommodityGroupVerdict:
+    """What one day's stored snapshot says, in the small terms a claim is compared against.
+
+    Members are shared with every later reader of the same verdict and must stay read-only.
+    """
+
+    definition_version: str
+    business_date: str
+    members: tuple[dict[str, Any], ...]
+    agreement: bool
+    published: datetime | None
+
+
+def _commodity_group_verdict(
+    inputs: tuple[SourceClaimAcquisition, ...],
+    artifacts: Path,
+    *,
+    definition_version: str,
+    periods: frozenset[str],
+    expected_for: Callable[[str], Any],
+) -> _CommodityGroupVerdict:
+    """Read one day's snapshot and say what it holds, without keeping the snapshot itself.
+
+    Reaching it parses a snapshot of about 12.6 MB and rebuilds that day. A full run plans
+    one scope per metric, so it asks for the same day once per commodity metric, and the
+    answer does not depend on which metric asked. Only these few fields are kept -- never
+    the snapshot, never the rebuilt day -- so a shared read can reuse the answer without
+    what the run holds growing with the number of days it checks.
+
+    The recalculation stays as lazy as it was: a snapshot that no asked-for period or
+    definition can match never reaches it. That laziness is why ``periods`` belongs in the
+    caller's cache key -- a verdict reached with a different set of asked-for periods may
+    have stopped before deciding agreement.
+    """
+    document = _commodity_document(inputs, artifacts)
+    result = document["result"]
+    stored_version = document["definition_version"]
+    business_date = document["business_date"]
+    members = tuple(_commodity_members(result))
+    agreement = False
+    published: datetime | None = None
+    if stored_version == definition_version and business_date in periods:
+        # Equivalent later deliveries may have different receipt identities. Preserve the
+        # historical claim's parents, validating their originals, while comparing the facts
+        # selected at the caller's cutoff.
+        expected = expected_for(business_date)
+        agreement = _commodity_meaning_equal(result, expected) and not result["missing"]
+        if agreement:
+            # The publication time is a property of the group's result, not of a claim.
+            published = _commodity_publication(result)
+    return _CommodityGroupVerdict(
+        definition_version=stored_version,
+        business_date=business_date,
+        members=members,
+        agreement=agreement,
+        published=published,
+    )
+
+
 def _commodity_claims_valid(
     repository: EvidenceRepository,
     selected: dict[str, tuple[str, MetricSeriesPoint]],
@@ -639,55 +701,68 @@ def _commodity_claims_valid(
         groups.setdefault(tuple(sorted(i.receipt.acquisition_id for i in inputs)), []).append(
             claim_id
         )
+    # A run reaches the same day once per commodity metric, in two separate scopes, so a
+    # shared read answers the second from the first. The cached verdict holds no snapshot
+    # and no rebuilt day, and outside a scope nothing is shared at all.
+    verdicts = scope_cache("commodity_group_verdicts")
     valid = set()
     expected_day: str | None = None
     expected: Any = None
-    for claim_ids in sorted(
-        groups.values(), key=lambda ids: min(selected[i][1].period_end for i in ids)
+
+    def expected_for(business_date: str) -> Any:
+        nonlocal expected_day, expected
+        if expected_day != business_date:
+            # Release the previous day before rebuilding another one.
+            expected_day, expected = None, None
+            expected = calculate_commodity_basket(
+                paths,
+                business_date=date.fromisoformat(business_date),
+                mode=mode,
+                as_of=as_of,
+            )
+            expected_day = business_date
+        return expected
+
+    for identities, claim_ids in sorted(
+        groups.items(), key=lambda group: min(selected[i][1].period_end for i in group[1])
     ):
-        try:
-            document = _commodity_document(inputs_by_claim[claim_ids[0]], artifacts)
-        except (ValueError, KeyError, TypeError, LookupError, OSError):
-            continue
-        result = document["result"]
-        agreement: bool | None = None
-        # The publication time is a property of the group's result, not of a claim, and the
-        # loop never rebinds or writes result. Computing it per claim walked the same ~160k
-        # nodes four times over on average. It stays inside the try so that a malformed
-        # result still invalidates the claim it was first reached from, exactly as before.
-        published: datetime | None = None
-        published_known = False
+        periods = frozenset(selected[claim_id][1].period_end for claim_id in claim_ids)
+        # Everything the verdict reads: its originals, both roots they are read through, the
+        # cutoff its recalculation uses, and the periods that decide whether it got that far.
+        key = (
+            str(paths.database),
+            str(artifacts),
+            identities,
+            definition_version,
+            mode,
+            as_of,
+            periods,
+        )
+        verdict: _CommodityGroupVerdict | None = None if verdicts is None else verdicts.get(key)
+        if verdict is None:
+            try:
+                verdict = _commodity_group_verdict(
+                    inputs_by_claim[claim_ids[0]],
+                    artifacts,
+                    definition_version=definition_version,
+                    periods=periods,
+                    expected_for=expected_for,
+                )
+            except (ValueError, KeyError, TypeError, LookupError, OSError):
+                continue
+            if verdicts is not None:
+                verdicts[key] = verdict
         for claim_id in claim_ids:
             metric, point = selected[claim_id]
             try:
                 if (
-                    document["definition_version"] != definition_version
-                    or document["business_date"] != point.period_end
+                    verdict.definition_version != definition_version
+                    or verdict.business_date != point.period_end
+                    or not verdict.agreement
                 ):
                     continue
-                if expected_day != point.period_end:
-                    # Release the previous day first; a failed recalculation is retried.
-                    expected_day, expected = None, None
-                    expected = calculate_commodity_basket(
-                        paths,
-                        business_date=date.fromisoformat(point.period_end),
-                        mode=mode,
-                        as_of=as_of,
-                    )
-                    expected_day = point.period_end
-                # Equivalent later deliveries may have different receipt identities.
-                # Preserve the historical claim's parents, validating their originals,
-                # while comparing the facts selected at the caller's cutoff.
-                if agreement is None:
-                    agreement = _commodity_meaning_equal(result, expected) and not result[
-                        "missing"
-                    ]
-                if not agreement:
-                    continue
                 claim = next(c for c in point.claims if c.claim_id == claim_id)
-                if not published_known:
-                    published = _commodity_publication(result)
-                    published_known = True
+                published = verdict.published
                 if any(
                     m["metric_id"] == metric
                     and m["dimensions"] == point.dimensions
@@ -698,7 +773,7 @@ def _commodity_claims_valid(
                     == f"tushare:commodity_basket:{m['field']}:{point.period_end}"
                     and claim.release_at == published
                     and claim.public_available_at == published
-                    for m in _commodity_members(result)
+                    for m in verdict.members
                 ):
                     valid.add(claim_id)
             except (ValueError, KeyError, TypeError, LookupError, OSError):
