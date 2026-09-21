@@ -4,6 +4,7 @@ import json
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -931,3 +932,83 @@ def test_a_source_publishing_the_next_morning_still_counts_as_covered(
         if gap["metric_id"] == "CN_MARGIN_BALANCE" and gap["reason"] == "daily_coverage_missing"
     ]
     assert coverage == [], "a source that publishes the next morning is still covered"
+
+
+def import_valuation_missing_one_index(
+    paths: RuntimePaths, definition_version: str, *, absent: str
+) -> None:
+    """Deliver valuation for every index but one, the way the adapter can legally receive it.
+
+    ``index_valuation`` calls the API once per index, so one index returning no rows is a
+    delivery shape the contract accepts -- nothing here bypasses a guard. The other indices
+    are delivered unchanged.
+    """
+    from functools import partial
+
+    from tests.models.test_candidate_admission import encode
+    from tests.models.test_isolated_lifecycle import window_days
+
+    days = window_days("2026-03-02")
+    compact = [d.strftime("%Y%m%d") for d in days]
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        code = payload["params"].get("ts_code")
+        fields = ["ts_code", "trade_date", "pe", "pb", "turnover_rate"]
+        items = [] if code == absent else [[code, d, 12.5, 1.4, 0.8] for d in compact]
+        return encode({"code": 0, "data": {"fields": fields, "items": items}})
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+    def published(retrieve: Any) -> tuple[Any, ...]:
+        return synthetic_public_scalars(retrieve(start_date=days[0], end_date=days[-1]))
+
+    adapter.acquire_scalars(
+        paths,
+        partial(published, adapter.index_valuation),
+        definition_version=definition_version,
+    )
+
+
+def test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A family half delivered is not a family missing, and the difference has to be visible.
+
+    With no valuation material at all the diagnosis is ``source_material_missing`` -- true but
+    indistinguishable from a source that was never reached. Here 000300 and 000905 arrive and
+    000852 does not, so the preflight has to name the three members it cannot select, and only
+    those three: naming the family, or all nine members, would hide which delivery fell short.
+    """
+    paths = RuntimePaths.discover(tmp_path)
+    initialize_runtime(paths)
+    candidate = admit_complete_candidate(paths, capsys)
+    version = str(ModelRepository(paths.database).manifest(candidate)["metric_catalog_version"])
+    import_valuation_missing_one_index(paths, version, absent="000852.SH")
+
+    main(
+        [
+            "model-input-preflight",
+            "--runtime-root",
+            str(tmp_path),
+            "--model",
+            candidate,
+            "--start",
+            "2026-03-09",
+            "--end",
+            "2026-08-28",
+            "--json",
+        ]
+    )
+    result = json.loads(capsys.readouterr().out)
+    valuation = [gap for gap in result["gaps"] if gap["metric_id"] == "CN_INDEX_VALUATION"]
+    selection = [gap for gap in valuation if gap["reason"] == "input_selection_missing"]
+    assert selection, [gap["reason"] for gap in valuation]
+    # A daily family's shortfall belongs to the day it was checked, not to a carried-over one.
+    assert all(gap["period"] == gap["business_date"] for gap in selection)
+    assert {gap["missing_members"] for gap in selection} == {
+        ";".join(
+            f'CN_INDEX_VALUATION:{{"index": "000852.SH", "measure": "{measure}"}}'
+            # The order is VALUATION_FIELDS', not alphabetical: pe, pb, turnover_rate.
+            for measure in ("price_earnings", "price_book", "turnover_rate")
+        )
+    }

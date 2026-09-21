@@ -42,6 +42,14 @@ Date: 2026-09-20
 
 按「先写会失败的反例，再改实现」：
 
+> **2026-09-21 已实施**：维度专项已落地
+> `test_material_preflight.py::test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family`
+> ——交付 000300 与 000905、000852 返回空行，断言 `input_selection_missing` 的 `missing_members`
+> **恰好**是 000852 的三个 measure。实测顺序是 `VALUATION_FIELDS` 的定义序
+> （`price_earnings`、`price_book`、`turnover_rate`），**不是**[可达性分类](finding-19-dimension-reachability-20260921.md)
+> 草图里写的字母序。已验证该测试非恒真：所有指数都正常交付时 valuation 一条 gap 都没有。
+> `pending_checks` 仍是静态常量，其真值化按下面第 5 条留待后续切片。
+
 1. **维度专项**（缺口最明确、成本最低）：构造合法候选后删去某多维指标的一个维度成员，预检应精确报出 `metric_id` 与缺失成员，而不是只给 `input_selection_missing`。再补 `required_dimension_members` 返回 None 时的合同不可用分支。
 2. **全公式父项诊断范围**：遍历 `rules.formula_versions`，对每个公式各造一次父项缺失，确认都能返回父项级诊断而非只列公式失败。
 3. **完整有效材料正例**：在 2026-09-20 首次跑通的整窗基础上（120 天、必需 gaps 0），补一条断言「合法完整材料下必需缺口为空且五项检查均已执行」的正例。这是把 `pending_checks` 从静态常量改为按实际覆盖计算的前提。
