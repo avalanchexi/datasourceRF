@@ -35,6 +35,18 @@ class AsOfMode(StrEnum):
     SYSTEM = "system_as_of"
 
 
+# An identity created by an approved migration cannot inherit the retired id's unreviewed
+# delivery path: an old row must not become the new fact just by being relabelled. Its own
+# delivery contract is required even while the source is still only a candidate.
+_MIGRATED_IDENTITIES = frozenset(
+    {
+        "CN_USDCNH_TMA_SPOT_RATE",
+        "CN_USDCNY_ECB_REFERENCE_CROSS",
+        "CN_MARGIN_BALANCE_SSE_SZSE",
+    }
+)
+
+
 def publication_times(
     published_at: date | datetime | None, source_timezone: ZoneInfo
 ) -> tuple[datetime | None, datetime | None]:
@@ -1386,12 +1398,7 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
         raise ValueError("evidence_dimensions_mismatch")
     if claim.certification_status == "certified" and definition.certification_status != "certified":
         raise ValueError("evidence_source_not_certified_by_model")
-    # Replacement FX identities cannot inherit the legacy unreviewed broker path.
-    # Their own delivery contract is required even while the source is a candidate.
-    if claim.certification_status == "certified" or claim.metric_id in {
-        "CN_USDCNH_TMA_SPOT_RATE",
-        "CN_USDCNY_ECB_REFERENCE_CROSS",
-    }:
+    if claim.certification_status == "certified" or claim.metric_id in _MIGRATED_IDENTITIES:
         require_registered_source_contract(
             definition,
             provider=claim.provider,

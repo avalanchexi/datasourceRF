@@ -72,6 +72,12 @@ REQUIRED_DIMENSION_MEMBERS: dict[str, tuple[dict[str, str], ...]] = {
         {"measure": measure, "scope": "all_exchanges"}
         for measure in ("financing_balance", "financing_buy_amount")
     ),
+    # The two-exchange reading is its own metric, not a narrowed CN_MARGIN_BALANCE: Beijing
+    # refuses the public endpoints, and a scope is part of what the fact means.
+    "CN_MARGIN_BALANCE_SSE_SZSE": tuple(
+        {"measure": measure, "scope": "sse_szse"}
+        for measure in ("financing_balance", "financing_buy_amount")
+    ),
     "CN_INDEX_VALUATION": tuple(
         {"index": index, "measure": measure}
         # Required model members do not shrink to a provider's delivery coverage.

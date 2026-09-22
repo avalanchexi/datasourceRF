@@ -37,6 +37,18 @@ _P2_ECB_IDENTITY_MIGRATION: dict[str, Any] = {
     "version": "p2-ecb-reference-cross-v0001",
     "replacements": {"CN_USDCNH_FXCM": "CN_USDCNY_ECB_REFERENCE_CROSS"},
 }
+# Beijing refuses every public endpoint this project can reach, so the all-exchange scope can
+# never be delivered. The approved disposition renames the metric to what it does measure
+# rather than demoting it or subtracting a residual; the old identity keeps its history.
+# ``removed_metric_ids`` and ``history_policy`` are not read by the branch below: they are
+# part of the declaration the manifest must match exactly, which is what makes an approved
+# migration distinguishable from an arbitrary catalog edit.
+_MARGIN_SCOPE_MIGRATION: dict[str, Any] = {
+    "version": "margin-two-exchange-scope-v0001",
+    "replacements": {"CN_MARGIN_BALANCE": "CN_MARGIN_BALANCE_SSE_SZSE"},
+    "removed_metric_ids": [],
+    "history_policy": "retain_separate",
+}
 
 
 def _admission_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
@@ -44,8 +56,44 @@ def _admission_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
     if "metric_identity_migration" not in manifest:
         return expected
     migration = manifest["metric_identity_migration"]
-    if migration not in (_P2_IDENTITY_MIGRATION, _P2_ECB_IDENTITY_MIGRATION):
+    if migration not in (
+        _P2_IDENTITY_MIGRATION,
+        _P2_ECB_IDENTITY_MIGRATION,
+        _MARGIN_SCOPE_MIGRATION,
+    ):
         raise ValueError("certification_identity_migration_unsupported")
+    if migration == _MARGIN_SCOPE_MIGRATION:
+        previous_margin = expected.pop("CN_MARGIN_BALANCE")
+        # The reviewed catalog states margin far more fully than the builtin stub does
+        # (its own unit, dimensions and candidates), and those carry across a rename
+        # untouched. Only the fields that say *which delivery this is* are dictated here,
+        # so the drift gate compares identity rather than re-litigating the whole shape.
+        declared = next(
+            (
+                item
+                for item in manifest.get("metric_definitions", ())
+                if item.get("metric_id") == "CN_MARGIN_BALANCE_SSE_SZSE"
+            ),
+            None,
+        )
+        carried: dict[str, Any] = {}
+        if declared is not None:
+            carried = {
+                field: tuple(declared[field])
+                if isinstance(declared[field], list)
+                else declared[field]
+                for field in ("unit", "allowed_units", "dimensions", "source_candidates")
+                if field in declared
+            }
+        expected["CN_MARGIN_BALANCE_SSE_SZSE"] = replace(
+            previous_margin,
+            metric_id="CN_MARGIN_BALANCE_SSE_SZSE",
+            name_cn="沪深两所融资余额与买入额",
+            source_codes=("SSE_SZSE_MARGIN_BALANCE",),
+            release_event_family="cn_margin_balance_sse_szse",
+            **carried,
+        )
+        return expected
     for metric_id in _P2_IDENTITY_MIGRATION["removed_metric_ids"]:
         del expected[metric_id]
     previous = expected.pop("CN_USDCNH_FXCM")
@@ -177,6 +225,7 @@ def _validate_manifest(
         identity = {
             "CN_USDCNH_TMA_SPOT_RATE": "tma",
             "CN_USDCNY_ECB_REFERENCE_CROSS": "ecb",
+            "CN_MARGIN_BALANCE_SSE_SZSE": "margin_scope",
         }.get(definition.metric_id)
         if identity is not None and any(
             getattr(definition, field) != getattr(baseline, field)

@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.4.2, pluggy-1.6.0
+rootdir: /mnt/d/cursor/datasourceRF
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collected 68 items
+
+tests/models/test_margin_scope_migration.py .....                        [  7%]
+tests/models/test_p2_identity_migration.py ..............                [ 27%]
+tests/models/test_ecb_identity_migration.py ............                 [ 45%]
+tests/models/test_source_certification.py ....                           [ 51%]
+tests/models/test_material_preflight.py ................................ [ 98%]
+.                                                                        [100%]
+
+======================== 68 passed in 118.59s (0:01:58) ========================
