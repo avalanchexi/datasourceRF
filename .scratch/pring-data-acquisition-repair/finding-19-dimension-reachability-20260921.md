@@ -246,3 +246,46 @@ CN_INDEX_VALUATION:{"index": "000852.SH", "measure": "turnover_rate"}
 解析部分由纯内存探针实测（三次独立请求、六个标量、按指数重解析 `3、3、0`、经济字段比较相等）；
 **入库到预检那一段仍是读码复核，未跑完整生命周期**。另外，「当前接入契约接受这种交付形态」
 不等于「真实 TuShare 曾返回过该形态」——这两件事不可混谈。
+
+## 2026-09-22 实测：通道 B 已由反例确认，第 7 节的推断可以撤销
+
+第 7 节把「六道守卫都不触发」列为**推断、未实测**。本日已实测，**推断成立，没有一道守卫触发**。
+
+通道 A（空行，per-index）此前已由 `4afd7d6` 落为
+`test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family`，缺 3 个成员。
+本次补的是第 6 节「更锐的变体」——**通道 B**：
+
+- 新增 `import_valuation_missing_one_measure` 与
+  `test_preflight_names_the_single_measure_a_delivered_row_omits`
+  （`tests/models/test_material_preflight.py`）。000852.SH 每日照常返回行，**只把 `pb` 列置 null**。
+- 结果：`input_selection_missing`，`missing_members` **恰好一条**——
+  `CN_INDEX_VALUATION:{"index": "000852.SH", "measure": "price_book"}`。
+  另外 8 个成员不出现，000852 的其余两个 measure 也不出现。
+
+**这条比通道 A 更锐在哪**：通道 A 的缺口仍可被读成「按指数记账」（那次缺的恰好是一个指数的
+全部三项）。通道 B 证明检查粒度到 **measure**，不是到 index——行到了、收据完整、重解析一致，
+唯一能发现它的就是逐成员比对。
+
+**否定对照**（一次性用例，已删除）：同一夹具把置空列换成 `pe` 与 `turnover_rate`，
+缺失成员随之变为 `price_earnings` 与 `turnover_rate`，各 1 条。
+断言随实际空列变化，不是常量空过。
+
+**实测数据**：
+- 新用例 + 兄弟用例 2 passed / 12.12 秒 → `verification-19-valuation-measure-member-20260922.txt`
+- `test_material_preflight.py` 整文件 33 passed / 91.63 秒 / exit 0 →
+  `verification-19-preflight-file-20260922.txt`
+- Ruff check 与 format 均通过。
+
+**环境更正一处**：`.venv` 里的已安装 `pring_cycle` 当时缺 `acquisition.py` 等模块，
+直接 `pytest` 会以 `ModuleNotFoundError` 收集失败。按 `tools/check.py:101` 自带的指示
+`uv sync --extra dev --no-editable --reinstall-package pring-cycle` 重装后正常。
+这正是 `docs/agents/testing.md`「实际导入的发行物」那一节说的**已构建副本而非 editable 链接**，
+不是代码问题。
+
+**仍然成立、本次未动**：`dimensions` 仍在 `material_preflight.py:335` 的 `pending_checks` 内，
+按第 0 节判决**不移出**。本次只加反例，未改 `src/`、未改 `pending_checks`、未勾选 #19 任何验收
+——#19 的验收条件要的是「真实完整候选」，合成夹具的软件反例不能替它勾选。
+
+**下一个可做的同类切片**：`CN_M1_M2`（第 5 节）原理可达但需先给夹具新增整条 tushare money
+采集通道，成本高于 valuation 且触碰双来源审查，仍**不建议**作为下一条。
+`CN_PMI_*`、`CN_SHIBOR_ON_1W_3M`、`CN_SF_TOTAL` 三族从未纳入可达性核对，是更划算的下一步。

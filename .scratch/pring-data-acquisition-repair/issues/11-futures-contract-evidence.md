@@ -49,3 +49,5 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-06：用户指示下一步后发布；按阻塞边领取，来源/业务规则缺件仍由各票显式处理。
 
 - 2026-09-13 批611/612：两项新增软件AC完成，见[实施记录](../implementation-11-futures-inputs.md)、[输入消费协议](../futures-input-consumer-contract.md)及[根核验](../verification-futures-acceptance-611.json)。公开后审绑定与SYSTEM/PUBLIC修订排序均经实际RED/GREEN及复审，608 Spec剩余0/Standards硬违规0，保留两项非阻断P3建议。真实来源认证仍blocked，接续12，不结束完整实施目标。
+
+- 2026-09-22 领域决定（**已订正同日早先的两级证据版本**）：公开可用时间只认**该值自己的发布证据**，没有第二级——由官方日程/编制规则推导各日发布日期属「预期发布窗口」，`CONTEXT.md:186` 明写它不等于实际发布时间，`:175` 又把「计划发布日期」「推测发布时间」列入「公开可用时间」的 `_Avoid_`。因此本票的 历史 PUBLIC 时点 不能用规则反推补齐。**执行指令**：编制规则版本史照抓，但归**口径认证**、不折算成发布时间；历史公开时间必须另取该值当时的发布证据，重试采集时两者一并取回。取不到逐版本发布证据的区段即认证不了，按 [ADR-0016](../../../docs/adr/0016-certification-gate-escape-valve-is-catalog-membership.md) 在「缩短已认证历史起点 / 降级为 P2 / 移出目录」之间处置，不得让未认证的 P1 带缺口进候选。全文见[共享决策记录](../decision-historical-publication-evidence-20260922.md)与 [ADR-0018](../../../docs/adr/0018-tiered-evidence-for-historical-publication-dates.md)。本条未勾选任何验收。

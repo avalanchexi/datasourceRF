@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Execution: completed
 Scope: 阻断所有正式阶段产出；优先级高于票13 的认证工序
 Decision: 2026-09-18 为前端改版查证"核心资产数据集为何全空"时发现。见[发现记录](../finding-empty-trade-calendar-20260918.md)。
@@ -81,3 +81,9 @@ Correction: 2026-09-21 只读核对发现下方「现象」与「根因」两节
 ## 与票13 的关系
 
 此前把关键路径判为"票13 的 18 项 A 类认证"。那个判断方向没错但不完整：**即使 18 项全部认证完成，只要日历仍为空，运行照样降级、阶段照样为空。** 本票应排在票13 之前。
+
+## 2026-09-22 票面归一：`Status:` 改为 done
+
+四项验收均已勾选且 `Execution: completed`，但 `Status:` 一直停在 `ready-for-agent`。
+按票17 的先例（`Status: done` ＋ `Execution: completed`）归一为 `done`。
+**这不是状态变更**：勾选、Execution 与实施内容均未动，只修正票头与实况脱节的一行。

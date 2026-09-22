@@ -1,0 +1,15 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.4.2, pluggy-1.6.0
+rootdir: /mnt/d/cursor/datasourceRF
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collected 2 items
+
+tests/models/test_material_preflight.py ..                               [100%]
+
+============================= slowest 5 durations ==============================
+6.60s call     tests/models/test_material_preflight.py::test_preflight_names_the_single_measure_a_delivered_row_omits
+4.28s call     tests/models/test_material_preflight.py::test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family
+
+(3 durations < 0.005s hidden.  Use -vv to show these durations.)
+============================== 2 passed in 12.12s ==============================

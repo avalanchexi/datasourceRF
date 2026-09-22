@@ -1,0 +1,20 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.4.2, pluggy-1.6.0
+rootdir: /mnt/d/cursor/datasourceRF
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collected 33 items
+
+tests/models/test_material_preflight.py ................................ [ 96%]
+.                                                                        [100%]
+
+============================= slowest 8 durations ==============================
+14.26s call     tests/models/test_material_preflight.py::test_preflight_rejects_missing_credit_difference_baseline
+12.82s call     tests/models/test_material_preflight.py::test_prepared_core_inputs_include_a_validated_independent_calendar
+9.93s call     tests/models/test_material_preflight.py::test_preflight_identifies_a_damaged_historical_formula_parent
+5.60s call     tests/models/test_material_preflight.py::test_preflight_names_the_single_measure_a_delivered_row_omits
+4.22s call     tests/models/test_material_preflight.py::test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family
+2.43s call     tests/models/test_material_preflight.py::test_preflight_validates_calendar_artifacts_and_requested_range[late_capture]
+2.42s call     tests/models/test_material_preflight.py::test_preflight_checks_each_calendar_day_not_only_the_last[20-1-False]
+2.41s call     tests/models/test_material_preflight.py::test_registered_calendar_claims_cannot_bypass_the_receipt_preflight[bound]
+======================== 33 passed in 91.63s (0:01:31) =========================

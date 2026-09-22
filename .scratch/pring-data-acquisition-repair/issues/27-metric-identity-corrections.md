@@ -39,3 +39,20 @@ Correction: 2026-09-22 事实对齐——**身份迁移软件已由五个提交�
 ## 未核实
 
 Cboe CSV、Nasdaq 指数站、TMA 定盘的当前可达性与可程序化取用方式。实现第一步应先核实，取不到则该项保持未认证而非降级冒充。
+
+## 2026-09-22 用户决定：三条 P2 通道只推 VIX
+
+三项均为 P2，按 `candidate_admission.py:207` 可合法保持 `awaiting_source_certification`，
+因此这里的取舍不受 [ADR-0016](../../../docs/adr/0016-certification-gate-escape-valve-is-catalog-membership.md) 约束。
+
+| 通道 | 决定 | 理由 |
+|---|---|---|
+| `CBOE_VIX_INDEX` | **去接** | 唯一一项缺的是工时而非权利：官方免费 CSV 已可取，只需定 CLOSE 口径与时区、做适配器、走既有认证流程。**不得**从日期或常规日程补造历史发布时间。 |
+| `NASDAQ_SOX_INDEX` | **接受长期 `awaiting_source_certification`** | 卡点是用途许可，不是工时。为一项 P2 背景指标去谈持续保存与分析的授权，与当初删除两项黄金的账目相同（"为一项 P2 背景指标建整套非官方身份语义不划算"），应得同一结论。六日 XLSX 与方法文件保留为证据，不据此接入。 |
+| `CN_USDCNY_CLOSE_1630` | **接受长期 `awaiting_source_certification`** | 不是决心问题：`closeSpotPrice` 快照为 `---`，历史收盘原件不存在；当前成交价、中间价、ECB 交叉值都不得补位。人民币交叉的需求已由 `CN_USDCNY_ECB_REFERENCE_CROSS` 覆盖。 |
+
+**对验收三的影响**：该条改为"VIX 取得原件与认证材料并走既有认证流程；SOX 与 CLOSE_1630 记为
+合规缺口，作为受限 P2 保持未认证"。按票19 验收三「受限/未认证 P2 保持合规缺口，不作为强制采购条件」，
+这两项的未认证状态是**预期结果**，不是遗留缺件。
+
+**验收四不受影响**：`certification_status` 仍是两值，接受 awaiting 正是在既有取值内表达。

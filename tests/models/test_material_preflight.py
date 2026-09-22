@@ -1012,3 +1012,90 @@ def test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family(
             for measure in ("price_earnings", "price_book", "turnover_rate")
         )
     }
+
+
+def import_valuation_missing_one_measure(
+    paths: RuntimePaths, definition_version: str, *, index: str, null_column: str
+) -> None:
+    """Deliver every index, but leave one column of one index null in the rows that arrive.
+
+    This is the second way a delivery can fall short of its required members, and it is the
+    one no integrity guard can see. ``_valuation_scalars`` skips a measure whose column is
+    null (tushare_context.py:2044-2045), so the row is accepted and simply yields one scalar
+    fewer. Re-parsing the same original produces the same short set, which is why the batch
+    equality check (tushare_context.py:317-343) compares a short set against a short set and
+    is satisfied. Only a member-by-member comparison notices.
+    """
+    from functools import partial
+
+    from tests.models.test_candidate_admission import encode
+    from tests.models.test_isolated_lifecycle import window_days
+
+    days = window_days("2026-03-02")
+    compact = [d.strftime("%Y%m%d") for d in days]
+    # API column names, not canonical measure names: pe/pb/turnover_rate map to
+    # price_earnings/price_book/turnover_rate via VALUATION_FIELDS.
+    columns = ["pe", "pb", "turnover_rate"]
+    values: dict[str, float] = {"pe": 12.5, "pb": 1.4, "turnover_rate": 0.8}
+
+    def transport(payload: dict[str, Any]) -> bytes:
+        code = payload["params"].get("ts_code")
+        row: dict[str, float | None] = (
+            dict(values) if code != index else {**values, null_column: None}
+        )
+        fields = ["ts_code", "trade_date", *columns]
+        items = [[code, d, *(row[column] for column in columns)] for d in compact]
+        return encode({"code": 0, "data": {"fields": fields, "items": items}})
+
+    adapter = TushareContextAdapter("synthetic-token", transport=transport)
+
+    def published(retrieve: Any) -> tuple[Any, ...]:
+        return synthetic_public_scalars(retrieve(start_date=days[0], end_date=days[-1]))
+
+    adapter.acquire_scalars(
+        paths,
+        partial(published, adapter.index_valuation),
+        definition_version=definition_version,
+    )
+
+
+def test_preflight_names_the_single_measure_a_delivered_row_omits(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A row that arrived is not a row that delivered, and the shortfall is one measure wide.
+
+    The sibling test above withholds a whole index, so the gap could still be read as
+    per-index bookkeeping. Here every index arrives on every day and only 000852's ``pb``
+    column is null, so exactly one of the nine required members is unselectable. Naming that
+    one member -- not the index's three, not the family -- is what proves the dimension check
+    compares members rather than deliveries, and it is the only signal for this shortfall:
+    the original is intact, the receipt is complete, and re-parsing it agrees.
+    """
+    paths = RuntimePaths.discover(tmp_path)
+    initialize_runtime(paths)
+    candidate = admit_complete_candidate(paths, capsys)
+    version = str(ModelRepository(paths.database).manifest(candidate)["metric_catalog_version"])
+    import_valuation_missing_one_measure(paths, version, index="000852.SH", null_column="pb")
+
+    main(
+        [
+            "model-input-preflight",
+            "--runtime-root",
+            str(tmp_path),
+            "--model",
+            candidate,
+            "--start",
+            "2026-03-09",
+            "--end",
+            "2026-08-28",
+            "--json",
+        ]
+    )
+    result = json.loads(capsys.readouterr().out)
+    valuation = [gap for gap in result["gaps"] if gap["metric_id"] == "CN_INDEX_VALUATION"]
+    selection = [gap for gap in valuation if gap["reason"] == "input_selection_missing"]
+    assert selection, [gap["reason"] for gap in valuation]
+    # The other two measures of the same index still arrive, so the index itself is not absent.
+    assert {gap["missing_members"] for gap in selection} == {
+        'CN_INDEX_VALUATION:{"index": "000852.SH", "measure": "price_book"}'
+    }

@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.12, pytest-8.4.2, pluggy-1.6.0
+rootdir: /mnt/d/cursor/datasourceRF
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collected 33 items
+
+tests/models/test_material_preflight.py ................................ [ 96%]
+.                                                                        [100%]
+
+======================== 33 passed in 84.54s (0:01:24) =========================
