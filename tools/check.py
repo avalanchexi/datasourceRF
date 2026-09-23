@@ -62,11 +62,6 @@ def main() -> int:
         action="store_true",
         help="Run even when the installed pring_cycle differs from src/",
     )
-    parser.add_argument(
-        "--freeze",
-        action="store_true",
-        help="Declare this full run is for a frozen version's receipt (see ADR-0014)",
-    )
     args = parser.parse_args()
     if args.mode == "quick":
         if not args.tests:
@@ -79,20 +74,6 @@ def main() -> int:
                 parser.error(f"explicit heavy acceptance is required for: {node}")
     elif args.tests:
         parser.error("full always uses complete default discovery; omit selectors")
-    elif not args.freeze:
-        print(
-            "full produces one thing: the acceptance receipt for a frozen version. The material\n"
-            "identity key covers the source, so the next edit to src/ voids whatever this run\n"
-            "returns -- and this suite takes about 1.7 hours. Between 09-18 and 09-20 it was\n"
-            "started nine times for 14.4 hours and the receipts kept being voided (ADR-0014).\n"
-            "\n"
-            "  freezing a version  ->  tools/check.py full --freeze\n"
-            "  daily feedback      ->  tools/check.py quick <related test files>\n"
-            "  affected heavy work ->  run that acceptance explicitly",
-            file=sys.stderr,
-            flush=True,
-        )
-        return 2
     drift = _stale_environment()
     if drift is not None and not args.allow_stale_environment:
         print(
@@ -116,7 +97,7 @@ def main() -> int:
     print(f"Exit: {result.returncode}; elapsed: {elapsed:.2f}s", flush=True)
     if args.mode == "quick":
         print(
-            "Related feedback only. Complete affected heavy acceptance before closing the slice.",
+            "Affected feedback only. Close the slice with the two fast smoke tests (ADR-0025).",
             flush=True,
         )
         if elapsed > 180:

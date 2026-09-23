@@ -29,7 +29,7 @@ python tools/check.py quick tests/integration/test_worker_reviewed_context.py
 python tools/check.py full
 ```
 
-全套包含全部耗时测试，只看通过与否并记录实际耗时，不产出或复用收据；其余时候不跑。删除收据绑定与 `--freeze` 要求属于实施切片，落地前现有 `check.py full` 仍需 `--freeze`。
+全套包含全部耗时测试，只看通过与否并记录实际耗时，不产出或复用收据；其余时候不跑。
 
 ## 被删门禁的测试
 
