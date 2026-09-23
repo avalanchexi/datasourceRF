@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0021_context_replay_outputs"
+SCHEMA_HEAD = "0022_processing_batches"
 
 
 @contextmanager

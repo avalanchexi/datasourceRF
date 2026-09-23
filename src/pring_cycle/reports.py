@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection
 
@@ -334,6 +335,7 @@ class ReportRepository:
             connection.executescript(_REPORT_SCHEMA)
             upgrade_report_snapshot_nullable_stage(connection)
             upgrade_report_process_audit(connection)
+            add_batch_columns(connection)
         return repository
 
     def by_client_request(self, client_request_id: str) -> ReportSnapshot | None:
@@ -460,8 +462,8 @@ class ReportRepository:
                     report_snapshot_id, client_request_id, projection_set_id,
                     target_business_date, version, status, adapter, current_stage,
                     bundle_id, bundle_hash, model_version_id, schema_version,
-                    prompt_version, body_json, body_retained, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+                    prompt_version, body_json, body_retained, created_at, batch_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
                 """,
                 (
                     report_snapshot_id,
@@ -479,6 +481,7 @@ class ReportRepository:
                     PROMPT_CONTRACT_VERSION,
                     body_json,
                     datetime.now(UTC).isoformat(),
+                    current_batch_id(),
                 ),
             )
         return self.get(report_snapshot_id)

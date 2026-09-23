@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle.batches import add_batch_columns
 from pring_cycle.run_cutoffs import cutoff_contract, upgrade_run_cutoffs
 from pring_cycle.storage import database_connection
 
@@ -86,6 +87,7 @@ class RunRepository:
             connection.executescript(_RUN_SCHEMA)
             connection.executescript(_RETRIEVAL_RUN_SCHEMA)
             upgrade_run_cutoffs(connection)
+            add_batch_columns(connection)
             connection.execute(
                 """
                 INSERT OR IGNORE INTO schedule_configuration(
@@ -531,6 +533,13 @@ class RunRepository:
                     (run_id, datetime.now(UTC).isoformat()),
                 )
         return self.get(run_id)
+
+    def record_code_version(self, run_id: str, version: str) -> None:
+        """Name the code that processes this run; a batch records what produced it."""
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE parent_run SET code_version=? WHERE run_id=?", (version, run_id)
+            )
 
     def advance(self, run_id: str, step: str) -> RunRecord:
         if step not in RUN_STEPS:

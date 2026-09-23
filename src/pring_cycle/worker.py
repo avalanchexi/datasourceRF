@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from time import monotonic
 from zoneinfo import ZoneInfo
 
+from pring_cycle.batches import code_version, processing_batch
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import (
@@ -186,7 +187,8 @@ def process_pending_run(
         try:
             # A Worker run never captures reviewed futures inputs (only their reviewed import
             # does) or alters stored claims' parents, so one run shares one read of those.
-            with shared_read_scope():
+            runs.record_code_version(queued.run_id, code_version())
+            with shared_read_scope(), processing_batch(queued.run_id):
                 _execute_run(
                     paths,
                     runs,

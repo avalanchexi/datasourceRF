@@ -21,6 +21,7 @@ from pring_cycle.acquisition import (
     acquisition_analysis_context,
     receipt_from_row,
 )
+from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
 from pring_cycle.source_contract_review import (
@@ -1185,8 +1186,8 @@ class EvidenceRepository:
                 INSERT OR IGNORE INTO derived_observation(
                     derived_observation_id, metric_id, formula_version,
                     input_observation_version_ids_json, as_of_mode, as_of_cutoff,
-                    computed_at, value, unit
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    computed_at, value, unit, batch_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     derived_id,
@@ -1198,6 +1199,7 @@ class EvidenceRepository:
                     computed_at.isoformat(),
                     value,
                     unit,
+                    current_batch_id(),
                 ),
             )
         return StoredDerivedObservation(derived_id, inputs)
@@ -1314,6 +1316,7 @@ class EvidenceRepository:
             connection.executescript(_RELEASE_EVENT_EXTENSIONS_SCHEMA)
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
             connection.executescript(ACQUISITION_SCHEMA)
+            add_batch_columns(connection)
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:

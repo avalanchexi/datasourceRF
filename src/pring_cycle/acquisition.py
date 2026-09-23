@@ -14,6 +14,7 @@ from urllib.error import HTTPError
 from uuid import uuid4
 
 from pring_cycle.artifacts import store_artifact
+from pring_cycle.batches import row_count
 from pring_cycle.storage import database_connection
 
 
@@ -262,8 +263,13 @@ class AcquisitionRepository:
         with self._connect() as connection:
             connection.execute(
                 """UPDATE acquisition_request SET state='validated', normalized_hash=?,
-                   validated_at=? WHERE acquisition_id=? AND state='received'""",
-                (artifact.content_hash, validated_at.isoformat(), acquisition_id),
+                   validated_at=?, row_count=? WHERE acquisition_id=? AND state='received'""",
+                (
+                    artifact.content_hash,
+                    validated_at.isoformat(),
+                    row_count(normalized_value),
+                    acquisition_id,
+                ),
             )
         return self.get(acquisition_id)
 

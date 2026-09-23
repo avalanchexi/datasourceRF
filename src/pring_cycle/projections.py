@@ -10,6 +10,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.source_contract_review import require_stored_model_source_contract
 from pring_cycle.storage import database_connection
 
@@ -73,6 +74,7 @@ class ProjectionSetRepository:
         with repository._connect() as connection:
             connection.executescript(_PROJECTION_SCHEMA)
             connection.executescript(_P0_ASSESSMENT_SCHEMA)
+            add_batch_columns(connection)
         return repository
 
     def publish(
@@ -89,19 +91,22 @@ class ProjectionSetRepository:
             connection.execute("BEGIN IMMEDIATE")
             require_stored_model_source_contract(connection, envelope.model_version_id)
             connection.execute(
-                "INSERT INTO projection_set(projection_set_id, envelope_json) VALUES (?, ?)",
-                (envelope.projection_set_id, envelope_json),
+                "INSERT INTO projection_set(projection_set_id, envelope_json, batch_id) "
+                "VALUES (?, ?, ?)",
+                (envelope.projection_set_id, envelope_json, current_batch_id()),
             )
             for dataset_name in ANALYTICAL_DATASETS:
                 connection.execute(
                     """
-                    INSERT INTO analytical_dataset(projection_set_id, dataset_name, document_json)
-                    VALUES (?, ?, ?)
+                    INSERT INTO analytical_dataset(
+                        projection_set_id, dataset_name, document_json, batch_id
+                    ) VALUES (?, ?, ?, ?)
                     """,
                     (
                         envelope.projection_set_id,
                         dataset_name,
                         _canonical_json(datasets[dataset_name]),
+                        current_batch_id(),
                     ),
                 )
             if fail_before_pointer:
@@ -124,11 +129,12 @@ class ProjectionSetRepository:
             if current_target is None or envelope.target_business_date >= current_target:
                 connection.execute(
                     """
-                    INSERT INTO current_projection(singleton, projection_set_id) VALUES (1, ?)
+                    INSERT INTO current_projection(singleton, projection_set_id, batch_id)
+                    VALUES (1, ?, ?)
                     ON CONFLICT(singleton) DO UPDATE
-                    SET projection_set_id=excluded.projection_set_id
+                    SET projection_set_id=excluded.projection_set_id, batch_id=excluded.batch_id
                     """,
-                    (envelope.projection_set_id,),
+                    (envelope.projection_set_id, current_batch_id()),
                 )
 
     def prepare_p0_assessment(self, document: dict[str, object]) -> dict[str, object]:
@@ -228,8 +234,9 @@ class ProjectionSetRepository:
             connection.execute(
                 """
                 INSERT INTO data_gap_notice(
-                    notice_id, assessment_id, client_request_id, document_json, created_at
-                ) VALUES (?, ?, ?, ?, ?)
+                    notice_id, assessment_id, client_request_id, document_json, created_at,
+                    batch_id
+                ) VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     notice_id,
@@ -237,6 +244,7 @@ class ProjectionSetRepository:
                     client_request_id,
                     _canonical_json(document),
                     datetime.now(UTC).isoformat(),
+                    current_batch_id(),
                 ),
             )
         return document
@@ -268,8 +276,8 @@ class ProjectionSetRepository:
             """
             INSERT OR IGNORE INTO p0_assessment(
                 assessment_id, target_business_date, system_as_of,
-                event_kind, projection_set_id, document_json
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                event_kind, projection_set_id, document_json, batch_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(assessment["assessment_id"]),
@@ -282,6 +290,7 @@ class ProjectionSetRepository:
                     else None
                 ),
                 _canonical_json(assessment),
+                current_batch_id(),
             ),
         )
 
