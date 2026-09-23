@@ -52,84 +52,41 @@ def test_prepared_core_inputs_include_a_validated_independent_calendar(
     assert calendar["provenance"]["acquisition_id"] is not None
 
 
-@pytest.mark.parametrize("fault", [None, "missing", "late_public", "shared_history_hole"])
+@pytest.mark.parametrize(
+    "fault", [None, "missing", "late_public", "after_consumer_cutoff", "shared_history_hole"]
+)
 def test_preflight_checks_core_history_before_the_requested_window(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str | None
 ) -> None:
+    from tests.models.test_core_formula_warmup import (
+        admit_core_candidate,
+        capture_calendar,
+        capture_core,
+    )
+
     paths = RuntimePaths.discover(tmp_path)
     initialize_runtime(paths)
-    candidate = admit_complete_candidate(paths, capsys)
-    version = ModelRepository(paths.database).manifest(candidate)["metric_catalog_version"]
-    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
-    evidence = EvidenceRepository(paths.database)
+    calendar_days = [day.isoformat() for day in trading_days()[-140:]]
+    candidate, version = admit_core_candidate(paths, capsys, certified_from=calendar_days[0])
+    capture_calendar(paths, calendar_days)
     bad_metric = "CN_BOND_CORE_000012"
-    if fault == "shared_history_hole":
-        calendar_days = trading_days()[-122:]
-        calendar_raw = json.dumps(
-            {
-                "code": 0,
-                "data": {
-                    "fields": ["cal_date", "is_open"],
-                    "items": [[day.strftime("%Y%m%d"), 1] for day in calendar_days],
-                },
-            }
-        ).encode()
-        TushareCoreAdapter("synthetic-token", transport=lambda _: calendar_raw).acquire_calendar(
-            acquisitions, calendar_days[0], calendar_days[-1]
-        )
-    for metric, (api, code) in CORE_API_IDENTITIES.items():
-        days = (date(2026, 8, 27), date(2026, 8, 28))
+    for metric in CORE_API_IDENTITIES:
+        days = calendar_days
         if fault == "shared_history_hole":
-            days = (date(2026, 3, 5), date(2026, 8, 28))
-        if fault == "missing" and metric == bad_metric:
-            days = days[1:]
-        raw = json.dumps(
-            {
-                "code": 0,
-                "data": {
-                    "fields": ["ts_code", "trade_date", "close", "pre_close", "pct_chg"],
-                    "items": [[code, day.strftime("%Y%m%d"), 100.0, 100.0, 0.0] for day in days],
-                },
-            }
-        ).encode()
-        receipt = (
-            TushareCoreAdapter("synthetic-token", transport=lambda _, body=raw: body)
-            .acquire_core_bars(
-                acquisitions, metric, start=days[0], end=days[-1], expected_business_dates=days
-            )
-            .receipt
-        )
-        assert receipt.received_at is not None
-        assert receipt.validated_at is not None
-        claims = []
-        for day in days:
-            published = datetime(day.year, day.month, day.day, 8, tzinfo=UTC)
-            if fault == "late_public" and metric == bad_metric and day.day == 27:
-                published += timedelta(days=1)
-            claims.append(
-                SourceClaimInput(
-                    metric_id=metric,
-                    definition_version=version,
-                    period_kind="business_day",
-                    period_start=day.isoformat(),
-                    period_end=day.isoformat(),
-                    dimensions={},
-                    value=100.0,
-                    value_state=EvidenceValueState.REPORTED_VALUE,
-                    unit="index_points",
-                    provider="tushare",
-                    source_reference=f"tushare:{api}:{code}:{day.isoformat()}",
-                    release_event_id=f"synthetic:preflight-core:{metric}:{day}",
-                    release_at=published,
-                    public_available_at=published,
-                    fetched_at=receipt.received_at,
-                    available_at=receipt.validated_at,
-                    certification_status="certified",
-                    quality_status="validated",
-                    acquisition_id=receipt.acquisition_id,
-                )
-            )
-        evidence.append_source_claims(tuple(claims))
+            days = [day for day in days if day != "2026-03-06"]
+        elif fault == "missing" and metric == bad_metric:
+            days = [day for day in days if day != "2026-08-27"]
+
+        def publication(day, *, current_metric=metric):
+            if current_metric == bad_metric and day == "2026-08-27":
+                if fault == "late_public":
+                    # Late relative to the input date, but before the formal consumer.
+                    return datetime(2026, 8, 28, 8, tzinfo=UTC)
+                if fault == "after_consumer_cutoff":
+                    return datetime(2026, 8, 29, 8, tzinfo=UTC)
+            return datetime.fromisoformat(day).replace(hour=8, tzinfo=UTC)
+
+        capture_core(paths, version, metric, days, published=publication)
     main(
         [
             "model-input-preflight",
@@ -141,23 +98,45 @@ def test_preflight_checks_core_history_before_the_requested_window(
             "2026-08-28",
             "--end",
             "2026-08-28",
+            "--expected-trading-days",
+            "1",
             "--json",
         ]
     )
     result = json.loads(capsys.readouterr().out)
+    core = result["core_formula_inputs"]
+    assert result["calendar"]["status"] == "available"
+    assert result["calendar"]["history_coverage"]["status"] == "complete"
+    assert len(core["consumers"]) == 1
+    assert core["consumers"][0]["business_date"] == "2026-08-28"
+    assert len(core["consumers"][0]["input_dates"]) == 140
     gaps = [gap for gap in result["gaps"] if gap["reason"] == "core_history_input_missing"]
     if fault == "shared_history_hole":
-        assert result["calendar"]["status"] == "available"
         assert {gap["metric_id"] for gap in gaps if gap["period"] == "2026-03-06"} == set(
             CORE_API_IDENTITIES
         )
-    elif fault is None:
+        assert core["status"] == "blocked"
+    elif fault in {None, "late_public"}:
         assert gaps == []
+        assert core["status"] == "available"
+        assert len(core["versions"]) == 420
+        assert all(len(points) == 140 for points in core["consumers"][0]["inputs"].values())
+        selected = next(
+            p for p in core["consumers"][0]["inputs"][bad_metric] if p["period"] == "2026-08-27"
+        )
+        if fault == "late_public":
+            assert (
+                core["versions"][selected["claim_id"]]["public_available_at"]
+                == "2026-08-28T08:00:00+00:00"
+            )
     else:
+        assert core["status"] == "blocked"
         assert any(
             gap["metric_id"] == bad_metric
             and gap["period"] == "2026-08-27"
-            and gap["business_date"] == "2026-08-27"
+            and gap["business_date"] == "2026-08-28"
+            and gap["causes"]
+            == ["value_missing" if fault == "missing" else "public_time_after_cutoff"]
             for gap in gaps
         )
 
@@ -208,6 +187,8 @@ def test_preflight_reports_missing_formula_input_warmup(
             "2026-08-28",
             "--end",
             "2026-08-28",
+            "--expected-trading-days",
+            "1",
             "--json",
         ]
     )
@@ -314,6 +295,8 @@ def test_preflight_rechecks_originals_of_existing_claims(
         "2026-08-28",
         "--end",
         "2026-08-28",
+        "--expected-trading-days",
+        "1",
         "--json",
     ]
     main(arguments)
@@ -402,6 +385,8 @@ def test_preflight_checks_each_calendar_day_not_only_the_last(
             window[0].isoformat(),
             "--end",
             "2026-08-28",
+            "--expected-trading-days",
+            str(len(window)),
             "--json",
         ]
     )
@@ -422,6 +407,8 @@ def test_preflight_validates_calendar_artifacts_and_requested_range(
     request: pytest.FixtureRequest,
     fault: str | None,
 ) -> None:
+    from tests.models.test_core_formula_warmup import calendar_response
+
     paths = RuntimePaths.discover(tmp_path)
     initialize_runtime(paths)
     candidate = admit_complete_candidate(paths, capsys)
@@ -431,15 +418,7 @@ def test_preflight_validates_calendar_artifacts_and_requested_range(
         datetime(2026, 8, 29 if fault == "late_capture" else 28, 10, tzinfo=UTC),
     )
     days = trading_days()[-120:]
-    raw = json.dumps(
-        {
-            "code": 0,
-            "data": {
-                "fields": ["cal_date", "is_open"],
-                "items": [[day.strftime("%Y%m%d"), 1] for day in days],
-            },
-        }
-    ).encode()
+    raw = calendar_response([day.isoformat() for day in days])
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     TushareCoreAdapter("synthetic-token", transport=lambda _: raw, clock=now).acquire_calendar(
         acquisitions, days[0], days[-1]
@@ -465,9 +444,22 @@ def test_preflight_validates_calendar_artifacts_and_requested_range(
         ]
     )
     result = json.loads(capsys.readouterr().out)
-    calendar_gaps = [gap for gap in result["gaps"] if gap["metric_id"] == "CN_TRADE_CALENDAR"]
+    calendar_gaps = [
+        gap
+        for gap in result["gaps"]
+        if gap["metric_id"] == "CN_TRADE_CALENDAR"
+        and gap["reason"] != "core_formula_calendar_history_missing"
+    ]
     if fault in {None, "late_capture"}:
         assert calendar_gaps == []
+        assert result["calendar"]["status"] == "available"
+        assert result["core_formula_inputs"]["status"] == "blocked"
+        assert any(
+            gap["reason"] == "core_formula_calendar_history_missing"
+            and gap["business_date"] == "2026-03-09"
+            and gap["missing_observations"] == 139
+            for gap in result["gaps"]
+        )
     else:
         assert calendar_gaps
         assert result["calendar"]["status"] == "unavailable"
@@ -493,6 +485,8 @@ def test_preflight_rejects_missing_credit_difference_baseline(
                 "2026-08-28",
                 "--end",
                 "2026-08-28",
+                "--expected-trading-days",
+                "1",
                 "--json",
             ]
         )
@@ -512,6 +506,7 @@ def test_preflight_rejects_missing_credit_difference_baseline(
             assert credit_gaps == []
 
 
+@pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize("target", ["2026-08-28", "2026-08-31"])
 def test_preflight_isolates_a_future_damaged_revision(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], target: str
@@ -571,6 +566,8 @@ def test_preflight_isolates_a_future_damaged_revision(
             target,
             "--end",
             target,
+            "--expected-trading-days",
+            "1",
             "--json",
         ]
     )
@@ -587,6 +584,8 @@ def test_preflight_isolates_a_future_damaged_revision(
 def test_registered_calendar_claims_cannot_bypass_the_receipt_preflight(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], evidence_kind: str
 ) -> None:
+    from tests.models.test_core_formula_warmup import calendar_response
+
     paths = RuntimePaths.discover(tmp_path)
     initialize_runtime(paths)
     candidate = admit_complete_candidate(paths, capsys)
@@ -594,15 +593,7 @@ def test_registered_calendar_claims_cannot_bypass_the_receipt_preflight(
     days = trading_days()[-120:]
     receipt = None
     if evidence_kind != "unbound":
-        raw = json.dumps(
-            {
-                "code": 0,
-                "data": {
-                    "fields": ["cal_date", "is_open"],
-                    "items": [[day.strftime("%Y%m%d"), 1] for day in days],
-                },
-            }
-        ).encode()
+        raw = calendar_response([day.isoformat() for day in days])
         receipt = (
             TushareCoreAdapter("synthetic-token", transport=lambda _: raw)
             .acquire_calendar(
@@ -655,8 +646,22 @@ def test_registered_calendar_claims_cannot_bypass_the_receipt_preflight(
         ]
     )
     result = json.loads(capsys.readouterr().out)
-    calendar_gaps = [gap for gap in result["gaps"] if gap["metric_id"] == "CN_TRADE_CALENDAR"]
+    calendar_gaps = [
+        gap
+        for gap in result["gaps"]
+        if gap["metric_id"] == "CN_TRADE_CALENDAR"
+        and gap["reason"] != "core_formula_calendar_history_missing"
+    ]
     assert bool(calendar_gaps) is (evidence_kind != "bound")
+    if evidence_kind == "bound":
+        assert result["calendar"]["status"] == "available"
+        assert result["core_formula_inputs"]["status"] == "blocked"
+        assert any(
+            gap["reason"] == "core_formula_calendar_history_missing"
+            and gap["business_date"] == "2026-03-09"
+            and gap["missing_observations"] == 139
+            for gap in result["gaps"]
+        )
 
 
 def test_preflight_identifies_a_damaged_historical_formula_parent(
@@ -694,6 +699,8 @@ def test_preflight_identifies_a_damaged_historical_formula_parent(
                 "2026-08-28",
                 "--end",
                 "2026-08-28",
+                "--expected-trading-days",
+                "1",
                 "--json",
             ]
         )
@@ -782,6 +789,8 @@ def test_density_counts_only_values_public_by_their_own_business_date(
             window[0].isoformat(),
             "--end",
             window[-1].isoformat(),
+            "--expected-trading-days",
+            str(len(window)),
             "--json",
         ]
     )
@@ -828,6 +837,8 @@ def test_operational_evidence_stays_visible_instead_of_vanishing(
             "2026-08-28",
             "--end",
             "2026-08-28",
+            "--expected-trading-days",
+            "1",
             "--json",
         ]
     )
@@ -921,6 +932,8 @@ def test_a_source_publishing_the_next_morning_still_counts_as_covered(
             window[0].isoformat(),
             "--end",
             window[-1].isoformat(),
+            "--expected-trading-days",
+            str(len(window)),
             "--json",
         ]
     )

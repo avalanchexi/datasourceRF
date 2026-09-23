@@ -4,13 +4,26 @@ import json
 from datetime import UTC, date, datetime
 from typing import Any
 
-from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import EvidenceValueState
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.storage import database_connection
+
+
+class CalendarMaterialError(ValueError):
+    """An invalid calendar artifact, with the identity of the attempted receipt."""
+
+    def __init__(self, error: Exception, receipt: AcquisitionReceipt) -> None:
+        super().__init__(str(error))
+        self.provenance: dict[str, Any] = {
+            "claim_ids": [],
+            "acquisition_id": receipt.acquisition_id,
+            "raw_hash": receipt.raw_hash,
+            "normalized_hash": receipt.normalized_hash,
+        }
 
 
 def required_calendar(
@@ -52,7 +65,11 @@ def required_calendar(
         ):
             if datetime.fromisoformat(validated_at) > selector.as_of:
                 continue
-            document = json.loads(acquisitions.read_content(acquisition_id, "normalized"))
+            receipt = acquisitions.get(acquisition_id)
+            try:
+                document = json.loads(acquisitions.read_receipt_content(receipt, "normalized"))
+            except (ValueError, LookupError, OSError, TypeError) as error:
+                raise CalendarMaterialError(error, receipt) from error
             if not isinstance(document, list) or not all(isinstance(day, str) for day in document):
                 continue
             candidates = sorted(

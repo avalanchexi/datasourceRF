@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: superseded by ADR-0022
 ---
 
 # 证据采用双点时语义和不可变版本
+
+> 已被 [ADR-0022](0022-uniform-120-day-retention-and-processing-batches.md) 取代（2026-09-23）。
 
 证据系统同时提供按可靠公开时间的 `public_as_of` 与按首次通过系统校验时间的 `system_as_of`；来源声明、修订vintage、规范观测、派生结果和报告快照均追加保存，不原地覆盖。这样付出更多版本和查询复杂度，换取无前视校准、历史报告重现、来源冲突审计以及上游回填后仍保持旧判断不可变。
 

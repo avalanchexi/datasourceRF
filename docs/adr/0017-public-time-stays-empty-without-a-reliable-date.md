@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: superseded by ADR-0021
 ---
 
 # 无可靠发布日期时，公开可用时间保持为空
+
+> 已被 [ADR-0021](0021-registered-sources-freshness-replaces-certification.md) 取代（2026-09-23）。
 
 `CONTEXT.md` 术语表把「公开可用时间」定义为：来源给出实际发布时刻时用该时刻；**只有发布日期时
 从下一本地日开始；无可靠日期时为空**，并把"推测发布时间"列入 `_Avoid_`。本 ADR 确认**不修改这条

@@ -56,10 +56,19 @@ from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
 @dataclass(frozen=True)
+class MetricMaterialCheck:
+    metric_id: str
+    originals: str
+    dimensions: str
+    invalid_original_claim_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class ModelInputSelection:
     complete: bool
     selected_claim_ids: tuple[str, ...]
     missing_members: tuple[str, ...]
+    material_checks: tuple[MetricMaterialCheck, ...] = ()
 
 
 def select_retrieval_input(
@@ -319,6 +328,8 @@ class ModelInputSelector:
         )
         selected_ids: list[str] = []
         missing = []
+        dimension_checks: dict[str, str] = {}
+        material_checks = []
         for metric_id in scope.metric_ids:
             definition = metric_definition(
                 metric_id, definition_version=self.version, database_path=self.database_path
@@ -330,6 +341,18 @@ class ModelInputSelector:
                     period=scope.period,
                     mode=self.mode,
                     definition_version=self.version,
+                )
+                material_checks.append(
+                    MetricMaterialCheck(
+                        metric_id,
+                        "executed"
+                        if any(
+                            p.selected_claim_id is not None
+                            for p in self.adoptable(metric_id, scope.period)
+                        )
+                        else "blocked",
+                        "executed",
+                    )
                 )
                 if definition.certification_status != "certified":
                     missing.append("CN_FUTURES_WARRANTS:source_certification_required")
@@ -346,6 +369,24 @@ class ModelInputSelector:
                         if matches_retrieval_period(p.period_end, scope.period)
                     ),
                 )
+                material_checks.append(
+                    MetricMaterialCheck(
+                        metric_id,
+                        "executed"
+                        if any(
+                            p.selected_claim_id is not None
+                            for p in self.adoptable(metric_id, scope.period)
+                        )
+                        else "blocked",
+                        "blocked"
+                        if any(
+                            "publication_contract_unavailable" in member
+                            or "publication_time_invalid" in member
+                            for member in result.missing_members
+                        )
+                        else "executed",
+                    )
+                )
                 if definition.certification_status != "certified":
                     missing.append("CN_RRR_EVENT:source_certification_required")
                 else:
@@ -357,9 +398,11 @@ class ModelInputSelector:
             )
             if expected is None:
                 if definition.dimensions:
+                    dimension_checks[metric_id] = "blocked"
                     missing.append(f"{metric_id}:dimension_contract_unavailable")
                     continue
                 expected = ({},)
+            dimension_checks[metric_id] = "executed"
             # Exactly the points the family recheck covered, so nothing can be adopted
             # that was never rechecked.
             points = self.adoptable(metric_id, scope.period)
@@ -409,8 +452,42 @@ class ModelInputSelector:
                     selected_ids.extend(accepted)
                 else:
                     missing.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
+        for metric_id in dict.fromkeys(scope.metric_ids):
+            # Core history and financing retain their own checks; the dedicated
+            # event/warrant paths recorded their execution above.
+            if metric_id in CORE_API_IDENTITIES or metric_id in {
+                "CN_MARGIN_BALANCE",
+                "CN_MARGIN_BALANCE_SSE_SZSE",
+                "CN_RRR_EVENT",
+                "CN_FUTURES_WARRANTS",
+            }:
+                continue
+            matching = [
+                (family, valid) for family, valid in checked_families if family.owns(metric_id)
+            ]
+            claim_ids = {
+                point.selected_claim_id
+                for point in self.adoptable(metric_id, scope.period)
+                if point.selected_claim_id is not None
+            }
+            invalid = {
+                claim_id
+                for claim_id in claim_ids
+                if any(claim_id not in valid for _, valid in matching)
+            }
+            material_checks.append(
+                MetricMaterialCheck(
+                    metric_id,
+                    "executed" if matching and claim_ids else "blocked" if matching else "pending",
+                    dimension_checks.get(metric_id, "pending"),
+                    tuple(sorted(invalid)),
+                )
+            )
         return ModelInputSelection(
-            not missing and bool(selected_ids), tuple(selected_ids), tuple(missing)
+            not missing and bool(selected_ids),
+            tuple(selected_ids),
+            tuple(missing),
+            tuple(material_checks),
         )
 
 

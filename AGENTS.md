@@ -14,8 +14,8 @@
 
 ### Codex delegation
 
-只读调查可交由 Codex CLI 执行，不消耗 Claude Code 额度；Claude Code 保持分析与调度角色。参见 `docs/agents/codex-delegation.md`。
+耗 token 的只读调查默认交由 Codex CLI 执行，不消耗 Claude Code 额度；仅通过 `codex exec` 命令行调用，不走 MCP、wrapper skill 或其他间接路径。Claude Code 专注于分析与调度。参见 `docs/agents/codex-delegation.md`。
 
 ### Test execution
 
-实施任务、选择相关测试、运行重型验收或最终全套前，读取 `docs/agents/testing.md`。
+实施任务、选择受影响测试、运行切片收尾冒烟或终点前全套时，读取 `docs/agents/testing.md`（依据 ADR-0025）。

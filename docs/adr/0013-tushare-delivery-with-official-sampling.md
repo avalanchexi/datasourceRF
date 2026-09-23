@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted; partially superseded by ADR-0021
 ---
 
 # P1 结构化交付采用 TuShare 并以官方样本复核
+
+> 部分已被 [ADR-0021](0021-registered-sources-freshness-replaces-certification.md) 取代（2026-09-23），冲突之处以 ADR-0021 为准。
 
 对 TuShare 已稳定提供结构化字段的 P1 指标，系统可以把 TuShare 认证为交付渠道，但必须先用对应官方发布样本核对指标语义、字段、单位、统计期、发布时间和使用许可；不要求每条正式观测都同时拥有第二来源。这样以官方来源作为语义锚点、以 TuShare 提供可维护的历史交付，在覆盖成本和来源可信度之间取舍；任一 Schema family 的官方抽样或许可核验失败时，该 family 仍保持未认证。
 

@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted; partially superseded by ADR-0024
 ---
 
 # 刷新编排采用手动优先的持久运行与显式恢复
+
+> 部分已被 [ADR-0024](0024-interrupted-runs-restart-as-new-batches.md) 取代（2026-09-23），冲突之处以 ADR-0024 为准。
 
 V1不假设本地计算机、WSL2或服务全天在线：完整结果生成以用户针对目标交易日显式发起为主，自动盘后运行默认关闭；启动或重启项目只展示遗漏和中断，不自动补跑、检索或调用AI。一个SQLite持久父运行在全局单Worker租约下顺序发布投影并生成报告，中断后只复用已验证检查点，任何外部调用都要由用户确认恢复。
 

@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: superseded by ADR-0021
 ---
 
 # 认证闸的逃生阀开在目录成员资格，不开在闸上
+
+> 已被 [ADR-0021](0021-registered-sources-freshness-replaces-certification.md) 取代（2026-09-23）。
 
 P1 指标与三个核心角色**必须**处于 `certified` 才能进入候选模型；只有 P2 允许带
 `awaiting_source_certification` 进来（`candidate_admission.py:203` 与 `:207`）。当某个 P1 的官方原件

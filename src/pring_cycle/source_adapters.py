@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
@@ -289,6 +289,38 @@ class TushareCoreAdapter:
             return bytes(response.read())
 
 
+def calendar_coverage(receipt: AcquisitionReceipt, raw: bytes) -> dict[str, Any]:
+    """Prove natural-date coverage of the bound, unfiltered trade_cal response.
+
+    Open-session lists alone cannot distinguish a missing row from a closure.
+    The original must explicitly supply either 0 or 1 for every requested date.
+    """
+    start = date.fromisoformat(str(receipt.parameters["start_date"]))
+    end = date.fromisoformat(str(receipt.parameters["end_date"]))
+    rows = _rows(_response_document(raw))
+    dates = {date.fromisoformat(str(row["cal_date"])) for row in rows}
+    missing = [
+        (start + timedelta(days=i)).isoformat()
+        for i in range((end - start).days + 1)
+        if start + timedelta(days=i) not in dates
+    ]
+    unfiltered = "is_open" not in receipt.parameters
+    valid_flags = all(str(row["is_open"]) in {"0", "1"} for row in rows)
+    complete = unfiltered and valid_flags and not missing and start <= end
+    return {
+        "status": "complete" if complete else "unproven",
+        "basis": "unfiltered_natural_date_range",
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "unfiltered": unfiltered,
+        "valid_open_flags": valid_flags,
+        "missing_dates": missing,
+        "acquisition_id": receipt.acquisition_id,
+        "raw_hash": receipt.raw_hash,
+        "normalized_hash": receipt.normalized_hash,
+    }
+
+
 def _calendar_rows(response: dict[str, Any], start: date, end: date) -> tuple[date, ...]:
     rows = _rows(response)
     dates = [date.fromisoformat(str(row["cal_date"])) for row in rows]
@@ -297,6 +329,8 @@ def _calendar_rows(response: dict[str, Any], start: date, end: date) -> tuple[da
     days = sorted(
         date.fromisoformat(str(row["cal_date"])) for row in rows if int(row["is_open"]) == 1
     )
+    if any(day.weekday() >= 5 for day in days):
+        raise ValueError("china_trading_calendar_invalid")
     if not days:
         raise ValueError("china_trading_calendar_missing")
     return tuple(days)

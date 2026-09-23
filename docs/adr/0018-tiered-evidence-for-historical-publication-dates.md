@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: superseded by ADR-0021
 ---
 
 # 历史发布日期只认该值自己的发布证据
+
+> 已被 [ADR-0021](0021-registered-sources-freshness-replaces-certification.md) 取代（2026-09-23）。
 
 确立某个历史版本的公开可用时间，只接受**该值自己的发布证据**：承载它的那份官方页面、公告或数据文件
 本身给出的发布时刻或发布日期。只有日期时按既有定义从下一本地日起算；取不到时**保持为空**，该值不可采用

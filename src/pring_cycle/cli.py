@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pring_cycle.evidence import SourceClaimInput
 
 _MUTATING_COMMANDS = {
+    "model-input-preflight",
     "model-accept",
     "model-activate",
     "model-replay",
@@ -384,6 +385,10 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             explicitly_approved=namespace.confirm,
         )
         return asdict(activated)
+    if namespace.command == "model-input-preflight-read":
+        from pring_cycle.material_preflight import read_model_input_preflight
+
+        return read_model_input_preflight(paths, namespace.receipt_hash)
     if namespace.command == "model-input-preflight":
         from pring_cycle.material_preflight import preflight_model_inputs
 
@@ -392,6 +397,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             namespace.model,
             requested_start=namespace.start,
             requested_end=namespace.end,
+            expected_trading_days=namespace.expected_trading_days,
         )
     if namespace.command == "model-replay":
         from pring_cycle.model_evaluation import replay_models
@@ -739,10 +745,18 @@ def _parser() -> argparse.ArgumentParser:
     model_activate = _runtime_parser(subparsers, "model-activate")
     model_activate.add_argument("--model", required=True)
     model_activate.add_argument("--confirm", action="store_true")
+    preflight_read = _runtime_parser(subparsers, "model-input-preflight-read")
+    preflight_read.add_argument("--receipt-hash", required=True)
     model_preflight = _runtime_parser(subparsers, "model-input-preflight")
     model_preflight.add_argument("--model", required=True)
     model_preflight.add_argument("--start", required=True)
     model_preflight.add_argument("--end", required=True)
+    model_preflight.add_argument(
+        "--expected-trading-days",
+        type=int,
+        default=120,
+        help="Expected sessions (default: 120); declare a different count for diagnostics",
+    )
     model_replay = _runtime_parser(subparsers, "model-replay")
     model_replay.add_argument("--model", required=True)
     model_replay.add_argument("--compared-with", required=True)

@@ -10,7 +10,7 @@ from dataclasses import asdict, replace
 from datetime import date, datetime
 from typing import Any
 
-from pring_cycle.catalog import MetricDefinition, metric_catalog
+from pring_cycle.catalog import MetricDefinition, metric_catalog, metric_catalog_v0003
 from pring_cycle.catalog_registry import SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
@@ -49,6 +49,15 @@ _MARGIN_SCOPE_MIGRATION: dict[str, Any] = {
     "removed_metric_ids": [],
     "history_policy": "retain_separate",
 }
+_CNY030_OPTIONAL_MIGRATION: dict[str, Any] = {
+    **_P2_ECB_IDENTITY_MIGRATION,
+    "version": "cny030-optional-ecb-margin-v0001",
+    "replacements": {
+        **_P2_ECB_IDENTITY_MIGRATION["replacements"],
+        **_MARGIN_SCOPE_MIGRATION["replacements"],
+    },
+    "priority_changes": {"CN_BOND_FULL_PRICE_CNY030": {"from": "P1", "to": "P2"}},
+}
 
 
 def _admission_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
@@ -56,6 +65,25 @@ def _admission_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
     if "metric_identity_migration" not in manifest:
         return expected
     migration = manifest["metric_identity_migration"]
+    if migration == _CNY030_OPTIONAL_MIGRATION:
+        # ADR-0020 composes only these approved dispositions. Keep the old declarations
+        # valid for historical candidates without opening an arbitrary migration pipeline.
+        expected = _admission_catalog(
+            {**manifest, "metric_identity_migration": _P2_ECB_IDENTITY_MIGRATION}
+        )
+        margin = _admission_catalog(
+            {**manifest, "metric_identity_migration": _MARGIN_SCOPE_MIGRATION}
+        )
+        del expected["CN_MARGIN_BALANCE"]
+        expected["CN_MARGIN_BALANCE_SSE_SZSE"] = margin["CN_MARGIN_BALANCE_SSE_SZSE"]
+        # Preserve the frozen CNY030 definition, not the earlier sparse catalog stub.
+        previous = next(
+            item for item in metric_catalog_v0003() if item.metric_id == "CN_BOND_FULL_PRICE_CNY030"
+        )
+        expected[previous.metric_id] = replace(
+            previous, priority="P2", certification_status="awaiting_source_certification"
+        )
+        return expected
     if migration not in (
         _P2_IDENTITY_MIGRATION,
         _P2_ECB_IDENTITY_MIGRATION,
@@ -222,6 +250,18 @@ def _validate_manifest(
     }
     for definition in rules.metric_definitions:
         baseline = expected[definition.metric_id]
+        if (
+            manifest.get("metric_identity_migration") == _CNY030_OPTIONAL_MIGRATION
+            and baseline.role == "core_barometer"
+            and definition.source_codes != baseline.source_codes
+        ):
+            raise ValueError(f"certification_core_source_identity_mismatch:{definition.metric_id}")
+        if (
+            manifest.get("metric_identity_migration") == _CNY030_OPTIONAL_MIGRATION
+            and definition.metric_id == "CN_BOND_FULL_PRICE_CNY030"
+            and definition != replace(baseline, definition_version=definition.definition_version)
+        ):
+            raise ValueError("certification_cny030_definition_mismatch")
         identity = {
             "CN_USDCNH_TMA_SPOT_RATE": "tma",
             "CN_USDCNY_ECB_REFERENCE_CROSS": "ecb",

@@ -1,12 +1,14 @@
-"""Read-only diagnostics for an admitted candidate's lifecycle inputs."""
+"""Persisted diagnostics for an admitted candidate's lifecycle inputs."""
 
+import hashlib
 import json
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from pring_cycle.acquisition import AcquisitionRepository
-from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
+from pring_cycle.artifacts import store_artifact
+from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.context_projection import ContextProjectionRules, build_context_projection
 from pring_cycle.context_replay_scope import (
     CONTEXT_FORMULA_INPUTS,
@@ -15,8 +17,13 @@ from pring_cycle.context_replay_scope import (
     context_input_warmup_days,
     find_formula_documents,
 )
-from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.core_input_requirements import (
+    core_formula_requirements,
+    inspect_core_formula_inputs,
+)
+from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_run_requirements import (
+    CalendarMaterialError,
     formula_requirements,
     preceding_periods,
     required_calendar,
@@ -27,28 +34,80 @@ from pring_cycle.metric_contracts import (
     evidence_frequency,
     evidence_max_age_days,
     minimum_context_daily_observations,
+    required_dimension_members,
 )
-from pring_cycle.model_evaluation import model_history_input_start
 from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RetrievalScope, RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
-from pring_cycle.source_adapters import CoreInputValidator, TushareCoreAdapter
+from pring_cycle.source_adapters import TushareCoreAdapter, calendar_coverage
+from pring_cycle.storage import artifact_is_registered
 
 
 def preflight_model_inputs(
-    paths: RuntimePaths, model_version_id: str, *, requested_start: str, requested_end: str
+    paths: RuntimePaths,
+    model_version_id: str,
+    *,
+    requested_start: str,
+    requested_end: str,
+    expected_trading_days: int = 120,
 ) -> dict[str, Any]:
     # This inspection neither captures nor changes inputs. Share their verified
     # contents across cutoffs, but release the scope before another inspection.
+    if expected_trading_days < 1:
+        raise ValueError("material_preflight_day_count_invalid")
     with shared_futures_input_reads():
-        return _preflight_model_inputs(
-            paths, model_version_id, requested_start=requested_start, requested_end=requested_end
+        result = _preflight_model_inputs(
+            paths,
+            model_version_id,
+            requested_start=requested_start,
+            requested_end=requested_end,
+            expected_trading_days=expected_trading_days,
         )
+    result["schema_version"] = "model-input-preflight-v0001"
+    result["request"] = {
+        "model_version_id": model_version_id,
+        "manifest_hash": result["manifest_hash"],
+        "requested_start": requested_start,
+        "requested_end": requested_end,
+        "target_business_date": requested_end,
+    }
+    result["request"]["expected_trading_days"] = expected_trading_days
+    content = json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
+    receipt = store_artifact(
+        paths.database, paths.artifacts, content, "application/json", "model-input-preflight"
+    )
+    return {**result, "receipt_hash": receipt.content_hash}
+
+
+def read_model_input_preflight(paths: RuntimePaths, receipt_hash: str) -> dict[str, Any]:
+    """Read an immutable diagnostic without inspecting newer inputs."""
+    if len(receipt_hash) != 64 or any(c not in "0123456789abcdef" for c in receipt_hash):
+        raise ValueError("material_preflight_receipt_hash_invalid")
+    if not artifact_is_registered(paths.database, receipt_hash, "model-input-preflight"):
+        raise ValueError("material_preflight_receipt_not_found")
+    try:
+        content = (paths.artifacts / receipt_hash[:2] / receipt_hash).read_bytes()
+    except OSError as error:
+        raise ValueError("material_preflight_receipt_unreadable") from error
+    if hashlib.sha256(content).hexdigest() != receipt_hash:
+        raise ValueError("material_preflight_receipt_hash_mismatch")
+    document = json.loads(content)
+    if (
+        not isinstance(document, dict)
+        or document.get("schema_version") != "model-input-preflight-v0001"
+    ):
+        raise ValueError("material_preflight_receipt_invalid")
+    return {**document, "receipt_hash": receipt_hash}
 
 
 def _preflight_model_inputs(
-    paths: RuntimePaths, model_version_id: str, *, requested_start: str, requested_end: str
+    paths: RuntimePaths,
+    model_version_id: str,
+    *,
+    requested_start: str,
+    requested_end: str,
+    expected_trading_days: int = 120,
 ) -> dict[str, Any]:
     start, end = date.fromisoformat(requested_start), date.fromisoformat(requested_end)
     if start > end:
@@ -90,6 +149,35 @@ def _preflight_model_inputs(
     calendar = _calendar_material(
         paths, calendar_run, ModelInputSelector(paths, calendar_run), start=start, end=end
     )
+    calendar["system_as_of"] = observed_at.isoformat()
+    # Keep attempted originals identifiable even when parsing or integrity fails.
+    # These receipts are evidence of acquisition, not a calendar acceptance verdict.
+    calendar["acquisition_receipts"] = [
+        {
+            "acquisition_id": receipt.acquisition_id,
+            "provider": receipt.provider,
+            "api_name": receipt.api_name,
+            "parameters": receipt.parameters,
+            "parser_version": receipt.parser_version,
+            "state": receipt.state,
+            "error_type": receipt.error_type,
+            "raw_hash": receipt.raw_hash,
+            "normalized_hash": receipt.normalized_hash,
+            "validated_at": receipt.validated_at.isoformat() if receipt.validated_at else None,
+        }
+        for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if receipt.provider == "tushare"
+        and receipt.api_name == "trade_cal"
+        and receipt.started_at <= observed_at
+        and (receipt.received_at is None or receipt.received_at <= observed_at)
+        and (receipt.validated_at is None or receipt.validated_at <= observed_at)
+    ]
+    if calendar["status"] == "available":
+        window_dates = [day for day in calendar["dates"] if requested_start <= day <= requested_end]
+        calendar["observed_trading_days"] = len(window_dates)
+        if len(window_dates) != expected_trading_days:
+            calendar.update(status="unavailable", basis="calendar_window_count_mismatch", dates=[])
+            calendar.pop("ordered_dates_sha256", None)
     if calendar["status"] != "available":
         gaps.append({"metric_id": "CN_TRADE_CALENDAR", "reason": str(calendar["basis"])})
     checked_days = tuple(
@@ -102,7 +190,18 @@ def _preflight_model_inputs(
     # would read as a verdict, so each says whether anything here examined it: the
     # calendar has its own section below, the rest are simply not checked yet.
     operational_evidence: list[dict[str, Any]] = []
+    catalog_checks: dict[str, dict[str, Any]] = {}
     for definition in rules.metric_definitions:
+        catalog_checks[definition.metric_id] = {
+            "metric_id": definition.metric_id,
+            "priority": definition.priority,
+            "role": definition.role,
+            "certification_status": definition.certification_status,
+            "required": definition.priority != "P2"
+            or definition.metric_id in formula_scope.requires_certification,
+            "selection": {"status": "pending"},
+            "checks": [],
+        }
         if definition.role == "operational_evidence" or definition.metric_id in {
             "CN_TRADE_CALENDAR",
             "CN_RELEASE_SCHEDULE",
@@ -132,6 +231,29 @@ def _preflight_model_inputs(
             else gaps
         )
         if not vintages:
+            catalog_checks[definition.metric_id]["selection"] = {
+                "status": "blocked",
+                "reason": "source_material_missing",
+            }
+            # A missing delivery must not conceal a missing member contract.
+            # These two families resolve members from their dedicated selectors.
+            if (
+                definition.dimensions
+                and definition.metric_id not in {"CN_FUTURES_WARRANTS", "CN_RRR_EVENT"}
+                and required_dimension_members(
+                    definition.metric_id,
+                    definition_version=rules.metric_catalog_version,
+                    period=end.isoformat(),
+                )
+                is None
+            ):
+                catalog_checks[definition.metric_id]["selection"] = {
+                    "status": "blocked",
+                    "reason": "dimension_contract_unavailable",
+                }
+                destination.append(
+                    {"metric_id": definition.metric_id, "reason": "dimension_contract_unavailable"}
+                )
             destination.append(
                 {"metric_id": definition.metric_id, "reason": "source_material_missing"}
             )
@@ -192,17 +314,28 @@ def _preflight_model_inputs(
             if len(observed) < minimum:
                 density_missing[definition.metric_id] = set(checked_days) - observed
 
-    gaps.extend(
-        _core_history_gaps(
-            evidence,
-            manifest,
-            rules.metric_catalog_version,
-            start=start,
-            end=end,
-            calendar_days=tuple(calendar.get("history_dates", ()))
-            if calendar["status"] == "available"
-            else (),
+    if (
+        calendar["status"] == "available"
+        and calendar.get("history_coverage", {}).get("status") != "complete"
+    ):
+        gaps.append(
+            {
+                "metric_id": "CN_TRADE_CALENDAR",
+                "reason": "core_formula_calendar_coverage_unproven",
+                **calendar.get("history_coverage", {}),
+            }
         )
+    core_requirements = core_formula_requirements(
+        manifest,
+        tuple(calendar.get("history_dates", ()))
+        if calendar["status"] == "available"
+        and calendar.get("history_coverage", {}).get("status") == "complete"
+        else (),
+        start.isoformat(),
+        end.isoformat(),
+    )
+    gaps.extend(
+        inspect_core_formula_inputs(evidence, manifest, core_requirements, start.isoformat(), paths)
     )
 
     # Keep only one day's cached series alive during a full window diagnostic.
@@ -244,6 +377,22 @@ def _preflight_model_inputs(
                     source_url=None,
                 )
             )
+            selection_check = catalog_checks[definition.metric_id]["selection"]
+            selection_check["status"] = "executed"
+            selection_check["complete"] = (
+                selection_check.get("complete", True) and selected.complete
+            )
+            selection_check.setdefault("checked_business_dates", []).append(day)
+            for check in selected.material_checks:
+                catalog_checks[check.metric_id]["checks"].append(
+                    {
+                        "business_date": day,
+                        "period": period,
+                        "originals": check.originals,
+                        "dimensions": check.dimensions,
+                        "invalid_original_claim_ids": check.invalid_original_claim_ids,
+                    }
+                )
             if not selected.complete:
                 destination.append(
                     {
@@ -332,89 +481,18 @@ def _preflight_model_inputs(
         "status": "blocked" if gaps else "incomplete",
         "checks_complete": False,
         "checked_business_dates": checked_days,
+        "public_cutoffs": {
+            day: china_business_day_end(date.fromisoformat(day)).astimezone(UTC).isoformat()
+            for day in checked_days
+        },
         "pending_checks": ["calendar", "originals", "dimensions", "point_in_time", "parents"],
         "gaps": gaps,
         "optional_gaps": optional_gaps,
+        "catalog_checks": list(catalog_checks.values()),
         "operational_evidence": sorted(operational_evidence, key=lambda item: item["metric_id"]),
         "calendar": calendar,
+        "core_formula_inputs": core_requirements,
     }
-
-
-def _core_history_gaps(
-    evidence: EvidenceRepository,
-    manifest: dict[str, Any],
-    version: str,
-    *,
-    start: date,
-    end: date,
-    calendar_days: tuple[str, ...],
-) -> list[dict[str, Any]]:
-    """Check the PUBLIC price prefixes calibration consumes, without computing trends."""
-    metrics = tuple(str(metric) for metric in manifest["core_metrics"].values())
-    history_start = model_history_input_start(manifest, start.isoformat())
-    vintages = {
-        metric: tuple(
-            item
-            for item in evidence.source_claim_vintages(metric, definition_version=version)
-            if history_start <= item.period_end <= end.isoformat()
-        )
-        for metric in metrics
-    }
-    days = sorted(
-        {item.period_end for values in vintages.values() for item in values}
-        | {day for day in calendar_days if history_start <= day <= end.isoformat()}
-    )
-    evidence.preload_metric_series({(metric, version) for metric in metrics})
-    originals = CoreInputValidator(
-        evidence, tuple(item.claim_id for values in vintages.values() for item in values)
-    )
-    gaps: dict[tuple[str, str, str | None, str], dict[str, Any]] = {}
-    for index, day in enumerate(days):
-        cutoff = china_business_day_end(date.fromisoformat(day))
-        for metric in metrics:
-            if not vintages[metric]:
-                continue  # The inventory check already reports this wholly missing source.
-            visible = {
-                point.period_end: point
-                for point in evidence.metric_series(
-                    metric, definition_version=version, mode=AsOfMode.PUBLIC, as_of=cutoff
-                )
-                if history_start <= point.period_end <= day
-            }
-            for period in days[: index + 1]:
-                point = visible.get(period)
-                reason = None
-                if (
-                    point is None
-                    or point.selection_status != "selected"
-                    or point.selected_value is None
-                    or point.selected_value <= 0
-                    or point.value_state is not EvidenceValueState.REPORTED_VALUE
-                    or not any(
-                        claim.claim_id == point.selected_claim_id
-                        and claim.certification_status == "certified"
-                        and claim.quality_status == "validated"
-                        for claim in point.claims
-                    )
-                ):
-                    reason = "core_history_input_missing"
-                elif version not in BUILTIN_CATALOG_VERSIONS and not originals.is_valid(
-                    metric, point
-                ):
-                    reason = "core_history_original_invalid"
-                if reason is not None:
-                    claim_id = point.selected_claim_id if point is not None else None
-                    gaps.setdefault(
-                        (metric, period, claim_id, reason),
-                        {
-                            "metric_id": metric,
-                            "reason": reason,
-                            "period": period,
-                            "business_date": day,
-                            "claim_id": claim_id,
-                        },
-                    )
-    return list(gaps.values())
 
 
 def _parent_material_diagnostics(
@@ -478,6 +556,7 @@ def _parent_material_diagnostics(
 def _calendar_material(
     paths: RuntimePaths, run: RunRecord, selector: ModelInputSelector, *, start: date, end: date
 ) -> dict[str, Any]:
+    calendar: dict[str, Any] = {}
     try:
         calendar = required_calendar(paths, run, selector)
         if calendar["status"] != "available":
@@ -486,6 +565,9 @@ def _calendar_material(
         if acquisition_id is not None:
             acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
             receipt = acquisitions.get(acquisition_id)
+            calendar["provenance"].update(
+                raw_hash=receipt.raw_hash, normalized_hash=receipt.normalized_hash
+            )
             raw = acquisitions.read_receipt_content(receipt, "raw")
             normalized = json.loads(acquisitions.read_receipt_content(receipt, "normalized"))
             parsed = TushareCoreAdapter(
@@ -498,6 +580,10 @@ def _calendar_material(
                 raise ValueError("calendar_normalized_original_mismatch")
             # Preserve the checked receipt's full history; required_calendar only
             # returns the final 120 report dates, which cannot prove warmup coverage.
+            coverage = calendar_coverage(receipt, raw)
+            calendar["history_coverage"] = coverage
+            # Retain the original's dates for reconciliation even when coverage is
+            # unproven; only the qualified range may become formula requirements.
             calendar["history_dates"] = [day.isoformat() for day in parsed if day <= end]
         if start.isoformat() not in calendar["dates"] or end.isoformat() not in calendar["dates"]:
             return {
@@ -506,12 +592,19 @@ def _calendar_material(
                 "basis": "calendar_range_not_covered",
                 "dates": [],
             }
+        calendar["ordered_dates_sha256"] = hashlib.sha256(
+            "\n".join(calendar["dates"]).encode()
+        ).hexdigest()
         return calendar
     except (ValueError, LookupError, OSError, TypeError) as error:
         return {
             "status": "unavailable",
             "basis": "calendar_material_invalid",
             "dates": [],
-            "provenance": {},
+            "provenance": (
+                error.provenance
+                if isinstance(error, CalendarMaterialError)
+                else calendar.get("provenance", {})
+            ),
             "error": str(error),
         }
