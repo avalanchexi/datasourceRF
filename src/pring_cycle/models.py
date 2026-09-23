@@ -5,7 +5,7 @@ import json
 import sqlite3
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -445,35 +445,82 @@ BEFORE DELETE ON model_version BEGIN SELECT RAISE(ABORT, 'model_version_is_immut
 
 
 EFFECTIVE_CATALOG_VERSION = "metric-catalog-v0004"
+# Registered TuShare-derived deliveries whose contracts replace the builtin placeholders.
+_REGISTERED_DELIVERIES = {
+    "CN_EQ_ADV_DEC": "tushare:daily:breadth-v0002",
+    "CN_EQ_AD_RATIO": "tushare:daily:breadth-v0002",
+    "CN_EQ_NEW_HIGH_LOW_120": "tushare:daily:breadth-window-v0002",
+    "CN_EQ_ABOVE_MA120": "tushare:daily:breadth-window-v0002",
+    "CN_EQ_ADV_AMOUNT_SHARE": "tushare:daily:breadth-amount-v0002",
+    "CN_COMMODITY_EX_HOG_BASKET": "tushare:fut_daily:ex-hog-calendar-settlement-v0002",
+    "CN_COMMODITY_SLEEVE_CONTRIBUTION": "tushare:fut_daily:ex-hog-calendar-settlement-v0002",
+}
+# TuShare delivers these; the official page is the fallback when a period is missing.
+_NBS_RELEASES = "https://www.stats.gov.cn/sj/zxfb/"
+_PBC_STATISTICS = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+_OFFICIAL_SAMPLED = {
+    "CN_CPI_HEADLINE": ("tushare:cn_cpi:official-sampled-v0001", _NBS_RELEASES),
+    "CN_PPI": ("tushare:cn_ppi:official-sampled-v0001", _NBS_RELEASES),
+    "CN_PMI_ACTIVITY": ("tushare:cn_pmi:official-sampled-v0001", _NBS_RELEASES),
+    "CN_PMI_INVENTORY": ("tushare:cn_pmi:official-sampled-v0001", _NBS_RELEASES),
+    "CN_PMI_PRICES": ("tushare:cn_pmi:official-sampled-v0001", _NBS_RELEASES),
+    "CN_M1_M2": ("tushare:cn_m:official-sampled-v0001", _PBC_STATISTICS),
+    "CN_SF_TOTAL": ("tushare:sf_month:official-sampled-v0001", _PBC_STATISTICS),
+    "CN_GDP": ("tushare:cn_gdp:official-sampled-v0001", _NBS_RELEASES),
+}
 
 
 def effective_model_manifest() -> dict[str, Any]:
     """The 59-metric effective catalog with the current formulas, ready to register.
 
-    It composes the approved identity migrations (CNY030 optional, ECB cross, two-exchange
-    margin) over the builtin catalog; registering and activating it is an explicit step.
+    Definitions are the reviewed v0003 ones (units, dimensions and delivery identities), with
+    the approved dispositions applied: gold removed, the ECB cross and two-exchange margin
+    identities, CNY030 optional and the PMI spreads monthly. Registering and activating it is
+    an explicit step (ADR-0022).
     """
-    from pring_cycle.catalog import CNY030_OPTIONAL_MIGRATION, migrated_catalog
+    from pring_cycle.catalog import (
+        CNY030_OPTIONAL_MIGRATION,
+        metric_catalog_v0003,
+        migrated_catalog,
+    )
 
+    reviewed = {item.metric_id: item for item in metric_catalog_v0003()}
+    margin = reviewed["CN_MARGIN_BALANCE"]
+    declared_margin = {
+        "metric_id": "CN_MARGIN_BALANCE_SSE_SZSE",
+        "unit": margin.unit,
+        "allowed_units": list(margin.allowed_units),
+        "dimensions": list(margin.dimensions),
+        "source_candidates": list(margin.source_candidates),
+    }
+    migrated = migrated_catalog(
+        {
+            "metric_identity_migration": CNY030_OPTIONAL_MIGRATION,
+            "metric_definitions": [declared_margin],
+        }
+    )
+    definitions = []
+    for metric_id, expected in migrated.items():
+        if metric_id in reviewed and metric_id != "CN_BOND_FULL_PRICE_CNY030":
+            item = replace(reviewed[metric_id], frequency=expected.frequency)
+        else:
+            item = expected  # The migrated identities and CNY030 are already complete.
+        definitions.append({**asdict(item), "definition_version": EFFECTIVE_CATALOG_VERSION})
+    for definition in definitions:
+        metric_id = definition["metric_id"]
+        if metric_id in _REGISTERED_DELIVERIES:
+            definition["source_codes"] = [_REGISTERED_DELIVERIES[metric_id]]
+        if metric_id in _OFFICIAL_SAMPLED:
+            source_code, page = _OFFICIAL_SAMPLED[metric_id]
+            definition["source_codes"] = [*definition["source_codes"], source_code]
+            definition["source_candidates"] = [page]
     manifest = certified_120d_model_v0011_manifest(({"package_id": "unused"},))
     for field in ("source_certification_packages", "source_certifications"):
         manifest.pop(field, None)
-    # The two-exchange margin states its delivery shape, which the scope migration carries
-    # across; the builtin stub is only a placeholder identity.
-    margin = {
-        "metric_id": "CN_MARGIN_BALANCE_SSE_SZSE",
-        "unit": "hundred_million_cny",
-        "allowed_units": ["hundred_million_cny"],
-        "dimensions": ["measure", "scope"],
-        "source_candidates": ["tushare:margin"],
-    }
-    catalog = migrated_catalog(
-        {"metric_identity_migration": CNY030_OPTIONAL_MIGRATION, "metric_definitions": [margin]}
+    # PPI precedes its month's inventory release, so the common month stays computable.
+    manifest["derived_formula_versions"]["real_inventory_approximation"] = (
+        "inventory-ppi-common-month-v0002"
     )
-    definitions = [
-        {**asdict(item), "definition_version": EFFECTIVE_CATALOG_VERSION}
-        for item in catalog.values()
-    ]
     manifest.update(
         {
             "model_version_id": "model-v0012",

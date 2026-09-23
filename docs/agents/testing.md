@@ -19,7 +19,7 @@ python tools/check.py quick tests/integration/test_worker_reviewed_context.py
 - `tests/integration/test_core_history_refresh.py::test_manual_run_cannot_backdate_daily_core_availability`
 - `tests/integration/test_worker_execution.py::test_worker_completes_a_valid_noncanonical_projection_and_report`
 
-改动涉及 Worker 编排、指标目录或来源时，再显式加跑完整目录正例（`test_worker_registered_catalog.py` 中改写后的官方 PPI 回退例）与三核心反例（落后 ≥2 期阻断、落后 1 期核心沿用）。重型文件用显式 `python -m pytest <具体文件或 node>` 运行，记录退出码与耗时。以上用例在对应实施切片完成改写前仍依赖旧夹具，以票内实际状态为准。
+改动涉及 Worker 编排、指标目录或来源时，再显式加跑完整目录正例 `tests/integration/test_worker_registered_catalog.py`（登记并激活内置生效模型，官方 PPI 回退进入报告；2026-09-23 实测约 52 秒）与三核心反例 `tests/integration/test_core_carry_forward.py`（落后 1 期核心沿用、落后 ≥2 期与冲突阻断）。重型文件用显式 `python -m pytest <具体文件或 node>` 运行，记录退出码与耗时。
 
 ## 全套：只在真实运行前跑一次
 

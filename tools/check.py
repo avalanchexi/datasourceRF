@@ -10,14 +10,9 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# These files prepare complete public model lifecycles. Use explicit pytest for their
-# affected acceptance checks, or the full command below. No default pytest marker changes.
+# The complete registered catalog end to end: run it explicitly, not through quick.
 HEAVY_FILES = {
-    "tests/models/test_isolated_lifecycle.py",
     "tests/integration/test_worker_registered_catalog.py",
-    "tests/integration/test_integrated_worker_delivery.py",
-    "tests/integration/test_integrated_worker_core_gap.py",
-    "tests/models/test_material_preflight.py",
 }
 
 
