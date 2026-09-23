@@ -77,8 +77,6 @@ def admitted_gdp_manifest(
     return ModelRepository(paths.database).manifest(model_id)
 
 
-
-
 @pytest.mark.usefixtures("runtime_clock")
 @pytest.mark.parametrize(
     "period,digest,url,levels,growth",
@@ -318,8 +316,6 @@ def test_registered_warrant_acquisition_preserves_sample_units_and_unknown_publi
         period="2026-08-28",
     )
     assert not select_retrieval_input(paths, run).complete
-
-
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -781,7 +777,9 @@ def test_registered_catalog_search_binds_shared_gaps_and_preserves_both_response
 
 
 @pytest.mark.usefixtures("runtime_clock")
-@pytest.mark.parametrize("legacy_kind", ["cache", "budget"])
+# Another run's old charge no longer limits this one (no daily cap, ticket 20); only an
+# unexpired negative cache on the shared family still does.
+@pytest.mark.parametrize("legacy_kind", ["cache"])
 def test_registered_catalog_retains_shared_family_legacy_search_limits(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], legacy_kind: str
 ) -> None:
@@ -861,9 +859,7 @@ def test_registered_catalog_retains_shared_family_legacy_search_limits(
         run_id=run.run_id,
     )("synthetic:pmi-new")
     assert response.status == "not_attempted"
-    assert response.classification == (
-        "negative_cache_active" if legacy_kind == "cache" else "event_daily_limit"
-    )
+    assert response.classification == "negative_cache_active"
     assert not AcquisitionRepository(paths.database, paths.artifacts).history()
     recorded = ledger.for_run(run.run_id)
     assert recorded is not None
@@ -892,8 +888,6 @@ def test_registered_search_gap_cannot_use_a_different_catalog_than_its_model(
     with pytest.raises(ValueError, match="retrieval_catalog_model_mismatch"):
         ledger.bind_run(run, "metric-catalog-v0001")
     assert ledger.for_run(run.run_id) is None
-
-
 
 
 def test_pmi_invalid_latest_period_does_not_restore_older_derived_values(
@@ -1445,8 +1439,6 @@ def prepare_credit_component_pair(
     return manifests, parent_ids
 
 
-
-
 def test_registered_social_financing_completes_only_after_both_original_announcements(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
@@ -1635,12 +1627,6 @@ def prepared_capacity_mapping_request(
     }
     bind_synthetic_review(paths, request, package)
     return request, mapping_hash, raw, digest, url
-
-
-
-
-
-
 
 
 @pytest.mark.parametrize(
@@ -1969,8 +1955,6 @@ def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
     assert set(ingested.claim_ids) <= set(context.observation_version_ids)
     with pytest.raises(LookupError, match="active_model_unavailable"):
         ModelRepository(paths.database).active()
-
-
 
 
 @pytest.mark.parametrize("consumer", ["selection", "context", "ledger"])
@@ -4119,8 +4103,6 @@ def test_registered_daily_breadth_rejects_changed_scalars_before_validation(
     )
 
 
-
-
 @pytest.mark.usefixtures("runtime_clock")
 def test_registered_daily_breadth_preserves_numeric_json_price_precision(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
@@ -4290,8 +4272,6 @@ def test_registered_daily_breadth_rejects_unsupported_acquisition_contracts(
         )
     receipts = AcquisitionRepository(paths.database, paths.artifacts).history()
     assert receipts and all(r.state == "failed" and r.validated_at is None for r in receipts)
-
-
 
 
 def admitted_window_breadth_manifest(
@@ -5444,8 +5424,6 @@ def test_registered_amount_breadth_distinguishes_zero_total_from_zero_advances(
     assert output["advancing_amount_share"] == (None if zero_total else 0)
     assert output["status"] == ("unavailable:zero_total_amount" if zero_total else "available")
     assert output["missing_amounts"] == []
-
-
 
 
 @pytest.mark.usefixtures("runtime_clock")

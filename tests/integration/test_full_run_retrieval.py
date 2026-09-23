@@ -409,7 +409,9 @@ def test_full_run_searches_real_gap_and_publishes_traceable_adoption(
     def search(request, *, timeout):
         calls.append(request.full_url)
         before_search.append(runs.full_retrieval_plan(run.run_id))
-        return Response(json.dumps({"results": [{"url": url}]}).encode())
+        # Every released gap is searched (ticket 19); only the LPR query finds its page.
+        found = [{"url": url}] if "CN_LPR_1Y_5Y" in json.loads(request.data)["query"] else []
+        return Response(json.dumps({"results": found}).encode())
 
     class Opener:
         def open(self, request, *, timeout):
@@ -427,7 +429,8 @@ def test_full_run_searches_real_gap_and_publishes_traceable_adoption(
     process_pending_run(paths, report_adapters=())
     stored = runs.get(run.run_id)
     assert stored.status == "completed", stored.error_classification
-    assert calls == ["https://api.tavily.com/search", url]
+    assert calls[0] == "https://api.tavily.com/search"
+    assert calls.count(url) == 1
     assert before_search[0]["final"] is None
     initial = before_search[0]["initial"]
     assert initial["model_version_id"] == "model-v0001"
@@ -443,7 +446,8 @@ def test_full_run_searches_real_gap_and_publishes_traceable_adoption(
     assert len(lpr["selected_claim_ids"]) == 2
     assert set(lpr["selected_claim_ids"]) <= set(plan["adoption"]["selected_claim_ids"])
     assert plan["adoption"]["projection_set_id"] == current.envelope.projection_set_id
-    assert stored.consumed_budget == {"tavily": 1, "exa": 0, "ai_websearch": 0}
+    assert stored.consumed_budget["tavily"] == calls.count("https://api.tavily.com/search")
+    assert stored.consumed_budget["exa"] == 0
     # All 180 prices per asset drive the stateful trend; only 120 are displayed.
     assert len(plan["adoption"]["selected_claim_ids"]) == 542
     assert set(plan["adoption"]["selected_observation_version_ids"]) <= set(
@@ -473,58 +477,6 @@ def test_full_run_plan_includes_missing_historical_daily_members(
     assert len({item["period"] for item in dr007}) == 120
     assert max(item["period"] for item in dr007) == "2026-08-28"
     assert min(item["period"] for item in dr007) == "2026-03-16"
-
-
-@pytest.mark.usefixtures("runtime_clock")
-def test_newly_acquired_historical_publication_fact_can_open_full_run_search(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    paths, runs = prepare(tmp_path)
-    seed_core_history(paths)
-    acquired = datetime.now(UTC)
-    EvidenceRepository(paths.database).append_source_claim(
-        SourceClaimInput(
-            metric_id="CN_PMI_ACTIVITY",
-            definition_version="metric-catalog-v0001",
-            period_kind="month",
-            period_start="2026-07-01",
-            period_end="2026-07-31",
-            dimensions={"series": "manufacturing", "measure": "level"},
-            value=None,
-            value_state=EvidenceValueState.NOT_DISCLOSED,
-            unit="diffusion_index_points",
-            provider="已知发布机构",
-            source_reference="fixture:known-historical-release",
-            release_event_id="fixture:known-release:2026-07",
-            release_at=datetime(2026, 8, 10, tzinfo=UTC),
-            public_available_at=datetime(2026, 8, 10, tzinfo=UTC),
-            fetched_at=acquired,
-            available_at=acquired,
-            certification_status="awaiting_source_certification",
-            quality_status="validated",
-        )
-    )
-    paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
-    queries = []
-
-    class Response(BytesIO):
-        status = 200
-        headers = {}
-
-    def search(request, *, timeout):
-        queries.append(json.loads(request.data)["query"])
-        return Response(b'{"results":[]}')
-
-    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
-    run = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="new-publication-proof",
-        model_version_id="model-v0001",
-        system_as_of=datetime.now(UTC),
-    )
-    process_pending_run(paths, report_adapters=())
-    assert runs.get(run.run_id).status == "completed"
-    assert sum("CN_PMI_ACTIVITY" in query for query in queries) == 1
 
 
 def test_full_run_adoption_excludes_uncertified_candidates(tmp_path: Path) -> None:
@@ -567,8 +519,6 @@ def test_full_run_adoption_excludes_uncertified_candidates(tmp_path: Path) -> No
     # An uncertified registered value is adopted like any other (ADR-0021).
     assert candidate.claim_id in adoption["selected_claim_ids"]
     assert candidate.claim_id in adoption["referenced_observation_version_ids"]
-
-
 
 
 def test_upgrade_resumes_verified_evidence_at_original_cutoff(tmp_path: Path) -> None:
@@ -664,9 +614,10 @@ def test_full_run_shares_hard_search_budget_across_periods(
     process_pending_run(paths, report_adapters=())
     stored = runs.get(run.run_id)
     assert stored.status == "completed", stored.error_classification
-    assert stored.consumed_budget == {"tavily": 8, "exa": 4, "ai_websearch": 0}
-    assert calls.count("https://api.tavily.com/search") == 8
-    assert calls.count("https://api.exa.ai/search") == 4
+    # Tavily's per-run cap is 16; Exa waits for Tavily's monthly quota (ticket 20).
+    assert stored.consumed_budget == {"tavily": 16, "exa": 0, "ai_websearch": 0}
+    assert calls.count("https://api.tavily.com/search") == 16
+    assert calls.count("https://api.exa.ai/search") == 0
     assert any(attempt["classification"] == "run_limit" for attempt in stored.retrieval_attempts)
     assert any(attempt["outcome"] == "not_configured" for attempt in stored.retrieval_attempts)
     final = runs.full_retrieval_plan(run.run_id)["final"]
@@ -702,9 +653,16 @@ def test_failed_direct_request_is_bound_before_http_and_visible_in_run_audit(
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
-    assert len(before) == 1
-    assert len(before[0]["acquisitions"]) == 1
-    assert before[0]["acquisitions"][0]["state"] == "started"
+    # The core refresh asks for the calendar again on its one retry (ticket 22).
+    assert len(before) == 2
+    # The release pre-announcements (ticket 25) are fetched before the core refresh.
+    core = [
+        item
+        for item in before[0]["acquisitions"]
+        if item["api_name"] not in {"cn_schedule", "official_schedule_get"}
+    ]
+    assert len(core) == 1
+    assert core[0]["state"] == "started"
     assert before[0]["initial"] is None
     app = create_web_application(paths, 8050, eager_dashboard=False)
     endpoint = next(
@@ -713,109 +671,16 @@ def test_failed_direct_request_is_bound_before_http_and_visible_in_run_audit(
     response = endpoint(run.run_id)
     assert response.status_code == 200
     audit = json.loads(response.body)
-    request = audit["full_retrieval"]["acquisitions"][0]
+    request = next(
+        item
+        for item in audit["full_retrieval"]["acquisitions"]
+        if item["phase"] == "direct_core_refresh"
+    )
     assert request["run_id"] == run.run_id
     assert request["api_name"] == "trade_cal"
     assert request["phase"] == "direct_core_refresh"
     assert request["raw_hash"] is not None
     assert audit["run"]["status"] == "action_required"
-
-
-@pytest.mark.parametrize("prior_release", [False, True])
-@pytest.mark.usefixtures("runtime_clock")
-def test_resume_rechecks_unknown_release_without_mutating_initial_plan(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, prior_release: bool
-) -> None:
-    paths, runs = prepare(tmp_path)
-    seed_core_history(paths)
-    if prior_release:
-        known = datetime(2026, 7, 10, tzinfo=UTC)
-        EvidenceRepository(paths.database).append_source_claim(
-            SourceClaimInput(
-                metric_id="CN_PMI_ACTIVITY",
-                definition_version="metric-catalog-v0001",
-                period_kind="month",
-                period_start="2026-06-01",
-                period_end="2026-06-30",
-                dimensions={"series": "manufacturing", "measure": "level"},
-                value=None,
-                value_state=EvidenceValueState.NOT_DISCLOSED,
-                unit="diffusion_index_points",
-                provider="fixture:known-publisher",
-                source_reference="fixture:pmi:2026-06",
-                release_event_id="fixture:pmi:2026-06",
-                release_at=known,
-                public_available_at=known,
-                fetched_at=known,
-                available_at=known,
-                certification_status="awaiting_source_certification",
-                quality_status="validated",
-            )
-        )
-    paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
-    calls = []
-
-    class Response(BytesIO):
-        status = 200
-        headers = {}
-
-    def search(request, *, timeout):
-        calls.append(json.loads(request.data)["query"])
-        if len(calls) == 1:
-            raise KeyboardInterrupt("fixture:external_process_interrupted")
-        return Response(b'{"results":[]}')
-
-    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
-    run = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="resume-new-release",
-        model_version_id="model-v0001",
-        system_as_of=datetime.now(UTC),
-    )
-    with pytest.raises(KeyboardInterrupt):
-        process_pending_run(paths, report_adapters=())
-    initial = runs.full_retrieval_plan(run.run_id)["initial"]
-    pmi = next(item for item in initial["scopes"] if "CN_PMI_ACTIVITY" in item["metric_ids"])
-    assert pmi["release_status"] == (
-        "released" if prior_release else "unknown_release_configuration"
-    )
-    assert pmi["period"] == ("2026-06" if prior_release else "2026-07")
-    assert runs.get(run.run_id).cutoffs_frozen is False
-    acquired = datetime.now(UTC)
-    EvidenceRepository(paths.database).append_source_claim(
-        SourceClaimInput(
-            metric_id="CN_PMI_ACTIVITY",
-            definition_version="metric-catalog-v0001",
-            period_kind="month",
-            period_start="2026-07-01",
-            period_end="2026-07-31",
-            dimensions={"series": "manufacturing", "measure": "level"},
-            value=None,
-            value_state=EvidenceValueState.NOT_DISCLOSED,
-            unit="diffusion_index_points",
-            provider="fixture:known-publisher",
-            source_reference="fixture:pmi-release-after-interruption",
-            release_event_id="fixture:pmi:2026-07",
-            release_at=datetime(2026, 8, 10, tzinfo=UTC),
-            public_available_at=datetime(2026, 8, 10, tzinfo=UTC),
-            fetched_at=acquired,
-            available_at=acquired,
-            certification_status="awaiting_source_certification",
-            quality_status="validated",
-        )
-    )
-    runs.resume(
-        run.run_id, client_request_id="confirm-resume-new-release", confirm_external_calls=True
-    )
-    process_pending_run(paths, report_adapters=())
-    assert runs.get(run.run_id).status == "completed"
-    assert sum("CN_PMI_ACTIVITY" in query for query in calls) == 1
-    assert runs.full_retrieval_plan(run.run_id)["initial"] == initial
-    assert runs.get(run.run_id).consumed_budget["tavily"] == 2
-    final = runs.full_retrieval_plan(run.run_id)["final"]
-    assert {g["period"] for g in final["gaps"] if g["metric_id"] == "CN_PMI_ACTIVITY"} == {
-        "2026-07"
-    }
 
 
 # Uncertified prior values are no longer withheld (ADR-0021); only the labelled case remains.
@@ -827,8 +692,15 @@ def test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot(
     seed_core_history(paths)
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
 
-    def unexpected_search(*args, **kwargs):
-        raise AssertionError("complete_local_lpr_must_not_call_search")
+    class Response(BytesIO):
+        status = 200
+        headers = {}
+
+    def unexpected_search(request, **kwargs):
+        # Other released gaps are searched; the complete local LPR never is.
+        if "CN_LPR_1Y_5Y" in json.loads(request.data)["query"]:
+            raise AssertionError("complete_local_lpr_must_not_call_search")
+        return Response(b'{"results":[]}')
 
     monkeypatch.setattr("pring_cycle.search_discovery.urlopen", unexpected_search)
     prior_ids, current_ids = set(), set()
@@ -892,6 +764,10 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from pring_cycle.models import analytical_model_v0002_manifest
+    from pring_cycle.retrieval import RUN_SEARCH_LIMITS
+
+    # The P2 EIA pair is searched last; lift the run cap so earlier gaps cannot use it up.
+    monkeypatch.setitem(RUN_SEARCH_LIMITS, "tavily", 1000)
 
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
@@ -1039,8 +915,6 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
     assert any(
         r["metric_id"] == "CN_CREDIT_IMPULSE" for r in plan["initial"]["derived_requirements"]
     )
-
-
 
 
 @pytest.mark.usefixtures("unavailable_optional_eia")

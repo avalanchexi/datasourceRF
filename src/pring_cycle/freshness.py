@@ -113,6 +113,13 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
     "CN_USDCNY_ECB_REFERENCE_CROSS": _daily(
         "ecb:eurofxref", time(23, 0), "https://www.ecb.europa.eu/stats/"
     ),
+    # P2 taken through the lenient search path (ticket 20); US closes land the next
+    # Shanghai morning, the CFETS 16:30 close the same afternoon.
+    "CN_USDCNY_CLOSE_1630": _daily(
+        "search:chinamoney", time(16, 35), "https://www.chinamoney.com.cn/chinese/"
+    ),
+    "CBOE_VIX_INDEX": _daily("search:cboe", time(6, 0), "https://www.cboe.com/", lag=1),
+    "NASDAQ_SOX_INDEX": _daily("search:nasdaq", time(6, 0), "https://www.nasdaq.com/", lag=1),
     "UST10Y_NOMINAL_YIELD": _daily("tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1),
     "UST2Y_NOMINAL_YIELD": _daily("tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1),
     "EIA_BRENT_RBRTE": FreshnessRule(
@@ -234,7 +241,14 @@ def _quarter_start(day: date) -> date:
 
 
 def release_at(rule: FreshnessRule, end: date, calendar: TradingCalendar) -> datetime:
-    """When a registered source is taken to publish the period ending on ``end``."""
+    """When a registered source is taken to publish the period ending on ``end``.
+
+    A pre-announcement the batch received wins (ticket 25); otherwise the Nth SSE trading
+    day after the period end at the registered update time.
+    """
+    announced = _announced_release(rule, end)
+    if announced is not None:
+        return announced
     if rule.day_of_month is not None:
         day = calendar.nth_from(end.replace(day=rule.day_of_month), 0)
     else:
@@ -259,6 +273,16 @@ def _periods_back(
         end = _previous_period(rule.frequency, end, calendar)
 
 
+def latest_released_period(
+    rule: FreshnessRule, cutoff: datetime, calendar: TradingCalendar
+) -> date:
+    """The end of the newest period whose registered release time has passed at ``cutoff``."""
+    for end in _periods_back(rule, cutoff, calendar):
+        if release_at(rule, end, calendar) <= cutoff:
+            return end
+    raise AssertionError("unreachable: release times fall behind any cutoff")
+
+
 def assess(
     metric_id: str,
     held_period: date | None,
@@ -274,7 +298,15 @@ def assess(
         )
     public = public_available_at(metric_id, held_period, first_acquired_at, calendar)
     if held_period is None:
-        return _assessment(metric_id, rule, "missing", None, None, None, None, public)
+        # Nothing held still owes a period: the gap list names it (ticket 19).
+        released = due = None
+        for end in _periods_back(rule, cutoff, calendar) if rule.frequency != "event" else ():
+            if released is None and release_at(rule, end, calendar) <= cutoff:
+                released = end
+            if _due_at(rule, end, calendar) <= cutoff:
+                due = end
+                break
+        return _assessment(metric_id, rule, "missing", None, released, due, None, public)
     if rule.frequency == "event":
         return _assessment(metric_id, rule, "current", held_period, None, None, 0, public)
     held = period_end(rule.frequency, held_period, calendar)
@@ -550,6 +582,7 @@ def launch_calendar(paths: RuntimePaths, launched_at: datetime) -> TradingCalend
 
 class _CalendarSlot:
     calendar: TradingCalendar | None = None
+    schedule: Mapping[str, tuple[datetime | date, ...]] = {}
 
 
 _run_calendar: ContextVar[_CalendarSlot | None] = ContextVar("run_calendar", default=None)
@@ -569,6 +602,45 @@ def current_calendar() -> TradingCalendar:
     """The run's SSE calendar once known, else weekdays."""
     slot = _run_calendar.get()
     return (slot.calendar if slot is not None else None) or TradingCalendar()
+
+
+def use_release_schedule(schedule: Mapping[str, tuple[datetime | date, ...]]) -> None:
+    """Take release times from these pre-announcements for the rest of the run."""
+    slot = _run_calendar.get()
+    if slot is not None:
+        slot.schedule = schedule
+
+
+def announced_period_end(source: str, frequency: str, published: date) -> date | None:
+    """The end of the period an announced publication covers.
+
+    Official schedules announce last month's (or last quarter's) data, except the PMI,
+    which is published at the end of its own month (a February PMI slips into early March).
+    Quarterly data comes out in January, April, July and October only.
+    """
+    month_start = published.replace(day=1)
+    previous_end = month_start - timedelta(days=1)
+    if frequency == "quarterly":
+        return previous_end if published.month in {1, 4, 7, 10} else None
+    if frequency != "monthly":
+        return None
+    if source == "tushare:cn_pmi" and published.day >= 25:
+        following = date(published.year + published.month // 12, published.month % 12 + 1, 1)
+        return following - timedelta(days=1)
+    return previous_end
+
+
+def _announced_release(rule: FreshnessRule, end: date) -> datetime | None:
+    slot = _run_calendar.get()
+    if slot is None:
+        return None
+    for announced in slot.schedule.get(rule.source, ()):
+        day = announced.date() if isinstance(announced, datetime) else announced
+        if announced_period_end(rule.source, rule.frequency, day) == end:
+            if isinstance(announced, datetime):
+                return announced
+            return datetime.combine(announced, rule.update_time, SHANGHAI)
+    return None
 
 
 def use_run_calendar(calendar: TradingCalendar) -> None:
@@ -592,7 +664,36 @@ def period_status(metric_id: str, held_period_end: str, as_of: datetime) -> str:
     return "stale" if behind >= 2 else "current"
 
 
-_GAP_ORDER = ("missing", "freshness_gap", "unconfigured", "rejected")
+def _failed_candidates(database: Path, run_id: str) -> dict[str, list[dict[str, str]]]:
+    """Per metric, up to three distinct candidate URLs the batch rejected, with reasons."""
+    from pring_cycle.storage import database_connection
+
+    with database_connection(database) as connection:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='retrieval_candidate_validation'"
+        ).fetchone():
+            return {}
+        rows = connection.execute(
+            """
+            SELECT json_extract(g.identity_json, '$.metric_id'), v.candidate_url, v.reason
+            FROM retrieval_candidate_validation v, json_each(v.gap_ids_json) j
+            JOIN retrieval_gap g ON g.gap_id = j.value
+            WHERE v.run_id=? AND v.outcome='not_model_usable'
+              AND coalesce(v.reason, '') <> 'duplicate_candidate'
+            ORDER BY v.rowid
+            """,
+            (run_id,),
+        ).fetchall()
+    failed: dict[str, dict[str, str]] = {}
+    for metric_id, url, reason in rows:
+        failed.setdefault(str(metric_id), {})[str(url)] = str(reason)
+    return {
+        metric_id: [{"url": url, "reason": reason} for url, reason in list(urls.items())[:3]]
+        for metric_id, urls in failed.items()
+    }
+
+
+_GAP_ORDER = ("missing", "retrieval_failed", "freshness_gap", "unconfigured", "rejected")
 
 
 def gap_list(
@@ -602,11 +703,14 @@ def gap_list(
 
     ``missing``: nothing held, or two or more periods behind (not used in calculation);
     ``freshness_gap``: one period behind, carried forward; ``unconfigured``: no freshness
-    registry row; ``rejected``: a response failed its structure check (gate ③).
+    registry row; ``rejected``: a response failed its structure check (gate ③);
+    ``retrieval_failed``: still missing or behind after search candidates were refetched
+    and none passed, listing up to three URLs each with its reason (ticket 19).
     """
     from pring_cycle.storage import database_connection
 
     priorities = {item.metric_id: item.priority for item in definitions}
+    failed_candidates = _failed_candidates(database, run_id)
     gaps: list[dict[str, object]] = []
     for metric_id, row in batch_freshness(database, run_id).items():
         status, behind = row["status"], row["periods_behind"]
@@ -620,17 +724,21 @@ def gap_list(
             category, reason = "unconfigured", "freshness_not_registered"
         else:
             continue
-        gaps.append(
-            {
-                "metric_id": metric_id,
-                "priority": priorities.get(metric_id),
-                "category": category,
-                "reason": reason,
-                "due_period": row["due_period"],
-                "held_period": row["held_period"],
-                "periods_behind": behind,
-            }
-        )
+        gap: dict[str, object] = {
+            "metric_id": metric_id,
+            "priority": priorities.get(metric_id),
+            "category": category,
+            "reason": reason,
+            "due_period": row["due_period"],
+            "held_period": row["held_period"],
+            "periods_behind": behind,
+        }
+        if metric_id in failed_candidates:
+            # An unconfigured metric has no due period; it keeps its category.
+            if category != "unconfigured":
+                gap["category"] = "retrieval_failed"
+            gap["candidates"] = failed_candidates[metric_id]
+        gaps.append(gap)
     with database_connection(database) as connection:
         rejected = connection.execute(
             """
@@ -640,7 +748,8 @@ def gap_list(
             """,
             (run_id,),
         ).fetchall()
-    seen: set[str] = set()
+    # A rejected search candidate is already shown with its URL under retrieval_failed.
+    seen = set(failed_candidates)
     for metric_ids_json, api_name, reason in rejected:
         for metric_id in json.loads(metric_ids_json or "[]"):
             if metric_id in seen or metric_id not in priorities:

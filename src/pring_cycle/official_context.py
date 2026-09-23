@@ -662,7 +662,9 @@ def refresh_official_context_document(
     on_acquisition_started: Callable[[str], None] | None = None,
     parser_text_limit: int | None = None,
     metric_ids: tuple[str, ...] | None = None,
+    admit: Callable[[ParsedOfficialContextRelease], None] | None = None,
 ) -> OfficialContextIngestionResult:
+    """Fetch and store one release; ``admit`` may reject the parsed release first."""
     _validate_source_identity(family, source_url)
     requested = _official_metric_scope(family, metric_ids)
     if fetched_at.tzinfo is None:
@@ -715,7 +717,7 @@ def refresh_official_context_document(
 
         def parse(raw: bytes) -> ParsedOfficialContextRelease:
             _validate_fetched_document(family, source_url, response_holder[0])
-            return parse_official_context_document(
+            parsed = parse_official_context_document(
                 raw,
                 family=family,
                 source_url=source_url,
@@ -723,6 +725,9 @@ def refresh_official_context_document(
                 fetched_at=utc_now(),
                 parser_text_limit=parser_text_limit,
             )
+            if admit is not None:
+                admit(parsed)
+            return parsed
 
         acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
             provider=_validate_source_identity(family, source_url),

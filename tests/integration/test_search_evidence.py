@@ -69,20 +69,26 @@ def test_unknown_publication_window_is_distinct_from_not_yet_released(
     calls = []
     monkeypatch.setattr("pring_cycle.search_discovery.urlopen", lambda *a, **k: calls.append(1))
     now = datetime(2026, 7, 1, tzinfo=UTC)
-    submitted = runs.submit(
-        command_type="targeted_refresh",
-        target_business_date="2026-07-01",
-        client_request_id="unknown-window",
-        model_version_id="model-v0001",
-        system_as_of=now,
-        release_event_id="gdp:2026-Q2",
-        metric_ids=("CN_GDP",),
-        period="2026-Q2",
-    )
-    process_pending_run(paths, report_adapters=(), retrieval_now=now)
-    stored = runs.get(submitted.run_id)
-    assert calls == []
-    assert stored.error_classification == "unknown_release_configuration"
+    # A metric with no freshness registry row has an unknown release window; GDP's Q2
+    # release is registered and simply has not happened yet.
+    for metric_id, period, expected in (
+        ("CN_USDCNH_FXCM", "2026-06-30", "unknown_release_configuration"),
+        ("CN_GDP", "2026-Q2", "awaiting_release"),
+    ):
+        submitted = runs.submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-07-01",
+            client_request_id=f"unknown-window-{metric_id}",
+            model_version_id="model-v0001",
+            system_as_of=now,
+            release_event_id=f"{metric_id}:{period}",
+            metric_ids=(metric_id,),
+            period=period,
+        )
+        process_pending_run(paths, report_adapters=(), retrieval_now=now)
+        stored = runs.get(submitted.run_id)
+        assert calls == []
+        assert stored.error_classification == expected
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -756,8 +762,6 @@ def test_existing_channels_respect_complete_input_and_frozen_cutoff(
     assert calls == [URL]
 
 
-
-
 @pytest.mark.usefixtures("runtime_clock")
 def test_unknown_official_url_does_not_claim_old_period_is_unreleased(
     tmp_path: Path,
@@ -791,10 +795,7 @@ def test_unknown_official_url_does_not_claim_old_period_is_unreleased(
     assert calls == ["https://api.tavily.com/search"]
     stored = runs.get(submitted.run_id)
     assert stored.status == "action_required"
-    assert (
-        stored.retrieval_ledger["candidate_validations"][0]["reason"]
-        == "official_context_source_url_not_official"
-    )
+    assert stored.retrieval_ledger["candidate_validations"][0]["reason"] == "not_whitelisted"
     assert stored.retrieval_ledger["gaps"][0]["release_event_kind"] == "budget_family_period"
 
 
@@ -840,11 +841,16 @@ def test_candidate_parser_limit_preserves_original_without_claiming_complete_fie
     stored = runs.get(submitted.run_id)
     assert stored.status == "action_required"
     validation = stored.retrieval_ledger["candidate_validations"][0]
-    assert validation["reason"] == "official_parser_fragment_too_large"
+    assert validation["reason"] == "parse_failed"
     assert validation["claim_ids"] == []
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     official = next(r for r in acquisitions.history() if r.api_name == "official_http_get")
     assert acquisitions.read_content(official.acquisition_id, "raw") == oversized
+    assert (validation["fetched_url"], validation["raw_hash"], validation["parser_version"]) == (
+        URL,
+        official.raw_hash,
+        "chinamoney-lpr-parser-v0002",
+    )
     search = next(r for r in acquisitions.history() if r.api_name == "search")
     normalized = json.loads(acquisitions.read_content(search.acquisition_id, "normalized"))
     assert sum(len(s) for s in normalized["candidate_summaries"]) == 1800
@@ -879,7 +885,7 @@ def test_wrong_period_then_duplicate_candidate_does_not_block_valid_exa_document
 
     def search(request, **kwargs):
         calls.append(request.full_url)
-        urls = [old_url] if "tavily" in request.full_url else [old_url, URL]
+        urls = [old_url, old_url, URL]
         return Response(
             json.dumps({"results": [{"url": url} for url in urls]}).encode(), request.full_url
         )
@@ -903,12 +909,13 @@ def test_wrong_period_then_duplicate_candidate_does_not_block_valid_exa_document
         period="2026-08",
     )
     process_pending_run(paths, report_adapters=(), retrieval_now=now)
-    assert calls == ["https://api.tavily.com/search", old_url, "https://api.exa.ai/search", URL]
+    # Exa waits for Tavily's monthly quota; the repeated old page is not fetched twice.
+    assert calls == ["https://api.tavily.com/search", old_url, URL]
     stored = runs.get(submitted.run_id)
     assert stored.status == "completed"
     validations = stored.retrieval_ledger["candidate_validations"]
     assert [v["reason"] for v in validations[:2]] == [
-        "lpr_release_period_mismatch",
+        "period_mismatch",
         "duplicate_candidate",
     ]
     assert validations[-1]["outcome"] == "model_usable"

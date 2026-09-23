@@ -19,7 +19,7 @@ from pring_cycle.acquisition import response_retention_deadline
 from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.models import ModelRepository
-from pring_cycle.retrieval import RetrievalAdapterResponse
+from pring_cycle.retrieval import RUN_SEARCH_LIMITS, RetrievalAdapterResponse
 from pring_cycle.storage import database_connection
 
 if TYPE_CHECKING:
@@ -36,7 +36,9 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-LIMITS = {"tavily": (8, 16), "exa": (4, 8), "ai_websearch": (1, 2)}
+LIMITS = RUN_SEARCH_LIMITS
+# A spent plan quota: the provider is not called again until the quota renews.
+QUOTA_STATUSES = frozenset({402, 432, 433})
 
 
 @dataclass(frozen=True)
@@ -177,12 +179,9 @@ class RetrievalLedger:
         query: str,
         now: datetime,
     ) -> _RequestDecision:
-        day_start = now.astimezone(ZoneInfo("Asia/Shanghai")).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        day_end = day_start + timedelta(days=1)
         blocked = None
         cache_hit = False
+        quota_spent = False
         next_eligible = None
         reused_request_id = None
         reused_event_keys: set[str] = set()
@@ -237,17 +236,17 @@ class RetrievalLedger:
             "WHERE p.channel=? AND p.provider_key=?",
             (channel, _provider_key(channel, query)),
         ).fetchall()
-        daily = [
+        # There is no daily cap. Within a run, AI WebSearch is called at most once per gap,
+        # and no channel repeats a request whose completion is unknown (it may have been
+        # answered and charged); a completed one is held back only by its negative cache.
+        this_run = [
             item
             for item in previous
-            if day_start <= datetime.fromisoformat(item["started_at"]) < day_end
+            if item["run_id"] == run_id
+            and (channel == "ai_websearch" or item["state"] == "unknown_completion")
         ]
         event_keys = {item["event_key"] for item in gaps}
-        legacy_requests = [
-            item
-            for item in all_legacy
-            if day_start <= datetime.fromisoformat(item["occurred_at"]) < day_end
-        ]
+        legacy_requests = [item for item in all_legacy if item["run_id"] == run_id]
         same_attempt = [
             item
             for item in previous
@@ -297,6 +296,8 @@ class RetrievalLedger:
                 )
             }
             same_source = channel not in {"official", "tushare"} or item["query_text"] == query
+            if item["provider_cache"] and item["http_status"] in QUOTA_STATUSES:
+                quota_spent = True
             if item["provider_cache"] or (prior_keys & event_keys and same_source):
                 cache_hit = True
                 next_eligible = max(next_eligible or now, datetime.fromisoformat(expiry))
@@ -304,7 +305,7 @@ class RetrievalLedger:
                     reused_request_id = item["request_id"]
                     reused_event_keys = prior_keys
         event_counts = dict.fromkeys(event_keys, 0)
-        for item in daily:
+        for item in this_run:
             prior_keys = {
                 entry[0]
                 for entry in connection.execute(
@@ -317,31 +318,31 @@ class RetrievalLedger:
                     event_counts[key] += 1
                 reused_request_id = item["request_id"]
                 reused_event_keys = prior_keys
-        event_limit = (
-            2 if row["command_type"] == "manual_deep_search" and channel in {"tavily", "exa"} else 1
-        )
         for prior in legacy_requests:
             if prior["channel"] == channel:
                 for key in _legacy_event_keys(prior, database_path=self.database) & event_keys:
                     event_counts[key] += 1
-        if channel in LIMITS and any(count >= event_limit for count in event_counts.values()):
-            blocked = "event_daily_limit"
-        if channel in LIMITS:
-            run_limit, daily_limit = LIMITS[channel]
-            if (
-                len(daily) + sum(item["channel"] == channel for item in legacy_requests)
-                >= daily_limit
-            ):
-                blocked = "daily_limit"
-            if row["command_type"] != "manual_deep_search" and budget.get(channel, 0) >= run_limit:
-                blocked = "run_limit"
-        if channel == "ai_websearch" and row["priority"] == "P2":
-            blocked = "priority_excludes_ai"
-        if blocked in {"daily_limit", "event_daily_limit"}:
-            next_eligible = max(next_eligible or now, day_end)
+        # An explicit manual deep search may repeat Tavily/Exa; AI stays once per gap.
+        repeat_allowed = row["command_type"] == "manual_deep_search" and channel != "ai_websearch"
+        if (
+            channel in LIMITS
+            and not repeat_allowed
+            and any(count >= 1 for count in event_counts.values())
+        ):
+            blocked = "event_run_limit"
+        run_limit = LIMITS.get(channel)
+        if (
+            run_limit is not None
+            and row["command_type"] != "manual_deep_search"
+            and budget.get(channel, 0) >= run_limit
+        ):
+            blocked = "run_limit"
+        if blocked is None and quota_spent:
+            # Tavily's monthly quota is spent: the cascade lets Exa stand in.
+            blocked = "quota_exhausted"
         if blocked is None and cache_hit:
             blocked = "negative_cache_active"
-        if blocked in {"run_limit", "priority_excludes_ai"}:
+        if blocked in {"run_limit", "event_run_limit"}:
             next_eligible = None
         if row["status"] in {"cancelled", "interrupted", "action_required", "failed", "completed"}:
             blocked = "run_not_running"
@@ -457,7 +458,7 @@ class RetrievalLedger:
         with self._connect() as connection:
             rows = connection.execute(
                 "SELECT candidate_url, outcome FROM retrieval_candidate_validation "
-                "WHERE search_request_id=? ORDER BY run_attempt, rowid",
+                "WHERE search_request_id=? ORDER BY rowid",
                 (request_id,),
             ).fetchall()
         latest = {str(row[0]): str(row[1]) for row in rows}
@@ -529,6 +530,7 @@ class RetrievalLedger:
                 else row["priority"],
                 status,
                 headers or {},
+                channel=row["channel"],
             )
             connection.execute(
                 """UPDATE retrieval_physical_request SET state='completed', completed_at=?,
@@ -695,10 +697,8 @@ class RetrievalLedger:
                 "claim_ids",
                 "selected_claim_ids",
                 "missing_members",
-                "public_selected_claim_ids",
             ):
                 item[field] = json.loads(item.pop(field + "_json") or "[]")
-            item["public_complete"] = bool(item["public_complete"])
             results.append(item)
         return results
 
@@ -753,6 +753,8 @@ def _cache_expiry(
     priority: str,
     status: int | None,
     headers: dict[str, str],
+    *,
+    channel: str = "",
 ) -> datetime | None:
     headers = {key.lower(): value for key, value in headers.items()}
     if status == 429:
@@ -770,6 +772,11 @@ def _cache_expiry(
         except (ValueError, TypeError, OverflowError):
             pass
         return now + timedelta(minutes=60)
+    if status in QUOTA_STATUSES and channel == "tavily":
+        # Tavily's plan quota is monthly; Exa stands in until it renews (ticket 20).
+        local = now.astimezone(ZoneInfo("Asia/Shanghai"))
+        following = local.replace(day=1) + timedelta(days=32)
+        return following.replace(day=1, hour=0, minute=5, second=0, microsecond=0)
     if status in {401, 402, 403, 432, 433}:
         return now.astimezone(ZoneInfo("Asia/Shanghai")).replace(
             hour=0, minute=5, second=0, microsecond=0
@@ -824,9 +831,7 @@ def _response_expiry(row: sqlite3.Row) -> datetime | None:
     )
 
 
-def _legacy_requests(
-    connection: sqlite3.Connection, now: datetime | None = None
-) -> list[sqlite3.Row]:
+def _legacy_requests(connection: sqlite3.Connection) -> list[sqlite3.Row]:
     # Old retry rows are conservative reservations, not proof of exact HTTP or billing.
     rows = connection.execute("""SELECT a.run_id, a.channel, a.occurred_at,
         s.period, s.metric_ids_json, m.manifest_json
@@ -836,13 +841,7 @@ def _legacy_requests(
         AND (a.budget_charged=1
              OR a.outcome IN ('not_found', 'candidate_source', 'verified', 'failed'))
         """).fetchall()
-    if now is None:
-        return rows
-    start = now.astimezone(ZoneInfo("Asia/Shanghai")).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    end = start + timedelta(days=1)
-    return [row for row in rows if start <= datetime.fromisoformat(row["occurred_at"]) < end]
+    return list(rows)
 
 
 def _legacy_event_keys(
@@ -870,17 +869,3 @@ def _provider_key(channel: str, query: str) -> str:
         if channel == "official"
         else channel
     )
-
-
-def daily_consumption(connection: sqlite3.Connection, now: datetime) -> dict[str, int]:
-    start = now.astimezone(ZoneInfo("Asia/Shanghai")).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    end = start + timedelta(days=1)
-    totals = dict.fromkeys(LIMITS, 0)
-    for row in _legacy_requests(connection, now):
-        totals[row["channel"]] += 1
-    for row in connection.execute("SELECT channel, started_at FROM retrieval_physical_request"):
-        if row["channel"] in totals and start <= datetime.fromisoformat(row["started_at"]) < end:
-            totals[row["channel"]] += 1
-    return totals

@@ -7,10 +7,9 @@ import sqlite3
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from pring_cycle.batches import add_batch_columns
 from pring_cycle.run_cutoffs import cutoff_contract, upgrade_run_cutoffs
@@ -766,37 +765,6 @@ class RunRepository:
                     physical_request_id,
                 ),
             )
-
-    def daily_budget_consumption(self, observed_at: datetime) -> dict[str, int]:
-        if observed_at.tzinfo is None:
-            raise ValueError("retrieval_budget_time_must_be_timezone_aware")
-        local = observed_at.astimezone(ZoneInfo("Asia/Shanghai"))
-        start = local.replace(hour=0, minute=0, second=0, microsecond=0)
-        end = start + timedelta(days=1)
-        totals = {"tavily": 0, "exa": 0, "ai_websearch": 0}
-        with self._connect() as connection:
-            if connection.execute(
-                "SELECT 1 FROM sqlite_master WHERE name='retrieval_physical_request'"
-            ).fetchone():
-                from pring_cycle.retrieval_ledger import daily_consumption
-
-                return daily_consumption(connection, observed_at)
-            rows = connection.execute(
-                """
-                SELECT channel, COUNT(*) AS consumed
-                FROM run_retrieval_attempt
-                WHERE budget_charged=1 AND manual_budget_exemption=0
-                  AND julianday(occurred_at) >= julianday(?)
-                  AND julianday(occurred_at) < julianday(?)
-                GROUP BY channel
-                """,
-                (start.astimezone(UTC).isoformat(), end.astimezone(UTC).isoformat()),
-            ).fetchall()
-        for row in rows:
-            channel = str(row["channel"])
-            if channel in totals:
-                totals[channel] = int(row["consumed"])
-        return totals
 
     def store_negative_cache(
         self,

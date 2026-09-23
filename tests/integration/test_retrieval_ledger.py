@@ -140,11 +140,14 @@ def test_legacy_shared_release_family_is_bound_to_original_catalog(
         source_url="https://www.pbc.gov.cn/fixture/social-financing.html",
     )
     process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    assert calls == []
     query = runs.get(submitted.run_id).retrieval_ledger["queries"][-1]
-    assert query["classification"] == (
-        "event_daily_limit" if legacy_kind == "budget" else "negative_cache_active"
-    )
+    if legacy_kind == "budget":
+        # Another run's old charge no longer holds this run back: no daily cap (ticket 20).
+        assert calls == [1]
+        assert query["physical_request_id"] is not None
+    else:
+        assert calls == []
+        assert query["classification"] == "negative_cache_active"
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -164,7 +167,7 @@ def test_legacy_retries_preserve_run_limit_after_day_rollover(
         metric_ids=("CN_LPR_1Y_5Y",),
         period="2026-08",
     )
-    for index in range(9):
+    for index in range(17):
         runs.record_retrieval_attempt(
             old.run_id,
             release_event_id="legacy-august",
@@ -197,7 +200,7 @@ def test_legacy_retries_preserve_run_limit_after_day_rollover(
     process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
     assert calls == []
     stored = runs.get(old.run_id)
-    assert stored.consumed_budget["tavily"] == 9
+    assert stored.consumed_budget["tavily"] == 17
     assert stored.retrieval_ledger["queries"][-1]["classification"] == "run_limit"
 
 
@@ -262,7 +265,7 @@ def prepared_runtime(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_manual_search_respects_daily_limit_across_runs(
+def test_manual_search_has_no_daily_cap_across_runs(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -293,11 +296,9 @@ def test_manual_search_respects_daily_limit_across_runs(
             period=period,
         )
         process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    assert len(calls) == 16
+    assert len(calls) == 17
     last = runs.get(submitted.run_id)
-    assert last.consumed_budget["tavily"] == 0
-    assert last.retrieval_ledger["queries"][-1]["classification"] == "daily_limit"
-    assert last.retrieval_ledger["queries"][-1]["next_eligible_at"] is not None
+    assert last.retrieval_ledger["queries"][-1]["physical_request_id"] is not None
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -334,7 +335,7 @@ def test_different_caller_event_labels_do_not_repeat_same_release(
     ledger = runs.get(submitted.run_id).retrieval_ledger
     assert len(ledger["gaps"]) == 1
     assert ledger["gaps"][0]["dimensions"] == {"tenor": "*"}
-    assert ledger["queries"][-1]["classification"] == "event_daily_limit"
+    assert ledger["queries"][-1]["classification"] == "negative_cache_active"
     assert ledger["queries"][-1]["physical_request_id"] is None
 
 
@@ -750,7 +751,7 @@ def test_official_http_request_is_linked_to_gap_even_when_document_fails_validat
     assert stored.consumed_budget["tavily"] == 0
 
 
-@pytest.mark.parametrize(("provider", "limit"), [("tavily", 8), ("exa", 4)])
+@pytest.mark.parametrize(("provider", "limit"), [("tavily", 16), ("exa", 8)])
 @pytest.mark.usefixtures("runtime_clock")
 def test_explicit_resume_keeps_run_cap_across_daily_resets(
     tmp_path: Path,
@@ -802,7 +803,7 @@ def test_explicit_resume_keeps_run_cap_across_daily_resets(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_p2_empty_response_waits_24_hours_and_stops_after_exa(
+def test_p2_empty_response_waits_24_hours_and_exa_waits_for_tavily_quota(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -838,53 +839,16 @@ def test_p2_empty_response_waits_24_hours_and_stops_after_exa(
     process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
     stored = runs.get(submitted.run_id)
     requests = stored.retrieval_ledger["requests"]
-    assert {item["channel"] for item in requests} == {"official", "tavily", "exa"}
+    assert {item["channel"] for item in requests} == {"official", "tavily"}
     for request in requests:
         if request["channel"] != "official":
             assert datetime.fromisoformat(request["cache_expires_at"]) == cutoff + timedelta(
                 hours=24
             )
-    assert stored.consumed_budget["ai_websearch"] == 0
-    assert not any(item["channel"] == "ai_websearch" for item in stored.retrieval_attempts)
-
-
-@pytest.mark.usefixtures("runtime_clock")
-def test_explicit_manual_deep_search_uses_accepted_second_event_request_only(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    paths, runs = prepared_runtime(tmp_path)
-    cutoff = datetime.now(UTC)
-    calls = []
-
-    class Response(BytesIO):
-        status = 200
-        headers = {}
-
-    def open_http(*args, **kwargs):
-        calls.append(1)
-        return Response(b'{"results":[{"url":"https://www.chinamoney.com.cn/fixture.html"}]}')
-
-    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", open_http)
-    for index, command in enumerate(
-        ("targeted_refresh", "manual_deep_search", "manual_deep_search")
-    ):
-        submitted = runs.submit(
-            command_type=command,
-            target_business_date="2026-08-20",
-            client_request_id=f"deep-{index}",
-            model_version_id="model-v0001",
-            system_as_of=cutoff,
-            release_event_id="lpr:2026-08",
-            metric_ids=("CN_LPR_1Y_5Y",),
-            period="2026-08",
-        )
-        process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    assert len(calls) == 2
-    assert (
-        runs.get(submitted.run_id).retrieval_ledger["queries"][-1]["classification"]
-        == "event_daily_limit"
-    )
+    attempts = {item["channel"]: item for item in stored.retrieval_attempts}
+    assert attempts["exa"]["classification"] == "tavily_quota_available"
+    # AI WebSearch is open to P2 now; it has no adapter configured here.
+    assert attempts["ai_websearch"]["outcome"] == "not_configured"
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -924,85 +888,6 @@ def test_official_rate_limit_keeps_http_status_and_retry_after(
     assert request["classification"] == "rate_limited"
     assert datetime.fromisoformat(request["cache_expires_at"]) == cutoff + timedelta(hours=2)
     assert request["response_headers"]["retry-after"] == "7200"
-
-
-@pytest.mark.parametrize(("record_count", "charge_stride", "allowed"), [(16, 1, 0), (15, 3, 1)])
-@pytest.mark.usefixtures("runtime_clock")
-def test_legacy_day_consumption_is_preserved_before_new_physical_ledger_requests(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    record_count: int,
-    charge_stride: int,
-    allowed: int,
-) -> None:
-    paths, runs = prepared_runtime(tmp_path)
-    cutoff = datetime.now(UTC)
-    old = runs.submit(
-        command_type="targeted_refresh",
-        target_business_date="2026-07-20",
-        client_request_id="legacy",
-        model_version_id="model-v0001",
-        system_as_of=cutoff,
-        release_event_id="legacy-july",
-        metric_ids=("CN_LPR_1Y_5Y",),
-        period="2026-07",
-    )
-    for count in range(record_count):
-        runs.record_retrieval_attempt(
-            old.run_id,
-            release_event_id="legacy-july",
-            channel="tavily",
-            outcome="failed",
-            classification="transient_transport_error",
-            latency_ms=1,
-            remaining_run_budget=0,
-            remaining_daily_budget=15 - count,
-            budget_charged=count % charge_stride == 0,
-            cache_hit=False,
-            manual_budget_exemption=False,
-            candidate_source=None,
-            occurred_at=cutoff,
-        )
-    runs.mark_action_required(old.run_id, "legacy-unresolved")
-    calls = []
-
-    class Response(BytesIO):
-        status = 200
-        headers = {}
-
-    def open_http(*args, **kwargs):
-        calls.append(1)
-        return Response(b'{"results":[]}')
-
-    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", open_http)
-    submitted = runs.submit(
-        command_type="targeted_refresh",
-        target_business_date="2026-08-20",
-        client_request_id="after-upgrade",
-        model_version_id="model-v0001",
-        system_as_of=cutoff,
-        release_event_id="august",
-        metric_ids=("CN_LPR_1Y_5Y",),
-        period="2026-08",
-    )
-    process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    submitted = runs.submit(
-        command_type="targeted_refresh",
-        target_business_date="2026-08-20",
-        client_request_id="second-after-upgrade",
-        model_version_id="model-v0001",
-        system_as_of=cutoff,
-        release_event_id="june",
-        metric_ids=("CN_LPR_1Y_5Y",),
-        period="2026-06",
-    )
-    process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    assert len(calls) == allowed
-    assert runs.daily_budget_consumption(cutoff)["tavily"] == 16
-    assert (
-        runs.get(submitted.run_id).retrieval_ledger["queries"][-1]["classification"]
-        == "daily_limit"
-    )
 
 
 def test_existing_unexpired_negative_cache_survives_new_ledger(
@@ -1190,47 +1075,6 @@ def test_search_redirect_cannot_issue_an_unregistered_second_http_request(
             ledger["requests"][0]["acquisition_id"], "raw"
         )
         == b"moved"
-    )
-
-
-@pytest.mark.usefixtures("runtime_clock")
-def test_manual_next_eligible_time_matches_remaining_event_allowance(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    paths, runs = prepared_runtime(tmp_path)
-    cutoff = datetime(2026, 9, 6, 3, tzinfo=UTC)
-    monkeypatch.setattr("pring_cycle.retrieval_ledger.utc_now", lambda: cutoff)
-
-    class Response(BytesIO):
-        status = 200
-        headers = {}
-
-    monkeypatch.setattr(
-        "pring_cycle.search_discovery.urlopen",
-        lambda *a, **kw: Response(
-            b'{"results":[{"url":"https://www.chinamoney.com.cn/fixture.html"}]}'
-        ),
-    )
-    submitted = runs.submit(
-        command_type="manual_deep_search",
-        target_business_date="2026-08-20",
-        client_request_id="manual-next",
-        model_version_id="model-v0001",
-        system_as_of=cutoff,
-        release_event_id="lpr:2026-08",
-        metric_ids=("CN_LPR_1Y_5Y",),
-        period="2026-08",
-    )
-    process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    first = runs.get(submitted.run_id).retrieval_ledger
-    assert datetime.fromisoformat(first["queries"][0]["next_eligible_at"]) == cutoff
-    runs.resume(submitted.run_id, client_request_id="manual-second", confirm_external_calls=True)
-    process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
-    second = runs.get(submitted.run_id).retrieval_ledger
-    assert len(second["requests"]) == 2
-    assert datetime.fromisoformat(second["queries"][-1]["next_eligible_at"]) == datetime(
-        2026, 9, 6, 16, tzinfo=UTC
     )
 
 

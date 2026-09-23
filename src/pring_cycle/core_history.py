@@ -58,7 +58,10 @@ def refresh_core_history(
     end: date,
     definition_version: str,
     latest_observations: int | None = None,
+    metric_ids: tuple[str, ...] | None = None,
 ) -> CoreHistoryRefreshResult:
+    """Fetch and store the cores' daily bars; ``metric_ids`` narrows a retry to some cores."""
+    cores = tuple(metric_ids) if metric_ids is not None else tuple(CORE_API_IDENTITIES)
     if start > end:
         raise ValueError("core_history_range_invalid")
     if latest_observations is not None and latest_observations < 1:
@@ -67,10 +70,10 @@ def refresh_core_history(
         metric_id: metric_definition(
             metric_id, definition_version=definition_version, database_path=paths.database
         )
-        for metric_id in CORE_API_IDENTITIES
+        for metric_id in cores
     }
     calendars: list[date] = []
-    collected: dict[str, list[MarketBar]] = {metric_id: [] for metric_id in CORE_API_IDENTITIES}
+    collected: dict[str, list[MarketBar]] = {metric_id: [] for metric_id in cores}
     network_requests = 0
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     receipts: dict[tuple[str, date], AcquisitionReceipt] = {}
@@ -92,7 +95,7 @@ def refresh_core_history(
                 raise ValueError("target_business_date_not_in_china_calendar")
         network_requests += 1
         calendars.extend(calendar)
-        for metric_id in CORE_API_IDENTITIES:
+        for metric_id in cores:
             if metric_id in rejected:
                 continue
             try:
@@ -103,10 +106,10 @@ def refresh_core_history(
                     end=calendar[-1],
                     expected_business_dates=calendar,
                 )
-            except (KeyError, TypeError, ValueError) as error:
+            except (KeyError, TypeError, ValueError, OSError) as error:
                 first_rejection = first_rejection or error
-                # Gate ③: this core's response failed its structure check and was recorded
-                # as rejected on its call; the other cores are still kept.
+                # Gate ③: this core's response failed its structure check (or never came)
+                # and was recorded on its call; the other cores are still kept.
                 rejected.append(metric_id)
                 collected.pop(metric_id, None)
                 network_requests += 1

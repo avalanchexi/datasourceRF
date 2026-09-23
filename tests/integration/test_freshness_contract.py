@@ -88,7 +88,7 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, dic
     daily(evidence, "CN_BOND_10Y_930916", date(2026, 9, 18))
     daily(evidence, "EIA_BRENT_RBRTE", date(2026, 9, 18), "usd_per_barrel")
     daily(evidence, "EIA_WTI_RWTC", date(2026, 9, 4), "usd_per_barrel")
-    daily(evidence, "CBOE_VIX_INDEX", date(2026, 9, 22), "index_points")
+    daily(evidence, "CN_USDCNH_FXCM", date(2026, 9, 22), "index_points")
     monthly(
         evidence,
         "CN_CPI_HEADLINE",
@@ -158,7 +158,7 @@ def recorded(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, dic
         ("CN_GDP", "current", 0),
         ("CN_CAPACITY_UTILIZATION", "stale", 1),
         ("CN_RRR_EVENT", "current", 0),
-        ("CBOE_VIX_INDEX", "unconfigured", None),
+        ("CN_USDCNH_FXCM", "unconfigured", None),
         ("CN_DR007_POLICY_SPREAD", "missing", 0),
     ],
 )

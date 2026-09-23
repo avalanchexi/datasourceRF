@@ -106,8 +106,11 @@ def test_malformed_core_response_is_rejected_without_failing_the_worker(
 
     run = RunRepository(paths.database).get(run_id)
     assert not (run.error_classification or "").startswith("worker_failure")
-    [call] = rejected_calls(paths, run_id, "NHII.NH")
-    assert (call["state"], call["structure_check"]) == ("failed", "rejected")
+    # Rejected, then retried once (ticket 22) and rejected again.
+    calls = rejected_calls(paths, run_id, "NHII.NH")
+    assert [(call["state"], call["structure_check"]) for call in calls] == [
+        ("failed", "rejected")
+    ] * 2
     held = batch_freshness(paths.database, run_id)
     assert held["CN_COMMODITY_CORE_NHII"]["status"] == "missing"
     assert held["CN_EQUITY_CORE_000985"]["status"] != "missing"

@@ -259,9 +259,10 @@ def test_the_shared_budget_run_completes_while_queries_overlap_the_heartbeat(
     stored = runs.get(submitted.run_id)
     assert stored.status == "completed", stored.error_classification
     # The shared budget case itself ran to completion while those beats interleaved.
-    assert stored.consumed_budget == {"tavily": 8, "exa": 4, "ai_websearch": 0}
-    assert searches.count("https://api.tavily.com/search") == 8
-    assert searches.count("https://api.exa.ai/search") == 4
+    # Tavily's run cap is 16; Exa waits for Tavily's monthly quota (ticket 20).
+    assert stored.consumed_budget == {"tavily": 16, "exa": 0, "ai_websearch": 0}
+    assert searches.count("https://api.tavily.com/search") == 16
+    assert searches.count("https://api.exa.ai/search") == 0
     assert stored.projection_set_id is not None
     published = ProjectionSetRepository(paths.database).current()
     assert published.envelope.projection_set_id == stored.projection_set_id

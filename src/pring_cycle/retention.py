@@ -171,6 +171,7 @@ def prune_to_window(paths: RuntimePaths) -> RetentionResult:
         )
         delete("retrieval_physical_request", retired)
         delete("batch_freshness", "batch_id IN (SELECT run_id FROM retired_run)")
+        delete("release_schedule", "batch_id IN (SELECT run_id FROM retired_run)")
         delete("parent_run", retired)
         # Calls nothing still refers to: no remaining claim, batch or retrieval request.
         delete(

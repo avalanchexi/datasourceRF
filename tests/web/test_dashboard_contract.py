@@ -473,7 +473,7 @@ def test_run_page_shows_retrieval_latency_budget_cache_and_next_action(tmp_path:
 
     assert "tavily candidate_source 123ms" in page
     assert "运行余量 7 日余量 15" in page
-    assert "预算 Tavily 1/8、Exa 0/4、AI 0/1" in page
+    assert "预算 Tavily 1/16、Exa 0/8、AI 0" in page
     assert "下一动作 wait_for_worker" in page
     assert "safe-url-only" not in page
 

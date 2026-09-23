@@ -69,7 +69,8 @@ def search_discovery_adapter(
     transport: SearchTransport | None = None,
     paths: RuntimePaths | None = None,
     run_id: str | None = None,
-    verify_candidates: Callable[[str, tuple[str, ...]], RetrievalAdapterResponse] | None = None,
+    verify_candidates: Callable[[str, tuple[str, ...], tuple[str, ...]], RetrievalAdapterResponse]
+    | None = None,
     ledger: RetrievalLedger | None = None,
 ) -> Callable[[str], RetrievalAdapterResponse]:
     if not api_key:
@@ -129,7 +130,11 @@ def search_discovery_adapter(
                 return None
             active_ledger.record_search_reuse(run_id, original_request_id)
             return replace(
-                verify_candidates(original_request_id, candidate.candidate_sources),
+                verify_candidates(
+                    original_request_id,
+                    candidate.candidate_sources,
+                    candidate.candidate_summaries,
+                ),
                 cache_hit=True,
                 physical_request_id=original_request_id,
             )
@@ -184,7 +189,9 @@ def search_discovery_adapter(
             provider_request_id=provider_request_id,
         )
         if result.candidate_sources and verify_candidates is not None:
-            result = verify_candidates(request_id, result.candidate_sources)
+            result = verify_candidates(
+                request_id, result.candidate_sources, result.candidate_summaries
+            )
         return replace(result, physical_request_id=request_id)
 
     return retrieve

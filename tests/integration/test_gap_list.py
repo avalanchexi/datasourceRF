@@ -77,12 +77,12 @@ def seed(paths: RuntimePaths) -> None:
                 )
         claims.append(
             claim(
-                "CBOE_VIX_INDEX",
+                "CN_USDCNH_FXCM",
                 observed,
                 15.0,
                 unit="index_points",
                 provider="fixture",
-                reference=f"fixture:vix:{observed}",
+                reference=f"fixture:usdcnh:{observed}",
             )
         )
     EvidenceRepository(paths.database).append_source_claims(tuple(claims))
@@ -129,7 +129,7 @@ def test_gap_list_classifies_each_freshness_disposition(
     assert gaps["CN_EQ_CSI1000"]["category"] == "missing"
     assert gaps["CN_EQ_CSI1000"]["reason"] == "two_or_more_periods_behind"
     assert gaps["CN_SHIBOR_ON_1W_3M"]["category"] == "missing"
-    assert gaps["CBOE_VIX_INDEX"]["category"] == "unconfigured"
+    assert gaps["CN_USDCNH_FXCM"]["category"] == "unconfigured"
     assert all(item["priority"] != "P0" for item in gaps.values())
 
 

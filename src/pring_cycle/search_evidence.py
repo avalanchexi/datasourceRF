@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
@@ -32,12 +34,14 @@ from pring_cycle.metric_contracts import (
 from pring_cycle.models import ModelRepository
 from pring_cycle.official_context import (
     OFFICIAL_CONTEXT_INTEGRITY_METRICS,
+    ParsedOfficialContextRelease,
     official_claims_matching_acquisitions,
 )
-from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
+from pring_cycle.official_core import CSINDEX_CORES
+from pring_cycle.official_lpr import ParsedLprRelease, lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
-from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
+from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked, RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import (
@@ -483,14 +487,294 @@ class ModelInputSelector:
         )
 
 
+# Why a search candidate was not adopted (ticket 19). Each one is shown per URL under
+# the gap list's "retrieval failed" group.
+NOT_WHITELISTED = "not_whitelisted"
+PARSE_FAILED = "parse_failed"
+PERIOD_MISMATCH = "period_mismatch"
+NO_PUBLICATION_DATE = "no_publication_date"
+DATE_AFTER_CUTOFF = "date_after_cutoff"
+SEARCH_VALUE_MISMATCH = "search_value_mismatch"
+FETCH_FAILED = "fetch_failed"
+# The page parsed, but the model input for the gap is still not complete.
+INCOMPLETE_MODEL_INPUT = "incomplete_model_input"
+RETRIEVAL_BLOCKED = "retrieval_blocked"
+# Verdicts on the page itself: a later check in the same run would reach the same one.
+# Fetch failures, blocked requests, a publication after a cutoff that still moves and an
+# input incomplete only because another member was missing are checked again.
+_FINAL_REASONS = (NOT_WHITELISTED, PARSE_FAILED, PERIOD_MISMATCH, NO_PUBLICATION_DATE)
+
+
+class CandidateRejected(ValueError):
+    """A parsed candidate the strict path does not adopt; the message is the reason."""
+
+
+def candidate_rejection_reason(error: BaseException) -> str:
+    """Map a registered parser's failure to the reason shown for its URL."""
+    if isinstance(error, CandidateRejected):
+        return str(error)
+    if isinstance(error, OSError):
+        return FETCH_FAILED
+    if isinstance(error, RetrievalBudgetBlocked):
+        # Never fetched: the ledger held the request back (cache or budget).
+        return RETRIEVAL_BLOCKED
+    message = str(error)
+    if message.endswith(("_not_official", "_redirect_identity_changed")) or message in {
+        "official_context_metric_family_unknown",
+        "official_context_family_unsupported",
+    }:
+        return NOT_WHITELISTED
+    if "period" in message and "mismatch" in message:
+        return PERIOD_MISMATCH
+    if message.endswith("release_date_missing"):
+        return NO_PUBLICATION_DATE
+    return PARSE_FAILED
+
+
+_NUMBER = re.compile(r"-?\d+(?:,\d{3})*(?:\.\d+)?%?")
+
+
+def search_value_conflicts(summary: str, values: tuple[float, ...]) -> bool:
+    """Whether a search channel's own number looks like the parsed value misplaced.
+
+    Only decimals and percentages count as the channel's values (years and days are
+    integers). The candidate conflicts when none of those agrees with a parsed value
+    within 5% but one of them is a parsed value shifted by ten to a thousandfold: a
+    decimal-point slip. Unrelated numbers never reject a page on their own.
+    """
+    reported = [
+        float(token.rstrip("%").replace(",", ""))
+        for token in _NUMBER.findall(summary)
+        if "." in token or token.endswith("%")
+    ]
+    parsed = [value for value in values if value]
+
+    def near(left: float, right: float) -> bool:
+        return abs(left - right) <= 0.05 * abs(right)
+
+    if not reported or not parsed:
+        return False
+    if any(near(s, v) for s in reported for v in parsed):
+        return False
+    return any(
+        near(s, v * 10.0**shift)
+        for s in reported
+        for v in parsed
+        # Up to a thousandfold: a slipped decimal point or percent sign. Ten thousand is
+        # how Chinese sources restate 亿 as 万亿 and is not a slip.
+        for shift in (-3, -2, -1, 1, 2, 3)
+    )
+
+
+# The P2 lenient path (ticket 20): hosts registered per metric as host and path prefix.
+# A candidate on one of them is accepted with the value the search channel extracted; the
+# page is refetched so its original and hash are kept. No parser is required.
+LENIENT_HOSTS: dict[str, tuple[tuple[str, str], ...]] = {
+    "CN_USDCNY_CLOSE_1630": (("www.chinamoney.com.cn", "/chinese/"),),
+    "CBOE_VIX_INDEX": (("www.cboe.com", "/"), ("cdn.cboe.com", "/")),
+    "NASDAQ_SOX_INDEX": (("www.nasdaq.com", "/"), ("indexes.nasdaqomx.com", "/")),
+}
+# Recorded in place of a parser version: how the lenient value was taken.
+LENIENT_EXTRACTION = "search-summary-extraction-v0001"
+_MONTHS = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+_CLOSE_VALUE = re.compile(
+    r"(?:clos(?:e|ed|ing)(?:\s+(?:at|value|price))?|收盘(?:价)?|收于|报)\s*[:：为]?\s*"
+    r"(-?\d+(?:,\d{3})*\.\d+)",
+    re.IGNORECASE,
+)
+
+
+def _lenient_host(metric_id: str, url: str) -> str:
+    parsed = urlsplit(url)
+    if parsed.scheme == "https" and parsed.port in {None, 443} and not parsed.username:
+        for host, prefix in LENIENT_HOSTS.get(metric_id, ()):
+            if parsed.hostname == host and parsed.path.startswith(prefix):
+                return host
+    raise CandidateRejected(NOT_WHITELISTED)
+
+
+def _period_spellings(day: date) -> tuple[str, ...]:
+    month = _MONTHS[day.month - 1]
+    return (
+        day.isoformat(),
+        day.strftime("%Y/%m/%d"),
+        f"{day.year}年{day.month}月{day.day}日",
+        f"{month} {day.day}, {day.year}",
+        f"{month[:3]} {day.day}, {day.year}",
+        f"{month[:3]} {day.day:02d}, {day.year}",
+    )
+
+
+def lenient_value(summary: str, day: date) -> float:
+    """The one value the search channel reported for ``day``, or a rejection reason."""
+    spellings = [text for text in _period_spellings(day) if text in summary]
+    if not spellings:
+        raise CandidateRejected(PERIOD_MISMATCH)
+    text = summary
+    for spelling in spellings:
+        text = text.replace(spelling, " ")
+    values = {float(token.replace(",", "")) for token in re.findall(r"-?\d+(?:,\d{3})*\.\d+", text)}
+    if len(values) != 1:
+        values = {float(token.replace(",", "")) for token in _CLOSE_VALUE.findall(text)}
+    if len(values) != 1:
+        raise CandidateRejected(PARSE_FAILED)
+    return values.pop()
+
+
+def _accept_lenient_candidate(
+    paths: RuntimePaths,
+    run: RunRecord,
+    url: str,
+    summary: str,
+    *,
+    definition_version: str,
+    on_acquisition_started: Callable[[str], None],
+) -> tuple[str, ...]:
+    """Store the search channel's value for a P2 gap once its page original is kept."""
+    from urllib.request import Request
+
+    from pring_cycle.acquisition import AcquisitionRepository
+    from pring_cycle.evidence import SourceClaimInput
+    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.http_transport import open_no_redirects
+
+    scope = run.retrieval_scope
+    assert scope is not None
+    [metric_id] = scope.metric_ids
+    host = _lenient_host(metric_id, url)
+    day = date.fromisoformat(scope.period)
+    value = lenient_value(summary, day)
+    responses: list[tuple[int, str]] = []
+
+    def fetch() -> bytes:
+        request = Request(url, headers={"User-Agent": "pring-cycle/1.0 search-page"})
+        with open_no_redirects(request, timeout=15) as response:
+            responses.append((int(response.status), str(response.geturl())))
+            return bytes(response.read(4_000_000))
+
+    def parse(_raw: bytes) -> dict[str, object]:
+        status, final_url = responses[0]
+        if status != 200:
+            raise CandidateRejected(FETCH_FAILED)
+        _lenient_host(metric_id, final_url)
+        return {"value": value, "extraction": LENIENT_EXTRACTION, "period": scope.period}
+
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=host,
+        api_name="search_page_get",
+        parameters={"source_url": url, "period": scope.period, "metric_id": metric_id},
+        fields="value",
+        parser_version=LENIENT_EXTRACTION,
+        fetch=fetch,
+        parse=parse,
+        normalize=lambda parsed: parsed,
+        on_started=on_acquisition_started,
+    )
+    receipt = acquired.receipt
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    public_at = public_available_at(metric_id, day, receipt.received_at, current_calendar())
+    if public_at is not None and public_at > run.system_as_of:
+        raise CandidateRejected(DATE_AFTER_CUTOFF)
+    definition = metric_definition(
+        metric_id, definition_version=definition_version, database_path=paths.database
+    )
+    stored = EvidenceRepository(paths.database).append_source_claim(
+        SourceClaimInput(
+            metric_id=metric_id,
+            definition_version=definition_version,
+            period_kind="business_day",
+            period_start=scope.period,
+            period_end=scope.period,
+            dimensions={},
+            value=value,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit=definition.unit,
+            provider=host,
+            source_reference=f"search_page:{url}",
+            release_event_id=f"search_page:{metric_id}:{scope.period}:{receipt.raw_hash}",
+            release_at=None,
+            public_available_at=None,
+            fetched_at=receipt.received_at,
+            available_at=receipt.validated_at,
+            quality_status="validated",
+            acquisition_id=receipt.acquisition_id,
+        )
+    )
+    return (stored.claim_id,)
+
+
+def _refetch_csindex_candidate(
+    paths: RuntimePaths,
+    run: RunRecord,
+    url: str,
+    summary: str,
+    *,
+    definition_version: str,
+    on_acquisition_started: Callable[[str], None],
+) -> tuple[str, ...]:
+    """A CSI core candidate is refetched from the registered CSI page and parsed there."""
+    from pring_cycle.adapters import MarketBar
+    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.official_core import is_csindex_page, refresh_csindex_core
+
+    scope = run.retrieval_scope
+    assert scope is not None
+    [metric_id] = scope.metric_ids
+    if not is_csindex_page(metric_id, url):
+        raise CandidateRejected(NOT_WHITELISTED)
+    day = date.fromisoformat(scope.period)
+
+    def admit(bars: tuple[MarketBar, ...]) -> None:
+        if [bar.business_date for bar in bars] != [day]:
+            raise CandidateRejected(PERIOD_MISMATCH)
+        published = public_available_at(metric_id, day, None, current_calendar())
+        if published is None:
+            raise CandidateRejected(NO_PUBLICATION_DATE)
+        if published > run.system_as_of:
+            raise CandidateRejected(DATE_AFTER_CUTOFF)
+        if search_value_conflicts(summary, tuple(bar.close for bar in bars)):
+            raise CandidateRejected(SEARCH_VALUE_MISMATCH)
+
+    return refresh_csindex_core(
+        paths,
+        metric_id,
+        start=day,
+        end=day,
+        definition_version=definition_version,
+        on_acquisition_started=on_acquisition_started,
+        admit=admit,
+    )
+
+
 def verify_search_candidates(
     paths: RuntimePaths,
     run_id: str,
     search_request_id: str,
     urls: tuple[str, ...],
+    summaries: tuple[str, ...] = (),
     *,
     scope_run: RunRecord | None = None,
 ) -> RetrievalAdapterResponse:
+    """Refetch each candidate through its registered parser; adopt only what passes.
+
+    The strict path (ticket 19): the host must belong to a registered parser family, the
+    page must yield the due period and a publication date no later than the run's cutoff,
+    and for P0/P1 the search channel's own number must not be the parsed value misplaced.
+    A rejected candidate stores no value; its raw response and reason stay on the record.
+    """
     run = scope_run or RunRepository(paths.database).get(run_id)
     scope = run.retrieval_scope
     if scope is None:
@@ -501,6 +785,11 @@ def verify_search_candidates(
     ledger = RetrievalLedger(paths.database, scope_run=scope_run)
     snapshot = ledger.for_run(run_id)
     assert snapshot is not None
+    lenient = (
+        scope.priority == "P2"
+        and len(scope.metric_ids) == 1
+        and (scope.metric_ids[0] in LENIENT_HOSTS)
+    )
     gap_ids = [
         g["gap_id"]
         for g in snapshot["gaps"]
@@ -510,23 +799,22 @@ def verify_search_candidates(
             and g["as_of"] == run.system_as_of.astimezone(UTC).isoformat()
         )
     ]
-    for url in urls[:3]:
+    strict = scope.priority in {"P0", "P1"}
+    for index, url in enumerate(urls[:3]):
+        summary = summaries[index] if index < len(summaries) else ""
         validation_id = "candidate-validation-" + uuid4().hex
         with database_connection(paths.database) as connection:
-            attempt = connection.execute(
-                "SELECT COUNT(*) FROM run_attempt WHERE run_id=?", (run_id,)
-            ).fetchone()[0]
             duplicate = connection.execute(
                 "SELECT validation_id FROM retrieval_candidate_validation "
-                "WHERE run_id=? AND run_attempt=? AND candidate_url=? "
-                "AND gap_ids_json=? LIMIT 1",
-                (run_id, attempt, url, json.dumps(gap_ids)),
+                "WHERE run_id=? AND candidate_url=? AND gap_ids_json=? "
+                "AND (outcome='model_usable' OR reason IN (?, ?, ?, ?, ?)) LIMIT 1",
+                (run_id, url, json.dumps(gap_ids), *_FINAL_REASONS, SEARCH_VALUE_MISMATCH),
             ).fetchone()
             connection.execute(
                 "INSERT INTO retrieval_candidate_validation(validation_id, run_id, "
                 "search_request_id, candidate_url, outcome, checked_at, gap_ids_json, "
-                "selected_claim_ids_json, claim_ids_json, run_attempt) "
-                "VALUES (?, ?, ?, ?, 'checking', ?, ?, '[]', '[]', ?)",
+                "selected_claim_ids_json, claim_ids_json) "
+                "VALUES (?, ?, ?, ?, 'checking', ?, ?, '[]', '[]')",
                 (
                     validation_id,
                     run_id,
@@ -534,7 +822,6 @@ def verify_search_candidates(
                     url,
                     utc_now().isoformat(),
                     json.dumps(gap_ids),
-                    attempt,
                 ),
             )
             if duplicate is not None:
@@ -547,6 +834,24 @@ def verify_search_candidates(
             continue
         claim_ids: list[str] = []
         errors: list[str] = []
+        acquisitions: list[str] = []
+
+        def admit(
+            parsed: ParsedLprRelease | ParsedOfficialContextRelease, *, summary: str = summary
+        ) -> None:
+            published = parsed.public_available_at or parsed.release_at
+            if published is None:
+                raise CandidateRejected(NO_PUBLICATION_DATE)
+            if published > run.system_as_of:
+                raise CandidateRejected(DATE_AFTER_CUTOFF)
+            values = tuple(
+                item.value
+                for item in (
+                    parsed.observations if isinstance(parsed, ParsedLprRelease) else parsed.scalars
+                )
+            )
+            if strict and search_value_conflicts(summary, values):
+                raise CandidateRejected(SEARCH_VALUE_MISMATCH)
 
         def acquire(
             on_started: Callable[[str], None],
@@ -554,9 +859,37 @@ def verify_search_candidates(
             url: str = url,
             claim_ids: list[str] = claim_ids,
             errors: list[str] = errors,
+            acquisitions: list[str] = acquisitions,
+            summary: str = summary,
         ) -> RetrievalAdapterResponse:
+            def started(acquisition_id: str) -> None:
+                acquisitions.append(acquisition_id)
+                on_started(acquisition_id)
+
             try:
-                if scope.metric_ids == ("CN_LPR_1Y_5Y",):
+                if scope.metric_ids[0] in CSINDEX_CORES and len(scope.metric_ids) == 1:
+                    claim_ids.extend(
+                        _refetch_csindex_candidate(
+                            paths,
+                            run,
+                            url,
+                            summary,
+                            definition_version=version,
+                            on_acquisition_started=started,
+                        )
+                    )
+                elif lenient:
+                    claim_ids.extend(
+                        _accept_lenient_candidate(
+                            paths,
+                            run,
+                            url,
+                            summary,
+                            definition_version=version,
+                            on_acquisition_started=started,
+                        )
+                    )
+                elif scope.metric_ids == ("CN_LPR_1Y_5Y",):
                     from pring_cycle.official_lpr import refresh_lpr_release
 
                     refreshed = refresh_lpr_release(
@@ -565,8 +898,9 @@ def verify_search_candidates(
                         expected_period=scope.period,
                         fetched_at=utc_now(),
                         definition_version=version,
-                        on_acquisition_started=on_started,
+                        on_acquisition_started=started,
                         parser_text_limit=1600,
+                        admit=admit,
                     )
                     claim_ids.extend(refreshed.claim_ids)
                 else:
@@ -582,12 +916,13 @@ def verify_search_candidates(
                         expected_period=scope.period,
                         fetched_at=utc_now(),
                         definition_version=version,
-                        on_acquisition_started=on_started,
+                        on_acquisition_started=started,
                         parser_text_limit=1600,
+                        admit=admit,
                     )
                     claim_ids.extend(context_refreshed.claim_ids)
             except (OSError, TypeError, ValueError) as error:
-                errors.append(str(error))
+                errors.append(candidate_rejection_reason(error))
                 raise
             return RetrievalAdapterResponse(
                 "candidate_source", evidence=url, classification="document_validated"
@@ -597,15 +932,28 @@ def verify_search_candidates(
             run_id, "official", scope.release_event_id, url, acquire
         )
         selection = select_retrieval_input(paths, run)
-        public_selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
         outcome = "model_usable" if claim_ids and selection.complete else "not_model_usable"
-        reason = errors[0] if errors else response.classification
+        reason = (
+            errors[0]
+            if errors
+            else INCOMPLETE_MODEL_INPUT
+            if outcome == "not_model_usable"
+            else response.classification
+        )
         with database_connection(paths.database) as connection:
+            fetched = (
+                connection.execute(
+                    "SELECT parameters_json, raw_hash, parser_version FROM acquisition_request "
+                    "WHERE acquisition_id=?",
+                    (acquisitions[-1],),
+                ).fetchone()
+                if acquisitions
+                else None
+            )
             connection.execute(
                 "UPDATE retrieval_candidate_validation SET outcome=?, reason=?, checked_at=?, "
                 "download_request_id=?, claim_ids_json=?, selected_claim_ids_json=?, "
-                "missing_members_json=?, "
-                "public_complete=?, public_selected_claim_ids_json=? "
+                "missing_members_json=?, fetched_url=?, raw_hash=?, parser_version=? "
                 "WHERE validation_id=? AND outcome='checking'",
                 (
                     outcome,
@@ -615,8 +963,9 @@ def verify_search_candidates(
                     json.dumps(claim_ids),
                     json.dumps(selection.selected_claim_ids),
                     json.dumps(selection.missing_members),
-                    public_selection.complete,
-                    json.dumps(public_selection.selected_claim_ids),
+                    json.loads(fetched[0]).get("source_url") if fetched else None,
+                    fetched[1] if fetched else None,
+                    fetched[2] if fetched else None,
                     validation_id,
                 ),
             )
@@ -643,12 +992,10 @@ CREATE TABLE retrieval_candidate_validation (
     run_id TEXT NOT NULL REFERENCES parent_run(run_id),
     search_request_id TEXT NOT NULL REFERENCES retrieval_physical_request(request_id),
     candidate_url TEXT NOT NULL, outcome TEXT NOT NULL, reason TEXT, checked_at TEXT NOT NULL,
-    run_attempt INTEGER NOT NULL,
     reused_validation_id TEXT REFERENCES retrieval_candidate_validation(validation_id),
     download_request_id TEXT REFERENCES retrieval_physical_request(request_id),
     gap_ids_json TEXT NOT NULL, claim_ids_json TEXT NOT NULL, selected_claim_ids_json TEXT NOT NULL,
     missing_members_json TEXT,
-    public_complete INTEGER NOT NULL DEFAULT 0,
-    public_selected_claim_ids_json TEXT NOT NULL DEFAULT '[]'
+    fetched_url TEXT, raw_hash TEXT, parser_version TEXT
 );
 """

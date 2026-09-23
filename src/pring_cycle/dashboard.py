@@ -13,6 +13,7 @@ from dash import dcc, html
 from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
+from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 from pring_cycle.runs import RunRecord
 
 
@@ -264,10 +265,36 @@ def _carry_forward_notice(value: object) -> list[html.P]:
 
 GAP_CATEGORY_LABELS = {
     "missing": "缺失",
+    "retrieval_failed": "检索未通过",
     "freshness_gap": "时效缺口",
     "unconfigured": "未配置时效",
     "rejected": "拒收",
 }
+
+
+CANDIDATE_REASON_LABELS = {
+    "not_whitelisted": "不在白名单",
+    "parse_failed": "解析失败",
+    "period_mismatch": "统计期不符",
+    "no_publication_date": "无发布日期",
+    "date_after_cutoff": "日期晚于截止时点",
+    "search_value_mismatch": "与搜索结果不一致",
+    "fetch_failed": "抓取失败",
+    "incomplete_model_input": "数值不完整",
+    "retrieval_blocked": "请求被缓存或预算拦下",
+}
+
+
+def _candidate_reasons(value: object) -> str:
+    """Each rejected candidate URL with why it was not adopted (ticket 19)."""
+    candidates = _document_list(value)
+    if not candidates:
+        return ""
+    return "；候选 " + "；".join(
+        f"{item.get('url')}（"
+        f"{CANDIDATE_REASON_LABELS.get(str(item.get('reason')), item.get('reason'))}）"
+        for item in candidates
+    )
 
 
 def _gap_list(value: object) -> html.Div:
@@ -294,6 +321,7 @@ def _gap_list(value: object) -> html.Div:
                                         if item.get("due_period")
                                         else ""
                                     )
+                                    + _candidate_reasons(item.get("candidates"))
                                 )
                                 for item in rows
                             ]
@@ -1198,8 +1226,9 @@ def _run_row(item: RunRecord) -> html.Li:
     budget = item.consumed_budget
     details = (
         f"{item.current_step} · 尝试 {item.attempt_count} · "
-        f"预算 Tavily {budget['tavily']}/8、Exa {budget['exa']}/4、"
-        f"AI {budget['ai_websearch']}/1 · 下一动作 {item.next_action}"
+        f"预算 Tavily {budget['tavily']}/{RUN_SEARCH_LIMITS['tavily']}、"
+        f"Exa {budget['exa']}/{RUN_SEARCH_LIMITS['exa']}、"
+        f"AI {budget['ai_websearch']} · 下一动作 {item.next_action}"
     )
     if attempt_summary:
         details += f" · 检索 {attempt_summary}"

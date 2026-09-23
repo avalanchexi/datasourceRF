@@ -165,13 +165,21 @@ class ProjectionSetRepository:
             rows = connection.execute(
                 """
                 SELECT document_json FROM p0_assessment
-                ORDER BY julianday(system_as_of), assessment_id
+                ORDER BY target_business_date, julianday(system_as_of), assessment_id
                 """
             ).fetchall()
         return tuple(
             {str(key): value for key, value in json.loads(str(row["document_json"])).items()}
             for row in rows
         )
+
+    def summarized_dates(self) -> frozenset[str]:
+        """Target days that already have a summary (a P0 assessment)."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT DISTINCT target_business_date FROM p0_assessment"
+            ).fetchall()
+        return frozenset(str(row[0]) for row in rows)
 
     def last_confirmed_stage(self, *, on_or_before: str) -> str | None:
         date.fromisoformat(on_or_before)

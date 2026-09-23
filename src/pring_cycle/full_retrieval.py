@@ -15,7 +15,7 @@ from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
-from pring_cycle.freshness import DERIVED_INPUTS
+from pring_cycle.freshness import DERIVED_INPUTS, TradingCalendar, use_run_calendar
 from pring_cycle.full_run_requirements import (
     formula_requirements,
     preceding_periods,
@@ -57,6 +57,9 @@ class FullRunRetrieval:
         else:
             initial = plan["initial"]
         version = str(initial["definition_version"])
+        if dates := initial.get("daily_window", {}).get("dates"):
+            # Judge release times against the run's SSE calendar, not weekdays.
+            use_run_calendar(TradingCalendar(date.fromisoformat(day) for day in dates))
         runs = RunRepository(self.paths.database)
         for document in initial["scopes"]:
             scope = _scope(document)
@@ -73,6 +76,7 @@ class FullRunRetrieval:
                 known_at,
                 definition_version=version,
                 public_as_of=min(known_at, utc_now(), _target_end(run)),
+                latest_only=True,
             )
             discover_release = release == "unknown_release_configuration" and _has_release_listing(
                 scope
@@ -102,16 +106,8 @@ class FullRunRetrieval:
             ledger.bind_run(scoped, version)
             if select_retrieval_input(self.paths, scoped).complete:
                 continue
-            consumed = runs.get(run.run_id).consumed_budget
-            daily = runs.daily_budget_consumption(utc_now())
-            budget = RetrievalBudget(
-                run_tavily_remaining=max(0, 8 - consumed["tavily"]),
-                run_exa_remaining=max(0, 4 - consumed["exa"]),
-                run_ai_remaining=max(0, 1 - consumed["ai_websearch"]),
-                daily_tavily_remaining=max(0, 16 - daily["tavily"]),
-                daily_exa_remaining=max(0, 8 - daily["exa"]),
-                daily_ai_remaining=max(0, 2 - daily["ai_websearch"]),
-            )
+            # The ledger charges the run's persistent budget; this one is not consumed.
+            budget = RetrievalBudget()
             with own_acquisitions(
                 self.paths.database,
                 run.run_id,
@@ -313,6 +309,7 @@ class FullRunRetrieval:
                 selector.as_of,
                 definition_version=rules.metric_catalog_version,
                 public_as_of=min(selector.as_of, utc_now(), _target_end(run)),
+                latest_only=True,
             )
         return {
             "origin": "before_gap_retrieval",

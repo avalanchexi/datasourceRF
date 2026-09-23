@@ -1004,7 +1004,7 @@ def test_unreleased_targeted_refresh_and_active_negative_cache_make_no_calls(
     assert runs.get(cached.run_id).retrieval_attempts[0]["cache_hit"] is True
 
 
-def test_p2_stops_before_ai_and_manual_deep_search_records_budget_exemption(
+def test_p2_reaches_ai_and_manual_deep_search_records_budget_exemption(
     tmp_path: Path,
 ) -> None:
     paths = runtime(tmp_path)
@@ -1053,6 +1053,7 @@ def test_p2_stops_before_ai_and_manual_deep_search_records_budget_exemption(
     )
 
     stored = runs.get(deep.run_id)
-    assert calls == ["local", "tushare", "official", "tavily", "exa"]
+    # AI WebSearch is open to P2; Exa waits for Tavily's monthly quota (ticket 20).
+    assert calls == ["local", "tushare", "official", "tavily", "ai_websearch"]
     assert stored.consumed_budget == {"tavily": 0, "exa": 0, "ai_websearch": 0}
     assert all(item["manual_budget_exemption"] is True for item in stored.retrieval_attempts)

@@ -282,15 +282,18 @@ def test_missing_rows_reach_official_fallback_instead_of_stopping_the_refresh(
         metric, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
     )
     assert all(claim.provider == "中国人民银行" for p in points for claim in p.claims)
-    (empty,) = [
+    # The direct refresh and the gap retrieval's TuShare step both received no rows.
+    empties = [
         receipt
         for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
         if receipt.api_name == api
     ]
-    raw = AcquisitionRepository(paths.database, paths.artifacts).read_content(
-        empty.acquisition_id, "raw"
-    )
-    assert json.loads(raw)["data"]["items"] == []
+    assert empties
+    for empty in empties:
+        raw = AcquisitionRepository(paths.database, paths.artifacts).read_content(
+            empty.acquisition_id, "raw"
+        )
+        assert json.loads(raw)["data"]["items"] == []
 
 
 @pytest.mark.usefixtures("runtime_clock")

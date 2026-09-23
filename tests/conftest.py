@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from itertools import count
 from time import monotonic
@@ -64,3 +64,20 @@ def runtime_clock(
 ) -> Callable[[], datetime]:
     """Keep a full run's external clocks on the same advancing UTC timeline."""
     return install_runtime_clock(monkeypatch, request, datetime.now(UTC))
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _official_pages_offline() -> Iterator[None]:
+    """The CSI page and NBS schedule page are never reached unless a test serves its own.
+
+    Module-scoped runtime fixtures run before function-scoped patches, so the default has
+    to be installed for the whole session.
+    """
+
+    def offline(url: str) -> bytes:
+        raise OSError("official_page_offline_in_tests")
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("pring_cycle.official_core._fetch", offline)
+        patch.setattr("pring_cycle.release_schedule._fetch_page", offline)
+        yield

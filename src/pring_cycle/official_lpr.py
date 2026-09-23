@@ -386,7 +386,9 @@ def refresh_lpr_release(
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
     parser_text_limit: int | None = None,
+    admit: Callable[[ParsedLprRelease], None] | None = None,
 ) -> LprIngestionResult:
+    """Fetch and store one announcement; ``admit`` may reject the parsed release first."""
     _validate_official_url(source_url)
     fetch = fetcher or fetch_official_document
     try:
@@ -406,13 +408,16 @@ def refresh_lpr_release(
                 raise ValueError("lpr_source_http_status_invalid")
             if response.media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
                 raise ValueError("lpr_response_media_type_invalid")
-            return parse_lpr_announcement(
+            parsed = parse_lpr_announcement(
                 raw,
                 source_url=source_url,
                 fetched_at=utc_now(),
                 expected_period=expected_period,
                 parser_text_limit=parser_text_limit,
             )
+            if admit is not None:
+                admit(parsed)
+            return parsed
 
         acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
             provider=CHINAMONEY_PROVIDER,

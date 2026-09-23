@@ -5,7 +5,9 @@ import os
 import signal
 import sqlite3
 import threading
+from collections import Counter
 from collections.abc import Callable, Mapping
+from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from time import monotonic
 from zoneinfo import ZoneInfo
@@ -37,6 +39,7 @@ from pring_cycle.freshness import (
     period_status,
     record_run_freshness,
     run_calendar_scope,
+    use_release_schedule,
     use_run_calendar,
 )
 from pring_cycle.logging import write_runtime_event
@@ -51,6 +54,11 @@ from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CARRIED_FORWARD, CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
+from pring_cycle.release_schedule import (
+    batch_schedule,
+    latest_schedule,
+    refresh_release_schedule,
+)
 from pring_cycle.reports import (
     CliReportAdapter,
     ReportAdapter,
@@ -305,6 +313,7 @@ def _execute_run(
         runs.advance(run.run_id, "completed")
         return
     if run.command_type in {"targeted_refresh", "manual_deep_search"}:
+        use_release_schedule(latest_schedule(paths.database))
         _execute_retrieval_run(
             paths,
             runs,
@@ -325,6 +334,13 @@ def _execute_run(
     ):
         from pring_cycle.acquisition import own_acquisitions
 
+        # Pre-announcements first: claims stored below take their inferred public time
+        # from the release time they announce (ticket 25).
+        with own_acquisitions(paths.database, run.run_id, "release_schedule"):
+            refresh_release_schedule(
+                paths, run.run_id, date.fromisoformat(run.target_business_date)
+            )
+        use_release_schedule(batch_schedule(paths.database, run.run_id))
         with own_acquisitions(
             paths.database,
             run.run_id,
@@ -353,6 +369,7 @@ def _execute_run(
         date.fromisoformat(day) for day in plan["final"]["daily_window"].get("dates", ())
     )
     use_run_calendar(calendar)
+    use_release_schedule(batch_schedule(paths.database, run.run_id))
     freshness = record_run_freshness(
         paths.database, run.run_id, model_rules.metric_definitions, run.system_as_of, calendar
     )
@@ -407,6 +424,14 @@ def _execute_run(
         definition_version=definition_version,
     )
     runs.advance(run.run_id, "building_projection")
+    _backfill_missed_days(
+        paths,
+        run,
+        window=tuple(plan["final"]["daily_window"].get("dates", ())),
+        calendar=calendar,
+        model_manifest=model_manifest,
+        definition_version=definition_version,
+    )
     runs.advance(run.run_id, "publishing_projection")
     last_stage = _last_confirmed_stage(paths, run.target_business_date)
     observation_versions = (
@@ -484,6 +509,98 @@ def _execute_run(
     prune_to_window(paths)
 
 
+def _backfill_missed_days(
+    paths: RuntimePaths,
+    run: RunRecord,
+    *,
+    window: tuple[str, ...],
+    calendar: TradingCalendar,
+    model_manifest: Mapping[str, object],
+    definition_version: str,
+) -> None:
+    """Summarize each window day before the target that has no summary (ticket 24).
+
+    With no summary at all this is the first initialization: every earlier day of the
+    120-session window is summarized in order, which rebuilds the stage history. A daily
+    run fills only the days it missed. Each day sees only details public by that day's end,
+    and none gets a report.
+    """
+    projections = ProjectionSetRepository(paths.database)
+    summarized = projections.summarized_dates()
+    missed = [day for day in window if day < run.target_business_date and day not in summarized]
+    rules = _trend_rules_for_model(paths, run.model_version_id)
+    service = P0ProjectionService(projections)
+    for day in missed:
+        try:
+            _summarize_day(
+                paths,
+                run,
+                day,
+                service=service,
+                rules=rules,
+                calendar=calendar,
+                model_manifest=model_manifest,
+                definition_version=definition_version,
+            )
+        except (KeyError, LookupError, TypeError, ValueError) as error:
+            # One day that cannot be summarized stays missing (a later run retries it);
+            # it never fails the target day's run.
+            write_runtime_event(
+                paths, "worker", f"backfill_day_failed:{day}:{type(error).__name__}", "warning"
+            )
+
+
+def _summarize_day(
+    paths: RuntimePaths,
+    run: RunRecord,
+    day: str,
+    *,
+    service: P0ProjectionService,
+    rules: TrendRules,
+    calendar: TradingCalendar,
+    model_manifest: Mapping[str, object],
+    definition_version: str,
+) -> None:
+    """Publish one earlier day's summary from what was public by that day's end."""
+    day_run = replace(run, target_business_date=day)
+    public_end = datetime.combine(
+        date.fromisoformat(day), time.max, tzinfo=ZoneInfo("Asia/Shanghai")
+    )
+    readiness = _core_readiness(
+        paths,
+        day_run,
+        rules=rules,
+        definition_version=definition_version,
+        calendar=calendar,
+        public_as_of=public_end,
+    )
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=run.system_as_of,
+        model_manifest=model_manifest,
+        target_business_date=day,
+        visible_evidence_start=max(
+            (
+                item.evidence_window_start
+                for item in readiness
+                if item.evidence_window_start is not None
+            ),
+            default=None,
+        ),
+        persist_derived=False,
+    )
+    service.publish(
+        target_business_date=day,
+        system_as_of=run.system_as_of,
+        assets=readiness,
+        last_confirmed_stage=_last_confirmed_stage(paths, day),
+        model_version_id=run.model_version_id,
+        warnings=context.warnings,
+        macro_document=context.macro,
+        inventory_document=context.inventory,
+    )
+
+
 def _execute_retrieval_run(
     paths: RuntimePaths,
     runs: RunRepository,
@@ -547,19 +664,9 @@ def _execute_retrieval_run(
         )
         return
     consumed = run.consumed_budget
-    daily = runs.daily_budget_consumption(now)
     budget = RetrievalBudget(
-        run_tavily_remaining=max(0, 8 - consumed["tavily"]),
-        run_exa_remaining=max(0, 4 - consumed["exa"]),
-        run_ai_remaining=max(0, 1 - consumed["ai_websearch"]),
-        daily_tavily_remaining=max(0, 16 - daily["tavily"]),
-        daily_exa_remaining=max(0, 8 - daily["exa"]),
-        daily_ai_remaining=max(0, 2 - daily["ai_websearch"]),
-    )
-    initial_run_budget = (
-        budget.run_tavily_remaining,
-        budget.run_exa_remaining,
-        budget.run_ai_remaining,
+        run_tavily_remaining=max(0, RetrievalBudget.run_tavily_remaining - consumed["tavily"]),
+        run_exa_remaining=max(0, RetrievalBudget.run_exa_remaining - consumed["exa"]),
     )
     configured_adapters = adapters or _production_retrieval_adapters(
         paths,
@@ -598,13 +705,12 @@ def _execute_retrieval_run(
             physical_request_id=attempt.physical_request_id,
         )
     if adapters is not None and run.command_type != "manual_deep_search":
+        charged = Counter(item.channel for item in result.attempts if item.budget_charged)
         runs.set_budget_consumption(
             run.run_id,
-            tavily=consumed["tavily"] + initial_run_budget[0] - budget.run_tavily_remaining,
-            exa=consumed["exa"] + initial_run_budget[1] - budget.run_exa_remaining,
-            ai_websearch=(
-                consumed["ai_websearch"] + initial_run_budget[2] - budget.run_ai_remaining
-            ),
+            tavily=consumed["tavily"] + charged["tavily"],
+            exa=consumed["exa"] + charged["exa"],
+            ai_websearch=consumed["ai_websearch"] + charged["ai_websearch"],
         )
     if result.status == "verified" and result.evidence is not None:
         runs.record_checkpoint(
@@ -641,6 +747,7 @@ def _retrieval_release_status(
     *,
     definition_version: str,
     public_as_of: datetime | None = None,
+    latest_only: bool = False,
 ) -> str:
     repository = EvidenceRepository(paths.database)
     public_cutoff = min(now, public_as_of) if public_as_of is not None else now
@@ -672,12 +779,52 @@ def _retrieval_release_status(
                 "released" if public_cutoff >= expectation.window_start else "awaiting_release"
             )
         else:
-            states.append("unknown_release_configuration")
+            states.append(
+                _registered_release_state(
+                    metric_id, scope.period, public_cutoff, latest_only=latest_only
+                )
+            )
     if "awaiting_release" in states:
         return "awaiting_release"
     return (
         "unknown_release_configuration" if "unknown_release_configuration" in states else "released"
     )
+
+
+def _registered_release_state(
+    metric_id: str, period: str, cutoff: datetime, *, latest_only: bool = False
+) -> str:
+    """Whether the freshness registry says ``period`` has been published by ``cutoff``.
+
+    One not yet released is awaiting release and triggers nothing (ticket 19). A full run
+    fills the gap list, which names each metric's newest released period, so with
+    ``latest_only`` an older history period keeps the unknown state and is not searched
+    day by day; a targeted run names its period and is judged on that period alone.
+    """
+    from pring_cycle.freshness import (
+        FRESHNESS_REGISTRY,
+        current_calendar,
+        latest_released_period,
+        period_end,
+        release_at,
+    )
+
+    rule = FRESHNESS_REGISTRY.get(metric_id)
+    if rule is None or rule.frequency == "event":
+        return "unknown_release_configuration"
+    if "-Q" in period:
+        first = date(int(period[:4]), int(period[-1]) * 3 - 2, 1)
+    elif len(period) == 7:
+        first = date.fromisoformat(period + "-01")
+    else:
+        first = date.fromisoformat(period)
+    calendar = current_calendar()
+    end = period_end(rule.frequency, first, calendar)
+    if release_at(rule, end, calendar) > cutoff:
+        return "awaiting_release"
+    if not latest_only or end == latest_released_period(rule, cutoff, calendar):
+        return "released"
+    return "unknown_release_configuration"
 
 
 def _production_retrieval_adapters(
@@ -783,8 +930,8 @@ def _production_retrieval_adapters(
                 paths=paths,
                 run_id=run_id,
                 ledger=RetrievalLedger(paths.database, scope_run=scope_run),
-                verify_candidates=lambda request_id, urls: verify_search_candidates(
-                    paths, run_id, request_id, urls, scope_run=scope_run
+                verify_candidates=lambda request_id, urls, summaries: verify_search_candidates(
+                    paths, run_id, request_id, urls, summaries, scope_run=scope_run
                 ),
             )
         if token := secrets.get("EXA_API_KEY"):
@@ -795,8 +942,8 @@ def _production_retrieval_adapters(
                 paths=paths,
                 run_id=run_id,
                 ledger=RetrievalLedger(paths.database, scope_run=scope_run),
-                verify_candidates=lambda request_id, urls: verify_search_candidates(
-                    paths, run_id, request_id, urls, scope_run=scope_run
+                verify_candidates=lambda request_id, urls, summaries: verify_search_candidates(
+                    paths, run_id, request_id, urls, summaries, scope_run=scope_run
                 ),
             )
     return adapters
@@ -923,7 +1070,9 @@ def _core_readiness(
     definition_version: str,
     calendar: TradingCalendar | None = None,
     window_gaps: set[str] | frozenset[str] = frozenset(),
+    public_as_of: datetime | None = None,
 ) -> tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]:
+    """Each core's state on the run's target day; ``public_as_of`` hides later publications."""
     evidence = EvidenceRepository(paths.database)
     target = date.fromisoformat(run.target_business_date)
     previous_session = (calendar or TradingCalendar()).latest_on_or_before(
@@ -937,6 +1086,7 @@ def _core_readiness(
                 metric_id,
                 mode=AsOfMode.SYSTEM,
                 as_of=run.system_as_of,
+                public_as_of=public_as_of,
                 definition_version=definition_version,
             )
             if point.period_end <= run.target_business_date
@@ -1750,25 +1900,59 @@ def _refresh_core_sources(
     *,
     definition_version: str,
 ) -> None:
+    """Fill the three cores: TuShare, one TuShare retry of the cores it missed, then the CSI
+    official page for the two CSI cores (ticket 22). What is still missing is left to the
+    run's gap retrieval (search, then the registered parser) and then to carry-forward or
+    blocking (ticket 21)."""
+    from pring_cycle.core_history import refresh_core_history
+    from pring_cycle.official_core import CSINDEX_CORES, refresh_csindex_core
+    from pring_cycle.source_adapters import CORE_API_IDENTITIES
+
     secrets = parse_data_source_secrets(paths.secrets)
     token = secrets.get("TUSHARE_TOKEN")
-    if token is None:
-        return
-    from pring_cycle.core_history import refresh_core_history
-
     target = date.fromisoformat(target_business_date)
-    try:
-        refresh_core_history(
-            paths,
-            TushareCoreAdapter(token),
-            start=target - timedelta(days=280),
-            end=target,
-            definition_version=definition_version,
-            latest_observations=160,
+    start = target - timedelta(days=280)
+    evidence = EvidenceRepository(paths.database)
+    now = datetime.now(UTC)
+    # Without TuShare, the cores still to fill are those holding nothing for the target day.
+    missing: tuple[str, ...] = tuple(
+        metric_id
+        for metric_id in CORE_API_IDENTITIES
+        if token is not None
+        or not any(
+            point.period_end == target_business_date
+            for point in evidence.metric_series(
+                metric_id, mode=AsOfMode.SYSTEM, as_of=now, definition_version=definition_version
+            )
         )
-    except (KeyError, TypeError, ValueError):
-        # Rejected responses stay recorded on their calls; the core gap is judged later.
-        return
+    )
+    for _attempt in range(2 if token is not None else 0):
+        assert token is not None
+        try:
+            result = refresh_core_history(
+                paths,
+                TushareCoreAdapter(token),
+                start=start,
+                end=target,
+                definition_version=definition_version,
+                latest_observations=160,
+                metric_ids=missing,
+            )
+            missing = result.rejected_metrics
+        except (KeyError, TypeError, ValueError, OSError):
+            # Rejected responses stay recorded on their calls; the core gap is judged later.
+            pass
+        if not missing:
+            return
+    for metric_id in missing:
+        if metric_id not in CSINDEX_CORES:
+            continue
+        try:
+            refresh_csindex_core(
+                paths, metric_id, start=start, end=target, definition_version=definition_version
+            )
+        except (KeyError, TypeError, ValueError, OSError):
+            continue
 
 
 def _last_confirmed_stage(

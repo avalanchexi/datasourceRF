@@ -29,6 +29,10 @@ def parse_core_acquisition(
     metric_id: str,
 ) -> tuple[MarketBar, ...]:
     """Rebuild the exact core bars described by a validated physical receipt."""
+    if receipt.provider == "csindex":
+        from pring_cycle.official_core import parse_csindex_acquisition
+
+        return parse_csindex_acquisition(receipt, raw, metric_id=metric_id)
     api, code = CORE_API_IDENTITIES[metric_id]
     fields = "ts_code,trade_date,close,pre_close,pct_chg"
     if (
@@ -75,10 +79,17 @@ def selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bo
     )
     if selected is None:
         return False
+    from pring_cycle.official_core import CSINDEX_CORES, csindex_source_reference
+
     api_name, source_code = CORE_API_IDENTITIES[metric_id]
+    # TuShare, or the CSI official page for the two CSI cores (ticket 22).
+    identities = {("tushare", f"tushare:{api_name}:{source_code}:{point.period_end}")}
+    if metric_id in CSINDEX_CORES:
+        identities.add(
+            ("csindex", csindex_source_reference(metric_id, date.fromisoformat(point.period_end)))
+        )
     return (
-        selected.provider == "tushare"
-        and selected.source_reference == f"tushare:{api_name}:{source_code}:{point.period_end}"
+        (selected.provider, selected.source_reference) in identities
         and selected.unit == "index_points"
         and selected.quality_status == "validated"
     )

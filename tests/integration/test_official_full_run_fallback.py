@@ -191,8 +191,8 @@ def test_full_acquisition_discovers_missing_ppi_from_registered_official_listing
     scope = next(item for item in initial["scopes"] if item["metric_ids"] == ["CN_PPI"])
     assert scope["period"] == "2026-08"
     assert scope["source_url"] == listing
-    # Discovery must establish publication; a missing local point is not a release fact.
-    assert scope["release_status"] == "unknown_release_configuration"
+    # The freshness registry says August's PPI was out by the target (ticket 19).
+    assert scope["release_status"] == "released"
     series = EvidenceRepository(paths.database).metric_series(
         "CN_PPI",
         mode=AsOfMode.SYSTEM,

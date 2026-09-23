@@ -21,14 +21,16 @@ class RetrievalRequest:
     persistent_accounting: bool = False
 
 
+# Paid search calls allowed per run (ticket 20). There is no daily cap; AI WebSearch has no
+# count limit and is held to one call per gap per run by the ledger.
+RUN_SEARCH_LIMITS: dict[str, int | None] = {"tavily": 16, "exa": 8, "ai_websearch": None}
+
+
 @dataclass
 class RetrievalBudget:
-    run_tavily_remaining: int = 8
-    run_exa_remaining: int = 4
-    run_ai_remaining: int = 1
-    daily_tavily_remaining: int = 16
-    daily_exa_remaining: int = 8
-    daily_ai_remaining: int = 2
+    run_tavily_remaining: int = 16
+    run_exa_remaining: int = 8
+    run_ai_remaining: int | None = None
 
 
 @dataclass(frozen=True)
@@ -76,8 +78,7 @@ class _AdapterAttempt:
 @dataclass(frozen=True)
 class _BudgetDecision:
     allowed: bool
-    remaining_run: int
-    remaining_daily: int
+    remaining_run: int | None
 
 
 def run_retrieval_cascade(
@@ -92,13 +93,31 @@ def run_retrieval_cascade(
         return RetrievalResult("not_attempted", None, None, (), "wait_for_release_or_cache_expiry")
     if request.manual_deep_search and len(request.metric_ids) != 1:
         raise ValueError("manual_deep_search_requires_one_explicit_metric")
-    channels = ["local", "tushare", "official", "tavily", "exa"]
-    if request.priority != "P2":
-        channels.append("ai_websearch")
+    # Exa stands in for Tavily only once Tavily's monthly quota is spent (or it has no key).
+    channels = ["local", "tushare", "official", "tavily", "exa", "ai_websearch"]
     attempts: list[RetrievalAttempt] = []
     candidates: list[str] = []
     for channel in channels:
         adapter = adapters.get(channel)
+        if (
+            channel == "exa"
+            and adapter is not None
+            and "tavily" in adapters
+            and not any(
+                item.channel == "tavily" and item.classification == "quota_exhausted"
+                for item in attempts
+            )
+        ):
+            attempts.append(
+                RetrievalAttempt(
+                    channel,
+                    "not_attempted",
+                    None,
+                    classification="tavily_quota_available",
+                    manual_budget_exemption=request.manual_deep_search,
+                )
+            )
+            continue
         if adapter is None:
             attempts.append(
                 RetrievalAttempt(
@@ -115,14 +134,7 @@ def run_retrieval_cascade(
             else _consume_budget(channel, budget)
         )
         if isinstance(remaining, _BudgetDecision) and not remaining.allowed:
-            attempts.append(
-                RetrievalAttempt(
-                    channel,
-                    "budget_exhausted",
-                    remaining.remaining_run,
-                    remaining.remaining_daily,
-                )
-            )
+            attempts.append(RetrievalAttempt(channel, "budget_exhausted", remaining.remaining_run))
             continue
         responses = _adapter_attempts(
             adapter,
@@ -140,7 +152,7 @@ def run_retrieval_cascade(
                     channel,
                     response.status,
                     remaining.remaining_run if isinstance(remaining, _BudgetDecision) else None,
-                    remaining.remaining_daily if isinstance(remaining, _BudgetDecision) else None,
+                    None,
                     adapter_attempt.latency_ms,
                     response.classification,
                     response.evidence if response.status == "candidate_source" else None,
@@ -221,19 +233,17 @@ def _consume_budget(
     channel: str,
     budget: RetrievalBudget,
 ) -> _BudgetDecision | None:
-    fields = {
-        "tavily": ("run_tavily_remaining", "daily_tavily_remaining"),
-        "exa": ("run_exa_remaining", "daily_exa_remaining"),
-        "ai_websearch": ("run_ai_remaining", "daily_ai_remaining"),
-    }
-    field_names = fields.get(channel)
-    if field_names is None:
+    field_name = {
+        "tavily": "run_tavily_remaining",
+        "exa": "run_exa_remaining",
+        "ai_websearch": "run_ai_remaining",
+    }.get(channel)
+    if field_name is None:
         return None
-    run_field, daily_field = field_names
-    run_remaining = int(getattr(budget, run_field))
-    daily_remaining = int(getattr(budget, daily_field))
-    if run_remaining <= 0 or daily_remaining <= 0:
-        return _BudgetDecision(False, max(0, run_remaining), max(0, daily_remaining))
-    setattr(budget, run_field, run_remaining - 1)
-    setattr(budget, daily_field, daily_remaining - 1)
-    return _BudgetDecision(True, run_remaining - 1, daily_remaining - 1)
+    remaining: int | None = getattr(budget, field_name)
+    if remaining is None:
+        return _BudgetDecision(True, None)
+    if remaining <= 0:
+        return _BudgetDecision(False, 0)
+    setattr(budget, field_name, remaining - 1)
+    return _BudgetDecision(True, remaining - 1)

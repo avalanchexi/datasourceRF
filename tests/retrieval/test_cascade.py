@@ -39,7 +39,7 @@ def test_retrieval_is_serial_cache_first_and_stops_after_a_hit() -> None:
     assert result.channel == "official"
 
 
-def test_p2_stops_at_exa_and_never_uses_ai_websearch() -> None:
+def test_p2_reaches_ai_websearch_and_exa_waits_for_tavily_quota() -> None:
     calls: list[str] = []
 
     result = run_retrieval_cascade(
@@ -49,7 +49,25 @@ def test_p2_stops_at_exa_and_never_uses_ai_websearch() -> None:
     )
 
     assert result.status == "unresolved"
+    assert calls == ["local", "tushare", "official", "tavily", "ai_websearch"]
+    exa = next(item for item in result.attempts if item.channel == "exa")
+    assert (exa.outcome, exa.classification) == ("not_attempted", "tavily_quota_available")
+
+
+def test_exa_stands_in_once_tavily_reports_its_quota_spent() -> None:
+    calls: list[str] = []
+    channels = adapters(calls, "exa")
+    channels["tavily"] = lambda _event: (
+        calls.append("tavily")
+        or RetrievalAdapterResponse("failed", classification="quota_exhausted")
+    )
+
+    result = run_retrieval_cascade(
+        RetrievalRequest("release-cpi", ("CN_CPI_HEADLINE",), "P1"), channels, RetrievalBudget()
+    )
+
     assert calls == ["local", "tushare", "official", "tavily", "exa"]
+    assert result.channel == "exa"
 
 
 def test_not_yet_released_and_negative_cache_make_no_calls() -> None:
@@ -80,13 +98,14 @@ def test_event_metrics_share_one_channel_call_and_budget_is_hard() -> None:
             ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
             "P1",
         ),
-        adapters(calls, "exa"),
+        adapters(calls, "ai_websearch"),
         budget,
     )
 
-    assert calls == ["local", "tushare", "official", "exa"]
+    assert calls == ["local", "tushare", "official", "ai_websearch"]
     assert result.status == "verified"
-    assert result.attempts[-1].remaining_run_budget == 3
+    tavily = next(item for item in result.attempts if item.channel == "tavily")
+    assert (tavily.outcome, tavily.remaining_run_budget) == ("budget_exhausted", 0)
 
 
 def test_only_transient_transport_errors_retry_and_unknown_sites_stay_candidates() -> None:
@@ -145,13 +164,13 @@ def test_unconfigured_paid_channels_do_not_consume_budget() -> None:
     )
 
     assert result.status == "unresolved"
-    assert budget.run_tavily_remaining == 8
-    assert budget.run_exa_remaining == 4
-    assert budget.run_ai_remaining == 1
+    assert budget.run_tavily_remaining == 16
+    assert budget.run_exa_remaining == 8
+    assert budget.run_ai_remaining is None
     assert [attempt.outcome for attempt in result.attempts] == ["not_configured"] * 6
 
 
-def test_attempts_capture_latency_classification_and_daily_budget() -> None:
+def test_attempts_capture_latency_classification_and_run_budget() -> None:
     result = run_retrieval_cascade(
         RetrievalRequest("release-cpi", ("CN_CPI_HEADLINE",), "P1"),
         {
@@ -166,8 +185,8 @@ def test_attempts_capture_latency_classification_and_daily_budget() -> None:
     attempt = next(item for item in result.attempts if item.channel == "tavily")
     assert attempt.classification == "rate_limited"
     assert attempt.latency_ms >= 0
-    assert attempt.remaining_run_budget == 7
-    assert attempt.remaining_daily_budget == 15
+    assert attempt.remaining_run_budget == 15
+    assert attempt.remaining_daily_budget is None
 
 
 def test_adapter_semantic_validation_failure_is_sanitized_and_not_retried() -> None:
