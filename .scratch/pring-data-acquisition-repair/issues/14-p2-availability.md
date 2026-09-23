@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded (was ready-for-agent)
 Execution: in-progress
 Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口、拆分及依赖并发布。
 
@@ -84,3 +84,4 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-12 to-tickets：按已批准规格、三轮业务决定及原22票拆分发布本票增量。分别明确EIA API和HTML命令的独立RED到结果读回；组合完整运行归17验收，不新增14与19整票循环依赖。本轮仅任务文档，新增软件/认证条件均未勾选，未实施或运行测试。
 
 - 2026-09-13 implement：完成本票M1 EIA API及HTML命令的登记目录修复，公开RED302/304及对应GREEN303/305已留证。最终312相关回归74通过/197.54秒、退出0；310类型检查92文件、311 Ruff/格式及两轴审查通过。四项EIA增量验收已勾选，正常/缺凭据/获取及解析失败场景见[实施与交接记录](../implementation-14-eia-registered-catalog.md)，根核验见[313](../verification-eia-acceptance-313.json)。17的Worker组合、真实来源认证、源日历与本票整体仍开放；默认全套留至M5最终软件版本。
+- 2026-09-24 标记为被取代：本 effort 的认证→准入→回放→切换路线已由 ADR-0021–0025 取代（见 `docs/adr/`），取数与发布的实质内容已并入 `.scratch/pring-fast-refactor-20260923` 票 10–28 并交付（提交至 fa92b65）。仍未解决的取数缺口见该 effort 票 28 的遗留清单；若本票内容仍需要，按新路线重新立项，不在此继续。

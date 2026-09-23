@@ -1,4 +1,4 @@
-Status: needs-domain-decision
+Status: superseded (was needs-domain-decision)
 Execution: reverted
 Scope: 来自[规格24](../spec-24-source-identity-20260917.md)第二节
 Decision: 2026-09-17 用户接受"拿不到发布时刻时，PUBLIC 可见时间保守推定为次日 00:00"。**该口径经核实本来就是系统既有行为**，见下。
@@ -63,3 +63,7 @@ C 类 2 项情况不同：`CN_RRR_EVENT` 有调整日期（[有界抓取取得�
 `CN_LPR_1Y_5Y` 不受本决定影响：其卡点是使用边界，许可核验已由用户[明示豁免](../decision-13-licence-waiver-20260917.md)。
 
 **票面状态**：领域决定已记于 ADR-0017，但第四条验收（票13 B 类 3 项按新规则落定）属票13，本票在其完成前不关闭；`Status:` 未改动，`Execution: reverted` 指第一版实现已撤回，两者不矛盾。
+
+## Comments
+
+- 2026-09-24 标记为被取代：本 effort 的认证→准入→回放→切换路线已由 ADR-0021–0025 取代（见 `docs/adr/`），取数与发布的实质内容已并入 `.scratch/pring-fast-refactor-20260923` 票 10–28 并交付（提交至 fa92b65）。仍未解决的取数缺口见该 effort 票 28 的遗留清单；若本票内容仍需要，按新路线重新立项，不在此继续。

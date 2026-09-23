@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded (was ready-for-agent)
 Execution: blocked
 Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口、拆分及依赖并发布。
 
@@ -45,3 +45,4 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-06：用户指示下一步后发布；按阻塞边领取，来源/业务规则缺件仍由各票显式处理。
 
 - 2026-09-13 批534：仅新增两项软件AC完成；28家族、263相关与203独立分别通过，两轴530/533无新增问题，类型/Ruff通过。见[软件实施](../implementation-10-registered-amount-breadth.md)及[根核验534](../verification-amount-acceptance-534.json)。原五项真实口径/补证/差额及认证条件继续开放，不以合成例关闭整票。
+- 2026-09-24 标记为被取代：本 effort 的认证→准入→回放→切换路线已由 ADR-0021–0025 取代（见 `docs/adr/`），取数与发布的实质内容已并入 `.scratch/pring-fast-refactor-20260923` 票 10–28 并交付（提交至 fa92b65）。仍未解决的取数缺口见该 effort 票 28 的遗留清单；若本票内容仍需要，按新路线重新立项，不在此继续。

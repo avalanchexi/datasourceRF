@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded (was ready-for-agent)
 Execution: in-progress
 Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口、拆分及依赖并发布。
 
@@ -144,3 +144,4 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
   **收益按实测记录，不按推算**。同探针复跑确认 `_commodity_document` 与 `calculate_commodity_basket` 各由 440 次降至 **220 次**（剩下的两次即两次 run），入口与去重调用次数一个没变；`_commodity_claims_valid` 合计耗时 156.53 → 80.95 秒。用例耗时同口径（单独运行、带探针）252.05 → 174.38 秒，无探针单独运行 166.36 秒，整个重型文件内运行 188.30 秒——三种口径各自成对比较，不可相减。
 
   仍开放：`registered_definitions` 的 6.33 秒重复解析（[JSON 解析调查](../finding-json-decode-cost-20260921.md)排第一的落点，本次未动）；`commodity_basket.py:649` 的 `checked[ids]` 式复用；[facts 遍历调查](../finding-commodity-facts-cost-20260921.md)的三处遍历合并（收益为不变量外提的四分之一，未实施）。按 [ADR-0014](../../../docs/adr/0014-full-suite-only-at-freeze-points.md)，本条不宣称全套结论，本票真实验收条件与勾选状态不变。
+- 2026-09-24 标记为被取代：本 effort 的认证→准入→回放→切换路线已由 ADR-0021–0025 取代（见 `docs/adr/`），取数与发布的实质内容已并入 `.scratch/pring-fast-refactor-20260923` 票 10–28 并交付（提交至 fa92b65）。仍未解决的取数缺口见该 effort 票 28 的遗留清单；若本票内容仍需要，按新路线重新立项，不在此继续。

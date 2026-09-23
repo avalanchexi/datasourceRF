@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded (was ready-for-agent)
 Execution: in-progress
 
 Latest checkpoint: 2026-09-12：286整窗/修订联合60通过；随后公开组件回放293为7通过/189.43秒、296为4通过/153.32秒，补强失败采用集合断言后299单例通过/35.52秒。[根核300](../verification-credit-component-300.json)核320输入/4保护、生产266/环境265一致、进程退出及卷卸载，Spec299关闭P2、Standards299新增0。信用脉冲前三项软件条件已勾选；合法新目录Worker、Q1等最终同版本相关/默认全套仍待完成，真实完整候选原依赖继续开放。整票in-progress，未提交、激活或切换。
@@ -182,3 +182,4 @@ Review state: 2026-09-06 用户指示“下一步”，接受当前测试入口�
 - 2026-09-22 implement（维度反例·通道 B）：补上 [finding-19](../finding-19-dimension-reachability-20260921.md) 第 6 节「更锐的变体」。`4afd7d6` 已落的 `test_preflight_names_the_valuation_members_it_lacks_not_the_whole_family` 走的是通道 A（000852 整指数空行，缺 3 个成员），其缺口仍可被读成「按指数记账」。本次新增 `import_valuation_missing_one_measure` 与 `test_preflight_names_the_single_measure_a_delivered_row_omits`：000852.SH 每日照常返回行，只把 `pb` 列置 null，`_valuation_scalars`（`tushare_context.py:2044`）跳过该 measure，`missing_members` **恰好一条** `price_book`。这条证明检查粒度到 measure 而非 index，且是该缺口的**唯一**信号——原件完整、收据完整、重解析得到同样短的集合，整批相等校验（`tushare_context.py:317`）比的是短集对短集，恒相等。否定对照（一次性用例，已删除）把置空列换成 `pe`/`turnover_rate`，缺失成员随之改变，断言非常量。实测：两节点 2 passed/12.12 秒，`test_material_preflight.py` 整文件 33 passed/91.63 秒/exit 0（[节点日志](../verification-19-valuation-measure-member-20260922.txt)、[整文件日志](../verification-19-preflight-file-20260922.txt)），Ruff check 与 format 通过。**未改 `src/`**，`dimensions` 仍留在 `material_preflight.py:335` 的 `pending_checks` 内（finding-19 判决不移出）。**本次不勾选任何验收条件**：本票验收要的是真实完整候选，合成夹具的软件反例不能替它勾选；整票保持 in-progress。
 
 - 2026-09-22 两轴复审后修正：按 Standards 轴意见将 helper 参数 `blank` 改名 `null_column`（它收的是 API 列名 `pb`，而断言写的是规范 measure 名 `price_book`，映射原本隐式），并收紧 `values` 的类型标注。改名后重跑 `test_material_preflight.py` 整文件[33 passed / 84.54 秒 / exit 0](../verification-19-preflight-file-20260922-v2.txt)，Ruff check 与 format 通过。行为未变，仍未勾选任何验收。
+- 2026-09-24 标记为被取代：本 effort 的认证→准入→回放→切换路线已由 ADR-0021–0025 取代（见 `docs/adr/`），取数与发布的实质内容已并入 `.scratch/pring-fast-refactor-20260923` 票 10–28 并交付（提交至 fa92b65）。仍未解决的取数缺口见该 effort 票 28 的遗留清单；若本票内容仍需要，按新路线重新立项，不在此继续。

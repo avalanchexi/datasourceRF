@@ -1,3 +1,5 @@
+> **已被取代（2026-09-24）**：本 effort 的开放票已全部标记为 superseded。其路线由 ADR-0021–0025 取代，实质内容并入 `.scratch/pring-fast-refactor-20260923`（票 10–28，已交付）。
+
 Status: ready-for-agent
 Type: spec
 Review state: 2026-09-06 已接受测试入口、验收划分与22票拆分，正式发布；来源与家族业务规则仍按各票收口。

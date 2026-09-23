@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: superseded (was ready-for-agent)
 Execution: blocked
 Scope: 来自[规格24](../spec-24-source-identity-20260917.md)第一节
 Decision: 2026-09-17 用户定"默认 TuShare 是官方通道""TuShare 数据更新不及时时用官方数据"。
@@ -116,3 +116,7 @@ ValueError: metric_catalog_v0003_canonical_hash_mismatch
 ## 未核实
 
 TuShare 令牌积分等级、各官方页当前可达性。实现第一步应先核实。
+
+## Comments
+
+- 2026-09-24 标记为被取代：本 effort 的认证→准入→回放→切换路线已由 ADR-0021–0025 取代（见 `docs/adr/`），取数与发布的实质内容已并入 `.scratch/pring-fast-refactor-20260923` 票 10–28 并交付（提交至 fa92b65）。仍未解决的取数缺口见该 effort 票 28 的遗留清单；若本票内容仍需要，按新路线重新立项，不在此继续。
