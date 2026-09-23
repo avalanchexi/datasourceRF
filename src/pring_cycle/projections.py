@@ -403,11 +403,16 @@ def validate_analytical_projection(
         str(by_asset["stock"].get("state")),
         str(by_asset["commodity"].get("state")),
     )
-    if any(state not in {"bull", "bear"} for state in states):
-        raise ValueError("projection_core_asset_state_invalid")
-    expected_stage = _FORMAL_STAGE_BY_STATES.get(states)
-    if overview.get("current_stage") != expected_stage:
-        raise ValueError("projection_formal_stage_invariant_failed")
+    if overview.get("stage_reason") == "core_data_pending":
+        # A held stage publishes the rest of the run; it may not claim a formal stage.
+        if overview.get("current_stage") is not None:
+            raise ValueError("projection_formal_stage_invariant_failed")
+    else:
+        if any(state not in {"bull", "bear"} for state in states):
+            raise ValueError("projection_core_asset_state_invalid")
+        expected_stage = _FORMAL_STAGE_BY_STATES.get(states)
+        if overview.get("current_stage") != expected_stage:
+            raise ValueError("projection_formal_stage_invariant_failed")
     if macro.get("score") is not None or inventory.get("score") is not None:
         raise ValueError("projection_context_score_forbidden")
     _validate_visible_context_window(

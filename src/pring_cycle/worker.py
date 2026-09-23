@@ -33,6 +33,7 @@ from pring_cycle.evidence import (
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
     TradingCalendar,
+    gap_list,
     period_status,
     record_run_freshness,
     run_calendar_scope,
@@ -47,7 +48,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
-from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
+from pring_cycle.p0 import CARRIED_FORWARD, CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
 from pring_cycle.reports import (
@@ -352,17 +353,19 @@ def _execute_run(
         date.fromisoformat(day) for day in plan["final"]["daily_window"].get("dates", ())
     )
     use_run_calendar(calendar)
-    record_run_freshness(
+    freshness = record_run_freshness(
         paths.database, run.run_id, model_rules.metric_definitions, run.system_as_of, calendar
     )
+    priorities = {item.metric_id: item.priority for item in model_rules.metric_definitions}
+    if any(
+        item.status == "unconfigured" and priorities.get(item.metric_id) == "P0"
+        for item in freshness
+    ):
+        runs.mark_action_required(run.run_id, "p0_freshness_unconfigured")
+        return
+    gaps = tuple(gap_list(paths.database, run.run_id, model_rules.metric_definitions))
     if plan["final"]["daily_window"]["status"] != "available":
         runs.mark_action_required(run.run_id, "p0_required_calendar_unavailable")
-        return
-    if any(
-        not gap["complete"] and gap["metric_id"] in model_manifest["core_metrics"].values()
-        for gap in plan["final"]["gaps"]
-    ):
-        runs.mark_action_required(run.run_id, "p0_required_calendar_period_missing")
         return
     runs.advance(run.run_id, "validating_evidence")
     readiness = _core_readiness(
@@ -370,6 +373,7 @@ def _execute_run(
         run,
         rules=_trend_rules_for_model(paths, run.model_version_id),
         definition_version=definition_version,
+        calendar=calendar,
     )
     runs.advance(run.run_id, "evaluating_core_readiness")
     runs.advance(run.run_id, "deriving_states")
@@ -445,6 +449,7 @@ def _execute_run(
         macro_document=context.macro,
         inventory_document=context.inventory,
         release_calendar_events=release_calendar_events,
+        gap_list=gaps,
     )
     if result.assessment_id is not None:
         runs.record_checkpoint(
@@ -902,8 +907,13 @@ def _core_readiness(
     *,
     rules: TrendRules,
     definition_version: str,
+    calendar: TradingCalendar | None = None,
 ) -> tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]:
     evidence = EvidenceRepository(paths.database)
+    target = date.fromisoformat(run.target_business_date)
+    previous_session = (calendar or TradingCalendar()).latest_on_or_before(
+        target - timedelta(days=1)
+    )
     results = []
     for asset, metric_id in CORE_METRICS.items():
         series = tuple(
@@ -935,11 +945,14 @@ def _core_readiness(
         slope_pct = None
         noise_band_pct = None
         model_inputs: tuple[str, ...] = ()
+        # One session behind is carried: the previous close stands in for the target in the
+        # calculation only and is never stored as a claim. Two or more is a real gap.
+        carried = bool(series) and series[-1].period_end == previous_session.isoformat()
         if not series:
             reason = "source_missing"
         elif any(item.selection_status == "conflicted" for item in series):
             reason = "source_conflict"
-        elif series[-1].period_end != run.target_business_date:
+        elif series[-1].period_end != run.target_business_date and not carried:
             reason = "stale_for_target_business_date"
         elif any(not selected_core_claim_is_valid(metric_id, point) for point in series):
             reason = "source_identity_invalid"
@@ -958,6 +971,9 @@ def _core_readiness(
                 for item in series
                 if item.selected_value is not None
             ]
+            if carried:
+                points.append(PricePoint(target, points[-1].value))
+                reason = CARRIED_FORWARD
             trend = evaluate_trend(points, rules)
             model_inputs = tuple(
                 item.selected_claim_id for item in series if item.selected_claim_id is not None
@@ -996,6 +1012,7 @@ def _core_readiness(
                 slope_pct=slope_pct,
                 noise_band_pct=noise_band_pct,
                 model_input_observation_version_ids=model_inputs,
+                carried_forward=carried and state is not None,
             )
         )
     return tuple(results)  # type: ignore[return-value]

@@ -59,16 +59,18 @@ def test_missing_p0_does_not_replace_the_previous_complete_projection(tmp_path: 
         last_confirmed_stage=FormalStage.STAGE_II,
     )
 
+    # A core conflict holds the stage but still publishes the rest (ticket 21).
     assert first.status == "published"
-    assert blocked.status == "action_required"
+    assert blocked.status == "published"
     assert blocked.current_stage is None
     assert blocked.last_confirmed_stage is FormalStage.STAGE_II
-    assert blocked.gaps == ("commodity:source_conflict",)
+    assert blocked.stage_reason == "core_data_pending"
     assert blocked.assessment_id is not None
-    assert projections.current().envelope.projection_set_id == first.projection_set_id
+    assert projections.current().envelope.projection_set_id == blocked.projection_set_id
     history = projections.stage_history()
     assert [event["event_kind"] for event in history] == ["formal", "gap"]
-    assert history[1]["stage_reason"] == "p0_unavailable"
+    assert history[1]["stage_reason"] == "core_data_pending"
+    assert history[1]["gaps"] == ["commodity:source_conflict"]
     assert history[1]["core_assets"][2]["reason"] == "source_conflict"
 
 
@@ -198,8 +200,9 @@ def test_noncanonical_valid_combination_publishes_current_states_and_preserves_h
         ),
         last_confirmed_stage=FormalStage.STAGE_II,
     )
-    assert blocked.status == "action_required"
-    assert projections.current().envelope.projection_set_id == result.projection_set_id
+    # Held stage, published anyway (ticket 21).
+    assert (blocked.status, blocked.stage_reason) == ("published", "core_data_pending")
+    assert projections.current().envelope.projection_set_id == blocked.projection_set_id
 
 
 def test_macro_and_inventory_documents_change_context_but_never_formal_stage(

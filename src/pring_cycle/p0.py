@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
 from pring_cycle.batches import current_batch_id
@@ -15,6 +15,9 @@ from pring_cycle.projections import (
     ProjectionSetRepository,
     validate_analytical_projection,
 )
+
+# A core one session behind its target is priced at its previous session (ticket 21).
+CARRIED_FORWARD = "carried_forward_one_session"
 
 
 @dataclass(frozen=True)
@@ -35,6 +38,7 @@ class CoreAssetReadiness:
     slope_pct: float | None = None
     noise_band_pct: float | None = None
     model_input_observation_version_ids: tuple[str, ...] | None = None
+    carried_forward: bool = False
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,7 @@ class P0ProjectionService:
         macro_document: dict[str, object] | None = None,
         inventory_document: dict[str, object] | None = None,
         release_calendar_events: tuple[dict[str, object], ...] = (),
+        gap_list: tuple[dict[str, object], ...] = (),
     ) -> P0PublishResult:
         by_asset = {item.asset: item for item in assets}
         if set(by_asset) != {"bond", "stock", "commodity"}:
@@ -72,7 +77,7 @@ class P0ProjectionService:
         gaps = tuple(
             f"{item.asset}:{item.reason}"
             for item in assets
-            if item.state is None or item.reason != "validated"
+            if item.state is None or item.reason not in {"validated", CARRIED_FORWARD}
         )
         stage = derive_formal_stage(
             bond=by_asset["bond"].state,
@@ -99,30 +104,13 @@ class P0ProjectionService:
             + hashlib.sha256(json.dumps(asset_documents, sort_keys=True).encode()).hexdigest()[:20]
         )
         if gaps:
-            assessment = self._projections.prepare_p0_assessment(
-                _assessment_document(
-                    target_business_date=target_business_date,
-                    system_as_of=system_as_of,
-                    evidence_snapshot_id=resolved_snapshot_id,
-                    model_version_id=model_version_id,
-                    assets=asset_documents,
-                    current_stage=None,
-                    last_confirmed_stage=stage.last_confirmed_stage,
-                    stage_reason="p0_unavailable",
-                    gaps=gaps,
-                    projection_set_id=None,
-                )
-            )
-            assessment_id = self._projections.record_p0_assessment(assessment)
-            return P0PublishResult(
-                "action_required",
-                None,
-                None,
-                stage.last_confirmed_stage,
-                "p0_unavailable",
-                gaps,
-                assessment_id,
-            )
+            # Core data pending: no formal stage, but everything else is still published
+            # and reported (ticket 07, item 3).
+            stage = replace(stage, current_stage=None, reason="core_data_pending")
+            warnings = (*warnings, "core_data_pending")
+        carried = [item.asset for item in assets if item.carried_forward]
+        if carried:
+            warnings = (*warnings, *(f"core_carried_forward:{asset}" for asset in carried))
         identity_document = {
             "assets": asset_documents,
             "current_stage": stage.current_stage.value if stage.current_stage else None,
@@ -138,6 +126,7 @@ class P0ProjectionService:
             "macro": resolved_macro_document,
             "inventory": resolved_inventory_document,
             "release_calendar_events": list(release_calendar_events),
+            "gap_list": list(gap_list),
         }
         if model_inputs is not None:
             identity_document["core_model_input_observation_version_ids"] = model_inputs
@@ -183,7 +172,7 @@ class P0ProjectionService:
                 current_stage=stage.current_stage,
                 last_confirmed_stage=stage.last_confirmed_stage,
                 stage_reason=stage.reason,
-                gaps=(),
+                gaps=gaps,
                 projection_set_id=projection_set_id,
             )
         )
@@ -200,6 +189,8 @@ class P0ProjectionService:
                 "core_assets": asset_documents,
                 "transition_watch": [],
                 "macro_confirmation": _macro_confirmation(resolved_macro_document),
+                "gap_list": list(gap_list),
+                "core_carry_forward": carried,
             }
         )
         datasets["core_assets"]["assets"] = asset_documents
@@ -296,6 +287,7 @@ def _default_inventory_document() -> dict[str, object]:
 def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:
     return {
         "asset": item.asset,
+        "carried_forward": item.carried_forward,
         "candidate_30d": (item.candidate_30d.value if item.candidate_30d is not None else None),
         "candidate_days": item.candidate_days,
         "candidate_state": (

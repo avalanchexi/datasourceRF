@@ -575,8 +575,86 @@ def period_status(metric_id: str, held_period_end: str, as_of: datetime) -> str:
     """``current`` or ``stale`` for a held period, derived metrics judged by their inputs."""
     calendar = current_calendar()
     held = date.fromisoformat(held_period_end)
-    status = worst(
-        assess(parent, held, as_of, calendar)
-        for parent in DERIVED_INPUTS.get(metric_id, (metric_id,))
+    parents = DERIVED_INPUTS.get(metric_id, (metric_id,))
+    assessments = [assess(parent, held, as_of, calendar) for parent in parents]
+    if any(item.status == "unconfigured" for item in assessments):
+        return "stale"
+    # One period behind is carried forward and shown as a freshness gap; two or more is
+    # treated as missing and kept out of the calculation (ticket 04).
+    behind = max((item.periods_behind or 0 for item in assessments), default=0)
+    return "stale" if behind >= 2 else "current"
+
+
+_GAP_ORDER = ("missing", "freshness_gap", "unconfigured", "rejected")
+
+
+def gap_list(
+    database: Path, run_id: str, definitions: Iterable[MetricDefinition]
+) -> list[dict[str, object]]:
+    """Gate ①'s visible gap list for one batch, grouped by what the maintainer should do.
+
+    ``missing``: nothing held, or two or more periods behind (not used in calculation);
+    ``freshness_gap``: one period behind, carried forward; ``unconfigured``: no freshness
+    registry row; ``rejected``: a response failed its structure check (gate ③).
+    """
+    from pring_cycle.storage import database_connection
+
+    priorities = {item.metric_id: item.priority for item in definitions}
+    gaps: list[dict[str, object]] = []
+    for metric_id, row in batch_freshness(database, run_id).items():
+        status, behind = row["status"], row["periods_behind"]
+        if status == "missing":
+            category, reason = "missing", "not_held"
+        elif status == "stale" and behind == 1:
+            category, reason = "freshness_gap", "one_period_behind_carried"
+        elif status == "stale":
+            category, reason = "missing", "two_or_more_periods_behind"
+        elif status == "unconfigured":
+            category, reason = "unconfigured", "freshness_not_registered"
+        else:
+            continue
+        gaps.append(
+            {
+                "metric_id": metric_id,
+                "priority": priorities.get(metric_id),
+                "category": category,
+                "reason": reason,
+                "due_period": row["due_period"],
+                "held_period": row["held_period"],
+                "periods_behind": behind,
+            }
+        )
+    with database_connection(database) as connection:
+        rejected = connection.execute(
+            """
+            SELECT a.metric_ids_json, r.api_name, r.rejection_reason
+            FROM full_run_acquisition a JOIN acquisition_request r USING (acquisition_id)
+            WHERE a.run_id=? AND r.structure_check='rejected'
+            """,
+            (run_id,),
+        ).fetchall()
+    seen: set[str] = set()
+    for metric_ids_json, api_name, reason in rejected:
+        for metric_id in json.loads(metric_ids_json or "[]"):
+            if metric_id in seen or metric_id not in priorities:
+                continue
+            seen.add(metric_id)
+            gaps.append(
+                {
+                    "metric_id": metric_id,
+                    "priority": priorities.get(metric_id),
+                    "category": "rejected",
+                    "reason": f"{api_name}:{reason}",
+                    "due_period": None,
+                    "held_period": None,
+                    "periods_behind": None,
+                }
+            )
+    return sorted(
+        gaps,
+        key=lambda item: (
+            str(item["priority"]),
+            _GAP_ORDER.index(str(item["category"])),
+            str(item["metric_id"]),
+        ),
     )
-    return "stale" if status in {"stale", "unconfigured"} else "current"

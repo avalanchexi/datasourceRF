@@ -139,7 +139,10 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
     overview = projection.datasets["cycle_overview"]
     current_stage = overview.get("current_stage")
     stage_reason = overview.get("stage_reason")
-    if current_stage is None and stage_reason != "noncanonical_combination":
+    if current_stage is None and stage_reason not in {
+        "noncanonical_combination",
+        "core_data_pending",
+    }:
         raise ValueError("formal_stage_required_for_report")
     if current_stage is not None and not isinstance(current_stage, str):
         raise ValueError("formal_stage_required_for_report")
@@ -210,7 +213,11 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
         core_states=core_states,
         allowed_evidence_ids=evidence_ids,
         allowed_governance_refs=("ADR-0003", "ADR-0010", envelope.model_version_id),
-        support=("三核心资产价格状态通过 P0 门禁。",),
+        support=(
+            ("三核心数据待处理，本日不产出正式阶段。",)
+            if stage_reason == "core_data_pending"
+            else ("三核心资产价格状态通过 P0 门禁。",)
+        ),
         counterevidence=tuple(str(item) for item in envelope.warnings),
         governance_gaps=tuple(str(item) for item in envelope.warnings),
         structured_context={
@@ -231,6 +238,8 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
             "price_context": macro.get("price_chain"),
             "activity_context": macro.get("overheat"),
             "change_reasons": latest_history,
+            "gap_list": overview.get("gap_list", []),
+            "core_carry_forward": overview.get("core_carry_forward", []),
         },
     )
 
@@ -1167,7 +1176,9 @@ def _preflight_bundle(bundle: EvidenceBundle) -> None:
         )
         in {("bull", "bear", "bull"), ("bear", "bull", "bear")}
     )
-    if bundle.current_stage not in formal_stages and not noncanonical:
+    # A held stage (core data pending) still gets its report of the other outputs.
+    core_pending = bundle.current_stage is None and bundle.stage_reason == "core_data_pending"
+    if bundle.current_stage not in formal_stages and not noncanonical and not core_pending:
         raise ValueError("report_preflight_stage_invalid")
     if set(bundle.core_states) != {"bond", "stock", "commodity"}:
         raise ValueError("report_preflight_core_identity_invalid")

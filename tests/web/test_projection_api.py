@@ -190,9 +190,10 @@ def test_stage_history_rest_includes_a_p0_gap_without_replacing_current_projecti
 
     response = _route(application, "stage_history").endpoint()
 
+    # The held day is published with its own projection (ticket 21).
     assert [event["event_kind"] for event in response["events"]] == ["formal", "gap"]
-    assert response["events"][1]["projection_set_id"] is None
-    assert repository.current().envelope.target_business_date == "2026-08-28"
+    assert response["events"][1]["projection_set_id"] is not None
+    assert repository.current().envelope.target_business_date == "2026-08-29"
 
 
 def test_release_calendar_rest_reads_certified_release_event_and_observation_count(

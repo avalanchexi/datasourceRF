@@ -386,6 +386,8 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
         "price_context",
         "activity_context",
         "change_reasons",
+        "gap_list",
+        "core_carry_forward",
     }
 
 

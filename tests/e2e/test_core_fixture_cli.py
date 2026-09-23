@@ -137,7 +137,7 @@ def test_p0_gap_keeps_current_projection_and_can_create_a_deterministic_notice(
     )
     common = ("--runtime-root", str(runtime_root))
     invoke(capsys, "init", *common)
-    first = invoke(capsys, "fixture-project", *common, "--input", str(valid_path))
+    invoke(capsys, "fixture-project", *common, "--input", str(valid_path))
 
     blocked = invoke(
         capsys,
@@ -168,17 +168,17 @@ def test_p0_gap_keeps_current_projection_and_can_create_a_deterministic_notice(
     )
     notices = invoke(capsys, "gap-notices", *common)
 
-    assert blocked["status"] == "action_required"
+    # The held stage is published with the rest of the day (ticket 21).
+    assert blocked["status"] == "published"
     assert blocked["current_stage"] is None
-    assert blocked["projection_set_id"] is None
     assert isinstance(blocked["assessment_id"], str)
-    assert current["envelope"]["projection_set_id"] == first["projection_set_id"]  # type: ignore[index]
+    assert current["envelope"]["projection_set_id"] == blocked["projection_set_id"]  # type: ignore[index]
     assert [event["event_kind"] for event in history["events"]] == ["formal", "gap"]  # type: ignore[index]
     gap = history["events"][1]  # type: ignore[index]
     assert gap["business_date"] == "2026-08-31"
     assert gap["current_stage"] is None
     assert gap["last_confirmed_stage"] == "stage_ii"
-    assert gap["stage_reason"] == "p0_unavailable"
+    assert gap["stage_reason"] == "core_data_pending"
     assert gap["gaps"] == [
         "bond:insufficient_history",
         "stock:insufficient_history",

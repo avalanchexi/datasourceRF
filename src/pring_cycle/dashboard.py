@@ -170,6 +170,7 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                             html.P("正式阶段", className="section-kicker"),
                             html.H2(current_stage, className="stage-value"),
                             html.P(stage_reason, className="body-copy stage-explanation"),
+                            *_carry_forward_notice(overview.get("core_carry_forward")),
                         ],
                         className="stage-primary",
                     ),
@@ -234,9 +235,74 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                 ],
                 className="content-section",
             ),
+            html.Section(
+                [
+                    html.Div(
+                        [
+                            html.H2("缺口清单", className="section-title"),
+                            html.P("GATE ①②③", className="section-kicker"),
+                        ],
+                        className="section-heading",
+                    ),
+                    _gap_list(overview.get("gap_list")),
+                ],
+                className="content-section",
+            ),
         ],
         className="page-stack",
     )
+
+
+def _carry_forward_notice(value: object) -> list[html.P]:
+    """A prominent line naming each core priced at its previous session (ticket 21)."""
+    assets = [str(item) for item in value] if isinstance(value, list) else []
+    if not assets:
+        return []
+    names = "、".join(_asset_label(asset) for asset in assets)
+    return [html.P(f"核心沿用上一期：{names}", className="warning-label carry-forward")]
+
+
+GAP_CATEGORY_LABELS = {
+    "missing": "缺失",
+    "freshness_gap": "时效缺口",
+    "unconfigured": "未配置时效",
+    "rejected": "拒收",
+}
+
+
+def _gap_list(value: object) -> html.Div:
+    """One row per gap, grouped under its category, in the order the batch listed them."""
+    gaps = _document_list(value)
+    if not gaps:
+        return html.Div(html.P("本次运行没有缺口。", className="body-copy"))
+    groups = []
+    for category, label in GAP_CATEGORY_LABELS.items():
+        rows = [item for item in gaps if item.get("category") == category]
+        if rows:
+            groups.append(
+                html.Div(
+                    [
+                        html.H3(f"{label}（{len(rows)}）"),
+                        html.Ul(
+                            [
+                                html.Li(
+                                    f"{item.get('priority')} {item.get('metric_id')}："
+                                    f"{item.get('reason')}"
+                                    + (
+                                        f"（应有期 {item.get('due_period')}，"
+                                        f"持有 {item.get('held_period')}）"
+                                        if item.get("due_period")
+                                        else ""
+                                    )
+                                )
+                                for item in rows
+                            ]
+                        ),
+                    ],
+                    className="gap-group",
+                )
+            )
+    return html.Div(groups, className="gap-list")
 
 
 def _core_assets_page(projection: ProjectionSet | None) -> html.Div:
@@ -1111,6 +1177,8 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             _report_fact_section("支持证据", body.get("support")),
             _report_fact_section("反证", body.get("counterevidence")),
             _report_fact_section("数据缺口", body.get("governance_gaps")),
+            html.Section([html.H3("缺口清单"), _gap_list(body.get("gap_list"))]),
+            _report_fact_section("核心沿用上一期", body.get("core_carry_forward")),
             _report_fact_section("绑定引用", body.get("evidence_references")),
         ]
     return html.Div([identity, *content], className="report-reader")
@@ -1298,6 +1366,10 @@ def _stage_explanation(overview: dict[str, object]) -> str:
         "noncanonical_combination": "当前三资产组合不属于六个规范阶段，系统保持空值。",
         "core_state_unavailable": "至少一类核心资产状态不可用，系统不会以宏观证据补票。",
         "p0_unavailable": "P0 核心证据未通过门禁，上一确认阶段仅作历史上下文。",
+        "core_data_pending": (
+            "核心数据待处理：三核心落后两期以上或来源冲突，本日不产出正式阶段；"
+            "宏观、库存、缺口与报告照常发布。"
+        ),
     }.get(str(reason), "等待三类 P0 核心资产形成同一截止点的可用组合。")
 
 

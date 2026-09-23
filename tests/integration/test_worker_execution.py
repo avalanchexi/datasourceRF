@@ -422,13 +422,14 @@ def test_worker_fails_closed_when_a_manual_run_has_no_certified_p0(
 
     processed = process_pending_run(paths, report_adapters=())
 
+    # Without any core data the stage is held, but the run still publishes the rest and
+    # reports it (ticket 21).
     assert processed == submitted.run_id
-    assert runs.get(submitted.run_id).status == "action_required"
-    assert (
-        runs.get(submitted.run_id).error_classification == "p0_required_calendar_period_missing"
-    )
-    assert runs.get(submitted.run_id).projection_set_id is None
-    assert ReportRepository(paths.database).history() == ()
+    assert runs.get(submitted.run_id).status == "completed"
+    overview = ProjectionSetRepository(paths.database).current().datasets["cycle_overview"]
+    assert (overview["current_stage"], overview["stage_reason"]) == (None, "core_data_pending")
+    report = ReportRepository(paths.database).history()[0]
+    assert report.projection_set_id == runs.get(submitted.run_id).projection_set_id
     assert runs.next_queued() is None
 
 
