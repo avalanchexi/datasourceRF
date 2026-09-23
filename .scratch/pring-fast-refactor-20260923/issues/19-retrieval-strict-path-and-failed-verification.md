@@ -14,7 +14,7 @@ Spec: [spec.md](../spec.md)
 - [x] 检索记录含渠道、查询、返回网址、抓取网址、原文哈希、解析器版本、结果与原因，挂批次 id；不在页面/报告展示
 - [x] 保留手动深搜；无人工采用入口
 - [x] 受影响测试经 `check.py quick` 通过；切片收尾两例快速冒烟通过（按 ADR-0025）
-- [ ] 另加跑完整目录正例与三核心反例（涉及 Worker 编排/目录/来源），记录退出码与耗时
+- [x] 另加跑完整目录正例与三核心反例（涉及 Worker 编排/目录/来源），记录退出码与耗时
 
 ## Comments
 
@@ -23,3 +23,5 @@ Spec: [spec.md](../spec.md)
 - 手动深搜保留（`manual_deep_search`）；没有人工采用入口。新增 `test_retrieval_strict_path.py` 9 例。
 - 触发条件：发布闸门原先只认 LPR 的发布日历，其余指标一律 `unknown_release_configuration` 不检索。现改为按时效登记表推算：本期登记发布时点已过即 released（缺失/落后项进入检索），未到即 awaiting_release（不触发）；未登记或事件型仍为 unknown。完整运行只对各指标最新一个已发布期打开检索（缺口清单的对象），120 日窗口里更早的历史日保持 unknown、不逐日检索（否则每次运行上百次级联）；定向运行按其指定期判断。
 - 因此删去两例以“发布未知、后得发布记录才打开检索”为前提的完整运行用例（`test_newly_acquired_historical_publication_fact_can_open_full_run_search`、`test_resume_rechecks_unknown_release_without_mutating_initial_plan`）；其余完整运行用例改为只对 LPR 查询给结果或报错，P2 联合发布一例放宽单次上限。
+
+- 2026-09-24 回填：完整目录正例与三核心反例已包含在终点全套（票 28）中一并运行。`check.py full` 退出码 0，1211 例通过，用时 4051.5 秒；其中完整目录正例 `test_worker_registered_catalog.py::test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report` 用时 125.6 秒，三核心反例（`test_core_carry_forward.py`、`test_core_official_fill.py`、`test_structural_rejection.py`）均通过。

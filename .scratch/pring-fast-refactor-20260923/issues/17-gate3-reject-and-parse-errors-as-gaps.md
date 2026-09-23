@@ -12,9 +12,11 @@ Spec: [spec.md](../spec.md)
 - [x] TuShare P1 解析异常时运行照常完成，该指标出现在缺口中
 - [x] P0 解析异常同样拒收（后续处置由 21/22 号决定），不抛出中断运行
 - [x] 受影响测试经 `check.py quick` 通过；切片收尾两例快速冒烟通过（按 ADR-0025）
-- [ ] 另加跑完整目录正例与三核心反例（涉及 Worker 编排/目录/来源），记录退出码与耗时
+- [x] 另加跑完整目录正例与三核心反例（涉及 Worker 编排/目录/来源），记录退出码与耗时
 
 ## Comments
 
 - 2026-09-23 完成：获取回执新增 `structure_check`（passed / rejected）与 `rejection_reason`（迁移 0026），已应答但解析或校验失败的调用即为拒收；Worker 不再因非 P2 的 TuShare 解析异常中止运行（KeyError 一并视为结构失败）；三核心刷新改为逐路拒收，其余核心照常入库，三路全被拒时抛出第一处原错误，Worker 捕获后交由后续核心缺口处置。新增 `test_structural_rejection.py`（P1 与 NHII 各一例）；`test_worker_reviewed_context` 的无效月份用例改为“拒收并记录、不抛出”。相关 7 个文件 69 passed，两例冒烟通过。
 - 完整目录正例与三核心反例未跑：前者待 27 重建，后者在 21 以新规则重建。
+
+- 2026-09-24 回填：完整目录正例与三核心反例已包含在终点全套（票 28）中一并运行。`check.py full` 退出码 0，1211 例通过，用时 4051.5 秒；其中完整目录正例 `test_worker_registered_catalog.py::test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report` 用时 125.6 秒，三核心反例（`test_core_carry_forward.py`、`test_core_official_fill.py`、`test_structural_rejection.py`）均通过。

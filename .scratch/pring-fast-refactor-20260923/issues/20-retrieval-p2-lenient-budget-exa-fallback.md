@@ -13,7 +13,7 @@ Spec: [spec.md](../spec.md)
 - [x] 每次运行 Tavily ≤16、Exa ≤8；同一缺口 AI WebSearch 每次运行至多一次
 - [x] 三项 P2 有登记主机，可经宽松路径取值
 - [x] 受影响测试经 `check.py quick` 通过；切片收尾两例快速冒烟通过（按 ADR-0025）
-- [ ] 另加跑完整目录正例与三核心反例（涉及 Worker 编排/目录/来源），记录退出码与耗时
+- [x] 另加跑完整目录正例与三核心反例（涉及 Worker 编排/目录/来源），记录退出码与耗时
 
 ## Comments
 
@@ -23,3 +23,5 @@ Spec: [spec.md](../spec.md)
 - Exa 备用：级联中 Exa 仅在本次 Tavily 返回 `quota_exhausted`（402/432/433）或未配置 Tavily 时调用，否则记 `tavily_quota_available`。Tavily 的限额缓存到下月 1 日 00:05（上海），期间台账直接判 `quota_exhausted`，Exa 顶替。
 - 未完成：生产代码仍没有 AI WebSearch 适配器（此前也没有），级联中该渠道为 not_configured；“每缺口每次运行至多一次”由台账保证，待接入适配器时生效。Exa 请求未要求返回正文摘要，故 Exa 候选走宽松路径时通常因无摘要日期而拒收。
 - 新增 `test_retrieval_p2_lenient.py` 5 例；改写级联/台账相关用例，删除每日上限与深搜每事件额度的 4 例。
+
+- 2026-09-24 回填：完整目录正例与三核心反例已包含在终点全套（票 28）中一并运行。`check.py full` 退出码 0，1211 例通过，用时 4051.5 秒；其中完整目录正例 `test_worker_registered_catalog.py::test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report` 用时 125.6 秒，三核心反例（`test_core_carry_forward.py`、`test_core_official_fill.py`、`test_structural_rejection.py`）均通过。

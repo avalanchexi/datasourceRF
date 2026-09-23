@@ -205,7 +205,7 @@ pring-cycle gap-notices --json
 
 ### LPR 官方发布与发布日历
 
-V1 的首条 P1 认证官方链路是中国货币网 LPR 公告。目录身份固定为
+V1 的首条 P1 注册官方链路是中国货币网 LPR 公告。目录身份固定为
 `CN_LPR_1Y_5Y` / `CHINAMONEY_LPR`，单位为百分比，频率为月度，维度仅允许
 `tenor=1y|5y_plus`。发布族是 `chinamoney_lpr`，规则版本固定为
 `monthly_day_20_holiday_roll_0900_asia_shanghai`：每月 20 日、节假日顺延、北京时间
@@ -221,7 +221,7 @@ pring-cycle lpr-contract --input /wsl/native/path/lpr.html \
 
 显式摄取会把公告作为内容寻址制品保存，并以一个发布事件原子写入两条
 source claim；同一正文重复获取保持幂等，后续修订只能从实际抓取修订的时点起进入
-`public_as_of`，不会回填到原公告时点。普通 `evidence-ingest` 不能自称这条来源已认证：
+`public_as_of`，不会回填到原公告时点。普通 `evidence-ingest` 不能冒充这条注册来源：
 
 ```bash
 pring-cycle lpr-refresh \
@@ -277,9 +277,8 @@ pring-cycle eia-html-refresh --runtime-root /home/tywin/.cache/pring-cycle/eia-h
 
 结果分别给出数值条数、无数值日期格和 acquisition ID；空窗口返回 `missing_values` 及具体
 原因。原件、响应身份、解析版本和批次日期单独保留；日期格不左移，合法负值和数值零不当作
-缺失。历史逐日公开时间继续未知，SYSTEM按本次校验完成时间记录，候选始终待来源认证。
-目前完整 Worker 的自动 EIA 渠道仍使用配置 key 的 API；HTML命令用于新候选证据准备，后续
-来源认证及模型采纳另行验收。字段/时间依据见[接入契约](../../.scratch/pring-data-acquisition-repair/eia-html-contract.md)。
+缺失。公开可用时间按时效登记表推算的发布时点与首次取得时间取较早者（ADR-0021），SYSTEM
+按本次校验完成时间记录。完整 Worker 在配置 key 时使用 API，未配置时改取这张 HTML 历史表。字段/时间依据见[接入契约](../../.scratch/pring-data-acquisition-repair/eia-html-contract.md)。
 
 美国财政部名义曲线可通过 `treasury-csv-refresh` 显式取得同日2Y、10Y候选，无需账户。
 每次读取一个来源年度CSV，再保存所选窗口；跨年窗口应分年调用。以下在独立候选库执行：
@@ -293,7 +292,7 @@ pring-cycle treasury-csv-refresh --runtime-root /home/tywin/.cache/pring-cycle/t
 数值以百分数保存，`4.37`代表4.37%；零值与缺失分开，N/A或空格不生成数值声明。
 返回数值条数、缺值格数和请求身份；保存原件、各指标最新源有值日期及真实SYSTEM时间。
 新快照缺值时，旧声明仍保留原取得时间，本次缺值回执另记，不能计为本次新取得值。
-历史逐日PUBLIC保持未知，所有候选待认证；Worker现有TuShare渠道仍按配置运行。
+公开可用时间按登记发布时点与首次取得时间取较早者；Worker现有TuShare渠道仍按配置运行。
 通常18:00美东时间前可用是发布预期，不能填成实际发布时间。字段/时间依据见
 [官方契约](../../.scratch/pring-data-acquisition-repair/treasury-followup.md)。
 
@@ -311,19 +310,30 @@ pring-cycle run-submit --type manual_deep_search --target-date YYYY-MM-DD \
 pring-cycle run-submit --type report_generation --target-date YYYY-MM-DD --request-id UNIQUE_ID --json
 ```
 
-同一发布事件可重复 `--metric`，Worker 只按事件调用每个渠道一次，再由认证适配器拆分观测。
+同一发布事件可重复 `--metric`，Worker 只按事件调用每个渠道一次，再由登记解析器拆分观测。
 若官方直连需要精确公告位置，另传 `--source-url OFFICIAL_HTTPS_URL`。检索顺序固定为有效本地
-证据、TuShare、认证官方直连、Tavily、Exa、受限 AI WebSearch；默认串行，P2 在 Exa 后
-停止。Tavily/Exa保留请求审计与响应原件；候选URL进入下载、确定性解析及模型输入条件检查。
-搜索相关性不授予来源认证，只有满足目标模型条件的完整证据才能清除原缺口。
+证据、TuShare、注册官方直连、Tavily、AI WebSearch，默认串行；Exa 只在 Tavily 返回月度限额
+耗尽（402/432/433，缓存到下月 1 日）时顶替 Tavily。缺失或落后的项只有在时效登记表（或发布
+预告）表明本期已发布后才检索，未到发布时点的不触发；完整运行只检索各指标最新一个已发布期
+（ADR-0023，票 19、20、25）。
 
-付费渠道每个发布事件各最多一次；单运行 Tavily/Exa/AI 预算为 8/4/1，上海自然日预算为
-16/8/2。有效负缓存和未到预计窗口不会调用外部渠道；只有短暂传输错误在同一级最多再试两
-次。手动深搜必须恰好指定一个指标，尝试账本标记 `manual_budget_exemption`，定时任务不会
-自动创建该命令。`pring-cycle runs --json` 和“运行状态”页显示逐级结果、失败分类、延迟、
-运行/每日余量、负缓存命中与下一动作，不显示密钥、认证头或外部完整正文。
+Tavily/Exa 保留请求审计与响应原件。P0/P1 的候选网址须属于登记解析器家族的白名单主机，由系统
+重抓原文、登记解析器取值；页面须解析出应有统计期与不晚于截止时点的发布日期，搜索摘要中的数
+与解析值差 10–1000 倍（疑似小数点错位）时不采纳。P2 的 USDCNY 16:30、VIX、SOX 可在登记主机
+上采用搜索摘要中的值（须写出应有期日期、恰有一个取值），同时保存页面原文与哈希。不通过的候选
+不入库，缺口清单单列“检索未通过”，每项最多列 3 个网址及逐网址原因。
 
-P0 缺失、陈旧、冲突或身份不符时运行进入 `action_required`，当前指针继续读取上一完整投影。
+预算只按每次运行计：Tavily 16、Exa 8，不设每日上限；AI WebSearch 不计次，同一运行内每个
+缺口至多一次（目前尚无 AI WebSearch 适配器，该级记为未配置）。同一运行内不重复结果未知的请求；
+已完成的请求只受负缓存约束。只有短暂传输错误在同一级最多再试两次。手动深搜必须恰好指定一个
+指标，尝试账本标记 `manual_budget_exemption`，可重复 Tavily/Exa，定时任务不会自动创建该命令。
+`pring-cycle runs --json` 和“运行状态”页显示逐级结果、失败分类、延迟、运行余量、负缓存命中与
+下一动作，不显示密钥、认证头或外部完整正文。
+
+三核心缺失时先补全：TuShare 重试一次，000985/000012 再取中证官网（NHII 没有可解析的官方页面），
+之后进入检索。仍缺时，只落后一个交易日则“核心沿用上一期”，照常产出正式阶段并醒目标注；落后
+两期及以上、窗口内缺日或冲突则正式阶段为空（`core_data_pending`），其余投影与报告照常发布
+（票 21、22）。P0 未登记时效时运行进入 `action_required`，当前指针继续读取上一完整投影。
 查看、取消与显式恢复：
 
 ```bash

@@ -1,5 +1,5 @@
 Label: wayfinder:map
-Status: open
+Status: done (2026-09-24：终点已到达，遗留见 Not yet specified)
 
 # 精简门禁、快速可追溯地产出全部硬输出
 
@@ -47,11 +47,16 @@ Status: open
 
 ## Not yet specified
 
-- **实施切片**：删除/旁路认证包、逐值发布证据、预检完整性、回放验收等门禁的代码改动，以及新门禁与加工批次的落地；门禁地图、存储结构、流程形状、验证策略与取代性 ADR 均已定（票 01、06–09），**可以拆成纵向切片**。
-- **数据库迁移**：现有 SQLite 中长历史明细、旧目录、旧认证记录如何迁到新留存模型（一次性清理还是懒清理）；票 06 已定终态为全部数据统一 120 交易日，首次成功运行末尾的删除即可承担一次性清理，旧认证/回放表的去留待实施切片确定。
-- **真实运行收口后的遗留**（票 28）：搜索查询质量差，Tavily 返回的候选几乎全在白名单外；AI 报告在 14 万字节提示下两路都超时；南华 NHII 没有官方页面可解析；P2 的 VIX/SOX/UST/USDCNY 仍取不到；社融/GDP 官方列表链接不唯一；EIA 周数据连续性校验拒收；交易日历在缺口清单里显示为缺失。
-- **取数路径补洞**（研究 02 暴露）：沪深融资新 ID 接 TuShare `margin`；USDCNY 16:30、VIX、SOX 三项 P2 目前实际取不到（票 05 已定 P2 可走白名单主机上的 Tavily/AI 抽值，需登记主机并放开 P2 的 AI WebSearch）；`index_dailybasic` 文档覆盖可能不含 000300/000852；两项 PMI 差值频率标错为 daily。另需为三核心新写中证指数官网（000985、000012）与南华官网（NHII）解析器并登记白名单主机（票 07）；另需接入发布预告取数（TuShare `cn_schedule` 优先，官方日程页其次）并建立时效登记常量表（票 04 已定字段）。时效契约与 WebSearch 规则均已定，归入实施切片（含 Exa 改为 Tavily 月限额备用）。
-- **旧 effort 收尾**：pring-data-acquisition-repair 与 pring-window-publication-20260922 的开放票如何关闭或标记被取代。
+以下为票 28 真实运行暴露、尚未立项的遗留，属新一轮工作（建议入口见括号）：
+
+- **检索与报告二期**（`/grill-with-docs` → `/to-spec`）：搜索查询用指标 ID 加中文名，Tavily 返回的候选几乎全在白名单外，检索补缺基本无效，需按家族与官方站点限定查询；AI 报告提示约 14 万字节，Codex 与 Claude 两路都在 300 秒超时，要么缩减证据包、要么放宽超时；AI WebSearch 尚无适配器（台账已限定每缺口每次运行一次）。三者相互牵连，宜在同一次访谈中定。
+- **交易日历误列缺口**（`/tdd`）：`CN_TRADE_CALENDAR` 是运维证据，却在时效判定中列为 P0 缺失，应归入 `NOT_ASSESSED`。
+- **官方列表与 EIA 拒收**（`/diagnosing-bugs`）：社融总量与 GDP 的官方列表页链接解析不唯一；EIA HTML 历史表周连续性校验拒收（未配置 EIA key）。
+- **来源空缺**（`/research`）：NHII 没有可解析的南华官方页面（票 22）；P2 的 VIX、SOX、UST、USDCNY 16:30 仍取不到。
+- **旧工作树去留**（用户决定）：`goal/window-20260922-01…06` 未提交内容已无损归档到 `.scratch/pring-window-publication-20260922/worktree-archive-20260924/`，删除命令见其 README；删除约可释放 3.5G。
+- **测试耗时**（`/improve-codebase-architecture`）：全套 67.5 分钟，远离“10 分钟级”；空库完整运行多出约 13 秒首次初始化，主要是逐日重复开库连接。
+
+已了结（2026-09-24）：实施切片（票 10–28 已交付）；数据库迁移（旧生命周期表由迁移 0025 删除，留存由首次成功运行末尾清理承担，真实库经首次运行后只剩 120 交易日）；取数补洞中的沪深融资 `margin`、PMI 差值频率、`index_dailybasic` 核实（票 26）、中证核心解析器（票 22）、发布预告与时效登记表（票 13、25）、P2 宽松路径与 Exa 备用（票 20）；旧 effort 收尾（pring-data-acquisition-repair 25 张、pring-window-publication-20260922 19 张开放票已标记 superseded 并注明去向）。
 
 ## Out of scope
 
