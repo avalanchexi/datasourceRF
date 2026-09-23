@@ -263,7 +263,8 @@ class AcquisitionRepository:
         with self._connect() as connection:
             connection.execute(
                 """UPDATE acquisition_request SET state='validated', normalized_hash=?,
-                   validated_at=?, row_count=? WHERE acquisition_id=? AND state='received'""",
+                   validated_at=?, row_count=?, structure_check='passed'
+                   WHERE acquisition_id=? AND state='received'""",
                 (
                     artifact.content_hash,
                     validated_at.isoformat(),
@@ -274,11 +275,14 @@ class AcquisitionRepository:
         return self.get(acquisition_id)
 
     def fail_validation(self, acquisition_id: str, error: Exception) -> None:
+        """Close a call as failed; one that had answered was rejected by its structure check."""
         with self._connect() as connection:
             connection.execute(
-                """UPDATE acquisition_request SET state='failed', error_type=?
+                """UPDATE acquisition_request SET state='failed', error_type=?,
+                   structure_check=CASE WHEN state='received' THEN 'rejected' END,
+                   rejection_reason=CASE WHEN state='received' THEN ? END
                    WHERE acquisition_id=? AND state IN ('started', 'received')""",
-                (type(error).__name__, acquisition_id),
+                (type(error).__name__, str(error)[:300], acquisition_id),
             )
 
     def _receive(

@@ -29,6 +29,8 @@ SUMMARY_TABLES = (
 _COLUMNS = (
     ("parent_run", "code_version", "TEXT"),
     ("acquisition_request", "row_count", "INTEGER"),
+    ("acquisition_request", "structure_check", "TEXT"),
+    ("acquisition_request", "rejection_reason", "TEXT"),
     *((table, "batch_id", "TEXT") for table in SUMMARY_TABLES),
 )
 

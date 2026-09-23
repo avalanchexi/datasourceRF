@@ -360,10 +360,8 @@ def test_reviewed_delivery_does_not_treat_invalid_month_as_missing_rows(
         },
     )
 
-    with (
-        pytest.raises(ValueError),
-        own_acquisitions(paths.database, run.run_id, "direct_context_refresh"),
-    ):
+    # Gate ③ rejects the response and records it; a P1 parse error no longer stops the run.
+    with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
         refresh_context_sources(paths, run.target_business_date, definition_version=version)
 
     attempt = EvidenceRepository(paths.database).latest_retrieval_attempt(

@@ -31,6 +31,7 @@ class CoreHistoryRefreshResult:
     network_requests: int
     observations_per_metric: int
     status: str
+    rejected_metrics: tuple[str, ...] = ()
 
 
 class CoreHistoryAdapter(Protocol):
@@ -73,6 +74,8 @@ def refresh_core_history(
     network_requests = 0
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     receipts: dict[tuple[str, date], AcquisitionReceipt] = {}
+    rejected: list[str] = []
+    first_rejection: Exception | None = None
     ranges = (
         [(start, end)]
         if latest_observations is not None
@@ -90,13 +93,24 @@ def refresh_core_history(
         network_requests += 1
         calendars.extend(calendar)
         for metric_id in CORE_API_IDENTITIES:
-            acquired = adapter.acquire_core_bars(
-                acquisitions,
-                metric_id,
-                start=calendar[0],
-                end=calendar[-1],
-                expected_business_dates=calendar,
-            )
+            if metric_id in rejected:
+                continue
+            try:
+                acquired = adapter.acquire_core_bars(
+                    acquisitions,
+                    metric_id,
+                    start=calendar[0],
+                    end=calendar[-1],
+                    expected_business_dates=calendar,
+                )
+            except (KeyError, TypeError, ValueError) as error:
+                first_rejection = first_rejection or error
+                # Gate ③: this core's response failed its structure check and was recorded
+                # as rejected on its call; the other cores are still kept.
+                rejected.append(metric_id)
+                collected.pop(metric_id, None)
+                network_requests += 1
+                continue
             collected[metric_id].extend(acquired.value)
             receipts.update(
                 {(metric_id, bar.business_date): acquired.receipt for bar in acquired.value}
@@ -105,6 +119,9 @@ def refresh_core_history(
     expected = tuple(calendars)
     if not expected:
         raise ValueError("core_history_calendar_missing")
+    if not collected:
+        assert first_rejection is not None
+        raise first_rejection
     if any(tuple(bar.business_date for bar in bars) != expected for bars in collected.values()):
         raise ValueError("core_history_common_calendar_mismatch")
 
@@ -186,7 +203,8 @@ def refresh_core_history(
         last_business_date=expected[-1].isoformat(),
         network_requests=network_requests,
         observations_per_metric=len(expected),
-        status="validated",
+        status="partially_rejected" if rejected else "validated",
+        rejected_metrics=tuple(rejected),
     )
 
 

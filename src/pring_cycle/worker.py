@@ -1648,22 +1648,16 @@ def refresh_context_sources(
                 error_type=type(error).__name__,
                 family=family,
             )
-        except (TypeError, ValueError) as error:
+        except (KeyError, TypeError, ValueError) as error:
             if isinstance(error, ContextObservationsMissingError) and all(
                 reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids
             ):
                 record(metric_ids, "tushare", "missing_values", family=family)
                 continue
+            # Gate ③ rejects the response; the metrics become gaps for retrieval, whatever
+            # their priority, and the run goes on (ticket 17).
             outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
             record(metric_ids, "tushare", outcome, error_type=type(error).__name__, family=family)
-            if any(
-                metric_definition(
-                    metric_id, definition_version=definition_version, database_path=paths.database
-                ).priority
-                != "P2"
-                for metric_id in metric_ids
-            ):
-                raise
         else:
             record(
                 result.metric_ids,
@@ -1709,14 +1703,18 @@ def _refresh_core_sources(
     from pring_cycle.core_history import refresh_core_history
 
     target = date.fromisoformat(target_business_date)
-    refresh_core_history(
-        paths,
-        TushareCoreAdapter(token),
-        start=target - timedelta(days=280),
-        end=target,
-        definition_version=definition_version,
-        latest_observations=160,
-    )
+    try:
+        refresh_core_history(
+            paths,
+            TushareCoreAdapter(token),
+            start=target - timedelta(days=280),
+            end=target,
+            definition_version=definition_version,
+            latest_observations=160,
+        )
+    except (KeyError, TypeError, ValueError):
+        # Rejected responses stay recorded on their calls; the core gap is judged later.
+        return
 
 
 def _last_confirmed_stage(

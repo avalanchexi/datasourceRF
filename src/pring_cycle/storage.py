@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0025_drop_model_lifecycle"
+SCHEMA_HEAD = "0026_structure_check"
 
 
 @contextmanager
