@@ -15,6 +15,7 @@ from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.freshness import DERIVED_INPUTS
 from pring_cycle.full_run_requirements import (
     formula_requirements,
     preceding_periods,
@@ -221,7 +222,7 @@ class FullRunRetrieval:
                 continue
             if definition.metric_id in derived_ids:
                 continue
-            if definition.certification_status == "derived_from_certified_inputs":
+            if definition.metric_id in DERIVED_INPUTS:
                 derived.append(
                     {
                         "metric_id": definition.metric_id,

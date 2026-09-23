@@ -71,7 +71,7 @@ class EvidenceValueState(StrEnum):
     NOT_DISCLOSED = "not_disclosed"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SourceClaimInput:
     metric_id: str
     definition_version: str
@@ -89,8 +89,10 @@ class SourceClaimInput:
     public_available_at: datetime | None
     fetched_at: datetime
     available_at: datetime
-    certification_status: str
     quality_status: str
+    # A retired label (ADR-0021): nothing selects on it. "certified" still asks the
+    # claim's registered delivery contract to be checked, which is a structural check.
+    certification_status: str = "not_applicable"
     acquisition_id: str | None = None
     acquisition_ids: tuple[str, ...] = ()
 
@@ -447,7 +449,6 @@ class EvidenceRepository:
         for row in rows:
             if (
                 row["definition_version"] != definition_version
-                or row["certification_status"] != "certified"
                 or row["quality_status"] != "validated"
             ):
                 continue
@@ -570,7 +571,7 @@ class EvidenceRepository:
         parameters = tuple(value for pair in ordered for value in pair)
         with self._connect() as connection:
             rows = connection.execute(
-                f"SELECT * FROM source_claim WHERE {clauses}",
+                f"SELECT * FROM effective_source_claim WHERE {clauses}",
                 parameters,
             ).fetchall()
         grouped: dict[tuple[str, str], list[sqlite3.Row]] = {pair: [] for pair in ordered}
@@ -737,7 +738,7 @@ class EvidenceRepository:
                 SELECT claim_id, observation_id, supersedes_claim_id, value,
                        value_state, unit, release_event_id, release_at,
                        public_available_at, fetched_at
-                FROM source_claim
+                FROM effective_source_claim
                 WHERE {" AND ".join(clauses)}
                 ORDER BY julianday(available_at) DESC, rowid DESC LIMIT 1
                 """,
@@ -772,7 +773,7 @@ class EvidenceRepository:
                 SELECT claim_id, period_start, period_end, dimensions_json,
                        public_available_at,
                        certification_status, quality_status
-                FROM source_claim
+                FROM effective_source_claim
                 WHERE metric_id=? AND definition_version=?
                 ORDER BY julianday(public_available_at), rowid
                 """,
@@ -903,7 +904,7 @@ class EvidenceRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 f"""
-                SELECT * FROM source_claim
+                SELECT * FROM effective_source_claim
                 WHERE observation_id = ?
                   AND {time_column} IS NOT NULL
                   AND julianday({time_column}) <= julianday(?)
@@ -1023,7 +1024,7 @@ class EvidenceRepository:
             with self._connect() as connection:
                 rows = connection.execute(
                     f"""
-                    SELECT * FROM source_claim
+                    SELECT * FROM effective_source_claim
                     WHERE metric_id=?{definition_clause}
                       AND {time_column} IS NOT NULL
                       AND julianday({time_column}) <= julianday(?)
@@ -1317,6 +1318,7 @@ class EvidenceRepository:
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
             connection.executescript(ACQUISITION_SCHEMA)
             add_batch_columns(connection)
+            add_inferred_public_time(connection)
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -1399,8 +1401,6 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
         raise ValueError("evidence_unit_mismatch")
     if set(claim.dimensions) != set(definition.dimensions):
         raise ValueError("evidence_dimensions_mismatch")
-    if claim.certification_status == "certified" and definition.certification_status != "certified":
-        raise ValueError("evidence_source_not_certified_by_model")
     if claim.certification_status == "certified" or claim.metric_id in _MIGRATED_IDENTITIES:
         require_registered_source_contract(
             definition,
@@ -1427,6 +1427,7 @@ def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:
     if claim.certification_status not in {
         "certified",
         "awaiting_source_certification",
+        "not_applicable",
     }:
         raise ValueError("evidence_certification_status_invalid")
     if claim.quality_status not in {"validated", "unverified", "invalid"}:
@@ -1511,8 +1512,8 @@ def _append_source_claim(
             value, value_state, unit, provider, source_reference,
             release_event_id, release_at, public_available_at, fetched_at,
             available_at, certification_status, quality_status,
-            supersedes_claim_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            supersedes_claim_id, inferred_public_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             claim_id,
@@ -1536,9 +1537,50 @@ def _append_source_claim(
             claim.certification_status,
             claim.quality_status,
             supersedes_claim_id,
+            _iso(_inferred_public_time(claim)),
         ),
     )
     return StoredSourceClaim(claim_id, observation_id, supersedes_claim_id)
+
+
+def _inferred_public_time(claim: SourceClaimInput) -> datetime | None:
+    """Public time by the registered cadence when the source itself gave none (ADR-0021).
+
+    It is min(inferred release, first acquisition) and is stored beside, never over, the
+    parser's own time, so a recheck of the parser's output still compares like with like.
+    """
+    if claim.public_available_at is not None:
+        return None
+    from pring_cycle.freshness import current_calendar, public_available_at
+
+    return public_available_at(
+        claim.metric_id,
+        date.fromisoformat(claim.period_end),
+        claim.fetched_at,
+        current_calendar(),
+    )
+
+
+def add_inferred_public_time(connection: sqlite3.Connection) -> None:
+    """Give claims an inferred public time and read every selection through the effective one."""
+    columns = {str(row[1]) for row in connection.execute("PRAGMA table_info(source_claim)")}
+    if not columns:
+        return
+    if "inferred_public_at" not in columns:
+        connection.execute("ALTER TABLE source_claim ADD COLUMN inferred_public_at TEXT")
+    connection.execute("DROP VIEW IF EXISTS effective_source_claim")
+    connection.execute(
+        """
+        CREATE VIEW effective_source_claim AS
+        SELECT claim_id, observation_id, metric_id, definition_version, period_kind,
+               period_start, period_end, dimensions_json, value, value_state, unit,
+               provider, source_reference, release_event_id, release_at,
+               COALESCE(public_available_at, inferred_public_at) AS public_available_at,
+               fetched_at, available_at, certification_status, quality_status,
+               supersedes_claim_id
+        FROM source_claim
+        """
+    )
 
 
 def _claim_view(row: sqlite3.Row) -> ClaimView:

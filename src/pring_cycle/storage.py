@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0023_batch_freshness"
+SCHEMA_HEAD = "0024_inferred_public_time"
 
 
 @contextmanager

@@ -40,14 +40,13 @@ def required_calendar(
             and point.value_state is EvidenceValueState.REPORTED_VALUE
             and point.selected_value == 1
             and claim is not None
-            and claim.certification_status == "certified"
             and claim.quality_status == "validated"
         ):
             days.append(point.period_end)
             claim_ids.append(claim.claim_id)
     dates = sorted(set(days))[-120:]
     proof: dict[str, Any] = {"claim_ids": claim_ids, "acquisition_id": None}
-    basis = "certified_trade_calendar_claims"
+    basis = "validated_trade_calendar_claims"
     if len(dates) < 120 or not dates or dates[-1] != run.target_business_date:
         dates = []
         with database_connection(paths.database) as connection:
@@ -169,9 +168,7 @@ def _reported_count(selector: ModelInputSelector, metric: str, dimensions: dict[
         and point.value_state is EvidenceValueState.REPORTED_VALUE
         and point.selected_value is not None
         and any(
-            claim.claim_id == point.selected_claim_id
-            and claim.certification_status == "certified"
-            and claim.quality_status == "validated"
+            claim.claim_id == point.selected_claim_id and claim.quality_status == "validated"
             for claim in point.claims
         )
         for point in selector.series(metric)

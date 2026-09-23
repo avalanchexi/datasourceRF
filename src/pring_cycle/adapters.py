@@ -47,8 +47,6 @@ def validate_core_market_bars(
         raise ValueError("metric_identity_mismatch")
     if any(item.unit != "index_points" for item in bars):
         raise ValueError("metric_unit_mismatch")
-    if any(item.certification_status != "certified" for item in bars):
-        raise ValueError("source_not_certified")
     if any(item.close <= 0 or item.pre_close <= 0 for item in bars):
         raise ValueError("nonpositive_core_price")
     dates = [item.business_date for item in bars]

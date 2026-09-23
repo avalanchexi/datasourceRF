@@ -165,7 +165,6 @@ def select_warrant_inputs(
                     and links.get(claim.claim_id, set()) & same_original
                     and point.selection_status == "selected"
                     and point.value_state is EvidenceValueState.REPORTED_VALUE
-                    and claim.certification_status == "certified"
                     and claim.quality_status == "validated"
                     and _matches_original(point, claim, scalar)
                 ):

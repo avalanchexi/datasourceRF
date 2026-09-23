@@ -328,7 +328,7 @@ class ModelInputSelector:
             if (metric_ids := tuple(m for m in scope.metric_ids if family.owns(m)))
         )
         selected_ids: list[str] = []
-        missing = []
+        missing: list[str] = []
         dimension_checks: dict[str, str] = {}
         material_checks = []
         for metric_id in scope.metric_ids:
@@ -355,11 +355,8 @@ class ModelInputSelector:
                         "executed",
                     )
                 )
-                if definition.certification_status != "certified":
-                    missing.append("CN_FUTURES_WARRANTS:source_certification_required")
-                else:
-                    selected_ids.extend(warrants.selected_claim_ids)
-                    missing.extend(warrants.missing_members)
+                selected_ids.extend(warrants.selected_claim_ids)
+                missing.extend(warrants.missing_members)
                 continue
             if metric_id == "CN_RRR_EVENT" and self.version not in BUILTIN_CATALOG_VERSIONS:
                 result = select_published_rrr_events(
@@ -388,11 +385,8 @@ class ModelInputSelector:
                         else "executed",
                     )
                 )
-                if definition.certification_status != "certified":
-                    missing.append("CN_RRR_EVENT:source_certification_required")
-                else:
-                    selected_ids.extend(result.selected_claim_ids)
-                    missing.extend(result.missing_members)
+                selected_ids.extend(result.selected_claim_ids)
+                missing.extend(result.missing_members)
                 continue
             expected = required_dimension_members(
                 metric_id, definition_version=self.version, period=scope.period
@@ -428,9 +422,7 @@ class ModelInputSelector:
                         and point.value_state == EvidenceValueState.REPORTED_VALUE
                         and point.selected_value is not None
                         and claim is not None
-                        and claim.certification_status == "certified"
                         and claim.quality_status == "validated"
-                        and definition.certification_status == "certified"
                         and all(
                             not family.owns(metric_id)
                             or not registered

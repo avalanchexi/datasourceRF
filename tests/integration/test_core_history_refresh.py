@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 from dataclasses import asdict
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -24,6 +24,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import TushareCoreAdapter
@@ -284,7 +285,14 @@ def test_manual_run_cannot_backdate_daily_core_availability(
         definition_version="metric-catalog-v0001",
     )
     assert len(after) == 160
-    assert all(point.claims[0].public_available_at is None for point in after)
+    # The source states no publication time, so public time is the earlier of the
+    # registered 17:00 close update and the moment the system first held the value.
+    for point in after:
+        claim = point.claims[0]
+        inferred = datetime.combine(
+            date.fromisoformat(point.period_end), time(17), ZoneInfo("Asia/Shanghai")
+        )
+        assert claim.public_available_at == min(inferred, claim.fetched_at)
     trace = evidence.trace(
         after[-1].observation_id, mode=AsOfMode.SYSTEM, as_of=StableDateTime.now(UTC)
     )
@@ -304,15 +312,17 @@ def test_manual_run_cannot_backdate_daily_core_availability(
     projection = ProjectionSetRepository(paths.database).current()
     assert len(projection.datasets["core_assets"]["assets"]) == 3
     assert projection.datasets["cycle_overview"]["current_stage"] == "stage_iii"
-    assert (
-        evidence.metric_series(
-            "CN_EQUITY_CORE_000985",
-            mode=AsOfMode.PUBLIC,
-            as_of=datetime.now(UTC),
-            definition_version="metric-catalog-v0001",
-        )
-        == ()
+    public = evidence.metric_series(
+        "CN_EQUITY_CORE_000985",
+        mode=AsOfMode.PUBLIC,
+        as_of=StableDateTime.now(UTC),
+        definition_version="metric-catalog-v0001",
     )
+    assert [point.period_end for point in public] == [point.period_end for point in after]
+    report = ReportRepository(paths.database).history()[0]
+    assert report.projection_set_id == projection.envelope.projection_set_id
+    assert (report.target_business_date, report.current_stage) == ("2026-08-03", "stage_iii")
+    assert report.status == "completed_degraded"
 
 
 @pytest.mark.usefixtures("runtime_clock")

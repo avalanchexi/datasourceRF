@@ -558,6 +558,12 @@ def run_calendar_scope() -> Iterator[None]:
         _run_calendar.reset(token)
 
 
+def current_calendar() -> TradingCalendar:
+    """The run's SSE calendar once known, else weekdays."""
+    slot = _run_calendar.get()
+    return (slot.calendar if slot is not None else None) or TradingCalendar()
+
+
 def use_run_calendar(calendar: TradingCalendar) -> None:
     """Judge freshness for the rest of the run against ``calendar``."""
     slot = _run_calendar.get()
@@ -567,8 +573,7 @@ def use_run_calendar(calendar: TradingCalendar) -> None:
 
 def period_status(metric_id: str, held_period_end: str, as_of: datetime) -> str:
     """``current`` or ``stale`` for a held period, derived metrics judged by their inputs."""
-    slot = _run_calendar.get()
-    calendar = (slot.calendar if slot is not None else None) or TradingCalendar()
+    calendar = current_calendar()
     held = date.fromisoformat(held_period_end)
     status = worst(
         assess(parent, held, as_of, calendar)

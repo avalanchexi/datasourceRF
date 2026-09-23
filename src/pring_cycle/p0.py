@@ -282,7 +282,7 @@ def _default_inventory_document() -> dict[str, object]:
         ],
         "real_inventory_approximation": {
             "formula_version": "inventory-ppi-v0001",
-            "status": "missing_certified_inputs",
+            "status": "missing_inputs",
             "value": None,
         },
         "score": None,

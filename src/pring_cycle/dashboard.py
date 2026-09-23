@@ -854,7 +854,7 @@ def _gap_label(value: str) -> str:
         "source_conflict": "来源冲突",
         "source_missing": "来源缺失",
         "stale_for_target_business_date": "目标日数据陈旧",
-        "source_identity_not_certified": "来源身份未认证",
+        "source_identity_invalid": "来源身份不符",
         "nonnumeric_core_observation": "核心观测不是有效数值",
     }.get(reason, reason)
     return f"{asset_label}：{reason_label}"

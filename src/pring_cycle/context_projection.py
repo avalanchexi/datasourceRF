@@ -363,19 +363,8 @@ def build_context_projection(
         missing_dependencies = sorted({output_metric, *input_metrics} - definitions.keys())
         if missing_dependencies:
             raise ValueError(f"context_model_metric_missing:{','.join(missing_dependencies)}")
-        if any(
-            definitions[metric_id].certification_status != "certified"
-            for metric_id in input_metrics
-        ) or definitions[output_metric].certification_status not in {
-            "certified",
-            "derived_from_certified_inputs",
-        }:
-            formula_versions.pop(formula, None)
     trading_calendar_metric_id = _core_stock_metric_id(model_manifest)
-    if trading_calendar_metric_id is not None and (
-        trading_calendar_metric_id not in definitions
-        or definitions[trading_calendar_metric_id].certification_status != "certified"
-    ):
+    if trading_calendar_metric_id not in definitions:
         trading_calendar_metric_id = None
     market_derived_rows, market_derived_ids = _derived_market_context_rows(
         repository,
@@ -438,11 +427,6 @@ def build_context_projection(
         as_of_mode=as_of_mode,
         persist_derived=persist_derived,
     )
-    if "credit_impulse" in rules.formula_versions and "credit_impulse" not in formula_versions:
-        credit_formula.update(
-            formula_version=rules.formula_versions["credit_impulse"],
-            status="uncertified_model_dependencies",
-        )
     if credit_impulse_row is not None:
         rows_by_metric["CN_CREDIT_IMPULSE"] = (credit_impulse_row,)
     policy_actions = _signals(rows_by_metric, _POLICY_ACTION, transform="policy")
@@ -632,7 +616,7 @@ class TargetBoundEvidenceRepository:
     def has_target_history(self, *args: Any, **kwargs: Any) -> bool:
         query_kwargs = self._query_at_target(kwargs)
         return any(
-            _certified_point(point) and date.fromisoformat(point.period_start) <= self._target_date
+            _usable_point(point) and date.fromisoformat(point.period_start) <= self._target_date
             for point in self._repository.metric_series(*args, **query_kwargs)
         )
 
@@ -676,18 +660,11 @@ def _point_at_target(
     )
     if not claims:
         return None
-    selected = sorted(
-        claims,
-        key=lambda claim: (
-            claim.certification_status != "certified",
-            claim.provider,
-        ),
-    )[0]
+    selected = sorted(claims, key=lambda claim: claim.provider)[0]
     reported_values = [
         claim.value
         for claim in claims
-        if claim.certification_status == "certified"
-        and claim.quality_status == "validated"
+        if claim.quality_status == "validated"
         and claim.value_state is EvidenceValueState.REPORTED_VALUE
         and claim.value is not None
     ]
@@ -735,7 +712,7 @@ def _derived_market_context_rows(
     amount_points = [
         point
         for point in reported_amount_points
-        if _certified_point(point)
+        if _usable_point(point)
         and (valid_amount_claim_ids is None or point.selected_claim_id in valid_amount_claim_ids)
     ]
     invalid_amount_points = [
@@ -743,7 +720,7 @@ def _derived_market_context_rows(
         for point in reported_amount_points
         if point.dimensions.get("measure") in {"injection", "maturity"}
         and (
-            not _certified_point(point)
+            not _usable_point(point)
             or (
                 valid_amount_claim_ids is not None
                 and point.selected_claim_id not in valid_amount_claim_ids
@@ -881,7 +858,7 @@ def _derived_market_context_rows(
             rows["CN_OMO_7D_AMOUNT"] = (derived_row,)
             version_ids.extend(derived_versions)
 
-    dr007 = _latest_certified_point(
+    dr007 = _latest_usable_point(
         repository,
         "CN_DR007",
         as_of=as_of,
@@ -897,7 +874,7 @@ def _derived_market_context_rows(
         )
     ):
         dr007 = None
-    policy_rate = _latest_certified_point(
+    policy_rate = _latest_usable_point(
         repository,
         "CN_OMO_7D_RATE",
         as_of=as_of,
@@ -932,14 +909,14 @@ def _derived_market_context_rows(
         rows["CN_DR007_POLICY_SPREAD"] = (derived_row,)
         version_ids.extend(derived_versions)
 
-    ust2 = _certified_points_by_period(
+    ust2 = _usable_points_by_period(
         repository,
         "UST2Y_NOMINAL_YIELD",
         as_of=as_of,
         as_of_mode=as_of_mode,
         definition_version=definition_version,
     )
-    ust10 = _certified_points_by_period(
+    ust10 = _usable_points_by_period(
         repository,
         "UST10Y_NOMINAL_YIELD",
         as_of=as_of,
@@ -966,7 +943,7 @@ def _derived_market_context_rows(
         rows["UST_2S10S_SPREAD"] = (derived_row,)
         version_ids.extend(derived_versions)
 
-    pmi_new_orders = _certified_points_by_period(
+    pmi_new_orders = _usable_points_by_period(
         repository,
         "CN_PMI_ACTIVITY",
         as_of=as_of,
@@ -974,7 +951,7 @@ def _derived_market_context_rows(
         as_of_mode=as_of_mode,
         definition_version=definition_version,
     )
-    pmi_production = _certified_points_by_period(
+    pmi_production = _usable_points_by_period(
         repository,
         "CN_PMI_ACTIVITY",
         as_of=as_of,
@@ -982,7 +959,7 @@ def _derived_market_context_rows(
         as_of_mode=as_of_mode,
         definition_version=definition_version,
     )
-    pmi_finished_goods = _certified_points_by_period(
+    pmi_finished_goods = _usable_points_by_period(
         repository,
         "CN_PMI_INVENTORY",
         as_of=as_of,
@@ -1042,7 +1019,7 @@ def _derived_market_context_rows(
             definition_version=definition_version,
         )
         if point.dimensions.get("measure") == loan_input_measure
-        and (definition_version not in BUILTIN_CATALOG_VERSIONS or _certified_point(point))
+        and (definition_version not in BUILTIN_CATALOG_VERSIONS or _usable_point(point))
     ]
     loan_groups: dict[tuple[str, str], list[MetricSeriesPoint]] = {}
     valid_loan_claim_ids = (
@@ -1074,7 +1051,7 @@ def _derived_market_context_rows(
                 previous = ordered[-2]
             required_points = (current,) if previous is None else (current, previous)
             if valid_loan_claim_ids is not None and any(
-                not _certified_point(point) or point.selected_claim_id not in valid_loan_claim_ids
+                not _usable_point(point) or point.selected_claim_id not in valid_loan_claim_ids
                 for point in required_points
             ):
                 continue
@@ -1128,7 +1105,7 @@ def _trading_day_candidates(
                     as_of=as_of,
                     definition_version=definition_version,
                 )
-                if definition_version not in BUILTIN_CATALOG_VERSIONS or _certified_point(point)
+                if definition_version not in BUILTIN_CATALOG_VERSIONS or _usable_point(point)
             ),
             key=lambda point: (point.period_end, point.observation_id),
         )
@@ -1208,7 +1185,6 @@ def _repo_net_injection_row(
     )
     row: dict[str, object] = {
         "available_at": max(claim.available_at for claim in selected_claims).isoformat(),
-        "certification_status": "derived_from_certified_inputs",
         "claim_ids": [],
         "claims": [],
         "derived_observation_id": derived_id,
@@ -1287,7 +1263,6 @@ def _difference_row(
     public_available_at = max(public_times) if len(public_times) == len(claims) else None
     row: dict[str, object] = {
         "available_at": max(claim.available_at for claim in claims).isoformat(),
-        "certification_status": "derived_from_certified_inputs",
         "claim_ids": [],
         "claims": [],
         "derived_observation_id": derived_id,
@@ -1348,7 +1323,7 @@ def _derived_observation_identity(
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
 
 
-def _certified_points_by_period(
+def _usable_points_by_period(
     repository: EvidenceRepository,
     metric_id: str,
     *,
@@ -1381,7 +1356,7 @@ def _certified_points_by_period(
     if valid_claim_ids is not None and matching_points:
         latest_period = max(point.period_end for point in matching_points)
         if any(
-            not _certified_point(point) or point.selected_claim_id not in valid_claim_ids
+            not _usable_point(point) or point.selected_claim_id not in valid_claim_ids
             for point in matching_points
             if point.period_end == latest_period
         ):
@@ -1389,7 +1364,7 @@ def _certified_points_by_period(
     return {
         point.period_end: point
         for point in matching_points
-        if _certified_point(point)
+        if _usable_point(point)
         and (valid_claim_ids is None or point.selected_claim_id in valid_claim_ids)
     }
 
@@ -1402,7 +1377,7 @@ def _consecutive_months(previous: MetricSeriesPoint, current: MetricSeriesPoint)
     return current_ordinal - previous_ordinal == 1
 
 
-def _latest_certified_point(
+def _latest_usable_point(
     repository: EvidenceRepository,
     metric_id: str,
     *,
@@ -1419,10 +1394,10 @@ def _latest_certified_point(
             as_of=as_of,
             definition_version=definition_version,
         )
-        if (definition_version not in BUILTIN_CATALOG_VERSIONS or _certified_point(point))
+        if (definition_version not in BUILTIN_CATALOG_VERSIONS or _usable_point(point))
         and (no_later_than is None or point.period_end <= no_later_than)
     ]
-    return points[-1] if points and _certified_point(points[-1]) else None
+    return points[-1] if points and _usable_point(points[-1]) else None
 
 
 def _metric_rows(
@@ -1533,10 +1508,9 @@ def _metric_rows(
                     for point in series
                     if point.period_end == period and point.selected_claim_id is not None
                 )
-        if definition.certification_status == "certified":
-            warrant_history = WarrantHistoryCoverage(
-                {symbol: tuple(sorted(periods)) for symbol, periods in complete_periods.items()}
-            )
+        warrant_history = WarrantHistoryCoverage(
+            {symbol: tuple(sorted(periods)) for symbol, periods in complete_periods.items()}
+        )
     release_status = _release_status(
         repository,
         definition,
@@ -1582,18 +1556,14 @@ def _metric_rows(
             and status == "current"
         ):
             status = "stale"
-        if (
-            current.selected_claim_id in incomplete_source_claims
-            and status != "awaiting_source_certification"
-        ):
+        if current.selected_claim_id in incomplete_source_claims:
             status = "source_failed"
-        candidate_value = current.selected_value
-        value = None if status == "awaiting_source_certification" else candidate_value
+        value = current.selected_value
         previous_value = (
             previous.selected_value
             if value is not None
             and previous is not None
-            and _certified_point(previous)
+            and _usable_point(previous)
             and previous.selected_claim_id not in incomplete_source_claims
             else None
         )
@@ -1615,16 +1585,10 @@ def _metric_rows(
         rows.append(
             {
                 "available_at": selected.available_at.isoformat() if selected is not None else None,
-                "certification_status": (
-                    selected.certification_status
-                    if selected is not None
-                    else definition.certification_status
-                ),
                 "claim_ids": [claim.claim_id for claim in current.claims],
                 "claims": [
                     {
                         "available_at": claim.available_at.isoformat(),
-                        "certification_status": claim.certification_status,
                         "claim_id": claim.claim_id,
                         "provider": claim.provider,
                         "public_available_at": (
@@ -1636,9 +1600,7 @@ def _metric_rows(
                         "selected": claim.claim_id == current.selected_claim_id,
                         "source_reference": claim.source_reference,
                         "unit": claim.unit,
-                        "value": (
-                            None if status == "awaiting_source_certification" else claim.value
-                        ),
+                        "value": claim.value,
                         "value_state": claim.value_state.value,
                     }
                     for claim in current.claims
@@ -1681,7 +1643,6 @@ def _gap_row(
 ) -> dict[str, object]:
     return {
         "available_at": None,
-        "certification_status": definition.certification_status,
         "claim_ids": [],
         "claims": [],
         "dimensions": {},
@@ -1694,12 +1655,7 @@ def _gap_row(
         "quality_status": None,
         "selected_claim_id": None,
         "source_reference": None,
-        "status": release_status
-        or (
-            "awaiting_source_certification"
-            if definition.certification_status != "certified"
-            else "missing"
-        ),
+        "status": release_status or "missing",
         "unit": definition.unit,
         "value": None,
         "value_state": None,
@@ -1714,14 +1670,10 @@ def _evidence_status(
     as_of: datetime,
     release_status: str | None,
 ) -> str:
-    if definition.certification_status != "certified":
-        return "awaiting_source_certification"
     if point.selection_status == "conflicted":
         return "conflicted"
     if selected is None:
         return "missing"
-    if selected.certification_status != "certified":
-        return "awaiting_source_certification"
     if selected.quality_status != "validated":
         return "source_failed"
     if point.value_state is not EvidenceValueState.REPORTED_VALUE:
@@ -2042,9 +1994,7 @@ def _real_inventory_proxy(
         "label": "price_adjusted_inventory_approximation",
         "nominal_inventory": nominal,
         "ppi_input": ppi,
-        "status": (
-            "missing_certified_inputs" if formula_version is not None else "disabled_by_model"
-        ),
+        "status": ("missing_inputs" if formula_version is not None else "disabled_by_model"),
         "value": None,
     }
     if (
@@ -2127,9 +2077,7 @@ def _credit_impulse_proxy(
             "100 * (rolling_12m_social_financing / rolling_4q_nominal_gdp "
             "- prior_rolling_12m_social_financing / prior_rolling_4q_nominal_gdp)"
         ),
-        "status": (
-            "missing_certified_inputs" if formula_version is not None else "disabled_by_model"
-        ),
+        "status": ("missing_inputs" if formula_version is not None else "disabled_by_model"),
     }
     if formula_version is None:
         return None, formula, ()
@@ -2261,7 +2209,7 @@ def _credit_impulse_proxy(
         return None, {**formula, "status": "nonconsecutive_gdp_inputs"}, ()
     if len(social_numbers) != 24 or len(gdp_numbers) != 8:
         return None, formula, ()
-    if any(not _certified_point(point) for point in (*social_input_points, *gdp_input_points)):
+    if any(not _usable_point(point) for point in (*social_input_points, *gdp_input_points)):
         return None, formula, ()
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
         selected_parent_ids = {
@@ -2330,7 +2278,6 @@ def _credit_impulse_proxy(
     )
     row: dict[str, object] = {
         "available_at": available_at.isoformat(),
-        "certification_status": "derived_from_certified_inputs",
         "derived_observation_id": derived_id,
         "dimensions": {},
         "direction": "up" if value > 0 else "down" if value < 0 else "flat",
@@ -2381,14 +2328,13 @@ def _selected_claim(point: MetricSeriesPoint) -> Any:
     )
 
 
-def _certified_point(point: MetricSeriesPoint) -> bool:
+def _usable_point(point: MetricSeriesPoint) -> bool:
     selected = _selected_claim(point)
     return bool(
         point.selection_status == "selected"
         and point.value_state is EvidenceValueState.REPORTED_VALUE
         and point.selected_value is not None
         and selected is not None
-        and selected.certification_status == "certified"
         and selected.quality_status == "validated"
     )
 

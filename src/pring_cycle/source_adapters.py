@@ -80,7 +80,6 @@ def selected_core_claim_is_valid(metric_id: str, point: MetricSeriesPoint) -> bo
         selected.provider == "tushare"
         and selected.source_reference == f"tushare:{api_name}:{source_code}:{point.period_end}"
         and selected.unit == "index_points"
-        and selected.certification_status == "certified"
         and selected.quality_status == "validated"
     )
 

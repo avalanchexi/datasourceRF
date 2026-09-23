@@ -31,6 +31,7 @@ from pring_cycle.evidence import (
     MetricSeriesPoint,
 )
 from pring_cycle.freshness import (
+    DERIVED_INPUTS,
     TradingCalendar,
     period_status,
     record_run_freshness,
@@ -854,7 +855,7 @@ def _official_context_retrieval(
     )
 
     family = official_family_for_metrics(scope.metric_ids)
-    refreshed = refresh_official_context_document(
+    refresh_official_context_document(
         paths,
         family=family,
         source_url=scope.source_url,
@@ -864,20 +865,6 @@ def _official_context_retrieval(
         on_acquisition_started=on_acquisition_started,
         metric_ids=scope.metric_ids,
     )
-    if not all(
-        metric_definition(
-            metric_id,
-            definition_version=definition_version,
-            database_path=paths.database,
-        ).certification_status
-        == "certified"
-        for metric_id in refreshed.metric_ids
-    ):
-        return RetrievalAdapterResponse(
-            "candidate_source",
-            evidence=scope.source_url,
-            classification="awaiting_source_certification",
-        )
     return _local_retrieval(paths, run_id, scope_run=scope_run) or RetrievalAdapterResponse(
         "candidate_source", evidence=scope.source_url, classification="incomplete_model_input"
     )
@@ -959,7 +946,7 @@ def _core_readiness(
         elif series[-1].period_end != run.target_business_date:
             reason = "stale_for_target_business_date"
         elif any(not selected_core_claim_is_valid(metric_id, point) for point in series):
-            reason = "source_identity_not_certified"
+            reason = "source_identity_invalid"
         elif any(
             item.value_state is not EvidenceValueState.REPORTED_VALUE or item.selected_value is None
             for item in series
@@ -1059,11 +1046,9 @@ def _explanatory_evidence_warnings(
         available = 0
         for definition in priority_definitions:
             statuses = context_statuses.get(definition.metric_id)
-            if definition.certification_status == "derived_from_certified_inputs":
+            if definition.metric_id in DERIVED_INPUTS:
                 if statuses is not None and "current" in statuses:
                     available += 1
-                continue
-            if definition.certification_status != "certified":
                 continue
             if definition.frequency == "event" and statuses == {"no_event_in_visible_window"}:
                 available += 1
@@ -1145,7 +1130,7 @@ def _target_trading_days(
         {
             point.period_end
             for point in points
-            if point.period_end <= run.target_business_date and _point_has_certified_value(point)
+            if point.period_end <= run.target_business_date and _point_has_validated_value(point)
         }
     )
     if len(days) < 120 or days[-1] != run.target_business_date:
@@ -1207,7 +1192,7 @@ def _direct_metric_is_ready(
                 )
             ]
     if not validation_points or any(
-        not _point_has_certified_value(point)
+        not _point_has_validated_value(point)
         or not _point_is_current_for_target(
             point,
             definition,
@@ -1229,7 +1214,7 @@ def _direct_metric_is_ready(
             for point in series
             if point.period_end in required_dates
             and _dimensions_include(point.dimensions, required)
-            and _point_has_certified_value(point)
+            and _point_has_validated_value(point)
         }
         if len(observed) < minimum_observations:
             return False
@@ -1240,7 +1225,7 @@ def _dimensions_include(dimensions: dict[str, str], required: dict[str, str]) ->
     return all(dimensions.get(key) == value for key, value in required.items())
 
 
-def _point_has_certified_value(point: MetricSeriesPoint) -> bool:
+def _point_has_validated_value(point: MetricSeriesPoint) -> bool:
     if (
         point.selection_status != "selected"
         or point.selected_claim_id is None
@@ -1252,11 +1237,7 @@ def _point_has_certified_value(point: MetricSeriesPoint) -> bool:
         (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
         None,
     )
-    return bool(
-        selected is not None
-        and selected.certification_status == "certified"
-        and selected.quality_status == "validated"
-    )
+    return bool(selected is not None and selected.quality_status == "validated")
 
 
 def _context_metric_statuses(context: ContextProjection) -> dict[str, set[str]]:

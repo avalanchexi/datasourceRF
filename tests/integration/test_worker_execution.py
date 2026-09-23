@@ -474,7 +474,6 @@ def test_worker_completes_a_valid_noncanonical_projection_and_report(
                     public_available_at=cutoff,
                     fetched_at=cutoff,
                     available_at=cutoff,
-                    certification_status="certified",
                     quality_status="validated",
                 )
             )
