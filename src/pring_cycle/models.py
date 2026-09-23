@@ -442,3 +442,48 @@ END;
 CREATE TRIGGER IF NOT EXISTS model_version_no_delete
 BEFORE DELETE ON model_version BEGIN SELECT RAISE(ABORT, 'model_version_is_immutable'); END;
 """
+
+
+EFFECTIVE_CATALOG_VERSION = "metric-catalog-v0004"
+
+
+def effective_model_manifest() -> dict[str, Any]:
+    """The 59-metric effective catalog with the current formulas, ready to register.
+
+    It composes the approved identity migrations (CNY030 optional, ECB cross, two-exchange
+    margin) over the builtin catalog; registering and activating it is an explicit step.
+    """
+    from pring_cycle.catalog import CNY030_OPTIONAL_MIGRATION, migrated_catalog
+
+    manifest = certified_120d_model_v0011_manifest(({"package_id": "unused"},))
+    for field in ("source_certification_packages", "source_certifications"):
+        manifest.pop(field, None)
+    # The two-exchange margin states its delivery shape, which the scope migration carries
+    # across; the builtin stub is only a placeholder identity.
+    margin = {
+        "metric_id": "CN_MARGIN_BALANCE_SSE_SZSE",
+        "unit": "hundred_million_cny",
+        "allowed_units": ["hundred_million_cny"],
+        "dimensions": ["measure", "scope"],
+        "source_candidates": ["tushare:margin"],
+    }
+    catalog = migrated_catalog(
+        {"metric_identity_migration": CNY030_OPTIONAL_MIGRATION, "metric_definitions": [margin]}
+    )
+    definitions = [
+        {**asdict(item), "definition_version": EFFECTIVE_CATALOG_VERSION}
+        for item in catalog.values()
+    ]
+    manifest.update(
+        {
+            "model_version_id": "model-v0012",
+            "metric_catalog_version": EFFECTIVE_CATALOG_VERSION,
+            "metric_identity_migration": CNY030_OPTIONAL_MIGRATION,
+            "metric_definitions": definitions,
+        }
+    )
+    manifest["trend_rules"] = {
+        **manifest["trend_rules"],
+        "candidate_duration_rule_version": "candidate-duration-v0002",
+    }
+    return manifest

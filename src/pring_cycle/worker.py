@@ -1574,6 +1574,11 @@ def refresh_context_sources(
             lambda: adapter.margin_financing(start_date=daily_start, end_date=target),
         ),
         (
+            "margin_financing_sse_szse",
+            ("CN_MARGIN_BALANCE_SSE_SZSE",),
+            lambda: adapter.margin_financing_sse_szse(start_date=daily_start, end_date=target),
+        ),
+        (
             "index_valuation",
             ("CN_INDEX_VALUATION",),
             lambda: adapter.index_valuation(start_date=daily_start, end_date=target),
@@ -1652,6 +1657,11 @@ def refresh_context_sources(
         ),
     )
     for family, metric_ids, retrieve in families:
+        # The two margin identities are alternatives; only the one the catalog carries is fetched.
+        if family.startswith("margin_financing") and not all(
+            _in_catalog(paths, metric_id, definition_version) for metric_id in metric_ids
+        ):
+            continue
         try:
             with acquisition_metrics(metric_ids):
                 result = adapter.acquire_scalars(
@@ -1688,6 +1698,16 @@ def refresh_context_sources(
             )
             if missing_metrics:
                 record(missing_metrics, "tushare", "missing_fields", family=family)
+
+
+def _in_catalog(paths: RuntimePaths, metric_id: str, definition_version: str) -> bool:
+    try:
+        metric_definition(
+            metric_id, definition_version=definition_version, database_path=paths.database
+        )
+    except (KeyError, LookupError, ValueError):
+        return False
+    return True
 
 
 def _scheduled_p0_deadline_elapsed(

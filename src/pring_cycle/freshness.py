@@ -86,7 +86,14 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
     "CN_EQ_NEW_HIGH_LOW_120": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
     "CN_EQ_ABOVE_MA120": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
     "CN_EQ_ADV_AMOUNT_SHARE": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
-    "CN_INDEX_VALUATION": _daily("tushare:index_dailybasic", _AFTER_CLOSE, _TUSHARE_DOCS),
+    # TuShare documents index_dailybasic only for 上证综指/深证成指/上证50/中证500/中小板指/
+    # 创业板指 (doc_id=128), i.e. not 000300 or 000852; real requests on 2026-09-22 still
+    # returned all 120 sessions for all three, so the path stays and an empty answer is a gap.
+    "CN_INDEX_VALUATION": _daily(
+        "tushare:index_dailybasic",
+        _AFTER_CLOSE,
+        "https://tushare.pro/document/2?doc_id=128",
+    ),
     "CN_MARGIN_BALANCE": _daily(
         "tushare:margin", time(9, 5), "https://tushare.pro/document/2?doc_id=58", lag=1
     ),

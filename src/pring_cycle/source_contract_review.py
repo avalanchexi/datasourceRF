@@ -351,6 +351,7 @@ def require_registered_source_contract(
         "CN_SHIBOR_ON_1W_3M": ("interbank", "tushare"),
         "CN_FUTURES_WARRANTS": ("warrant", "tushare"),
         "CN_MARGIN_BALANCE": ("margin", "tushare"),
+        "CN_MARGIN_BALANCE_SSE_SZSE": ("margin_sse_szse", "tushare"),
         "CN_INDEX_VALUATION": ("valuation", "tushare"),
         "UST2Y_NOMINAL_YIELD": ("treasury", "U.S. Department of the Treasury"),
         "UST10Y_NOMINAL_YIELD": ("treasury", "U.S. Department of the Treasury"),
@@ -365,12 +366,16 @@ def require_registered_source_contract(
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
-    supported = metric_definition(definition.metric_id)
+    # The two-exchange identity is the reviewed margin definition renamed by the scope
+    # migration, so it is compared against that definition under its new identity.
+    reference_id = "CN_MARGIN_BALANCE" if family == "margin_sse_szse" else definition.metric_id
+    supported = metric_definition(reference_id)
     if family in {
         "interbank",
         "rrr",
         "warrant",
         "margin",
+        "margin_sse_szse",
         "market_index",
         "valuation",
         "daily_breadth",
@@ -378,7 +383,13 @@ def require_registered_source_contract(
         "amount_breadth",
         "commodity_basket",
     }:
-        supported = metric_definition(definition.metric_id, definition_version=METRIC_CATALOG_V0003)
+        supported = metric_definition(reference_id, definition_version=METRIC_CATALOG_V0003)
+    if family == "margin_sse_szse":
+        supported = replace(
+            supported,
+            source_codes=("SSE_SZSE_MARGIN_BALANCE",),
+            release_event_family="cn_margin_balance_sse_szse",
+        )
     if family == "amount_breadth":
         supported = replace(supported, source_codes=(AMOUNT_BREADTH_SOURCE_CODE,))
     if family == "commodity_basket":
@@ -514,12 +525,13 @@ def require_registered_source_contract(
         if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
             raise ValueError("registered_market_index_source_period_mismatch")
         return
-    if family == "margin":
+    if family in {"margin", "margin_sse_szse"}:
         measure = dimensions.get("measure")
+        scope = "sse_szse" if family == "margin_sse_szse" else "all_exchanges"
         if (
             provider != supported_provider
             or period_kind != "business_day"
-            or dimensions != {"measure": measure, "scope": "all_exchanges"}
+            or dimensions != {"measure": measure, "scope": scope}
             or measure not in {"financing_balance", "financing_buy_amount"}
             or unit != "hundred_million_cny"
             or source_reference != f"tushare:margin:{measure}:{period_end}"
@@ -530,7 +542,16 @@ def require_registered_source_contract(
         if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
             raise ValueError("registered_margin_source_period_mismatch")
         from pring_cycle.acquisition import AcquisitionRepository
-        from pring_cycle.tushare_context import parse_margin_acquisition
+        from pring_cycle.tushare_context import (
+            parse_margin_acquisition,
+            parse_margin_sse_szse_acquisition,
+        )
+
+        parse = (
+            parse_margin_sse_szse_acquisition
+            if family == "margin_sse_szse"
+            else parse_margin_acquisition
+        )
 
         if not acquisition_ids:
             raise ValueError("registered_margin_acquisition_missing")
@@ -541,7 +562,7 @@ def require_registered_source_contract(
             receipt = acquisitions.get(identity)
             if receipt.state != "validated":
                 raise ValueError("registered_margin_acquisition_not_validated")
-            scalars = parse_margin_acquisition(receipt, acquisitions.read_content(identity, "raw"))
+            scalars = parse(receipt, acquisitions.read_content(identity, "raw"))
             if not any(
                 scalar.period_start == period_start
                 and scalar.period_end == period_end

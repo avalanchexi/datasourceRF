@@ -772,6 +772,9 @@ def migrated_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
         expected[previous.metric_id] = replace(
             previous, priority="P2", certification_status="awaiting_source_certification"
         )
+        # The two PMI spreads are differences of monthly PMI readings (ticket 26).
+        for metric_id in ("CN_ORDER_INVENTORY_SPREAD", "CN_PRODUCTION_ORDER_SPREAD"):
+            expected[metric_id] = replace(expected[metric_id], frequency="monthly")
         return expected
     if migration not in (
         P2_IDENTITY_MIGRATION,

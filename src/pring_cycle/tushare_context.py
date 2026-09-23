@@ -4,7 +4,7 @@ import calendar
 import hashlib
 import json
 from collections import defaultdict, deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -301,6 +301,12 @@ class TushareContextAdapter:
             if definition_version not in BUILTIN_CATALOG_VERSIONS:
                 family_contracts = (
                     ("margin", {"CN_MARGIN_BALANCE"}, {"margin"}, parse_margin_acquisition),
+                    (
+                        "margin_sse_szse",
+                        {"CN_MARGIN_BALANCE_SSE_SZSE"},
+                        {"margin"},
+                        parse_margin_sse_szse_acquisition,
+                    ),
                     (
                         "market_index",
                         set(MARKET_INDEX_IDENTITIES),
@@ -893,6 +899,25 @@ class TushareContextAdapter:
                     )
                 )
         return tuple(scalars)
+
+    def margin_financing_sse_szse(
+        self,
+        *,
+        start_date: date,
+        end_date: date,
+    ) -> tuple[ContextScalar, ...]:
+        """Sum the SSE and SZSE margin totals; Beijing rows are not part of this identity."""
+        if end_date < start_date:
+            raise ValueError("tushare_date_range_invalid")
+        rows = self._call(
+            "margin",
+            {
+                "start_date": start_date.strftime("%Y%m%d"),
+                "end_date": end_date.strftime("%Y%m%d"),
+            },
+            ("trade_date", "exchange_id", "rzye", "rzmre"),
+        )
+        return _sse_szse_margin_scalars(rows)
 
     def margin_financing_candidate(
         self,
@@ -1883,6 +1908,64 @@ def parse_valuation_acquisition(
     rows = _response_rows(document, required_fields=fields)
     _validate_response_periods(rows, receipt.parameters)
     return _valuation_scalars(receipt.parameters["ts_code"], rows)
+
+
+def _sse_szse_margin_scalars(rows: Iterable[Mapping[str, object]]) -> tuple[ContextScalar, ...]:
+    totals: dict[date, dict[str, float]] = defaultdict(
+        lambda: {"financing_balance": 0.0, "financing_buy_amount": 0.0}
+    )
+    seen: set[tuple[date, str]] = set()
+    for row in rows:
+        exchange = str(row.get("exchange_id"))
+        if exchange == "BSE":
+            continue
+        if exchange not in {"SSE", "SZSE"}:
+            raise ValueError("tushare_margin_exchange_invalid")
+        trading_day = _compact_date(row.get("trade_date"))
+        if (trading_day, exchange) in seen:
+            raise ValueError("tushare_margin_duplicate_exchange_day")
+        seen.add((trading_day, exchange))
+        for field, measure in (("rzye", "financing_balance"), ("rzmre", "financing_buy_amount")):
+            value = _number(row.get(field))
+            if value is None:
+                raise ValueError("tushare_margin_value_missing")
+            if value < 0:
+                raise ValueError("tushare_margin_value_negative")
+            totals[trading_day][measure] += value
+    days = {day for day, _exchange in seen}
+    if seen != {(day, exchange) for day in days for exchange in ("SSE", "SZSE")}:
+        raise ValueError("tushare_margin_exchange_coverage_incomplete")
+    return tuple(
+        _business_day_scalar(
+            metric_id="CN_MARGIN_BALANCE_SSE_SZSE",
+            api_name="margin",
+            source_field=measure,
+            business_date=trading_day,
+            dimensions={"measure": measure, "scope": "sse_szse"},
+            value=value / 100_000_000.0,
+            unit="hundred_million_cny",
+        )
+        for trading_day, measures in sorted(totals.items())
+        for measure, value in measures.items()
+    )
+
+
+def parse_margin_sse_szse_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+) -> tuple[ContextScalar, ...]:
+    """Rebuild the two-exchange totals from a margin response, for rechecking its claims."""
+    fields = ("trade_date", "exchange_id", "rzye", "rzmre")
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "margin"
+        or receipt.fields != ",".join(fields)
+        or set(receipt.parameters) != {"start_date", "end_date"}
+    ):
+        raise ValueError("registered_margin_acquisition_identity_mismatch")
+    rows = _response_rows(json.loads(raw), required_fields=fields)
+    _validate_response_periods(rows, receipt.parameters)
+    return _sse_szse_margin_scalars(rows)
 
 
 def parse_margin_acquisition(
