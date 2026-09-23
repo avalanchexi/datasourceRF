@@ -2,10 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILY_BY_METRIC
+
+if TYPE_CHECKING:
+    from pring_cycle.context_projection import ContextProjectionRules
 
 METRIC_CATALOG_V0001 = "metric-catalog-v0001"
 METRIC_CATALOG_VERSION = "metric-catalog-v0002"
@@ -706,3 +711,271 @@ _MARGIN_FINANCING_V0002 = {
         release_rule="publication_unknown_until_official_evidence",
     )
 }
+
+
+P2_IDENTITY_MIGRATION: dict[str, Any] = {
+    "version": "p2-official-identity-v0001",
+    "replacements": {"CN_USDCNH_FXCM": "CN_USDCNH_TMA_SPOT_RATE"},
+    "removed_metric_ids": [
+        "COMEX_GC_ACTIVE_MONTH_SETTLEMENT_USD_OZT",
+        "LBMA_GOLD_PRICE_PM_USD_OZT",
+    ],
+    "history_policy": "retain_separate",
+}
+P2_ECB_IDENTITY_MIGRATION: dict[str, Any] = {
+    **P2_IDENTITY_MIGRATION,
+    "version": "p2-ecb-reference-cross-v0001",
+    "replacements": {"CN_USDCNH_FXCM": "CN_USDCNY_ECB_REFERENCE_CROSS"},
+}
+# Beijing refuses every public endpoint this project can reach, so the all-exchange scope can
+# never be delivered. The approved disposition renames the metric to what it does measure
+# rather than demoting it or subtracting a residual; the old identity keeps its history.
+# ``removed_metric_ids`` and ``history_policy`` are not read by the branch below: they are
+# part of the declaration the manifest must match exactly, which is what makes an approved
+# migration distinguishable from an arbitrary catalog edit.
+MARGIN_SCOPE_MIGRATION: dict[str, Any] = {
+    "version": "margin-two-exchange-scope-v0001",
+    "replacements": {"CN_MARGIN_BALANCE": "CN_MARGIN_BALANCE_SSE_SZSE"},
+    "removed_metric_ids": [],
+    "history_policy": "retain_separate",
+}
+CNY030_OPTIONAL_MIGRATION: dict[str, Any] = {
+    **P2_ECB_IDENTITY_MIGRATION,
+    "version": "cny030-optional-ecb-margin-v0001",
+    "replacements": {
+        **P2_ECB_IDENTITY_MIGRATION["replacements"],
+        **MARGIN_SCOPE_MIGRATION["replacements"],
+    },
+    "priority_changes": {"CN_BOND_FULL_PRICE_CNY030": {"from": "P1", "to": "P2"}},
+}
+
+
+def migrated_catalog(manifest: dict[str, Any]) -> dict[str, MetricDefinition]:
+    """The catalog a model manifest must declare, after its approved identity migration."""
+    expected = {item.metric_id: item for item in metric_catalog()}
+    if "metric_identity_migration" not in manifest:
+        return expected
+    migration = manifest["metric_identity_migration"]
+    if migration == CNY030_OPTIONAL_MIGRATION:
+        # ADR-0020 composes only these approved dispositions. Keep the old declarations
+        # valid for historical candidates without opening an arbitrary migration pipeline.
+        expected = migrated_catalog(
+            {**manifest, "metric_identity_migration": P2_ECB_IDENTITY_MIGRATION}
+        )
+        margin = migrated_catalog({**manifest, "metric_identity_migration": MARGIN_SCOPE_MIGRATION})
+        del expected["CN_MARGIN_BALANCE"]
+        expected["CN_MARGIN_BALANCE_SSE_SZSE"] = margin["CN_MARGIN_BALANCE_SSE_SZSE"]
+        # Preserve the frozen CNY030 definition, not the earlier sparse catalog stub.
+        previous = next(
+            item for item in metric_catalog_v0003() if item.metric_id == "CN_BOND_FULL_PRICE_CNY030"
+        )
+        expected[previous.metric_id] = replace(
+            previous, priority="P2", certification_status="awaiting_source_certification"
+        )
+        return expected
+    if migration not in (
+        P2_IDENTITY_MIGRATION,
+        P2_ECB_IDENTITY_MIGRATION,
+        MARGIN_SCOPE_MIGRATION,
+    ):
+        raise ValueError("certification_identity_migration_unsupported")
+    if migration == MARGIN_SCOPE_MIGRATION:
+        previous_margin = expected.pop("CN_MARGIN_BALANCE")
+        # The reviewed catalog states margin far more fully than the builtin stub does
+        # (its own unit, dimensions and candidates), and those carry across a rename
+        # untouched. Only the fields that say *which delivery this is* are dictated here,
+        # so the drift gate compares identity rather than re-litigating the whole shape.
+        declared = next(
+            (
+                item
+                for item in manifest.get("metric_definitions", ())
+                if item.get("metric_id") == "CN_MARGIN_BALANCE_SSE_SZSE"
+            ),
+            None,
+        )
+        carried: dict[str, Any] = {}
+        if declared is not None:
+            carried = {
+                field: tuple(declared[field])
+                if isinstance(declared[field], list)
+                else declared[field]
+                for field in ("unit", "allowed_units", "dimensions", "source_candidates")
+                if field in declared
+            }
+        expected["CN_MARGIN_BALANCE_SSE_SZSE"] = replace(
+            previous_margin,
+            metric_id="CN_MARGIN_BALANCE_SSE_SZSE",
+            name_cn="沪深两所融资余额与买入额",
+            source_codes=("SSE_SZSE_MARGIN_BALANCE",),
+            release_event_family="cn_margin_balance_sse_szse",
+            **carried,
+        )
+        return expected
+    for metric_id in P2_IDENTITY_MIGRATION["removed_metric_ids"]:
+        del expected[metric_id]
+    previous = expected.pop("CN_USDCNH_FXCM")
+    if migration == P2_ECB_IDENTITY_MIGRATION:
+        expected["CN_USDCNY_ECB_REFERENCE_CROSS"] = replace(
+            previous,
+            metric_id="CN_USDCNY_ECB_REFERENCE_CROSS",
+            name_cn="ECB 美元兑人民币参考交叉汇率",
+            unit="cny_per_usd",
+            allowed_units=("cny_per_usd",),
+            dimensions=(),
+            source_codes=("ECB_EUR_REFERENCE_CNY_USD_CROSS_V0001",),
+            source_candidates=(
+                "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/"
+                "euro_reference_exchange_rates/html/index.en.html",
+            ),
+            frequency="daily",
+            release_event_family="ecb_eur_reference_cross",
+            release_timezone="Europe/Berlin",
+        )
+        return expected
+    expected["CN_USDCNH_TMA_SPOT_RATE"] = replace(
+        previous,
+        metric_id="CN_USDCNH_TMA_SPOT_RATE",
+        name_cn="TMA 美元兑离岸人民币即期参考汇率",
+        unit="cnh_per_usd",
+        allowed_units=("cnh_per_usd",),
+        dimensions=(),
+        source_codes=("TMA_USD_CNY_HK_SPOT_RATE",),
+        source_candidates=(),
+        frequency="daily",
+        release_event_family="tma_usd_cny_hk_spot_rate",
+        release_timezone="Asia/Hong_Kong",
+    )
+    return expected
+
+
+_CORE_METRICS = {
+    "stock": "CN_EQUITY_CORE_000985",
+    "bond": "CN_BOND_CORE_000012",
+    "commodity": "CN_COMMODITY_CORE_NHII",
+}
+_REQUIRED_FORMULAS = {
+    "credit_impulse",
+    "dr007_policy_spread",
+    "loan_monthly_change",
+    "omo_net_injection",
+    "order_inventory_spread",
+    "production_order_spread",
+    "real_inventory_approximation",
+    "ust_2s10s_spread",
+}
+_IDENTITY_FIELDS = (
+    "name_cn",
+    "unit",
+    "allowed_units",
+    "dimensions",
+    "source_codes",
+    "source_candidates",
+    "frequency",
+    "release_event_family",
+    "release_rule",
+    "release_timezone",
+)
+
+
+def validate_model_catalog(manifest: dict[str, Any]) -> ContextProjectionRules:
+    """Check a model manifest's catalog, formulas and trend rules against the approved shape.
+
+    Returns the manifest's ``ContextProjectionRules``. Structure only: whether a source is
+    certified is not a catalog question.
+    """
+    from pring_cycle.catalog_registry import SYSTEM_TARGET_CUTOFF_VERSION
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.models import certified_model_v0001_manifest
+
+    rules = ContextProjectionRules.from_manifest(manifest)
+    expected = migrated_catalog(manifest)
+    definitions = {item["metric_id"]: item for item in manifest["metric_definitions"]}
+    if set(definitions) != set(expected):
+        raise ValueError("certification_catalog_scope_mismatch")
+    optional_cny030 = manifest.get("metric_identity_migration") == CNY030_OPTIONAL_MIGRATION
+    for definition in rules.metric_definitions:
+        baseline = expected[definition.metric_id]
+        if (
+            optional_cny030
+            and baseline.role == "core_barometer"
+            and definition.source_codes != baseline.source_codes
+        ):
+            raise ValueError(f"certification_core_source_identity_mismatch:{definition.metric_id}")
+        if (
+            optional_cny030
+            and definition.metric_id == "CN_BOND_FULL_PRICE_CNY030"
+            and definition != replace(baseline, definition_version=definition.definition_version)
+        ):
+            raise ValueError("certification_cny030_definition_mismatch")
+        identity = {
+            "CN_USDCNH_TMA_SPOT_RATE": "tma",
+            "CN_USDCNY_ECB_REFERENCE_CROSS": "ecb",
+            "CN_MARGIN_BALANCE_SSE_SZSE": "margin_scope",
+        }.get(definition.metric_id)
+        if identity is not None and any(
+            getattr(definition, field) != getattr(baseline, field) for field in _IDENTITY_FIELDS
+        ):
+            raise ValueError(f"certification_{identity}_identity_mismatch")
+        if set(definitions[definition.metric_id]) != set(asdict(definition)):
+            raise ValueError(f"certification_definition_fields_unsupported:{definition.metric_id}")
+        if definition.frequency not in {"daily", "monthly", "quarterly", "event"}:
+            raise ValueError(f"certification_frequency_unsupported:{definition.metric_id}")
+        if (definition.priority, definition.role) != (baseline.priority, baseline.role):
+            raise ValueError(f"certification_metric_role_mismatch:{definition.metric_id}")
+    if manifest.get("core_metrics") != _CORE_METRICS:
+        raise ValueError("certification_core_roles_invalid")
+    _validate_trend_rules(manifest.get("trend_rules"))
+    if manifest.get("stage_mapping") != certified_model_v0001_manifest()["stage_mapping"]:
+        raise ValueError("certification_stage_mapping_invalid")
+    if manifest.get("point_in_time_rule_version") not in {
+        "public-cutoff-v0002",
+        SYSTEM_TARGET_CUTOFF_VERSION,
+    }:
+        raise ValueError("certification_rule_version_unsupported:point_in_time_rule_version")
+    versions = {
+        "selection_rule_version": "selection-v0001",
+        "visible_context_window_rule_version": "exact-core-calendar-120-v0001",
+    }
+    for name, supported in versions.items():
+        if manifest.get(name) != supported:
+            raise ValueError(f"certification_rule_version_unsupported:{name}")
+    if (
+        manifest.get("visible_evidence_window_trading_days") != 120
+        or manifest.get("hidden_preheat_policy") != "minimum_formula_inputs_only"
+    ):
+        raise ValueError("certification_evidence_window_invalid")
+    if set(rules.formula_versions) != _REQUIRED_FORMULAS:
+        raise ValueError("certification_formulas_incomplete")
+    return rules
+
+
+def _validate_trend_rules(trend: object) -> None:
+    if (
+        not isinstance(trend, dict)
+        or trend.get("candidate_duration_rule_version") != "candidate-duration-v0002"
+    ):
+        raise ValueError("certification_candidate_duration_rule_required")
+    if trend.get("rule_version") != "trend-v0001":
+        raise ValueError("certification_trend_version_unsupported")
+    for name in (
+        "window_days",
+        "slope_days",
+        "volatility_days",
+        "persistence_days",
+        "candidate_window_days",
+    ):
+        value = trend.get(name)
+        if type(value) is not int or value < 1:
+            raise ValueError(f"certification_trend_parameter_invalid:{name}")
+    noise = trend.get("noise_multiplier")
+    if (
+        isinstance(noise, bool)
+        or not isinstance(noise, (int, float))
+        or not math.isfinite(noise)
+        or noise <= 0
+    ):
+        raise ValueError("certification_trend_parameter_invalid:noise_multiplier")
+    if trend["window_days"] != 120:
+        raise ValueError("certification_trend_window_invalid")
+    if trend["volatility_days"] >= trend["window_days"] + trend["slope_days"]:
+        raise ValueError("certification_trend_volatility_window_invalid")
