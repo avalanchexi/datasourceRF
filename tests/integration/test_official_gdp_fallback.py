@@ -26,8 +26,8 @@ from pring_cycle.runs import RetrievalScope, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.tushare_context import TushareContextAdapter, ingest_context_scalars
-from tests.fixtures.delivery_assertions import assert_certified_points, assert_certified_rows
-from tests.models.test_candidate_admission import (
+from tests.fixtures.delivery_assertions import assert_delivered_points, assert_delivered_rows
+from tests.fixtures.model_registration import (
     bind_synthetic_review,
     encode,
     prepared_request,
@@ -109,9 +109,6 @@ def test_gdp_delivery_keeps_cumulative_levels_and_audits_disputed_growth(
     assert official_claims_matching_acquisitions(
         evidence, {"CN_GDP": points}, definition_version=version
     ) == {p.selected_claim_id for p in points}
-    assert not evidence.metric_series(
-        "CN_GDP", mode=AsOfMode.PUBLIC, as_of=datetime.now(UTC), definition_version=version
-    )
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     receipt = next(r for r in acquisitions.history() if r.api_name == "cn_gdp")
     normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
@@ -303,11 +300,11 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
     )
     assert selection.complete == (not delivered and official_state == "available")
     if delivered:
-        # The historical target still requires publication evidence. A SYSTEM row
-        # prevents freshness fallback but does not supply missing PUBLIC eligibility.
-        assert selection.selected_claim_ids == ()
-        assert len(selection.missing_members) == 8
-        assert sum("real_quarter_yoy" in member for member in selection.missing_members) == 4
+        # The delivered TuShare levels are selectable without publication evidence
+        # (ADR-0021); only the real YoY members TuShare does not carry stay missing.
+        assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
+        assert selection.missing_members
+        assert all("real_quarter_yoy" in member for member in selection.missing_members)
     else:
         assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
     context = build_context_projection(
@@ -321,8 +318,8 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
         return
     assert len(rows) == len(points)
     provider = "tushare" if delivered else "国家统计局"
-    assert_certified_points(points, provider)
-    assert_certified_rows(rows, provider)
+    assert_delivered_points(points, provider)
+    assert_delivered_rows(rows, provider)
 
 
 @pytest.mark.usefixtures("runtime_clock")

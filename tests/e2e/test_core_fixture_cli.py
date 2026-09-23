@@ -91,7 +91,7 @@ def test_public_fixture_command_projects_the_three_core_tracks_atomically(
         ("stock", "bull", "bull"),
         ("commodity", "bear", "bear"),
     ]
-    assert models["models"][0]["status"] == "candidate"  # type: ignore[index]
+    assert models["models"][0]["status"] == "registered"  # type: ignore[index]
 
 
 def test_fixture_command_rejects_an_incomplete_asset_manifest_without_a_projection(

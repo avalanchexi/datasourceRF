@@ -101,7 +101,6 @@ def test_repeated_runtime_views_remain_available(tmp_path: Path) -> None:
                     AcquisitionRepository, acquisition_analysis_context,
                 )
                 from pring_cycle.catalog_registry import registered_definitions
-                from pring_cycle.cutover import cutover_status
                 from pring_cycle.evidence import AsOfMode, EvidenceRepository
                 from pring_cycle.full_retrieval import read_full_retrieval_plan
                 from pring_cycle.full_run_requirements import required_calendar
@@ -137,14 +136,13 @@ def test_repeated_runtime_views_remain_available(tmp_path: Path) -> None:
                     assert projections.stage_history() == ()
                     assert reports.history() == ()
                     assert maintenance.audit_events() == ()
-                    assert cutover_status(paths) is None
                     assert acquisition_analysis_context(paths.database, ('absent',)) == {}
                     assert read_full_retrieval_plan(paths.database, run.run_id) == {
                         'initial': None, 'final': None, 'adoption': None, 'acquisitions': [],
                     }
                     assert required_calendar(paths, run, selector)['status'] == 'unavailable'
                     assert execution_fingerprint(paths)['database_revision'] == (
-                        '0024_inferred_public_time'
+                        '0025_drop_model_lifecycle'
                     )
                     try:
                         registered_definitions(paths.database, 'unregistered')

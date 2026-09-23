@@ -10,7 +10,7 @@ import pytest
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.official_context import (
     FetchedOfficialContextDocument,
     ingest_official_context_document,
@@ -70,7 +70,7 @@ def test_gdp_acquisition_preserves_levels_without_mislabeling_disputed_yoy(tmp_p
         "secondary": 250472.9,
         "tertiary": 413709.2,
     }
-    assert all(p.claims[0].public_available_at is None for p in points)
+    assert all(p.claims[0].parsed_public_available_at is None for p in points)
     receipts = AcquisitionRepository(paths.database, paths.artifacts)
     receipt = receipts.history()[0]
     assert receipts.read_content(receipt.acquisition_id, "raw") == originals[0]
@@ -95,7 +95,6 @@ def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     run = RunRepository(paths.database).submit_manual_full(
         target_business_date="2026-08-28",
@@ -172,8 +171,6 @@ def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
     )
     rows = [row for row in context.macro["international_context"] if row["metric_id"] == "CN_GDP"]
     assert {row["acquisition_status"] for row in rows} == {"verified_candidate"}
-    assert {row["certification_status"] for row in rows} == {"awaiting_source_certification"}
-    assert all(row["value"] is None for row in rows)
     if later_failure is None:
         return
 

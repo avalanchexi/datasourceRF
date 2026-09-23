@@ -8,10 +8,8 @@ import pytest
 
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.official_lpr import (
-    FetchedOfficialDocument,
     ingest_lpr_document,
     parse_lpr_announcement,
-    smoke_lpr_release,
 )
 from pring_cycle.release_calendar import lpr_release_calendar
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -110,28 +108,6 @@ def test_certified_ingest_persists_artifact_claims_trace_and_release_read_model(
     assert events[0].period == "2026-08"
 
 
-def test_sanitized_smoke_returns_only_identity_shape_time_count_hash_and_result() -> None:
-    result = smoke_lpr_release(
-        source_url=OFFICIAL_URL,
-        expected_period="2026-08",
-        fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
-        fetcher=lambda _url: FetchedOfficialDocument(
-            ANNOUNCEMENT,
-            "text/html; charset=utf-8",
-            OFFICIAL_URL,
-            200,
-        ),
-    )
-
-    assert result.status == "validated"
-    assert result.source_identity == "CHINAMONEY_LPR"
-    assert result.tenors == ("1y", "5y_plus")
-    assert result.observation_count == 2
-    assert result.byte_count == len(ANNOUNCEMENT)
-    assert len(result.content_hash) == 64
-    assert not hasattr(result, "content")
-
-
 def test_calendar_before_window_carries_previous_release_without_retrieval(
     tmp_path: Path,
 ) -> None:
@@ -201,48 +177,6 @@ def test_repeated_import_appends_receipt_and_preserves_earlier_availability(
     assert earlier.claims[0].available_at == datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
 
 
-def test_lpr_revision_without_new_publication_time_is_system_only(tmp_path: Path) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    first_fetch = datetime(2026, 8, 20, 1, 2, tzinfo=UTC)
-    revision_fetch = datetime(2026, 8, 21, 1, 2, tzinfo=UTC)
-    first = ingest_lpr_document(
-        paths,
-        ANNOUNCEMENT,
-        source_url=OFFICIAL_URL,
-        fetched_at=first_fetch,
-        expected_period="2026-08",
-        clock=lambda: first_fetch,
-    )
-
-    ingest_lpr_document(
-        paths,
-        ANNOUNCEMENT.replace(b"3.0%", b"3.1%"),
-        source_url=OFFICIAL_URL,
-        fetched_at=revision_fetch,
-        expected_period="2026-08",
-        clock=lambda: revision_fetch,
-    )
-    repository = EvidenceRepository(paths.database)
-    before_revision = repository.query(
-        first.observation_ids[0],
-        mode=AsOfMode.PUBLIC,
-        as_of=datetime(2026, 8, 20, 12, tzinfo=UTC),
-    )
-    after_revision = repository.query(
-        first.observation_ids[0],
-        mode=AsOfMode.PUBLIC,
-        as_of=revision_fetch,
-    )
-
-    assert before_revision.selected_value == 3.0
-    assert after_revision.selected_value == 3.0
-    assert (
-        repository.query(
-            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=revision_fetch
-        ).selected_value
-        == 3.1
-    )
 
 
 def test_calendar_uses_visible_revision_time_after_publication_is_restored(tmp_path: Path) -> None:

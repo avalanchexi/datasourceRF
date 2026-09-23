@@ -15,7 +15,7 @@ import pytest
 from pring_cycle.cli import main
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.freshness import batch_freshness
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
@@ -29,7 +29,6 @@ def runtime(root: Path) -> RuntimePaths:
     paths = RuntimePaths.discover(root / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     return paths
 

@@ -77,7 +77,8 @@ def test_january_loan_ytd_is_its_own_monthly_flow(
     assert monthly[0]["period"] == "2026-01-31"
     assert monthly[0]["value"] == january
     assert monthly[0]["status"] == "current"
-    assert monthly[0]["public_available_at"] == (timestamp.isoformat() if public_known else None)
+    if public_known:
+        assert monthly[0]["public_available_at"] == timestamp.isoformat()
     derived_id = str(monthly[0]["derived_observation_id"])
     trace = repository.derived_trace(derived_id, mode=mode, as_of=timestamp)
     assert trace.input_observation_version_ids == (ids["2026-01-31"],)

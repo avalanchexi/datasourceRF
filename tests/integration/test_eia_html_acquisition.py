@@ -85,7 +85,7 @@ def test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_
     assert {p.period_end: p.claims[0].value for p in points} == expected
     assert all(p.period_start == p.period_end for p in points)
     assert all(c.unit == "usd_per_barrel" for p in points for c in p.claims)
-    assert all(c.public_available_at is None for p in points for c in p.claims)
+    assert all(c.parsed_public_available_at is None for p in points for c in p.claims)
     assert all(c.release_at is None for p in points for c in p.claims)
     assert all(
         c.certification_status == "awaiting_source_certification" for p in points for c in p.claims
@@ -373,7 +373,7 @@ def test_later_html_snapshot_preserves_prior_values_and_source_request_identity(
     after = evidence.trace(first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
     assert {c.value for c in before.claims} == {96.02}
     assert {c.value for c in after.claims} == {97.01}
-    assert all(c.public_available_at is None for c in after.claims)
+    assert all(c.parsed_public_available_at is None for c in after.claims)
     assert first.observation_ids == second.observation_ids
     assert (
         AcquisitionRepository(paths.database, paths.artifacts).read_content(

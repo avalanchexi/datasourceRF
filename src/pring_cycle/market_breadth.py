@@ -856,8 +856,11 @@ def _breadth_claims_valid(
                 == f"tushare:{d['api_name']}:{d['source_field']}:{point.period_end}"
                 and claim.provider == "tushare"
                 and all(
-                    _breadth_time(d[field]) == getattr(claim, field)
-                    for field in ("release_at", "public_available_at")
+                    _breadth_time(d[field]) == getattr(claim, attribute)
+                    for field, attribute in (
+                        ("release_at", "release_at"),
+                        ("public_available_at", "parsed_public_available_at"),
+                    )
                 )
             ]
             if len(matches) == 1:

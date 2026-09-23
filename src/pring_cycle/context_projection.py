@@ -1951,7 +1951,9 @@ def _row_for_period(
         (
             row
             for row in rows
-            if row["status"] == "current"
+            # An older aligned period is judged by its own validity; freshness belongs to the
+            # latest row, which the caller has already required to be current.
+            if row["status"] in {"current", "stale"}
             and row["dimensions"] == dict(dimensions)
             and row["period"] == period
         ),
@@ -2000,7 +2002,8 @@ def _real_inventory_proxy(
     if (
         formula_version == _COMMON_MONTH_INVENTORY_FORMULA
         and nominal is not None
-        and (ppi is None or ppi["period"] != nominal["period"])
+        and ppi is not None
+        and ppi["period"] != nominal["period"]
         and ppi_definition is not None
     ):
         # PPI for a month is released before that month's inventory, so the common month is

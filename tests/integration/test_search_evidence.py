@@ -9,7 +9,7 @@ import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
@@ -22,7 +22,6 @@ def prepare(tmp_path: Path):
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     # Already-known publisher events establish eligibility without supplying usable values.
     from pring_cycle.catalog import metric_definition
@@ -270,19 +269,6 @@ def test_targeted_warrants_records_each_of_eight_deliveries(
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.create_candidate(analytical_model_v0002_manifest())
-    models.record_acceptance("model-v0002", CALIBRATION_BASELINE)
-    models.record_replay(
-        "model-v0002",
-        compared_with="model-v0001",
-        requested_start="2026-03-09",
-        requested_end="2026-08-28",
-        quality_passed=True,
-        regression_passed=True,
-        performance_passed=True,
-        stage_differences=0,
-        core_state_differences=0,
-        gaps=(),
-    )
     models.activate("model-v0002", explicitly_approved=True)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n")
     now = datetime.now(UTC)
@@ -407,7 +393,7 @@ def test_targeted_warrants_records_each_of_eight_deliveries(
     ]
     assert len(points) == (0 if pp_failures == 3 else 27)
     for point in points:
-        assert all(c.public_available_at is None for c in point.claims)
+        assert all(c.parsed_public_available_at is None for c in point.claims)
         (receipt,) = evidence.trace(
             point.observation_id, mode=AsOfMode.SYSTEM, as_of=stored.system_as_of
         ).acquisitions
@@ -770,68 +756,6 @@ def test_existing_channels_respect_complete_input_and_frozen_cutoff(
     assert calls == [URL]
 
 
-@pytest.mark.usefixtures("runtime_clock")
-def test_unknown_publication_is_system_visible_but_not_target_model_input(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    paths, runs = prepare(tmp_path)
-    paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
-    now = datetime.now(UTC)
-    cutoff = now + timedelta(days=1)
-    no_publication = ANNOUNCEMENT.replace(b"<time>2026-08-20 09:00</time>", b"")
-
-    class Response(BytesIO):
-        status = 200
-        headers = {"Content-Type": "text/html"}
-
-        def geturl(self):
-            return URL
-
-    monkeypatch.setattr(
-        "pring_cycle.search_discovery.urlopen",
-        lambda *args, **kwargs: Response(json.dumps({"results": [{"url": URL}]}).encode()),
-    )
-    monkeypatch.setattr(
-        "pring_cycle.official_lpr.urlopen", lambda *args, **kwargs: Response(no_publication)
-    )
-    submitted = runs.submit(
-        command_type="targeted_refresh",
-        target_business_date="2026-08-20",
-        client_request_id="unknown-publication",
-        model_version_id="model-v0001",
-        system_as_of=cutoff,
-        release_event_id="lpr:2026-08",
-        metric_ids=("CN_LPR_1Y_5Y",),
-        period="2026-08",
-    )
-    process_pending_run(paths, report_adapters=(), retrieval_now=now)
-    stored = runs.get(submitted.run_id)
-    assert stored.status == "action_required"
-    validation = stored.retrieval_ledger["candidate_validations"][0]
-    assert validation["public_complete"] is False
-    assert validation["public_selected_claim_ids"] == []
-    assert validation["selected_claim_ids"] == []
-    assert (
-        len(
-            EvidenceRepository(paths.database).metric_series(
-                "CN_LPR_1Y_5Y",
-                mode=AsOfMode.SYSTEM,
-                as_of=cutoff,
-                definition_version="metric-catalog-v0001",
-            )
-        )
-        == 2
-    )
-    assert (
-        EvidenceRepository(paths.database).metric_series(
-            "CN_LPR_1Y_5Y",
-            mode=AsOfMode.PUBLIC,
-            as_of=cutoff,
-            definition_version="metric-catalog-v0001",
-        )
-        == ()
-    )
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -1042,7 +966,6 @@ def test_search_candidate_becomes_complete_model_input_with_original_trace(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\nEXA_API_KEY=fixture-secret\n")
     runs = RunRepository(paths.database)

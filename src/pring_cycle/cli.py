@@ -4,7 +4,7 @@ import argparse
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -20,13 +20,8 @@ if TYPE_CHECKING:
     from pring_cycle.evidence import SourceClaimInput
 
 _MUTATING_COMMANDS = {
-    "model-input-preflight",
-    "model-accept",
     "model-activate",
-    "model-replay",
-    "model-source-certify",
-    "model-source-refresh",
-    "model-rollback",
+    "model-register",
     "fixture-project",
     "gap-notice",
     "lpr-refresh",
@@ -34,20 +29,10 @@ _MUTATING_COMMANDS = {
     "schedule",
     "evidence-ingest",
     "report-generate",
-    "rehearse-fixture-recovery",
-    "rehearse-real",
-    "cutover-manifest",
-    "cutover-record",
-    "source-smoke",
-    "context-source-smoke",
-    "market-source-smoke",
-    "official-context-smoke",
-    "eia-smoke",
     "eia-html-refresh",
     "treasury-csv-refresh",
     "ecb-reference-import",
     "ecb-reference-refresh",
-    "lpr-smoke",
     "core-history-refresh",
 }
 
@@ -123,7 +108,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             paths.database,
             paths.data,
             non_core_large_task=namespace.command
-            in {"report-generate", "model-replay", "rehearse-real"},
+            in {"report-generate"},
         )
         if rejection is not None:
             raise ValueError(rejection)
@@ -163,39 +148,6 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             "observation_count": len(parsed_context.scalars),
             "status": "validated_candidate",
         }
-    if namespace.command == "official-context-smoke":
-        from pring_cycle.official_context import smoke_official_context_document
-        from pring_cycle.rehearsals import store_source_smoke_result
-
-        result = asdict(
-            smoke_official_context_document(
-                family=namespace.family,
-                source_url=namespace.url,
-                expected_period=namespace.period,
-                fetched_at=datetime.now(UTC),
-            )
-        )
-        return store_source_smoke_result(
-            paths,
-            kind=f"official-context:{namespace.family}",
-            result=result,
-            target_scope={"period": namespace.period},
-        )
-    if namespace.command == "source-history-smoke":
-        from pring_cycle.rehearsals import store_source_smoke_result
-        from pring_cycle.source_history import smoke_source_history
-
-        result = smoke_source_history(
-            paths,
-            target_business_date=namespace.target_date,
-            browser_capture_root=namespace.browser_capture_root,
-        )
-        return store_source_smoke_result(
-            paths,
-            kind="source-history",
-            result=result,
-            target_scope={"target_business_date": namespace.target_date},
-        )
     if namespace.command == "eia-html-refresh":
         from pring_cycle.eia_html import refresh_eia_history
 
@@ -266,26 +218,6 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             "series_ids": sorted({item.series_id for item in prices}),
             "status": "validated_candidate",
         }
-    if namespace.command == "eia-smoke":
-        from pring_cycle.eia_context import EiaPetroleumAdapter
-        from pring_cycle.rehearsals import store_source_smoke_result
-        from pring_cycle.secrets import parse_data_source_secrets
-
-        api_key = parse_data_source_secrets(paths.secrets).get("EIA_API_KEY")
-        if api_key is None:
-            raise ValueError("eia_api_key_required")
-        result = asdict(
-            EiaPetroleumAdapter(api_key).smoke(
-                start_date=date.fromisoformat(namespace.start),
-                end_date=date.fromisoformat(namespace.end),
-            )
-        )
-        return store_source_smoke_result(
-            paths,
-            kind="eia",
-            result=result,
-            target_scope={"start": namespace.start, "end": namespace.end},
-        )
     if namespace.command == "lpr-refresh":
         from pring_cycle.official_lpr import refresh_lpr_release
 
@@ -297,23 +229,6 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             definition_version=_active_definition_version(paths),
         )
         return {**asdict(refreshed), "network_requests": 1}
-    if namespace.command == "lpr-smoke":
-        from pring_cycle.official_lpr import smoke_lpr_release
-        from pring_cycle.rehearsals import store_source_smoke_result
-
-        result = asdict(
-            smoke_lpr_release(
-                source_url=namespace.url,
-                expected_period=namespace.period,
-                fetched_at=datetime.now(UTC),
-            )
-        )
-        return store_source_smoke_result(
-            paths,
-            kind="lpr",
-            result=result,
-            target_scope={"period": namespace.period},
-        )
     if namespace.command == "release-calendar":
         from pring_cycle.release_calendar import lpr_release_calendar
 
@@ -352,17 +267,6 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             "models": [asdict(item) for item in ModelRepository(paths.database).list_versions()],
             "status": "ok",
         }
-    if namespace.command == "model-accept":
-        from pring_cycle.model_evaluation import calibrate_model
-
-        acceptance = ModelRepository(paths.database).record_acceptance(
-            namespace.model,
-            calibrate_model(paths.database, namespace.model),
-        )
-        return {
-            **asdict(acceptance),
-            "status": "accepted" if acceptance.passed else "rejected",
-        }
     if namespace.command == "core-history-refresh":
         from pring_cycle.core_history import refresh_core_history
         from pring_cycle.secrets import parse_data_source_secrets
@@ -379,103 +283,20 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
             definition_version=namespace.definition_version,
         )
         return asdict(history_result)
+    if namespace.command == "model-register":
+        manifest = json.loads(namespace.manifest.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError("model_manifest_must_be_object")
+        from pring_cycle.context_projection import ContextProjectionRules
+
+        ContextProjectionRules.from_manifest(manifest)
+        return asdict(ModelRepository(paths.database).register(manifest))
     if namespace.command == "model-activate":
         activated = ModelRepository(paths.database).activate(
             namespace.model,
             explicitly_approved=namespace.confirm,
         )
         return asdict(activated)
-    if namespace.command == "model-input-preflight-read":
-        from pring_cycle.material_preflight import read_model_input_preflight
-
-        return read_model_input_preflight(paths, namespace.receipt_hash)
-    if namespace.command == "model-input-preflight":
-        from pring_cycle.material_preflight import preflight_model_inputs
-
-        return preflight_model_inputs(
-            paths,
-            namespace.model,
-            requested_start=namespace.start,
-            requested_end=namespace.end,
-            expected_trading_days=namespace.expected_trading_days,
-        )
-    if namespace.command == "model-replay":
-        from pring_cycle.model_evaluation import replay_models
-
-        evaluation = replay_models(
-            paths.database,
-            namespace.model,
-            namespace.compared_with,
-            requested_start=namespace.start,
-            requested_end=namespace.end,
-        )
-        replay = ModelRepository(paths.database).record_replay(
-            namespace.model,
-            compared_with=namespace.compared_with,
-            requested_start=namespace.start,
-            requested_end=namespace.end,
-            quality_passed=evaluation.quality_passed,
-            regression_passed=evaluation.regression_passed,
-            performance_passed=evaluation.performance_passed,
-            stage_differences=evaluation.stage_differences,
-            core_state_differences=evaluation.core_state_differences,
-            context_output_differences=evaluation.context_output_differences,
-            gaps=evaluation.gaps,
-            evaluated_trading_days=evaluation.evaluated_trading_days,
-            calendar_hash=evaluation.calendar_hash,
-            candidate_state_differences=evaluation.candidate_state_differences,
-            candidate_days_differences=evaluation.candidate_days_differences,
-            core_output_hash=evaluation.core_output_hash,
-            core_output_document=evaluation.core_output_document,
-            context_output_hash=evaluation.context_output_hash,
-            context_output_document=evaluation.context_output_document,
-        )
-        return {**asdict(replay), "status": "passed" if replay.passed else "failed"}
-    if namespace.command == "model-replay-show":
-        return ModelRepository(paths.database).replay_details(namespace.replay_id)
-    if namespace.command == "model-acceptance-show":
-        return ModelRepository(paths.database).acceptance_details(
-            namespace.model, namespace.result_hash
-        )
-    if namespace.command == "model-source-certify":
-        if namespace.candidate_request_hash is not None:
-            from pring_cycle.candidate_admission import admit_source_certified_candidate
-
-            return admit_source_certified_candidate(
-                paths,
-                request_hash=namespace.candidate_request_hash,
-                target_business_date=namespace.target_date,
-                personal_noncommercial_use_approved=namespace.confirm_personal_noncommercial,
-            )
-        from pring_cycle.source_certification import create_source_certified_candidate
-
-        return create_source_certified_candidate(
-            paths,
-            target_business_date=namespace.target_date,
-            source_smoke_hashes=tuple(namespace.source_smoke_hash),
-            personal_noncommercial_use_approved=namespace.confirm_personal_noncommercial,
-        )
-    if namespace.command == "model-source-refresh":
-        from pring_cycle.source_certification import refresh_source_certified_candidate
-
-        return refresh_source_certified_candidate(
-            paths,
-            model_version_id=namespace.model,
-            target_business_date=namespace.target_date,
-        )
-    if namespace.command == "model-rollback":
-        trading_calendar = tuple(
-            line.strip()
-            for line in namespace.calendar.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        )
-        rolled_back = ModelRepository(paths.database).rollback(
-            namespace.model,
-            as_of_business_date=namespace.as_of_date,
-            trading_calendar=trading_calendar,
-            explicitly_confirmed=namespace.confirm,
-        )
-        return asdict(rolled_back)
     if namespace.command == "run-submit":
         active_model_id = ModelRepository(paths.database).active().model_version_id
         if namespace.model is not None and namespace.model != active_model_id:
@@ -572,126 +393,6 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         return {**asdict(cleaned), "status": "completed"}
     if namespace.command == "capacity":
         return asdict(capacity_state(namespace.free_bytes))
-    if namespace.command == "acceptance":
-        from pring_cycle.acceptance import run_v1_acceptance
-
-        return run_v1_acceptance(paths)
-    if namespace.command == "rehearse-fixture-recovery":
-        from pring_cycle.rehearsals import run_fixture_recovery_rehearsal
-
-        return run_fixture_recovery_rehearsal(paths)
-    if namespace.command == "rehearse-real":
-        from pring_cycle.rehearsals import run_real_projection_rehearsal
-
-        return run_real_projection_rehearsal(
-            paths,
-            target_business_date=namespace.target_date,
-            dashboard_port=namespace.dashboard_port,
-            source_smoke_hashes=tuple(namespace.source_smoke_hash),
-        )
-    if namespace.command == "cutover-manifest":
-        from pring_cycle.cutover import build_cutover_manifest
-
-        return build_cutover_manifest(
-            paths,
-            acceptance_hash=namespace.acceptance_hash,
-            real_rehearsal_hash=namespace.real_rehearsal_hash,
-            fixture_rehearsal_hash=namespace.fixture_rehearsal_hash,
-            legacy_system_read_only_stopped=namespace.legacy_system_read_only_stopped,
-            suite_total_seconds=namespace.suite_total_seconds,
-        )
-    if namespace.command == "cutover-record":
-        from pring_cycle.cutover import record_direct_cutover
-
-        recorded = record_direct_cutover(
-            paths,
-            manifest_hash=namespace.manifest_hash,
-            confirmation=namespace.confirm,
-        )
-        return {**asdict(recorded), "status": "recorded"}
-    if namespace.command == "cutover-status":
-        from pring_cycle.cutover import cutover_status
-
-        record = cutover_status(paths)
-        return {"cutover": asdict(record) if record is not None else None, "status": "ok"}
-    if namespace.command == "source-smoke":
-        from pring_cycle.rehearsals import store_source_smoke_result
-        from pring_cycle.secrets import parse_data_source_secrets
-        from pring_cycle.source_adapters import CORE_API_IDENTITIES, TushareCoreAdapter
-
-        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
-        if token is None:
-            raise ValueError("tushare_not_configured")
-        target = date.fromisoformat(namespace.target_date)
-        start = target - timedelta(days=280)
-        adapter = TushareCoreAdapter(token)
-        calendar = adapter.trading_days(start, target)
-        expected = calendar[-160:]
-        if not expected or expected[-1] != target:
-            raise ValueError("target_business_date_not_in_china_calendar")
-        results = [
-            asdict(
-                adapter.smoke(
-                    metric_id,
-                    start=expected[0],
-                    end=expected[-1],
-                    expected_business_dates=expected,
-                )
-            )
-            for metric_id in CORE_API_IDENTITIES
-        ]
-        return store_source_smoke_result(
-            paths,
-            kind="core",
-            result={"network_requests": 4, "results": results, "status": "validated"},
-            target_scope={"target_business_date": namespace.target_date},
-        )
-    if namespace.command == "context-source-smoke":
-        from pring_cycle.rehearsals import store_source_smoke_result
-        from pring_cycle.secrets import parse_data_source_secrets
-        from pring_cycle.tushare_context import (
-            TushareContextAdapter,
-            smoke_context_sources,
-        )
-
-        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
-        if token is None:
-            raise ValueError("tushare_not_configured")
-        result = asdict(
-            smoke_context_sources(
-                TushareContextAdapter(token),
-                target_business_date=date.fromisoformat(namespace.target_date),
-            )
-        )
-        return store_source_smoke_result(
-            paths,
-            kind="tushare-context",
-            result=result,
-            target_scope={"target_business_date": namespace.target_date},
-        )
-    if namespace.command == "market-source-smoke":
-        from pring_cycle.rehearsals import store_source_smoke_result
-        from pring_cycle.secrets import parse_data_source_secrets
-        from pring_cycle.tushare_context import (
-            TushareContextAdapter,
-            smoke_market_sources,
-        )
-
-        token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
-        if token is None:
-            raise ValueError("tushare_not_configured")
-        result = asdict(
-            smoke_market_sources(
-                TushareContextAdapter(token),
-                target_business_date=date.fromisoformat(namespace.target_date),
-            )
-        )
-        return store_source_smoke_result(
-            paths,
-            kind="tushare-market",
-            result=result,
-            target_scope={"target_business_date": namespace.target_date},
-        )
     raise ValueError("unsupported_command")
 
 
@@ -723,8 +424,6 @@ def _parser() -> argparse.ArgumentParser:
         "stage-history",
         "gap-notices",
         "cleanup",
-        "rehearse-fixture-recovery",
-        "cutover-status",
     ):
         _runtime_parser(subparsers, command)
     subparsers.choices["secrets-migrate"].add_argument(
@@ -741,8 +440,6 @@ def _parser() -> argparse.ArgumentParser:
     for command in ("test", "verify"):
         _runtime_parser(subparsers, command)
 
-    model_accept = _runtime_parser(subparsers, "model-accept")
-    model_accept.add_argument("--model", required=True)
     core_history = _runtime_parser(subparsers, "core-history-refresh")
     core_history.add_argument("--start", required=True)
     core_history.add_argument("--end", required=True)
@@ -750,51 +447,11 @@ def _parser() -> argparse.ArgumentParser:
         "--definition-version",
         default="metric-catalog-v0001",
     )
+    model_register = _runtime_parser(subparsers, "model-register")
+    model_register.add_argument("--manifest", type=Path, required=True)
     model_activate = _runtime_parser(subparsers, "model-activate")
     model_activate.add_argument("--model", required=True)
     model_activate.add_argument("--confirm", action="store_true")
-    preflight_read = _runtime_parser(subparsers, "model-input-preflight-read")
-    preflight_read.add_argument("--receipt-hash", required=True)
-    model_preflight = _runtime_parser(subparsers, "model-input-preflight")
-    model_preflight.add_argument("--model", required=True)
-    model_preflight.add_argument("--start", required=True)
-    model_preflight.add_argument("--end", required=True)
-    model_preflight.add_argument(
-        "--expected-trading-days",
-        type=int,
-        default=120,
-        help="Expected sessions (default: 120); declare a different count for diagnostics",
-    )
-    model_replay = _runtime_parser(subparsers, "model-replay")
-    model_replay.add_argument("--model", required=True)
-    model_replay.add_argument("--compared-with", required=True)
-    model_replay.add_argument("--start", required=True)
-    model_replay.add_argument("--end", required=True)
-    replay_show = _runtime_parser(subparsers, "model-replay-show")
-    replay_show.add_argument("--replay-id", required=True, type=int)
-    acceptance_show = _runtime_parser(subparsers, "model-acceptance-show")
-    acceptance_show.add_argument("--model", required=True)
-    acceptance_show.add_argument("--result-hash", required=True)
-    model_source_certify = _runtime_parser(subparsers, "model-source-certify")
-    model_source_certify.add_argument("--target-date", required=True)
-    certification_input = model_source_certify.add_mutually_exclusive_group(required=True)
-    certification_input.add_argument("--candidate-request-hash")
-    certification_input.add_argument(
-        "--source-smoke-hash",
-        action="append",
-    )
-    model_source_certify.add_argument(
-        "--confirm-personal-noncommercial",
-        action="store_true",
-    )
-    model_source_refresh = _runtime_parser(subparsers, "model-source-refresh")
-    model_source_refresh.add_argument("--model", required=True)
-    model_source_refresh.add_argument("--target-date", required=True)
-    model_rollback = _runtime_parser(subparsers, "model-rollback")
-    model_rollback.add_argument("--model", required=True)
-    model_rollback.add_argument("--as-of-date", required=True)
-    model_rollback.add_argument("--calendar", type=Path, required=True)
-    model_rollback.add_argument("--confirm", action="store_true")
 
     run_submit = _runtime_parser(subparsers, "run-submit")
     run_submit.add_argument(
@@ -845,13 +502,6 @@ def _parser() -> argparse.ArgumentParser:
     official_context_contract.add_argument("--url", required=True)
     official_context_contract.add_argument("--period", required=True)
     official_context_contract.add_argument("--fetched-at", required=True)
-    official_context_smoke = _runtime_parser(subparsers, "official-context-smoke")
-    official_context_smoke.add_argument("--family", required=True)
-    official_context_smoke.add_argument("--url", required=True)
-    official_context_smoke.add_argument("--period", required=True)
-    source_history_smoke = _runtime_parser(subparsers, "source-history-smoke")
-    source_history_smoke.add_argument("--target-date", required=True)
-    source_history_smoke.add_argument("--browser-capture-root", type=Path)
     eia_html = _runtime_parser(subparsers, "eia-html-refresh")
     eia_html.add_argument("--series", choices=("RBRTE", "RWTC"), required=True)
     eia_html.add_argument("--start", required=True)
@@ -873,15 +523,9 @@ def _parser() -> argparse.ArgumentParser:
     eia_contract.add_argument("--input", type=Path, required=True)
     eia_contract.add_argument("--start", required=True)
     eia_contract.add_argument("--end", required=True)
-    eia_smoke = _runtime_parser(subparsers, "eia-smoke")
-    eia_smoke.add_argument("--start", required=True)
-    eia_smoke.add_argument("--end", required=True)
     lpr_refresh = _runtime_parser(subparsers, "lpr-refresh")
     lpr_refresh.add_argument("--url", required=True)
     lpr_refresh.add_argument("--period", required=True)
-    lpr_smoke = _runtime_parser(subparsers, "lpr-smoke")
-    lpr_smoke.add_argument("--url", required=True)
-    lpr_smoke.add_argument("--period", required=True)
     release_calendar = _runtime_parser(subparsers, "release-calendar")
     release_calendar.add_argument("--period", required=True)
     release_calendar.add_argument("--as-of", required=True)
@@ -902,31 +546,6 @@ def _parser() -> argparse.ArgumentParser:
     report_read.add_argument("--report-id", required=True)
     capacity = _runtime_parser(subparsers, "capacity")
     capacity.add_argument("--free-bytes", type=int, required=True)
-    _runtime_parser(subparsers, "acceptance")
-    real_rehearsal = _runtime_parser(subparsers, "rehearse-real")
-    real_rehearsal.add_argument("--target-date", required=True)
-    real_rehearsal.add_argument("--dashboard-port", type=int, required=True)
-    real_rehearsal.add_argument(
-        "--source-smoke-hash",
-        action="append",
-        required=True,
-    )
-    cutover_manifest = _runtime_parser(subparsers, "cutover-manifest")
-    cutover_manifest.add_argument("--acceptance-hash", required=True)
-    cutover_manifest.add_argument("--real-rehearsal-hash", required=True)
-    cutover_manifest.add_argument("--fixture-rehearsal-hash", required=True)
-    cutover_manifest.add_argument("--legacy-system-read-only-stopped", action="store_true")
-    # The whole test run's wall clock, reported beside the acceptance artifact's own phases.
-    cutover_manifest.add_argument("--suite-total-seconds", type=float, default=None)
-    cutover_record = _runtime_parser(subparsers, "cutover-record")
-    cutover_record.add_argument("--manifest-hash", required=True)
-    cutover_record.add_argument("--confirm", required=True)
-    source_smoke = _runtime_parser(subparsers, "source-smoke")
-    source_smoke.add_argument("--target-date", required=True)
-    context_source_smoke = _runtime_parser(subparsers, "context-source-smoke")
-    context_source_smoke.add_argument("--target-date", required=True)
-    market_source_smoke = _runtime_parser(subparsers, "market-source-smoke")
-    market_source_smoke.add_argument("--target-date", required=True)
     return parser
 
 
@@ -961,7 +580,7 @@ def _source_claim_input(source: dict[str, Any]) -> SourceClaimInput:
         public_available_at=_optional_datetime(source.get("public_available_at")),
         fetched_at=datetime.fromisoformat(str(source["fetched_at"])),
         available_at=datetime.fromisoformat(str(source["available_at"])),
-        certification_status=str(source["certification_status"]),
+        certification_status=str(source.get("certification_status", "not_applicable")),
         quality_status=str(source["quality_status"]),
     )
 

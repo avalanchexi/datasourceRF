@@ -772,7 +772,7 @@ def _commodity_claims_valid(
                     and claim.source_reference
                     == f"tushare:commodity_basket:{m['field']}:{point.period_end}"
                     and claim.release_at == published
-                    and claim.public_available_at == published
+                    and claim.parsed_public_available_at == published
                     for m in verdict.members
                 ):
                     valid.add(claim_id)

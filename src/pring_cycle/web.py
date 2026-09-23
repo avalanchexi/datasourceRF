@@ -238,31 +238,6 @@ def create_web_application(
     def model_index() -> list[dict[str, object]]:
         return [asdict(item) for item in ModelRepository(paths.database).list_versions()]
 
-    @server.get("/api/v1/model-replays/{replay_id}", name="model_replay_detail")
-    def model_replay_detail(replay_id: int) -> JSONResponse:
-        try:
-            document = ModelRepository(paths.database).replay_details(replay_id)
-        except LookupError as error:
-            return JSONResponse(status_code=404, content={"error": str(error)})
-        except (KeyError, TypeError, ValueError) as error:
-            return JSONResponse(status_code=409, content={"error": str(error)})
-        return JSONResponse(content=jsonable_encoder(document))
-
-    @server.get(
-        "/api/v1/models/{model_version_id}/acceptances/{result_hash}",
-        name="model_acceptance_detail",
-    )
-    def model_acceptance_detail(model_version_id: str, result_hash: str) -> JSONResponse:
-        try:
-            document = ModelRepository(paths.database).acceptance_details(
-                model_version_id, result_hash
-            )
-        except LookupError as error:
-            return JSONResponse(status_code=404, content={"error": str(error)})
-        except (KeyError, TypeError, ValueError) as error:
-            return JSONResponse(status_code=409, content={"error": str(error)})
-        return JSONResponse(content=jsonable_encoder(document))
-
     @server.get("/api/v1/stage-history", name="stage_history")
     def stage_history() -> dict[str, object]:
         return {

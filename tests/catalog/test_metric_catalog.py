@@ -145,3 +145,16 @@ def test_v3_catalog_certifies_all_p1_and_freezes_market_delivery_semantics() -> 
         "CN_COMMODITY_BROAD_NHCI",
         definition_version=METRIC_CATALOG_V0003,
     ).dimensions == ("source_code",)
+
+
+def test_effective_catalog_is_59_metrics_with_cny030_optional() -> None:
+    from pring_cycle.catalog import CNY030_OPTIONAL_MIGRATION, migrated_catalog
+
+    catalog = migrated_catalog({"metric_identity_migration": CNY030_OPTIONAL_MIGRATION})
+    priorities = [definition.priority for definition in catalog.values()]
+
+    assert len(catalog) == 59
+    assert (priorities.count("P0"), priorities.count("P1"), priorities.count("P2")) == (6, 41, 12)
+    assert catalog["CN_BOND_FULL_PRICE_CNY030"].priority == "P2"
+    assert "CN_MARGIN_BALANCE_SSE_SZSE" in catalog
+    assert "CN_MARGIN_BALANCE" not in catalog

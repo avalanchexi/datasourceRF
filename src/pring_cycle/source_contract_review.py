@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import hashlib
 import json
-import re
 import sqlite3
 from calendar import monthrange
 from collections.abc import Mapping
-from dataclasses import asdict, replace
+from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -31,10 +29,6 @@ from pring_cycle.source_families import (
     TUSHARE_SF_TOTAL_FIELDS,
     TUSHARE_SF_TOTAL_SOURCE_CODE,
 )
-from pring_cycle.storage import artifact_is_registered, database_connection
-
-SOURCE_MAPPING_REFERENCE_CONTRACT_VERSION = "source-mapping-reference-v0001"
-_MAPPING_REFERENCE_PREFIX = "source-field-mapping:"
 
 # This is a dated rejection of the frozen v3 certification contract, not a
 # replacement catalog or a modification of historical evidence. A corrected
@@ -668,268 +662,6 @@ def require_registered_source_contract(
         raise ValueError(f"registered_{family}_source_identity_mismatch")
 
 
-def _mapping_hash(document: object) -> str:
-    return hashlib.sha256(
-        json.dumps(
-            document, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
-        ).encode()
-    ).hexdigest()
-
-
-def _mapping_artifact(database: Path, digest: object, source_reference: str | None = None) -> bytes:
-    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
-        raise ValueError("capacity_mapping_artifact_hash_invalid")
-    raw = (database.parent / "artifacts" / "sha256" / digest[:2] / digest).read_bytes()
-    if hashlib.sha256(raw).hexdigest() != digest:
-        raise ValueError("capacity_mapping_artifact_hash_mismatch")
-    if source_reference is not None and not artifact_is_registered(
-        database, digest, source_reference
-    ):
-        raise ValueError("capacity_mapping_artifact_reference_mismatch")
-    return raw
-
-
-def _is_typed_mapping_reference(reference: Mapping[str, Any]) -> bool:
-    source_reference = reference["source_reference"]
-    if not source_reference.startswith(_MAPPING_REFERENCE_PREFIX):
-        return False
-    if source_reference != f"{_MAPPING_REFERENCE_PREFIX}{reference['artifact_hash']}":
-        raise ValueError("capacity_mapping_reference_identity_mismatch")
-    return True
-
-
-def _has_admitted_mapping_reference_contract(database: Path, manifest: dict[str, Any]) -> bool:
-    contract = manifest.get("source_mapping_reference_contract")
-    if contract is None:
-        return False  # Old catalogs never gain a new interpretation of their references.
-    request_hash = manifest["certification_request_hash"]
-    if contract != {
-        "version": SOURCE_MAPPING_REFERENCE_CONTRACT_VERSION,
-        "request_hash": request_hash,
-    }:
-        raise ValueError("capacity_mapping_reference_contract_invalid")
-    request = json.loads(_mapping_artifact(database, request_hash))
-    original = request["manifest"]
-    if not isinstance(original, dict) or "source_mapping_reference_contract" in original:
-        raise ValueError("capacity_mapping_reference_contract_self_declared")
-    requested_manifest = {
-        key: value
-        for key, value in manifest.items()
-        if key
-        not in {
-            "model_version_id",
-            "source_certification_packages",
-            "certification_request_hash",
-            "source_mapping_reference_contract",
-        }
-    }
-    if original != requested_manifest:
-        raise ValueError("capacity_mapping_admission_request_mismatch")
-    return True
-
-
-def _registered_capacity_mappings(
-    database: Path, definition: MetricDefinition
-) -> list[dict[str, Any]]:
-    # The first admitting model owns this catalog's grants; a later model using
-    # the same definitions cannot expand the catalog's accepted source vintages.
-    with database_connection(f"{database.resolve().as_uri()}?mode=ro", uri=True) as connection:
-        row = connection.execute(
-            """SELECT m.manifest_json FROM registered_metric_catalog c
-            JOIN model_version m ON m.model_version_id=c.admitted_by_model_id
-            WHERE c.catalog_version=?""",
-            (definition.definition_version,),
-        ).fetchone()
-    if row is None:
-        return []
-    manifest = json.loads(row[0])
-    typed_contract = _has_admitted_mapping_reference_contract(database, manifest)
-    definition_hash = _mapping_hash(asdict(definition))
-    mappings = []
-    for stored in manifest["source_certification_packages"]:
-        if stored["definition_bindings"].get(definition.metric_id) != definition_hash:
-            continue
-        package_hash = stored["package_id"].removeprefix("source-certification-")
-        package = json.loads(_mapping_artifact(database, package_hash))
-        if package != {key: value for key, value in stored.items() if key != "package_id"}:
-            raise ValueError("capacity_mapping_package_binding_mismatch")
-        review = json.loads(_mapping_artifact(database, package["review_hash"]))
-        subject = {
-            key: value
-            for key, value in package.items()
-            if key not in {"schema_version", "review_hash"}
-        }
-        if (
-            review.get("schema_version") != "source-certification-review-v0001"
-            or review.get("decision") != "accepted"
-            or review.get("subject_hash") != _mapping_hash(subject)
-        ):
-            raise ValueError("capacity_mapping_review_binding_mismatch")
-        by_criterion: dict[str, dict[str, dict[str, Any]]] = {}
-        typed_by_criterion: dict[str, set[str]] = {}
-        required_criteria = review["assessments"] if typed_contract else ("semantics", "fields")
-        for criterion in required_criteria:
-            documents = {}
-            typed_hashes = set()
-            for reference in review["assessments"][criterion]["evidence"]:
-                typed = typed_contract and _is_typed_mapping_reference(reference)
-                try:
-                    raw = _mapping_artifact(
-                        database, reference["artifact_hash"], reference["source_reference"]
-                    )
-                except (OSError, LookupError, TypeError, ValueError):
-                    if typed:
-                        continue  # This independent grant cannot qualify any selected claim.
-                    raise  # Unclassified/common review evidence is still required.
-                try:
-                    document = json.loads(raw)
-                except (UnicodeDecodeError, ValueError):
-                    if typed:
-                        raise ValueError("capacity_mapping_reference_requires_mapping") from None
-                    continue  # Ordinary review evidence may be HTML, PDF, or Markdown.
-                if (
-                    isinstance(document, dict)
-                    and document.get("schema_version") == "source-field-mapping-v0001"
-                ):
-                    documents[reference["artifact_hash"]] = document
-                    if typed:
-                        typed_hashes.add(reference["artifact_hash"])
-                elif typed:
-                    raise ValueError("capacity_mapping_reference_requires_mapping")
-            by_criterion[criterion] = documents
-            typed_by_criterion[criterion] = typed_hashes
-        for digest in by_criterion["semantics"].keys() & by_criterion["fields"].keys():
-            mapping = by_criterion["semantics"][digest]
-            if (
-                mapping.get("metric_id") == definition.metric_id
-                and mapping.get("definition_version") == definition.definition_version
-                and mapping.get("definition_hash") == definition_hash
-                and mapping.get("rule_version") == "capacity_q1_same_interval_alias_v0001"
-            ):
-                typed = digest in typed_by_criterion["semantics"] & typed_by_criterion["fields"]
-                if not typed:
-                    # Preserve the complete legacy dependency chain. Only newly
-                    # admitted typed grants can defer their independent basis.
-                    basis = mapping["basis"]
-                    if not _mapping_artifact(
-                        database, basis["artifact_hash"], basis["source_reference"]
-                    ):
-                        raise ValueError("capacity_mapping_basis_empty")
-                mappings.append(mapping)
-    return mappings
-
-
-def require_reviewed_source_mappings(
-    database: Path,
-    package: Mapping[str, Any],
-    definitions: Mapping[str, dict[str, Any]],
-) -> None:
-    """Validate explicit mapping evidence before admitting its source package."""
-    from pring_cycle.official_context import (
-        capacity_q1_alias_value,
-        parse_official_context_document,
-    )
-
-    try:
-        review = json.loads(_mapping_artifact(database, package["review_hash"]))
-        mappings: dict[str, dict[str, Any]] = {}
-        criteria: dict[str, set[str]] = {}
-        references: dict[str, dict[str, set[str]]] = {}
-        for criterion, assessment in review["assessments"].items():
-            for reference in assessment["evidence"]:
-                typed = _is_typed_mapping_reference(reference)
-                raw = _mapping_artifact(
-                    database, reference["artifact_hash"], reference["source_reference"]
-                )
-                try:
-                    document = json.loads(raw)
-                except (UnicodeDecodeError, ValueError):
-                    if typed:
-                        raise ValueError("capacity_mapping_reference_requires_mapping") from None
-                    continue
-                is_mapping = isinstance(document, dict) and str(
-                    document.get("schema_version", "")
-                ).startswith("source-field-mapping-")
-                if typed and not is_mapping:
-                    raise ValueError("capacity_mapping_reference_requires_mapping")
-                if is_mapping:
-                    digest = reference["artifact_hash"]
-                    mappings[digest] = document
-                    criteria.setdefault(digest, set()).add(criterion)
-                    references.setdefault(digest, {}).setdefault(criterion, set()).add(
-                        reference["source_reference"]
-                    )
-        for digest, mapping in mappings.items():
-            typed_reference = f"{_MAPPING_REFERENCE_PREFIX}{digest}"
-            if any(typed_reference in items for items in references[digest].values()) and any(
-                references[digest].get(criterion) != {typed_reference}
-                for criterion in ("semantics", "fields")
-            ):
-                raise ValueError("capacity_mapping_reference_roles_mixed")
-            definition = definitions[mapping["metric_id"]]
-            parser = mapping["parser"]
-            period = parser["period"]
-            if (
-                mapping["schema_version"] != "source-field-mapping-v0001"
-                or mapping["rule_version"] != "capacity_q1_same_interval_alias_v0001"
-                or mapping["metric_id"] != "CN_CAPACITY_UTILIZATION"
-                or not {"semantics", "fields"} <= criteria[digest]
-                or mapping["definition_version"] != definition["definition_version"]
-                or mapping["definition_hash"] != _mapping_hash(definition)
-                or package["definition_bindings"].get(mapping["metric_id"])
-                != mapping["definition_hash"]
-                or re.fullmatch(r"[0-9]{4}-Q1", period) is None
-                or parser
-                != {
-                    "version": "official-context-parser-v0004",
-                    "family": "nbs_capacity_utilization",
-                    "period": period,
-                }
-            ):
-                raise ValueError("capacity_mapping_review_identity_mismatch")
-            source = mapping["source_document"]
-            raw = _mapping_artifact(database, source["artifact_hash"], source["source_reference"])
-            if source["bytes"] != len(raw):
-                raise ValueError("capacity_mapping_source_size_mismatch")
-            basis = mapping["basis"]
-            if not _mapping_artifact(database, basis["artifact_hash"], basis["source_reference"]):
-                raise ValueError("capacity_mapping_basis_empty")
-            parsed = parse_official_context_document(
-                raw,
-                family="nbs_capacity_utilization",
-                source_url=source["source_reference"],
-                expected_period=period,
-                fetched_at=datetime.fromisoformat(review["reviewed_at"]),
-            )
-            actual = capacity_q1_alias_value(raw, period)
-            for name, measure in (("source", "quarter_rate"), ("target", "ytd_rate")):
-                scalar = next(
-                    s
-                    for s in parsed.scalars
-                    if s.dimensions == {"industry": "all_industry", "measure": measure}
-                )
-                expected = {
-                    field: getattr(scalar, field)
-                    for field in (
-                        "source_field",
-                        "dimensions",
-                        "period_kind",
-                        "period_start",
-                        "period_end",
-                        "unit",
-                        "value",
-                    )
-                }
-                if (
-                    mapping[name] != expected
-                    or scalar.value != actual
-                    or isinstance(mapping[name]["value"], bool)
-                ):
-                    raise ValueError("capacity_mapping_source_cell_mismatch")
-    except (OSError, LookupError, TypeError, ValueError, StopIteration) as error:
-        raise ValueError("certification_source_mapping_invalid") from error
-
-
 def _require_capacity_q1_mapping(
     database: Path,
     definition: MetricDefinition,
@@ -945,8 +677,9 @@ def _require_capacity_q1_mapping(
     from pring_cycle.official_context import capacity_q1_alias_value, parse_official_acquisition
 
     try:
-        mappings = _registered_capacity_mappings(database, definition)
-        if not mappings or not acquisition_ids:
+        # The Q1 year-to-date rate is the quarter rate of the same original; that alias is a
+        # structural rule checked against the response, not a certified mapping (ADR-0021).
+        if not acquisition_ids:
             raise ValueError("capacity_mapping_evidence_missing")
         repository = AcquisitionRepository(database, database.parent / "artifacts" / "sha256")
         for acquisition_id in acquisition_ids:
@@ -968,63 +701,15 @@ def _require_capacity_q1_mapping(
             ):
                 raise ValueError("capacity_mapping_acquisition_mismatch")
             actual = capacity_q1_alias_value(raw, parsed.period)
-            source = {
-                "source_field": "industrial_capacity_utilization_pct",
-                "dimensions": {"industry": "all_industry", "measure": "quarter_rate"},
-                "period_kind": "quarter",
-                "period_start": period_start,
-                "period_end": period_end,
-                "unit": "percent",
-                "value": actual,
-            }
-            target = {
-                **source,
-                "source_field": "industrial_capacity_utilization_ytd_pct",
-                "dimensions": {"industry": "all_industry", "measure": "ytd_rate"},
-                "period_kind": "year_to_quarter",
-            }
             if value != actual or not any(
                 scalar.metric_id == definition.metric_id
                 and scalar.period_start == period_start
                 and scalar.period_end == period_end
-                and scalar.dimensions == target["dimensions"]
+                and scalar.dimensions == {"industry": "all_industry", "measure": "ytd_rate"}
                 and scalar.value == actual
                 for scalar in parsed.scalars
             ):
                 raise ValueError("capacity_mapping_claim_mismatch")
-            matching = [
-                mapping
-                for mapping in mappings
-                if mapping["source_document"]
-                == {
-                    "artifact_hash": receipt.raw_hash,
-                    "source_reference": parsed.source_url,
-                    "bytes": len(raw),
-                }
-                and mapping["parser"]
-                == {
-                    "version": receipt.parser_version,
-                    "family": parsed.family,
-                    "period": parsed.period,
-                }
-                and mapping["source"] == source
-                and mapping["target"] == target
-                and not isinstance(mapping["source"]["value"], bool)
-                and not isinstance(mapping["target"]["value"], bool)
-            ]
-            if not matching:
-                raise ValueError("capacity_mapping_source_cell_mismatch")
-            for mapping in matching:
-                try:
-                    basis = mapping["basis"]
-                    if _mapping_artifact(
-                        database, basis["artifact_hash"], basis["source_reference"]
-                    ):
-                        break
-                except (OSError, LookupError, TypeError, ValueError):
-                    continue
-            else:
-                raise ValueError("capacity_mapping_basis_unavailable")
     except (OSError, LookupError, TypeError, ValueError) as error:
         raise ValueError("registered_capacity_q1_mapping_unresolved") from error
 

@@ -15,7 +15,6 @@ from pring_cycle.catalog import metric_catalog_v0003
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import (
-    CALIBRATION_BASELINE,
     ModelRepository,
     analytical_model_v0003_manifest,
 )
@@ -24,7 +23,6 @@ from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository, ReportService, evidence_bundle_from_projection
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, diagnose_runtime, initialize_runtime
-from pring_cycle.source_certification import refresh_source_certified_candidate
 from pring_cycle.web import create_web_application
 from pring_cycle.worker import process_pending_run
 
@@ -33,7 +31,6 @@ def _candidate_runtime(tmp_path: Path) -> tuple[RuntimePaths, str]:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     manifest = analytical_model_v0003_manifest()
     manifest["model_version_id"] = "historical-v3-candidate"
@@ -41,34 +38,6 @@ def _candidate_runtime(tmp_path: Path) -> tuple[RuntimePaths, str]:
     manifest["metric_definitions"] = [asdict(item) for item in metric_catalog_v0003()]
     candidate = models.create_candidate(manifest)
     return paths, candidate.model_version_id
-
-
-def test_audited_candidate_cannot_activate_or_refresh_even_after_replay(tmp_path: Path) -> None:
-    paths, candidate_id = _candidate_runtime(tmp_path)
-    models = ModelRepository(paths.database)
-    original = models.manifest(candidate_id)
-    models.record_acceptance(candidate_id, CALIBRATION_BASELINE)
-    models.record_replay(
-        candidate_id,
-        compared_with="model-v0001",
-        requested_start="2018-06-01",
-        requested_end="2026-08-28",
-        quality_passed=True,
-        regression_passed=True,
-        performance_passed=True,
-        stage_differences=0,
-        core_state_differences=0,
-        gaps=(),
-    )
-    with pytest.raises(ValueError, match="source_certification_contract_unresolved"):
-        models.activate(candidate_id, explicitly_approved=True)
-    with pytest.raises(ValueError, match="source_certification_contract_unresolved"):
-        refresh_source_certified_candidate(
-            paths, model_version_id=candidate_id, target_business_date="2026-08-28"
-        )
-    assert models.active().model_version_id == "model-v0001"
-    assert models.get(candidate_id).status == "candidate"
-    assert models.manifest(candidate_id) == original
 
 
 def test_audited_market_claim_cannot_be_newly_ingested_as_certified(tmp_path: Path) -> None:

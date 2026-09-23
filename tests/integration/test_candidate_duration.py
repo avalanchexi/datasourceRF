@@ -12,7 +12,7 @@ from pring_cycle.cli import main
 from pring_cycle.core_fixture import CORE_FIXTURE_METRICS, project_core_fixture
 from pring_cycle.dashboard import dashboard_page
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
@@ -44,7 +44,6 @@ def test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     calendar = []
     day = date(2026, 8, 3)
@@ -114,21 +113,6 @@ def test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots(
         candidate_duration_rule_version="candidate-duration-v0002",
     )
     candidate = models.create_candidate(manifest)
-    # This isolated test model uses the existing fixture acceptance interface;
-    # none of these records or synthetic source values enter the live runtime.
-    models.record_acceptance(candidate.model_version_id, CALIBRATION_BASELINE)
-    models.record_replay(
-        candidate.model_version_id,
-        compared_with="model-v0001",
-        requested_start="2026-03-09",
-        requested_end="2026-08-03",
-        quality_passed=True,
-        regression_passed=True,
-        performance_passed=True,
-        stage_differences=0,
-        core_state_differences=0,
-        gaps=(),
-    )
     models.activate(candidate.model_version_id, explicitly_approved=True)
     new_run = runs.submit_manual_full(
         target_business_date="2026-08-03",

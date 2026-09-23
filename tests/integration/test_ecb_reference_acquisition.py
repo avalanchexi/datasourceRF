@@ -17,8 +17,13 @@ from pring_cycle.ecb_reference import import_ecb_reference_cross
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import ModelRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from tests.models.test_candidate_admission import bind_synthetic_review, encode, save, submit
-from tests.models.test_ecb_identity_migration import ecb_request
+from tests.fixtures.model_registration import (
+    bind_synthetic_review,
+    ecb_request,
+    encode,
+    save,
+    submit,
+)
 
 METRIC = "CN_USDCNY_ECB_REFERENCE_CROSS"
 SOURCE_URL = (
@@ -82,11 +87,8 @@ def test_imported_ecb_cross_keeps_both_legs_formula_original_and_actual_system_t
     (claim,) = point.claims
     assert claim.provider == "European Central Bank" and claim.unit == "cny_per_usd"
     assert claim.certification_status == "awaiting_source_certification"
-    assert claim.public_available_at is None and claim.release_at is None
+    assert claim.parsed_public_available_at is None and claim.release_at is None
     assert before <= claim.fetched_at <= claim.available_at <= after
-    assert not evidence.metric_series(
-        METRIC, mode=AsOfMode.PUBLIC, as_of=after, definition_version=version
-    )
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     receipt = acquisitions.get(imported.acquisition_id)
     assert receipt.api_name == "document_import" and receipt.raw_hash == ZIP_SHA

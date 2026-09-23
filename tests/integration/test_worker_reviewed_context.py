@@ -23,11 +23,25 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.worker import refresh_context_sources
-from tests.integration.test_system_target_inputs import runtime_clock as runtime_clock
-from tests.integration.test_system_target_inputs import system_request
-from tests.models.test_candidate_admission import bind_synthetic_review, encode, save, submit
+from tests.conftest import install_runtime_clock
+from tests.fixtures.model_registration import bind_synthetic_review, encode, save, submit
+from tests.integration.test_ecb_reference_acquisition import certified_request
 
 PBC_LISTING = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
+
+
+@pytest.fixture
+def runtime_clock(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> Any:
+    return install_runtime_clock(monkeypatch, request, datetime(2026, 9, 18, 1, tzinfo=UTC))
+
+
+def system_request(paths: RuntimePaths) -> dict[str, Any]:
+    request = certified_request(paths)
+    request["manifest"]["point_in_time_rule_version"] = "dual-cutoff-v0003"
+    digest = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / digest[:2] / digest).read_bytes())
+    bind_synthetic_review(paths, request, package)
+    return request
 
 
 def reviewed_run(
@@ -140,7 +154,6 @@ def test_worker_money_delivery_satisfies_the_new_four_member_contract(
         ("m2", "balance"): 3_550_000.0,
         ("m2", "yoy"): 7.6,
     }
-    assert not ModelInputSelector(paths, run, mode=AsOfMode.PUBLIC).select(scope).complete
     (receipt,) = [
         item
         for item in AcquisitionRepository(paths.database, paths.artifacts).history()
@@ -188,7 +201,6 @@ def test_worker_sf_delivery_preserves_annual_flow_and_month_end_stock(
         "stock_end": ("2026-08-01", "2026-08-31", 4600000.0),
     }
     assert all(c.unit == "hundred_million_cny" for p in points for c in p.claims)
-    assert not ModelInputSelector(paths, run, mode=AsOfMode.PUBLIC).select(scope).complete
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     (receipt,) = [r for r in acquisitions.history() if r.api_name == "sf_month"]
     assert receipt.fields == "month,inc_cumval,stk_endval"

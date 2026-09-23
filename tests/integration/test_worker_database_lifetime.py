@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
@@ -27,7 +27,6 @@ def test_worker_queries_survive_heartbeat_close_checkpoint_delay(tmp_path: Path)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     runs = RunRepository(paths.database)
     submitted = runs.submit(
@@ -123,7 +122,6 @@ def test_worker_retains_lease_until_periodic_heartbeat_has_closed(tmp_path: Path
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     runs = RunRepository(paths.database)
     submitted = runs.submit(

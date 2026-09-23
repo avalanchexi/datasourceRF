@@ -18,14 +18,14 @@ from tests.adapters.test_commodity_basket import (
     capture_reviewed_basket_inputs,
     fixed_weight_basket_transport,
 )
-from tests.fixtures.public_context import check_public_context
-from tests.models.test_candidate_admission import (
+from tests.fixtures.model_registration import (
     bind_synthetic_review,
     encode,
     prepared_request,
     save,
     submit,
 )
+from tests.fixtures.public_context import check_public_context
 
 
 def admitted_commodity_manifest(
@@ -560,41 +560,6 @@ def test_equivalent_price_redelivery_keeps_saved_candidate_and_original_parents(
     assert set(before.selected_claim_ids) == set(output["claim_ids"])
 
 
-def test_system_result_with_unknown_publication_is_not_public_evidence(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], acquisition_clock: Callable[[], datetime]
-) -> None:
-    from pring_cycle.commodity_basket import persist_commodity_basket
-
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    manifest = admitted_commodity_manifest(paths, capsys)
-    capture_reviewed_basket_inputs(paths, unknown_settlement_public=True)
-    result = persist_commodity_basket(
-        paths,
-        business_date=date(2026, 3, 10),
-        mode=AsOfMode.SYSTEM,
-        as_of=acquisition_clock(),
-        definition_version=manifest["metric_catalog_version"],
-    )
-    assert not result["missing"] and len(result["claim_ids"]) == 8
-    evidence = EvidenceRepository(paths.database)
-    system = evidence.metric_series(
-        "CN_COMMODITY_EX_HOG_BASKET",
-        mode=AsOfMode.SYSTEM,
-        as_of=acquisition_clock(),
-        definition_version=manifest["metric_catalog_version"],
-    )
-    assert len(system) == 1 and system[0].selected_value == pytest.approx(1012.6666666666666)
-    assert all(c.public_available_at is None for c in system[0].claims)
-    assert (
-        evidence.metric_series(
-            "CN_COMMODITY_EX_HOG_BASKET",
-            mode=AsOfMode.PUBLIC,
-            as_of=acquisition_clock(),
-            definition_version=manifest["metric_catalog_version"],
-        )
-        == ()
-    )
 
 
 @pytest.mark.usefixtures("acquisition_clock")

@@ -8,7 +8,7 @@ from pring_cycle.acquisition import own_acquisitions
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.eia_html import FetchedEiaHistory, refresh_eia_history
 from pring_cycle.evidence import EvidenceRepository
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.treasury_context import FetchedTreasuryYieldCsv, refresh_treasury_yields
@@ -27,7 +27,6 @@ def test_acquired_source_timing_survives_public_context_projection(
     initialize_runtime(paths)
     target = date(2026, 8, 28)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     run = RunRepository(paths.database).submit_manual_full(
         target_business_date=str(target),
@@ -87,7 +86,7 @@ def test_acquired_source_timing_survives_public_context_projection(
     assert row["period"] is None
     assert row["public_available_at"] is None
     assert row["value"] is None
-    assert row["status"] == "awaiting_source_certification"
+    assert row["status"] == "missing"
     acquisition = row["latest_acquisition"]
     assert acquisition is not None
     for key, value in expected.items():

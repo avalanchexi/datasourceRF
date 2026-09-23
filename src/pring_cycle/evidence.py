@@ -119,6 +119,13 @@ class ClaimView:
     certification_status: str
     quality_status: str
     supersedes_claim_id: str | None
+    # Set when public_available_at was inferred from the registered cadence (ADR-0021).
+    inferred_public_at: datetime | None = None
+
+    @property
+    def parsed_public_available_at(self) -> datetime | None:
+        """The public time the source's own parser gave, which rechecks compare against."""
+        return None if self.inferred_public_at is not None else self.public_available_at
 
 
 @dataclass(frozen=True)
@@ -738,7 +745,7 @@ class EvidenceRepository:
                 SELECT claim_id, observation_id, supersedes_claim_id, value,
                        value_state, unit, release_event_id, release_at,
                        public_available_at, fetched_at
-                FROM effective_source_claim
+                FROM source_claim
                 WHERE {" AND ".join(clauses)}
                 ORDER BY julianday(available_at) DESC, rowid DESC LIMIT 1
                 """,
@@ -1572,10 +1579,12 @@ def add_inferred_public_time(connection: sqlite3.Connection) -> None:
     connection.execute(
         """
         CREATE VIEW effective_source_claim AS
-        SELECT claim_id, observation_id, metric_id, definition_version, period_kind,
+        SELECT rowid AS rowid, claim_id, observation_id, metric_id, definition_version, period_kind,
                period_start, period_end, dimensions_json, value, value_state, unit,
                provider, source_reference, release_event_id, release_at,
                COALESCE(public_available_at, inferred_public_at) AS public_available_at,
+               CASE WHEN public_available_at IS NULL THEN inferred_public_at END
+                   AS inferred_public_at,
                fetched_at, available_at, certification_status, quality_status,
                supersedes_claim_id
         FROM source_claim
@@ -1597,6 +1606,11 @@ def _claim_view(row: sqlite3.Row) -> ClaimView:
         available_at=_required_datetime(row["available_at"]),
         certification_status=str(row["certification_status"]),
         quality_status=str(row["quality_status"]),
+        inferred_public_at=(
+            _datetime(row["inferred_public_at"])
+            if "inferred_public_at" in row.keys()  # noqa: SIM118 - sqlite3.Row membership is by value
+            else None
+        ),
         supersedes_claim_id=(
             str(row["supersedes_claim_id"]) if row["supersedes_claim_id"] is not None else None
         ),

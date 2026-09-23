@@ -5,6 +5,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from pring_cycle.batches import current_batch_id
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.domain.stage import derive_formal_stage
 from pring_cycle.projections import (
@@ -140,6 +141,9 @@ class P0ProjectionService:
         }
         if model_inputs is not None:
             identity_document["core_model_input_observation_version_ids"] = model_inputs
+        if (batch_id := current_batch_id()) is not None:
+            # A re-run of the same day is a new batch with its own summaries (ADR-0022).
+            identity_document["batch_id"] = batch_id
         projection_set_id = (
             "projection-"
             + hashlib.sha256(json.dumps(identity_document, sort_keys=True).encode()).hexdigest()[

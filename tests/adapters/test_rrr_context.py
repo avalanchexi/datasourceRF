@@ -151,60 +151,6 @@ def test_rrr_incomplete_scope_import_keeps_raw_without_partial_claims(tmp_path: 
     )
 
 
-def test_rrr_scope_revision_keeps_old_public_value_and_new_system_vintage(tmp_path: Path) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    original = (Path(__file__).parents[1] / "fixtures/pbc_rrr_chronicle_2025.html").read_bytes()
-    revision = original.replace(
-        "下调汽车金融公司和金融租赁公司存款准备金率5个百分点".encode(),
-        "下调汽车金融公司和金融租赁公司存款准备金率4个百分点".encode(),
-    )
-    assert revision != original
-    now = datetime(2026, 9, 7, 14, tzinfo=UTC)
-    for offset, raw in enumerate((original, revision)):
-        acquired_at = now + timedelta(hours=offset)
-
-        def clock(timestamp: datetime = acquired_at) -> datetime:
-            return timestamp
-
-        result = ingest_official_context_document(
-            paths,
-            raw,
-            family="pbc_rrr_notice",
-            source_url="https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/5896228/index.html",
-            expected_period="2025-05",
-            fetched_at=acquired_at,
-            definition_version="metric-catalog-v0001",
-            clock=clock,
-        )
-    repository = EvidenceRepository(paths.database)
-    traces = [
-        repository.trace(identifier, mode=AsOfMode.SYSTEM, as_of=now + timedelta(hours=2))
-        for identifier in result.observation_ids
-    ]
-    targeted = next(
-        trace
-        for trace in traces
-        if trace.dimensions["scope"] == "auto_finance_and_financial_leasing_companies"
-    )
-    (latest,) = targeted.claims
-    assert targeted.selected_value == -4.0
-    assert latest.public_available_at is None
-    assert latest.supersedes_claim_id is not None
-    public = repository.query(
-        targeted.observation_id, mode=AsOfMode.PUBLIC, as_of=now + timedelta(hours=2)
-    )
-    assert public.selected_value == -5.0
-    before_revision = repository.query(
-        targeted.observation_id, mode=AsOfMode.SYSTEM, as_of=now + timedelta(minutes=30)
-    )
-    assert before_revision.selected_value == -5.0
-    assert len(targeted.acquisitions) == 1
-    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
-    assert {
-        acquisitions.read_content(receipt.acquisition_id, "raw")
-        for receipt in acquisitions.history()
-    } == {original, revision}
 
 
 def test_rrr_chronicle_cannot_supply_a_different_requested_year() -> None:

@@ -21,7 +21,6 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.maintenance import MaintenanceRepository
 from pring_cycle.models import (
-    CALIBRATION_BASELINE,
     ModelRepository,
 )
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
@@ -38,9 +37,7 @@ from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
 def runtime(tmp_path: Path) -> RuntimePaths:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
-    models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
-    models.activate("model-v0001", explicitly_approved=True)
+    ModelRepository(paths.database).activate("model-v0001", explicitly_approved=True)
     return paths
 
 

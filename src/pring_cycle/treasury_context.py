@@ -232,7 +232,7 @@ def treasury_claims_matching_acquisitions(
             or point.period_start != point.period_end
             # This CSV contains no proof of per-row first publication or revisions.
             or claim.release_at is not None
-            or claim.public_available_at is not None
+            or claim.parsed_public_available_at is not None
         ):
             continue
         valid = True

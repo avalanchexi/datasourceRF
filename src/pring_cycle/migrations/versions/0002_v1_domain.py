@@ -9,10 +9,69 @@ from alembic import op
 
 from pring_cycle.evidence import _EVIDENCE_SCHEMA
 from pring_cycle.maintenance import _MAINTENANCE_SCHEMA
-from pring_cycle.models import _MODEL_SCHEMA
 from pring_cycle.projections import _PROJECTION_SCHEMA
 from pring_cycle.reports import _REPORT_SCHEMA
 from pring_cycle.runs import _RUN_SCHEMA
+
+# The model schema as this revision created it. Later revisions dropped the acceptance,
+# replay and rollback tables (0025), so the live module no longer carries this text.
+_MODEL_SCHEMA = """
+CREATE TABLE IF NOT EXISTS model_version (
+    model_version_id TEXT PRIMARY KEY,
+    manifest_hash TEXT NOT NULL,
+    manifest_json TEXT NOT NULL,
+    status TEXT NOT NULL,
+    certified_replay_start TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS model_acceptance (
+    model_version_id TEXT NOT NULL REFERENCES model_version(model_version_id),
+    result_hash TEXT NOT NULL,
+    results_json TEXT NOT NULL,
+    passed INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(model_version_id, result_hash)
+);
+CREATE TABLE IF NOT EXISTS active_model (
+    singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+    model_version_id TEXT NOT NULL REFERENCES model_version(model_version_id)
+);
+CREATE TABLE IF NOT EXISTS model_activation (
+    activation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_version_id TEXT NOT NULL REFERENCES model_version(model_version_id),
+    previous_model_version_id TEXT,
+    activated_at TEXT NOT NULL,
+    first_published_business_date TEXT
+);
+CREATE TABLE IF NOT EXISTS model_replay (
+    replay_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_version_id TEXT NOT NULL REFERENCES model_version(model_version_id),
+    compared_with TEXT NOT NULL REFERENCES model_version(model_version_id),
+    range_start TEXT NOT NULL,
+    range_end TEXT NOT NULL,
+    quality_passed INTEGER NOT NULL,
+    regression_passed INTEGER NOT NULL,
+    performance_passed INTEGER NOT NULL,
+    stage_differences INTEGER NOT NULL,
+    core_state_differences INTEGER NOT NULL,
+    gaps_json TEXT NOT NULL,
+    passed INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS model_rollback (
+    rollback_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    from_model_version_id TEXT NOT NULL REFERENCES model_version(model_version_id),
+    to_model_version_id TEXT NOT NULL REFERENCES model_version(model_version_id),
+    as_of_business_date TEXT NOT NULL,
+    rolled_back_at TEXT NOT NULL
+);
+CREATE TRIGGER IF NOT EXISTS model_manifest_no_update
+BEFORE UPDATE OF manifest_hash, manifest_json, certified_replay_start ON model_version BEGIN
+    SELECT RAISE(ABORT, 'model_manifest_is_immutable');
+END;
+CREATE TRIGGER IF NOT EXISTS model_version_no_delete
+BEFORE DELETE ON model_version BEGIN SELECT RAISE(ABORT, 'model_version_is_immutable'); END;
+"""
 
 revision = "0002_v1_domain"
 down_revision = "0001_runtime"

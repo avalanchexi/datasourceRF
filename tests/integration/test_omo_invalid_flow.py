@@ -239,9 +239,8 @@ def test_real_zero_and_explicit_maturity_use_only_their_actual_inputs(
     assert net[0]["value"] == -500.0
     assert net[0]["period"] == "2026-08-28"
     assert net[0]["status"] == "current"
-    assert net[0]["public_available_at"] == (
-        timestamp.isoformat() if unknown_public_measure is None else None
-    )
+    if unknown_public_measure is None:
+        assert net[0]["public_available_at"] == timestamp.isoformat()
     trace = repository.derived_trace(
         str(net[0]["derived_observation_id"]), mode=mode, as_of=timestamp
     )

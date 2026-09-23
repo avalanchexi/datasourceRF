@@ -12,7 +12,10 @@ depends_on = None
 
 
 def upgrade() -> None:
-    columns = {column["name"] for column in inspect(op.get_bind()).get_columns("model_replay")}
+    inspector = inspect(op.get_bind())
+    if "model_replay" not in inspector.get_table_names():
+        return  # dropped by 0025_drop_model_lifecycle
+    columns = {column["name"] for column in inspector.get_columns("model_replay")}
     if "context_output_hash" not in columns:
         op.execute("ALTER TABLE model_replay ADD COLUMN context_output_hash TEXT")
 

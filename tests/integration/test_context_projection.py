@@ -461,7 +461,7 @@ def test_empty_context_is_structured_local_degradation_not_empty_placeholders(
     assert context.macro["score"] is None
     assert len(context.macro["international_context"]) == 13  # type: ignore[arg-type]
     assert all(
-        item["status"] == "awaiting_source_certification"
+        item["status"] == "missing"
         for item in context.macro["international_context"]  # type: ignore[union-attr]
     )
     assert context.inventory["quadrant"] is None
@@ -676,7 +676,9 @@ def test_historical_context_reselects_same_provider_revision_visible_at_target(
     assert selected["source_reference"] == "fixture:official-publisher"
 
 
-@pytest.mark.parametrize("public_available", (True, False))
+# Unknown publication is now inferred from the registered cadence (ADR-0021), so only the
+# future-month case is still rejected.
+@pytest.mark.parametrize("public_available", (True,))
 def test_target_bound_context_rejects_future_month_or_unknown_public_time(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

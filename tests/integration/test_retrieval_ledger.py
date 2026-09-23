@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
@@ -75,20 +75,6 @@ def test_legacy_shared_release_family_is_bound_to_original_catalog(
 
     paths, runs = prepared_runtime(tmp_path)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0002", CALIBRATION_BASELINE)
-    models.record_replay(
-        "model-v0002",
-        compared_with="model-v0001",
-        requested_start="2026-03-09",
-        requested_end="2026-08-28",
-        stage_differences=0,
-        core_state_differences=0,
-        context_output_differences=0,
-        quality_passed=True,
-        regression_passed=True,
-        performance_passed=True,
-        gaps=(),
-    )
     models.activate("model-v0002", explicitly_approved=True)
     cutoff = datetime.now(UTC)
     monkeypatch.setattr("pring_cycle.retrieval_ledger.utc_now", lambda: cutoff)
@@ -219,7 +205,6 @@ def prepared_runtime(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     # These accounting scenarios concern known releases with missing values.
     from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
@@ -361,7 +346,6 @@ def test_targeted_search_reserves_request_before_http_and_retains_original(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n", encoding="utf-8")
     runs = RunRepository(paths.database)
@@ -422,7 +406,6 @@ def test_interrupted_search_is_charged_and_not_silently_repeated_on_resume(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n", encoding="utf-8")
     runs = RunRepository(paths.database)

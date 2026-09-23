@@ -14,7 +14,7 @@ from pring_cycle.catalog_registry import registered_definitions, registered_metr
 from pring_cycle.models import ModelRepository
 from pring_cycle.read_scope import shared_read_scope
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from tests.models.test_candidate_admission import (
+from tests.fixtures.model_registration import (
     bind_synthetic_review,
     prepared_request,
     save,

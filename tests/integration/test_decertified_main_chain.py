@@ -60,9 +60,8 @@ def rows_for(document: object, metric_id: str) -> Iterator[dict[str, Any]]:
             yield from rows_for(child, metric_id)
 
 
-@pytest.fixture(scope="module")
-def published(tmp_path_factory: pytest.TempPathFactory) -> tuple[RuntimePaths, Any]:
-    paths = runtime(tmp_path_factory.mktemp("decertified"))
+def seed_published_inputs(paths: RuntimePaths) -> None:
+    """180 sessions of rising cores and a flat DR007, none carrying certification."""
     evidence = EvidenceRepository(paths.database)
     days: list[date] = []
     day = TARGET
@@ -101,6 +100,12 @@ def published(tmp_path_factory: pytest.TempPathFactory) -> tuple[RuntimePaths, A
             )
         )
     evidence.append_source_claims(tuple(claims))
+
+
+@pytest.fixture(scope="module")
+def published(tmp_path_factory: pytest.TempPathFactory) -> tuple[RuntimePaths, Any]:
+    paths = runtime(tmp_path_factory.mktemp("decertified"))
+    seed_published_inputs(paths)
     run = RunRepository(paths.database).submit_manual_full(
         target_business_date=TARGET.isoformat(),
         client_request_id="decertified",

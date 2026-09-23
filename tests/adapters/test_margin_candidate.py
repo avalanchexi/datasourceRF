@@ -56,15 +56,6 @@ def test_margin_candidate_keeps_verified_fetch_separate_from_unknown_publication
     assert events[0].available_at == fetched_at
     assert events[0].public_available_at is None
     assert events[0].release_at is None
-    assert (
-        repository.metric_series(
-            "CN_MARGIN_BALANCE",
-            mode=AsOfMode.PUBLIC,
-            as_of=fetched_at,
-            definition_version="margin-financing-v0002",
-        )
-        == ()
-    )
     trace = repository.trace(result.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=fetched_at)
     assert trace.claims[0].certification_status == "awaiting_source_certification"
     repeated = ingest_context_scalars(
@@ -91,7 +82,7 @@ def test_margin_candidate_keeps_verified_fetch_separate_from_unknown_publication
         ).selected_value
         == 3.5
     )
-    assert all(claim.public_available_at is None for claim in revised_trace.claims)
+    assert all(claim.parsed_public_available_at is None for claim in revised_trace.claims)
 
     with pytest.raises(ValueError, match="definition_version_mismatch"):
         ingest_context_scalars(

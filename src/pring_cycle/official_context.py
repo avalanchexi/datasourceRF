@@ -368,8 +368,8 @@ def official_claims_matching_acquisitions(
                 or claim.source_reference
                 != f"{parsed.source_url}#sha256={acquisition.receipt.raw_hash}"
                 or (
-                    (claim.release_at is not None or claim.public_available_at is not None)
-                    and (claim.release_at, claim.public_available_at)
+                    (claim.release_at is not None or claim.parsed_public_available_at is not None)
+                    and (claim.release_at, claim.parsed_public_available_at)
                     != (parsed.release_at, parsed.public_available_at)
                 )
                 or not any(
@@ -755,42 +755,6 @@ def refresh_official_context_document(
                 },
             )
         raise
-
-
-def smoke_official_context_document(
-    *,
-    family: str,
-    source_url: str,
-    expected_period: str,
-    fetched_at: datetime,
-    fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
-) -> OfficialContextSmokeResult:
-    _validate_source_identity(family, source_url)
-    response = (fetcher or _fetch_official_context_document)(source_url)
-    _validate_fetched_document(family, source_url, response)
-    parsed = parse_official_context_document(
-        response.content,
-        family=family,
-        source_url=source_url,
-        expected_period=expected_period,
-        fetched_at=fetched_at,
-    )
-    return OfficialContextSmokeResult(
-        status="validated_candidate",
-        family=family,
-        provider=parsed.provider,
-        final_url=response.final_url,
-        period=parsed.period,
-        release_at=parsed.release_at,
-        metric_ids=tuple(sorted({scalar.metric_id for scalar in parsed.scalars})),
-        first_period=min(scalar.period_end for scalar in parsed.scalars),
-        last_period=max(scalar.period_end for scalar in parsed.scalars),
-        observation_count=len(parsed.scalars),
-        content_hash=hashlib.sha256(response.content).hexdigest(),
-        byte_count=len(response.content),
-        http_status=response.http_status,
-        network_requests=1,
-    )
 
 
 def _fetch_official_context_document(source_url: str) -> FetchedOfficialContextDocument:

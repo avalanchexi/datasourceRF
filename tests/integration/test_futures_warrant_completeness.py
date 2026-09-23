@@ -67,7 +67,7 @@ def test_warrant_acquisition_recovers_rows_beyond_documented_1000_limit(tmp_path
     assert len(history) == 3
     assert {receipts.read_content(r.acquisition_id, "raw") for r in history} == set(originals)
     assert all(r.state == "validated" for r in history)
-    assert all(p.claims[0].public_available_at is None for p in points)
+    assert all(p.claims[0].parsed_public_available_at is None for p in points)
 
 
 @pytest.mark.usefixtures("runtime_clock")

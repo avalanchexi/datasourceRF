@@ -22,7 +22,7 @@ from pring_cycle.evidence import (
     SourceClaimInput,
     publication_times,
 )
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
@@ -141,35 +141,6 @@ def test_unknown_core_catalog_is_rejected_before_any_request(tmp_path: Path) -> 
     assert AcquisitionRepository(paths.database, paths.artifacts).history() == ()
 
 
-@pytest.mark.usefixtures("runtime_clock")
-def test_core_refresh_keeps_unproven_publication_unknown(tmp_path: Path) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    refresh_core_history(
-        paths,
-        TushareCoreAdapter("fixture-token", transport=core_response),
-        start=date(2026, 8, 3),
-        end=date(2026, 8, 3),
-        definition_version="metric-catalog-v0001",
-    )
-    evidence = EvidenceRepository(paths.database)
-    known_now = datetime.now(UTC)
-    public = evidence.metric_series(
-        "CN_EQUITY_CORE_000985",
-        mode=AsOfMode.PUBLIC,
-        as_of=known_now,
-        definition_version="metric-catalog-v0001",
-    )
-    system = evidence.metric_series(
-        "CN_EQUITY_CORE_000985",
-        mode=AsOfMode.SYSTEM,
-        as_of=known_now,
-        definition_version="metric-catalog-v0001",
-    )
-    assert public == ()
-    assert system[0].selected_value == 101.0
-    assert system[0].claims[0].release_at is None
-    assert system[0].claims[0].public_available_at is None
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -241,7 +212,6 @@ def test_manual_run_cannot_backdate_daily_core_availability(
     initialize_runtime(paths)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     during_stock_request = []
 

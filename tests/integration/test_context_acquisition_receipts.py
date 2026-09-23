@@ -9,9 +9,9 @@ from typing import Any
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
-from pring_cycle.eia_context import EiaPetroleumAdapter, EiaSpotPrice, ingest_eia_spot_prices
+from pring_cycle.eia_context import EiaPetroleumAdapter
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.official_context import (
     ingest_official_context_document,
     refresh_official_context_document,
@@ -20,7 +20,7 @@ from pring_cycle.official_lpr import ingest_lpr_document, refresh_lpr_release
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
+from pring_cycle.tushare_context import TushareContextAdapter
 from pring_cycle.worker import process_pending_run
 
 
@@ -119,7 +119,7 @@ def test_official_document_preserves_publication_precision_and_receipt(
     for observation_id in result.observation_ids:
         trace = repository.trace(observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
         assert trace.claims[0].release_at == released_at
-        assert trace.claims[0].public_available_at == public_at
+        assert trace.claims[0].parsed_public_available_at == public_at
         assert trace.acquisition_status == "linked"
         receipt = trace.acquisitions[0]
         assert receipt.api_name == "document_import"
@@ -131,99 +131,10 @@ def test_official_document_preserves_publication_precision_and_receipt(
         )
 
 
-@pytest.mark.usefixtures("runtime_clock")
-def test_official_same_timestamp_revision_does_not_invent_publication_time(tmp_path: Path) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    results = []
-    for value, suffix in ((1.0, b""), (1.1, b""), (1.1, b""), (1.1, b"<!-- new layout -->")):
-        results.append(
-            ingest_official_context_document(
-                paths,
-                cpi_document("发布时间：2026-08-09 09:30", value) + suffix,
-                family="nbs_core_cpi",
-                source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260809_1.html",
-                expected_period="2026-07",
-                fetched_at=datetime.now(UTC),
-                definition_version="metric-catalog-v0001",
-            )
-        )
-    repository = EvidenceRepository(paths.database)
-    for observation_id in results[-1].observation_ids:
-        system = repository.trace(observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
-        if system.dimensions["measure"] != "yoy":
-            continue
-        assert system.selected_value == 1.1
-        assert system.claims[0].public_available_at is None
-        assert (
-            repository.query(
-                observation_id, mode=AsOfMode.PUBLIC, as_of=datetime.now(UTC)
-            ).selected_value
-            == 1.0
-        )
 
 
-def test_unknown_macro_publication_is_not_replaced_by_fetch_time(tmp_path: Path) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    fetched_at = datetime.now(UTC)
-    result = ingest_context_scalars(
-        paths,
-        (
-            ContextScalar(
-                metric_id="CN_PMI_ACTIVITY",
-                api_name="cn_pmi",
-                source_field="pmi010000",
-                period_kind="month",
-                period_start="2026-07-01",
-                period_end="2026-07-31",
-                dimensions={"series": "manufacturing", "measure": "level"},
-                value=49.3,
-                unit="diffusion_index_points",
-            ),
-        ),
-        fetched_at=fetched_at,
-        definition_version="metric-catalog-v0001",
-    )
-    repository = EvidenceRepository(paths.database)
-    current = datetime.now(UTC)
-    public = repository.trace(result.observation_ids[0], mode=AsOfMode.PUBLIC, as_of=current)
-    system = repository.trace(result.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=current)
-    assert public.selected_value is None
-    assert system.selected_value == 49.3
-    assert system.claims[0].release_at is None
-    assert system.claims[0].public_available_at is None
 
 
-def test_eia_unknown_publication_does_not_become_public_at_fetch(tmp_path: Path) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    result = ingest_eia_spot_prices(
-        paths,
-        (
-            EiaSpotPrice(
-                metric_id="EIA_BRENT_RBRTE",
-                series_id="RBRTE",
-                series_description="Europe Brent Spot Price FOB",
-                business_date=date(2026, 8, 27),
-                value=72.0,
-                unit="usd_per_barrel",
-            ),
-        ),
-        fetched_at=datetime.now(UTC),
-        definition_version="metric-catalog-v0001",
-    )
-    evidence = EvidenceRepository(paths.database)
-    system = evidence.trace(
-        result.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
-    )
-    assert system.claims[0].public_available_at is None
-    assert (
-        evidence.query(
-            result.observation_ids[0], mode=AsOfMode.PUBLIC, as_of=datetime.now(UTC)
-        ).selected_value
-        is None
-    )
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -293,7 +204,7 @@ def test_eia_acquisition_retains_response_and_both_series(tmp_path: Path) -> Non
             observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
         )
         assert trace.acquisition_status == "linked"
-        assert trace.claims[0].public_available_at is None
+        assert trace.claims[0].parsed_public_available_at is None
         receipt = trace.acquisitions[0]
         assert "api_key" not in receipt.parameters
         assert (
@@ -314,7 +225,6 @@ def test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explic
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
     paths.secrets.chmod(0o600)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     during_pmi = []
 
@@ -388,7 +298,7 @@ def test_manual_run_acquires_macro_receipts_and_keeps_uncertified_context_explic
         trace = evidence.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
         assert trace.acquisition_status == "linked"
         assert trace.claims[0].certification_status == "awaiting_source_certification"
-        assert trace.claims[0].public_available_at is None
+        assert trace.claims[0].parsed_public_available_at is None
         assert (
             evidence.query(
                 point.observation_id, mode=AsOfMode.SYSTEM, as_of=during_pmi[0]
@@ -501,7 +411,7 @@ def test_macro_acquisition_links_all_dimensions_to_exact_response(tmp_path: Path
         assert trace.acquisition_status == "linked", (cutoff, receipts.history())
         assert len(trace.acquisitions) == 1
         assert receipts.read_content(trace.acquisitions[0].acquisition_id, "raw") == content
-        assert trace.claims[0].public_available_at is None
+        assert trace.claims[0].parsed_public_available_at is None
         assert (
             repository.query(
                 observation_id, mode=AsOfMode.SYSTEM, as_of=during_request[0]
@@ -596,7 +506,7 @@ def test_lpr_import_preserves_actual_publication_precision(
     repository = EvidenceRepository(paths.database)
     for observation_id in result.observation_ids:
         trace = repository.trace(observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
-        assert trace.claims[0].public_available_at == public_at
+        assert trace.claims[0].parsed_public_available_at == public_at
         assert trace.acquisition_status == "linked"
 
 

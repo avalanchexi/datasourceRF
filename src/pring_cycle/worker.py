@@ -459,10 +459,6 @@ def _execute_run(
     runs.link_projection(run.run_id, result.projection_set_id)
     run = runs.get(run.run_id)
     full_retrieval.record_adoption(run)
-    ModelRepository(paths.database).record_first_publication(
-        run.model_version_id,
-        run.target_business_date,
-    )
     runs.advance(run.run_id, "generating_report")
     generated = _generate_report(paths, runs, run, report_adapters)
     runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)

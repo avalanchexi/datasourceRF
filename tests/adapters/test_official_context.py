@@ -5,15 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import analytical_model_v0002_manifest
 from pring_cycle.official_context import (
     FetchedOfficialContextDocument,
     ingest_official_context_document,
     parse_official_context_document,
     refresh_official_context_document,
-    smoke_official_context_document,
 )
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
@@ -170,106 +167,8 @@ def test_core_cpi_contract_accepts_live_nbs_table_and_slash_timestamp() -> None:
     assert {item.value for item in parsed.scalars} == {0.3, 0.9, 1.1}
 
 
-def test_official_context_ingest_is_traceable_but_redacted_until_certified(
-    tmp_path: Path,
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    content = core_cpi_document(2026, 6, (-0.1, 1.0, 1.2))
-    fetched_at = datetime(2026, 7, 9, 2, tzinfo=UTC)
-
-    result = ingest_official_context_document(
-        paths,
-        content,
-        family="nbs_core_cpi",
-        source_url="https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html",
-        expected_period="2026-06",
-        fetched_at=fetched_at,
-        clock=lambda: fetched_at,
-    )
-
-    evidence = EvidenceRepository(paths.database)
-    trace = evidence.trace(
-        result.observation_ids[0],
-        mode=AsOfMode.SYSTEM,
-        as_of=fetched_at,
-    )
-    context = build_context_projection(
-        evidence,
-        as_of=fetched_at,
-        model_manifest=analytical_model_v0002_manifest(),
-    )
-    core_rows = [
-        row
-        for row in context.macro["price_chain"]["gaps"]  # type: ignore[index]
-        if row["metric_id"] == "CN_CORE_CPI"
-    ]
-
-    assert result.observation_count == 3
-    assert len(result.artifact_hash) == 64
-    assert trace.claims[0].provider == "国家统计局"
-    assert trace.claims[0].certification_status == "awaiting_source_certification"
-    assert {row["freshness"] for row in core_rows} == {"awaiting_source_certification"}
-    assert {row["value"] for row in core_rows} == {None}
 
 
-def test_official_context_revision_without_new_time_remains_system_only(
-    tmp_path: Path,
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
-    first_fetch = datetime(2026, 7, 9, 2, tzinfo=UTC)
-    revision_fetch = datetime(2026, 7, 10, 2, tzinfo=UTC)
-    first = ingest_official_context_document(
-        paths,
-        core_cpi_document(2026, 6, (-0.1, 1.0, 1.2)),
-        family="nbs_core_cpi",
-        source_url=source_url,
-        expected_period="2026-06",
-        fetched_at=first_fetch,
-        clock=lambda: first_fetch,
-    )
-
-    ingest_official_context_document(
-        paths,
-        core_cpi_document(2026, 6, (-0.1, 1.1, 1.2)),
-        family="nbs_core_cpi",
-        source_url=source_url,
-        expected_period="2026-06",
-        fetched_at=revision_fetch,
-        clock=lambda: revision_fetch,
-    )
-    repository = EvidenceRepository(paths.database)
-    yoy_observation_id = next(
-        observation_id
-        for observation_id in first.observation_ids
-        if repository.trace(
-            observation_id,
-            mode=AsOfMode.SYSTEM,
-            as_of=first_fetch,
-        ).dimensions["measure"]
-        == "yoy"
-    )
-    before_revision = repository.query(
-        yoy_observation_id,
-        mode=AsOfMode.PUBLIC,
-        as_of=datetime(2026, 7, 9, 12, tzinfo=UTC),
-    )
-    after_revision = repository.query(
-        yoy_observation_id,
-        mode=AsOfMode.PUBLIC,
-        as_of=revision_fetch,
-    )
-
-    assert before_revision.selected_value == 1.0
-    assert after_revision.selected_value == 1.0
-    assert (
-        repository.query(
-            yoy_observation_id, mode=AsOfMode.SYSTEM, as_of=revision_fetch
-        ).selected_value
-        == 1.1
-    )
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -310,36 +209,9 @@ def test_scoped_fallback_preserves_revision_time_for_the_whole_announcement(
         "CN_CPI_HEADLINE", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC)
     )
     assert len(headline) == 3
-    assert all(claim.public_available_at is None for point in headline for claim in point.claims)
-    assert (
-        evidence.metric_series("CN_CPI_HEADLINE", mode=AsOfMode.PUBLIC, as_of=datetime.now(UTC))
-        == ()
+    assert all(
+        claim.parsed_public_available_at is None for point in headline for claim in point.claims
     )
-
-
-def test_official_context_smoke_returns_sanitized_contract_evidence() -> None:
-    content = core_cpi_document(2026, 6, (-0.1, 1.0, 1.2))
-    source_url = "https://www.stats.gov.cn/sj/zxfb/202607/t20260709_1.html"
-
-    result = smoke_official_context_document(
-        family="nbs_core_cpi",
-        source_url=source_url,
-        expected_period="2026-06",
-        fetched_at=datetime(2026, 7, 9, 2, tzinfo=UTC),
-        fetcher=lambda _url: FetchedOfficialContextDocument(
-            content=content,
-            media_type="text/html; charset=utf-8",
-            final_url=source_url,
-            http_status=200,
-        ),
-    )
-
-    assert result.status == "validated_candidate"
-    assert result.metric_ids == ("CN_CORE_CPI",)
-    assert result.observation_count == 3
-    assert result.network_requests == 1
-    assert len(result.content_hash) == 64
-    assert not hasattr(result, "content")
 
 
 @pytest.mark.usefixtures("runtime_clock")

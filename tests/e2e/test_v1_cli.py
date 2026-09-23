@@ -8,7 +8,6 @@ import pytest
 
 from pring_cycle.cli import main
 from pring_cycle.domain import CoreAssetState
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
@@ -29,23 +28,8 @@ def test_model_and_run_operations_share_the_public_cli_and_persistent_ledger(
     models = invoke(capsys, "models", *common)
 
     assert models["models"][0]["model_version_id"] == "model-v0001"
-    assert models["models"][0]["status"] == "candidate"
+    assert models["models"][0]["status"] == "registered"
 
-    with pytest.raises(SystemExit):
-        main(
-            [
-                "model-accept",
-                *common,
-                "--model",
-                "model-v0001",
-                "--json",
-            ]
-        )
-    assert "calibration_evidence_incomplete" in capsys.readouterr().err  # type: ignore[attr-defined]
-    ModelRepository(RuntimePaths.discover(root).database).record_acceptance(
-        "model-v0001",
-        CALIBRATION_BASELINE,
-    )
     activated = invoke(
         capsys,
         "model-activate",
@@ -222,23 +206,3 @@ def test_public_evidence_ingest_cannot_self_certify_a_p0_core_series(
         )
 
     assert "p0_evidence_requires_certified_adapter" in capsys.readouterr().err  # type: ignore[attr-defined]
-
-
-def test_model_replay_does_not_accept_self_attested_result_flags(capsys: object) -> None:
-    with pytest.raises(SystemExit):
-        main(
-            [
-                "model-replay",
-                "--model",
-                "model-v0001",
-                "--compared-with",
-                "model-v0000",
-                "--start",
-                "2026-01-01",
-                "--end",
-                "2026-08-28",
-                "--quality-passed",
-            ]
-        )
-
-    assert "unrecognized arguments: --quality-passed" in capsys.readouterr().err  # type: ignore[attr-defined]

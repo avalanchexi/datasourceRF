@@ -236,8 +236,8 @@ def lpr_claims_matching_acquisitions(
                 or claim.source_reference
                 != f"{parsed.source_url}#sha256={acquisition.receipt.raw_hash}"
                 or (
-                    (claim.release_at is not None or claim.public_available_at is not None)
-                    and (claim.release_at, claim.public_available_at)
+                    (claim.release_at is not None or claim.parsed_public_available_at is not None)
+                    and (claim.release_at, claim.parsed_public_available_at)
                     != (parsed.release_at, parsed.public_available_at)
                 )
                 or (point.period_start, point.period_end) != month_bounds(parsed.period)
@@ -435,43 +435,6 @@ def refresh_lpr_release(
             safe_metadata={"period": expected_period, "provider": CHINAMONEY_PROVIDER},
         )
         raise
-
-
-def smoke_lpr_release(
-    *,
-    source_url: str,
-    expected_period: str,
-    fetched_at: datetime,
-    fetcher: Callable[[str], FetchedOfficialDocument] | None = None,
-) -> LprSmokeResult:
-    _validate_official_url(source_url)
-    response = (fetcher or fetch_official_document)(source_url)
-    _validate_official_url(response.final_url)
-    if response.final_url != source_url:
-        raise ValueError("lpr_source_redirect_identity_changed")
-    if response.http_status != 200:
-        raise ValueError("lpr_source_http_status_invalid")
-    if response.media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
-        raise ValueError("lpr_response_media_type_invalid")
-    parsed = parse_lpr_announcement(
-        response.content,
-        source_url=response.final_url,
-        fetched_at=fetched_at,
-        expected_period=expected_period,
-    )
-    return LprSmokeResult(
-        status="validated",
-        source_identity="CHINAMONEY_LPR",
-        final_url=response.final_url,
-        period=parsed.period,
-        release_at=parsed.release_at,
-        observation_count=len(parsed.observations),
-        tenors=tuple(item.tenor for item in parsed.observations),
-        content_hash=hashlib.sha256(response.content).hexdigest(),
-        byte_count=len(response.content),
-        http_status=response.http_status,
-        network_requests=1,
-    )
 
 
 def fetch_official_document(source_url: str) -> FetchedOfficialDocument:

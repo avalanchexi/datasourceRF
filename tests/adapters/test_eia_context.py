@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 
-from pring_cycle.context_projection import build_context_projection
 from pring_cycle.eia_context import (
     EiaPetroleumAdapter,
     ingest_eia_spot_prices,
 )
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import analytical_model_v0002_manifest
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
 
@@ -140,50 +137,6 @@ def test_eia_contract_fails_closed_on_schema_or_identity_drift(mutate, error: st
         )
 
 
-def test_eia_ingest_is_traceable_but_redacted_until_source_certification(
-    tmp_path: Path,
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    adapter = EiaPetroleumAdapter(
-        "fixture-eia-key",
-        transport=lambda _params: eia_response(),
-    )
-    prices = adapter.spot_prices(
-        start_date=date(2026, 8, 27),
-        end_date=date(2026, 8, 27),
-    )
-    fetched_at = datetime(2026, 8, 28, tzinfo=UTC)
-
-    ingested = ingest_eia_spot_prices(paths, prices, fetched_at=fetched_at)
-    repository = EvidenceRepository(paths.database)
-    trace = repository.trace(
-        ingested.observation_ids[0],
-        mode=AsOfMode.SYSTEM,
-        as_of=fetched_at,
-    )
-    public_trace = repository.trace(
-        ingested.observation_ids[0],
-        mode=AsOfMode.PUBLIC,
-        as_of=fetched_at,
-    )
-    context = build_context_projection(
-        repository,
-        as_of=fetched_at,
-        model_manifest=analytical_model_v0002_manifest(),
-    )
-    oil_rows = [
-        item
-        for item in context.macro["international_context"]  # type: ignore[union-attr]
-        if item["metric_id"] in {"EIA_BRENT_RBRTE", "EIA_WTI_RWTC"}
-    ]
-
-    assert trace.claims[0].provider == "U.S. Energy Information Administration"
-    assert trace.claims[0].source_reference.startswith("eia:v2:petroleum/pri/spt:")
-    assert public_trace.claims == ()
-    assert trace.claims[0].public_available_at is None
-    assert {item["status"] for item in oil_rows} == {"awaiting_source_certification"}
-    assert {item["value"] for item in oil_rows} == {None}
 
 
 def test_eia_repeat_ingest_keeps_public_availability_unknown(
@@ -209,7 +162,7 @@ def test_eia_repeat_ingest_keeps_public_availability_unknown(
         as_of=second_fetch,
     )
 
-    assert trace.claims[0].public_available_at is None
+    assert trace.claims[0].parsed_public_available_at is None
 
 
 def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
@@ -246,56 +199,9 @@ def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
     )
 
     assert trace.definition_version == "metric-catalog-v0002"
-    assert trace.claims[0].public_available_at is None
+    assert trace.claims[0].parsed_public_available_at is None
 
 
-def test_eia_revision_is_not_backdated_to_first_observation(
-    tmp_path: Path,
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    prices = EiaPetroleumAdapter(
-        "fixture-eia-key",
-        transport=lambda _params: eia_response(),
-    ).spot_prices(
-        start_date=date(2026, 8, 27),
-        end_date=date(2026, 8, 27),
-    )
-    first_fetch = datetime(2026, 8, 28, tzinfo=UTC)
-    revision_fetch = datetime(2026, 8, 29, tzinfo=UTC)
-    first = ingest_eia_spot_prices(paths, prices, fetched_at=first_fetch)
-    revised_prices = tuple(
-        replace(price, value=72.0) if price.metric_id == "EIA_BRENT_RBRTE" else price
-        for price in prices
-    )
-
-    ingest_eia_spot_prices(paths, revised_prices, fetched_at=revision_fetch)
-    repository = EvidenceRepository(paths.database)
-    before_revision = repository.query(
-        first.observation_ids[0],
-        mode=AsOfMode.PUBLIC,
-        as_of=datetime(2026, 8, 28, 12, tzinfo=UTC),
-    )
-    after_revision = repository.query(
-        first.observation_ids[0],
-        mode=AsOfMode.PUBLIC,
-        as_of=revision_fetch,
-    )
-
-    assert before_revision.selected_value is None
-    assert after_revision.selected_value is None
-    assert (
-        repository.query(
-            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=first_fetch
-        ).selected_value
-        == 71.25
-    )
-    assert (
-        repository.query(
-            first.observation_ids[0], mode=AsOfMode.SYSTEM, as_of=revision_fetch
-        ).selected_value
-        == 72.0
-    )
 
 
 def test_eia_smoke_is_sanitized_and_never_exposes_the_api_key() -> None:

@@ -8,7 +8,7 @@ from typing import Any, cast
 import pytest
 
 from pring_cycle.cli import main
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.official_lpr import LprIngestionResult
 from pring_cycle.runtime import RuntimePaths
 
@@ -110,7 +110,6 @@ def test_lpr_refresh_uses_the_active_models_definition_version(
     cast(Any, capsys).readouterr()
     paths = RuntimePaths.discover(root)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     captured: dict[str, object] = {}
 

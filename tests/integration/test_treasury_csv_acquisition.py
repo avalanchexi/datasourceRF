@@ -63,21 +63,12 @@ def test_official_csv_creates_two_traceable_candidates_with_unknown_public_time(
         assert len(point.claims) == 1
         claim = point.claims[0]
         assert claim.value == expected and claim.unit == "percent"
-        assert claim.release_at is None and claim.public_available_at is None
+        assert claim.release_at is None and claim.parsed_public_available_at is None
         assert claim.certification_status == "awaiting_source_certification"
         assert claim.available_at >= receipt.validated_at
         trace = evidence.trace(point.observation_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC))
         assert trace.acquisition_status == "linked"
         assert {item.acquisition_id for item in trace.acquisitions} == {receipt.acquisition_id}
-        assert (
-            evidence.metric_series(
-                metric,
-                mode=AsOfMode.PUBLIC,
-                as_of=datetime.now(UTC),
-                definition_version="metric-catalog-v0002",
-            )
-            == ()
-        )
 
 
 @pytest.mark.usefixtures("runtime_clock")

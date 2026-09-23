@@ -9,7 +9,7 @@ from fastapi import FastAPI
 
 from pring_cycle.domain import CoreAssetState, FormalStage
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.official_lpr import ingest_lpr_document
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ANALYTICAL_DATASETS, ProjectionEnvelope, ProjectionSetRepository
@@ -77,7 +77,7 @@ def test_runtime_init_bootstraps_the_candidate_model_without_activating_it(tmp_p
         "model-v0002",
         "model-v0003",
     ]
-    assert {item["status"] for item in response} == {"candidate"}
+    assert {item["status"] for item in response} == {"registered"}
     assert {item["certified_replay_start"] for item in response} == {"2018-06-01"}
 
 
@@ -87,7 +87,6 @@ def test_release_calendar_api_reads_only_the_active_models_definition_version(
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     for definition_version in ("metric-catalog-v0001", "metric-catalog-v0002"):
         ingest_lpr_document(

@@ -550,7 +550,7 @@ def _ingest(
             or claim.unit != batch.unit
             or claim.source_reference != _reference(row.date)
             or claim.release_at is not None
-            or claim.public_available_at is not None
+            or claim.parsed_public_available_at is not None
         ):
             continue
         inputs = originals.get(claim.claim_id, ())

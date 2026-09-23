@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
@@ -53,7 +53,6 @@ def _complete_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Runt
     initialize_runtime(paths)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
 
     class FixtureOpener:

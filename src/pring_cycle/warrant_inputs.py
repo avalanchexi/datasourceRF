@@ -198,10 +198,10 @@ def _matches_original(point: MetricSeriesPoint, claim: ClaimView, scalar: Contex
         and (
             # Ingestion conservatively clears both times on a changed value.
             # Keep the captured assertion without granting it PUBLIC eligibility.
-            (claim.release_at is None and claim.public_available_at is None)
+            (claim.release_at is None and claim.parsed_public_available_at is None)
             or (
                 claim.release_at == scalar.release_at
-                and claim.public_available_at == scalar.public_available_at
+                and claim.parsed_public_available_at == scalar.public_available_at
             )
         )
         and claim.value == scalar.value

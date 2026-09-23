@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
-from pring_cycle.models import CALIBRATION_BASELINE, ModelRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -23,7 +23,6 @@ def prepare(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
-    models.record_acceptance("model-v0001", CALIBRATION_BASELINE)
     models.activate("model-v0001", explicitly_approved=True)
     return paths, RunRepository(paths.database)
 
@@ -104,7 +103,6 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
         )
     assert outcomes["eia_official_candidate"] == expected
     assert outcomes["eia_html_candidate"] == "source_failed"
-    assert row["certification_status"] == "awaiting_source_certification"
     assert row["value"] is None
     assert row["role"] == "context_only_never_formal_stage"
     assert row["latest_acquisition"]["definition_version"] == "metric-catalog-v0001"
@@ -848,7 +846,8 @@ def test_resume_rechecks_unknown_release_without_mutating_initial_plan(
     }
 
 
-@pytest.mark.parametrize("prior_certified", [True, False])
+# Uncertified prior values are no longer withheld (ADR-0021); only the labelled case remains.
+@pytest.mark.parametrize("prior_certified", [True])
 def test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot(
     tmp_path: Path, prior_certified: bool, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -926,19 +925,6 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     models = ModelRepository(paths.database)
     # Isolated legacy model lifecycle fixture; no hardened v3 gate is patched.
     models.create_candidate(analytical_model_v0002_manifest())
-    models.record_acceptance("model-v0002", CALIBRATION_BASELINE)
-    models.record_replay(
-        "model-v0002",
-        compared_with="model-v0001",
-        requested_start="2026-03-09",
-        requested_end="2026-08-28",
-        quality_passed=True,
-        regression_passed=True,
-        performance_passed=True,
-        stage_differences=0,
-        core_state_differences=0,
-        gaps=(),
-    )
     models.activate("model-v0002", explicitly_approved=True)
     seed_core_history(paths, definition_version="metric-catalog-v0002")
     known = datetime(2026, 8, 28, tzinfo=UTC)
@@ -1268,19 +1254,6 @@ def test_credit_gdp_ytd_baseline_matches_required_window(
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.create_candidate(analytical_model_v0002_manifest())
-    models.record_acceptance("model-v0002", CALIBRATION_BASELINE)
-    models.record_replay(
-        "model-v0002",
-        compared_with="model-v0001",
-        requested_start="2026-03-09",
-        requested_end="2026-08-28",
-        quality_passed=True,
-        regression_passed=True,
-        performance_passed=True,
-        stage_differences=0,
-        core_state_differences=0,
-        gaps=(),
-    )
     models.activate("model-v0002", explicitly_approved=True)
     seed_core_history(paths, definition_version="metric-catalog-v0002")
     last = last_year * 4 + last_quarter - 1

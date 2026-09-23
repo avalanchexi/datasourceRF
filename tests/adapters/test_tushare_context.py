@@ -7,15 +7,12 @@ from typing import Any
 
 import pytest
 
-from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.models import analytical_model_v0002_manifest
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import (
     ContextScalar,
     TushareContextAdapter,
     ingest_context_scalars,
-    summarize_context_source_smoke,
 )
 
 
@@ -636,68 +633,6 @@ def test_commodity_basket_freezes_sleeves_weights_and_output_window() -> None:
     }
 
 
-def test_candidate_context_keeps_public_time_unknown_after_valid_fetch(
-    tmp_path: Path,
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
-    initialize_runtime(paths)
-    adapter = TushareContextAdapter(
-        "fixture-token",
-        transport=transport(
-            {
-                "cn_pmi": response(
-                    [
-                        {
-                            "month": "202607",
-                            "pmi010000": 49.3,
-                            "pmi010400": 50.5,
-                            "pmi010500": 49.8,
-                            "pmi010700": 48.2,
-                            "pmi011100": 50.1,
-                            "pmi011200": 51.4,
-                            "pmi011300": 49.5,
-                            "pmi011400": 47.3,
-                        }
-                    ]
-                )
-            }
-        ),
-    )
-    fetched_at = datetime(2026, 8, 1, 4, tzinfo=UTC)
-
-    result = ingest_context_scalars(
-        paths,
-        adapter.pmi(start_month="202607", end_month="202607"),
-        fetched_at=fetched_at,
-    )
-    repository = EvidenceRepository(paths.database)
-    system_series = repository.metric_series(
-        "CN_PMI_ACTIVITY",
-        mode=AsOfMode.SYSTEM,
-        as_of=fetched_at,
-    )
-    public_series = repository.metric_series(
-        "CN_PMI_ACTIVITY",
-        mode=AsOfMode.PUBLIC,
-        as_of=fetched_at,
-    )
-    context = build_context_projection(
-        repository,
-        as_of=fetched_at,
-        model_manifest=analytical_model_v0002_manifest(),
-    )
-    pmi_rows = context.macro["overheat"]["gaps"]  # type: ignore[index]
-
-    assert result.observation_count == 8
-    assert len(system_series) == 4
-    assert public_series == ()
-    assert {claim.public_available_at for point in system_series for claim in point.claims} == {
-        None
-    }
-    assert {row["freshness"] for row in pmi_rows if row["metric_id"] == "CN_PMI_ACTIVITY"} == {
-        "awaiting_source_certification"
-    }
-    assert {row["value"] for row in pmi_rows if row["metric_id"] == "CN_PMI_ACTIVITY"} == {None}
 
 
 def test_candidate_context_repeat_ingest_preserves_unknown_public_time(
@@ -727,7 +662,7 @@ def test_candidate_context_repeat_ingest_preserves_unknown_public_time(
         as_of=second_fetch,
     )
 
-    assert trace.claims[0].public_available_at is None
+    assert trace.claims[0].parsed_public_available_at is None
 
 
 def test_candidate_context_same_value_repairs_explicit_source_schedule(
@@ -867,7 +802,7 @@ def test_candidate_context_same_value_can_move_to_a_new_definition_version(
     )
 
     assert trace.definition_version == "metric-catalog-v0002"
-    assert trace.claims[0].public_available_at is None
+    assert trace.claims[0].parsed_public_available_at is None
 
 
 def test_candidate_context_revision_without_new_time_remains_system_only(
@@ -916,32 +851,3 @@ def test_candidate_context_revision_without_new_time_remains_system_only(
         ).selected_value
         == 50.1
     )
-
-
-def test_context_source_smoke_summary_is_sanitized_and_content_addressed() -> None:
-    sentinel = "secret-must-not-appear"
-    result = summarize_context_source_smoke(
-        "pmi",
-        (
-            ContextScalar(
-                metric_id="CN_PMI_ACTIVITY",
-                api_name="cn_pmi",
-                source_field="pmi010000",
-                period_kind="month",
-                period_start="2026-07-01",
-                period_end="2026-07-31",
-                dimensions={"series": "manufacturing", "measure": "level"},
-                value=49.3,
-                unit="diffusion_index_points",
-            ),
-        ),
-        network_requests=1,
-    )
-
-    assert result.status == "validated_candidate"
-    assert result.api_names == ("cn_pmi",)
-    assert result.metric_ids == ("CN_PMI_ACTIVITY",)
-    assert result.first_period == result.last_period == "2026-07-31"
-    assert result.observation_count == 1
-    assert len(result.normalized_hash) == 64
-    assert sentinel not in repr(result)

@@ -184,8 +184,8 @@ def interbank_claims_matching_acquisitions(
             and claim.source_reference
             == f"tushare:{scalar['api_name']}:{scalar['source_field']}:{point.period_end}"
             and (
-                (claim.release_at is None and claim.public_available_at is None)
-                or (claim.release_at, claim.public_available_at) == (release_at, public_at)
+                (claim.release_at is None and claim.parsed_public_available_at is None)
+                or (claim.release_at, claim.parsed_public_available_at) == (release_at, public_at)
             )
             for scalar, release_at, public_at in batch
         ):

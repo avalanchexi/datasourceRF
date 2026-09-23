@@ -23,8 +23,8 @@ from pring_cycle.retrieval_ledger import RetrievalLedger
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.tushare_context import TushareContextAdapter
-from tests.fixtures.delivery_assertions import assert_certified_points, assert_certified_rows
-from tests.models.test_candidate_admission import (
+from tests.fixtures.delivery_assertions import assert_delivered_points, assert_delivered_rows
+from tests.fixtures.model_registration import (
     bind_synthetic_review,
     encode,
     prepared_request,
@@ -210,7 +210,7 @@ def test_pmi_official_fallback_preserves_other_delivered_metrics(
             assert {p.dimensions["series"]: p.selected_value for p in points} == expected[metric]
     for metric, points in after.items():
         if points:
-            assert_certified_points(points, "国家统计局" if metric in missing else "tushare")
+            assert_delivered_points(points, "国家统计局" if metric in missing else "tushare")
     expected_count = 8 if official_available else 8 - len(missing_fields)
     assert (
         len(official_claims_matching_acquisitions(evidence, after, definition_version=version))
@@ -234,7 +234,7 @@ def test_pmi_official_fallback_preserves_other_delivered_metrics(
         rows = [row for row in group if row["metric_id"] == metric]
         assert len(rows) == len(PMI_FIELDS[metric])
         provider = "国家统计局" if metric in missing else "tushare"
-        assert_certified_rows(rows, provider)
+        assert_delivered_rows(rows, provider)
 
 
 @pytest.mark.usefixtures("runtime_clock")

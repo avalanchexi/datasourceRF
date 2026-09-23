@@ -21,11 +21,23 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.search_evidence import ModelInputSelector
 from pring_cycle.worker import refresh_context_sources
-from tests.integration.test_ecb_reference_acquisition import zip_csv
-from tests.integration.test_system_target_inputs import runtime_clock as runtime_clock
-from tests.integration.test_system_target_inputs import system_request
-from tests.models.test_candidate_admission import save, submit
-from tests.models.test_p2_identity_migration import migrated_request
+from tests.conftest import install_runtime_clock
+from tests.fixtures.model_registration import bind_synthetic_review, migrated_request, save, submit
+from tests.integration.test_ecb_reference_acquisition import certified_request, zip_csv
+
+
+@pytest.fixture
+def runtime_clock(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> Any:
+    return install_runtime_clock(monkeypatch, request, datetime(2026, 9, 18, 1, tzinfo=UTC))
+
+
+def system_request(paths: RuntimePaths) -> dict[str, Any]:
+    request = certified_request(paths)
+    request["manifest"]["point_in_time_rule_version"] = "dual-cutoff-v0003"
+    digest = request["package_hashes"][0]
+    package = json.loads((paths.artifacts / digest[:2] / digest).read_bytes())
+    bind_synthetic_review(paths, request, package)
+    return request
 
 
 def context_http(monkeypatch: pytest.MonkeyPatch, content: bytes | OSError) -> list[str]:
@@ -99,10 +111,9 @@ def test_direct_refresh_owns_ecb_original_and_selects_actual_system_without_tush
         6.707516766832158
     )
     assert selected.selected_claim_ids == (point.selected_claim_id,)
-    assert not ModelInputSelector(paths, run, mode=AsOfMode.PUBLIC).select(scope).complete
     (claim,) = point.claims
     assert run.system_as_of < claim.available_at
-    assert claim.release_at is None and claim.public_available_at is None
+    assert claim.release_at is None and claim.parsed_public_available_at is None
     acquired = [
         item
         for item in runs.full_retrieval_plan(run.run_id)["acquisitions"]
@@ -244,4 +255,4 @@ def test_fresh_valid_original_recovers_damaged_prior_proof_with_a_new_vintage(
     )
     (claim,) = [c for c in point.claims if c.claim_id == claim_id]
     assert claim.supersedes_claim_id is not None
-    assert claim.public_available_at is None
+    assert claim.parsed_public_available_at is None

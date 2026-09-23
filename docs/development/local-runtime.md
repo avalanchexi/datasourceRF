@@ -134,36 +134,25 @@ Windows 浏览器访问 `http://127.0.0.1:8050/`。Web 只绑定 `127.0.0.1`；�
 
 停止服务时在各自终端发送 `Ctrl-C` 或 `SIGTERM`。两个进程都会写停止事件并退出；不要用
 `kill -9` 作为正常停止方式。状态检查使用 `pring-cycle doctor --json`、
-`pring-cycle runs --json` 和 `pring-cycle cutover-status --json`。
+`pring-cycle runs --json`。
 
 ## 模型、证据与运行操作
 
-初始化登记冻结的 `model-v0001` 与新的 `model-v0002` 候选，不会隐式激活。v0001 的目录与
-清单哈希保持历史不变；v0002 固定本次 P1/P2 目录身份和派生公式，必须经过来源认证、回放和
-用户批准后才能生效。Worker 从该次运行绑定的生效模型清单加载上下文目录和派生公式，不从
-进程全局的“最新目录”读取；模型切换与回退因此会同时切换核心趋势和上下文语义。
-`model-accept` 从仓库内已认证的三核心
-`public_as_of` 历史重新运行冻结趋势与阶段规则；历史不完整或结果不满足冻结基线时直接失败，
-不接受人工传入的“通过”布尔值。机器校准通过后再由用户显式批准：
+初始化登记内置的 `model-v0001`–`model-v0003`，不会隐式激活。模型版本只是版本号加生效指针
+（ADR-0022）：`model-register` 登记一份新的版本清单，`model-activate --confirm` 把指针移到该
+版本。之后的运行使用它并把版本号记入加工批次；已发布的汇总不重算。回退就是再次激活旧版本，
+没有校准、回放或验收步骤。
 
 ```bash
 pring-cycle models --json
 pring-cycle core-history-refresh \
-  --start 2017-01-01 --end 2026-08-19 \
+  --start 2026-01-01 --end 2026-08-19 \
   --definition-version metric-catalog-v0001 --json
-pring-cycle model-accept --model model-v0001 --json
-pring-cycle model-activate --model model-v0001 --confirm --json
+pring-cycle model-register --manifest /wsl/native/path/model.json --json
+pring-cycle model-activate --model MODEL_VERSION --confirm --json
 ```
 
-历史刷新按自然年分片调用 TuShare，三条核心必须逐年共享同一上交所交易日历，任一缺口都会在
-写入前失败。规范化的 `close/pre_close/official_return` 输入会保存为本机内容寻址制品；校准
-从 2017-01-01 起加载 2,338 个共同交易日作为状态机预热与证据输入，但只在
-2018-06-01—2026-08-19 的 1,995 个共同交易日内计数验收指标。验收结果同时绑定输入区间、
-计数区间、交易日数和规范化证据哈希；预热期不得折算为正式转换。后续实时数据不会静默扩大
-`model-v0001` 的冻结校准区间。
-
-证据 JSON 必须包含 metric identity、统计期、单位、来源、公开/抓取/系统可用时间、认证与质量
-状态。写入及点时查询示例：
+证据 JSON 必须包含 metric identity、统计期、单位、来源、公开/抓取/系统可用时间与质量状态。写入及点时查询示例：
 
 ```bash
 pring-cycle evidence-ingest --input /wsl/native/path/claim.json --json
@@ -230,17 +219,7 @@ pring-cycle lpr-contract --input /wsl/native/path/lpr.html \
   --period YYYY-MM --fetched-at 2026-08-20T09:02:00+08:00 --json
 ```
 
-人工真实烟雾必须显式给出当期公告的精确 HTTPS URL。它只输出来源身份、最终 URL、字段
-形状、发布时间、观测数量、字节数、SHA-256 和结论，不保存响应正文；通过结果会登记为
-`source-smoke-v0001` 内容寻址制品，供真实演练按哈希核验：
-
-```bash
-pring-cycle lpr-smoke \
-  --url https://www.chinamoney.com.cn/chinese/rdgz/YYYYMMDD/CONTENT_ID.html \
-  --period YYYY-MM --json
-```
-
-烟雾通过后，显式摄取会把公告作为内容寻址制品保存，并以一个发布事件原子写入两条认证
+显式摄取会把公告作为内容寻址制品保存，并以一个发布事件原子写入两条
 source claim；同一正文重复获取保持幂等，后续修订只能从实际抓取修订的时点起进入
 `public_as_of`，不会回填到原公告时点。普通 `evidence-ingest` 不能自称这条来源已认证：
 
@@ -273,32 +252,17 @@ pring-cycle official-context-contract \
   --fetched-at 2026-08-28T10:05:00+08:00 --json
 ```
 
-真实 smoke 必须由用户显式给出当期官方页面；结果只保留来源、字段、时间、数量、字节数、
-HTTP 状态和内容哈希，不保存正文，并返回真实演练所需的制品哈希：
-
-```bash
-pring-cycle official-context-smoke \
-  --family FAMILY --url OFFICIAL_HTTPS_URL --period PERIOD --json
-```
-
-smoke 通过只证明该次页面满足候选契约，不会自动把目录来源升级为 `certified`。来源认证还需
-人工核对历史覆盖、版式族、许可和单位，并通过新的指标目录/模型版本生效；此前候选 claim 会
-追加保存但在宏观和库存投影中遮蔽数值。需要摄取精确公告时，使用下述 `targeted_refresh` 并
-同时传 `--source-url`，Worker 会按指标集合选择唯一 family。
-
 EIA Brent `RBRTE` 与 WTI `RWTC` 使用官方 API v2
 `/v2/petroleum/pri/spt/data/`，固定日频、`Dollars per Barrel` 与两条 series identity。
-离线 JSON 契约检查和显式真实 smoke 为：
+离线 JSON 契约检查为：
 
 ```bash
 pring-cycle eia-contract --input /wsl/native/path/eia-response.json \
   --start YYYY-MM-DD --end YYYY-MM-DD --json
-pring-cycle eia-smoke --start YYYY-MM-DD --end YYYY-MM-DD --json
 ```
 
-后者只从仓库外 `secrets.env` 读取 `EIA_API_KEY`，输出不含 key 或完整响应。完整运行在配置该
-key 时独立刷新 EIA；没有 TuShare token 也不会阻断 EIA。两条 P2 原油在真实 smoke 与来源
-认证前保持 `awaiting_source_certification`，绝不替换 NHII 商品核心。
+完整运行只从仓库外 `secrets.env` 读取 `EIA_API_KEY`，在配置该 key 时独立刷新 EIA；没有
+TuShare token 也不会阻断 EIA。两条 P2 原油绝不替换 NHII 商品核心。
 
 公开日历史 HTML 可通过 `eia-html-refresh` 显式取得候选，无需 API key。以下示例在独立候选
 运行库中执行，不激活模型；两项各请求一次官方完整日表，再选取指定窗口：
@@ -332,14 +296,6 @@ pring-cycle treasury-csv-refresh --runtime-root /home/tywin/.cache/pring-cycle/t
 历史逐日PUBLIC保持未知，所有候选待认证；Worker现有TuShare渠道仍按配置运行。
 通常18:00美东时间前可用是发布预期，不能填成实际发布时间。字段/时间依据见
 [官方契约](../../.scratch/pring-data-acquisition-repair/treasury-followup.md)。
-
-TuShare 的 PMI、CPI/PPI、货币、社融、仓单、GDP、美债和资金市场 schema family 使用一条
-显式、只输出身份/时点/数量/哈希的汇总 smoke；它不会保存来源正文或回显 token，只登记脱敏
-结果制品：
-
-```bash
-pring-cycle context-source-smoke --target-date YYYY-MM-DD --json
-```
 
 手动完整运行是主路径；命令先持久化，独立 Worker 再领取。定向刷新、手动深搜和报告任务使用
 同一账本与幂等键：
@@ -398,51 +354,7 @@ pring-cycle report-read --report-id REPORT_ID --json
 
 同日重新生成创建新版本，不覆盖历史。正文保留 30 天；事实骨架、引用、哈希和版本长期保留。
 
-模型升级需要候选验收、与当前模型的认证区间交集回放，以及用户显式激活。回放命令自己从
-证据仓库按各模型冻结的 definition version 计算核心与 PUBLIC-as-of 上下文输出、公式血缘、
-质量、稳定性、差异和性能门，不接受调用者声明门禁结果。认证标签但无历史证据或公式输出时
-回放仍失败。内部回退还要求首次
-发布后少于 30 个交易日和一份明确交易日日历；它不会启动旧系统：
-
-```bash
-pring-cycle model-replay --model NEXT_MODEL --compared-with CURRENT_MODEL \
-  --start YYYY-MM-DD --end YYYY-MM-DD --json
-pring-cycle model-rollback --model NEXT_MODEL --as-of-date YYYY-MM-DD \
-  --calendar /wsl/native/path/trading-days.txt --confirm --json
-```
-
-## 隔离生命周期测试材料
-
-`tests/models/test_isolated_lifecycle.py` 经公开准入、机器校准、精确120交易日回放和显式激活，
-在测试临时运行根中构建一个合成的完整生效模型，并把成功的构建保存为可重建测试缓存，默认位于
-`${XDG_CACHE_HOME:-$HOME/.cache}/pring-cycle/test-materials/<身份键>/`（可用
-`PRING_TEST_MATERIALS_ROOT` 指定）。身份键覆盖源码、依赖、配置、构建器与输入文件哈希；材料附带
-运行根内容哈希清单，复用前逐文件核对，任一不符即拒绝。清单不含 SQLite 的 `-wal`、`-shm`、
-`-journal` 旁文件：任何一次普通只读连接都会生成或删除它们，把它们计入会把正常读取判成材料被
-改动。每个测试得到独立完整副本。
-
-该材料只由测试构建产生、只复制到测试临时运行根，从不读取或复制正式运行目录的 SQLite、
-证据、报告或密钥，也不用于恢复；它不是 ADR-0011 所指的运行数据备份，删除后可重新构建。
-材料中的全部来源认证与发布时间均为合成测试数据，不构成真实来源认证。
-
-### 回收堆积的材料
-
-身份键覆盖源码，所以**每改一次代码就多存一份材料**，每份约 3 GB，旧的再也不会被读取，也
-没有任何东西负责删除它们。构建期间的 `<身份键>.build-<pid>/` 目录在构建成功后才会清除，
-因此被中断的构建（进程被杀、崩溃）会把部分副本永久留下。
-
-WSL 的虚拟磁盘默认位于 Windows 的 C 盘，这些堆积最终表现为 C 盘耗尽，再反过来拖慢一切。
-
-`tools/reclaim.py` 按保留策略回收，默认只报告不删除：
-
-```bash
-python tools/reclaim.py                      # 报告：保留最近 3 份及 2 天内的
-python tools/reclaim.py --keep 3 --days 0    # 只保留最近 3 份
-python tools/reclaim.py --apply              # 按上述策略实际删除
-```
-
-它不会删除 pid 仍存活的 `.build-` 目录，因此可以在测试运行期间执行。删错的代价是下次
-重建（约一小时），所以保留份数至少为 1。
+## WSL 虚拟磁盘回收
 
 WSL 内删除不会让 Windows 侧的 C 盘立刻变大——虚拟磁盘只增不减。需要在 Windows 侧执行
 `wsl --shutdown` 后压缩 `ext4.vhdx`（`Optimize-VHD -Mode Full`，或 `diskpart` 的
@@ -452,53 +364,6 @@ WSL 内删除不会让 Windows 侧的 C 盘立刻变大——虚拟磁盘只增�
 系统 ANSI 读它的脚本文件。路径含非 ASCII 字符（例如中文用户名）时，UTF-8 会让两者分别
 报"字符串缺少终止符"和"系统找不到指定的路径"。脚本正文写成纯 ASCII，路径由
 `$env:LOCALAPPDATA` 拼出，diskpart 脚本用 `[Text.Encoding]::Default` 写入。
-
-## 全套验证为什么会停在 45%
-
-2026-09-18 至 09-20 之间，同版本全套验证连续三次停在 45% 附近，表现各不相同：
-
-| 日期 | 结果 | 直接原因 |
-| --- | --- | --- |
-| 09-18 | 914 passed 后中止 | 监督按 C 盘保护 SIGTERM，余量 1.65 GiB |
-| 09-20 | 45% 中止，失败计数 0 | 同上，C 盘 13.24 → 2.60 GiB |
-| 09-20 | 45% 被系统杀 | 内存不足；可用内存降至 482 MB，swap 已用 4 GB 且无法增长 |
-
-45% 不是某个测试的缺陷，而是重型 Worker 与隔离生命周期测试开始大量写盘的位置：一轮
-验证的 `--basetemp` 可以涨到 20 GB 以上，加上每次代码改动新增一份约 3 GB 的材料。
-WSL 虚拟磁盘和 swap 文件都在 C 盘，磁盘一满，swap 无处增长，内存压力就变成进程被杀。
-
-**因此看到 45% 中止，先查 C 盘余量，不要先怀疑测试。** 中止不构成任何通过结论，
-45% 的进度也不能记为部分通过。
-
-2026-09-21 清理并压缩虚拟磁盘后（C 盘可用 3.6 GB → 160 GB），同版本全套首次完整跑完：
-
-```
-1891 passed / 1 failed / 6234.04 秒 (1:43:54)
-峰值内存 910 MB
-```
-
-峰值内存远低于机器上限，说明历次中断是磁盘约束，不是套件吃内存。
-
-### 时间花在哪里
-
-同一轮的 `--durations=30` 显示成本高度集中：
-
-```
-913.44s  test_complete_isolated_candidate_is_calibrated_replayed_and_activated
-539.78s  test_integrated_worker_preserves_delivery_time_and_source[False]
-530.05s  test_integrated_worker_preserves_delivery_time_and_source[True]
-300.34s  test_worker_full_run_publishes_the_registered_projection[parse-validation_failed]
-291.05s  ...[network-source_failed]
-280.91s  test_worker_full_run_for_a_fixed_target_retrieves_gaps...
-272.41s  ...[success-verified_candidate]
-272.37s  ...[missing-missing_credentials]
-271.18s  test_full_worker_falls_back_to_official_ppi...
-247.71s  test_worker_tushare_failures_keep_required_blocking...
-```
-
-**前 10 项合计 3919 秒，占总时长 63%；第 11 名骤降到 78 秒。** 其余 1882 项分摊剩下的
-37%。这决定了提速的方向：并行的下界是最慢单项的 913 秒，真正的杠杆在这 10 项各自
-重建整条流水线的成本上，不在把 1882 个小测试分散到更多核上。
 
 ## 统一离线验收
 
@@ -514,16 +379,6 @@ pring-cycle verify --runtime-root "$PRING_CYCLE_VERIFY_ROOT" --json
 两次应得到同一稳定文档，包含 `network_requests=0` 和 `processes=stopped`。验收只连接
 `127.0.0.1`，不需要项目凭据或 AI CLI 登录。`pring-cycle test` 是同一验收入口的别名，
 不会建立第二套测试编排路径。
-
-V1 切换级验收使用 `pring-cycle acceptance --json`。它额外覆盖 35 个 `REG-*`、离线确定性
-重放、八类故障注入、REST/首屏/命令/冷启动/回放时间以及 RSS 硬门，并把完整结果写入仓库外
-内容寻址制品。进程探测始终在独立临时运行目录中启动 Web 与 Worker，不会处理正式目录中的
-排队任务或读取其数据源凭据。任一硬门失败返回 `status=blocked`，没有强制绕过。
-
-整套验收的耗时是优化目标而非硬门：文档 `suite_timing` 记录目标 600 秒、实测值、是否达标
-及计时范围（`acceptance_internal_phases`，不含其后的故障注入）。全部硬门通过而仅时长超标
-时，结果仍为 `status=ok`，实测值和未达标照常可见。整批 pytest 从开始到实际终态的总耗时属于
-另一口径，由切换清单的 `--suite-total-seconds` 另行记录，不与上面的阶段计时混算。
 
 开发检查使用同一 WSL 原生虚拟环境：
 
