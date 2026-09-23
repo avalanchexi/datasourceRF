@@ -254,7 +254,8 @@ def test_manual_run_cannot_backdate_daily_core_availability(
         as_of=StableDateTime.now(UTC),
         definition_version="metric-catalog-v0001",
     )
-    assert len(after) == 160
+    # 160 sessions were fetched for the trend; the run keeps its 120-session window.
+    assert len(after) == 120
     # The source states no publication time, so public time is the earlier of the
     # registered 17:00 close update and the moment the system first held the value.
     for point in after:

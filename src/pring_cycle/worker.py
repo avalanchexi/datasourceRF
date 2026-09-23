@@ -368,12 +368,22 @@ def _execute_run(
         runs.mark_action_required(run.run_id, "p0_required_calendar_unavailable")
         return
     runs.advance(run.run_id, "validating_evidence")
+    # A core day missing inside the window (other than the target itself, which is the
+    # carry-forward case) is missing detail: it holds the formal stage (gate ①).
+    window_gaps = {
+        gap["metric_id"]
+        for gap in plan["final"]["gaps"]
+        if not gap["complete"]
+        and gap["metric_id"] in model_manifest["core_metrics"].values()
+        and gap.get("period") != run.target_business_date
+    }
     readiness = _core_readiness(
         paths,
         run,
         rules=_trend_rules_for_model(paths, run.model_version_id),
         definition_version=definition_version,
         calendar=calendar,
+        window_gaps=window_gaps,
     )
     runs.advance(run.run_id, "evaluating_core_readiness")
     runs.advance(run.run_id, "deriving_states")
@@ -468,6 +478,10 @@ def _execute_run(
     generated = _generate_report(paths, runs, run, report_adapters)
     runs.record_checkpoint(run.run_id, "report_snapshot", generated, verified=True)
     runs.advance(run.run_id, "completed")
+    # Only a successful run moves the retention window; a failed one leaves everything.
+    from pring_cycle.retention import prune_to_window
+
+    prune_to_window(paths)
 
 
 def _execute_retrieval_run(
@@ -908,6 +922,7 @@ def _core_readiness(
     rules: TrendRules,
     definition_version: str,
     calendar: TradingCalendar | None = None,
+    window_gaps: set[str] | frozenset[str] = frozenset(),
 ) -> tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]:
     evidence = EvidenceRepository(paths.database)
     target = date.fromisoformat(run.target_business_date)
@@ -950,6 +965,8 @@ def _core_readiness(
         carried = bool(series) and series[-1].period_end == previous_session.isoformat()
         if not series:
             reason = "source_missing"
+        elif metric_id in window_gaps:
+            reason = "window_session_missing"
         elif any(item.selection_status == "conflicted" for item in series):
             reason = "source_conflict"
         elif series[-1].period_end != run.target_business_date and not carried:

@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 _MUTATING_COMMANDS = {
     "model-activate",
     "model-register",
+    "retention-prune",
     "fixture-project",
     "gap-notice",
     "lpr-refresh",
@@ -388,6 +389,10 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         }
     if namespace.command == "report-read":
         return asdict(ReportRepository(paths.database).get(namespace.report_id))
+    if namespace.command == "retention-prune":
+        from pring_cycle.retention import prune_to_window
+
+        return {**asdict(prune_to_window(paths)), "status": "completed"}
     if namespace.command == "cleanup":
         cleaned = MaintenanceRepository(paths.database).cleanup()
         return {**asdict(cleaned), "status": "completed"}
@@ -424,6 +429,7 @@ def _parser() -> argparse.ArgumentParser:
         "stage-history",
         "gap-notices",
         "cleanup",
+        "retention-prune",
     ):
         _runtime_parser(subparsers, command)
     subparsers.choices["secrets-migrate"].add_argument(

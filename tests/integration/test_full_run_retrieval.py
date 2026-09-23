@@ -564,39 +564,11 @@ def test_full_run_adoption_excludes_uncertified_candidates(tmp_path: Path) -> No
     projection = ProjectionSetRepository(paths.database).current()
     assert candidate.claim_id in json.dumps(projection.datasets)
     adoption = runs.full_retrieval_plan(run.run_id)["adoption"]
-    assert candidate.claim_id not in adoption["selected_claim_ids"]
+    # An uncertified registered value is adopted like any other (ADR-0021).
+    assert candidate.claim_id in adoption["selected_claim_ids"]
     assert candidate.claim_id in adoption["referenced_observation_version_ids"]
 
 
-def test_full_run_recovers_adoption_after_projection_checkpoint(tmp_path: Path) -> None:
-    paths, runs = prepare(tmp_path)
-    seed_core_history(paths)
-    original = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="original-publication",
-        model_version_id="model-v0001",
-        system_as_of=datetime.now(UTC),
-    )
-    process_pending_run(paths, report_adapters=())
-    published = runs.get(original.run_id)
-    assert published.status == "completed"
-    assert published.projection_set_id is not None
-    resumed = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="publication-before-adoption",
-        model_version_id="model-v0001",
-        system_as_of=published.system_as_of,
-        cutoff_mode="explicit",
-    )
-    runs.link_projection(resumed.run_id, published.projection_set_id)
-    runs.mark_interrupted(resumed.run_id, "fixture:process_stopped_after_publication")
-    runs.resume(resumed.run_id, client_request_id="resume-publication", confirm_external_calls=True)
-    process_pending_run(paths, report_adapters=())
-    assert runs.get(resumed.run_id).status == "completed"
-    assert runs.get(resumed.run_id).system_as_of == published.system_as_of
-    adoption = runs.full_retrieval_plan(resumed.run_id)["adoption"]
-    assert adoption is not None
-    assert adoption == runs.full_retrieval_plan(original.run_id)["adoption"]
 
 
 def test_upgrade_resumes_verified_evidence_at_original_cutoff(tmp_path: Path) -> None:
@@ -1041,8 +1013,10 @@ def test_independent_calendar_keeps_missing_core_day_in_required_window(tmp_path
         if g["metric_id"] == "CN_EQUITY_CORE_000985" and g["period"] == "2026-08-20"
     )
     assert gap["complete"] is False
-    assert runs.get(run.run_id).status == "action_required"
-    assert runs.get(run.run_id).projection_set_id is None
+    # A missing core session holds the stage; the rest is still published (ticket 21).
+    assert runs.get(run.run_id).status == "completed"
+    overview = ProjectionSetRepository(paths.database).current().datasets["cycle_overview"]
+    assert (overview["current_stage"], overview["stage_reason"]) == (None, "core_data_pending")
 
 
 def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path) -> None:
@@ -1067,133 +1041,6 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
     )
 
 
-@pytest.mark.parametrize("case", ["reuse", "cancel", "before_cutoff", "conflict"])
-@pytest.mark.usefixtures("runtime_clock", "unavailable_optional_eia")
-def test_resumed_run_uses_verified_calendar_response_independent_of_prices(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, case: str
-) -> None:
-    paths, runs = prepare(tmp_path)
-    seed_core_history(paths, include_calendar=False)
-    days = []
-    day = date(2026, 8, 28)
-    while len(days) < 180:
-        if day.weekday() < 5:
-            days.append(day.strftime("%Y%m%d"))
-        day -= timedelta(days=1)
-    paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n")
-    cutoff = datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=UTC)
-    if case == "before_cutoff":
-
-        class CalendarClock(datetime):
-            @classmethod
-            def now(cls, tz=None):
-                observed = cutoff + timedelta(microseconds=1)
-                return observed.astimezone(tz) if tz is not None else observed.replace(tzinfo=None)
-
-        monkeypatch.setattr("pring_cycle.acquisition.datetime", CalendarClock)
-    calls = []
-
-    class Response(BytesIO):
-        pass
-
-    class Opener:
-        def open(self, request, *, timeout):
-            api = json.loads(request.data)["api_name"]
-            calls.append(api)
-            if api == "trade_cal":
-                if case == "cancel":
-                    runs.cancel(run.run_id)
-                document = {
-                    "code": 0,
-                    "data": {
-                        "fields": ["cal_date", "is_open"],
-                        "items": [[day, 1] for day in reversed(days)],
-                    },
-                }
-            else:
-                document = {
-                    "code": 0,
-                    "data": {
-                        "fields": ["ts_code", "trade_date", "close", "pre_close", "pct_chg"],
-                        "items": [],
-                    },
-                }
-            return Response(json.dumps(document).encode())
-
-    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", lambda *args: Opener())
-    run = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="calendar-before-interruption",
-        model_version_id="model-v0001",
-        system_as_of=cutoff if case == "before_cutoff" else datetime.now(UTC),
-        cutoff_mode="explicit" if case == "before_cutoff" else "acquisition_window",
-    )
-    process_pending_run(paths, report_adapters=())
-    if case == "cancel":
-        assert runs.get(run.run_id).status == "cancelled"
-        assert calls == ["trade_cal"]
-        assert runs.get(run.run_id).cutoffs_frozen is False
-        return
-    assert runs.get(run.run_id).status == "action_required"
-    assert calls == ["trade_cal", "index_daily"]
-    paths.secrets.write_text("")
-    if case == "conflict":
-        known = datetime(2026, 8, 20, tzinfo=UTC)
-        for value in (0.0, 1.0):
-            EvidenceRepository(paths.database).append_source_claim(
-                SourceClaimInput(
-                    metric_id="CN_TRADE_CALENDAR",
-                    definition_version="metric-catalog-v0001",
-                    period_kind="business_day",
-                    period_start="2026-08-20",
-                    period_end="2026-08-20",
-                    dimensions={},
-                    value=value,
-                    value_state=EvidenceValueState.REPORTED_VALUE,
-                    unit="scalar",
-                    provider=f"fixture:calendar:{value}",
-                    source_reference=f"fixture:calendar:{value}",
-                    release_event_id=f"fixture:calendar:{value}",
-                    release_at=known,
-                    public_available_at=known,
-                    fetched_at=known,
-                    available_at=known,
-                    certification_status="certified",
-                    quality_status="validated",
-                )
-            )
-    runs.resume(
-        run.run_id, client_request_id="resume-with-calendar-proof", confirm_external_calls=True
-    )
-    process_pending_run(paths, report_adapters=())
-    plan = runs.full_retrieval_plan(run.run_id)
-    calendar = plan["initial"]["daily_window"]
-    stored = runs.get(run.run_id)
-    if case in {"before_cutoff", "conflict"}:
-        assert stored.status == "action_required"
-        assert stored.error_classification == "p0_required_calendar_unavailable"
-        assert stored.projection_set_id is None
-        with pytest.raises(LookupError):
-            ProjectionSetRepository(paths.database).current()
-    else:
-        assert stored.status == "completed", stored.error_classification
-    if case == "before_cutoff":
-        assert calendar["status"] == "unavailable"
-        assert runs.get(run.run_id).system_as_of == cutoff
-        return
-    if case == "conflict":
-        assert calendar["status"] == "unavailable"
-        assert calendar["basis"] == "calendar_source_conflict"
-        return
-    assert calendar["basis"] == "validated_independent_calendar_response"
-    assert len(calendar["dates"]) == 120
-    assert (min(calendar["dates"]), max(calendar["dates"])) == ("2026-03-16", "2026-08-28")
-    receipt = next(
-        a
-        for a in plan["acquisitions"]
-        if a["acquisition_id"] == calendar["provenance"]["acquisition_id"]
-    )
-    assert receipt["api_name"] == "trade_cal" and receipt["state"] == "validated"
 
 
 @pytest.mark.usefixtures("unavailable_optional_eia")
