@@ -30,11 +30,18 @@ from pring_cycle.evidence import (
     EvidenceValueState,
     MetricSeriesPoint,
 )
+from pring_cycle.freshness import (
+    TradingCalendar,
+    period_status,
+    record_run_freshness,
+    run_calendar_scope,
+    use_run_calendar,
+)
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
 from pring_cycle.metric_contracts import (
+    china_business_day_end,
     evidence_frequency,
-    evidence_max_age_days,
     minimum_context_daily_observations,
     required_dimension_members,
 )
@@ -188,7 +195,7 @@ def process_pending_run(
             # A Worker run never captures reviewed futures inputs (only their reviewed import
             # does) or alters stored claims' parents, so one run shares one read of those.
             runs.record_code_version(queued.run_id, code_version())
-            with shared_read_scope(), processing_batch(queued.run_id):
+            with shared_read_scope(), processing_batch(queued.run_id), run_calendar_scope():
                 _execute_run(
                     paths,
                     runs,
@@ -340,6 +347,13 @@ def _execute_run(
             full_retrieval.recover_legacy_plan(run)
     full_retrieval.evaluate(run)
     plan = runs.full_retrieval_plan(run.run_id)
+    calendar = TradingCalendar(
+        date.fromisoformat(day) for day in plan["final"]["daily_window"].get("dates", ())
+    )
+    use_run_calendar(calendar)
+    record_run_freshness(
+        paths.database, run.run_id, model_rules.metric_definitions, run.system_as_of, calendar
+    )
     if plan["final"]["daily_window"]["status"] != "available":
         runs.mark_action_required(run.run_id, "p0_required_calendar_unavailable")
         return
@@ -1279,8 +1293,14 @@ def _point_is_current_for_target(
             return False
         if not _point_known_by_target(point, target_business_date):
             return False
-    max_age = evidence_max_age_days(definition.metric_id, definition.frequency)
-    return (target - min(target, period)).days <= max_age
+    return (
+        period_status(
+            definition.metric_id,
+            min(target, period).isoformat(),
+            china_business_day_end(target),
+        )
+        == "current"
+    )
 
 
 def _point_known_by_target(point: MetricSeriesPoint, target_business_date: str) -> bool:

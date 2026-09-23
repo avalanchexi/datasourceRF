@@ -27,8 +27,8 @@ from pring_cycle.evidence import (
     EvidenceValueState,
     MetricSeriesPoint,
 )
+from pring_cycle.freshness import period_status
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
-from pring_cycle.metric_contracts import evidence_max_age_days
 from pring_cycle.official_context import (
     OFFICIAL_CONTEXT_INTEGRITY_METRICS,
     official_claims_matching_acquisitions,
@@ -1732,10 +1732,7 @@ def _evidence_status(
 
 
 def _period_freshness(definition: MetricDefinition, period_end: str, *, as_of: datetime) -> str:
-    period_date = date.fromisoformat(period_end)
-    age = (as_of.date() - period_date).days
-    limit = evidence_max_age_days(definition.metric_id, definition.frequency)
-    return "stale" if age > limit else "current"
+    return period_status(definition.metric_id, period_end, as_of)
 
 
 def _release_status(

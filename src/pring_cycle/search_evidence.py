@@ -15,6 +15,7 @@ from pring_cycle.catalog_registry import (
 )
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
+from pring_cycle.freshness import period_status
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
 from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES
 from pring_cycle.market_breadth import (
@@ -24,8 +25,8 @@ from pring_cycle.market_breadth import (
 )
 from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
+    china_business_day_end,
     event_period_limit,
-    evidence_max_age_days,
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
@@ -414,9 +415,8 @@ class ModelInputSelector:
                     # newer event must not silently resurrect an older rate.
                     latest = max(p.period_end for p in matches)
                     matches = [p for p in matches if p.period_end == latest]
-                    if (
-                        date.fromisoformat(self.target_business_date) - date.fromisoformat(latest)
-                    ).days > evidence_max_age_days(metric_id, definition.frequency):
+                    target = date.fromisoformat(self.target_business_date)
+                    if period_status(metric_id, latest, china_business_day_end(target)) == "stale":
                         matches = []
                 accepted = []
                 for point in matches:

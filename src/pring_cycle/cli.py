@@ -481,14 +481,22 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         if namespace.model is not None and namespace.model != active_model_id:
             raise ValueError("run_model_is_not_active")
         model_version_id = active_model_id
+        launched_at = (
+            datetime.fromisoformat(namespace.as_of) if namespace.as_of else datetime.now(UTC)
+        )
+        target_date = namespace.target_date
+        if target_date is None:
+            from pring_cycle.freshness import launch_calendar, target_business_date
+
+            target_date = target_business_date(
+                launched_at, launch_calendar(paths, launched_at)
+            ).isoformat()
         submitted = RunRepository(paths.database).submit(
             command_type=namespace.type,
-            target_business_date=namespace.target_date,
+            target_business_date=target_date,
             client_request_id=namespace.request_id,
             model_version_id=model_version_id,
-            system_as_of=(
-                datetime.fromisoformat(namespace.as_of) if namespace.as_of else datetime.now(UTC)
-            ),
+            system_as_of=launched_at,
             cutoff_mode="explicit" if namespace.as_of else None,
             release_event_id=namespace.release_event,
             metric_ids=tuple(namespace.metric),
@@ -794,7 +802,10 @@ def _parser() -> argparse.ArgumentParser:
         choices=("manual_full", "targeted_refresh", "manual_deep_search", "report_generation"),
         default="manual_full",
     )
-    run_submit.add_argument("--target-date", required=True)
+    run_submit.add_argument(
+        "--target-date",
+        help="Target business day; omit to use the latest session whose core update has passed",
+    )
     run_submit.add_argument("--request-id", required=True)
     run_submit.add_argument("--model")
     run_submit.add_argument(

@@ -24,8 +24,8 @@ def append_input(
     dimensions: dict[str, str] | None = None,
     unit: str = "percent",
     period_kind: str = "business_day",
+    timestamp: datetime = datetime(2026, 8, 28, 10, tzinfo=UTC),
 ) -> str:
-    timestamp = datetime(2026, 8, 28, 10, tzinfo=UTC)
     return repository.append_source_claim(
         SourceClaimInput(
             metric_id=metric_id,
@@ -207,8 +207,10 @@ def test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat(
                 else {"measure": "monthly_increment"},
                 unit="hundred_million_cny",
                 period_kind="quarter" if is_gdp else "month",
+                timestamp=datetime(2026, 7, 20, 10, tzinfo=UTC),
             )
-    cutoff = datetime(2026, 8, 29, tzinfo=UTC)
+    # June social financing and Q2 GDP are both the latest released periods here.
+    cutoff = datetime(2026, 7, 20, 12, tzinfo=UTC)
     context = build_context_projection(
         repository, as_of=cutoff, model_manifest=fixture_manifest(), as_of_mode=mode
     )
