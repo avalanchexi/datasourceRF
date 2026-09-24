@@ -688,3 +688,93 @@ def test_a_held_omo_rate_stays_in_force_through_days_without_a_stated_rate(
         for r in plan["initial"]["requirements"]
         if r["metric_id"] == "CN_OMO_7D_RATE"
     ] == [("2026-09-23", "local_complete")]
+
+
+RRR_CUT = {
+    "title": "央行宣布降准0.5个百分点",
+    "content": "<p>中国人民银行决定于2026年9月23日下调金融机构存款准备金率0.5个百分点"
+    "（不含已执行5%存款准备金率的金融机构）。</p>",
+    "pub_time": "2026-09-22 17:00:00",
+    "src": "新华网",
+}
+
+
+def rrr_rows(paths: RuntimePaths, model_id: str, now: datetime, target: str) -> list[Any]:
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=now + timedelta(days=1),
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date=target,
+    )
+    return [
+        (row["status"], row["value"])
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] == "CN_RRR_EVENT"
+    ]
+
+
+def test_an_rrr_cut_in_the_news_becomes_the_baseline_the_analysis_reads(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Event #02: no gap asks for it; the run's news is read for it on its own day."""
+    now = datetime(2026, 9, 24, 7, 11, tzinfo=UTC)
+    paths, model_id, version = register_at(now, tmp_path, monkeypatch, request, capsys)
+
+    run, _opener, _elsewhere = full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        lambda _payload: news_response([RRR_CUT]),
+        target="2026-09-23",
+        now=now,
+    )
+
+    assert selected(paths, "CN_RRR_EVENT", version, now) == {
+        "excluding_5_percent_institutions-rrr_change": -0.5
+    }
+    monitoring = RunRepository(paths.database).full_retrieval_plan(run.run_id)
+    assert monitoring["event_monitoring"]["metrics"] == {"CN_RRR_EVENT": "new_event"}
+    assert rrr_rows(paths, model_id, now, "2026-09-23") == [("current", -0.5)]
+
+
+def test_a_held_rrr_needs_no_retrieval_when_the_news_states_none(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The next run's news says nothing of the RRR: the cut held stays the baseline."""
+    first = datetime(2026, 9, 24, 7, 11, tzinfo=UTC)
+    now = datetime(2026, 9, 29, 7, 11, tzinfo=UTC)
+    paths, model_id, _version = register_at(now, tmp_path, monkeypatch, request, capsys)
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        lambda _payload: news_response([RRR_CUT]),
+        target="2026-09-23",
+        now=first,
+    )
+
+    run, _opener, _elsewhere = full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        lambda _payload: news_response([]),
+        target="2026-09-28",
+        now=now,
+    )
+
+    with database_connection(paths.database) as connection:
+        attempts = connection.execute(
+            "SELECT count(*) FROM run_retrieval_attempt WHERE run_id=? "
+            "AND release_event_id LIKE '%rrr%'",
+            (run.run_id,),
+        ).fetchone()
+    assert attempts == (0,)
+    plan = RunRepository(paths.database).full_retrieval_plan(run.run_id)
+    assert plan["event_monitoring"]["metrics"] == {"CN_RRR_EVENT": "none_stated"}
+    assert rrr_rows(paths, model_id, now, "2026-09-28") == [("current", -0.5)]

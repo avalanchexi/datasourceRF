@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
@@ -28,6 +28,9 @@ from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
+
+if TYPE_CHECKING:
+    from pring_cycle.news_rules import NewsValue, TakenValue
 
 NEWS_API = "major_news"
 NEWS_FIELDS = ("title", "content", "pub_time", "src")
@@ -40,6 +43,8 @@ _SHANGHAI = ZoneInfo("Asia/Shanghai")
 _MAX_PAGES = 200
 
 NewsTransport = Callable[[dict[str, Any]], bytes]
+# Read from every run's news on the day their sentences name, not for a gap (ADR-0028).
+NEWS_EVENT_METRICS = frozenset({"CN_RRR_EVENT"})
 
 
 @dataclass(frozen=True)
@@ -229,51 +234,96 @@ def fill_from_news(
     Items published after the run's cutoff are not read. The first item to state a member
     gives it; a later item stating another value for it is ignored.
     """
-    from pring_cycle.news_rules import (
-        TUSHARE_NEWS,
-        TakenValue,
-        extract,
-        plain_text,
-        rules_for,
-        store_news_values,
-        text_hash,
-    )
+    from pring_cycle.news_rules import extract, rules_for
 
     scope = run.retrieval_scope
     assert scope is not None
     if scope.priority == "P0" or not rules_for(scope.metric_ids):
         return ()
     taken: dict[tuple[str, str], TakenValue] = {}
-    for item in run_news(paths, run.run_id):
-        if item.published_at > run.system_as_of:
-            continue
-        text = plain_text(item.content)
+    for item, text in _readable(paths, run):
         for value in extract(scope.metric_ids, scope.period, text).values:
-            taken.setdefault(
-                (value.metric_id, json.dumps(value.dimensions, sort_keys=True)),
-                TakenValue(
-                    value=value,
-                    title=item.title,
-                    source_name=item.source,
-                    published_at=item.published_at.isoformat(),
-                    body_hash=text_hash(text),
-                    url=None,
-                    acquisition_id=item.acquisition_id,
-                    fetched_at=item.fetched_at,
-                    release_at=item.published_at,
-                ),
-            )
+            taken.setdefault(_member(value), _taken(value, item, text))
     if not taken:
         return ()
+    return _store(paths, tuple(taken.values()), scope.period, definition_version)
+
+
+def fill_events_from_news(
+    paths: RuntimePaths,
+    run: RunRecord,
+    *,
+    metric_ids: tuple[str, ...],
+    definition_version: str,
+) -> tuple[str, ...]:
+    """Store the events this run's news states, each on the effective day its sentence names.
+
+    No gap asks for an event (an RRR change has no due period): the news is read for one
+    on every run, and what was held stays the baseline when it states none (ADR-0028).
+    """
+    from pring_cycle.news_rules import extract, stated_event_days
+
+    by_day: dict[str, dict[tuple[str, str], TakenValue]] = {}
+    for item, text in _readable(paths, run):
+        for day in stated_event_days(metric_ids, text, published=item.published_at.date()):
+            for value in extract(metric_ids, day, text).values:
+                by_day.setdefault(day, {}).setdefault(_member(value), _taken(value, item, text))
+    stored: list[str] = []
+    for day, taken in sorted(by_day.items()):
+        values = tuple(taken.values())
+        stored += _store(paths, values, day, definition_version, published_is_public=True)
+    return tuple(stored)
+
+
+def _readable(paths: RuntimePaths, run: RunRecord) -> Iterator[tuple[NewsItem, str]]:
+    """The run's news items published by its cutoff, with their plain text."""
+    from pring_cycle.news_rules import plain_text
+
+    for item in run_news(paths, run.run_id):
+        if item.published_at <= run.system_as_of:
+            yield item, plain_text(item.content)
+
+
+def _member(value: NewsValue) -> tuple[str, str]:
+    return value.metric_id, json.dumps(value.dimensions, sort_keys=True)
+
+
+def _taken(value: NewsValue, item: NewsItem, text: str) -> TakenValue:
+    from pring_cycle.news_rules import TakenValue, text_hash
+
+    return TakenValue(
+        value=value,
+        title=item.title,
+        source_name=item.source,
+        published_at=item.published_at.isoformat(),
+        body_hash=text_hash(text),
+        url=None,
+        acquisition_id=item.acquisition_id,
+        fetched_at=item.fetched_at,
+        release_at=item.published_at,
+    )
+
+
+def _store(
+    paths: RuntimePaths,
+    taken: tuple[TakenValue, ...],
+    period: str,
+    definition_version: str,
+    *,
+    published_is_public: bool = False,
+) -> tuple[str, ...]:
+    from pring_cycle.news_rules import TUSHARE_NEWS, store_news_values
+
     return store_news_values(
         paths.database,
-        tuple(taken.values()),
+        taken,
         route=TUSHARE_NEWS,
         provider=TUSHARE_NEWS,
         source_reference=lambda t: f"{TUSHARE_NEWS}:{t.acquisition_id}#{t.body_hash}",
-        period=scope.period,
+        period=period,
         definition_version=definition_version,
         available_at=_now(),
+        published_is_public=published_is_public,
     )
 
 

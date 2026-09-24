@@ -42,6 +42,16 @@ def stated(
 
 CASES = [
     pytest.param(
+        "pbc_rrr_chronicle_20250515.json",
+        ("CN_RRR_EVENT",),
+        "2025-05-15",
+        {
+            ("CN_RRR_EVENT", "excluding_5_percent_institutions", "rrr_change"): -0.5,
+            ("CN_RRR_EVENT", "auto_finance_and_financial_leasing_companies", "rrr_change"): -5.0,
+        },
+        id="rrr-cut-on-its-effective-day",
+    ),
+    pytest.param(
         "nbs_20260831_pmi.json",
         ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
         "2026-08",

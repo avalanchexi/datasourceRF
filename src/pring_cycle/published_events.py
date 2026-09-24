@@ -17,7 +17,14 @@ class PublishedEventSelection:
 def select_published_rrr_events(
     repository: EvidenceRepository, points: tuple[MetricSeriesPoint, ...]
 ) -> PublishedEventSelection:
-    """Require all members of each visible announcement, preserving separate events."""
+    """Require all members of each visible announcement, preserving separate events.
+
+    An official announcement must keep every member it published; a news item stands on
+    each member's matched quote, as a news value does elsewhere (ADR-0026, ADR-0028).
+    """
+    from pring_cycle.news_rules import news_claims_matching_quotes
+
+    quoted = news_claims_matching_quotes(repository.database_path, {"CN_RRR_EVENT": points})
     groups: dict[str, list[MetricSeriesPoint]] = {}
     for point in points:
         claim = next((c for c in point.claims if c.claim_id == point.selected_claim_id), None)
@@ -28,6 +35,9 @@ def select_published_rrr_events(
     missing: list[str] = []
     for source, members in groups.items():
         ids = [p.selected_claim_id for p in members if p.selected_claim_id is not None]
+        if ids and set(ids) <= quoted:
+            selected.extend(ids)
+            continue
         publication = repository.source_claim_publication(ids[0])
         expected = publication.get("scalars") if publication is not None else None
         if (

@@ -169,7 +169,7 @@ class FullRunRetrieval:
     def _pull_news(self, run: RunRecord) -> None:
         """One TuShare news pull for every gap of the run, before any gap is retried."""
         from pring_cycle.secrets import parse_data_source_secrets
-        from pring_cycle.tushare_news import pull_news
+        from pring_cycle.tushare_news import NEWS_EVENT_METRICS, fill_events_from_news, pull_news
 
         token = parse_data_source_secrets(self.paths.secrets).get("TUSHARE_TOKEN")
         if not token:
@@ -180,7 +180,31 @@ class FullRunRetrieval:
             else run.system_as_of
         )
         with own_acquisitions(self.paths.database, run.run_id, "tushare_news"):
-            pull_news(self.paths, run, token, end=min(end, _target_end(run)))
+            pulled = pull_news(self.paths, run, token, end=min(end, _target_end(run)))
+        rules = ContextProjectionRules.from_manifest(
+            ModelRepository(self.paths.database).manifest(run.model_version_id)
+        )
+        events = tuple(
+            d.metric_id for d in rules.metric_definitions if d.metric_id in NEWS_EVENT_METRICS
+        )
+        if events:
+            stored = fill_events_from_news(
+                self.paths,
+                run,
+                metric_ids=events,
+                definition_version=rules.metric_catalog_version,
+            )
+            # A news pull cut short read only part of its window: that is not "none stated".
+            unread = "none_stated" if pulled == "verified_candidate" else "news_unavailable"
+            self._record(
+                run.run_id,
+                "event_monitoring",
+                {
+                    "news_pull": pulled,
+                    "metrics": {m: "new_event" if stored else unread for m in events},
+                    "claim_ids": list(stored),
+                },
+            )
 
     def _plan(self, run: RunRecord) -> dict[str, Any]:
         from pring_cycle.worker import _retrieval_release_status

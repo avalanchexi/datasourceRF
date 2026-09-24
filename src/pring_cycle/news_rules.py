@@ -22,7 +22,7 @@ import re
 import sqlite3
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
@@ -47,8 +47,9 @@ _AMOUNT = _NUM + r"(?P<unit>万亿元|亿元)"
 _CHANGE = r"(?P<dir>增加|减少)"
 _GROWTH = r"(?P<dir>增长|下降)"
 _OTHER = r"\d+(?:\.\d+)?%"
+_RRR_CHANGE = r"(?P<dir>下调|上调)金融机构存款准备金率\s*" + _NUM + r"\s*个百分点"
 # Words that make a stated change negative.
-_NEGATIVE = frozenset({"下降", "回落", "减少"})
+_NEGATIVE = frozenset({"下降", "回落", "减少", "下调"})
 
 # How a sentence names its period, and what each wording stands for. A sentence without
 # one takes the nearest wording before it (the paragraph's "8月份，" or "前八个月").
@@ -115,6 +116,8 @@ class NewsRule:
     sentence_must: str | None = None
     # The value must sit under the first heading, not the second (manufacturing PMI).
     section: tuple[str, str] | None = None
+    # The day must be written in the value's own sentence, not in one before it.
+    day_in_sentence: bool = False
 
 
 def _rule(
@@ -125,6 +128,7 @@ def _rule(
     *,
     sentence_must: str | None = None,
     section: tuple[str, str] | None = None,
+    day_in_sentence: bool = False,
 ) -> NewsRule:
     return NewsRule(
         metric_id,
@@ -133,6 +137,7 @@ def _rule(
         forms,
         sentence_must,
         section,
+        day_in_sentence,
     )
 
 
@@ -477,6 +482,24 @@ NEWS_RULES: dict[str, tuple[NewsRule, ...]] = {
             ("day",),
         ),
     ),
+    # An RRR change is dated by the effective day written before it ("决定于5月15日下调…");
+    # its scopes are the official notice parser's (ADR-0028).
+    "pbc_rrr_notice": (
+        _rule(
+            "CN_RRR_EVENT",
+            {"scope": "excluding_5_percent_institutions", "measure": "rrr_change"},
+            _RRR_CHANGE + r"\s*[（(]不含已执行\s*5\s*%\s*存款准备金率的金融机构[）)]",
+            ("day",),
+            day_in_sentence=True,
+        ),
+        _rule(
+            "CN_RRR_EVENT",
+            {"scope": "auto_finance_and_financial_leasing_companies", "measure": "rrr_change"},
+            r"(?P<dir>下调|上调)汽车金融公司和金融租赁公司存款准备金率\s*" + _NUM + r"\s*个百分点",
+            ("day",),
+            day_in_sentence=True,
+        ),
+    ),
 }
 NEWS_RULE_METRICS = frozenset(rule.metric_id for rules in NEWS_RULES.values() for rule in rules)
 
@@ -575,6 +598,8 @@ def extract(
             sentence = _sentence(text, match)
             if rule.sentence_must and rule.sentence_must not in sentence:
                 continue
+            if rule.day_in_sentence and context is not None and context not in sentence:
+                continue
             if rule.section and not recheck and not _in_section(text, match.start(), rule.section):
                 continue
             stated = 0.0 if match.groupdict().get("flat") else float(match["value"])
@@ -592,6 +617,37 @@ def extract(
     if values:
         return NewsExtraction(values, None)
     return NewsExtraction((), PERIOD_MISMATCH if other_period else RULE_NOT_MATCHED)
+
+
+def stated_event_days(
+    metric_ids: tuple[str, ...], text: str, *, published: date
+) -> tuple[str, ...]:
+    """The days the rules' sentences in ``text`` date their events by, oldest first.
+
+    An event has no gap period to look for: it is read on the day its own sentence names.
+    A year left unwritten is the one that puts the day nearest the text's ``published`` day
+    (a December text's "1月5日" is next January). ``extract`` then reads each day.
+    """
+    days = set()
+    for rule in rules_for(metric_ids):
+        for match in rule.pattern.finditer(text):
+            placed = _place(rule, match, text)
+            if placed is None or placed[0][0] != "day" or len(placed[0][1]) != 2:
+                continue
+            (_form, (month, day), stated_year), context = placed
+            if (
+                rule.day_in_sentence
+                and context is not None
+                and context not in _sentence(text, match)
+            ):
+                continue
+            years = (stated_year,) if stated_year else (published.year + d for d in (-1, 0, 1))
+            dated = min(
+                (date(year, month, day) for year in years),
+                key=lambda candidate: abs(candidate - published),
+            )
+            days.add(dated.isoformat())
+    return tuple(sorted(days))
 
 
 def _place(
@@ -732,13 +788,16 @@ def member_period(metric_id: str, dimensions: dict[str, str], period: str) -> tu
     Year-to-date members start on 1 January; a month or quarter covers itself; a day is a
     business day.
     """
+    from pring_cycle.freshness import FRESHNESS_REGISTRY
     from pring_cycle.metric_contracts import official_source_members
     from pring_cycle.release_calendar import month_bounds
 
     members = official_source_members(metric_id, period) or ()
     kind = next((m.period_kind for m in members if m.dimensions == dimensions), None)
     if len(period) == 10:
-        return kind or "business_day", period, period
+        rule = FRESHNESS_REGISTRY.get(metric_id)
+        event = rule is not None and rule.frequency == "event"
+        return kind or ("event" if event else "business_day"), period, period
     if "-Q" in period:
         year, quarter = int(period[:4]), int(period[-1])
         first = f"{year:04d}-{quarter * 3 - 2:02d}"
@@ -796,8 +855,13 @@ def store_news_values(
     period: str,
     definition_version: str,
     available_at: datetime,
+    published_is_public: bool = False,
 ) -> tuple[str, ...]:
-    """Store each taken value as a claim of its member's period, with its matched quote."""
+    """Store each taken value as a claim of its member's period, with its matched quote.
+
+    ``published_is_public`` dates an event by its text's publication: an event has no
+    registered release to infer a public time from, and the article was public then.
+    """
     from pring_cycle.catalog import metric_definition
     from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
     from pring_cycle.storage import database_connection
@@ -822,9 +886,12 @@ def store_news_values(
                 unit=member_unit(value.metric_id, value.dimensions, period, definition.unit),
                 provider=provider,
                 source_reference=source_reference(item),
-                release_event_id=f"{route}:{value.metric_id}:{period}:{item.acquisition_id}",
+                # One acquisition holds many texts: each is its own release.
+                release_event_id=(
+                    f"{route}:{value.metric_id}:{period}:{item.acquisition_id}#{item.body_hash}"
+                ),
                 release_at=item.release_at,
-                public_available_at=None,
+                public_available_at=item.release_at if published_is_public else None,
                 fetched_at=item.fetched_at,
                 available_at=available_at,
                 quality_status="validated",

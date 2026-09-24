@@ -15,3 +15,4 @@ Spec: [spec.md](../spec.md)
 - [ ] 受影响测试经 `check.py quick` 通过；切片收尾两例快速冒烟通过（按 ADR-0025）
 
 ## Comments
+- 2026-09-24 票 02 审查（Codex）移交：追溯发现引入官方降准公告后，同一事件可能官方与资讯并存。目标日选值按 provider 字典序取（`tushare_news` 先于“中国人民银行”），资讯只覆盖部分成员时会与官方混选，官方组因缺成员被判不完整（`context_projection.py` 选值、`published_events.select_published_rrr_events` 分组）。本票须定：同一生效日官方与资讯并存时整组取官方。
