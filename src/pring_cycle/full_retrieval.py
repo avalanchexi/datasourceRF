@@ -305,6 +305,22 @@ class FullRunRetrieval:
         }
         for definition in rules.metric_definitions:
             period = period_by_metric[definition.metric_id]
+            # A held event rate stays in force; the newest day's notice is still read, with
+            # the day's other members, in case it changed (ADR-0028).
+            if (
+                evidence_frequency(definition.metric_id, definition.frequency) == "event"
+                and period is not None
+                and (latest := self._latest_released(run, definition, selector)) is not None
+                and latest.isoformat() > period
+            ):
+                groups[
+                    (
+                        definition.release_event_family,
+                        latest.isoformat(),
+                        definition.priority,
+                        official_candidate(definition, latest.isoformat()),
+                    )
+                ].append(definition.metric_id)
             preceding = preceding_period.get(definition.frequency)
             if (
                 preceding is not None
@@ -364,10 +380,8 @@ class FullRunRetrieval:
         # day's VIX at 06:00 the next morning). Unregistered: the period before the target.
         rule = FRESHNESS_REGISTRY.get(definition.metric_id)
         released = (
-            latest_released_period(
-                rule, min(selector.as_of, utc_now(), _target_end(run)), current_calendar()
-            )
-            if rule is not None and rule.frequency == frequency in {"daily", "monthly", "quarterly"}
+            self._latest_released(run, definition, selector)
+            if rule is not None and rule.frequency == frequency
             else None
         )
         if frequency == "daily":
@@ -375,7 +389,10 @@ class FullRunRetrieval:
         points = selector.series(definition.metric_id)
         published = [p.period_end for p in points if p.period_start <= run.target_business_date]
         if frequency == "event":
-            return max(published) if published else None
+            # An event announced on every operation day (the OMO rate) is read from the
+            # newest day's notice; one with no such rule is not looked for (ADR-0028).
+            daily = self._latest_released(run, definition, selector)
+            return max(published) if published else daily.isoformat() if daily else None
         if frequency == "quarterly":
             period = (
                 date.fromisoformat(max(published))
@@ -391,6 +408,16 @@ class FullRunRetrieval:
                 else (released or target.replace(day=1) - timedelta(days=1)).isoformat()[:7]
             )
         return None
+
+    def _latest_released(
+        self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector
+    ) -> date | None:
+        """The newest period out at the release gate's cutoff, by the registered rule."""
+        rule = FRESHNESS_REGISTRY.get(definition.metric_id)
+        if rule is None or rule.frequency not in {"daily", "monthly", "quarterly"}:
+            return None
+        cutoff = min(selector.as_of, utc_now(), _target_end(run))
+        return latest_released_period(rule, cutoff, current_calendar())
 
     def recover_legacy_plan(self, run: RunRecord) -> None:
         if not run.cutoffs_frozen:

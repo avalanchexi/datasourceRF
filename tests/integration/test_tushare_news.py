@@ -109,7 +109,7 @@ def full_run(
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date=target,
-        client_request_id="tushare-news",
+        client_request_id=f"tushare-news-{target}",
         model_version_id=model_id,
         system_as_of=now,
     )
@@ -486,3 +486,68 @@ def test_a_long_pause_reads_back_only_a_week(
     )
 
     assert {r["start_date"] for r in feed.requests} == {"2026-09-17 23:59:59"}
+
+
+def test_an_omo_rate_not_held_is_read_from_the_day_s_operation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The real run of 2026-09-24: 9/23's bond close stated the day's rate (ADR-0028)."""
+    now = datetime(2026, 9, 24, 7, 11, tzinfo=UTC)
+    paths, model_id, version = register_at(now, tmp_path, monkeypatch, request, capsys)
+
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        sample_news("cls_20260923_bond_close_omo.json"),
+        target="2026-09-23",
+        now=now,
+    )
+
+    assert selected(paths, "CN_OMO_7D_RATE", version, now) == {"": 1.4}
+
+
+def test_a_held_omo_rate_is_looked_for_again_and_stays_in_force(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """The next day's news states no rate: the one held is still in force, not a gap."""
+    first = datetime(2026, 9, 24, 7, 11, tzinfo=UTC)
+    now = datetime(2026, 9, 25, 7, 11, tzinfo=UTC)
+    paths, model_id, _version = register_at(now, tmp_path, monkeypatch, request, capsys)
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        sample_news("cls_20260923_bond_close_omo.json"),
+        target="2026-09-23",
+        now=first,
+    )
+
+    run, _opener, _elsewhere = full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        lambda _payload: news_response([]),
+        target="2026-09-24",
+        now=now,
+    )
+
+    plan = RunRepository(paths.database).full_retrieval_plan(run.run_id)
+    looked_for = {
+        s["release_event_id"]
+        for s in plan["initial"]["scopes"]
+        if "CN_OMO_7D_RATE" in s["metric_ids"]
+    }
+    assert looked_for == {"full:pbc_omo_notice:2026-09-24"}
+    # Looking for the new day does not make it a required input: the held rate is.
+    assert [
+        (r["period"], r["status"])
+        for r in plan["initial"]["requirements"]
+        if r["metric_id"] == "CN_OMO_7D_RATE"
+    ] == [("2026-09-23", "local_complete")]
