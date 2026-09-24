@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
-from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository
@@ -19,7 +20,7 @@ from pring_cycle.retention import prune_to_window
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.storage import database_connection
-from pring_cycle.tushare_news import pull_news
+from pring_cycle.tushare_news import pull_news, run_news
 from tests.conftest import install_runtime_clock
 from tests.fixtures.model_registration import prepared_request, save, submit
 from tests.retrieval.test_news_rules import SAMPLE
@@ -140,9 +141,9 @@ def test_cpi_is_filled_from_the_news_and_later_channels_are_not_called(
 
     run, opener, _elsewhere = full_run(paths, model_id, monkeypatch, release_day_news)
 
-    # A first run pulls three days, once for the whole run, up to the target day's end.
+    # A first run pulls a week, once for the whole run, up to the target day's end.
     assert opener.news_requests == [
-        {"start_date": "2026-09-07 23:59:59", "end_date": "2026-09-10 23:59:59"}
+        {"start_date": "2026-09-03 23:59:59", "end_date": "2026-09-10 23:59:59"}
     ]
     assert cpi(paths, version) == {"yoy": 0.8, "mom": 0.4, "cumulative_average_yoy": 0.9}
     with database_connection(paths.database) as connection:
@@ -222,7 +223,7 @@ def test_the_pull_pages_back_until_the_window_is_covered(
 
     assert outcome == "verified_candidate"
     assert [r["end_date"] for r in requests] == ["2026-09-11 10:00:00", "2026-09-11 03:21:00"]
-    assert {r["start_date"] for r in requests} == {"2026-09-08 10:00:00"}
+    assert {r["start_date"] for r in requests} == {"2026-09-04 10:00:00"}
 
 
 def test_originals_go_after_three_days_and_the_quotes_stay(
@@ -317,3 +318,171 @@ def test_lpr_is_filled_from_the_fixing_day_news(
             (run.run_id,),
         ).fetchall()
     assert attempts[-1] == ("tushare_news", "verified")
+
+
+SHANGHAI = ZoneInfo("Asia/Shanghai")
+# September's LPR, fixed on Sunday the 20th.
+LPR_FIXED = datetime(2026, 9, 20, 9, 15, tzinfo=SHANGHAI)
+QUOTA_MESSAGE = "抱歉，您访问接口(major_news)频率超限(40次/天)，具体频次详情：https://tushare.pro/document/1?doc_id=108。"
+
+
+class NewsFeed:
+    """``major_news`` over a steady feed: the window's newest 400 a call, while quota lasts."""
+
+    def __init__(self, every: timedelta = timedelta(minutes=3)) -> None:
+        moment = datetime(2026, 9, 1, tzinfo=SHANGHAI)
+        self.published: list[datetime] = []
+        while moment < datetime(2026, 9, 30, tzinfo=SHANGHAI):
+            self.published.append(moment)
+            moment += every
+        self.published.append(LPR_FIXED)
+        self.quota = 40
+        self.requests: list[dict[str, str]] = []
+
+    def __call__(self, payload: dict[str, Any]) -> bytes:
+        params = payload["params"]
+        self.requests.append(params)
+        if self.quota == 0:
+            return json.dumps({"code": 40203, "msg": QUOTA_MESSAGE}).encode()
+        self.quota -= 1
+        start, end = (
+            datetime.fromisoformat(params[key]).replace(tzinfo=SHANGHAI)
+            for key in ("start_date", "end_date")
+        )
+        page = sorted((p for p in self.published if start <= p <= end), reverse=True)[:400]
+        return news_response(
+            [
+                {
+                    "title": "LPR" if p == LPR_FIXED else f"n{p:%d%H%M}",
+                    "content": "",
+                    "pub_time": p.strftime("%Y-%m-%d %H:%M:%S"),
+                    "src": "财联社",
+                }
+                for p in page
+            ]
+        )
+
+
+def pulled_run(
+    paths: RuntimePaths, model_id: str, feed: NewsFeed | None, *, target: str, at: datetime
+) -> tuple[str, str]:
+    """A completed full run for ``target`` cut off ``at``; its pull as the full run makes it."""
+    runs = RunRepository(paths.database)
+    run = runs.submit_manual_full(
+        target_business_date=target,
+        client_request_id=f"news-{target}-{at:%d%H%M}",
+        model_version_id=model_id,
+        system_as_of=at,
+        cutoff_mode="explicit",
+    )
+    outcome = "no_pull"
+    if feed is not None:
+        target_end = datetime.combine(date.fromisoformat(target), time.max, tzinfo=SHANGHAI)
+        with own_acquisitions(paths.database, run.run_id, "tushare_news"):
+            outcome = pull_news(
+                paths, run, "fixture-token", end=min(at, target_end), transport=feed
+            )
+    runs.advance(run.run_id, "completed")
+    return run.run_id, outcome
+
+
+def news_times(paths: RuntimePaths, run_id: str) -> set[datetime]:
+    return {item.published_at for item in run_news(paths, run_id)}
+
+
+@pytest.fixture
+def registered_late(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> tuple[RuntimePaths, str, str]:
+    return register_at(datetime(2026, 9, 26, tzinfo=UTC), tmp_path, monkeypatch, request, capsys)
+
+
+def test_a_rerun_for_the_same_target_day_still_reads_the_weekend(
+    registered_late: tuple[RuntimePaths, str, str],
+) -> None:
+    """The real run of 2026-09-24: an earlier run for 9/23 had cut off after 9/23 ended."""
+    paths, model_id, _version = registered_late
+    pulled_run(
+        paths, model_id, None, target="2026-09-23", at=datetime(2026, 9, 24, 3, 58, tzinfo=SHANGHAI)
+    )
+    feed = NewsFeed(every=timedelta(minutes=20))
+
+    run_id, outcome = pulled_run(
+        paths,
+        model_id,
+        feed,
+        target="2026-09-23",
+        at=datetime(2026, 9, 24, 15, 11, tzinfo=SHANGHAI),
+    )
+
+    assert outcome == "verified_candidate"
+    assert LPR_FIXED in news_times(paths, run_id)
+
+
+def test_the_next_day_run_reads_on_from_where_the_last_pull_ended(
+    registered_late: tuple[RuntimePaths, str, str],
+) -> None:
+    """Friday's run on Monday afternoon, then Monday's on Tuesday: the weekend is read."""
+    paths, model_id, _version = registered_late
+    feed = NewsFeed()
+    friday, _ = pulled_run(
+        paths, model_id, feed, target="2026-09-18", at=datetime(2026, 9, 21, 15, tzinfo=SHANGHAI)
+    )
+
+    monday, outcome = pulled_run(
+        paths, model_id, feed, target="2026-09-21", at=datetime(2026, 9, 22, 15, tzinfo=SHANGHAI)
+    )
+
+    assert outcome == "verified_candidate"
+    assert LPR_FIXED in news_times(paths, monday)
+    read = news_times(paths, friday) | news_times(paths, monday)
+    first, last = min(read), max(read)
+    assert [p for p in feed.published if first <= p <= last and p not in read] == []
+
+
+def test_a_pull_cut_short_by_the_daily_quota_is_read_again_by_the_next_run(
+    registered_late: tuple[RuntimePaths, str, str],
+) -> None:
+    """The real run of 2026-09-24: page five hit the 40-a-day quota."""
+    paths, model_id, _version = registered_late
+    feed = NewsFeed(every=timedelta(minutes=2))
+    feed.quota = 4
+    short, outcome = pulled_run(
+        paths,
+        model_id,
+        feed,
+        target="2026-09-23",
+        at=datetime(2026, 9, 24, 15, 11, tzinfo=SHANGHAI),
+    )
+    assert outcome == "tushare_rate_limited"
+    hole = datetime(2026, 9, 21, 12, tzinfo=SHANGHAI)
+    assert hole not in news_times(paths, short)
+
+    feed.quota = 40
+    after, outcome = pulled_run(
+        paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
+    )
+
+    assert outcome == "verified_candidate"
+    assert hole in news_times(paths, after)
+
+
+def test_a_long_pause_reads_back_only_a_week(
+    registered_late: tuple[RuntimePaths, str, str],
+) -> None:
+    """After a month without runs, a pull that the daily quota could never finish is not tried."""
+    paths, model_id, _version = registered_late
+    feed = NewsFeed(every=timedelta(hours=1))
+    pulled_run(
+        paths, model_id, feed, target="2026-09-01", at=datetime(2026, 9, 2, 15, tzinfo=SHANGHAI)
+    )
+    feed.requests.clear()
+
+    pulled_run(
+        paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
+    )
+
+    assert {r["start_date"] for r in feed.requests} == {"2026-09-17 23:59:59"}

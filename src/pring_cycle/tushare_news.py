@@ -1,10 +1,11 @@
 """TuShare news: one pull of `major_news` per full run, read locally by every gap (ADR-0026).
 
-The pull covers the time since the last successful full run's cutoff (the last three days
-on a first run), page by page: the interface returns at most 400 items per call, newest
-first, so each next call ends where the last page's oldest item was. Every page is kept as
-an acquisition of the run's batch. A failed or unauthorized pull is recorded there and the
-run carries on without it.
+The pull reads on from where the last complete pull of a successful full run ended, a week
+back at most, page by page: the interface returns at most 400 items per call, newest first,
+so each next call ends where the last page's oldest item was. Every page is kept as an
+acquisition of the run's batch. A failed, unauthorized or rate-limited pull (the interface
+allows 40 calls a day) is recorded there and the run carries on without it; the next run
+reads its window again.
 
 A gap is then filled from these items when the family's news rules find the due period's
 sentences in them (P1/P2 only). Each value keeps its matched quote; the originals are
@@ -31,7 +32,8 @@ from pring_cycle.storage import database_connection
 NEWS_API = "major_news"
 NEWS_FIELDS = ("title", "content", "pub_time", "src")
 PAGE_LIMIT = 400
-FIRST_RUN_SPAN = timedelta(days=3)
+# A week covers a weekend's releases on a first run, and about 20 pages: half a day's quota.
+NEWS_LOOKBACK = timedelta(days=7)
 # Originals older than this are deleted at the end of a successful run.
 NEWS_ORIGINAL_RETENTION = timedelta(days=3)
 _SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -60,16 +62,23 @@ def _published(value: str) -> datetime:
 
 
 def news_window(paths: RuntimePaths, run: RunRecord, end: datetime) -> tuple[datetime, datetime]:
-    """From the last successful full run's cutoff (or three days back) to ``end``."""
+    """From where the last complete pull before ``end`` ended, a week back at most, to ``end``.
+
+    Runs chain by what their pulls read, not by their cutoffs: a run cut off on Monday for
+    Friday read nothing after Friday. A pull with a failed page read only part of its window,
+    so it is passed over; a rerun for the same day passes over its predecessor's pull.
+    """
     with database_connection(paths.database) as connection:
-        row = connection.execute(
-            "SELECT max(system_as_of) FROM parent_run WHERE status='completed' "
-            "AND command_type IN ('manual_full', 'scheduled_full') AND run_id<>?",
-            (run.run_id,),
-        ).fetchone()
-    previous = datetime.fromisoformat(row[0]) if row and row[0] else None
-    start = previous if previous is not None and previous < end else end - FIRST_RUN_SPAN
-    return start, end
+        rows = connection.execute(
+            "SELECT max(json_extract(a.parameters_json, '$.end_date')) "
+            "FROM full_run_acquisition o JOIN acquisition_request a USING(acquisition_id) "
+            "JOIN parent_run r ON r.run_id=o.run_id WHERE a.api_name=? AND o.run_id<>? "
+            "AND r.status='completed' AND r.command_type IN ('manual_full', 'scheduled_full') "
+            "GROUP BY o.run_id HAVING sum(a.state<>'validated')=0",
+            (NEWS_API, run.run_id),
+        ).fetchall()
+    read = [_published(row[0]) for row in rows]
+    return max([end - NEWS_LOOKBACK, *(stop for stop in read if stop < end)]), end
 
 
 def _post(payload: dict[str, Any]) -> bytes:
@@ -117,7 +126,8 @@ def pull_news(
         def parse(raw: bytes, params: dict[str, str] = params) -> tuple[dict[str, object], ...]:
             document = json.loads(raw)
             if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
-                raise ValueError("tushare_source_failed")
+                limited = isinstance(document, dict) and "频率超限" in str(document.get("msg"))
+                raise ValueError("tushare_rate_limited" if limited else "tushare_source_failed")
             rows = _response_rows(document, required_fields=NEWS_FIELDS)
             for row in rows:
                 published = _published(str(row["pub_time"]))
