@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
-from pring_cycle.models import ModelRepository
+from pring_cycle.models import ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -1067,3 +1067,37 @@ def test_full_run_core_selection_preserves_explicit_as_of_mode(
         RetrievalScope("fixture:late-core", ("CN_EQUITY_CORE_000985",), "2026-08-28", "P0", None)
     )
     assert selection.complete is complete
+
+
+def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
+    tmp_path: Path,
+) -> None:
+    """The real run of 2026-09-24: August's industrial finance comes out on 9/27 and 9/23's
+    VIX at 06:00 the next morning, so what a run for 9/23 can fetch is July and 9/22."""
+    paths, runs = prepare(tmp_path)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate("model-v0012", explicitly_approved=True)
+    run = runs.submit_manual_full(
+        target_business_date="2026-09-23",
+        client_request_id="latest-released-period",
+        model_version_id="model-v0012",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+    plan = runs.full_retrieval_plan(run.run_id)
+    periods = {
+        r["metric_id"]: r["period"]
+        for r in plan["initial"]["requirements"]
+        if r["metric_id"]
+        in {"CN_INDUSTRIAL_FINANCE", "CN_INVENTORY_TURNOVER", "CBOE_VIX_INDEX", "NASDAQ_SOX_INDEX"}
+    }
+    assert periods == {
+        "CN_INDUSTRIAL_FINANCE": "2026-07",
+        "CN_INVENTORY_TURNOVER": "2026-07",
+        "CBOE_VIX_INDEX": "2026-09-22",
+        "NASDAQ_SOX_INDEX": "2026-09-22",
+    }
+    scopes = {s["release_event_id"]: s["release_status"] for s in plan["initial"]["scopes"]}
+    assert scopes["full:nbs_industrial_finance:2026-07"] == "released"
+    assert scopes["full:cboe_vix_index:2026-09-22"] == "released"

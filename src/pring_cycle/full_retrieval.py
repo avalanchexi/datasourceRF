@@ -15,7 +15,14 @@ from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
-from pring_cycle.freshness import DERIVED_INPUTS, TradingCalendar, use_run_calendar
+from pring_cycle.freshness import (
+    DERIVED_INPUTS,
+    FRESHNESS_REGISTRY,
+    TradingCalendar,
+    current_calendar,
+    latest_released_period,
+    use_run_calendar,
+)
 from pring_cycle.full_run_requirements import (
     formula_requirements,
     preceding_periods,
@@ -352,8 +359,19 @@ class FullRunRetrieval:
         frequency = evidence_frequency(definition.metric_id, definition.frequency)
         if definition.metric_id == "CN_LPR_1Y_5Y":
             return run.target_business_date[:7]
+        # Nothing held: the newest period the release gate will let through, by the release
+        # rule at the gate's cutoff (August's industrial finance is out only on 9/27, and a
+        # day's VIX at 06:00 the next morning). Unregistered: the period before the target.
+        rule = FRESHNESS_REGISTRY.get(definition.metric_id)
+        released = (
+            latest_released_period(
+                rule, min(selector.as_of, utc_now(), _target_end(run)), current_calendar()
+            )
+            if rule is not None and rule.frequency == frequency in {"daily", "monthly", "quarterly"}
+            else None
+        )
         if frequency == "daily":
-            return run.target_business_date
+            return (released or target).isoformat()
         points = selector.series(definition.metric_id)
         published = [p.period_end for p in points if p.period_start <= run.target_business_date]
         if frequency == "event":
@@ -362,14 +380,15 @@ class FullRunRetrieval:
             period = (
                 date.fromisoformat(max(published))
                 if published
-                else date(target.year, ((target.month - 1) // 3) * 3 + 1, 1) - timedelta(days=1)
+                else released
+                or date(target.year, ((target.month - 1) // 3) * 3 + 1, 1) - timedelta(days=1)
             )
             return f"{period.year}-Q{(period.month - 1) // 3 + 1}"
         if frequency == "monthly":
             return (
                 max(published)[:7]
                 if published
-                else (target.replace(day=1) - timedelta(days=1)).isoformat()[:7]
+                else (released or target.replace(day=1) - timedelta(days=1)).isoformat()[:7]
             )
         return None
 
