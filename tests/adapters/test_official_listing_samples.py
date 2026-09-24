@@ -84,3 +84,14 @@ def test_a_reading_of_the_release_is_not_the_release() -> None:
     assert release_url(listing, family="nbs_core_cpi", listing_url=NBS, period="2026-08") == (
         NBS + "202609/a.html"
     )
+
+
+def test_industrial_finance_is_followed_from_its_registered_listing() -> None:
+    """The 2026-09-25 real run parsed the registered /sj/zxfbhjd/ list itself as July's
+    release: the family was missing from the listings the NBS pages are followed through."""
+    from pring_cycle.official_listing import is_release_listing
+
+    assert is_release_listing("nbs_industrial_finance", "https://www.stats.gov.cn/sj/zxfbhjd/")
+    assert select("nbs_zxfb_index_20260923.html", "nbs_industrial_finance", "2026-07") == (
+        "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html"
+    )

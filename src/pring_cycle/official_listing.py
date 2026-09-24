@@ -7,7 +7,7 @@ from urllib.parse import urljoin, urlsplit
 
 def is_release_listing(family: str, source_url: str) -> bool:
     path = urlsplit(source_url).path
-    if family in {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp"}:
+    if family in _NBS_FAMILIES:
         return path in {"/sj/zxfb/", "/sj/zxfbhjd/"}
     return (
         family in {"pbc_money", "pbc_social_financing"}
@@ -39,7 +39,7 @@ class _ReleaseLinks(HTMLParser):
 
 # Listing pages the NBS release list is followed back through (index, index_1, ...).
 NBS_LISTING_PAGES = 10
-_NBS_FAMILIES = {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp"}
+_NBS_FAMILIES = {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp", "nbs_industrial_finance"}
 _AGGREGATE_MONTHS = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年"}
 # Same-period pieces that are not the release itself.
 _NOT_THE_RELEASE = ("解读", "答记者问", "图解", "快报")
