@@ -268,8 +268,18 @@ def parse_eia_history_document(
         )
         if monday.weekday() != 0 or friday != monday + timedelta(days=4):
             raise ValueError("eia_history_week_coordinates_invalid")
-        if previous_monday is not None and monday != previous_monday + timedelta(days=7):
-            raise ValueError("eia_history_week_continuity_invalid")
+        if previous_monday is not None and monday <= previous_monday:
+            raise ValueError("eia_history_week_order_invalid")
+        if previous_monday is not None:
+            # The table leaves out a week without any quote. Inside the requested window
+            # those days are missing and shown as such; outside it they do not matter.
+            absent = previous_monday + timedelta(days=7)
+            while absent < monday:
+                for offset in range(5):
+                    observed = absent + timedelta(days=offset)
+                    if start_date <= observed <= end_date:
+                        cells.append(EiaHistoryCell(observed, None, "week_absent", ""))
+                absent += timedelta(days=7)
         previous_monday = monday
         for offset, raw in enumerate(row[1:]):
             observed = monday + timedelta(days=offset)

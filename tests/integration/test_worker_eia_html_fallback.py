@@ -125,3 +125,48 @@ def test_a_rejected_key_records_the_failure_before_falling_back(
     assert recorded["eia_official_candidate"]["outcome"] == "source_failed"
     assert recorded["eia_official_candidate"]["error_type"] == "OSError"
     assert recorded["eia_html_candidate"]["outcome"] == "verified_candidate"
+
+
+def test_full_run_without_a_key_takes_both_real_history_tables(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Phase two #04: the 9/23 tables the first real run rejected are no longer rejected."""
+    from pring_cycle.eia_html import FetchedEiaHistory
+    from pring_cycle.projections import ProjectionSetRepository
+    from pring_cycle.runs import RunRepository
+    from pring_cycle.worker import process_pending_run
+    from tests.integration.test_eia_html_acquisition import real_history
+    from tests.integration.test_gap_list import CUTOFF, TARGET, seed
+    from tests.integration.test_worker_execution import runtime
+
+    def fetch(url: str) -> FetchedEiaHistory:
+        series = "RWTC" if "RWTC" in url.upper() else "RBRTE"
+        return FetchedEiaHistory(real_history(series), url, 200, "text/html")
+
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", fetch, raising=False)
+    paths = runtime(tmp_path)
+    seed(paths)
+    submitted = RunRepository(paths.database).submit_manual_full(
+        target_business_date=TARGET.isoformat(),
+        client_request_id="eia-real-tables",
+        model_version_id="model-v0001",
+        system_as_of=CUTOFF,
+        cutoff_mode="explicit",
+    )
+
+    process_pending_run(paths, report_adapters=())
+
+    assert RunRepository(paths.database).get(submitted.run_id).status == "completed"
+    pages = [
+        item
+        for item in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if item.api_name == "eia_history_html"
+    ]
+    assert {item.state for item in pages} == {"validated"}
+    assert len(pages) == 2
+    gaps = ProjectionSetRepository(paths.database).current().datasets["cycle_overview"]["gap_list"]
+    # The explicit cutoff predates the fixture's acquisition time, so the values are not
+    # yet held there; what matters is that no table is rejected.
+    assert not [
+        g for g in gaps if str(g["metric_id"]).startswith("EIA_") and g["category"] == "rejected"
+    ]

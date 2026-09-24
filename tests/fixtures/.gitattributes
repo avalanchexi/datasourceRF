@@ -2,3 +2,4 @@ pbc_rrr_chronicle_2025.html -text -diff
 pbc_money_202602.html -text -diff
 pbc_social_financing_202501.html -text -diff
 nbs_gdp_2023q4.html -text -diff
+eia/*.htm -text -diff

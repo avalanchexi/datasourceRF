@@ -170,12 +170,12 @@ def test_public_cli_can_acquire_html_without_an_api_key(
         "wrong_columns",
         "missing_cell",
         "wrong_week",
+        "reversed_week",
         "duplicate_week",
         "nonfinite",
         "truncated",
         "conflicting_release",
         "reverse_release",
-        "missing_week",
         "colspan",
         "rowspan",
         "http_charset",
@@ -213,11 +213,14 @@ def test_bad_official_history_is_retained_and_rejected_before_claims(
         raw = raw.replace(row, row + row, 1)
     if case == "truncated":
         raw = raw[: raw.rfind(b"</table>")]
-    if case == "missing_week":
+    if case == "reversed_week":
         row = re.search(
             rb"<tr>\s*<td class='B6'>[^<]*2026 Aug-24 to Aug-28</td>.*?</tr>", raw, re.DOTALL
         ).group()
-        raw = raw.replace(row, b"", 1)
+        later = re.search(
+            rb"<tr>\s*<td class='B6'>[^<]*2026 Aug-31 to Sep- 4</td>.*?</tr>", raw, re.DOTALL
+        ).group()
+        raw = raw.replace(row, b"\0", 1).replace(later, row, 1).replace(b"\0", later, 1)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
 
@@ -461,3 +464,74 @@ def test_http_error_keeps_actual_status_identity_and_error_body(
         attempt.safe_metadata["response_final_url"]
         == "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"
     )
+
+
+def real_history(series: str) -> bytes:
+    """The history tables of release 9/23/2026 (see tests/fixtures/eia/README.md)."""
+    name = {"RBRTE": "RBRTED_20260923.htm", "RWTC": "RWTCD_20260923.htm"}[series]
+    return (Path(__file__).resolve().parents[1] / "fixtures" / "eia" / name).read_bytes()
+
+
+def refresh_real(paths: RuntimePaths, series: str, raw: bytes, start: date, end: date) -> object:
+    from pring_cycle.eia_html import FetchedEiaHistory, refresh_eia_history
+
+    return refresh_eia_history(
+        paths,
+        series_id=series,
+        start_date=start,
+        end_date=end,
+        definition_version="metric-catalog-v0002",
+        fetcher=lambda url: FetchedEiaHistory(raw, url, 200, "text/html"),
+    )
+
+
+@pytest.mark.parametrize(
+    ("series", "metric", "close"),
+    [("RBRTE", "EIA_BRENT_RBRTE", 116.15), ("RWTC", "EIA_WTI_RWTC", 96.97)],
+)
+@pytest.mark.usefixtures("runtime_clock")
+def test_weeks_absent_long_before_the_window_do_not_reject_the_table(
+    tmp_path: Path, series: str, metric: str, close: float
+) -> None:
+    """The first real run lost Brent to weeks without quotes in 1994-2002 (and WTI in 1999)."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    result = refresh_real(paths, series, real_history(series), date(2026, 2, 15), date(2026, 9, 23))
+
+    assert result.observation_count > 100  # type: ignore[attr-defined]
+    points = EvidenceRepository(paths.database).metric_series(
+        metric,
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version="metric-catalog-v0002",
+    )
+    assert {p.period_end: p.selected_value for p in points}["2026-09-21"] == close
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_week_absent_inside_the_window_is_recorded_as_missing_days(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    raw = real_history("RBRTE")
+    row = re.search(
+        rb"<tr>\s*<td class='B6'>[^<]*2026 Sep-14 to Sep-18</td>.*?</tr>", raw, re.DOTALL
+    ).group()
+
+    result = refresh_real(
+        paths, "RBRTE", raw.replace(row, b"", 1), date(2026, 9, 7), date(2026, 9, 23)
+    )
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    normalized = json.loads(receipts.read_content(result.acquisition_id, "normalized"))  # type: ignore[attr-defined]
+    absent = [c["business_date"] for c in normalized["cells"] if c["state"] == "week_absent"]
+    assert absent == [f"2026-09-{day}" for day in range(14, 19)]
+    points = EvidenceRepository(paths.database).metric_series(
+        "EIA_BRENT_RBRTE",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version="metric-catalog-v0002",
+    )
+    held = {p.period_end for p in points}
+    assert not held & set(absent)
+    assert {"2026-09-11", "2026-09-21"} <= held
