@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted（部分被 ADR-0027 取代：关键事实只需关联数据来源）
 ---
 
 # AI 解释证据但不参与阶段分类

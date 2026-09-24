@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted（部分被 ADR-0026 取代：P1 取值与降级链顺序）
 ---
 
 # 检索结果只从注册白名单来源取值，P0/P1 由登记解析器解析

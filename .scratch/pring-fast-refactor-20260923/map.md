@@ -49,7 +49,7 @@ Status: done (2026-09-24：终点已到达，遗留见 Not yet specified)
 
 以下为票 28 真实运行暴露、尚未立项的遗留，属新一轮工作（建议入口见括号）：
 
-- **检索与报告二期**（`/grill-with-docs` → `/to-spec`）：搜索查询用指标 ID 加中文名，Tavily 返回的候选几乎全在白名单外，检索补缺基本无效，需按家族与官方站点限定查询；AI 报告提示约 14 万字节，Codex 与 Claude 两路都在 300 秒超时，要么缩减证据包、要么放宽超时；AI WebSearch 尚无适配器（台账已限定每缺口每次运行一次）。三者相互牵连，宜在同一次访谈中定。
+- **检索与报告二期**：2026-09-24 已经 `/grill-with-docs` 访谈定下口径，见 [决定记录](../pring-retrieval-report-v2-20260924/decisions.md)、ADR-0026、ADR-0027；下一步 `/to-spec`。
 - **交易日历误列缺口**（`/tdd`）：`CN_TRADE_CALENDAR` 是运维证据，却在时效判定中列为 P0 缺失，应归入 `NOT_ASSESSED`。
 - **官方列表与 EIA 拒收**（`/diagnosing-bugs`）：社融总量与 GDP 的官方列表页链接解析不唯一；EIA HTML 历史表周连续性校验拒收（未配置 EIA key）。
 - **来源空缺**（`/research`）：NHII 没有可解析的南华官方页面（票 22）；P2 的 VIX、SOX、UST、USDCNY 16:30 仍取不到。

@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted（部分被 ADR-0027 取代：取消逐段证据绑定与引用校验）
 ---
 
 # 证据报告采用 CLI-only 可替换适配器与确定性事实骨架
