@@ -50,8 +50,7 @@ Status: done (2026-09-24：终点已到达，遗留见 Not yet specified)
 以下为票 28 真实运行暴露、尚未立项的遗留，属新一轮工作（建议入口见括号）：
 
 - **检索与报告二期**：2026-09-24 已经 `/grill-with-docs` 访谈定下口径，见 [决定记录](../pring-retrieval-report-v2-20260924/decisions.md)、ADR-0026、ADR-0027；规格见 [spec.md](../pring-retrieval-report-v2-20260924/spec.md)，下一步 `/to-tickets`。
-- **交易日历误列缺口**（`/tdd`）：`CN_TRADE_CALENDAR` 是运维证据，却在时效判定中列为 P0 缺失，应归入 `NOT_ASSESSED`。
-- **官方列表与 EIA 拒收**（`/diagnosing-bugs`）：社融总量与 GDP 的官方列表页链接解析不唯一；EIA HTML 历史表周连续性校验拒收（未配置 EIA key）。
+- **交易日历误列缺口、社融/GDP 官方列表链接不唯一、EIA HTML 周连续性拒收**：已并入检索与报告二期规格，作为独立小切片。
 - **来源空缺**（`/research`）：NHII 没有可解析的南华官方页面（票 22）；P2 的 VIX、SOX、UST、USDCNY 16:30 仍取不到。
 - **旧工作树去留**（用户决定）：`goal/window-20260922-01…06` 未提交内容已无损归档到 `.scratch/pring-window-publication-20260922/worktree-archive-20260924/`，删除命令见其 README；删除约可释放 3.5G。
 - **测试耗时**（`/improve-codebase-architecture`）：全套 67.5 分钟，远离“10 分钟级”；空库完整运行多出约 13 秒首次初始化，主要是逐日重复开库连接。
