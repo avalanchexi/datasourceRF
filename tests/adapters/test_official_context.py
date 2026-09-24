@@ -1068,9 +1068,10 @@ def test_listing_response_rejection_retains_original(tmp_path: Path) -> None:
             '<a href="202607/second.html">2026年6月份居民消费价格</a>',
             "official_context_release_link_not_unique",
         ),
+        # Only another period's release: nothing is listed for June (not ambiguous).
         (
             '<a href="202608/latest.html">2026年7月份居民消费价格</a>',
-            "official_context_release_link_not_unique",
+            "official_context_release_link_not_found",
         ),
     ],
 )

@@ -37,37 +37,101 @@ class _ReleaseLinks(HTMLParser):
             self.href = None
 
 
-def release_url(content: bytes, *, family: str, listing_url: str, period: str) -> str:
+# Listing pages the NBS release list is followed back through (index, index_1, ...).
+NBS_LISTING_PAGES = 10
+_NBS_FAMILIES = {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp"}
+_AGGREGATE_MONTHS = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年"}
+# Same-period pieces that are not the release itself.
+_NOT_THE_RELEASE = ("解读", "答记者问", "图解", "快报")
+
+
+def listing_page_url(family: str, listing_url: str, page: int) -> str | None:
+    """The ``page``-th page of a release listing; only the NBS list goes back by pages."""
+    if page == 0:
+        return listing_url
+    if family in _NBS_FAMILIES and page < NBS_LISTING_PAGES:
+        return urljoin(listing_url, f"index_{page}.html")
+    return None
+
+
+def _normal(title: str) -> str:
+    title = re.sub(r"\s+", "", title).replace("月份", "月")
+    return re.sub(r"年0(\d)月", r"年\1月", title)
+
+
+def release_titles(family: str, period: str) -> tuple[str, ...]:
+    """The release title a listing entry must start with: the family's search template."""
+    from pring_cycle.retrieval_registry import RETRIEVAL_FAMILIES, search_query
+
     if family == "nbs_gdp" and not re.fullmatch(r"[0-9]{4}-Q[1-4]", period):
         raise ValueError("official_context_period_invalid")
+    titles = [search_query((RETRIEVAL_FAMILIES[family].metric_ids[0],), period)]
+    if family in {"pbc_money", "pbc_social_financing"}:
+        # PBC titles a quarter-end month's report by the quarter; December's by the year.
+        aggregate = _AGGREGATE_MONTHS.get(int(period[5:7]))
+        if aggregate is not None:
+            titles.append(f"{period[:4]}年{aggregate}金融统计数据报告")
+        if period[5:7] == "12":
+            titles.append(f"{period[:4]}年金融统计数据报告")
+    return tuple(_normal(title) for title in titles)
+
+
+def release_url(content: bytes, *, family: str, listing_url: str, period: str) -> str | None:
+    """The one release on this listing page for ``period``; None when the page has none.
+
+    An entry is the release when its title starts with the family's release title for the
+    period (the same wording search queries use) and it is not a reading of the release.
+    A GDP title must be exactly the release title.
+    """
+    titles = release_titles(family, period)
     parser = _ReleaseLinks()
     parser.feed(content.decode("utf-8-sig"))
-    year, part = period.split("-")
-    if family == "nbs_gdp":
-        quarter_label = {
-            "Q1": "一季度",
-            "Q2": "二季度和上半年",
-            "Q3": "三季度",
-            "Q4": "四季度和全年",
-        }[part]
-        pattern = rf"{year}年{quarter_label}国内生产总值初步核算结果$"
-    else:
-        report = {
-            "nbs_core_cpi": "居民消费价格",
-            "nbs_ppi": "工业生产者出厂价格",
-            "nbs_pmi": "中国采购经理指数运行情况",
-            "pbc_money": "金融统计数据报告",
-            "pbc_social_financing": "金融统计数据报告",
-        }[family]
-        period_label = rf"0?{int(part)}月份?"
-        if family in {"pbc_money", "pbc_social_financing"}:
-            aggregate = {3: "一季度", 6: "上半年", 9: "前三季度", 12: "全年|"}.get(int(part))
-            if aggregate is not None:
-                period_label = rf"(?:{period_label}|{aggregate})"
-        pattern = rf"{year}年{period_label}{report}"
     matches = {
-        urljoin(listing_url, href) for href, title in parser.links if re.match(pattern, title)
+        urljoin(listing_url, href)
+        for href, title in parser.links
+        if not any(word in title for word in _NOT_THE_RELEASE)
+        and any(
+            _normal(title) == wanted if family == "nbs_gdp" else _normal(title).startswith(wanted)
+            for wanted in titles
+        )
     }
-    if len(matches) != 1:
+    if len(matches) > 1:
         raise ValueError("official_context_release_link_not_unique")
-    return matches.pop()
+    return matches.pop() if matches else None
+
+
+def listing_months(content: bytes) -> list[str]:
+    """The YYYYMM of each entry of the list itself ("./202609/t20260915_..."), newest first.
+
+    Fixed page links (contact, terms) are not entries and are left out.
+    """
+    parser = _ReleaseLinks()
+    parser.feed(content.decode("utf-8-sig", "replace"))
+    return [
+        match.group(1)
+        for href, _title in parser.links
+        if (match := re.match(r"\./(20\d{4})/t\d{8}", href or ""))
+    ]
+
+
+def period_last_month(period: str) -> str:
+    if "-Q" in period:
+        return f"{period[:4]}{int(period[-1]) * 3:02d}"
+    return period[:4] + period[5:7]
+
+
+def worth_older_pages(months: list[str], period: str) -> bool:
+    """Whether a release missing from a page may still be further down the NBS list.
+
+    Not once the page already reaches back to the period's last month (a release comes out
+    after its period), and not for a period more than six months older than the list's
+    newest entry: ten pages cover a few months, so a history period is not listed at all.
+    """
+    if not months:
+        return False
+    last = period_last_month(period)
+    if min(months) <= last:
+        return False
+    newest = max(months)
+    gap = (int(newest[:4]) - int(last[:4])) * 12 + int(newest[4:]) - int(last[4:])
+    return gap <= 6

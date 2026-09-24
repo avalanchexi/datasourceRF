@@ -59,7 +59,8 @@ def _pbc(
     )
 
 
-# Query templates follow each publisher's release titles. Placeholders: {year}, {month},
+# Query templates follow each publisher's release titles; an official listing selects the
+# release by the same title (official_listing.release_titles). Placeholders: {year}, {month},
 # {day}, {date} (2026年8月27日), {quarter} (二季度), {quarter_title} (二季度和上半年),
 # {en_date} (August 27, 2026).
 RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
@@ -91,11 +92,12 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
     "pbc_tool_liquidity_monthly": _pbc(
         "{year}年{month}月中央银行各项工具流动性投放情况", "CN_TOOL_LIQUIDITY_MONTHLY"
     ),
+    # The social financing figures are published in the monthly financial statistics report.
     "pbc_social_financing": _pbc(
-        "{year}年{month}月社会融资规模增量统计数据报告", "CN_SF_TOTAL", "CN_SF_COMPONENTS"
+        "{year}年{month}月金融统计数据报告", "CN_SF_TOTAL", "CN_SF_COMPONENTS"
     ),
     "pbc_loan_structure": _pbc("{year}年{month}月金融统计数据报告 人民币贷款", "CN_LOAN_STRUCTURE"),
-    "pbc_money": _pbc("{year}年{month}月金融统计数据报告 M2 M1", "CN_M1_M2"),
+    "pbc_money": _pbc("{year}年{month}月金融统计数据报告", "CN_M1_M2"),
     "pbc_usdcny_central_parity": _pbc(
         "{date}人民币汇率中间价公告",
         "CN_USDCNY_CENTRAL_PARITY",

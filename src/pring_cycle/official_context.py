@@ -31,7 +31,13 @@ from pring_cycle.evidence import (
     publication_times,
 )
 from pring_cycle.http_transport import open_no_redirects as urlopen
-from pring_cycle.official_listing import is_release_listing, release_url
+from pring_cycle.official_listing import (
+    is_release_listing,
+    listing_months,
+    listing_page_url,
+    release_url,
+    worth_older_pages,
+)
 from pring_cycle.release_calendar import month_bounds
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
@@ -650,6 +656,70 @@ def _official_metric_scope(family: str, metric_ids: tuple[str, ...] | None) -> f
     return requested
 
 
+def _release_from_listing(
+    paths: RuntimePaths,
+    family: str,
+    listing_url: str,
+    expected_period: str,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
+    started: Callable[[str], None],
+) -> str:
+    """The period's release, looked up on the listing and, for NBS, on its older pages.
+
+    Each page read is kept. A page without the release that already reaches back to the
+    period ends the search: the release is not listed (not found, which is not ambiguous).
+    """
+    page = 0
+    while (page_url := listing_page_url(family, listing_url, page)) is not None:
+        resolved, months = _read_listing_page(
+            paths, family, page_url, expected_period, fetcher, started
+        )
+        if resolved is not None:
+            return resolved
+        if not worth_older_pages(months, expected_period):
+            break
+        page += 1
+    raise ValueError("official_context_release_link_not_found")
+
+
+def _read_listing_page(
+    paths: RuntimePaths,
+    family: str,
+    page_url: str,
+    expected_period: str,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
+    started: Callable[[str], None],
+) -> tuple[str | None, list[str]]:
+    responses: list[FetchedOfficialContextDocument] = []
+
+    def fetch_listing() -> bytes:
+        response = (fetcher or _fetch_official_context_document)(page_url)
+        responses.append(response)
+        return response.content
+
+    def parse_listing(content: bytes) -> tuple[str | None, list[str]]:
+        _validate_fetched_document(family, page_url, responses[0])
+        if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
+            raise ValueError("official_context_document_size_invalid")
+        resolved = release_url(content, family=family, listing_url=page_url, period=expected_period)
+        if resolved is not None:
+            _validate_source_identity(family, resolved)
+        return resolved, listing_months(content)
+
+    discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=_validate_source_identity(family, page_url),
+        api_name="official_listing_get",
+        parameters={"source_url": page_url, "period": expected_period, "family": family},
+        fields="href,title",
+        parser_version="official-release-listing-v0002",
+        fetch=fetch_listing,
+        parse=parse_listing,
+        normalize=lambda value: {"source_url": value[0], "entry_months": value[1]},
+        on_started=started,
+    )
+    return discovered.value
+
+
 def refresh_official_context_document(
     paths: RuntimePaths,
     *,
@@ -678,36 +748,9 @@ def refresh_official_context_document(
 
     try:
         if is_release_listing(family, source_url):
-            listing_url = source_url
-            listing_responses: list[FetchedOfficialContextDocument] = []
-
-            def fetch_listing() -> bytes:
-                response = (fetcher or _fetch_official_context_document)(listing_url)
-                listing_responses.append(response)
-                return response.content
-
-            def parse_listing(content: bytes) -> str:
-                _validate_fetched_document(family, listing_url, listing_responses[0])
-                if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
-                    raise ValueError("official_context_document_size_invalid")
-                resolved = release_url(
-                    content, family=family, listing_url=listing_url, period=expected_period
-                )
-                _validate_source_identity(family, resolved)
-                return resolved
-
-            discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
-                provider=_validate_source_identity(family, listing_url),
-                api_name="official_listing_get",
-                parameters={"source_url": listing_url, "period": expected_period, "family": family},
-                fields="href,title",
-                parser_version="official-release-listing-v0001",
-                fetch=fetch_listing,
-                parse=parse_listing,
-                normalize=lambda resolved: {"source_url": resolved},
-                on_started=started,
+            source_url = _release_from_listing(
+                paths, family, source_url, expected_period, fetcher, started
             )
-            source_url = discovered.value
         response_holder: list[FetchedOfficialContextDocument] = []
 
         def fetch() -> bytes:
