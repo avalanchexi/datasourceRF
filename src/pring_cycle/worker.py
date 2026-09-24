@@ -12,6 +12,7 @@ from datetime import UTC, date, datetime, time, timedelta
 from time import monotonic
 from zoneinfo import ZoneInfo
 
+from pring_cycle.ai_websearch import ai_websearch_adapter, ai_websearch_enabled
 from pring_cycle.batches import code_version, processing_batch
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
@@ -853,6 +854,19 @@ def _production_retrieval_adapters(
             paths, run_id, scope_run, definition_version=definition_version
         )
     parser = parser_for_scope(scope.metric_ids)
+    if (
+        parser is not None
+        and scope.priority != "P0"
+        and (parser == "lenient" or rules_for(scope.metric_ids))
+        and ai_websearch_enabled(paths)
+    ):
+        # The last level: the AI CLIs' own web search, checked like news (ADR-0026).
+        adapters["ai_websearch"] = ai_websearch_adapter(
+            paths,
+            run_id,
+            scope_run or RunRepository(paths.database).get(run_id),
+            definition_version=definition_version,
+        )
     if parser == "lpr":
         adapters["official"] = lambda _event: _official_lpr_retrieval(
             paths,

@@ -339,12 +339,12 @@ def test_noncanonical_projection_generates_a_report_without_inventing_a_stage(
 def test_cli_process_start_failure_is_classified_as_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr("pring_cycle.reports.shutil.which", lambda _name: "/bin/codex")
+    monkeypatch.setattr("pring_cycle.cli_process.shutil.which", lambda _name: "/bin/codex")
 
     def fail_to_start(*_args: object, **_kwargs: object) -> None:
         raise OSError("fixture process launch failure")
 
-    monkeypatch.setattr("pring_cycle.reports.subprocess.Popen", fail_to_start)
+    monkeypatch.setattr("pring_cycle.cli_process.subprocess.Popen", fail_to_start)
 
     response = CliReportAdapter("codex_cli").generate(bundle())
 

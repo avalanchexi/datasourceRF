@@ -2,21 +2,17 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
-import shutil
-import signal
 import sqlite3
-import subprocess
-import tempfile
 import time
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
 from pring_cycle.batches import add_batch_columns, current_batch_id
+from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection
 
@@ -798,45 +794,6 @@ class CliReportAdapter:
         self._cancel_requested = cancel_requested
 
     def generate(self, bundle: ReportInput) -> AdapterResponse:
-        deadline = time.monotonic() + self._timeout_seconds
-        executable = "codex" if self.name == "codex_cli" else "claude"
-        resolved = shutil.which(executable)
-        if resolved is None:
-            resolved = next(
-                (
-                    str(candidate)
-                    for directory in (Path.home() / ".local/bin", Path.home() / ".npm-global/bin")
-                    if (candidate := directory / executable).is_file()
-                    and os.access(candidate, os.X_OK)
-                ),
-                None,
-            )
-        if resolved is None:
-            return AdapterResponse.unavailable("cli_not_installed")
-        environment = {
-            key: value
-            for key, value in os.environ.items()
-            if key
-            in {
-                "PATH",
-                "HOME",
-                "LANG",
-                "LC_ALL",
-                "TERM",
-                "COLORTERM",
-                "HTTP_PROXY",
-                "HTTPS_PROXY",
-                "ALL_PROXY",
-                "NO_PROXY",
-                "http_proxy",
-                "https_proxy",
-                "all_proxy",
-                "no_proxy",
-                "SSL_CERT_FILE",
-                "NODE_EXTRA_CA_CERTS",
-            }
-        }
-        self.version = "unavailable"
         prompt = _canonical_json(
             {
                 "instruction": (
@@ -855,257 +812,32 @@ class CliReportAdapter:
                 },
             }
         )
-        with tempfile.TemporaryDirectory(prefix="pring-report-") as work_directory:
-            work_path = Path(work_directory)
-            schema_path = work_path / "report.schema.json"
-            output_path = work_path / "report.output.json"
-            schema = _report_output_schema(bundle)
-            schema_path.write_text(_canonical_json(schema), encoding="utf-8")
-            audit: dict[str, Any] = {
-                "executable": resolved,
-                "cli_version": self.version,
-                "model_id": None,
-                "model_reporting": "not_reported",
+        schema = _report_output_schema(bundle)
+        outcome = run_structured_cli(
+            self.name,
+            prompt,
+            schema,
+            timeout_seconds=self._timeout_seconds,
+            cancel_requested=self._cancel_requested,
+            audit={
                 "schema_version": REPORT_SCHEMA_VERSION,
                 "prompt_version": PROMPT_CONTRACT_VERSION,
                 "input_schema_version": bundle.schema_version,
                 "input_prompt_version": bundle.prompt_version,
-                "schema_sha256": _hash_document(schema),
-                "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
-                "prompt_bytes": len(prompt.encode()),
                 "bundle_id": bundle.bundle_id,
-                "exit_code": None,
-                "process_phase": "version",
-            }
-
-            def failed(classification: str) -> AdapterResponse:
-                return replace(
-                    AdapterResponse.unavailable(classification),
-                    tool_events=int(audit.get("tool_events", 0)),
-                    process_audit=audit,
-                )
-
-            try:
-                version_process = subprocess.Popen(
-                    [resolved, "--version"],
-                    cwd=work_directory,
-                    env=environment,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True,
-                    text=True,
-                )
-            except OSError:
-                return failed("process_start_failed")
-            version_stdout, version_stderr, version_outcome = _communicate_with_limits(
-                version_process,
-                "",
-                deadline=min(deadline, time.monotonic() + 5),
-                cancel_requested=self._cancel_requested,
+            },
+        )
+        self.version = outcome.version
+        if outcome.document is None:
+            return replace(
+                AdapterResponse.unavailable(outcome.classification or "invalid_json_schema"),
+                tool_events=int(outcome.audit.get("tool_events", 0)),
+                process_audit=outcome.audit,
             )
-            audit["version_probe"] = {
-                **_process_output_fingerprint(version_process, version_stdout, version_stderr),
-                "outcome": version_outcome
-                or ("succeeded" if version_process.returncode == 0 else "nonzero_exit"),
-            }
-            if version_outcome is not None:
-                audit["exit_code"] = version_process.returncode
-                return failed(version_outcome)
-            if version_process.returncode == 0 and version_stdout.strip():
-                self.version = version_stdout.strip()[:200]
-            audit["cli_version"] = self.version
-            if self._cancel_requested is not None and self._cancel_requested():
-                return failed("cancelled")
-            if time.monotonic() >= deadline:
-                return failed("timed_out")
-            audit["process_phase"] = "generation"
-            command = (
-                [
-                    resolved,
-                    "exec",
-                    "--ephemeral",
-                    "--ignore-user-config",
-                    "--ignore-rules",
-                    "--sandbox",
-                    "read-only",
-                    "--skip-git-repo-check",
-                    "--output-schema",
-                    str(schema_path),
-                    "--output-last-message",
-                    str(output_path),
-                    "--json",
-                    "-",
-                ]
-                if self.name == "codex_cli"
-                else [
-                    resolved,
-                    "--print",
-                    "--safe-mode",
-                    "--disable-slash-commands",
-                    "--tools",
-                    "",
-                    "--permission-mode",
-                    "dontAsk",
-                    "--no-session-persistence",
-                    "--output-format",
-                    "stream-json",
-                    "--verbose",
-                    "--json-schema",
-                    _canonical_json(schema),
-                ]
-            )
-            try:
-                process = subprocess.Popen(
-                    command,
-                    cwd=work_directory,
-                    env=environment,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True,
-                    text=True,
-                )
-            except OSError:
-                return failed("process_start_failed")
-            stdout, stderr, outcome = _communicate_with_limits(
-                process,
-                prompt,
-                deadline=deadline,
-                cancel_requested=self._cancel_requested,
-            )
-            audit.update(_process_output_fingerprint(process, stdout, stderr))
-            models = _reported_cli_models(stdout)
-            if models:
-                audit["model_ids"] = models
-                audit["model_id"] = models[0] if len(models) == 1 else None
-                audit["model_reporting"] = "cli_output"
-            audit.update(_cli_event_audit(self.name, stdout))
-            if self.name == "codex_cli":
-                try:
-                    output_bytes = output_path.read_bytes()
-                except OSError:
-                    audit["output_file_status"] = "unavailable"
-                else:
-                    audit.update(
-                        output_file_status="captured",
-                        output_file_sha256=hashlib.sha256(output_bytes).hexdigest(),
-                        output_file_bytes=len(output_bytes),
-                    )
-            if outcome is not None:
-                return failed(outcome)
-            if process.returncode != 0:
-                return failed(_cli_failure_classification(stdout, stderr))
-            try:
-                document = (
-                    _codex_output(stdout, output_path)
-                    if self.name == "codex_cli"
-                    else _claude_output(stdout)
-                )
-            except (json.JSONDecodeError, OSError, ValueError):
-                return failed("invalid_json_output")
-        if not isinstance(document, dict):
-            return failed("invalid_json_schema")
         return replace(
-            AdapterResponse.succeeded(document, tool_events=int(audit["tool_events"])),
-            process_audit=audit,
+            AdapterResponse.succeeded(outcome.document, tool_events=outcome.tool_events),
+            process_audit=outcome.audit,
         )
-
-
-def _process_output_fingerprint(
-    process: subprocess.Popen[str], stdout: str, stderr: str
-) -> dict[str, Any]:
-    return {
-        "exit_code": process.returncode,
-        "stdout_sha256": hashlib.sha256(stdout.encode()).hexdigest(),
-        "stderr_sha256": hashlib.sha256(stderr.encode()).hexdigest(),
-        "stdout_bytes": len(stdout.encode()),
-        "stderr_bytes": len(stderr.encode()),
-    }
-
-
-def _communicate_with_limits(
-    process: subprocess.Popen[str],
-    prompt: str,
-    *,
-    deadline: float,
-    cancel_requested: Callable[[], bool] | None,
-) -> tuple[str, str, str | None]:
-    first = True
-    while True:
-        if cancel_requested is not None and cancel_requested():
-            stdout, stderr = _terminate_process_group(process)
-            return stdout, stderr, "cancelled"
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            stdout, stderr = _terminate_process_group(process)
-            return stdout, stderr, "timed_out"
-        try:
-            stdout, stderr = process.communicate(
-                prompt if first else None,
-                timeout=min(0.5, remaining),
-            )
-            return stdout, stderr, None
-        except subprocess.TimeoutExpired:
-            first = False
-
-
-def _terminate_process_group(process: subprocess.Popen[str]) -> tuple[str, str]:
-    with suppress(ProcessLookupError):
-        os.killpg(process.pid, signal.SIGTERM)
-    try:
-        return process.communicate(timeout=5)
-    except subprocess.TimeoutExpired:
-        with suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGKILL)
-        return process.communicate()
-
-
-def _reported_cli_models(stdout: str) -> list[str]:
-    models: set[str] = set()
-    for line in stdout.splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(event, dict):
-            continue
-        if isinstance(event.get("model"), str):
-            models.add(event["model"])
-        if isinstance(event.get("modelUsage"), dict):
-            models.update(str(model) for model in event["modelUsage"])
-    return sorted(models)
-
-
-def _cli_failure_classification(stdout: str, stderr: str) -> str:
-    error = (stderr + "\n" + stdout).lower()
-    if any(
-        term in error
-        for term in (
-            "not logged in",
-            "please log in",
-            "authentication required",
-            "unauthorized",
-            "invalid authentication",
-        )
-    ):
-        return "authentication_required"
-    if any(
-        term in error
-        for term in ("rate limit", "quota exceeded", "usage limit", "insufficient credits")
-    ):
-        return "quota_or_rate_limited"
-    if any(
-        term in error
-        for term in (
-            "unexpected argument",
-            "unknown option",
-            "invalid json schema",
-            "invalid schema",
-        )
-    ):
-        return "cli_protocol_incompatible"
-    return "nonzero_exit"
 
 
 def _report_output_schema(bundle: ReportInput) -> dict[str, Any]:
@@ -1166,87 +898,6 @@ _OUTPUT_FIELDS = (
     "sections",
     "proxy_used",
 )
-
-
-# Item types codex reports that are the CLI speaking about itself, not the model acting:
-# its own notices ("error") and its visible thinking. Anything else counts as tool use, so an
-# unknown type is rejected rather than quietly allowed.
-CODEX_NON_TOOL_ITEMS = {"reasoning", "agent_message", "error"}
-
-
-def _cli_event_audit(adapter: str, stdout: str) -> dict[str, Any]:
-    """Count observable complete events independently of process/output acceptance."""
-    tools, invalid_lines = 0, 0
-    notices: list[str] = []
-    for line in stdout.splitlines():
-        if not line.strip():
-            continue
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            invalid_lines += 1
-            continue
-        if not isinstance(event, dict):
-            invalid_lines += 1
-            continue
-        if adapter == "codex_cli":
-            item = event.get("item")
-            if not isinstance(item, dict):
-                continue
-            if item.get("type") == "error" and isinstance(item.get("message"), str):
-                notices.append(item["message"])
-            tools += int(item.get("type") not in CODEX_NON_TOOL_ITEMS)
-        elif event.get("type") == "assistant":
-            message = event.get("message")
-            if not isinstance(message, dict) or not isinstance(message.get("content"), list):
-                invalid_lines += 1
-                continue
-            tools += sum(
-                1
-                for block in message["content"]
-                if isinstance(block, dict)
-                and block.get("type") == "tool_use"
-                and block.get("name") != "StructuredOutput"
-            )
-    return {
-        "tool_events": tools,
-        "unparsed_event_lines": invalid_lines,
-        "cli_notices": notices,
-    }
-
-
-def _codex_output(stdout: str, output_path: Path) -> dict[str, Any]:
-    for line in stdout.splitlines():
-        if line.strip() and not isinstance(json.loads(line), dict):
-            raise ValueError("codex_event_not_object")
-    document = json.loads(output_path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict):
-        raise ValueError("codex_output_not_object")
-    return document
-
-
-def _claude_output(stdout: str) -> dict[str, Any]:
-    events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
-    if not events or any(not isinstance(event, dict) for event in events):
-        raise ValueError("claude_output_not_object")
-    results = [
-        event for event in events if event.get("type") == "result" or "structured_output" in event
-    ]
-    if len(results) != 1:
-        raise ValueError("claude_result_missing_or_ambiguous")
-    wrapper = results[0]
-    if wrapper.get("is_error") is True or wrapper.get("subtype", "success") != "success":
-        raise ValueError("claude_result_failed")
-    document = wrapper.get("structured_output")
-    if not isinstance(document, dict):
-        raise ValueError("claude_structured_output_missing")
-    for event in events:
-        if event.get("type") != "assistant":
-            continue
-        message = event.get("message")
-        if not isinstance(message, dict) or not isinstance(message.get("content"), list):
-            raise ValueError("claude_assistant_event_invalid")
-    return document
 
 
 def _preflight_bundle(bundle: ReportInput) -> None:
