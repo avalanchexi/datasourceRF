@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pring_cycle.runtime import RuntimePaths
@@ -75,15 +76,18 @@ def retention_window(connection: sqlite3.Connection) -> tuple[str, str] | None:
     return str(dates[-RETENTION_SESSIONS]), end
 
 
-def prune_to_window(paths: RuntimePaths) -> RetentionResult:
+def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> RetentionResult:
     """Delete everything that falls before the retention window; safe to repeat."""
     deleted: dict[str, int] = {}
     with database_connection(paths.database) as connection:
         window = retention_window(connection)
         if window is None:
-            return RetentionResult(None, None, {}, 0, 0)
+            short_lived = _expire_short_lived_originals(connection, now or datetime.now(UTC))
+            reclaimed = _remove_files(paths.artifacts, short_lived)
+            return RetentionResult(None, None, {}, len(short_lived), reclaimed)
         start, end = window
         connection.execute("BEGIN IMMEDIATE")
+        short_lived = _expire_short_lived_originals(connection, now or datetime.now(UTC))
         guards = connection.execute(
             "SELECT name, sql FROM sqlite_master WHERE type='trigger' AND name LIKE '%_no_delete'"
             " AND name <> 'model_version_no_delete'"
@@ -193,8 +197,43 @@ def prune_to_window(paths: RuntimePaths) -> RetentionResult:
         connection.execute("DROP TABLE retired_run")
         connection.execute("DROP TABLE retired_projection")
         connection.execute("DROP TABLE retired_claim")
-    reclaimed = _remove_files(paths.artifacts, orphans)
-    return RetentionResult(start, end, deleted, len(orphans), reclaimed)
+    reclaimed = _remove_files(paths.artifacts, [*short_lived, *orphans])
+    return RetentionResult(start, end, deleted, len(short_lived) + len(orphans), reclaimed)
+
+
+def _expire_short_lived_originals(connection: sqlite3.Connection, now: datetime) -> list[str]:
+    """Drop news and media page originals older than three days (ADR-0026).
+
+    Only the stored bytes go: the acquisition keeps its hash, and each adopted value keeps
+    its matched quote, which is what traces it from then on.
+    """
+    from pring_cycle.news_rules import MEDIA_PAGE_API
+    from pring_cycle.tushare_news import NEWS_API, NEWS_ORIGINAL_RETENTION
+
+    if not connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='acquisition_request'"
+    ).fetchone():
+        return []
+    expired = {
+        str(row[0])
+        for row in connection.execute(
+            "SELECT acquisition_id FROM acquisition_request WHERE api_name IN (?, ?) "
+            "AND received_at < ?",
+            (NEWS_API, MEDIA_PAGE_API, (now - NEWS_ORIGINAL_RETENTION).astimezone(UTC).isoformat()),
+        )
+    }
+    if not expired:
+        return []
+    references: dict[str, set[str]] = {}
+    for content_hash, source_reference in connection.execute(
+        "SELECT content_hash, source_reference FROM artifact_reference"
+    ):
+        references.setdefault(str(content_hash), set()).add(str(source_reference).split(":", 1)[0])
+    hashes = [digest for digest, owners in references.items() if owners <= expired]
+    for digest in hashes:
+        connection.execute("DELETE FROM artifact_reference WHERE content_hash=?", (digest,))
+        connection.execute("DELETE FROM artifact WHERE content_hash=?", (digest,))
+    return hashes
 
 
 def _orphan_artifacts(connection: sqlite3.Connection) -> list[str]:

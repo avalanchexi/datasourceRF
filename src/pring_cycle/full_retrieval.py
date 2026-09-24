@@ -55,6 +55,7 @@ class FullRunRetrieval:
         if plan["initial"] is None:
             initial = self._plan(run)
             self._record(run.run_id, "initial", initial)
+            self._pull_news(run)
         else:
             initial = plan["initial"]
         version = str(initial["definition_version"])
@@ -157,6 +158,22 @@ class FullRunRetrieval:
                     occurred_at=utc_now(),
                     physical_request_id=attempt.physical_request_id,
                 )
+
+    def _pull_news(self, run: RunRecord) -> None:
+        """One TuShare news pull for every gap of the run, before any gap is retried."""
+        from pring_cycle.secrets import parse_data_source_secrets
+        from pring_cycle.tushare_news import pull_news
+
+        token = parse_data_source_secrets(self.paths.secrets).get("TUSHARE_TOKEN")
+        if not token:
+            return
+        end = (
+            utc_now()
+            if run.cutoff_mode == "acquisition_window" and not run.cutoffs_frozen
+            else run.system_as_of
+        )
+        with own_acquisitions(self.paths.database, run.run_id, "tushare_news"):
+            pull_news(self.paths, run, token, end=min(end, _target_end(run)))
 
     def _plan(self, run: RunRecord) -> dict[str, Any]:
         from pring_cycle.worker import _retrieval_release_status

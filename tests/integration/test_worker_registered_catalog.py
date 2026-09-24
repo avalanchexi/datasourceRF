@@ -346,13 +346,15 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     assert august and {point.selected_claim_id for point in august} <= adopted
     report = ReportRepository(paths.database).history()[0]
     assert report.projection_set_id == projection.envelope.projection_set_id
-    for prices in (projection.datasets["macro"]["price_chain"], report.body["price_context"]):
-        rows = [row for row in prices["evidence"] if row["metric_id"] == "CN_PPI"]
-        assert rows and all(row["period"] == "2026-08-31" for row in rows)
-        assert all(
-            claim["provider"] == "国家统计局"
-            for row in rows
-            for claim in row["claims"]
-            if claim["selected"]
-        )
+    prices = projection.datasets["macro"]["price_chain"]
+    rows = [row for row in prices["evidence"] if row["metric_id"] == "CN_PPI"]
+    assert rows and all(row["period"] == "2026-08-31" for row in rows)
+    assert all(
+        claim["provider"] == "国家统计局"
+        for row in rows
+        for claim in row["claims"]
+        if claim["selected"]
+    )
+    # The report names the source of its price conclusion, not the evidence rows (ADR-0027).
+    assert "国家统计局" in report.body["verified_results"]["price_pressure"]["source"]
     assert projection.datasets["cycle_overview"]["gap_list"]

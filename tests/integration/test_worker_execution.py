@@ -841,6 +841,7 @@ def test_targeted_refresh_runs_serial_retrieval_and_persists_auditable_attempts(
     assert [item["channel"] for item in stored.retrieval_attempts] == [
         "local",
         "tushare",
+        "tushare_news",
         "official",
     ]
     assert stored.retrieval_attempts[-1]["outcome"] == "verified"

@@ -51,6 +51,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
+from pring_cycle.news_rules import rules_for
 from pring_cycle.p0 import CARRIED_FORWARD, CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
@@ -846,6 +847,11 @@ def _production_retrieval_adapters(
             scope_run=scope_run,
         ),
     }
+    if scope_run is not None and rules_for(scope.metric_ids) and scope.priority != "P0":
+        # Only a full run pulls news; its gaps read that one pull (ADR-0026).
+        adapters["tushare_news"] = lambda _event: _tushare_news_retrieval(
+            paths, run_id, scope_run, definition_version=definition_version
+        )
     parser = parser_for_scope(scope.metric_ids)
     if parser == "lpr":
         adapters["official"] = lambda _event: _official_lpr_retrieval(
@@ -942,6 +948,21 @@ def _production_retrieval_adapters(
                 domains=domains,
             )
     return adapters
+
+
+def _tushare_news_retrieval(
+    paths: RuntimePaths, run_id: str, scope_run: RunRecord, *, definition_version: str
+) -> str | None:
+    from pring_cycle.search_evidence import select_retrieval_input
+    from pring_cycle.tushare_news import fill_from_news
+
+    if not fill_from_news(paths, scope_run, definition_version=definition_version):
+        return None
+    selection = select_retrieval_input(paths, scope_run)
+    if not selection.complete:
+        return None
+    digest = hashlib.sha256("\x1f".join(sorted(selection.selected_claim_ids)).encode()).hexdigest()
+    return f"selected-evidence:{digest}"
 
 
 def _local_retrieval(

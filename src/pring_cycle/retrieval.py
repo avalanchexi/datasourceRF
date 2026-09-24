@@ -98,8 +98,10 @@ def run_retrieval_cascade(
         return RetrievalResult("not_attempted", None, None, (), "wait_for_release_or_cache_expiry")
     if request.manual_deep_search and len(request.metric_ids) != 1:
         raise ValueError("manual_deep_search_requires_one_explicit_metric")
-    # Exa stands in for Tavily only once Tavily's monthly quota is spent (or it has no key).
-    channels = ["local", "tushare", "official", "tavily", "exa", "ai_websearch"]
+    # TuShare news sits between TuShare's data interfaces and the official pages: once
+    # TuShare has a value, no official or media page is needed (ADR-0026). Exa stands in
+    # for Tavily only once Tavily's monthly quota is spent (or it has no key).
+    channels = ["local", "tushare", "tushare_news", "official", "tavily", "exa", "ai_websearch"]
     attempts: list[RetrievalAttempt] = []
     candidates: list[str] = []
     for channel in channels:
