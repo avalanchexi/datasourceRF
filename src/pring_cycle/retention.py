@@ -2,10 +2,10 @@
 
 The window ends at the latest successful full run's target day and starts at the first
 session of that run's validated 120-session calendar. Everything the application wrote for
-an earlier day is deleted: source claims and their acquisition links (details), derived
-observations, projections, assessments, gap notices and reports (summaries), and the runs
-themselves with their ledgers (batches). An original is deleted once no remaining call
-refers to it. The current projection is never deleted.
+an earlier day is deleted: source claims with their acquisition links and matched quotes
+(details), derived observations, projections, assessments, gap notices and reports
+(summaries), and the runs themselves with their ledgers (batches). An original is deleted
+once no remaining call refers to it. The current projection is never deleted.
 
 The tables were append-only by trigger. Their delete guards are lifted inside this one
 transaction and put back before it commits, so every other writer still cannot delete.
@@ -147,6 +147,7 @@ def prune_to_window(paths: RuntimePaths) -> RetentionResult:
             "WHERE period_end < ?",
             (start,),
         )
+        delete("claim_matched_quote", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete("source_claim_acquisition", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete("source_claim", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete(

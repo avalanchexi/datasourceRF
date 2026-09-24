@@ -208,6 +208,56 @@ def test_a_failed_run_deletes_nothing_and_the_command_does(
     assert query(paths, "SELECT count(*) FROM source_claim WHERE period_end=?", str(old)) == [(0,)]
 
 
+def test_matched_quotes_go_with_their_claims(
+    pruned: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Phase two #07: a value's matched quote is kept exactly as long as the value."""
+    paths = pruned["paths"]
+    start = window_start(paths, pruned["latest"])
+    [old_claim] = EvidenceRepository(paths.database).append_source_claims(
+        (
+            SourceClaimInput(
+                metric_id="CN_DR007",
+                definition_version="metric-catalog-v0001",
+                period_kind="business_day",
+                period_start=OLD,
+                period_end=OLD,
+                dimensions={},
+                value=1.6,
+                value_state=EvidenceValueState.REPORTED_VALUE,
+                unit="scalar",
+                provider="财联社",
+                source_reference="media_page:https://www.cls.cn/detail/1",
+                release_event_id="media_page:old",
+                release_at=None,
+                public_available_at=None,
+                fetched_at=datetime.now(UTC),
+                available_at=datetime.now(UTC),
+                quality_status="validated",
+            ),
+        )
+    )
+    [(kept_claim,)] = query(
+        paths, "SELECT claim_id FROM source_claim WHERE period_end >= ? LIMIT 1", start
+    )
+    connection = sqlite3.connect(paths.database)
+    try:
+        with connection:
+            for claim_id in (old_claim.claim_id, kept_claim):
+                connection.execute(
+                    "INSERT INTO claim_matched_quote VALUES (?, 'media_page', '原话', '标题', "
+                    "'财联社', NULL, ?, NULL, 'news-rules-v0001')",
+                    (claim_id, "0" * 64),
+                )
+    finally:
+        connection.close()
+
+    main(["retention-prune", "--runtime-root", str(paths.override_root), "--json"])
+    capsys.readouterr()
+
+    assert query(paths, "SELECT claim_id FROM claim_matched_quote") == [(kept_claim,)]
+
+
 def test_retention_command_is_a_no_op_without_a_successful_run(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

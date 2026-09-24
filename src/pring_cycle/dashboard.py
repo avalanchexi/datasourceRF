@@ -283,6 +283,7 @@ CANDIDATE_REASON_LABELS = {
     "fetch_failed": "抓取失败",
     "incomplete_model_input": "数值不完整",
     "retrieval_blocked": "请求被缓存或预算拦下",
+    "rule_not_matched": "解析规则未命中",
 }
 
 

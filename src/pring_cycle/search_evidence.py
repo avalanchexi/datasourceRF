@@ -31,6 +31,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
+from pring_cycle.news_rules import news_claims_matching_quotes, rules_for
 from pring_cycle.official_context import (
     OFFICIAL_CONTEXT_INTEGRITY_METRICS,
     ParsedOfficialContextRelease,
@@ -40,7 +41,12 @@ from pring_cycle.official_lpr import ParsedLprRelease, lpr_claims_matching_acqui
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked, RetrievalLedger, utc_now
-from pring_cycle.retrieval_registry import families_of, parser_for_scope, registered_host
+from pring_cycle.retrieval_registry import (
+    families_of,
+    media_outlet,
+    parser_for_scope,
+    registered_host,
+)
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import (
@@ -237,10 +243,14 @@ class ModelInputSelector:
             ),
             _ClaimFamily(
                 lambda metric_id: metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS,
-                lambda metric_ids: official_claims_matching_acquisitions(
-                    self.core_evidence,
-                    series_by_metric(metric_ids),
-                    definition_version=self.version,
+                # An official original, a TuShare delivery, or a news rule's matched quote.
+                lambda metric_ids: (
+                    official_claims_matching_acquisitions(
+                        self.core_evidence,
+                        series_by_metric(metric_ids),
+                        definition_version=self.version,
+                    )
+                    | news_claims_matching_quotes(self.database_path, series_by_metric(metric_ids))
                 ),
             ),
             _ClaimFamily(
@@ -498,10 +508,18 @@ FETCH_FAILED = "fetch_failed"
 # The page parsed, but the model input for the gap is still not complete.
 INCOMPLETE_MODEL_INPUT = "incomplete_model_input"
 RETRIEVAL_BLOCKED = "retrieval_blocked"
+# A whitelisted media page was found, but no sentence matched the family's news rules.
+RULE_NOT_MATCHED = "rule_not_matched"
 # Verdicts on the page itself: a later check in the same run would reach the same one.
 # Fetch failures, blocked requests, a publication after a cutoff that still moves and an
 # input incomplete only because another member was missing are checked again.
-_FINAL_REASONS = (NOT_WHITELISTED, PARSE_FAILED, PERIOD_MISMATCH, NO_PUBLICATION_DATE)
+_FINAL_REASONS = (
+    NOT_WHITELISTED,
+    PARSE_FAILED,
+    PERIOD_MISMATCH,
+    NO_PUBLICATION_DATE,
+    RULE_NOT_MATCHED,
+)
 
 
 class CandidateRejected(ValueError):
@@ -713,6 +731,166 @@ def _accept_lenient_candidate(
     return (stored.claim_id,)
 
 
+def _accept_media_candidate(
+    paths: RuntimePaths,
+    run: RunRecord,
+    url: str,
+    *,
+    definition_version: str,
+    on_acquisition_started: Callable[[str], None],
+) -> tuple[str, ...]:
+    """A P1/P2 value from a whitelisted media page, by the family's news rules (ADR-0026).
+
+    The page is refetched and kept; only sentences the rules recognize give values, each
+    for the gap's due period, and each value keeps its matched quote. P0 never takes one.
+    """
+    from urllib.request import Request
+
+    from pring_cycle.acquisition import AcquisitionRepository
+    from pring_cycle.evidence import SourceClaimInput
+    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.http_transport import open_no_redirects
+    from pring_cycle.news_rules import (
+        MEDIA_PAGE,
+        MEDIA_PAGE_API,
+        NEWS_RULES_VERSION,
+        MatchedQuote,
+        NewsExtraction,
+        extract,
+        page_published_at,
+        page_title,
+        parse_published_at,
+        plain_text,
+        record_matched_quotes,
+        text_hash,
+    )
+    from pring_cycle.release_calendar import month_bounds
+
+    scope = run.retrieval_scope
+    assert scope is not None
+    outlet = media_outlet(url)
+    if outlet is None or scope.priority == "P0":
+        raise CandidateRejected(NOT_WHITELISTED)
+    if len(scope.period) != 7:
+        raise CandidateRejected(RULE_NOT_MATCHED)
+    responses: list[tuple[int, str, str]] = []
+
+    def fetch() -> bytes:
+        request = Request(url, headers={"User-Agent": "pring-cycle/1.0 media-page"})
+        with open_no_redirects(request, timeout=15) as response:
+            responses.append(
+                (
+                    int(response.status),
+                    str(response.geturl()),
+                    str(response.headers.get("Content-Type", "")),
+                )
+            )
+            return bytes(response.read(4_000_000))
+
+    def decode(raw: bytes) -> str:
+        charset = re.search(r"charset=([\w-]+)", responses[0][2] if responses else "")
+        for encoding in (charset.group(1) if charset else "utf-8", "utf-8", "gb18030"):
+            try:
+                return raw.decode(encoding)
+            except (LookupError, UnicodeDecodeError):
+                continue
+        raise CandidateRejected(PARSE_FAILED)
+
+    def parse(raw: bytes) -> tuple[str, str, NewsExtraction, str | None]:
+        status, final_url, _media_type = responses[0]
+        if status != 200:
+            raise CandidateRejected(FETCH_FAILED)
+        if media_outlet(final_url) != outlet:
+            raise CandidateRejected(NOT_WHITELISTED)
+        content = decode(raw)
+        text = plain_text(content)
+        extraction = extract(scope.metric_ids, scope.period, text)
+        if extraction.reason is not None:
+            raise CandidateRejected(extraction.reason)
+        return content, text, extraction, page_published_at(content)
+
+    acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=outlet,
+        api_name=MEDIA_PAGE_API,
+        parameters={
+            "source_url": url,
+            "period": scope.period,
+            "metric_ids": ",".join(scope.metric_ids),
+        },
+        fields="text",
+        parser_version=NEWS_RULES_VERSION,
+        fetch=fetch,
+        parse=parse,
+        normalize=lambda parsed: {
+            "title": page_title(parsed[0]),
+            "published_at": parsed[3],
+            "text_sha256": text_hash(parsed[1]),
+            "values": [
+                {"metric_id": v.metric_id, "dimensions": v.dimensions, "value": v.value}
+                for v in parsed[2].values
+            ],
+        },
+        on_started=on_acquisition_started,
+    )
+    receipt = acquired.receipt
+    content, text, extraction, published_text = acquired.value
+    assert receipt.received_at is not None and receipt.validated_at is not None
+    period_start, period_end = month_bounds(scope.period)
+    published = parse_published_at(published_text)
+    for metric_id in scope.metric_ids:
+        # The page's own time when it shows one, else the registered release time.
+        known = published or public_available_at(
+            metric_id, date.fromisoformat(period_end), receipt.received_at, current_calendar()
+        )
+        if known is not None and known > run.system_as_of:
+            raise CandidateRejected(DATE_AFTER_CUTOFF)
+    claims = tuple(
+        SourceClaimInput(
+            metric_id=value.metric_id,
+            definition_version=definition_version,
+            period_kind="month",
+            period_start=period_start,
+            period_end=period_end,
+            dimensions=value.dimensions,
+            value=value.value,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit=metric_definition(
+                value.metric_id, definition_version=definition_version, database_path=paths.database
+            ).unit,
+            provider=outlet,
+            source_reference=f"{MEDIA_PAGE}:{url}#sha256={receipt.raw_hash}",
+            release_event_id=f"{MEDIA_PAGE}:{value.metric_id}:{scope.period}:{receipt.raw_hash}",
+            release_at=published,
+            public_available_at=None,
+            fetched_at=receipt.received_at,
+            available_at=receipt.validated_at,
+            quality_status="validated",
+            acquisition_id=receipt.acquisition_id,
+        )
+        for value in extraction.values
+    )
+    stored = EvidenceRepository(paths.database).append_source_claims(claims)
+    title = page_title(content)
+    with database_connection(paths.database) as connection:
+        record_matched_quotes(
+            connection,
+            tuple(
+                MatchedQuote(
+                    claim.claim_id,
+                    MEDIA_PAGE,
+                    value.quote,
+                    title,
+                    outlet,
+                    published.isoformat() if published else published_text,
+                    text_hash(text),
+                    url,
+                )
+                for claim, value in zip(stored, extraction.values, strict=True)
+            ),
+        )
+    return tuple(claim.claim_id for claim in stored)
+
+
 def _refetch_csindex_candidate(
     paths: RuntimePaths,
     run: RunRecord,
@@ -801,7 +979,7 @@ def verify_search_candidates(
             duplicate = connection.execute(
                 "SELECT validation_id FROM retrieval_candidate_validation "
                 "WHERE run_id=? AND candidate_url=? AND gap_ids_json=? "
-                "AND (outcome='model_usable' OR reason IN (?, ?, ?, ?, ?)) LIMIT 1",
+                "AND (outcome='model_usable' OR reason IN (?, ?, ?, ?, ?, ?)) LIMIT 1",
                 (run_id, url, json.dumps(gap_ids), *_FINAL_REASONS, SEARCH_VALUE_MISMATCH),
             ).fetchone()
             connection.execute(
@@ -879,6 +1057,16 @@ def verify_search_candidates(
                             run,
                             url,
                             summary,
+                            definition_version=version,
+                            on_acquisition_started=started,
+                        )
+                    )
+                elif media_outlet(url) is not None and rules_for(scope.metric_ids):
+                    claim_ids.extend(
+                        _accept_media_candidate(
+                            paths,
+                            run,
+                            url,
                             definition_version=version,
                             on_acquisition_started=started,
                         )
