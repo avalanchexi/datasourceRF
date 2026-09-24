@@ -38,4 +38,4 @@
 
 ## 下一步
 
-按主流程 `/to-spec` → `/to-tickets` → `/implement`。
+规格已写成 [spec.md](spec.md)（ready-for-agent）；下一步 `/to-tickets` → `/implement`。
