@@ -135,8 +135,12 @@ def test_exa_stands_in_only_after_tavily_reports_its_monthly_quota_spent(
     now = datetime.now(UTC)
     calls: list[str] = []
 
+    exa_payloads: list[dict[str, Any]] = []
+
     def search(request: Any, **kwargs: Any) -> Page:
         calls.append(request.full_url)
+        if "exa" in request.full_url:
+            exa_payloads.append(json.loads(request.data))
         if "tavily" in request.full_url:
             raise HTTPError(request.full_url, 432, "plan limit", {}, BytesIO(b"{}"))  # type: ignore[arg-type]
         return Page(json.dumps({"results": [{"url": URL}]}).encode(), request.full_url)
@@ -165,6 +169,10 @@ def test_exa_stands_in_only_after_tavily_reports_its_monthly_quota_spent(
 
     assert calls == ["https://api.tavily.com/search", "https://api.exa.ai/search", URL]
     assert first.status == "completed"
+    # Exa searches the same title within the same domains, and returns the page text.
+    assert exa_payloads[0]["query"] == "2026年8月贷款市场报价利率（LPR）公告"
+    assert exa_payloads[0]["includeDomains"][0] == "www.chinamoney.com.cn"
+    assert "contents" in exa_payloads[0]
     tavily = next(r for r in first.retrieval_ledger["requests"] if r["channel"] == "tavily")
     # The quota renews with the month: Tavily is not called again until then.
     assert datetime.fromisoformat(tavily["cache_expires_at"]).day == 1

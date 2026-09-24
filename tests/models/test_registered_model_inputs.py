@@ -728,11 +728,8 @@ def test_registered_catalog_search_binds_shared_gaps_and_preserves_both_response
     )
     ledger = RetrievalLedger(paths.database)
     ledger.bind_run(run, version)
-    query = build_search_query(
-        metrics, period="2026-07", definition_version=version, database_path=paths.database
-    )
-    assert all(metric in query for metric in metrics)
-    assert "2026-07" in query
+    query = build_search_query(metrics, period="2026-07")
+    assert query == "2026年7月份中国采购经理指数运行情况"
     original = encode(
         {
             "results": [
@@ -838,12 +835,7 @@ def test_registered_catalog_retains_shared_family_legacy_search_limits(
     )
     ledger = RetrievalLedger(paths.database)
     ledger.bind_run(run, version)
-    query = build_search_query(
-        ("CN_PMI_INVENTORY",),
-        period="2026-07",
-        definition_version=version,
-        database_path=paths.database,
-    )
+    query = build_search_query(("CN_PMI_INVENTORY",), period="2026-07")
 
     def transport(
         _endpoint: str, _headers: dict[str, str], _payload: dict[str, object]

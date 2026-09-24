@@ -35,8 +35,11 @@ def test_unsearchable_gaps_are_not_searched_and_are_listed_apart(
         def geturl(self) -> str:
             return LPR_URL
 
+    payloads: list[dict[str, Any]] = []
+
     def search(request: Any, *, timeout: float) -> Response:
-        query = json.loads(request.data)["query"]
+        payloads.append(json.loads(request.data))
+        query = payloads[-1]["query"]
         queries.append(query)
         found = [{"url": LPR_URL}] if "LPR" in query or "贷款市场报价利率" in query else []
         return Response(json.dumps({"results": found}).encode())
@@ -68,7 +71,18 @@ def test_unsearchable_gaps_are_not_searched_and_are_listed_apart(
     assert any(
         row[0].startswith("full:chinamoney_lpr:") and row[2] != "not_attempted" for row in attempts
     )
-    assert queries
+    # Phase two #06: the query is the release title, limited to official and media hosts.
+    lpr = next(p for p in payloads if "贷款市场报价利率" in p["query"])
+    assert lpr["query"] == "2026年8月贷款市场报价利率（LPR）公告"
+    assert lpr["include_domains"][0] == "www.chinamoney.com.cn"
+    assert {"cls.cn", "news.cn", "reuters.com"} <= set(lpr["include_domains"])
+    assert all("CN_" not in query for query in queries)
+    recorded = next(
+        q
+        for q in runs.get(run.run_id).retrieval_ledger["queries"]
+        if q["query_text"] == lpr["query"]
+    )
+    assert recorded["domains"] == lpr["include_domains"]
     projection = ProjectionSetRepository(paths.database).current()
     gaps = {g["metric_id"]: g for g in projection.datasets["cycle_overview"]["gap_list"]}
     assert gaps["CN_DR007"]["category"] == "no_searchable_source"

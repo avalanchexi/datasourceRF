@@ -96,7 +96,15 @@ class RetrievalLedger:
                     "INSERT OR IGNORE INTO retrieval_run_gap VALUES (?, ?)", (run.run_id, gap_id)
                 )
 
-    def reserve(self, run_id: str, channel: str, release_event_id: str, query: str = "") -> str:
+    def reserve(
+        self,
+        run_id: str,
+        channel: str,
+        release_event_id: str,
+        query: str = "",
+        *,
+        domains: tuple[str, ...] = (),
+    ) -> str:
         request_id = "retrieval-request-" + uuid4().hex
         now = utc_now()
         with self._connect() as connection:
@@ -112,8 +120,8 @@ class RetrievalLedger:
             connection.execute(
                 """INSERT INTO retrieval_query(query_id, logical_query_id, run_id, channel,
                    query_text, attempted_at, physical_request_id, classification,
-                   next_eligible_at, cache_hit, reused_request_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                   next_eligible_at, cache_hit, reused_request_id, domains_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     "retrieval-query-" + uuid4().hex,
                     logical_id,
@@ -126,6 +134,7 @@ class RetrievalLedger:
                     decision.next_eligible.isoformat() if decision.next_eligible else None,
                     int(decision.cache_hit),
                     decision.reused_request_id if decision.blocked else None,
+                    json.dumps(list(domains)),
                 ),
             )
             if decision.blocked and decision.reused_request_id:
@@ -472,10 +481,10 @@ class RetrievalLedger:
         with self._connect() as connection:
             connection.execute(
                 "INSERT INTO retrieval_query(query_id, logical_query_id, run_id, channel, "
-                "query_text, attempted_at, classification, cache_hit, reused_request_id) "
-                "SELECT ?, logical_query_id, ?, channel, query_text, ?, "
+                "query_text, attempted_at, classification, cache_hit, reused_request_id, "
+                "domains_json) SELECT ?, logical_query_id, ?, channel, query_text, ?, "
                 "'verified_search_checkpoint', "
-                "1, ? FROM retrieval_query WHERE physical_request_id=? LIMIT 1",
+                "1, ?, domains_json FROM retrieval_query WHERE physical_request_id=? LIMIT 1",
                 (
                     "retrieval-query-" + uuid4().hex,
                     run_id,
@@ -673,7 +682,7 @@ class RetrievalLedger:
                 "requests": requests,
                 "candidate_validations": self._candidate_validations(connection, run_id),
                 "queries": [
-                    dict(row)
+                    {**dict(row), "domains": json.loads(row["domains_json"])}
                     for row in connection.execute(
                         "SELECT * FROM retrieval_query WHERE run_id=? ORDER BY rowid", (run_id,)
                     )
@@ -741,7 +750,8 @@ CREATE TABLE IF NOT EXISTS retrieval_query (
     run_id TEXT NOT NULL REFERENCES parent_run(run_id), channel TEXT NOT NULL,
     query_text TEXT NOT NULL, attempted_at TEXT NOT NULL, physical_request_id TEXT,
     classification TEXT, next_eligible_at TEXT, cache_hit INTEGER NOT NULL DEFAULT 0,
-    reused_request_id TEXT REFERENCES retrieval_physical_request(request_id)
+    reused_request_id TEXT REFERENCES retrieval_physical_request(request_id),
+    domains_json TEXT NOT NULL DEFAULT '[]'
 );
 """
 

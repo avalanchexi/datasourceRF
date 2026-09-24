@@ -12,7 +12,7 @@ from pring_cycle.health_types import DatabaseHealth, WorkerHealth
 if TYPE_CHECKING:
     from alembic.config import Config
 
-SCHEMA_HEAD = "0028_release_schedule"
+SCHEMA_HEAD = "0029_search_query_domains"
 
 
 @contextmanager

@@ -410,7 +410,7 @@ def test_full_run_searches_real_gap_and_publishes_traceable_adoption(
         calls.append(request.full_url)
         before_search.append(runs.full_retrieval_plan(run.run_id))
         # Every released gap is searched (ticket 19); only the LPR query finds its page.
-        found = [{"url": url}] if "CN_LPR_1Y_5Y" in json.loads(request.data)["query"] else []
+        found = [{"url": url}] if "贷款市场报价利率" in json.loads(request.data)["query"] else []
         return Response(json.dumps({"results": found}).encode())
 
     class Opener:
@@ -699,7 +699,7 @@ def test_lpr_direction_inputs_are_certified_and_in_frozen_snapshot(
 
     def unexpected_search(request, **kwargs):
         # Other released gaps are searched; the complete local LPR never is.
-        if "CN_LPR_1Y_5Y" in json.loads(request.data)["query"]:
+        if "贷款市场报价利率" in json.loads(request.data)["query"]:
             raise AssertionError("complete_local_lpr_must_not_call_search")
         return Response(b'{"results":[]}')
 

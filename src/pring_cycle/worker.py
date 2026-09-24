@@ -904,19 +904,17 @@ def _production_retrieval_adapters(
         adapters["tushare"] = lambda _event: retrieve_tushare_context(
             paths, run_id, tushare_token, scope_run=scope_run
         )
-    if "TAVILY_API_KEY" in secrets or "EXA_API_KEY" in secrets:
+    # Only a registered family has a release title to search for (phase two #05, #06).
+    if parser is not None and ("TAVILY_API_KEY" in secrets or "EXA_API_KEY" in secrets):
+        from pring_cycle.retrieval_registry import search_domains
         from pring_cycle.search_discovery import (
             build_search_query,
             search_discovery_adapter,
         )
         from pring_cycle.search_evidence import verify_search_candidates
 
-        query = build_search_query(
-            scope.metric_ids,
-            period=scope.period,
-            definition_version=definition_version,
-            database_path=paths.database,
-        )
+        query = build_search_query(scope.metric_ids, period=scope.period)
+        domains = search_domains(scope.metric_ids)
         if token := secrets.get("TAVILY_API_KEY"):
             adapters["tavily"] = search_discovery_adapter(
                 "tavily",
@@ -928,6 +926,7 @@ def _production_retrieval_adapters(
                 verify_candidates=lambda request_id, urls, summaries: verify_search_candidates(
                     paths, run_id, request_id, urls, summaries, scope_run=scope_run
                 ),
+                domains=domains,
             )
         if token := secrets.get("EXA_API_KEY"):
             adapters["exa"] = search_discovery_adapter(
@@ -940,6 +939,7 @@ def _production_retrieval_adapters(
                 verify_candidates=lambda request_id, urls, summaries: verify_search_candidates(
                     paths, run_id, request_id, urls, summaries, scope_run=scope_run
                 ),
+                domains=domains,
             )
     return adapters
 

@@ -4,14 +4,12 @@ import json
 import math
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field, replace
-from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import Request
 
 from pring_cycle.acquisition import AcquisitionRepository
-from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import (
@@ -38,24 +36,11 @@ SearchTransport = Callable[
 ]
 
 
-def build_search_query(
-    metric_ids: tuple[str, ...],
-    *,
-    period: str,
-    definition_version: str = METRIC_CATALOG_VERSION,
-    database_path: Path | None = None,
-) -> str:
-    if not metric_ids:
-        raise ValueError("search_metric_ids_required")
-    identities = []
-    for metric_id in metric_ids:
-        definition = metric_definition(
-            metric_id, definition_version=definition_version, database_path=database_path
-        )
-        identities.append(
-            " ".join((definition.metric_id, definition.name_cn, *definition.source_codes))
-        )
-    query = f"{' ; '.join(identities)} {period} 官方 发布"
+def build_search_query(metric_ids: tuple[str, ...], *, period: str) -> str:
+    """The family's release title with the period in Chinese (retrieval registry)."""
+    from pring_cycle.retrieval_registry import search_query
+
+    query = search_query(metric_ids, period)
     if len(query) > 800:
         raise ValueError("search_query_too_long")
     return query
@@ -72,12 +57,13 @@ def search_discovery_adapter(
     verify_candidates: Callable[[str, tuple[str, ...], tuple[str, ...]], RetrievalAdapterResponse]
     | None = None,
     ledger: RetrievalLedger | None = None,
+    domains: tuple[str, ...] = (),
 ) -> Callable[[str], RetrievalAdapterResponse]:
     if not api_key:
         raise ValueError("search_api_key_required")
     if not query or len(query) > 800:
         raise ValueError("search_query_invalid")
-    endpoint, headers, payload = _request_contract(provider, api_key, query)
+    endpoint, headers, payload = _request_contract(provider, api_key, query, domains)
     request = transport or _post_json
 
     def interpret(response: SearchHttpResponse) -> RetrievalAdapterResponse:
@@ -142,7 +128,9 @@ def search_discovery_adapter(
         if checkpoint := reuse(interrupted_only=True):
             return checkpoint
         try:
-            request_id = active_ledger.reserve(run_id, provider, release_event_id, query)
+            request_id = active_ledger.reserve(
+                run_id, provider, release_event_id, query, domains=domains
+            )
         except RetrievalBudgetBlocked as error:
             if checkpoint := reuse(interrupted_only=False):
                 return checkpoint
@@ -162,7 +150,11 @@ def search_discovery_adapter(
             acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
                 provider=provider,
                 api_name="search",
-                parameters={"query": query, "retrieval_request_id": request_id},
+                parameters={
+                    "query": query,
+                    "include_domains": ",".join(domains),
+                    "retrieval_request_id": request_id,
+                },
                 fields="results",
                 parser_version="search-discovery-v0002",
                 fetch=fetch,
@@ -201,6 +193,7 @@ def _request_contract(
     provider: str,
     api_key: str,
     query: str,
+    domains: tuple[str, ...] = (),
 ) -> tuple[str, dict[str, str], dict[str, object]]:
     if provider == "tavily":
         return (
@@ -218,6 +211,7 @@ def _request_contract(
                 "include_raw_content": False,
                 "include_images": False,
                 "include_usage": True,
+                **({"include_domains": list(domains)} if domains else {}),
             },
         )
     if provider == "exa":
@@ -228,7 +222,14 @@ def _request_contract(
                 "Content-Type": "application/json",
                 "x-api-key": api_key,
             },
-            {"query": query, "type": "auto", "numResults": 3},
+            {
+                "query": query,
+                "type": "auto",
+                "numResults": 3,
+                # The page text, so a media page's figure can be checked without a refetch.
+                "contents": {"text": {"maxCharacters": 1500}},
+                **({"includeDomains": list(domains)} if domains else {}),
+            },
         )
     raise ValueError("unsupported_search_provider")
 
