@@ -40,15 +40,6 @@ def evidence_frequency(metric_id: str, declared_frequency: str) -> str:
     return declared_frequency
 
 
-def evidence_max_age_days(metric_id: str, declared_frequency: str) -> int:
-    """The existing freshness limits, with operational cadence resolved to event semantics."""
-    if metric_id == "CN_RRR_EVENT":
-        return 730
-    return {"daily": 10, "monthly": 95, "quarterly": 190, "event": 370}.get(
-        evidence_frequency(metric_id, declared_frequency), 95
-    )
-
-
 REQUIRED_DIMENSION_MEMBERS: dict[str, tuple[dict[str, str], ...]] = {
     "CN_LPR_1Y_5Y": (
         {"tenor": "1y"},
