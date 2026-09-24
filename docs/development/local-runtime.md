@@ -345,11 +345,12 @@ VIX、SOX 在登记主机或媒体白名单上可采用搜索摘要中的值（�
 Claude Code（只开放 `WebSearch` 工具），均按固定结构返回候选（网址、原话、数值、统计期、发布日期）；
 每个候选依次校验白名单主机、家族规则从原话取出的值与返回数值一致、统计期、发布日期后才补齐缺口。
 每缺口每次运行至多一次，单次 300 秒，每次运行合计 60 分钟，用尽后记“AI 时长已用尽”；只依赖 CLI
-自身登录，不使用任何模型 API key。默认关闭，在运行配置 `config.toml` 中显式开启：
+自身登录，不使用任何模型 API key。只对规则覆盖该家族全部必需成员的缺口调用（否则答案也补不齐）。
+默认开启；可在运行配置 `config.toml` 中关闭，测试套件以环境变量 `PRING_CYCLE_AI_WEBSEARCH=off` 关闭：
 
 ```toml
 [retrieval]
-ai_websearch = true
+ai_websearch = false
 ```
 
 预算只按每次运行计：Tavily 16、Exa 8，不设每日上限；AI WebSearch 不计次。同一运行内不重复结果
