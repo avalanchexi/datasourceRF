@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
+from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository
@@ -508,6 +509,23 @@ def test_an_omo_rate_not_held_is_read_from_the_day_s_operation(
     )
 
     assert selected(paths, "CN_OMO_7D_RATE", version, now) == {"": 1.4}
+    # A news rule's matched quote is a source the analysis reads too (ADR-0026).
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=now + timedelta(days=1),
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date="2026-09-23",
+    )
+    policy = {
+        row["metric_id"]: (row["status"], row["value"])
+        for row in context.macro["policy_action"]["evidence"]  # type: ignore[index]
+        if row["metric_id"] in {"CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT"}
+    }
+    assert {metric: value for metric, (_status, value) in policy.items()} == {
+        "CN_OMO_7D_RATE": 1.4,
+        "CN_OMO_7D_AMOUNT": 80.0,
+    }
+    assert not {status for status, _value in policy.values()} & {"source_failed", "missing"}
 
 
 def test_a_held_omo_rate_is_looked_for_again_and_stays_in_force(

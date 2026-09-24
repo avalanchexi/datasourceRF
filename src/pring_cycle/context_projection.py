@@ -29,6 +29,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.freshness import period_status
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
+from pring_cycle.news_rules import news_claims_matching_quotes
 from pring_cycle.official_context import (
     OFFICIAL_CONTEXT_INTEGRITY_METRICS,
     official_claims_matching_acquisitions,
@@ -569,6 +570,21 @@ def build_context_projection(
     )
 
 
+def _official_or_quoted_claims(
+    repository: Any,
+    points_by_metric: Mapping[str, tuple[MetricSeriesPoint, ...]],
+    *,
+    definition_version: str,
+) -> set[str]:
+    """An official original, a TuShare delivery, or a news rule's matched quote (ADR-0026).
+
+    Retrieval adopts all three; the analysis reads what retrieval adopted.
+    """
+    return official_claims_matching_acquisitions(
+        repository, points_by_metric, definition_version=definition_version
+    ) | news_claims_matching_quotes(repository._database_path, points_by_metric)
+
+
 class TargetBoundEvidenceRepository:
     """Delegate evidence access while enforcing one historical period boundary."""
 
@@ -701,7 +717,7 @@ def _derived_market_context_rows(
         definition_version=definition_version,
     )
     valid_amount_claim_ids = (
-        official_claims_matching_acquisitions(
+        _official_or_quoted_claims(
             repository,
             {"CN_OMO_7D_AMOUNT": reported_amount_points},
             definition_version=definition_version,
@@ -886,7 +902,7 @@ def _derived_market_context_rows(
         policy_rate is not None
         and definition_version not in BUILTIN_CATALOG_VERSIONS
         and policy_rate.selected_claim_id
-        not in official_claims_matching_acquisitions(
+        not in _official_or_quoted_claims(
             repository, {"CN_OMO_7D_RATE": (policy_rate,)}, definition_version=definition_version
         )
     ):
@@ -1023,7 +1039,7 @@ def _derived_market_context_rows(
     ]
     loan_groups: dict[tuple[str, str], list[MetricSeriesPoint]] = {}
     valid_loan_claim_ids = (
-        official_claims_matching_acquisitions(
+        _official_or_quoted_claims(
             repository,
             {"CN_LOAN_STRUCTURE": tuple(loan_stock_points)},
             definition_version=definition_version,
@@ -1339,7 +1355,7 @@ def _usable_points_by_period(
         definition_version=definition_version,
     )
     valid_claim_ids = (
-        official_claims_matching_acquisitions(
+        _official_or_quoted_claims(
             repository, {metric_id: series}, definition_version=definition_version
         )
         if metric_id in OFFICIAL_CONTEXT_FAMILIES["nbs_pmi"].metric_ids
@@ -1438,7 +1454,7 @@ def _metric_rows(
         )
         incomplete_source_claims.update(
             set(official_claim_ids)
-            - official_claims_matching_acquisitions(
+            - _official_or_quoted_claims(
                 repository,
                 {definition.metric_id: series},
                 definition_version=definition.definition_version,
@@ -2218,7 +2234,7 @@ def _credit_impulse_proxy(
         selected_parent_ids = {
             point.selected_claim_id for point in (*social_input_points, *gdp_input_points)
         }
-        valid_parents = official_claims_matching_acquisitions(
+        valid_parents = _official_or_quoted_claims(
             repository,
             {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)},
             definition_version=definition_version,

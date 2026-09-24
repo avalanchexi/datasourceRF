@@ -17,4 +17,5 @@ Basis: 访谈决定已写入 [ADR-0028](../../docs/adr/0028-event-metrics-curren
 ## Slices
 
 - [01 公开市场操作利率随操作量逐日检索](issues/01-omo-rate-daily-with-amount.md)
-- [02 降准：资讯监测、现行基准与追溯发现](issues/02-rrr-news-baseline-backtrack.md)
+- [02 降准：资讯监测与现行基准](issues/02-rrr-news-monitoring-baseline.md)
+- [03 降准：从未持有时的追溯发现](issues/03-rrr-backtrack-discovery.md)（Blocked by 02）
