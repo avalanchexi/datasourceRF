@@ -696,7 +696,14 @@ def _failed_candidates(database: Path, run_id: str) -> dict[str, list[dict[str, 
     }
 
 
-_GAP_ORDER = ("missing", "retrieval_failed", "freshness_gap", "unconfigured", "rejected")
+_GAP_ORDER = (
+    "missing",
+    "no_searchable_source",
+    "retrieval_failed",
+    "freshness_gap",
+    "unconfigured",
+    "rejected",
+)
 
 
 def gap_list(
@@ -708,8 +715,11 @@ def gap_list(
     ``freshness_gap``: one period behind, carried forward; ``unconfigured``: no freshness
     registry row; ``rejected``: a response failed its structure check (gate ③);
     ``retrieval_failed``: still missing or behind after search candidates were refetched
-    and none passed, listing up to three URLs each with its reason (ticket 19).
+    and none passed, listing up to three URLs each with its reason (ticket 19);
+    ``no_searchable_source``: missing, and no web page can carry the metric (it belongs to
+    no registered retrieval family), so it was retried through TuShare but never searched.
     """
+    from pring_cycle.retrieval_registry import is_searchable_gap
     from pring_cycle.storage import database_connection
 
     priorities = {item.metric_id: item.priority for item in definitions}
@@ -727,6 +737,8 @@ def gap_list(
             category, reason = "unconfigured", "freshness_not_registered"
         else:
             continue
+        if category == "missing" and not is_searchable_gap(metric_id):
+            category = "no_searchable_source"
         gap: dict[str, object] = {
             "metric_id": metric_id,
             "priority": priorities.get(metric_id),

@@ -573,18 +573,19 @@ def test_full_run_shares_hard_search_budget_across_periods(
         known = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
         evidence.append_source_claim(
             SourceClaimInput(
-                metric_id="CN_DR007",
+                # A searchable daily gap (PBC notices): an unsearchable one is never searched.
+                metric_id="CN_OMO_7D_AMOUNT",
                 definition_version="metric-catalog-v0001",
                 period_kind="business_day",
                 period_start=day.isoformat(),
                 period_end=day.isoformat(),
-                dimensions={},
+                dimensions={"measure": "injection"},
                 value=None,
                 value_state=EvidenceValueState.NOT_DISCLOSED,
-                unit="scalar",
+                unit="hundred_million_cny",
                 provider="fixture:official-release",
-                source_reference=f"fixture:dr007:{day}",
-                release_event_id=f"fixture:dr007:{day}",
+                source_reference=f"fixture:omo-amount:{day}",
+                release_event_id=f"fixture:omo-amount:{day}",
                 release_at=known,
                 public_available_at=known,
                 fetched_at=known,
@@ -766,7 +767,7 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     from pring_cycle.models import analytical_model_v0002_manifest
     from pring_cycle.retrieval import RUN_SEARCH_LIMITS
 
-    # The P2 EIA pair is searched last; lift the run cap so earlier gaps cannot use it up.
+    # Lift the run cap so earlier gaps cannot use it up before the pair is searched.
     monkeypatch.setitem(RUN_SEARCH_LIMITS, "tavily", 1000)
 
     paths, runs = prepare(tmp_path)
@@ -775,22 +776,26 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
     models.create_candidate(analytical_model_v0002_manifest())
     models.activate("model-v0002", explicitly_approved=True)
     seed_core_history(paths, definition_version="metric-catalog-v0002")
-    known = datetime(2026, 8, 28, tzinfo=UTC)
-    for metric in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
+    known = datetime(2026, 8, 14, tzinfo=UTC)
+    # Social financing's total and components come out in one PBC release.
+    for metric, dimensions in (
+        ("CN_SF_TOTAL", {"measure": "stock_end"}),
+        ("CN_SF_COMPONENTS", {"component": "renminbi_loans", "measure": "stock_end"}),
+    ):
         EvidenceRepository(paths.database).append_source_claim(
             SourceClaimInput(
                 metric_id=metric,
                 definition_version="metric-catalog-v0002",
-                period_kind="business_day",
-                period_start="2026-08-28",
-                period_end="2026-08-28",
-                dimensions={},
+                period_kind="month",
+                period_start="2026-07-01",
+                period_end="2026-07-31",
+                dimensions=dimensions,
                 value=None,
                 value_state=EvidenceValueState.NOT_DISCLOSED,
-                unit="usd_per_barrel",
-                provider="fixture:eia",
-                source_reference=f"fixture:eia:{metric}",
-                release_event_id="fixture:eia:2026-08-28",
+                unit="hundred_million_cny",
+                provider="fixture:pbc",
+                source_reference=f"fixture:pbc:{metric}",
+                release_event_id="fixture:pbc:2026-07",
                 release_at=known,
                 public_available_at=known,
                 fetched_at=known,
@@ -800,42 +805,43 @@ def test_joint_publication_shares_one_request_for_multiple_full_run_gaps(
             )
         )
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
-    queries = []
 
     class Response(BytesIO):
         status = 200
         headers = {}
 
-    def search(request, *, timeout):
-        queries.append(json.loads(request.data)["query"])
-        return Response(b'{"results":[]}')
-
-    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
+    monkeypatch.setattr(
+        "pring_cycle.search_discovery.urlopen",
+        lambda request, *, timeout: Response(b'{"results":[]}'),
+    )
     run = runs.submit_manual_full(
         target_business_date="2026-08-28",
-        client_request_id="joint-eia-publication",
+        client_request_id="joint-sf-publication",
         model_version_id="model-v0002",
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
     stored = runs.get(run.run_id)
     assert stored.status == "completed", stored.error_classification
-    eia = [query for query in queries if "EIA_BRENT_RBRTE" in query]
-    assert len(eia) == 1
-    assert "EIA_WTI_RWTC" in eia[0]
     ledger = stored.retrieval_ledger
-    eia_ids = {gap["gap_id"] for gap in ledger["gaps"] if gap["metric_id"].startswith("EIA_")}
+    sf_ids = {
+        gap["gap_id"]
+        for gap in ledger["gaps"]
+        if gap["metric_id"] in {"CN_SF_TOTAL", "CN_SF_COMPONENTS"} and gap["period"] == "2026-07"
+    }
     requests = [
-        request for request in ledger["requests"] if eia_ids.intersection(request["gap_ids"])
+        request
+        for request in ledger["requests"]
+        if request["channel"] == "tavily" and sf_ids.intersection(request["gap_ids"])
     ]
     assert len(requests) == 1
-    final_ids = {
-        g["gap_id"]
+    final = [
+        g
         for g in ledger["gaps"]
-        if g["gap_id"] in eia_ids and g["as_of"] == stored.system_as_of.isoformat()
-    }
-    assert len(final_ids) == 2
-    assert final_ids <= set(requests[0]["gap_ids"])
+        if g["gap_id"] in sf_ids and g["as_of"] == stored.system_as_of.isoformat()
+    ]
+    assert {g["metric_id"] for g in final} == {"CN_SF_TOTAL", "CN_SF_COMPONENTS"}
+    assert {g["gap_id"] for g in final} <= set(requests[0]["gap_ids"])
     assert stored.consumed_budget["ai_websearch"] == 0
 
 

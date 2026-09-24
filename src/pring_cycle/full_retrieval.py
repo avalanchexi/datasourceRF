@@ -33,6 +33,7 @@ from pring_cycle.retrieval import (
     run_retrieval_cascade,
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
+from pring_cycle.retrieval_registry import is_searchable_gap
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
@@ -134,6 +135,7 @@ class FullRunRetrieval:
                         priority=scope.priority,
                         released=True,
                         persistent_accounting=True,
+                        searchable=all(is_searchable_gap(m) for m in scope.metric_ids),
                     ),
                     adapters,
                     budget,

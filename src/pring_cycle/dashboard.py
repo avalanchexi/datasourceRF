@@ -265,6 +265,7 @@ def _carry_forward_notice(value: object) -> list[html.P]:
 
 GAP_CATEGORY_LABELS = {
     "missing": "缺失",
+    "no_searchable_source": "无可检索来源",
     "retrieval_failed": "检索未通过",
     "freshness_gap": "时效缺口",
     "unconfigured": "未配置时效",

@@ -19,8 +19,13 @@ class RetrievalRequest:
     negative_cache_active: bool = False
     manual_deep_search: bool = False
     persistent_accounting: bool = False
+    # False when no web page can carry the gap's value (not a registered retrieval family):
+    # TuShare is still retried, but no search channel is called.
+    searchable: bool = True
 
 
+SEARCH_CHANNELS = frozenset({"tavily", "exa", "ai_websearch"})
+NO_SEARCHABLE_SOURCE = "no_searchable_source"
 # Paid search calls allowed per run (ticket 20). There is no daily cap; AI WebSearch has no
 # count limit and is held to one call per gap per run by the ledger.
 RUN_SEARCH_LIMITS: dict[str, int | None] = {"tavily": 16, "exa": 8, "ai_websearch": None}
@@ -99,6 +104,13 @@ def run_retrieval_cascade(
     candidates: list[str] = []
     for channel in channels:
         adapter = adapters.get(channel)
+        if channel in SEARCH_CHANNELS and not request.searchable:
+            attempts.append(
+                RetrievalAttempt(
+                    channel, "not_attempted", None, classification=NO_SEARCHABLE_SOURCE
+                )
+            )
+            continue
         if (
             channel == "exa"
             and adapter is not None
