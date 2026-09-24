@@ -183,3 +183,54 @@ def test_exa_stands_in_only_after_tavily_reports_its_monthly_quota_spent(
     assert calls[0] == "https://api.exa.ai/search"
     attempts = {item["channel"]: item for item in second.retrieval_attempts}
     assert attempts["tavily"]["classification"] == "quota_exhausted"
+
+
+def test_usdcny_1630_takes_a_whitelisted_media_page_on_the_lenient_path(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Phase two #10: the lenient hosts now include the media whitelist."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    ModelRepository(paths.database).activate("model-v0001", explicitly_approved=True)
+    paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
+    media = "https://finance.sina.com.cn/money/forex/2026-08-27/usdcny-close.shtml"
+    summary = "2026年8月27日，在岸人民币对美元16:30收盘报7.1234，较上一交易日上涨32个基点。"
+    calls: list[str] = []
+
+    def search(request: Any, **kwargs: Any) -> Page:
+        calls.append(request.full_url)
+        return Page(json.dumps({"results": [{"url": media, "content": summary}]}).encode(), media)
+
+    def page(request: Any, **kwargs: Any) -> Page:
+        calls.append(request.full_url)
+        return Page(f"<html>{summary}</html>".encode(), request.full_url)
+
+    monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
+    monkeypatch.setattr("pring_cycle.http_transport.open_no_redirects", page)
+    runs = RunRepository(paths.database)
+    now = datetime.now(UTC)
+    submitted = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-28",
+        client_request_id="usdcny-1630-media",
+        model_version_id="model-v0001",
+        system_as_of=now + timedelta(days=1),
+        release_event_id="usdcny-1630:2026-08-27",
+        metric_ids=("CN_USDCNY_CLOSE_1630",),
+        period="2026-08-27",
+    )
+
+    process_pending_run(paths, report_adapters=(), retrieval_now=now)
+
+    stored = runs.get(submitted.run_id)
+    assert stored.status == "completed"
+    [validation] = stored.retrieval_ledger["candidate_validations"]
+    assert (validation["outcome"], validation["fetched_url"]) == ("model_usable", media)
+    [point] = EvidenceRepository(paths.database).metric_series(
+        "CN_USDCNY_CLOSE_1630",
+        mode=AsOfMode.SYSTEM,
+        as_of=now + timedelta(days=2),
+        definition_version="metric-catalog-v0001",
+    )
+    assert point.selected_value == 7.1234
+    assert point.claims[0].provider == "finance.sina.com.cn"

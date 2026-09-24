@@ -6,6 +6,7 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date
+from urllib.parse import urlsplit
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
@@ -232,13 +233,16 @@ class ModelInputSelector:
             ),
             _ClaimFamily(
                 lambda metric_id: metric_id == "CN_LPR_1Y_5Y",
-                lambda metric_ids: lpr_claims_matching_acquisitions(
-                    self.core_evidence,
-                    tuple(
-                        point
-                        for point in points_of(metric_ids)
-                        if point.selected_claim_id is not None
-                    ),
+                lambda metric_ids: (
+                    lpr_claims_matching_acquisitions(
+                        self.core_evidence,
+                        tuple(
+                            point
+                            for point in points_of(metric_ids)
+                            if point.selected_claim_id is not None
+                        ),
+                    )
+                    | news_claims_matching_quotes(self.database_path, series_by_metric(metric_ids))
                 ),
             ),
             _ClaimFamily(
@@ -583,9 +587,10 @@ def search_value_conflicts(summary: str, values: tuple[float, ...]) -> bool:
     )
 
 
-# The P2 lenient path (ticket 20): hosts registered per metric in the retrieval registry.
-# A candidate on one of them is accepted with the value the search channel extracted; the
-# page is refetched so its original and hash are kept. No parser is required.
+# The P2 lenient path (ticket 20): hosts registered per metric in the retrieval registry,
+# and the whitelisted media (phase two #10). A candidate on one of them is accepted with
+# the value the search channel extracted; the page is refetched so its original and hash
+# are kept. No parser is required.
 LENIENT_HOSTS: dict[str, tuple[tuple[str, str], ...]] = {
     metric_id: family.hosts
     for family in families_of("lenient").values()
@@ -615,7 +620,12 @@ _CLOSE_VALUE = re.compile(
 
 
 def _lenient_host(metric_id: str, url: str) -> str:
-    host = registered_host(metric_id, url) if metric_id in LENIENT_HOSTS else None
+    """A host registered for the metric, or any whitelisted media host (ADR-0026)."""
+    if metric_id not in LENIENT_HOSTS:
+        raise CandidateRejected(NOT_WHITELISTED)
+    host = registered_host(metric_id, url)
+    if host is None and media_outlet(url) is not None:
+        host = urlsplit(url).hostname
     if host is None:
         raise CandidateRejected(NOT_WHITELISTED)
     return host
@@ -747,32 +757,29 @@ def _accept_media_candidate(
     from urllib.request import Request
 
     from pring_cycle.acquisition import AcquisitionRepository
-    from pring_cycle.evidence import SourceClaimInput
     from pring_cycle.freshness import current_calendar, public_available_at
     from pring_cycle.http_transport import open_no_redirects
     from pring_cycle.news_rules import (
         MEDIA_PAGE,
         MEDIA_PAGE_API,
         NEWS_RULES_VERSION,
-        MatchedQuote,
         NewsExtraction,
+        TakenValue,
         extract,
+        member_period,
         page_published_at,
         page_title,
         parse_published_at,
         plain_text,
-        record_matched_quotes,
+        store_news_values,
         text_hash,
     )
-    from pring_cycle.release_calendar import month_bounds
 
     scope = run.retrieval_scope
     assert scope is not None
     outlet = media_outlet(url)
     if outlet is None or scope.priority == "P0":
         raise CandidateRejected(NOT_WHITELISTED)
-    if len(scope.period) != 7:
-        raise CandidateRejected(RULE_NOT_MATCHED)
     responses: list[tuple[int, str, str]] = []
 
     def fetch() -> bytes:
@@ -835,60 +842,39 @@ def _accept_media_candidate(
     receipt = acquired.receipt
     content, text, extraction, published_text = acquired.value
     assert receipt.received_at is not None and receipt.validated_at is not None
-    period_start, period_end = month_bounds(scope.period)
     published = parse_published_at(published_text)
-    for metric_id in scope.metric_ids:
+    for value in extraction.values:
         # The page's own time when it shows one, else the registered release time.
+        _kind, _start, end = member_period(value.metric_id, value.dimensions, scope.period)
         known = published or public_available_at(
-            metric_id, date.fromisoformat(period_end), receipt.received_at, current_calendar()
+            value.metric_id, date.fromisoformat(end), receipt.received_at, current_calendar()
         )
         if known is not None and known > run.system_as_of:
             raise CandidateRejected(DATE_AFTER_CUTOFF)
-    claims = tuple(
-        SourceClaimInput(
-            metric_id=value.metric_id,
-            definition_version=definition_version,
-            period_kind="month",
-            period_start=period_start,
-            period_end=period_end,
-            dimensions=value.dimensions,
-            value=value.value,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit=metric_definition(
-                value.metric_id, definition_version=definition_version, database_path=paths.database
-            ).unit,
-            provider=outlet,
-            source_reference=f"{MEDIA_PAGE}:{url}#sha256={receipt.raw_hash}",
-            release_event_id=f"{MEDIA_PAGE}:{value.metric_id}:{scope.period}:{receipt.raw_hash}",
-            release_at=published,
-            public_available_at=None,
-            fetched_at=receipt.received_at,
-            available_at=receipt.validated_at,
-            quality_status="validated",
-            acquisition_id=receipt.acquisition_id,
-        )
-        for value in extraction.values
-    )
-    stored = EvidenceRepository(paths.database).append_source_claims(claims)
     title = page_title(content)
-    with database_connection(paths.database) as connection:
-        record_matched_quotes(
-            connection,
-            tuple(
-                MatchedQuote(
-                    claim.claim_id,
-                    MEDIA_PAGE,
-                    value.quote,
-                    title,
-                    outlet,
-                    published.isoformat() if published else published_text,
-                    text_hash(text),
-                    url,
-                )
-                for claim, value in zip(stored, extraction.values, strict=True)
-            ),
-        )
-    return tuple(claim.claim_id for claim in stored)
+    return store_news_values(
+        paths.database,
+        tuple(
+            TakenValue(
+                value,
+                title,
+                outlet,
+                published.isoformat() if published else published_text,
+                text_hash(text),
+                url,
+                receipt.acquisition_id,
+                receipt.received_at,
+                published,
+            )
+            for value in extraction.values
+        ),
+        route=MEDIA_PAGE,
+        provider=outlet,
+        source_reference=lambda _taken: f"{MEDIA_PAGE}:{url}#sha256={receipt.raw_hash}",
+        period=scope.period,
+        definition_version=definition_version,
+        available_at=receipt.validated_at,
+    )
 
 
 def _refetch_csindex_candidate(

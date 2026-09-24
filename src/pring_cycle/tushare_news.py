@@ -217,86 +217,52 @@ def fill_from_news(
     Items published after the run's cutoff are not read. The first item to state a member
     gives it; a later item stating another value for it is ignored.
     """
-    from pring_cycle.catalog import metric_definition
-    from pring_cycle.evidence import (
-        EvidenceRepository,
-        EvidenceValueState,
-        SourceClaimInput,
-    )
     from pring_cycle.news_rules import (
         TUSHARE_NEWS,
-        MatchedQuote,
+        TakenValue,
         extract,
         plain_text,
-        record_matched_quotes,
         rules_for,
+        store_news_values,
         text_hash,
     )
-    from pring_cycle.release_calendar import month_bounds
 
     scope = run.retrieval_scope
     assert scope is not None
-    if scope.priority == "P0" or len(scope.period) != 7 or not rules_for(scope.metric_ids):
+    if scope.priority == "P0" or not rules_for(scope.metric_ids):
         return ()
-    taken: dict[tuple[str, str], tuple[NewsItem, Any, str]] = {}
+    taken: dict[tuple[str, str], TakenValue] = {}
     for item in run_news(paths, run.run_id):
         if item.published_at > run.system_as_of:
             continue
         text = plain_text(item.content)
         for value in extract(scope.metric_ids, scope.period, text).values:
-            key = (value.metric_id, json.dumps(value.dimensions, sort_keys=True))
-            taken.setdefault(key, (item, value, text))
-    if not taken:
-        return ()
-    period_start, period_end = month_bounds(scope.period)
-    entries = list(taken.values())
-    stored = EvidenceRepository(paths.database).append_source_claims(
-        tuple(
-            SourceClaimInput(
-                metric_id=value.metric_id,
-                definition_version=definition_version,
-                period_kind="month",
-                period_start=period_start,
-                period_end=period_end,
-                dimensions=value.dimensions,
-                value=value.value,
-                value_state=EvidenceValueState.REPORTED_VALUE,
-                unit=metric_definition(
-                    value.metric_id,
-                    definition_version=definition_version,
-                    database_path=paths.database,
-                ).unit,
-                provider=TUSHARE_NEWS,
-                source_reference=f"{TUSHARE_NEWS}:{item.acquisition_id}#{item.content_sha256}",
-                release_event_id=f"{TUSHARE_NEWS}:{value.metric_id}:{scope.period}",
-                release_at=item.published_at,
-                public_available_at=None,
-                fetched_at=item.fetched_at,
-                available_at=_now(),
-                quality_status="validated",
-                acquisition_id=item.acquisition_id,
-            )
-            for item, value, _text in entries
-        )
-    )
-    with database_connection(paths.database) as connection:
-        record_matched_quotes(
-            connection,
-            tuple(
-                MatchedQuote(
-                    claim.claim_id,
-                    TUSHARE_NEWS,
-                    value.quote,
+            taken.setdefault(
+                (value.metric_id, json.dumps(value.dimensions, sort_keys=True)),
+                TakenValue(
+                    value,
                     item.title,
                     item.source,
                     item.published_at.isoformat(),
                     text_hash(text),
                     None,
-                )
-                for claim, (item, value, text) in zip(stored, entries, strict=True)
-            ),
-        )
-    return tuple(claim.claim_id for claim in stored)
+                    item.acquisition_id,
+                    item.fetched_at,
+                    item.published_at,
+                ),
+            )
+    if not taken:
+        return ()
+    return store_news_values(
+        paths.database,
+        tuple(taken.values()),
+        route=TUSHARE_NEWS,
+        provider=TUSHARE_NEWS,
+        source_reference=lambda t: f"{TUSHARE_NEWS}:{t.acquisition_id}#{t.body_hash}",
+        period=scope.period,
+        definition_version=definition_version,
+        available_at=_now(),
+    )
 
 
 def _now() -> datetime:

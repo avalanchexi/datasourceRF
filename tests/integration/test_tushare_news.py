@@ -50,14 +50,14 @@ class Opener:
         return BytesIO(self.answer(payload))
 
 
-@pytest.fixture
-def registered(
+def register_at(
+    now: datetime,
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
     capsys: pytest.CaptureFixture[str],
 ) -> tuple[RuntimePaths, str, str]:
-    install_runtime_clock(monkeypatch, request, NOW)
+    install_runtime_clock(monkeypatch, request, now)
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     manifest_request, _ = prepared_request(paths)
@@ -68,11 +68,24 @@ def registered(
     return paths, model_id, manifest_request["manifest"]["metric_catalog_version"]
 
 
+@pytest.fixture
+def registered(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> tuple[RuntimePaths, str, str]:
+    return register_at(NOW, tmp_path, monkeypatch, request, capsys)
+
+
 def full_run(
     paths: RuntimePaths,
     model_id: str,
     monkeypatch: pytest.MonkeyPatch,
     answer: Callable[[dict[str, Any]], bytes],
+    *,
+    target: str = "2026-09-10",
+    now: datetime = NOW,
 ) -> tuple[RunRecord, Opener, list[str]]:
     opener = Opener(answer)
     monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: opener)
@@ -94,10 +107,10 @@ def full_run(
     monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
-        target_business_date="2026-09-10",
+        target_business_date=target,
         client_request_id="tushare-news",
         model_version_id=model_id,
-        system_as_of=NOW,
+        system_as_of=now,
     )
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     FullRunRetrieval(paths).retrieve(run)
@@ -229,6 +242,78 @@ def test_originals_go_after_three_days_and_the_quotes_stay(
 
     assert not original.is_file()
     with database_connection(paths.database) as connection:
-        # CPI's three members and the seven PPI members the text states.
-        assert connection.execute("SELECT count(*) FROM claim_matched_quote").fetchone() == (10,)
+        # CPI's three members, the seven PPI members and core CPI's year-on-year.
+        assert connection.execute("SELECT count(*) FROM claim_matched_quote").fetchone() == (11,)
     assert cpi(paths, version) == {"yoy": 0.8, "mom": 0.4, "cumulative_average_yoy": 0.9}
+
+
+def sample_news(name: str) -> Callable[[dict[str, Any]], bytes]:
+    items = json.loads((SAMPLE.parent / name).read_text())["items"]
+    return lambda _payload: news_response(items)
+
+
+def selected(paths: RuntimePaths, metric_id: str, version: str, now: datetime) -> dict[str, Any]:
+    return {
+        "-".join(sorted(p.dimensions.values())): p.selected_value
+        for p in EvidenceRepository(paths.database).metric_series(
+            metric_id,
+            mode=AsOfMode.SYSTEM,
+            as_of=now + timedelta(days=1),
+            definition_version=version,
+        )
+    }
+
+
+def test_pmi_is_filled_from_the_release_day_news(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Phase two #09: the day after August's PMI release."""
+    now = datetime(2026, 9, 1, 4, tzinfo=UTC)
+    paths, model_id, version = register_at(now, tmp_path, monkeypatch, request, capsys)
+
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        sample_news("nbs_20260831_pmi.json"),
+        target="2026-09-01",
+        now=now,
+    )
+
+    assert selected(paths, "CN_PMI_PRICES", version, now) == {
+        "level-output_prices": 50.4,
+        "level-purchase_prices": 56.6,
+    }
+    assert selected(paths, "CN_PMI_ACTIVITY", version, now)["level-manufacturing"] == 49.8
+
+
+def test_lpr_is_filled_from_the_fixing_day_news(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Phase two #10: September's LPR, fixed on Sunday the 20th, read on Monday."""
+    now = datetime(2026, 9, 21, 4, tzinfo=UTC)
+    paths, model_id, version = register_at(now, tmp_path, monkeypatch, request, capsys)
+
+    run, _opener, _elsewhere = full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        sample_news("pbc_20260920_lpr.json"),
+        target="2026-09-21",
+        now=now,
+    )
+
+    assert selected(paths, "CN_LPR_1Y_5Y", version, now) == {"1y": 3.0, "5y_plus": 3.5}
+    with database_connection(paths.database) as connection:
+        attempts = connection.execute(
+            "SELECT channel, outcome FROM run_retrieval_attempt WHERE run_id=? "
+            "AND release_event_id LIKE 'full:chinamoney_lpr:%' ORDER BY sequence",
+            (run.run_id,),
+        ).fetchall()
+    assert attempts[-1] == ("tushare_news", "verified")
