@@ -485,8 +485,10 @@ NEWS_RULE_METRICS = frozenset(rule.metric_id for rules in NEWS_RULES.values() fo
 class NewsValue:
     metric_id: str
     dimensions: dict[str, str]
+    # In the member's unit, a decrease negative; ``stated`` is the number as written.
     value: float
     quote: str
+    stated: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -501,6 +503,27 @@ def rules_for(metric_ids: tuple[str, ...]) -> tuple[NewsRule, ...]:
     return tuple(
         rule for rules in NEWS_RULES.values() for rule in rules if rule.metric_id in wanted
     )
+
+
+def rules_cover(metric_ids: tuple[str, ...], period: str) -> bool:
+    """Whether the rules can state every member the catalog requires of these metrics.
+
+    Only then can a text complete the model input; AI WebSearch is asked only for those.
+    """
+    from pring_cycle.metric_contracts import required_dimension_members
+
+    covered = {(rule.metric_id, rule.dimensions) for rule in rules_for(metric_ids)}
+    for metric_id in metric_ids:
+        members = required_dimension_members(
+            metric_id, definition_version="registered", period=period
+        )
+        if members is None:
+            # The parser names the one member (central parity): any rule states it.
+            if not any(metric == metric_id for metric, _dimensions in covered):
+                return False
+        elif not all((metric_id, tuple(sorted(member.items()))) in covered for member in members):
+            return False
+    return True
 
 
 def plain_text(content: str) -> str:
@@ -546,7 +569,8 @@ def extract(
                 continue
             if rule.section and not recheck and not _in_section(text, match.start(), rule.section):
                 continue
-            value = 0.0 if match.groupdict().get("flat") else float(match["value"])
+            stated = 0.0 if match.groupdict().get("flat") else float(match["value"])
+            value = stated
             if match.groupdict().get("dir") in _NEGATIVE:
                 value = -value
             unit = match.groupdict().get("unit")
@@ -554,7 +578,7 @@ def extract(
                 value = round(value * 10_000, 6)
             quote = sentence if context is None or context in sentence else f"{context}，{sentence}"
             found.setdefault((rule.metric_id, rule.dimensions), []).append(
-                NewsValue(rule.metric_id, dict(rule.dimensions), value, quote)
+                NewsValue(rule.metric_id, dict(rule.dimensions), value, quote, stated)
             )
     values = tuple(items[0] for items in found.values() if len({i.value for i in items}) == 1)
     if values:
@@ -604,19 +628,19 @@ def page_title(content: str) -> str:
     return plain_text(match.group(1)) if match else ""
 
 
-_PUBLISHED = (
+_PUBLISHED_META = (
     r"(?i)<meta[^>]+(?:property|name)=[\"'](?:article:published_time|pubdate|publishdate|"
-    r"publish_time|og:release_date)[\"'][^>]+content=[\"']([^\"']+)",
-    r"(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})日?\s+(\d{1,2}):(\d{2})",
+    r"publish_time|og:release_date)[\"'][^>]+content=[\"']([^\"']+)"
 )
+_PUBLISHED_STAMP = r"(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})日?\s+(\d{1,2}):(\d{2})"
 
 
 def page_published_at(content: str) -> str | None:
     """The page's own publication time as written (a meta tag, else the first timestamp)."""
-    meta = re.search(_PUBLISHED[0], content)
+    meta = re.search(_PUBLISHED_META, content)
     if meta:
         return meta.group(1).strip()
-    stamp = re.search(_PUBLISHED[1], plain_text(content))
+    stamp = re.search(_PUBLISHED_STAMP, plain_text(content))
     if stamp:
         year, month, day, hour, minute = stamp.groups()
         return f"{year}-{int(month):02d}-{int(day):02d}T{int(hour):02d}:{minute}:00+08:00"
@@ -683,10 +707,11 @@ def record_matched_quotes(connection: sqlite3.Connection, quotes: tuple[MatchedQ
 def matched_quotes(
     connection: sqlite3.Connection, claim_ids: tuple[str, ...]
 ) -> list[dict[str, object]]:
-    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+    cursor.row_factory = sqlite3.Row
     return [
         dict(row)
-        for row in connection.execute(
+        for row in cursor.execute(
             "SELECT * FROM claim_matched_quote WHERE claim_id IN (SELECT value FROM json_each(?))",
             (json.dumps(list(claim_ids)),),
         )

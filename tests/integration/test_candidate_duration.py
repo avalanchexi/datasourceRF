@@ -144,8 +144,10 @@ def test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots(
     assert json.loads(response.body)["datasets"]["core_assets"] == current.datasets["core_assets"]
     assert "持续 7 日" in rendered_text(dashboard_page("/core-assets", current, (), ()))
     report = reports.history()[0]
-    events = report.body["change_reasons"]["candidate_events"]
-    assert next(item for item in events if item["asset"] == "stock")["candidate_days"] == 7
+    # The report states each core's candidate with its verified results (ADR-0027).
+    cores = report.body["verified_results"]["core_assets"]
+    stock = next(item for item in cores if item["asset"] == "stock")
+    assert (stock["candidate_state"], stock["candidate_days"]) == ("bear", 7)
     assert (
         json.dumps(
             projections.get(old_projection.envelope.projection_set_id).datasets, sort_keys=True

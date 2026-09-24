@@ -856,15 +856,15 @@ def _accept_media_candidate(
         paths.database,
         tuple(
             TakenValue(
-                value,
-                title,
-                outlet,
-                published.isoformat() if published else published_text,
-                text_hash(text),
-                url,
-                receipt.acquisition_id,
-                receipt.received_at,
-                published,
+                value=value,
+                title=title,
+                source_name=outlet,
+                published_at=published.isoformat() if published else published_text,
+                body_hash=text_hash(text),
+                url=url,
+                acquisition_id=receipt.acquisition_id,
+                fetched_at=receipt.received_at,
+                release_at=published,
             )
             for value in extraction.values
         ),
@@ -1047,7 +1047,10 @@ def verify_search_candidates(
                             on_acquisition_started=started,
                         )
                     )
-                elif media_outlet(url) is not None and rules_for(scope.metric_ids):
+                elif media_outlet(url) is not None and not rules_for(scope.metric_ids):
+                    # A media page, but the family has no news rule to read it by.
+                    raise CandidateRejected(RULE_NOT_MATCHED)
+                elif media_outlet(url) is not None:
                     claim_ids.extend(
                         _accept_media_candidate(
                             paths,

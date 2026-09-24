@@ -240,15 +240,15 @@ def fill_from_news(
             taken.setdefault(
                 (value.metric_id, json.dumps(value.dimensions, sort_keys=True)),
                 TakenValue(
-                    value,
-                    item.title,
-                    item.source,
-                    item.published_at.isoformat(),
-                    text_hash(text),
-                    None,
-                    item.acquisition_id,
-                    item.fetched_at,
-                    item.published_at,
+                    value=value,
+                    title=item.title,
+                    source_name=item.source,
+                    published_at=item.published_at.isoformat(),
+                    body_hash=text_hash(text),
+                    url=None,
+                    acquisition_id=item.acquisition_id,
+                    fetched_at=item.fetched_at,
+                    release_at=item.published_at,
                 ),
             )
     if not taken:

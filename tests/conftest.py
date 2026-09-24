@@ -81,3 +81,15 @@ def _official_pages_offline() -> Iterator[None]:
         patch.setattr("pring_cycle.official_core._fetch", offline)
         patch.setattr("pring_cycle.release_schedule._fetch_page", offline)
         yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _ai_websearch_off() -> Iterator[None]:
+    """No test reaches a real Codex or Claude CLI for AI WebSearch unless it opts in.
+
+    AI WebSearch is on by default; a test that wants it deletes this variable and puts
+    fake CLIs on PATH (tests/integration/test_ai_websearch.py).
+    """
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setenv("PRING_CYCLE_AI_WEBSEARCH", "off")
+        yield

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sqlite3
 import time
 from collections.abc import Callable, Iterator
@@ -273,6 +274,7 @@ def _core_result(item: dict[str, Any], carried: list[str]) -> dict[str, Any]:
         "value": item["state"],
         "metric_id": metric_id,
         "latest_business_date": item.get("latest_business_date"),
+        "candidate_state": item.get("candidate_state"),
         "candidate_30d": item.get("candidate_30d"),
         "candidate_days": item.get("candidate_days"),
         "source": rule.source if rule is not None else None,
@@ -931,6 +933,21 @@ def _preflight_bundle(bundle: ReportInput) -> None:
         raise ValueError("report_preflight_cutoff_mismatch")
 
 
+_ROMAN_STAGES = {"I": "stage_i", "II": "stage_ii", "III": "stage_iii"}
+_ROMAN_STAGES |= {"IV": "stage_iv", "V": "stage_v", "VI": "stage_vi"}
+# "当前阶段为阶段II", "目前处于 Stage IV": a paragraph stating the current formal stage.
+_STATED_STAGE = re.compile(
+    r"(?:当前|目前|现在)(?:正式)?(?:阶段(?:为|是)|处于)\s*(?:正式)?(?:阶段|Stage\s*)?"
+    r"(VI|IV|V|III|II|I)(?![A-Za-z])"
+)
+
+
+def _stated_stages(section: dict[str, Any]) -> set[str]:
+    """The formal stages a paragraph says the market is in now."""
+    text = f"{section['title']}。{section['explanation']}"
+    return {_ROMAN_STAGES[match] for match in _STATED_STAGE.findall(text)}
+
+
 def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str:
     """The two post-checks (ADR-0027): the structure, and conclusions left as given."""
     if response.tool_events:
@@ -963,6 +980,8 @@ def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str
             return "schema_validation_failed"
         if any(term in section["explanation"] for term in forbidden_terms):
             return "forbidden_content_rejected"
+        if any(stage != bundle.current_stage for stage in _stated_stages(section)):
+            return "stage_mutation_rejected"
         if not section["explanation"].strip() or any(
             separator in section["explanation"] for separator in "\r\n\u2028\u2029"
         ):

@@ -9,13 +9,15 @@ run's cutoff. An adopted value keeps its quote like any news value (ADR-0026).
 
 Bounds (loose, system-level): once per gap per run (the retrieval ledger), 300 seconds a
 call, and 60 minutes for all calls of a run; past that, a gap is left with the reason
-"AI time exhausted". The level is off unless the runtime config enables it:
-``[retrieval] ai_websearch = true``. No model vendor API key is ever used.
+"AI time exhausted". It is asked only for a gap whose family's rules state every member
+the catalog requires, so an answer can complete it. The runtime config can turn it off:
+``[retrieval] ai_websearch = false``. No model vendor API key is ever used.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import time
 import tomllib
 import uuid
@@ -24,9 +26,11 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition import AcquisitionReceipt
 from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.retrieval import RetrievalAdapterResponse
-from pring_cycle.runs import RunRecord
+from pring_cycle.retrieval_ledger import RetrievalLedger
+from pring_cycle.runs import RetrievalScope, RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
 
@@ -64,11 +68,16 @@ CANDIDATE_SCHEMA: dict[str, Any] = {
 
 
 def ai_websearch_enabled(paths: RuntimePaths) -> bool:
+    """On unless the runtime config says ``ai_websearch = false`` or the environment
+    sets ``PRING_CYCLE_AI_WEBSEARCH=off`` (the test suite does, so no test reaches a real
+    CLI unless it opts in)."""
+    if os.environ.get("PRING_CYCLE_AI_WEBSEARCH", "").lower() == "off":
+        return False
     try:
         config = tomllib.loads(paths.config_file.read_text(encoding="utf-8"))
     except (OSError, tomllib.TOMLDecodeError):
-        return False
-    return config.get("retrieval", {}).get("ai_websearch") is True
+        return True
+    return config.get("retrieval", {}).get("ai_websearch", True) is not False
 
 
 def ai_seconds_used(paths: RuntimePaths, run_id: str) -> float:
@@ -85,7 +94,7 @@ def ai_seconds_used(paths: RuntimePaths, run_id: str) -> float:
     )
 
 
-def _prompt(scope: Any, query: str, domains: tuple[str, ...]) -> str:
+def _prompt(scope: RetrievalScope, query: str, domains: tuple[str, ...]) -> str:
     from pring_cycle.news_rules import rules_for
 
     return json.dumps(
@@ -118,7 +127,7 @@ def ai_websearch_adapter(
     adapters: tuple[str, ...] = AI_ADAPTERS,
 ) -> Callable[[str], RetrievalAdapterResponse]:
     """The cascade adapter for one gap; it calls at most one CLI answer into the run."""
-    from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked, RetrievalLedger
+    from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
     from pring_cycle.retrieval_registry import search_domains, search_query
 
     def retrieve(release_event_id: str) -> RetrievalAdapterResponse:
@@ -181,13 +190,17 @@ def ai_websearch_adapter(
             ledger,
             request_id,
             scope_run,
-            answered[0] if answered else str(attempts[-1]["adapter"]) if attempts else adapters[0],
+            answered[0] if answered else _last_adapter(attempts, adapters),
             document,
             definition_version=definition_version,
         )
         return response
 
     return retrieve
+
+
+def _last_adapter(attempts: list[dict[str, Any]], adapters: tuple[str, ...]) -> str:
+    return str(attempts[-1]["adapter"]) if attempts else adapters[0]
 
 
 def _candidates(document: dict[str, Any]) -> list[dict[str, Any]] | None:
@@ -210,7 +223,7 @@ def _candidates(document: dict[str, Any]) -> list[dict[str, Any]] | None:
 
 def _record_answer(
     paths: RuntimePaths,
-    ledger: Any,
+    ledger: RetrievalLedger,
     request_id: str,
     run: RunRecord,
     adapter: str,
@@ -281,7 +294,7 @@ def _adopt(
     paths: RuntimePaths,
     run: RunRecord,
     candidate: dict[str, Any],
-    receipt: Any,
+    receipt: AcquisitionReceipt,
     adapter: str,
     *,
     definition_version: str,
@@ -320,7 +333,9 @@ def _adopt(
         extraction = extract(scope.metric_ids, scope.period, quote)
         if extraction.reason is not None:
             return extraction.reason, ()
-        values = tuple(item for item in extraction.values if item.value == value)
+        # The CLI reports the number as the sentence writes it ("437.5万亿元", "下降0.4%");
+        # the rule also gives it in the member's unit and sign. Either is the same figure.
+        values = tuple(item for item in extraction.values if value in {item.value, item.stated})
         if not values:
             return SEARCH_VALUE_MISMATCH, ()
     else:
@@ -338,21 +353,20 @@ def _adopt(
         return NO_PUBLICATION_DATE, ()
     if published > run.system_as_of.astimezone(_SHANGHAI).date():
         return DATE_AFTER_CUTOFF, ()
-    release_at = datetime.combine(published, datetime.min.time(), _SHANGHAI)
-    assert receipt.received_at is not None and receipt.validated_at is not None
     stored = store_news_values(
         paths.database,
         tuple(
             TakenValue(
-                item,
-                "",
-                source,
-                published.isoformat(),
-                text_hash(quote),
-                url,
-                receipt.acquisition_id,
-                receipt.received_at,
-                release_at,
+                value=item,
+                title="",
+                source_name=source,
+                published_at=published.isoformat(),
+                body_hash=text_hash(quote),
+                url=url,
+                acquisition_id=receipt.acquisition_id,
+                fetched_at=receipt.received_at or receipt.started_at,
+                # A date alone does not say when that day: the time stays unknown.
+                release_at=None,
             )
             for item in values
         ),
@@ -361,7 +375,7 @@ def _adopt(
         source_reference=lambda _taken: f"{AI_WEBSEARCH}:{url}#{receipt.raw_hash}",
         period=scope.period,
         definition_version=definition_version,
-        available_at=receipt.validated_at,
+        available_at=receipt.validated_at or receipt.started_at,
     )
     return None, stored
 

@@ -178,3 +178,21 @@ def test_a_p0_core_never_takes_a_media_value(
     [validation] = stored.retrieval_ledger["candidate_validations"]
     assert (validation["outcome"], validation["reason"]) == ("not_model_usable", "not_whitelisted")
     assert CLS not in calls
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_media_page_for_a_family_without_news_rules_names_the_rule(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The monthly tool liquidity table is never stated in the news: no rule reads it."""
+    stored, _paths, _version, calls = media_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        body=page("8月央行各项工具流动性投放情况。"),
+        metric_ids=("CN_TOOL_LIQUIDITY_MONTHLY",),
+    )
+
+    [validation] = stored.retrieval_ledger["candidate_validations"]
+    assert (validation["outcome"], validation["reason"]) == ("not_model_usable", "rule_not_matched")
+    assert CLS not in calls

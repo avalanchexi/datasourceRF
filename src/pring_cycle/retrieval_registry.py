@@ -31,7 +31,6 @@ class RetrievalFamily:
     query_template: str = ""
     # A per-metric title where one family publishes several differently named series.
     metric_queries: tuple[tuple[str, str], ...] = ()
-    required_p1_rehearsal: bool = True
 
     @property
     def host(self) -> str:
@@ -46,17 +45,8 @@ def _nbs(query_template: str, *metric_ids: str) -> RetrievalFamily:
     return RetrievalFamily("国家统计局", (_NBS,), metric_ids, "official_context", query_template)
 
 
-def _pbc(
-    query_template: str, *metric_ids: str, required_p1_rehearsal: bool = True
-) -> RetrievalFamily:
-    return RetrievalFamily(
-        "中国人民银行",
-        (_PBC,),
-        metric_ids,
-        "official_context",
-        query_template,
-        required_p1_rehearsal=required_p1_rehearsal,
-    )
+def _pbc(query_template: str, *metric_ids: str) -> RetrievalFamily:
+    return RetrievalFamily("中国人民银行", (_PBC,), metric_ids, "official_context", query_template)
 
 
 # Query templates follow each publisher's release titles; an official listing selects the
@@ -101,7 +91,6 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
     "pbc_usdcny_central_parity": _pbc(
         "{date}人民币汇率中间价公告",
         "CN_USDCNY_CENTRAL_PARITY",
-        required_p1_rehearsal=False,
     ),
     "chinamoney_lpr": RetrievalFamily(
         "中国货币网",

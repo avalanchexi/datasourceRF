@@ -84,8 +84,11 @@ def ai_run(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
     plan: dict[str, Any],
+    *,
+    metric_ids: tuple[str, ...] = ("CN_CPI_HEADLINE",),
 ) -> tuple[RunRecord, RuntimePaths, str, list[dict[str, Any]]]:
     calls = install(tmp_path, monkeypatch, plan)
+    monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     request, _ = prepared_request(paths)
@@ -103,7 +106,7 @@ def ai_run(
         model_version_id=model_id,
         system_as_of=datetime.now(UTC) + timedelta(days=1),
         release_event_id="ai:cpi:2026-08",
-        metric_ids=("CN_CPI_HEADLINE",),
+        metric_ids=metric_ids,
         period="2026-08",
     )
     process_pending_run(paths, report_adapters=())
@@ -237,3 +240,58 @@ def test_the_run_stops_calling_once_its_ai_time_is_spent(
         "not_attempted",
         "ai_time_exhausted",
     )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_figure_given_as_the_sentence_writes_it_is_the_same_figure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """ "下降0.4%" is -0.4 for the member; the CLI may report the 0.4 it reads."""
+    falling = candidate("yoy", quote="2026年8月份，全国居民消费价格同比下降0.4%。", value=0.4)
+
+    stored, paths, version, _calls = ai_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        {
+            "codex": {"mode": "ok", "candidates": [falling, *ALL_THREE[1:]]},
+            "claude": {"mode": "ok", "candidates": []},
+        },
+    )
+
+    assert stored.status == "completed", stored.error_classification
+    assert cpi(paths, version)["yoy"] == -0.4
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_gap_the_rules_cannot_complete_is_not_asked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """PPI's component year-to-date averages are only in the official table."""
+    stored, _paths, _version, calls = ai_run(
+        tmp_path,
+        monkeypatch,
+        capsys,
+        {"codex": {"mode": "ok", "candidates": []}, "claude": {"mode": "ok", "candidates": []}},
+        metric_ids=("CN_PPI",),
+    )
+
+    assert calls == []
+    [attempt] = [a for a in stored.retrieval_attempts if a["channel"] == "ai_websearch"]
+    assert attempt["outcome"] == "not_configured"
+
+
+def test_ai_websearch_is_on_unless_turned_off(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from pring_cycle.ai_websearch import ai_websearch_enabled
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    monkeypatch.delenv("PRING_CYCLE_AI_WEBSEARCH")
+    assert ai_websearch_enabled(paths)
+    paths.config_file.write_text("[retrieval]\nai_websearch = false\n")
+    assert not ai_websearch_enabled(paths)
+    paths.config_file.write_text("[retrieval]\nai_websearch = true\n")
+    monkeypatch.setenv("PRING_CYCLE_AI_WEBSEARCH", "off")
+    assert not ai_websearch_enabled(paths)

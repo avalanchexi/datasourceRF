@@ -246,6 +246,15 @@ def test_stage_mutation_is_rejected_and_alternate_cli_is_tried_once(tmp_path: Pa
             id="evidence-reference-field",
         ),
         pytest.param(
+            AdapterResponse.succeeded(
+                valid_document(
+                    sections=[{"title": "阶段", "explanation": "当前阶段为阶段III，商品转牛。"}]
+                )
+            ),
+            "stage_mutation_rejected",
+            id="stage-rewritten-in-text",
+        ),
+        pytest.param(
             AdapterResponse.succeeded(valid_document(), tool_events=1),
             "tool_use_rejected",
             id="tool-event",

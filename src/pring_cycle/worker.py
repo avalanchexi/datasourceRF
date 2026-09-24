@@ -52,7 +52,7 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
-from pring_cycle.news_rules import rules_for
+from pring_cycle.news_rules import rules_cover, rules_for
 from pring_cycle.p0 import CARRIED_FORWARD, CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
@@ -857,7 +857,7 @@ def _production_retrieval_adapters(
     if (
         parser is not None
         and scope.priority != "P0"
-        and (parser == "lenient" or rules_for(scope.metric_ids))
+        and (parser == "lenient" or rules_cover(scope.metric_ids, scope.period))
         and ai_websearch_enabled(paths)
     ):
         # The last level: the AI CLIs' own web search, checked like news (ADR-0026).
