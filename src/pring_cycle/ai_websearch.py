@@ -103,6 +103,8 @@ def _prompt(scope: RetrievalScope, query: str, domains: tuple[str, ...]) -> str:
                 "用联网搜索查找下列指标在给定统计期的数值。"
                 "只能采用 allowed_domains 中的网站（含其子域名）上的页面；"
                 "quote 必须逐字摘录页面上陈述该数值的原句，且原句写明统计期；"
+                "统计期须能从原句本身确定到年份，写法如 period_wording；"
+                "日度数据只写“9月23日”而无年份的句子不可用，应另找写全日期的原句；"
                 "value 为原句中的数值（百分数只写数字，金额按原句单位）；"
                 "period 按 period 字段的格式写统计期；"
                 "published_date 为页面发布日期（YYYY-MM-DD）。"
@@ -110,12 +112,27 @@ def _prompt(scope: RetrievalScope, query: str, domains: tuple[str, ...]) -> str:
             ),
             "metric_ids": list(scope.metric_ids),
             "period": scope.period,
+            "period_wording": _period_wording(scope.period),
             "search_query": query,
             "allowed_domains": list(domains),
             "sentence_patterns": [rule.pattern.pattern for rule in rules_for(scope.metric_ids)],
         },
         ensure_ascii=False,
     )
+
+
+_QUARTERS = ("一", "二", "三", "四")
+
+
+def _period_wording(period: str) -> str:
+    """How a Chinese release writes the gap's period, year included."""
+    year = int(period[:4])
+    if "-Q" in period:
+        return f"{year}年第{_QUARTERS[int(period[-1]) - 1]}季度"
+    if len(period) == 10:
+        day = date.fromisoformat(period)
+        return f"{year}年{day.month}月{day.day}日"
+    return f"{year}年{int(period[5:7])}月"
 
 
 def ai_websearch_adapter(

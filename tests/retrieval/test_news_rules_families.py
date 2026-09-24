@@ -279,3 +279,15 @@ def test_every_rule_writes_a_member_the_catalog_requires() -> None:
         if members is None:  # Members come from the parser: central parity, LPR.
             continue
         assert dict(rule.dimensions) in [dict(m) for m in members], rule.metric_id
+
+
+def test_a_monthly_fixing_stated_by_its_day_is_that_month_s() -> None:
+    """The real run's AI candidate for September's LPR: the fixing day names the month."""
+    quote = (
+        "据央行网站，中国人民银行授权全国银行间同业拆借中心公布，"
+        "2026年9月20日贷款市场报价利率（LPR）为：1年期LPR为3.0%，5年期以上LPR为3.5%。"
+    )
+
+    lpr = extract(("CN_LPR_1Y_5Y",), "2026-09", quote)
+    assert {v.dimensions["tenor"]: v.value for v in lpr.values} == {"1y": 3.0, "5y_plus": 3.5}
+    assert extract(("CN_LPR_1Y_5Y",), "2026-08", quote).values == ()

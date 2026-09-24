@@ -561,7 +561,15 @@ def extract(
             if placed is None:
                 continue
             (form, key, stated_year), context = placed
-            if key != _wanted(period, form)[: len(key)] or (stated_year and stated_year != year):
+            # Compared as far as both go: "8月" answers a day of August, and a fixing's
+            # "9月20日" answers September's (the LPR's gap is its month).
+            wanted = _wanted(period, form)
+            common = min(len(key), len(wanted))
+            if (
+                not wanted
+                or key[:common] != wanted[:common]
+                or (stated_year and stated_year != year)
+            ):
                 other_period = True
                 continue
             sentence = _sentence(text, match)
