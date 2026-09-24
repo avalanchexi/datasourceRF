@@ -20,13 +20,14 @@ from pring_cycle.official_context import (
     ingest_acquired_official_release,
 )
 from pring_cycle.release_calendar import month_bounds
+from pring_cycle.retrieval_registry import RETRIEVAL_FAMILIES
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.tushare_context import ContextScalar
 
 CHINAMONEY_PROVIDER = "中国货币网"
 CHINAMONEY_METRIC_ID = "CN_LPR_1Y_5Y"
 MAX_ANNOUNCEMENT_BYTES = 1_000_000
-_OFFICIAL_HOST = "www.chinamoney.com.cn"
+_OFFICIAL_HOST = RETRIEVAL_FAMILIES["chinamoney_lpr"].host
 _OFFICIAL_PATH = re.compile(r"/chinese/rdgz/(?P<date>\d{8})/(?P<content>\d+)\.html")
 
 

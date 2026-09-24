@@ -21,9 +21,10 @@ from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository
 from pring_cycle.adapters import MarketBar
 from pring_cycle.catalog import metric_definition
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.retrieval_registry import RETRIEVAL_FAMILIES
 from pring_cycle.runtime import RuntimePaths
 
-CSINDEX_HOST = "www.csindex.com.cn"
+CSINDEX_HOST = RETRIEVAL_FAMILIES["csindex_core"].host
 CSINDEX_PERF_PATH = "/csindex-home/perf/index-perf"
 CSINDEX_PARSER_VERSION = "csindex-perf-parser-v0001"
 CSINDEX_PROVIDER = "csindex"

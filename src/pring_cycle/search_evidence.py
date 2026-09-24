@@ -6,7 +6,6 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date
-from urllib.parse import urlsplit
 from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
@@ -37,11 +36,11 @@ from pring_cycle.official_context import (
     ParsedOfficialContextRelease,
     official_claims_matching_acquisitions,
 )
-from pring_cycle.official_core import CSINDEX_CORES
 from pring_cycle.official_lpr import ParsedLprRelease, lpr_claims_matching_acquisitions
 from pring_cycle.published_events import select_published_rrr_events
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked, RetrievalLedger, utc_now
+from pring_cycle.retrieval_registry import families_of, parser_for_scope, registered_host
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import (
@@ -566,13 +565,13 @@ def search_value_conflicts(summary: str, values: tuple[float, ...]) -> bool:
     )
 
 
-# The P2 lenient path (ticket 20): hosts registered per metric as host and path prefix.
+# The P2 lenient path (ticket 20): hosts registered per metric in the retrieval registry.
 # A candidate on one of them is accepted with the value the search channel extracted; the
 # page is refetched so its original and hash are kept. No parser is required.
 LENIENT_HOSTS: dict[str, tuple[tuple[str, str], ...]] = {
-    "CN_USDCNY_CLOSE_1630": (("www.chinamoney.com.cn", "/chinese/"),),
-    "CBOE_VIX_INDEX": (("www.cboe.com", "/"), ("cdn.cboe.com", "/")),
-    "NASDAQ_SOX_INDEX": (("www.nasdaq.com", "/"), ("indexes.nasdaqomx.com", "/")),
+    metric_id: family.hosts
+    for family in families_of("lenient").values()
+    for metric_id in family.metric_ids
 }
 # Recorded in place of a parser version: how the lenient value was taken.
 LENIENT_EXTRACTION = "search-summary-extraction-v0001"
@@ -598,12 +597,10 @@ _CLOSE_VALUE = re.compile(
 
 
 def _lenient_host(metric_id: str, url: str) -> str:
-    parsed = urlsplit(url)
-    if parsed.scheme == "https" and parsed.port in {None, 443} and not parsed.username:
-        for host, prefix in LENIENT_HOSTS.get(metric_id, ()):
-            if parsed.hostname == host and parsed.path.startswith(prefix):
-                return host
-    raise CandidateRejected(NOT_WHITELISTED)
+    host = registered_host(metric_id, url) if metric_id in LENIENT_HOSTS else None
+    if host is None:
+        raise CandidateRejected(NOT_WHITELISTED)
+    return host
 
 
 def _period_spellings(day: date) -> tuple[str, ...]:
@@ -785,11 +782,8 @@ def verify_search_candidates(
     ledger = RetrievalLedger(paths.database, scope_run=scope_run)
     snapshot = ledger.for_run(run_id)
     assert snapshot is not None
-    lenient = (
-        scope.priority == "P2"
-        and len(scope.metric_ids) == 1
-        and (scope.metric_ids[0] in LENIENT_HOSTS)
-    )
+    parser = parser_for_scope(scope.metric_ids)
+    lenient = scope.priority == "P2" and len(scope.metric_ids) == 1 and parser == "lenient"
     gap_ids = [
         g["gap_id"]
         for g in snapshot["gaps"]
@@ -867,7 +861,7 @@ def verify_search_candidates(
                 on_started(acquisition_id)
 
             try:
-                if scope.metric_ids[0] in CSINDEX_CORES and len(scope.metric_ids) == 1:
+                if parser == "csindex" and len(scope.metric_ids) == 1:
                     claim_ids.extend(
                         _refetch_csindex_candidate(
                             paths,
@@ -889,7 +883,7 @@ def verify_search_candidates(
                             on_acquisition_started=started,
                         )
                     )
-                elif scope.metric_ids == ("CN_LPR_1Y_5Y",):
+                elif parser == "lpr":
                     from pring_cycle.official_lpr import refresh_lpr_release
 
                     refreshed = refresh_lpr_release(

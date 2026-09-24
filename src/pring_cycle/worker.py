@@ -73,6 +73,7 @@ from pring_cycle.retrieval import (
     matches_retrieval_period,
     run_retrieval_cascade,
 )
+from pring_cycle.retrieval_registry import parser_for_scope
 from pring_cycle.runs import LEASE_VALID_SECONDS, RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
@@ -845,7 +846,8 @@ def _production_retrieval_adapters(
             scope_run=scope_run,
         ),
     }
-    if scope.metric_ids == ("CN_LPR_1Y_5Y",):
+    parser = parser_for_scope(scope.metric_ids)
+    if parser == "lpr":
         adapters["official"] = lambda _event: _official_lpr_retrieval(
             paths,
             scope,
@@ -854,22 +856,15 @@ def _production_retrieval_adapters(
             scope_run=scope_run,
             definition_version=definition_version,
         )
-    elif scope.source_url is not None:
-        from pring_cycle.official_context import official_family_for_metrics
-
-        try:
-            official_family_for_metrics(scope.metric_ids)
-        except ValueError:
-            pass
-        else:
-            adapters["official"] = lambda _event: _official_context_retrieval(
-                paths,
-                scope,
-                now,
-                run_id=run_id,
-                scope_run=scope_run,
-                definition_version=definition_version,
-            )
+    elif scope.source_url is not None and parser == "official_context":
+        adapters["official"] = lambda _event: _official_context_retrieval(
+            paths,
+            scope,
+            now,
+            run_id=run_id,
+            scope_run=scope_run,
+            definition_version=definition_version,
+        )
     if scope.source_url is not None and "official" in adapters:
         from pring_cycle.retrieval_ledger import RetrievalLedger
 
@@ -890,7 +885,7 @@ def _production_retrieval_adapters(
                     definition_version=definition_version,
                     on_acquisition_started=on_started,
                 )
-                if scope.metric_ids == ("CN_LPR_1Y_5Y",)
+                if parser == "lpr"
                 else _official_context_retrieval(
                     paths,
                     scope,
