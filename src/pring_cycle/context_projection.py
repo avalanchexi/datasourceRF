@@ -582,7 +582,7 @@ def _official_or_quoted_claims(
     """
     return official_claims_matching_acquisitions(
         repository, points_by_metric, definition_version=definition_version
-    ) | news_claims_matching_quotes(repository._database_path, points_by_metric)
+    ) | news_claims_matching_quotes(repository.database_path, points_by_metric)
 
 
 class TargetBoundEvidenceRepository:
@@ -1443,7 +1443,9 @@ def _metric_rows(
             point.selected_claim_id for point in series if point.selected_claim_id is not None
         )
         incomplete_source_claims.update(
-            set(claim_ids) - lpr_claims_matching_acquisitions(repository, series)
+            set(claim_ids)
+            - lpr_claims_matching_acquisitions(repository, series)
+            - news_claims_matching_quotes(repository.database_path, {definition.metric_id: series})
         )
     if (
         definition.metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS

@@ -27,6 +27,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
+from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
+
 if TYPE_CHECKING:
     from pring_cycle.catalog import MetricDefinition
     from pring_cycle.runtime import RuntimePaths
@@ -655,6 +657,9 @@ def use_run_calendar(calendar: TradingCalendar) -> None:
 
 def period_status(metric_id: str, held_period_end: str, as_of: datetime) -> str:
     """``current`` or ``stale`` for a held period, derived metrics judged by their inputs."""
+    if metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS:
+        # In force until the publisher changes it, however many sessions state nothing new.
+        return "current"
     calendar = current_calendar()
     held = date.fromisoformat(held_period_end)
     parents = DERIVED_INPUTS.get(metric_id, (metric_id,))

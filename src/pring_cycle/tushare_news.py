@@ -68,6 +68,8 @@ def news_window(paths: RuntimePaths, run: RunRecord, end: datetime) -> tuple[dat
     Friday read nothing after Friday. A pull with a failed page read only part of its window,
     so it is passed over; a rerun for the same day passes over its predecessor's pull.
     """
+    # The interface takes whole seconds: a target day's end (23:59:59.999999) is 23:59:59.
+    end = _published(_stamp(end))
     with database_connection(paths.database) as connection:
         rows = connection.execute(
             "SELECT max(json_extract(a.parameters_json, '$.end_date')) "

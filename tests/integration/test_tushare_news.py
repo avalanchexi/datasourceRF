@@ -319,6 +319,21 @@ def test_lpr_is_filled_from_the_fixing_day_news(
             (run.run_id,),
         ).fetchall()
     assert attempts[-1] == ("tushare_news", "verified")
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=now + timedelta(days=1),
+        model_manifest=ModelRepository(paths.database).manifest(model_id),
+        target_business_date="2026-09-21",
+    )
+    lpr = [
+        (row["status"], row["value"])
+        for card in context.macro.values()
+        if isinstance(card, dict)
+        for row in card.get("evidence", ())
+        if row["metric_id"] == "CN_LPR_1Y_5Y"
+    ]
+    assert sorted(value for _status, value in lpr) == [3.0, 3.5]
+    assert not {status for status, _value in lpr} & {"source_failed", "missing"}
 
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -421,6 +436,28 @@ def test_a_rerun_for_the_same_target_day_still_reads_the_weekend(
 
     assert outcome == "verified_candidate"
     assert LPR_FIXED in news_times(paths, run_id)
+
+
+def test_a_rerun_after_a_complete_pull_reads_the_same_window_again(
+    registered_late: tuple[RuntimePaths, str, str],
+) -> None:
+    """A rerun for the same day reads what its predecessor read, not the last second."""
+    paths, model_id, _version = registered_late
+    feed = NewsFeed(every=timedelta(minutes=20))
+    pulled_run(
+        paths, model_id, feed, target="2026-09-23", at=datetime(2026, 9, 24, 3, 58, tzinfo=SHANGHAI)
+    )
+    feed.requests.clear()
+
+    rerun, _ = pulled_run(
+        paths,
+        model_id,
+        feed,
+        target="2026-09-23",
+        at=datetime(2026, 9, 24, 15, 11, tzinfo=SHANGHAI),
+    )
+
+    assert LPR_FIXED in news_times(paths, rerun)
 
 
 def test_the_next_day_run_reads_on_from_where_the_last_pull_ended(
@@ -564,6 +601,88 @@ def test_a_held_omo_rate_is_looked_for_again_and_stays_in_force(
     }
     assert looked_for == {"full:pbc_omo_notice:2026-09-24"}
     # Looking for the new day does not make it a required input: the held rate is.
+    assert [
+        (r["period"], r["status"])
+        for r in plan["initial"]["requirements"]
+        if r["metric_id"] == "CN_OMO_7D_RATE"
+    ] == [("2026-09-23", "local_complete")]
+
+
+def test_a_changed_omo_rate_is_taken_while_the_old_one_is_held(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """9/23's wording, dated 9/24 with a cut rate: the new rate is a new observation."""
+    first = datetime(2026, 9, 24, 7, 11, tzinfo=UTC)
+    now = datetime(2026, 9, 25, 7, 11, tzinfo=UTC)
+    paths, model_id, version = register_at(now, tmp_path, monkeypatch, request, capsys)
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        sample_news("cls_20260923_bond_close_omo.json"),
+        target="2026-09-23",
+        now=first,
+    )
+    [item] = json.loads((SAMPLE.parent / "cls_20260923_bond_close_omo.json").read_text())["items"]
+    cut = {
+        **item,
+        "content": item["content"].replace("9月23日", "9月24日").replace("1.40%", "1.30%"),
+        "pub_time": "2026-09-24 17:21:58",
+    }
+
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        lambda _payload: news_response([cut]),
+        target="2026-09-24",
+        now=now,
+    )
+
+    rates = {
+        p.period_end: p.selected_value
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_OMO_7D_RATE",
+            mode=AsOfMode.SYSTEM,
+            as_of=now + timedelta(days=1),
+            definition_version=version,
+        )
+    }
+    assert rates == {"2026-09-23": 1.4, "2026-09-24": 1.3}
+
+
+def test_a_held_omo_rate_stays_in_force_through_days_without_a_stated_rate(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Three sessions on, nothing has stated a rate: 9/23's is still the one in force."""
+    first = datetime(2026, 9, 24, 7, 11, tzinfo=UTC)
+    now = datetime(2026, 9, 29, 7, 11, tzinfo=UTC)
+    paths, model_id, _version = register_at(now, tmp_path, monkeypatch, request, capsys)
+    full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        sample_news("cls_20260923_bond_close_omo.json"),
+        target="2026-09-23",
+        now=first,
+    )
+
+    run, _opener, _elsewhere = full_run(
+        paths,
+        model_id,
+        monkeypatch,
+        lambda _payload: news_response([]),
+        target="2026-09-28",
+        now=now,
+    )
+
+    plan = RunRepository(paths.database).full_retrieval_plan(run.run_id)
     assert [
         (r["period"], r["status"])
         for r in plan["initial"]["requirements"]

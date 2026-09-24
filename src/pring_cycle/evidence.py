@@ -498,6 +498,10 @@ class EvidenceRepository:
             _PreloadedSeriesState,
         ] = {}
 
+    @property
+    def database_path(self) -> Path:
+        return self._database_path
+
     @classmethod
     def create(cls, database_path: Path) -> EvidenceRepository:
         database_path.parent.mkdir(parents=True, exist_ok=True)

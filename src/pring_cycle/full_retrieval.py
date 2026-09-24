@@ -376,14 +376,11 @@ class FullRunRetrieval:
         if definition.metric_id == "CN_LPR_1Y_5Y":
             return run.target_business_date[:7]
         # Nothing held: the newest period the release gate will let through, by the release
-        # rule at the gate's cutoff (August's industrial finance is out only on 9/27, and a
+        # rule at the gate's cutoff (a month's industrial finance comes out weeks later, a
         # day's VIX at 06:00 the next morning). Unregistered: the period before the target.
         rule = FRESHNESS_REGISTRY.get(definition.metric_id)
-        released = (
-            self._latest_released(run, definition, selector)
-            if rule is not None and rule.frequency == frequency
-            else None
-        )
+        latest = self._latest_released(run, definition, selector)
+        released = latest if rule is not None and rule.frequency == frequency else None
         if frequency == "daily":
             return (released or target).isoformat()
         points = selector.series(definition.metric_id)
@@ -391,8 +388,9 @@ class FullRunRetrieval:
         if frequency == "event":
             # An event announced on every operation day (the OMO rate) is read from the
             # newest day's notice; one with no such rule is not looked for (ADR-0028).
-            daily = self._latest_released(run, definition, selector)
-            return max(published) if published else daily.isoformat() if daily else None
+            if published:
+                return max(published)
+            return latest.isoformat() if latest is not None else None
         if frequency == "quarterly":
             period = (
                 date.fromisoformat(max(published))
