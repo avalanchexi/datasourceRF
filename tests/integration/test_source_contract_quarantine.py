@@ -20,7 +20,7 @@ from pring_cycle.models import (
 )
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
-from pring_cycle.reports import ReportRepository, ReportService, evidence_bundle_from_projection
+from pring_cycle.reports import ReportRepository, ReportService, report_input_from_projection
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, diagnose_runtime, initialize_runtime
 from pring_cycle.web import create_web_application
@@ -143,7 +143,7 @@ def test_pre_audit_projection_stays_readable_but_cannot_be_republished(tmp_path:
         )
     with pytest.raises(ValueError, match="source_certification_contract_unresolved"):
         ReportService(ReportRepository(paths.database), ()).generate(
-            evidence_bundle_from_projection(historical),
+            report_input_from_projection(historical),
             client_request_id="blocked-new-report",
         )
     runs = RunRepository(paths.database)

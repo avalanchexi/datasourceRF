@@ -119,6 +119,8 @@ def _fact_at_pointer(bundle: dict[str, Any], pointer: str) -> object:
         "counterevidence",
         "governance_gaps",
         "structured_context",
+        "conclusions",
+        "results",
         "report_cutoff",
         "target_business_date",
     }:

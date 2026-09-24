@@ -99,7 +99,7 @@ def test_report_workspace_renders_immutable_metadata_and_selected_body() -> None
 
     assert "截止 2026-08-28T13:00:00+00:00" in report
     assert "耗时 1250ms" in report
-    assert "证据包 abc123" in report
+    assert "报告输入 abc123" in report
     assert "报告身份 report-fixture" in report
     assert "政策证据只解释，不改变正式阶段。" in report
     assert "证据 observation-policy" in report

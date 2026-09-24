@@ -100,7 +100,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         CliReportAdapter,
         ReportRepository,
         ReportService,
-        evidence_bundle_from_projection,
+        report_input_from_projection,
     )
     from pring_cycle.runs import RunRepository
 
@@ -371,7 +371,7 @@ def _v1_command(namespace: argparse.Namespace, paths: RuntimePaths) -> Mapping[s
         return {**asdict(queried), "status": "ok"}
     if namespace.command == "report-generate":
         projection = ProjectionSetRepository(paths.database).current()
-        bundle = evidence_bundle_from_projection(projection)
+        bundle = report_input_from_projection(projection)
         adapters = (
             ()
             if namespace.deterministic_only

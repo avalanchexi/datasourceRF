@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from pring_cycle.reports import CliReportAdapter, EvidenceBundle, ReportRepository, ReportService
+from pring_cycle.reports import CliReportAdapter, ReportInput, ReportRepository, ReportService
 
 
-def frozen_bundle() -> EvidenceBundle:
-    return EvidenceBundle.create(
+def frozen_bundle() -> ReportInput:
+    return ReportInput.create(
         projection_set_id="projection-protocol",
         target_business_date="2026-08-28",
         report_cutoff=datetime(2026, 8, 28, 10, tzinfo=UTC),
@@ -21,16 +21,30 @@ def frozen_bundle() -> EvidenceBundle:
         current_stage="stage_ii",
         stage_reason="canonical_combination",
         core_states={"bond": "bull", "stock": "bull", "commodity": "bear"},
-        allowed_evidence_ids=("obs-bond", "obs-stock", "obs-commodity"),
-        allowed_governance_refs=("ADR-0003",),
-        support=("债券与股票为bull，商品为bear。",),
-        counterevidence=("宏观证据不参与正式阶段分类。",),
-        governance_gaps=(),
+        conclusions={
+            "policy_direction": "easing",
+            "credit_response": "insufficient_data",
+            "overheat_state": "insufficient_data",
+            "price_pressure": "producer_diffusion",
+            "inventory_quadrant": None,
+        },
+        results={
+            "formal_stage": {
+                "value": "stage_ii",
+                "reason": "canonical_combination",
+                "source": "三核心价格状态",
+                "anomaly": [],
+            },
+        },
     )
 
 
 def install_cli(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, primary: str = "success"
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    primary: str = "success",
+    record_prompt: bool = False,
 ) -> Path:
     """Replace the external executable only; run the real process and report boundary."""
     import os
@@ -74,8 +88,12 @@ if PRIMARY=='both_hang' or (PRIMARY=='codex_hang' and name=='codex'):
     time.sleep(60)
 if name=='codex' and PRIMARY=='authentication':
     print('Authentication required: please log in',file=sys.stderr);raise SystemExit(1)
-bundle=prompt['evidence_bundle']
-document={'bundle_id':bundle['bundle_id'],'current_stage':bundle['current_stage'],'report_cutoff':bundle['report_cutoff'],'proxy_used':False,'sections':[{'title':'阶段依据','explanation':'债券与股票为牛市，商品为熊市，对应阶段II；宏观证据不参与正式阶段分类。','evidence_ids':['obs-bond','obs-stock','obs-commodity'],'governance_refs':['ADR-0003']}]}
+bundle=prompt['report_input']
+if RECORD:
+    Path(__file__).with_suffix('.prompt.json').write_text(json.dumps(prompt))
+document={'bundle_id':bundle['bundle_id'],'current_stage':bundle['current_stage'],'report_cutoff':bundle['report_cutoff'],'core_states':bundle['core_states'],'conclusions':bundle['conclusions'],'proxy_used':False,'sections':[{'title':'阶段依据','explanation':'债券与股票为牛市，商品为熊市，对应阶段II；宏观证据不参与正式阶段分类。'}]}
+if PRIMARY=='rewrite_conclusion':
+    document['conclusions']=dict(document['conclusions'],policy_direction='tightening')
 if PRIMARY.startswith('tool_failure:'):
     if name=='codex':
         event={'type':'item.completed','item':{'type':'command_execution'}}
@@ -111,7 +129,7 @@ else:
         print(json.dumps({'type':'assistant','message':{'content':[block]}}))
     print(json.dumps({'type':'result','subtype':'success','is_error':False,'structured_output':document,'modelUsage':{'fixture-claude-model':{'inputTokens':100,'outputTokens':50}}}))
 """
-    source = source.replace("PRIMARY", repr(primary))
+    source = source.replace("PRIMARY", repr(primary)).replace("RECORD", repr(record_prompt))
     for name in ("codex", "claude"):
         program = executable_dir / name
         program.write_text(source)
@@ -170,10 +188,10 @@ def test_new_report_records_current_protocol_without_rewriting_legacy_input_bund
     snapshot = reports.get(result.report_snapshot_id)
     attempt = reports.attempts(result.report_snapshot_id)[0]
     assert (
-        snapshot.schema_version == attempt.process_audit["schema_version"] == "report-schema-v0003"
+        snapshot.schema_version == attempt.process_audit["schema_version"] == "report-schema-v0004"
     )
     assert (
-        snapshot.prompt_version == attempt.process_audit["prompt_version"] == "report-prompt-v0003"
+        snapshot.prompt_version == attempt.process_audit["prompt_version"] == "report-prompt-v0004"
     )
     assert snapshot.input_schema_version == "report-schema-v0002"
     assert snapshot.input_prompt_version == "report-prompt-v0002"
@@ -383,7 +401,7 @@ def test_failed_cli_output_retains_observed_tools_and_output_file_fingerprint(
 
 @pytest.mark.parametrize(
     "invalid_field",
-    ["evidence_ids=null", "evidence_ids=[{}]", "governance_refs=null", "title=42"],
+    ["title=42", "explanation=null", 'evidence_ids=["obs-bond"]'],
 )
 def test_invalid_cli_schema_is_audited_and_falls_back_once(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, invalid_field: str
@@ -423,7 +441,7 @@ def test_paragraph_review_binds_exact_output_and_facts_without_rewriting_snapsho
                 {"pointer": "/current_stage", "value": "stage_ii"},
             ],
             "counterevidence": [
-                {"pointer": "/counterevidence/0", "value": "宏观证据不参与正式阶段分类。"}
+                {"pointer": "/results/formal_stage/source", "value": "三核心价格状态"}
             ],
         }
     ]
@@ -455,3 +473,22 @@ def test_paragraph_review_binds_exact_output_and_facts_without_rewriting_snapsho
     assert after.bundle_hash == before.bundle_hash
     assert after.explanation_verification["status"] == "passed"
     assert len(reports.explanation_reviews(result.report_snapshot_id)) == 1
+
+
+def test_rewritten_conclusion_is_rejected_and_the_report_degrades(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    install_cli(tmp_path, monkeypatch, primary="rewrite_conclusion")
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    result = ReportService(
+        reports, (CliReportAdapter("codex_cli"), CliReportAdapter("claude_code_cli"))
+    ).generate(frozen_bundle())
+
+    assert result.status == "completed_degraded"
+    assert [a.outcome for a in reports.attempts(result.report_snapshot_id)] == [
+        "conclusion_mutation_rejected",
+        "conclusion_mutation_rejected",
+    ]
+    body = reports.get(result.report_snapshot_id).body
+    assert body["conclusions"]["policy_direction"] == "easing"
+    assert "ai_explanation" not in body

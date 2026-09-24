@@ -20,12 +20,22 @@ from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection
 
-REPORT_SCHEMA_VERSION = "report-schema-v0003"
-PROMPT_CONTRACT_VERSION = "report-prompt-v0003"
+REPORT_SCHEMA_VERSION = "report-schema-v0004"
+PROMPT_CONTRACT_VERSION = "report-prompt-v0004"
 
 
 @dataclass(frozen=True)
-class EvidenceBundle:
+class ReportInput:
+    """The verified results an AI report may explain (ADR-0027).
+
+    Each result carries only its value, the name of its data source and whether it is
+    anomalous (carried forward, gap, lagging, conflict). No evidence rows, observation
+    series or evidence identifiers: tracing is the projection's and the batch's job.
+    ``conclusions`` is what the AI must echo unchanged; ``gap_list`` is kept for the
+    report reader and is not sent to the AI, which sees the gap summary instead.
+    It is stored in the ``evidence_bundle`` table under ``bundle_id``, as before.
+    """
+
     bundle_id: str
     projection_set_id: str
     target_business_date: str
@@ -36,12 +46,9 @@ class EvidenceBundle:
     current_stage: str | None
     stage_reason: str
     core_states: dict[str, str]
-    allowed_evidence_ids: tuple[str, ...]
-    allowed_governance_refs: tuple[str, ...]
-    support: tuple[str, ...]
-    counterevidence: tuple[str, ...]
-    governance_gaps: tuple[str, ...]
-    structured_context: dict[str, Any] = field(default_factory=dict)
+    conclusions: dict[str, Any] = field(default_factory=dict)
+    results: dict[str, Any] = field(default_factory=dict)
+    gap_list: list[Any] = field(default_factory=list)
     schema_version: str = REPORT_SCHEMA_VERSION
     prompt_version: str = PROMPT_CONTRACT_VERSION
 
@@ -58,13 +65,10 @@ class EvidenceBundle:
         current_stage: str | None,
         stage_reason: str,
         core_states: dict[str, str],
-        allowed_evidence_ids: tuple[str, ...],
-        allowed_governance_refs: tuple[str, ...],
-        support: tuple[str, ...],
-        counterevidence: tuple[str, ...],
-        governance_gaps: tuple[str, ...],
-        structured_context: dict[str, Any] | None = None,
-    ) -> EvidenceBundle:
+        conclusions: dict[str, Any] | None = None,
+        results: dict[str, Any] | None = None,
+        gap_list: list[Any] | None = None,
+    ) -> ReportInput:
         identity = {
             "projection_set_id": projection_set_id,
             "target_business_date": target_business_date,
@@ -75,18 +79,14 @@ class EvidenceBundle:
             "current_stage": current_stage,
             "stage_reason": stage_reason,
             "core_states": core_states,
-            "allowed_evidence_ids": allowed_evidence_ids,
-            "allowed_governance_refs": allowed_governance_refs,
-            "support": support,
-            "counterevidence": counterevidence,
-            "governance_gaps": governance_gaps,
-            "structured_context": structured_context or {},
+            "conclusions": conclusions or {},
+            "results": results or {},
+            "gap_list": gap_list or [],
             "schema_version": REPORT_SCHEMA_VERSION,
             "prompt_version": PROMPT_CONTRACT_VERSION,
         }
-        bundle_id = "bundle-" + _hash_document(identity)[:20]
         return cls(
-            bundle_id=bundle_id,
+            bundle_id="bundle-" + _hash_document(identity)[:20],
             projection_set_id=projection_set_id,
             target_business_date=target_business_date,
             report_cutoff=report_cutoff,
@@ -96,18 +96,21 @@ class EvidenceBundle:
             current_stage=current_stage,
             stage_reason=stage_reason,
             core_states=core_states,
-            allowed_evidence_ids=allowed_evidence_ids,
-            allowed_governance_refs=allowed_governance_refs,
-            support=support,
-            counterevidence=counterevidence,
-            governance_gaps=governance_gaps,
-            structured_context=structured_context or {},
+            conclusions=conclusions or {},
+            results=results or {},
+            gap_list=gap_list or [],
         )
 
     def document(self) -> dict[str, Any]:
         document = asdict(self)
         document["report_cutoff"] = self.report_cutoff.isoformat()
         document["system_as_of"] = self.system_as_of.isoformat()
+        return document
+
+    def prompt_document(self) -> dict[str, Any]:
+        """What the AI is given: everything but the reader's full gap list."""
+        document = self.document()
+        del document["gap_list"]
         return document
 
     def deterministic_skeleton(self) -> dict[str, Any]:
@@ -126,15 +129,25 @@ class EvidenceBundle:
                 "classification_source": "three_core_price_states_only",
             },
             "core_states": dict(self.core_states),
-            "support": list(self.support),
-            "counterevidence": list(self.counterevidence),
-            "governance_gaps": list(self.governance_gaps),
-            "evidence_references": list(self.allowed_evidence_ids),
-            **self.structured_context,
+            "conclusions": dict(self.conclusions),
+            "verified_results": dict(self.results),
+            "gap_list": list(self.gap_list),
+            "core_carry_forward": list(self.results.get("core_carry_forward", [])),
         }
 
 
-def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle:
+# Which macro and inventory conclusions the report states, and the projection sections
+# whose rows feed each one (for its source names and anomalies).
+_MACRO_CONCLUSIONS = {
+    "policy_direction": ("policy_action", "transmission"),
+    "credit_response": ("credit",),
+    "overheat_state": ("overheat",),
+    "price_pressure": ("price_chain",),
+}
+_CORE_SOURCE_LABEL = "三核心价格状态"
+
+
+def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
     envelope = projection.envelope
     overview = projection.datasets["cycle_overview"]
     current_stage = overview.get("current_stage")
@@ -195,13 +208,42 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
         if isinstance(history, list)
         else None
     )
-    current_documents = {
-        name: document for name, document in projection.datasets.items() if name != "stage_history"
+    carried = [str(asset) for asset in _list(overview.get("core_carry_forward"))]
+    gap_list = [item for item in _list(overview.get("gap_list")) if isinstance(item, dict)]
+    conclusions: dict[str, Any] = {
+        name: _text_or_none(macro.get(name)) for name in _MACRO_CONCLUSIONS
     }
-    evidence_ids = tuple(
-        sorted(_collect_evidence_ids(current_documents) | _collect_evidence_ids(latest_history))
-    )
-    return EvidenceBundle.create(
+    conclusions["inventory_quadrant"] = _text_or_none(inventory.get("quadrant"))
+    results: dict[str, Any] = {
+        "formal_stage": {
+            "value": current_stage,
+            "reason": stage_reason,
+            "last_confirmed_stage": overview.get("last_confirmed_stage"),
+            "change": latest_history.get("event_kind") if latest_history else None,
+            "source": _CORE_SOURCE_LABEL,
+            "anomaly": [f"carried_forward:{asset}" for asset in carried],
+        },
+        "core_assets": [_core_result(item, carried) for item in assets_value],
+        **{
+            name: _conclusion_result(
+                conclusions[name],
+                [row for section in sections for row in _section_rows(macro.get(section))],
+            )
+            for name, sections in _MACRO_CONCLUSIONS.items()
+        },
+        "inventory_quadrant": _conclusion_result(
+            conclusions["inventory_quadrant"],
+            [
+                row
+                for card in _list(inventory.get("cards"))
+                if isinstance(card, dict)
+                for row in _section_rows(card)
+            ],
+        ),
+        "core_carry_forward": carried,
+        "gap_summary": _gap_summary(gap_list),
+    }
+    return ReportInput.create(
         projection_set_id=envelope.projection_set_id,
         target_business_date=envelope.target_business_date,
         report_cutoff=envelope.system_as_of,
@@ -211,55 +253,86 @@ def evidence_bundle_from_projection(projection: ProjectionSet) -> EvidenceBundle
         current_stage=current_stage,
         stage_reason=stage_reason,
         core_states=core_states,
-        allowed_evidence_ids=evidence_ids,
-        allowed_governance_refs=("ADR-0003", "ADR-0010", envelope.model_version_id),
-        support=(
-            ("三核心数据待处理，本日不产出正式阶段。",)
-            if stage_reason == "core_data_pending"
-            else ("三核心资产价格状态通过 P0 门禁。",)
-        ),
-        counterevidence=tuple(str(item) for item in envelope.warnings),
-        governance_gaps=tuple(str(item) for item in envelope.warnings),
-        structured_context={
-            "transition_watch": overview.get("transition_watch", []),
-            "macro_confirmation": overview.get("macro_confirmation", []),
-            "policy_context": {
-                "direction": macro.get("policy_direction"),
-                "actions": macro.get("policy_action"),
-                "transmission": macro.get("transmission"),
-                "credit": macro.get("credit"),
-            },
-            "inventory_context": {
-                "quadrant": inventory.get("quadrant"),
-                "directions": inventory.get("directions"),
-                "cards": inventory.get("cards"),
-                "real_inventory_approximation": inventory.get("real_inventory_approximation"),
-            },
-            "price_context": macro.get("price_chain"),
-            "activity_context": macro.get("overheat"),
-            "change_reasons": latest_history,
-            "gap_list": overview.get("gap_list", []),
-            "core_carry_forward": overview.get("core_carry_forward", []),
-        },
+        conclusions=conclusions,
+        results=results,
+        gap_list=gap_list,
     )
 
 
-def _collect_evidence_ids(value: object) -> set[str]:
-    found: set[str] = set()
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if key in {"evidence_id", "observation_id"} and isinstance(item, str):
-                found.add(item)
-            elif key in {"evidence_ids", "observation_version_ids"} and isinstance(
-                item, (list, tuple)
-            ):
-                found.update(reference for reference in item if isinstance(reference, str))
-            else:
-                found.update(_collect_evidence_ids(item))
-    elif isinstance(value, (list, tuple)):
-        for item in value:
-            found.update(_collect_evidence_ids(item))
-    return found
+def _list(value: object) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
+def _text_or_none(value: object) -> str | None:
+    return None if value is None else str(value)
+
+
+def _core_result(item: dict[str, Any], carried: list[str]) -> dict[str, Any]:
+    from pring_cycle.freshness import FRESHNESS_REGISTRY
+
+    metric_id = str(item.get("metric_id"))
+    rule = FRESHNESS_REGISTRY.get(metric_id)
+    return {
+        "asset": item["asset"],
+        "value": item["state"],
+        "metric_id": metric_id,
+        "latest_business_date": item.get("latest_business_date"),
+        "candidate_30d": item.get("candidate_30d"),
+        "candidate_days": item.get("candidate_days"),
+        "source": rule.source if rule is not None else None,
+        "anomaly": ["carried_forward"] if item["asset"] in carried else [],
+    }
+
+
+def _section_rows(section: object) -> list[dict[str, Any]]:
+    rows = section.get("evidence") if isinstance(section, dict) else None
+    return [row for row in rows or [] if isinstance(row, dict)]
+
+
+def _conclusion_result(value: str | None, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """A conclusion's value, the sources its inputs came from and what is anomalous."""
+    sources: set[str] = set()
+    anomalies: list[str] = []
+    for row in rows:
+        metric_id = str(row.get("metric_id"))
+        for claim in row.get("claims") or []:
+            if isinstance(claim, dict) and claim.get("selected") and claim.get("provider"):
+                sources.add(str(claim["provider"]))
+        if row.get("formula_version") and row.get("status") in {"current", "available"}:
+            sources.add("derived")
+        status = row.get("status")
+        if status == "missing":
+            anomalies.append(f"gap:{metric_id}")
+        elif status == "stale":
+            anomalies.append(f"lagging:{metric_id}")
+        elif status == "conflict":
+            anomalies.append(f"conflict:{metric_id}")
+    if value == "conflict":
+        anomalies.append("conflict")
+    return {
+        "value": value,
+        "source": sorted(sources),
+        "anomaly": sorted(dict.fromkeys(anomalies)),
+    }
+
+
+def _gap_summary(gap_list: list[dict[str, Any]]) -> dict[str, Any]:
+    counts: dict[str, int] = {}
+    for gap in gap_list:
+        category = str(gap.get("category"))
+        counts[category] = counts.get(category, 0) + 1
+    return {
+        "counts": dict(sorted(counts.items())),
+        "p0_p1": [
+            {
+                "metric_id": gap.get("metric_id"),
+                "priority": gap.get("priority"),
+                "category": gap.get("category"),
+            }
+            for gap in gap_list
+            if gap.get("priority") in {"P0", "P1"}
+        ],
+    }
 
 
 @dataclass(frozen=True)
@@ -283,7 +356,7 @@ class ReportAdapter(Protocol):
     name: str
     version: str
 
-    def generate(self, bundle: EvidenceBundle) -> AdapterResponse: ...
+    def generate(self, bundle: ReportInput) -> AdapterResponse: ...
 
 
 @dataclass(frozen=True)
@@ -366,7 +439,7 @@ class ReportRepository:
             ).fetchone()
         return int(row[0]) if row is not None else 1
 
-    def save_bundle(self, bundle: EvidenceBundle) -> str:
+    def save_bundle(self, bundle: ReportInput) -> str:
         from pring_cycle.source_contract_review import require_stored_model_source_contract
 
         document_json = _canonical_json(bundle.document())
@@ -453,7 +526,7 @@ class ReportRepository:
         *,
         report_snapshot_id: str,
         client_request_id: str,
-        bundle: EvidenceBundle,
+        bundle: ReportInput,
         bundle_hash: str,
         version: int,
         status: str,
@@ -608,7 +681,7 @@ class ReportService:
 
     def generate(
         self,
-        bundle: EvidenceBundle,
+        bundle: ReportInput,
         *,
         client_request_id: str | None = None,
         cancelled: bool = False,
@@ -671,7 +744,7 @@ class ReportService:
                 body["ai_explanation"] = response.document["sections"]
                 body["explanation_verification"] = {
                     "status": "pending_evidence_review",
-                    "identity_and_references": "passed",
+                    "identity_and_conclusions": "passed",
                     "semantic_support": "not_reviewed",
                     "output_hash": output_hash,
                 }
@@ -724,7 +797,7 @@ class CliReportAdapter:
         self._timeout_seconds = timeout_seconds
         self._cancel_requested = cancel_requested
 
-    def generate(self, bundle: EvidenceBundle) -> AdapterResponse:
+    def generate(self, bundle: ReportInput) -> AdapterResponse:
         deadline = time.monotonic() + self._timeout_seconds
         executable = "codex" if self.name == "codex_cli" else "claude"
         resolved = shutil.which(executable)
@@ -767,11 +840,14 @@ class CliReportAdapter:
         prompt = _canonical_json(
             {
                 "instruction": (
-                    "仅解释证据包，输出共同报告 JSON；不得调用工具或给出交易建议。"
+                    "仅解释报告输入中的已验证结果，输出共同报告 JSON；不得调用工具或给出交易建议。"
+                    "正式阶段、三核心状态与宏观、库存结论只能解释、不得改写，"
+                    "conclusions 须与报告输入的 conclusions 完全一致。"
+                    "涉及具体数值时写明数据来源；有异常（核心沿用、缺口、落后、冲突）时如实说明。"
                     "每个section的explanation必须是非空的单段文字，不含换行或段落分隔符；"
-                    "多段解释须拆为多个section，每段分别列出证据和治理引用，供逐段核查。"
+                    "多段解释须拆为多个section。"
                 ),
-                "evidence_bundle": bundle.document(),
+                "report_input": bundle.prompt_document(),
                 "execution_contract": {
                     "schema_version": REPORT_SCHEMA_VERSION,
                     "prompt_version": PROMPT_CONTRACT_VERSION,
@@ -1032,23 +1108,32 @@ def _cli_failure_classification(stdout: str, stderr: str) -> str:
     return "nonzero_exit"
 
 
-def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
+def _report_output_schema(bundle: ReportInput) -> dict[str, Any]:
     section = {
         "type": "object",
         "additionalProperties": False,
         "properties": {
             "title": {"type": "string"},
             "explanation": {"type": "string", "minLength": 1, "pattern": r"^[^\r\n\u2028\u2029]+$"},
-            "evidence_ids": {
-                "type": "array",
-                "items": {"type": "string", "enum": list(bundle.allowed_evidence_ids)},
-            },
-            "governance_refs": {
-                "type": "array",
-                "items": {"type": "string", "enum": list(bundle.allowed_governance_refs)},
-            },
         },
-        "required": ["title", "explanation", "evidence_ids", "governance_refs"],
+        "required": ["title", "explanation"],
+    }
+    conclusions = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            name: {"type": ["string", "null"], "const": value}
+            for name, value in bundle.conclusions.items()
+        },
+        "required": list(bundle.conclusions),
+    }
+    core_states = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            asset: {"type": "string", "const": state} for asset, state in bundle.core_states.items()
+        },
+        "required": list(bundle.core_states),
     }
     return {
         "type": "object",
@@ -1063,17 +1148,24 @@ def _report_output_schema(bundle: EvidenceBundle) -> dict[str, Any]:
                 "type": "string",
                 "const": bundle.report_cutoff.isoformat(),
             },
+            "core_states": core_states,
+            "conclusions": conclusions,
             "sections": {"type": "array", "minItems": 1, "items": section},
             "proxy_used": {"type": "boolean", "const": False},
         },
-        "required": [
-            "bundle_id",
-            "current_stage",
-            "report_cutoff",
-            "sections",
-            "proxy_used",
-        ],
+        "required": list(_OUTPUT_FIELDS),
     }
+
+
+_OUTPUT_FIELDS = (
+    "bundle_id",
+    "current_stage",
+    "report_cutoff",
+    "core_states",
+    "conclusions",
+    "sections",
+    "proxy_used",
+)
 
 
 # Item types codex reports that are the CLI speaking about itself, not the model acting:
@@ -1157,7 +1249,7 @@ def _claude_output(stdout: str) -> dict[str, Any]:
     return document
 
 
-def _preflight_bundle(bundle: EvidenceBundle) -> None:
+def _preflight_bundle(bundle: ReportInput) -> None:
     formal_stages = {
         "stage_i",
         "stage_ii",
@@ -1188,24 +1280,23 @@ def _preflight_bundle(bundle: EvidenceBundle) -> None:
         raise ValueError("report_preflight_cutoff_mismatch")
 
 
-def _validate_ai_document(bundle: EvidenceBundle, response: AdapterResponse) -> str:
+def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str:
+    """The two post-checks (ADR-0027): the structure, and conclusions left as given."""
     if response.tool_events:
         return "tool_use_rejected"
     document = response.document
     if not isinstance(document, dict):
         return "invalid_json_schema"
-    if set(document) != {
-        "bundle_id",
-        "current_stage",
-        "report_cutoff",
-        "sections",
-        "proxy_used",
-    }:
+    if set(document) != set(_OUTPUT_FIELDS):
         return "schema_validation_failed"
     if document["bundle_id"] != bundle.bundle_id:
         return "schema_validation_failed"
     if document["current_stage"] != bundle.current_stage:
         return "stage_mutation_rejected"
+    if document["core_states"] != bundle.core_states or document["conclusions"] != (
+        bundle.conclusions
+    ):
+        return "conclusion_mutation_rejected"
     if document["report_cutoff"] != bundle.report_cutoff.isoformat():
         return "schema_validation_failed"
     if document["proxy_used"] is not False:
@@ -1213,24 +1304,11 @@ def _validate_ai_document(bundle: EvidenceBundle, response: AdapterResponse) -> 
     sections = document["sections"]
     if not isinstance(sections, list) or not sections:
         return "schema_validation_failed"
-    allowed_evidence = set(bundle.allowed_evidence_ids)
-    allowed_governance = set(bundle.allowed_governance_refs)
     forbidden_terms = ("买入", "卖出", "目标价", "收益保证", "仓位建议")
     for section in sections:
-        if not isinstance(section, dict) or set(section) != {
-            "title",
-            "explanation",
-            "evidence_ids",
-            "governance_refs",
-        }:
+        if not isinstance(section, dict) or set(section) != {"title", "explanation"}:
             return "schema_validation_failed"
         if any(not isinstance(section[field], str) for field in ("title", "explanation")):
-            return "schema_validation_failed"
-        if any(
-            not isinstance(section[field], list)
-            or any(not isinstance(reference, str) for reference in section[field])
-            for field in ("evidence_ids", "governance_refs")
-        ):
             return "schema_validation_failed"
         if any(term in section["explanation"] for term in forbidden_terms):
             return "forbidden_content_rejected"
@@ -1238,10 +1316,6 @@ def _validate_ai_document(bundle: EvidenceBundle, response: AdapterResponse) -> 
             separator in section["explanation"] for separator in "\r\n\u2028\u2029"
         ):
             return "paragraph_structure_invalid"
-        if not set(section["evidence_ids"]).issubset(allowed_evidence):
-            return "evidence_reference_rejected"
-        if not set(section["governance_refs"]).issubset(allowed_governance):
-            return "evidence_reference_rejected"
     return "succeeded"
 
 

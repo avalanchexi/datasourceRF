@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
 from pathlib import Path
@@ -9,14 +11,14 @@ import pytest
 
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
-from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.projections import ProjectionEnvelope, ProjectionSet, ProjectionSetRepository
 from pring_cycle.reports import (
     AdapterResponse,
     CliReportAdapter,
-    EvidenceBundle,
+    ReportInput,
     ReportRepository,
     ReportService,
-    evidence_bundle_from_projection,
+    report_input_from_projection,
 )
 
 
@@ -27,13 +29,22 @@ class FakeAdapter:
     calls: list[str] = field(default_factory=list)
     version: str = "fixture-cli-1"
 
-    def generate(self, bundle: EvidenceBundle) -> AdapterResponse:
+    def generate(self, bundle: ReportInput) -> AdapterResponse:
         self.calls.append(bundle.bundle_id)
         return self.response
 
 
-def bundle() -> EvidenceBundle:
-    return EvidenceBundle.create(
+CONCLUSIONS = {
+    "policy_direction": "easing",
+    "credit_response": "expanding",
+    "overheat_state": "insufficient_data",
+    "price_pressure": "producer_diffusion",
+    "inventory_quadrant": None,
+}
+
+
+def bundle() -> ReportInput:
+    return ReportInput.create(
         projection_set_id="projection-1",
         target_business_date="2026-08-28",
         report_cutoff=datetime(2026, 8, 28, 10, tzinfo=UTC),
@@ -43,29 +54,27 @@ def bundle() -> EvidenceBundle:
         current_stage="stage_ii",
         stage_reason="canonical_combination",
         core_states={"bond": "bull", "stock": "bull", "commodity": "bear"},
-        allowed_evidence_ids=("obs-bond", "obs-stock", "obs-commodity", "obs-policy"),
-        allowed_governance_refs=("gap-vix",),
-        support=("obs-policy",),
-        counterevidence=(),
-        governance_gaps=("gap-vix",),
+        conclusions=CONCLUSIONS,
+        results={"policy_direction": {"value": "easing", "source": ["tushare"], "anomaly": []}},
     )
 
 
-def valid_document(evidence_id: str = "obs-policy") -> dict[str, Any]:
+def valid_document(**changes: Any) -> dict[str, Any]:
     source = bundle()
     return {
         "bundle_id": source.bundle_id,
         "current_stage": "stage_ii",
         "report_cutoff": "2026-08-28T10:00:00+00:00",
+        "core_states": {"bond": "bull", "stock": "bull", "commodity": "bear"},
+        "conclusions": dict(CONCLUSIONS),
         "sections": [
             {
                 "title": "政策传导",
-                "explanation": "政策证据支持当前叙事，但不参与正式阶段分类。",
-                "evidence_ids": [evidence_id],
-                "governance_refs": [],
+                "explanation": "政策方向偏宽松（来源：TuShare），但不参与正式阶段分类。",
             }
         ],
         "proxy_used": False,
+        **changes,
     }
 
 
@@ -104,7 +113,7 @@ def test_clock_rollback_retains_timeout_audit_and_measured_duration(
         name = "codex_cli"
         version = "fixture-timeout"
 
-        def generate(self, evidence: EvidenceBundle) -> AdapterResponse:
+        def generate(self, evidence: ReportInput) -> AdapterResponse:
             nonlocal wall_now, monotonic_ns
             assert evidence.document() == source.document()
             wall_now = started - timedelta(minutes=1)
@@ -155,7 +164,7 @@ def test_fallback_report_duration_spans_both_attempts_across_clock_changes(
         def __init__(self, name: str) -> None:
             self.name = name
 
-        def generate(self, evidence: EvidenceBundle) -> AdapterResponse:
+        def generate(self, evidence: ReportInput) -> AdapterResponse:
             nonlocal wall_now, monotonic_ns
             assert evidence.document() == source.document()
             if self.name == "codex_cli":
@@ -210,32 +219,60 @@ def test_stage_mutation_is_rejected_and_alternate_cli_is_tried_once(tmp_path: Pa
     assert reports.get(result.report_snapshot_id).current_stage == "stage_ii"
 
 
-def test_illegal_reference_tool_event_and_trading_advice_are_rejected(tmp_path: Path) -> None:
-    for response in (
-        AdapterResponse.succeeded(valid_document("outside-bundle")),
-        AdapterResponse.succeeded(valid_document(), tool_events=1),
-        AdapterResponse.succeeded(
-            {
-                **valid_document(),
-                "sections": [
-                    {
-                        "title": "建议",
-                        "explanation": "建议买入并设置目标价。",
-                        "evidence_ids": ["obs-policy"],
-                        "governance_refs": [],
-                    }
-                ],
-            }
+@pytest.mark.parametrize(
+    ("response", "outcome"),
+    [
+        pytest.param(
+            AdapterResponse.succeeded(
+                valid_document(core_states={"bond": "bear", "stock": "bull", "commodity": "bear"})
+            ),
+            "conclusion_mutation_rejected",
+            id="core-state-rewritten",
         ),
-    ):
-        reports = ReportRepository.create(tmp_path / f"reports-{id(response)}.sqlite3")
-        first = FakeAdapter("codex_cli", response)
-        second = FakeAdapter("claude_code_cli", AdapterResponse.unavailable("fixture"))
+        pytest.param(
+            AdapterResponse.succeeded(
+                valid_document(conclusions={**CONCLUSIONS, "inventory_quadrant": "主动补库存"})
+            ),
+            "conclusion_mutation_rejected",
+            id="inventory-rewritten",
+        ),
+        pytest.param(
+            AdapterResponse.succeeded(
+                valid_document(
+                    sections=[{"title": "引用", "explanation": "见证据。", "evidence_ids": []}]
+                )
+            ),
+            "schema_validation_failed",
+            id="evidence-reference-field",
+        ),
+        pytest.param(
+            AdapterResponse.succeeded(valid_document(), tool_events=1),
+            "tool_use_rejected",
+            id="tool-event",
+        ),
+        pytest.param(
+            AdapterResponse.succeeded(
+                valid_document(
+                    sections=[{"title": "建议", "explanation": "建议买入并设置目标价。"}]
+                )
+            ),
+            "forbidden_content_rejected",
+            id="trading-advice",
+        ),
+    ],
+)
+def test_rewritten_conclusions_structure_tools_and_advice_are_rejected(
+    tmp_path: Path, response: AdapterResponse, outcome: str
+) -> None:
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    first = FakeAdapter("codex_cli", response)
+    second = FakeAdapter("claude_code_cli", AdapterResponse.unavailable("fixture"))
 
-        result = ReportService(reports, (first, second)).generate(bundle())
+    result = ReportService(reports, (first, second)).generate(bundle())
 
-        assert result.status == "completed_degraded"
-        assert result.adapter == "deterministic"
+    assert result.status == "completed_degraded"
+    assert result.adapter == "deterministic"
+    assert reports.attempts(result.report_snapshot_id)[0].outcome == outcome
 
 
 def test_two_cli_failures_publish_a_deterministic_fact_skeleton(tmp_path: Path) -> None:
@@ -255,6 +292,10 @@ def test_two_cli_failures_publish_a_deterministic_fact_skeleton(tmp_path: Path) 
         "stock": "bull",
         "commodity": "bear",
     }
+    assert stored.body["conclusions"] == CONCLUSIONS
+    assert not {"support", "counterevidence", "governance_gaps", "evidence_references"} & set(
+        stored.body
+    )
     assert len(reports.attempts(result.report_snapshot_id)) == 2
 
 
@@ -285,7 +326,7 @@ def test_noncanonical_projection_generates_a_report_without_inventing_a_stage(
         last_confirmed_stage=None,
     )
     assert result.status == "published"
-    source = evidence_bundle_from_projection(projections.current())
+    source = report_input_from_projection(projections.current())
     reports = ReportRepository.create(tmp_path / "reports.sqlite3")
     generated = ReportService(reports, ()).generate(source)
     stored = reports.get(generated.report_snapshot_id)
@@ -327,7 +368,7 @@ def test_same_day_regeneration_creates_versions_without_overwriting(tmp_path: Pa
 
 
 @pytest.mark.parametrize("activity_provider", [None, "tushare", "国家统计局"])
-def test_projection_observation_versions_are_preserved_in_the_report_bundle(
+def test_report_input_carries_results_and_sources_without_evidence_identifiers(
     tmp_path: Path,
     activity_provider: str | None,
 ) -> None:
@@ -354,9 +395,11 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
             "evidence": [
                 {
                     "metric_id": "CN_PMI_ACTIVITY",
+                    "status": "current",
                     "observation_version_ids": ["version-pmi"],
                     "claims": [{"provider": activity_provider, "selected": True}],
-                }
+                },
+                {"metric_id": "CN_INDUSTRIAL_VA", "status": "missing", "claims": []},
             ],
         }
         if activity_provider is not None
@@ -367,75 +410,58 @@ def test_projection_observation_versions_are_preserved_in_the_report_bundle(
         system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
         assets=assets,  # type: ignore[arg-type]
         last_confirmed_stage=None,
-        macro_document={"overheat": activity} if activity else None,
+        macro_document={"overheat": activity, "overheat_state": "fixture_activity"}
+        if activity
+        else None,
     )
 
-    report_bundle = evidence_bundle_from_projection(projections.current())
-    evidence_ids = report_bundle.allowed_evidence_ids
+    report_input = report_input_from_projection(projections.current())
+    text = json.dumps(report_input.document(), ensure_ascii=False)
 
-    expected_ids = {"version-bond", "version-commodity", "version-stock"}
+    assert "version-" not in text
+    assert "evidence" not in text
+    assert [item["value"] for item in report_input.results["core_assets"]] == [
+        "bull",
+        "bull",
+        "bear",
+    ]
+    assert report_input.results["core_assets"][0]["source"] == "tushare:index_daily"
     if activity:
-        expected_ids.add("version-pmi")
-        assert report_bundle.structured_context["activity_context"] == activity
-    assert set(evidence_ids) == expected_ids
-    assert set(report_bundle.structured_context) == {
-        "transition_watch",
-        "macro_confirmation",
-        "policy_context",
-        "inventory_context",
-        "price_context",
-        "activity_context",
-        "change_reasons",
-        "gap_list",
-        "core_carry_forward",
-    }
+        assert report_input.conclusions["overheat_state"] == "fixture_activity"
+        assert report_input.results["overheat_state"] == {
+            "value": "fixture_activity",
+            "source": [activity_provider],
+            "anomaly": ["gap:CN_INDUSTRIAL_VA"],
+        }
 
 
-def test_report_bundle_does_not_import_evidence_from_older_stage_history(
-    tmp_path: Path,
-) -> None:
-    projections = ProjectionSetRepository.create(tmp_path / "projections.sqlite3")
-    assets = tuple(
-        CoreAssetReadiness(
-            asset=asset,
-            metric_id=metric_id,
-            state=state,
-            reason="validated",
-            observation_count=1,
-            latest_business_date="2026-08-28",
-            observation_version_ids=(f"current-{asset}",),
-        )
-        for asset, metric_id, state in (
-            ("bond", "CN_BOND_CORE_000012", CoreAssetState.BULL),
-            ("stock", "CN_EQUITY_CORE_000985", CoreAssetState.BULL),
-            ("commodity", "CN_COMMODITY_CORE_NHII", CoreAssetState.BEAR),
-        )
+def test_real_run_report_input_is_a_fraction_of_the_first_evidence_bundle() -> None:
+    """The first real run's projection (2026-09-23) gave a 139,770-byte evidence bundle."""
+    sample = json.loads(
+        (Path(__file__).parents[1] / "fixtures/report_input/projection-20260923.json").read_text()
     )
-    P0ProjectionService(projections).publish(
-        target_business_date="2026-08-28",
-        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
-        assets=assets,  # type: ignore[arg-type]
-        last_confirmed_stage=None,
-    )
-    projection = projections.current()
-    events = projection.datasets["stage_history"]["events"]
-    assert isinstance(events, list)
-    events.insert(
-        0,
-        {
-            "projection_set_id": "projection-older",
-            "observation_version_ids": ["old-history-claim"],
-        },
+    envelope = sample["envelope"]
+    projection = ProjectionSet(
+        ProjectionEnvelope(
+            **{
+                **envelope,
+                "system_as_of": datetime.fromisoformat(envelope["system_as_of"]),
+                "generated_at": datetime.fromisoformat(envelope["generated_at"]),
+                "warnings": tuple(envelope["warnings"]),
+            }
+        ),
+        sample["datasets"],
     )
 
-    report_bundle = evidence_bundle_from_projection(projection)
+    report_input = report_input_from_projection(projection)
+    prompt = json.dumps(report_input.prompt_document(), ensure_ascii=False)
 
-    assert "old-history-claim" not in report_bundle.allowed_evidence_ids
-    assert set(report_bundle.allowed_evidence_ids) == {
-        "current-bond",
-        "current-stock",
-        "current-commodity",
-    }
+    assert len(prompt.encode()) < 139_770 // 10
+    assert not re.search(r"[0-9a-f]{64}", prompt)
+    assert report_input.current_stage is None
+    assert report_input.results["formal_stage"]["reason"] == "noncanonical_combination"
+    assert report_input.results["gap_summary"]["counts"]["missing"] >= 1
+    assert report_input.gap_list == sample["datasets"]["cycle_overview"]["gap_list"]
 
 
 def test_report_rejects_projection_that_exposes_preheat_history(tmp_path: Path) -> None:
@@ -464,7 +490,7 @@ def test_report_rejects_projection_that_exposes_preheat_history(tmp_path: Path) 
     )
 
     with pytest.raises(ValueError, match="report_evidence_window_exceeds_120_days"):
-        evidence_bundle_from_projection(projections.current())
+        report_input_from_projection(projections.current())
 
 
 def test_cancellation_after_an_adapter_returns_prevents_report_publication(
@@ -487,3 +513,67 @@ def test_cancellation_after_an_adapter_returns_prevents_report_publication(
 
     assert adapter.calls == [bundle().bundle_id]
     assert reports.history() == ()
+
+
+def test_a_snapshot_from_before_the_report_input_still_reads_and_renders(tmp_path: Path) -> None:
+    from pring_cycle.dashboard import _report_reader
+    from pring_cycle.storage import database_connection
+
+    reports = ReportRepository.create(tmp_path / "reports.sqlite3")
+    legacy_bundle = {
+        "bundle_id": "bundle-legacy",
+        "projection_set_id": "projection-legacy",
+        "target_business_date": "2026-09-23",
+        "report_cutoff": "2026-09-23T19:58:56+00:00",
+        "system_as_of": "2026-09-23T19:58:56+00:00",
+        "current_stage": None,
+        "stage_reason": "noncanonical_combination",
+        "core_states": {"bond": "bull", "stock": "bear", "commodity": "bull"},
+        "allowed_evidence_ids": ["obs-bond"],
+        "allowed_governance_refs": ["ADR-0003"],
+        "support": ["三核心资产价格状态通过 P0 门禁。"],
+        "counterevidence": [],
+        "governance_gaps": [],
+        "structured_context": {},
+        "schema_version": "report-schema-v0003",
+        "prompt_version": "report-prompt-v0003",
+    }
+    body = {
+        "core_states": legacy_bundle["core_states"],
+        "support": legacy_bundle["support"],
+        "evidence_references": ["obs-bond"],
+        "gap_list": [],
+        "ai_explanation": [
+            {
+                "title": "阶段依据",
+                "explanation": "组合不在六阶段内。",
+                "evidence_ids": ["obs-bond"],
+                "governance_refs": ["ADR-0003"],
+            }
+        ],
+    }
+    with database_connection(reports._database_path) as connection:
+        connection.execute(
+            "INSERT INTO evidence_bundle VALUES (?, 'hash', 'projection-legacy', ?, ?)",
+            ("bundle-legacy", json.dumps(legacy_bundle), "2026-09-23T20:00:00+00:00"),
+        )
+        connection.execute(
+            "INSERT INTO report_snapshot(report_snapshot_id, client_request_id, "
+            "projection_set_id, target_business_date, version, status, adapter, current_stage, "
+            "bundle_id, bundle_hash, model_version_id, schema_version, prompt_version, "
+            "body_json, body_retained, created_at) VALUES ('report-legacy', 'legacy', "
+            "'projection-legacy', '2026-09-23', 1, 'completed', 'codex_cli', NULL, "
+            "'bundle-legacy', 'hash', 'model-v0012', 'report-schema-v0003', "
+            "'report-prompt-v0003', ?, 1, '2026-09-23T20:00:00+00:00')",
+            (json.dumps(body, ensure_ascii=False),),
+        )
+
+    snapshot = reports.get("report-legacy")
+    page = str(_report_reader(snapshot))
+
+    assert (snapshot.input_schema_version, snapshot.input_prompt_version) == (
+        "report-schema-v0003",
+        "report-prompt-v0003",
+    )
+    assert "组合不在六阶段内。" in page
+    assert "证据 obs-bond" in page

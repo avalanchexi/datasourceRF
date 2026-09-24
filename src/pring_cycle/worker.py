@@ -64,7 +64,7 @@ from pring_cycle.reports import (
     ReportAdapter,
     ReportRepository,
     ReportService,
-    evidence_bundle_from_projection,
+    report_input_from_projection,
 )
 from pring_cycle.retrieval import (
     RetrievalAdapterResponse,
@@ -1983,7 +1983,7 @@ def _generate_report(
         )
     )
     generated = ReportService(ReportRepository(paths.database), adapters).generate(
-        evidence_bundle_from_projection(projection),
+        report_input_from_projection(projection),
         client_request_id=f"{run.run_id}:report",
         cancel_requested=cancel_requested,
     )

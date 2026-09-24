@@ -1011,7 +1011,7 @@ def _reports_page(
                             f"适配器 {item.adapter}",
                             f"截止 {item.report_cutoff.isoformat()}",
                             f"耗时 {item.duration_ms}ms",
-                            f"证据包 {item.bundle_hash}",
+                            f"报告输入 {item.bundle_hash}",
                             f"模型 {item.model_version_id}",
                             f"提示 {item.prompt_version}",
                             f"Schema {item.schema_version}",
@@ -1061,7 +1061,7 @@ def _reports_page(
                         [
                             html.H2("报告生成", className="section-title"),
                             html.P(
-                                "生成命令冻结当前证据包；AI 失败不会回滚分析投影。",
+                                "生成命令冻结当前报告输入；AI 失败不会回滚分析投影。",
                                 className="body-copy",
                             ),
                             html.P(
@@ -1144,6 +1144,9 @@ def _runs_page(runs: Sequence[RunRecord]) -> html.Div:
     )
 
 
+_LEGACY_SECTION_REFERENCES = (("evidence_ids", "证据"), ("governance_refs", "治理引用"))
+
+
 def _report_reader(report: ReportSnapshot) -> html.Div:
     identity = html.Dl(
         [
@@ -1158,7 +1161,7 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
                 {
                     "passed": "已核查支持与反证",
                     "needs_attention": "存在无支持或矛盾叙述",
-                    "pending_evidence_review": "结构与引用已校验，语义待核查",
+                    "pending_evidence_review": "结构与结论已校验，语义待核查",
                     "unavailable": "无AI解释",
                 }.get(str(report.explanation_verification.get("status")), "未记录核查"),
             ),
@@ -1167,7 +1170,7 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
     )
     if not report.body_retained:
         return html.Div(
-            [identity, _empty_state("正文已不在保留期", "结构化身份与证据包清单仍长期保留。")],
+            [identity, _empty_state("正文已不在保留期", "结构化身份与报告输入仍在留存期内保留。")],
             className="report-reader",
         )
     body = report.body
@@ -1178,14 +1181,14 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
                 [
                     html.H3(str(section.get("title") or "未命名章节")),
                     html.P(str(section.get("explanation") or ""), className="body-copy"),
-                    html.P(
-                        "证据 " + "、".join(str(item) for item in section.get("evidence_ids", [])),
-                        className="secondary-copy",
-                    ),
-                    html.P(
-                        "治理引用 "
-                        + "、".join(str(item) for item in section.get("governance_refs", [])),
-                        className="secondary-copy",
+                    # Reports before ADR-0027 cited evidence per paragraph; newer ones do not.
+                    *(
+                        html.P(
+                            label + " " + "、".join(str(item) for item in section[key]),
+                            className="secondary-copy",
+                        )
+                        for key, label in _LEGACY_SECTION_REFERENCES
+                        if section.get(key)
                     ),
                 ],
                 className="report-section",
@@ -1194,20 +1197,30 @@ def _report_reader(report: ReportSnapshot) -> html.Div:
             if isinstance(section, dict)
         ]
     else:
+        # A skeleton shows what its input held: verified results since ADR-0027, the
+        # evidence context and references before it.
+        facts = (
+            ("三核心", "core_states"),
+            ("已验证结果", "verified_results"),
+            ("转折观察", "transition_watch"),
+            ("宏观事后确认", "macro_confirmation"),
+            ("政策与信用", "policy_context"),
+            ("库存解释", "inventory_context"),
+            ("物价传导", "price_context"),
+            ("变化原因", "change_reasons"),
+            ("支持证据", "support"),
+            ("反证", "counterevidence"),
+            ("数据缺口", "governance_gaps"),
+        )
         content = [
-            _report_fact_section("三核心", body.get("core_states")),
-            _report_fact_section("转折观察", body.get("transition_watch")),
-            _report_fact_section("宏观事后确认", body.get("macro_confirmation")),
-            _report_fact_section("政策与信用", body.get("policy_context")),
-            _report_fact_section("库存解释", body.get("inventory_context")),
-            _report_fact_section("物价传导", body.get("price_context")),
-            _report_fact_section("变化原因", body.get("change_reasons")),
-            _report_fact_section("支持证据", body.get("support")),
-            _report_fact_section("反证", body.get("counterevidence")),
-            _report_fact_section("数据缺口", body.get("governance_gaps")),
+            *(_report_fact_section(title, body[key]) for title, key in facts if key in body),
             html.Section([html.H3("缺口清单"), _gap_list(body.get("gap_list"))]),
             _report_fact_section("核心沿用上一期", body.get("core_carry_forward")),
-            _report_fact_section("绑定引用", body.get("evidence_references")),
+            *(
+                [_report_fact_section("绑定引用", body["evidence_references"])]
+                if "evidence_references" in body
+                else []
+            ),
         ]
     return html.Div([identity, *content], className="report-reader")
 
