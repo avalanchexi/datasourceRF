@@ -163,8 +163,11 @@ DERIVED_INPUTS: dict[str, tuple[str, ...]] = {
     "CN_CREDIT_IMPULSE": ("CN_SF_TOTAL", "CN_GDP"),
     "UST_2S10S_SPREAD": ("UST10Y_NOMINAL_YIELD", "UST2Y_NOMINAL_YIELD"),
 }
-# Operational evidence about the run itself, not a series a source owes.
-NOT_ASSESSED = frozenset({"CN_RELEASE_SCHEDULE", "SOURCE_OBSERVED_AVAILABILITY"})
+# Operational evidence about the run itself, not a series a source owes. The trade
+# calendar decides which sessions exist; the calendar gate checks it, not freshness.
+NOT_ASSESSED = frozenset(
+    {"CN_TRADE_CALENDAR", "CN_RELEASE_SCHEDULE", "SOURCE_OBSERVED_AVAILABILITY"}
+)
 CORE_METRICS = ("CN_EQUITY_CORE_000985", "CN_BOND_CORE_000012", "CN_COMMODITY_CORE_NHII")
 
 
@@ -752,7 +755,7 @@ def gap_list(
     seen = set(failed_candidates)
     for metric_ids_json, api_name, reason in rejected:
         for metric_id in json.loads(metric_ids_json or "[]"):
-            if metric_id in seen or metric_id not in priorities:
+            if metric_id in seen or metric_id not in priorities or metric_id in NOT_ASSESSED:
                 continue
             seen.add(metric_id)
             gaps.append(

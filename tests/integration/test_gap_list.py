@@ -133,6 +133,23 @@ def test_gap_list_classifies_each_freshness_disposition(
     assert all(item["priority"] != "P0" for item in gaps.values())
 
 
+def test_trade_calendar_is_operational_evidence_not_a_gap(
+    published: tuple[RuntimePaths, Any],
+) -> None:
+    paths, projection = published
+    from pring_cycle.storage import database_connection
+
+    with database_connection(paths.database) as connection:
+        assessed = {
+            row[0]
+            # The module's database holds this one run's batch.
+            for row in connection.execute("SELECT metric_id FROM batch_freshness")
+        }
+
+    assert "CN_TRADE_CALENDAR" not in by_metric(projection)
+    assert assessed and "CN_TRADE_CALENDAR" not in assessed
+
+
 def test_one_period_behind_is_used_and_two_behind_is_not(
     published: tuple[RuntimePaths, Any],
 ) -> None:
