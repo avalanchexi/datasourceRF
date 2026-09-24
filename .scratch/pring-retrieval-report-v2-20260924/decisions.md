@@ -38,4 +38,4 @@
 
 ## 下一步
 
-规格已写成 [spec.md](spec.md)（ready-for-agent）；下一步 `/to-tickets` → `/implement`。
+规格已写成 [spec.md](spec.md)（ready-for-agent），并拆为 [13 张票](issues/)，按 `Blocked by` 推进；起始前沿为 01、02、03、04。下一步 `/implement`。
