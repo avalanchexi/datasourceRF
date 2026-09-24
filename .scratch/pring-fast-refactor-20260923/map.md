@@ -49,7 +49,7 @@ Status: done (2026-09-24：终点已到达，遗留见 Not yet specified)
 
 以下为票 28 真实运行暴露、尚未立项的遗留，属新一轮工作（建议入口见括号）：
 
-- **检索与报告二期**：2026-09-24 已经 `/grill-with-docs` 访谈定下口径，见 [决定记录](../pring-retrieval-report-v2-20260924/decisions.md)、ADR-0026、ADR-0027；规格见 [spec.md](../pring-retrieval-report-v2-20260924/spec.md)，已拆为 13 张票，下一步 `/implement`。
+- **检索与报告二期**：2026-09-24 已实施完成，见 [决定记录](../pring-retrieval-report-v2-20260924/decisions.md) 的“实施结果”与 [票 13](../pring-retrieval-report-v2-20260924/issues/13-endpoint-suite-docs-real-run.md)：真实运行缺口 35 → 25，AI 报告首次由 Codex 生成（34 秒）。遗留：资讯时间窗漏掉周末发布的 LPR、`major_news` 限频致翻页中断、工业企业财务等仍缺失。
 - **交易日历误列缺口、社融/GDP 官方列表链接不唯一、EIA HTML 周连续性拒收**：已并入检索与报告二期规格，作为独立小切片。
 - **来源空缺**（`/research`）：NHII 没有可解析的南华官方页面（票 22）；P2 的 VIX、SOX、UST、USDCNY 16:30 仍取不到。
 - **旧工作树去留**（用户决定）：`goal/window-20260922-01…06` 未提交内容已无损归档到 `.scratch/pring-window-publication-20260922/worktree-archive-20260924/`，删除命令见其 README；删除约可释放 3.5G。
