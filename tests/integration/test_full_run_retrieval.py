@@ -1101,3 +1101,22 @@ def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
     scopes = {s["release_event_id"]: s["release_status"] for s in plan["initial"]["scopes"]}
     assert scopes["full:nbs_industrial_finance:2026-07"] == "released"
     assert scopes["full:cboe_vix_index:2026-09-22"] == "released"
+
+
+def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -> None:
+    """On 9/10 September's LPR is not fixed until the 20th: August's is the one in force."""
+    paths, runs = prepare(tmp_path)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate("model-v0012", explicitly_approved=True)
+    run = runs.submit_manual_full(
+        target_business_date="2026-09-10",
+        client_request_id="lpr-before-fixing",
+        model_version_id="model-v0012",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+    plan = runs.full_retrieval_plan(run.run_id)
+    assert {
+        r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_LPR_1Y_5Y"
+    } == {"2026-08"}
