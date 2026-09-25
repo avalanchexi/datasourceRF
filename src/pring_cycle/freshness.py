@@ -27,10 +27,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
-from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
+from pring_cycle.metric_contracts import (
+    EFFECTIVE_UNTIL_CHANGED_METRICS,
+    REQUIRED_DIMENSION_MEMBERS,
+)
 
 if TYPE_CHECKING:
     from pring_cycle.catalog import MetricDefinition
+    from pring_cycle.evidence import MetricSeriesPoint
     from pring_cycle.runtime import RuntimePaths
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
@@ -541,6 +546,29 @@ def assess_catalog(
     return tuple(results)
 
 
+# Each warrant symbol is acquired on its own (run findings 2026-09-26, ticket 01), so a day
+# some symbols hold is not yet the metric's: it is held once every required member is.
+_HELD_WITH_EVERY_MEMBER = frozenset({"CN_FUTURES_WARRANTS"})
+
+
+def _points_of_complete_periods(
+    metric_id: str, points: list[MetricSeriesPoint]
+) -> list[MetricSeriesPoint]:
+    required = REQUIRED_DIMENSION_MEMBERS[metric_id]
+    by_period: dict[str, list[MetricSeriesPoint]] = {}
+    for point in points:
+        by_period.setdefault(point.period_end, []).append(point)
+    return [
+        point
+        for period_points in by_period.values()
+        if all(
+            any(member.items() <= point.dimensions.items() for point in period_points)
+            for member in required
+        )
+        for point in period_points
+    ]
+
+
 def record_run_freshness(
     database: Path,
     run_id: str,
@@ -568,6 +596,11 @@ def record_run_freshness(
             )
             if point.selected_value is not None
         ]
+        if (
+            definition.metric_id in _HELD_WITH_EVERY_MEMBER
+            and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
+        ):
+            points = _points_of_complete_periods(definition.metric_id, points)
         if not points:
             continue
         latest = max(point.period_end for point in points)
@@ -784,7 +817,7 @@ _ACQUISITION_OUTCOMES = _FETCH_FAILED | {
 
 
 def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, str]]:
-    """Per metric, how the run's last registered-source acquisition failed, if it did."""
+    """Per metric (per warrant symbol), how the run's last acquisition failed, if it did."""
     from pring_cycle.storage import database_connection
 
     with database_connection(database) as connection:
@@ -808,13 +841,16 @@ def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, s
             "AND outcome IN (SELECT value FROM json_each(?)) ORDER BY fetched_at, rowid",
             (run[0], following, following, json.dumps(sorted(_ACQUISITION_OUTCOMES))),
         ).fetchall()
-    latest: dict[str, tuple[str, dict[str, str]]] = {}
+    # By symbol too: each warrant symbol is acquired on its own, so one symbol's failure stands
+    # though another symbol succeeded after it. Alternative families (an API, then its page)
+    # still let a later success clear an earlier failure.
+    latest: dict[tuple[str, str | None], tuple[str, dict[str, str]]] = {}
     for metric_id, outcome, metadata_json in rows:
         metadata = json.loads(metadata_json)
         if metadata.get("target_business_date", run[1]) == run[1]:
-            latest[str(metric_id)] = (str(outcome), metadata)
+            latest[(str(metric_id), metadata.get("symbol"))] = (str(outcome), metadata)
     failures = {}
-    for metric_id, (outcome, metadata) in latest.items():
+    for (metric_id, _symbol), (outcome, metadata) in latest.items():
         detail = metadata.get("reason") or metadata.get("condition") or metadata.get("error_type")
         if outcome in _FETCH_FAILED:
             failures[metric_id] = ("fetch_failed", str(detail or outcome))

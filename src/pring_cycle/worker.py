@@ -10,6 +10,7 @@ from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
+from functools import partial
 from time import monotonic
 from zoneinfo import ZoneInfo
 
@@ -1830,18 +1831,20 @@ def refresh_context_sources(
                 end_month=end_month,
             ),
         ),
-        (
-            "futures_warrants",
-            ("CN_FUTURES_WARRANTS",),
-            lambda: tuple(
-                scalar
-                for symbol in sorted(WARRANT_SYMBOLS)
-                for scalar in adapter.futures_warrants(
+        # One acquisition a symbol: a symbol's refused delivery leaves the others held
+        # (run findings 2026-09-26, ticket 01).
+        *(
+            (
+                f"futures_warrants:{symbol}",
+                ("CN_FUTURES_WARRANTS",),
+                partial(
+                    adapter.futures_warrants,
                     start_date=daily_start,
                     end_date=target,
                     symbol=symbol,
-                )
-            ),
+                ),
+            )
+            for symbol in sorted(WARRANT_SYMBOLS)
         ),
         (
             "gdp",
@@ -1880,6 +1883,11 @@ def refresh_context_sources(
             paths, metric_ids, definition_version
         ):
             continue
+        # A warrant symbol's outcome is its own: the gap list keeps one symbol's failure though
+        # another symbol is fetched after it.
+        details = {"family": family}
+        if family.startswith("futures_warrants:"):
+            details["symbol"] = family.partition(":")[2]
         try:
             with acquisition_metrics(metric_ids):
                 result = adapter.acquire_scalars(
@@ -1892,7 +1900,7 @@ def refresh_context_sources(
                 "tushare",
                 "source_failed",
                 error_type=type(error).__name__,
-                family=family,
+                **details,
                 reason=str(error)[:300],
             )
         except (KeyError, TypeError, ValueError) as error:
@@ -1901,7 +1909,7 @@ def refresh_context_sources(
                 or all(reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids)
             ):
                 # Nothing new: every day of the window is held already.
-                record(metric_ids, "tushare", "missing_values", family=family)
+                record(metric_ids, "tushare", "missing_values", **details)
                 continue
             # Gate ③ rejects the response; the metrics become gaps for retrieval, whatever
             # their priority, and the run goes on (ticket 17).
@@ -1913,7 +1921,7 @@ def refresh_context_sources(
                 "tushare",
                 outcome,
                 error_type=type(error).__name__,
-                family=family,
+                **details,
                 stage="ingest" if isinstance(error, ContextIngestRejectedError) else "response",
                 reason=str(error)[:300],
             )
@@ -1922,14 +1930,14 @@ def refresh_context_sources(
                 result.metric_ids,
                 "tushare",
                 "partial_validation" if result.rejected_field_count else "verified_candidate",
-                family=family,
+                **details,
                 rejected_fields=str(result.rejected_field_count),
             )
             missing_metrics = tuple(
                 metric_id for metric_id in metric_ids if metric_id not in result.metric_ids
             )
             if missing_metrics:
-                record(missing_metrics, "tushare", "missing_fields", family=family)
+                record(missing_metrics, "tushare", "missing_fields", **details)
 
 
 # Families that compute only the window's days not yet held.

@@ -39,6 +39,9 @@ def retrieve_tushare_context(
     )
     adapter = TushareContextAdapter(token)
     retrieve: Callable[[], tuple[ContextScalar, ...]] | None = None
+    # Warrant symbols are acquired one by one: a refused symbol leaves the others held
+    # (run findings 2026-09-26, ticket 01). Every other family is one acquisition.
+    retrievals: tuple[Callable[[], tuple[ContextScalar, ...]], ...] = ()
     metrics = set(scope.metric_ids)
     if len(scope.period) == 7 and "-Q" not in scope.period:
         methods = (
@@ -60,17 +63,10 @@ def retrieve_tushare_context(
     elif len(scope.period) == 10:
         day = date.fromisoformat(scope.period)
         if metrics == {"CN_FUTURES_WARRANTS"}:
-
-            def retrieve_warrants() -> tuple[ContextScalar, ...]:
-                return tuple(
-                    scalar
-                    for symbol in sorted(WARRANT_SYMBOLS)
-                    for scalar in adapter.futures_warrants(
-                        start_date=day, end_date=day, symbol=symbol
-                    )
-                )
-
-            retrieve = retrieve_warrants
+            retrievals = tuple(
+                partial(adapter.futures_warrants, start_date=day, end_date=day, symbol=symbol)
+                for symbol in sorted(WARRANT_SYMBOLS)
+            )
         daily_methods = (
             ({"CN_DR007", "CN_SHIBOR_ON_1W_3M"}, adapter.transmission),
             ({"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"}, adapter.treasury_yields),
@@ -92,7 +88,9 @@ def retrieve_tushare_context(
             if metrics <= members:
                 retrieve = partial(daily_method, start_date=day, end_date=day)
                 break
-    if retrieve is None:
+    if retrieve is not None:
+        retrievals = (retrieve,)
+    if not retrievals:
         return RetrievalAdapterResponse(
             "not_configured", classification="targeted_tushare_family_unavailable"
         )
@@ -136,22 +134,31 @@ def retrieve_tushare_context(
             pending_requests.append(response.physical_request_id)
         return rows
 
-    try:
-        adapter.acquire_scalars(
-            paths,
-            lambda: tuple(s for s in retrieve() if s.metric_id in metrics),
-            definition_version=version,
-            request_wrapper=trace,
-        )
-    except _RequestFailed as error:
-        finish("failed", error.response.classification or "context_batch_incomplete")
-        if error.response.classification == "transient_transport_error":
-            return replace(error.response, classification="transient_retries_exhausted")
-        return error.response
-    except (TypeError, ValueError):
-        finish("failed", "semantic_validation_failed")
-        raise
-    finish("candidate_source", "context_fields_validated")
+    failure: RetrievalAdapterResponse | TypeError | ValueError | None = None
+    for retrieve_one in retrievals:
+        pending_requests.clear()
+        try:
+            adapter.acquire_scalars(
+                paths,
+                partial(_scoped, retrieve_one, metrics),
+                definition_version=version,
+                request_wrapper=trace,
+            )
+        except _RequestFailed as error:
+            finish("failed", error.response.classification or "context_batch_incomplete")
+            response = error.response
+            if response.classification == "transient_transport_error":
+                response = replace(response, classification="transient_retries_exhausted")
+            failure = failure or response
+        except (TypeError, ValueError) as error:
+            finish("failed", "semantic_validation_failed")
+            failure = failure or error
+        else:
+            finish("candidate_source", "context_fields_validated")
+    if isinstance(failure, (TypeError, ValueError)):
+        raise failure
+    if failure is not None:
+        return failure
     selection = select_retrieval_input(paths, run)
     if selection.complete:
         digest = hashlib.sha256(
@@ -165,3 +172,9 @@ def retrieve_tushare_context(
     return RetrievalAdapterResponse(
         "candidate_source", evidence="tushare:context", classification="incomplete_model_input"
     )
+
+
+def _scoped(
+    retrieve: Callable[[], tuple[ContextScalar, ...]], metrics: set[str]
+) -> tuple[ContextScalar, ...]:
+    return tuple(scalar for scalar in retrieve() if scalar.metric_id in metrics)

@@ -367,18 +367,18 @@ def test_targeted_warrants_records_each_of_eight_deliveries(
     )
     process_pending_run(paths, report_adapters=(), retrieval_now=now)
     stored = runs.get(submitted.run_id)
-    if pp_failures == 3:
-        assert calls == ["CF", "CU", "PP", "PP", "PP"]
-    else:
-        assert calls == ["CF", "CU", *(["PP"] * (pp_failures + 1)), "RB", "RU", "SC", "SP", "PTA"]
+    # PP is tried three times at most; its exhausted transport leaves the other symbols
+    # fetched and held (run findings 2026-09-26, ticket 01).
+    pp_calls = min(pp_failures + 1, 3)
+    assert calls == ["CF", "CU", *(["PP"] * pp_calls), "RB", "RU", "SC", "SP", "PTA"]
     assert stored.status == "action_required"  # Raw delivery cannot establish PUBLIC time.
     physical = [r for r in stored.retrieval_ledger["requests"] if r["channel"] == "tushare"]
-    assert len(physical) == (5 if pp_failures == 3 else 8 + pp_failures)
+    assert len(physical) == 7 + pp_calls
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     for item in physical:
         receipt = acquisitions.get(item["acquisition_id"])
         if receipt.raw_hash is not None:
-            assert receipt.state == ("failed" if pp_failures == 3 else "validated")
+            assert receipt.state == "validated"
             assert (
                 acquisitions.read_content(receipt.acquisition_id, "raw")
                 == originals[receipt.parameters["symbol"]]
@@ -397,7 +397,8 @@ def test_targeted_warrants_records_each_of_eight_deliveries(
         )
         if any(c.provider == "tushare" for c in p.claims)
     ]
-    assert len(points) == (0 if pp_failures == 3 else 27)
+    # Three fields a warehouse; copper has two warehouses.
+    assert len(points) == (24 if pp_failures == 3 else 27)
     for point in points:
         assert all(c.parsed_public_available_at is None for c in point.claims)
         (receipt,) = evidence.trace(
