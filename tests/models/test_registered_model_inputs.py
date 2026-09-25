@@ -2337,7 +2337,8 @@ def test_registered_margin_rejects_invalid_delivery_with_failed_receipt(
     elif fault == "wrong_exchange":
         rows[-1][1] = "NYSE"
     elif fault == "missing_exchange":
-        rows.pop()
+        # Before the newest day: the newest day alone may still be waiting for an exchange.
+        rows = [["20260827", "SSE", 90_000_000, 9_000_000], *rows]
     elif fault == "duplicate_exchange":
         rows.append(rows[-1].copy())
     elif fault == "missing_value":
@@ -2357,7 +2358,8 @@ def test_registered_margin_rejects_invalid_delivery_with_failed_receipt(
     adapter = TushareContextAdapter("synthetic-token", transport=lambda _: raw)
 
     def retrieve() -> tuple[ContextScalar, ...]:
-        scalars = adapter.margin_financing(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+        start = date(2026, 8, 27) if fault == "missing_exchange" else date(2026, 8, 28)
+        scalars = adapter.margin_financing(start_date=start, end_date=date(2026, 8, 28))
         if fault == "wrong_unit":
             return tuple(replace(s, unit="cny") for s in scalars)
         if fault == "wrong_value":

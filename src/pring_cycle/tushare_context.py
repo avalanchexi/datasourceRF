@@ -865,34 +865,39 @@ class TushareContextAdapter:
             },
             ("trade_date", "exchange_id", "rzye", "rzmre"),
         )
-        totals: dict[str, dict[str, float]] = defaultdict(
+        totals: dict[date, dict[str, float]] = defaultdict(
             lambda: {"financing_balance": 0.0, "financing_buy_amount": 0.0}
         )
-        exchanges: dict[str, set[str]] = defaultdict(set)
+        seen: set[tuple[date, str]] = set()
         for row in rows:
-            trade_date = _compact_date(row.get("trade_date")).isoformat()
+            trading_day = _compact_date(row.get("trade_date"))
             exchange = _required_text(
                 row.get("exchange_id"),
                 "tushare_margin_exchange_missing",
             )
+            if exchange not in {"SSE", "SZSE", "BSE"}:
+                raise ValueError("tushare_margin_exchange_invalid")
+            if (trading_day, exchange) in seen:
+                raise ValueError("tushare_margin_duplicate_exchange_day")
+            seen.add((trading_day, exchange))
             balance = _number(row.get("rzye"))
             buy_amount = _number(row.get("rzmre"))
             if balance is None or buy_amount is None:
                 raise ValueError("tushare_margin_value_missing")
-            totals[trade_date]["financing_balance"] += balance
-            totals[trade_date]["financing_buy_amount"] += buy_amount
-            exchanges[trade_date].add(exchange)
+            totals[trading_day]["financing_balance"] += balance
+            totals[trading_day]["financing_buy_amount"] += buy_amount
+        published = _published_margin_days(seen, {"SSE", "SZSE", "BSE"}, requested_end=end_date)
         scalars: list[ContextScalar] = []
-        for trade_date, measures in sorted(totals.items()):
-            if not exchanges[trade_date].issubset({"SSE", "SZSE", "BSE"}):
-                raise ValueError("tushare_margin_exchange_invalid")
+        for trading_day, measures in sorted(totals.items()):
+            if trading_day not in published:
+                continue
             for measure, value in measures.items():
                 scalars.append(
                     _business_day_scalar(
                         metric_id="CN_MARGIN_BALANCE",
                         api_name="margin",
                         source_field=measure,
-                        business_date=date.fromisoformat(trade_date),
+                        business_date=trading_day,
                         dimensions={"measure": measure, "scope": "all_exchanges"},
                         value=value / 100_000_000.0,
                         unit="hundred_million_cny",
@@ -917,14 +922,19 @@ class TushareContextAdapter:
             },
             ("trade_date", "exchange_id", "rzye", "rzmre"),
         )
-        return _sse_szse_margin_scalars(rows)
+        return _sse_szse_margin_scalars(rows, requested_end=end_date)
 
     def margin_financing_candidate(
         self,
         *,
         trading_days: tuple[date, ...],
+        publishing_day: date | None = None,
     ) -> tuple[ContextScalar, ...]:
-        """Collect the new, uncertified three-exchange contract for source review."""
+        """Collect the new, uncertified three-exchange contract for source review.
+
+        Every trading day must carry all three exchanges, except ``publishing_day``: the day a
+        query asked up to, which some exchanges may not have published yet.
+        """
         if not trading_days or len(set(trading_days)) != len(trading_days):
             raise ValueError("tushare_margin_calendar_invalid")
         rows = self._call(
@@ -962,8 +972,16 @@ class TushareContextAdapter:
                 if value < 0:
                     raise ValueError("tushare_margin_value_negative")
                 totals[trading_day][measure] += value
-        if seen != {(day, exchange) for day in expected_dates for exchange in expected_exchanges}:
-            raise ValueError("tushare_margin_exchange_coverage_incomplete")
+        if publishing_day is None:
+            if seen != {(day, e) for day in expected_dates for e in expected_exchanges}:
+                raise ValueError("tushare_margin_exchange_coverage_incomplete")
+            published = expected_dates
+        else:
+            published = _published_margin_days(
+                seen, expected_exchanges, requested_end=publishing_day
+            )
+            if expected_dates - published - {publishing_day}:
+                raise ValueError("tushare_margin_exchange_coverage_incomplete")
         return tuple(
             ContextScalar(
                 metric_id="CN_MARGIN_BALANCE",
@@ -978,6 +996,7 @@ class TushareContextAdapter:
                 definition_version=MARGIN_FINANCING_V0002,
             )
             for trading_day, measures in sorted(totals.items())
+            if trading_day in published
             for measure, value in measures.items()
         )
 
@@ -1910,7 +1929,25 @@ def parse_valuation_acquisition(
     return _valuation_scalars(receipt.parameters["ts_code"], rows)
 
 
-def _sse_szse_margin_scalars(rows: Iterable[Mapping[str, object]]) -> tuple[ContextScalar, ...]:
+def _published_margin_days(
+    seen: set[tuple[date, str]], exchanges: set[str], *, requested_end: date
+) -> set[date]:
+    """The days every exchange has reported, once each row has passed validation.
+
+    The exchanges publish separately, so a query can catch one of them for the day it asked up
+    to and not the others; that day is not yet published, as when none of them has it. Only the
+    requested last day is waited for: a day before it missing an exchange is incomplete.
+    """
+    days = {day for day, _exchange in seen}
+    incomplete = {day for day in days if any((day, e) not in seen for e in exchanges)}
+    if incomplete - {requested_end}:
+        raise ValueError("tushare_margin_exchange_coverage_incomplete")
+    return days - incomplete
+
+
+def _sse_szse_margin_scalars(
+    rows: Iterable[Mapping[str, object]], *, requested_end: date
+) -> tuple[ContextScalar, ...]:
     totals: dict[date, dict[str, float]] = defaultdict(
         lambda: {"financing_balance": 0.0, "financing_buy_amount": 0.0}
     )
@@ -1932,9 +1969,7 @@ def _sse_szse_margin_scalars(rows: Iterable[Mapping[str, object]]) -> tuple[Cont
             if value < 0:
                 raise ValueError("tushare_margin_value_negative")
             totals[trading_day][measure] += value
-    days = {day for day, _exchange in seen}
-    if seen != {(day, exchange) for day in days for exchange in ("SSE", "SZSE")}:
-        raise ValueError("tushare_margin_exchange_coverage_incomplete")
+    published = _published_margin_days(seen, {"SSE", "SZSE"}, requested_end=requested_end)
     return tuple(
         _business_day_scalar(
             metric_id="CN_MARGIN_BALANCE_SSE_SZSE",
@@ -1946,6 +1981,7 @@ def _sse_szse_margin_scalars(rows: Iterable[Mapping[str, object]]) -> tuple[Cont
             unit="hundred_million_cny",
         )
         for trading_day, measures in sorted(totals.items())
+        if trading_day in published
         for measure, value in measures.items()
     )
 
@@ -1965,7 +2001,9 @@ def parse_margin_sse_szse_acquisition(
         raise ValueError("registered_margin_acquisition_identity_mismatch")
     rows = _response_rows(json.loads(raw), required_fields=fields)
     _validate_response_periods(rows, receipt.parameters)
-    return _sse_szse_margin_scalars(rows)
+    return _sse_szse_margin_scalars(
+        rows, requested_end=_compact_date(receipt.parameters["end_date"])
+    )
 
 
 def parse_margin_acquisition(
@@ -1988,7 +2026,9 @@ def parse_margin_acquisition(
     days = tuple(sorted({_compact_date(row["trade_date"]) for row in rows}))
     adapter = TushareContextAdapter("receipt-reparse", transport=lambda _: raw)
     try:
-        scalars = adapter.margin_financing_candidate(trading_days=days)
+        scalars = adapter.margin_financing_candidate(
+            trading_days=days, publishing_day=_compact_date(receipt.parameters["end_date"])
+        )
     except ValueError as error:
         if str(error) == "tushare_margin_exchange_coverage_incomplete":
             raise ValueError("registered_margin_exchange_coverage_incomplete") from error
