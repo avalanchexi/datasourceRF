@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import os
 import signal
@@ -1701,6 +1702,23 @@ def refresh_context_sources(
                         "definition_version": definition_version,
                         "error_type": type(error).__name__,
                     },
+                )
+
+    # P2 quotes with an official file of their own (ADR-0029): fetched, never searched.
+    if definition_version not in BUILTIN_CATALOG_VERSIONS:
+        from pring_cycle.quote_sources import QUOTE_SOURCES, refresh_quote_source
+
+        for source in QUOTE_SOURCES:
+            if not _in_catalog(paths, source.metric_id, definition_version):
+                continue
+            # The source records its own outcome, the failure's reason code included.
+            with contextlib.suppress(OSError, ValueError), acquisition_metrics((source.metric_id,)):
+                refresh_quote_source(
+                    paths,
+                    source,
+                    start_date=target - timedelta(days=220),
+                    end_date=target,
+                    definition_version=definition_version,
                 )
 
     token = secrets.get("TUSHARE_TOKEN")

@@ -109,22 +109,8 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
             ("CN_BOND_CORE_000012", "上证国债指数 000012 {date} 收盘"),
         ),
     ),
-    # The P2 lenient path (ticket 20): hosts registered per metric as host and path prefix.
-    "chinamoney_usdcny_1630": RetrievalFamily(
-        "中国货币网",
-        (("www.chinamoney.com.cn", "/chinese/"),),
-        ("CN_USDCNY_CLOSE_1630",),
-        "lenient",
-        "{date} 人民币对美元 16:30 收盘价",
-    ),
-    "cboe_vix": RetrievalFamily(
-        "Cboe",
-        (("www.cboe.com", "/"), ("cdn.cboe.com", "/")),
-        ("CBOE_VIX_INDEX",),
-        "lenient",
-        "Cboe VIX index close {en_date}",
-    ),
-    # SOX is a restricted-licence gap and is never searched (ADR-0029).
+    # USDCNY 16:30 and VIX are read from their official files and SOX is a restricted-licence
+    # gap: none of the three is searched (ADR-0029).
 }
 
 # Mainstream financial media a search may land on (ADR-0026). A host matches a domain

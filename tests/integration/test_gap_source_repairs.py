@@ -69,6 +69,46 @@ def warrant_response(payload: dict[str, Any]) -> bytes:
     )
 
 
+VIX_CSV = (
+    b"DATE,OPEN,HIGH,LOW,CLOSE\n"
+    b"07/30/2026,15.10,15.60,14.90,15.20\n"
+    b"07/31/2026,15.20,16.10,15.00,16.05\n"
+    b"08/03/2026,16.00,16.40,15.70,15.95\n"
+)
+# The CFETS intraday file as it stood after the night session of Monday 3 August closed.
+CFETS_JSON = json.dumps(
+    {
+        "data": {
+            "closeSpotPrice": "7.1802",
+            "spotPriceStr": "7.1790",
+            "lastDate": "2026-08-04 3:00",
+            "chartsDataStr": '[ {"time" : "09:30",spotPrice : 7.1850} , '
+            '{"time" : " ",spotPrice : 7.1802} , {"time" : "03:00",spotPrice : 7.1790}]',
+        }
+    }
+).encode()
+
+
+class OfficialFile(BytesIO):
+    status = 200
+
+    def __init__(self, url: str, content: bytes) -> None:
+        super().__init__(content)
+        self.url = url
+
+    def geturl(self) -> str:
+        return self.url
+
+
+def official_quote(request: Any, *, timeout: float) -> OfficialFile:
+    url = request.full_url
+    if url.startswith("https://cdn.cboe.com/"):
+        return OfficialFile(url, VIX_CSV)
+    if url.startswith("https://www.chinamoney.com.cn/"):
+        return OfficialFile(url, CFETS_JSON)
+    raise OSError("offline")
+
+
 class FixtureOpener:
     def open(self, request: Any, *, timeout: int) -> BytesIO:
         payload = json.loads(request.data)
@@ -97,6 +137,7 @@ def completed(
             "pring_cycle.eia_html.open_no_redirects",
             lambda *args, **kwargs: (_ for _ in ()).throw(OSError("offline")),
         )
+        monkeypatch.setattr("pring_cycle.quote_sources.open_no_redirects", official_quote)
         paths = RuntimePaths.discover(tmp_path_factory.mktemp("gap-sources") / "runtime")
         initialize_runtime(paths)
         paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
@@ -203,5 +244,28 @@ def test_sox_is_a_license_gap_that_is_never_searched(
         searched = connection.execute(
             "SELECT count(*) FROM retrieval_attempt WHERE metric_id='NASDAQ_SOX_INDEX' "
             "AND outcome <> 'not_attempted'"
+        ).fetchone()[0]
+    assert searched == 0
+
+
+def test_vix_is_held_from_the_cboe_history_file(completed: tuple[RuntimePaths, str]) -> None:
+    paths, _run_id = completed
+
+    assert latest_values(paths, "CBOE_VIX_INDEX") == {"{}": 15.95}
+    assert "CBOE_VIX_INDEX" not in gaps(paths)
+
+
+def test_usdcny_1630_close_is_held_from_cfets_not_its_night_close(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    paths, _run_id = completed
+
+    assert latest_values(paths, "CN_USDCNY_CLOSE_1630") == {"{}": 7.1802}
+    assert "CN_USDCNY_CLOSE_1630" not in gaps(paths)
+    with sqlite3.connect(paths.database) as connection:
+        searched = connection.execute(
+            "SELECT count(*) FROM retrieval_attempt WHERE metric_id IN "
+            "('CN_USDCNY_CLOSE_1630', 'CBOE_VIX_INDEX') AND channel IN ('tavily', 'exa', "
+            "'ai_websearch') AND outcome <> 'not_attempted'"
         ).fetchone()[0]
     assert searched == 0

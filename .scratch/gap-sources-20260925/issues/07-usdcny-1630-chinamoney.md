@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Type: task
 
 # 07 — USDCNY 16:30 由中国货币网直连取得
@@ -20,3 +20,5 @@ Type: task
 - 结论：找到了稳定接口，资讯规则回退不实施。
 
 ## Comments
+
+- 2026-09-25 实施：`quote_sources.py` 的 `CHINAMONEY_USDCNY_1630`，与 VIX 同一接法。`lastDate` 早于 09:30 时归前一自然日的交易时段；未到 16:30（或收盘价为空）时不取值；`closeSpotPrice` 与快照中空格时点（16:30）那一点不一致即拒收（防把 03:00 夜盘收盘当 16:30）。时效登记 `chinamoney:usdcny_1630`，滞后 1 个交易日。单位沿用目录登记的 `scalar`，不换目录版本。`chinamoney_usdcny_1630` 宽松检索家族删除；宽松路径保留但已无登记家族，其测试临时登记原两个家族以保持覆盖。

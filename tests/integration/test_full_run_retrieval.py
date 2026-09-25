@@ -1100,7 +1100,8 @@ def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
     }
     scopes = {s["release_event_id"]: s["release_status"] for s in plan["initial"]["scopes"]}
     assert scopes["full:nbs_industrial_finance:2026-07"] == "released"
-    assert scopes["full:cboe_vix_index:2026-09-22"] == "released"
+    # VIX is read from Cboe's file and never searched (ADR-0029): no retrieval scope.
+    assert "full:cboe_vix_index:2026-09-22" not in scopes
 
 
 def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -> None:

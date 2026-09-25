@@ -1,4 +1,9 @@
-"""Ticket 20: the P2 lenient path, and Exa standing in only once Tavily's quota is spent."""
+"""Ticket 20: the P2 lenient path, and Exa standing in only once Tavily's quota is spent.
+
+Since ADR-0029 no metric is registered to the lenient path: VIX and the USD/CNY 16:30 close
+are read from their official files. The path is kept for a future P2 family, and these tests
+register the two families it last served to exercise it.
+"""
 
 from __future__ import annotations
 
@@ -13,12 +18,44 @@ import pytest
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import ModelRepository
+from pring_cycle.retrieval_registry import (
+    RETRIEVAL_FAMILIES,
+    RETRIEVAL_FAMILY_BY_METRIC,
+    RetrievalFamily,
+)
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.search_evidence import LENIENT_EXTRACTION
+from pring_cycle.search_evidence import LENIENT_EXTRACTION, LENIENT_HOSTS
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_retrieval_strict_path import Page
 from tests.integration.test_search_evidence import ANNOUNCEMENT, URL, prepare
+
+LENIENT_FAMILIES = {
+    "chinamoney_usdcny_1630": RetrievalFamily(
+        "中国货币网",
+        (("www.chinamoney.com.cn", "/chinese/"),),
+        ("CN_USDCNY_CLOSE_1630",),
+        "lenient",
+        "{date} 人民币对美元 16:30 收盘价",
+    ),
+    "cboe_vix": RetrievalFamily(
+        "Cboe",
+        (("www.cboe.com", "/"), ("cdn.cboe.com", "/")),
+        ("CBOE_VIX_INDEX",),
+        "lenient",
+        "Cboe VIX index close {en_date}",
+    ),
+}
+
+
+@pytest.fixture(autouse=True)
+def lenient_families(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name, family in LENIENT_FAMILIES.items():
+        monkeypatch.setitem(RETRIEVAL_FAMILIES, name, family)
+        for metric_id in family.metric_ids:
+            monkeypatch.setitem(RETRIEVAL_FAMILY_BY_METRIC, metric_id, name)
+            monkeypatch.setitem(LENIENT_HOSTS, metric_id, family.hosts)
+
 
 VIX_PAGE = "https://www.cboe.com/tradable_products/vix/"
 VIX_DAY = "2026-08-27"

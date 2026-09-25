@@ -117,12 +117,23 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
     "CN_USDCNY_ECB_REFERENCE_CROSS": _daily(
         "ecb:eurofxref", time(23, 0), "https://www.ecb.europa.eu/stats/"
     ),
-    # P2 taken through the lenient search path (ticket 20); US closes land the next
-    # Shanghai morning, the CFETS 16:30 close the same afternoon.
+    # P2 official files (ADR-0029). The CFETS 16:30 close counts as current one trading day
+    # late, so a daytime run holding yesterday's is not a gap. Cboe's history file lags the
+    # close irregularly (2026-09-25 afternoon it still ended on 9/22), hence the wider grace.
     "CN_USDCNY_CLOSE_1630": _daily(
-        "search:chinamoney", time(16, 35), "https://www.chinamoney.com.cn/chinese/"
+        "chinamoney:usdcny_1630",
+        time(16, 35),
+        "https://www.chinamoney.com.cn/chinese/mkdatapfx/",
+        lag=1,
     ),
-    "CBOE_VIX_INDEX": _daily("search:cboe", time(6, 0), "https://www.cboe.com/", lag=1),
+    "CBOE_VIX_INDEX": FreshnessRule(
+        "cboe:vix_history",
+        "daily",
+        1,
+        time(6, 0),
+        "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+        grace=3,
+    ),
     # Restricted licence (ADR-0029): Nasdaq offers no documented free feed for SOX.
     "NASDAQ_SOX_INDEX": FreshnessRule(
         "nasdaq:licensed",

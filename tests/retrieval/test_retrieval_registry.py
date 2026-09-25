@@ -18,8 +18,6 @@ from pring_cycle.retrieval_registry import is_searchable_gap, registered_host
         "CN_LPR_1Y_5Y",
         "CN_EQUITY_CORE_000985",
         "CN_BOND_CORE_000012",
-        "CN_USDCNY_CLOSE_1630",
-        "CBOE_VIX_INDEX",
     ],
 )
 def test_parser_families_and_lenient_hosts_are_searchable(metric_id: str) -> None:
@@ -37,7 +35,9 @@ def test_parser_families_and_lenient_hosts_are_searchable(metric_id: str) -> Non
         "CN_INDEX_VALUATION",
         "CN_MARGIN_BALANCE",
         "CN_EQ_CSI300",
-        # A restricted-licence gap, never searched (ADR-0029).
+        # Read from official files, or a restricted-licence gap: never searched (ADR-0029).
+        "CN_USDCNY_CLOSE_1630",
+        "CBOE_VIX_INDEX",
         "NASDAQ_SOX_INDEX",
         *DERIVED_INPUTS,
     ],
@@ -52,5 +52,8 @@ def test_a_registered_host_is_matched_by_host_and_path_prefix() -> None:
     )
     assert registered_host("CN_CPI_HEADLINE", "https://www.stats.gov.cn/xw/x.html") is None
     assert registered_host("CN_CPI_HEADLINE", "http://www.stats.gov.cn/sj/x.html") is None
-    assert registered_host("CBOE_VIX_INDEX", "https://cdn.cboe.com/x") == "cdn.cboe.com"
+    assert (
+        registered_host("CN_LPR_1Y_5Y", "https://www.chinamoney.com.cn/chinese/x")
+        == "www.chinamoney.com.cn"
+    )
     assert registered_host("CN_EQ_ADV_DEC", "https://www.stats.gov.cn/sj/x.html") is None
