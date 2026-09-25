@@ -765,7 +765,7 @@ def test_target_bound_lpr_status_uses_the_target_period_not_the_run_month(
     assert {row["status"] for row in rows} == {"current"}
 
 
-def test_event_history_outside_the_visible_window_is_not_a_missing_source(
+def test_the_latest_event_before_the_visible_window_is_the_current_baseline(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -814,7 +814,8 @@ def test_event_history_outside_the_visible_window_is_not_a_missing_source(
         if item["metric_id"] == metric_id
     )
 
-    assert row["status"] == "no_event_in_visible_window"
+    # ADR-0028 (event #05): the change in force is shown however old, not "no event".
+    assert (row["status"], row["value"]) == ("current", -0.5)
 
 
 def test_uncertified_event_history_cannot_prove_no_event_in_visible_window(

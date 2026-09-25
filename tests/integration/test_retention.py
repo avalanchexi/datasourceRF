@@ -258,6 +258,62 @@ def test_matched_quotes_go_with_their_claims(
     assert query(paths, "SELECT claim_id FROM claim_matched_quote") == [(kept_claim,)]
 
 
+def test_the_latest_event_before_the_window_stays_as_the_current_baseline(
+    pruned: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Event #05 (ADR-0028): the RRR cut in force is kept however old; the one before goes."""
+    paths = pruned["paths"]
+
+    def rrr_cut(day: str, change: float) -> str:
+        [claim] = EvidenceRepository(paths.database).append_source_claims(
+            (
+                SourceClaimInput(
+                    metric_id="CN_RRR_EVENT",
+                    definition_version="metric-catalog-v0001",
+                    period_kind="event",
+                    period_start=day,
+                    period_end=day,
+                    dimensions={
+                        "scope": "excluding_5_percent_institutions",
+                        "measure": "rrr_change",
+                    },
+                    value=change,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="percentage_points",
+                    provider="tushare_news",
+                    source_reference=f"tushare_news:{day}",
+                    release_event_id=f"tushare_news:rrr:{day}",
+                    release_at=None,
+                    public_available_at=None,
+                    fetched_at=datetime.now(UTC),
+                    available_at=datetime.now(UTC),
+                    quality_status="validated",
+                ),
+            )
+        )
+        return claim.claim_id
+
+    earlier, latest = rrr_cut("2024-09-27", -0.5), rrr_cut("2025-05-15", -0.5)
+    connection = sqlite3.connect(paths.database)
+    try:
+        with connection:
+            connection.execute(
+                "INSERT INTO claim_matched_quote VALUES (?, 'tushare_news', '原话', '标题', "
+                "'新华网', NULL, ?, NULL, 'news-rules-v0001')",
+                (latest, "0" * 64),
+            )
+    finally:
+        connection.close()
+
+    main(["retention-prune", "--runtime-root", str(paths.override_root), "--json"])
+    capsys.readouterr()
+
+    kept = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+    assert latest in kept
+    assert earlier not in kept
+    assert (latest,) in query(paths, "SELECT claim_id FROM claim_matched_quote")
+
+
 def test_retention_command_is_a_no_op_without_a_successful_run(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

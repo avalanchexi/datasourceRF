@@ -9,8 +9,9 @@ from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 # The OMO policy rate is announced by event and remains effective until the
 # publisher changes it.  The v0003 catalog retained the source's operational
 # daily cadence, so consumers must not interpret that field as a requirement
-# for a newly reported rate on every trading day.
-EFFECTIVE_UNTIL_CHANGED_METRICS = frozenset({"CN_OMO_7D_RATE"})
+# for a newly reported rate on every trading day. An RRR change stands the same
+# way: each member's latest value is its current baseline, however old (ADR-0028).
+EFFECTIVE_UNTIL_CHANGED_METRICS = frozenset({"CN_OMO_7D_RATE", "CN_RRR_EVENT"})
 
 
 def china_business_day_end(day: date) -> datetime:

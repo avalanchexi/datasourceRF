@@ -29,6 +29,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.freshness import period_status
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
+from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.news_rules import news_claims_matching_quotes
 from pring_cycle.official_context import (
     OFFICIAL_CONTEXT_INTEGRITY_METRICS,
@@ -607,7 +608,7 @@ class TargetBoundEvidenceRepository:
         tolerance = float(kwargs.get("tolerance", 0.0))
         query_kwargs = self._query_at_target(kwargs)
         use_system = query_kwargs["allow_system_at_public_cutoff"]
-        return tuple(
+        points = tuple(
             bounded
             for point in self._repository.metric_series(*args, **query_kwargs)
             if (
@@ -619,10 +620,25 @@ class TargetBoundEvidenceRepository:
                 )
             )
             is not None
-            if (
-                self._visible_start is None
-                or date.fromisoformat(bounded.period_end) >= self._visible_start
-            )
+        )
+        if self._visible_start is None:
+            return points
+        metric_id = args[0] if args else kwargs.get("metric_id")
+        # A metric in force until changed shows each member's latest value however old:
+        # it is the current baseline (ADR-0028).
+        baselines = (
+            {
+                json.dumps(point.dimensions, sort_keys=True): point
+                for point in sorted(points, key=lambda point: point.period_end)
+            }
+            if metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS
+            else {}
+        )
+        return tuple(
+            point
+            for point in points
+            if date.fromisoformat(point.period_end) >= self._visible_start
+            or point in baselines.values()
         )
 
     @property

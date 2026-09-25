@@ -699,12 +699,19 @@ RRR_CUT = {
 }
 
 
-def rrr_rows(paths: RuntimePaths, model_id: str, now: datetime, target: str) -> list[Any]:
+def rrr_rows(
+    paths: RuntimePaths,
+    model_id: str,
+    now: datetime,
+    target: str,
+    visible_start: str | None = None,
+) -> list[Any]:
     context = build_context_projection(
         EvidenceRepository(paths.database),
         as_of=now + timedelta(days=1),
         model_manifest=ModelRepository(paths.database).manifest(model_id),
         target_business_date=target,
+        visible_evidence_start=visible_start,
     )
     return [
         (row["status"], row["value"])
@@ -738,6 +745,8 @@ def test_an_rrr_cut_in_the_news_becomes_the_baseline_the_analysis_reads(
     monitoring = RunRepository(paths.database).full_retrieval_plan(run.run_id)
     assert monitoring["event_monitoring"]["metrics"] == {"CN_RRR_EVENT": "new_event"}
     assert rrr_rows(paths, model_id, now, "2026-09-23") == [("current", -0.5)]
+    # Event #05: long after, with the 120-day window past it, it is still the baseline.
+    assert rrr_rows(paths, model_id, now, "2027-03-01", "2026-11-01") == [("current", -0.5)]
 
 
 def test_a_held_rrr_needs_no_retrieval_when_the_news_states_none(

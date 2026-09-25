@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
 
@@ -146,10 +147,15 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         delete("derived_observation", "date(as_of_cutoff) < ?", start)
         delete("evidence_snapshot", "date(as_of_cutoff) < ?", start)
         # Details.
+        # A metric in force until changed keeps each member's latest period: it is the
+        # current baseline, however old (ADR-0028).
+        baselines = sorted(EFFECTIVE_UNTIL_CHANGED_METRICS)
         connection.execute(
-            "CREATE TEMP TABLE retired_claim AS SELECT claim_id FROM source_claim "
-            "WHERE period_end < ?",
-            (start,),
+            "CREATE TEMP TABLE retired_claim AS SELECT claim_id FROM source_claim AS c "
+            "WHERE period_end < ? AND NOT (metric_id IN (SELECT value FROM json_each(?)) "
+            "AND period_end = (SELECT max(period_end) FROM source_claim AS latest "
+            "WHERE latest.metric_id=c.metric_id AND latest.dimensions_json=c.dimensions_json))",
+            (start, json.dumps(baselines)),
         )
         delete("claim_matched_quote", "claim_id IN (SELECT claim_id FROM retired_claim)")
         delete("source_claim_acquisition", "claim_id IN (SELECT claim_id FROM retired_claim)")
