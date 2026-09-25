@@ -174,12 +174,18 @@ CORE_METRICS = ("CN_EQUITY_CORE_000985", "CN_BOND_CORE_000012", "CN_COMMODITY_CO
 
 
 class TradingCalendar:
-    """SSE sessions known from the calendar source, and weekdays beyond what it covers."""
+    """SSE sessions known from the calendar source, and weekdays beyond what it covers.
 
-    def __init__(self, days: Iterable[date] = ()) -> None:
+    The sessions alone cover only up to the last of them; ``through`` extends that when the
+    source listed later days as closed (a range ending on a holiday).
+    """
+
+    def __init__(self, days: Iterable[date] = (), *, through: date | None = None) -> None:
         self._days = frozenset(days)
         self._first = min(self._days, default=None)
         self._last = max(self._days, default=None)
+        if through is not None and self._last is not None:
+            self._last = max(self._last, through)
 
     def is_trading(self, day: date) -> bool:
         if self._first is not None and self._last is not None and self._first <= day <= self._last:
@@ -568,21 +574,27 @@ def launch_calendar(paths: RuntimePaths, launched_at: datetime) -> TradingCalend
         ).fetchall()
     for (acquisition_id,) in rows:
         receipt = acquisitions.get(acquisition_id)
-        if receipt.parameters.get("end_date", "") < day.strftime("%Y%m%d"):
+        end = str(receipt.parameters.get("end_date", ""))
+        if end < day.strftime("%Y%m%d"):
             continue
         try:
             document = json.loads(acquisitions.read_receipt_content(receipt, "normalized"))
         except (ValueError, LookupError, OSError):
             continue
         if isinstance(document, list):
-            return TradingCalendar(date.fromisoformat(item) for item in document)
+            # An unfiltered response states every day of its range, closures included.
+            filtered = "is_open" in receipt.parameters
+            return TradingCalendar(
+                (date.fromisoformat(item) for item in document),
+                through=None if filtered else datetime.strptime(end, "%Y%m%d").date(),
+            )
     token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
     if token is None:
         return TradingCalendar()
     acquired = TushareCoreAdapter(token).acquire_calendar(
         acquisitions, day - timedelta(days=30), day
     )
-    return TradingCalendar(acquired.value)
+    return TradingCalendar(acquired.value, through=day)
 
 
 class _CalendarSlot:

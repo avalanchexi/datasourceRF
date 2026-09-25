@@ -254,3 +254,34 @@ def test_run_submit_reads_holidays_from_the_sse_calendar(
     monkeypatch.setattr("pring_cycle.source_adapters.build_opener", CalendarOpener)
 
     assert submit_at(datetime(2026, 10, 8, 10, tzinfo=SHANGHAI)) == "2026-09-30"
+
+
+def test_run_submit_on_a_closed_day_ending_the_calendar_targets_the_last_session(
+    submit_at: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Mid-Autumn 2026-09-25 (Friday): TuShare lists it with is_open=0, so the fetched
+    # range ends on a closure and the last open session alone understates its coverage.
+    paths = submit_at.paths
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
+    calls = []
+
+    class CalendarOpener:
+        def open(self, request: Any, *, timeout: int) -> BytesIO:
+            payload = json.loads(request.data)
+            calls.append(payload["params"])
+            start = datetime.strptime(payload["params"]["start_date"], "%Y%m%d").date()
+            end = datetime.strptime(payload["params"]["end_date"], "%Y%m%d").date()
+            items = []
+            for offset in range((end - start).days + 1):
+                day = start + timedelta(days=offset)
+                is_open = int(day.weekday() < 5 and day != date(2026, 9, 25))
+                items.append([day.strftime("%Y%m%d"), is_open])
+            document = {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}}
+            return BytesIO(json.dumps(document).encode())
+
+    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", CalendarOpener)
+
+    # Fetched at launch, then read back from the stored response.
+    assert submit_at(datetime(2026, 9, 25, 18, 30, tzinfo=SHANGHAI)) == "2026-09-24"
+    assert submit_at(datetime(2026, 9, 25, 20, tzinfo=SHANGHAI)) == "2026-09-24"
+    assert len(calls) == 1
