@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -100,6 +101,13 @@ def test_an_official_403_holds_back_only_its_own_page(
             source_url=url,
         )
         process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
+        if index == 0:
+            # A 403 stored before this change carries the old host-wide flag: the choice
+            # applies to it too (the 9/25 run's PBC 403 still held back the OMO column).
+            with sqlite3.connect(paths.database) as connection:
+                connection.execute(
+                    "UPDATE retrieval_physical_request SET provider_cache=1 WHERE http_status=403"
+                )
 
     assert calls == [cpi, ppi]
     query = runs.get(submitted.run_id).retrieval_ledger["queries"][0]

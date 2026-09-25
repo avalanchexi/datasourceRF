@@ -305,14 +305,15 @@ class RetrievalLedger:
                 )
             }
             same_source = channel not in {"official", "tushare"} or item["query_text"] == query
-            # An official 403 holds back its own page, whichever gap asks for it.
-            forbidden_page = (
-                channel == "official" and item["http_status"] == 403 and item["query_text"] == query
-            )
-            if item["provider_cache"] and item["http_status"] in QUOTA_STATUSES:
+            # An official 403 holds back its own page, whichever gap asks for it, and no
+            # other page: also one stored with the host-wide flag this used to set.
+            official_403 = channel == "official" and item["http_status"] == 403
+            forbidden_page = official_403 and item["query_text"] == query
+            host_wide = bool(item["provider_cache"]) and not official_403
+            if host_wide and item["http_status"] in QUOTA_STATUSES:
                 quota_spent = True
             same_gap = bool(prior_keys & event_keys) and same_source
-            if item["provider_cache"] or forbidden_page or same_gap:
+            if host_wide or forbidden_page or same_gap:
                 cache_hit = True
                 next_eligible = max(next_eligible or now, datetime.fromisoformat(expiry))
                 if prior_keys & event_keys:
