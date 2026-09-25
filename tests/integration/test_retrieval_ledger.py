@@ -64,6 +64,48 @@ def test_official_provider_cache_isolated_by_source_host(
     assert datetime.fromisoformat(query["next_eligible_at"]) == cutoff + timedelta(hours=2)
 
 
+def test_an_official_403_holds_back_only_its_own_page(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Event #06: a PBC column's nginx 403 held back every PBC page for a day (9/24)."""
+    from email.message import Message
+    from urllib.error import HTTPError
+
+    paths, runs = prepared_runtime(tmp_path)
+    paths.secrets.write_text("")
+    cutoff = datetime.now(UTC)
+    monkeypatch.setattr("pring_cycle.retrieval_ledger.utc_now", lambda: cutoff)
+    calls = []
+
+    def forbidden(url):
+        calls.append(url)
+        raise HTTPError(url, 403, "Forbidden", Message(), BytesIO(b"403 Forbidden"))
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", forbidden)
+    cpi = "https://www.stats.gov.cn/sj/zxfb/202608/cpi.html"
+    ppi = "https://www.stats.gov.cn/sj/zxfb/202608/ppi.html"
+    for index, (metric, url) in enumerate(
+        [("CN_CPI_HEADLINE", cpi), ("CN_PPI", ppi), ("CN_CPI_HEADLINE", cpi)]
+    ):
+        submitted = runs.submit(
+            command_type="targeted_refresh",
+            target_business_date="2026-08-20",
+            client_request_id=f"forbidden-{index}",
+            model_version_id="model-v0001",
+            system_as_of=cutoff,
+            release_event_id=f"forbidden-{index}",
+            metric_ids=(metric,),
+            period="2026-08",
+            source_url=url,
+        )
+        process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
+
+    assert calls == [cpi, ppi]
+    query = runs.get(submitted.run_id).retrieval_ledger["queries"][0]
+    assert query["cache_hit"]
+
+
 @pytest.mark.parametrize("legacy_kind", ["budget", "cache"])
 @pytest.mark.usefixtures("runtime_clock")
 def test_legacy_shared_release_family_is_bound_to_original_catalog(

@@ -305,9 +305,14 @@ class RetrievalLedger:
                 )
             }
             same_source = channel not in {"official", "tushare"} or item["query_text"] == query
+            # An official 403 holds back its own page, whichever gap asks for it.
+            forbidden_page = (
+                channel == "official" and item["http_status"] == 403 and item["query_text"] == query
+            )
             if item["provider_cache"] and item["http_status"] in QUOTA_STATUSES:
                 quota_spent = True
-            if item["provider_cache"] or (prior_keys & event_keys and same_source):
+            same_gap = bool(prior_keys & event_keys) and same_source
+            if item["provider_cache"] or forbidden_page or same_gap:
                 cache_hit = True
                 next_eligible = max(next_eligible or now, datetime.fromisoformat(expiry))
                 if prior_keys & event_keys:
@@ -552,7 +557,12 @@ class RetrievalLedger:
                     classification,
                     status,
                     expiry.isoformat() if expiry else None,
-                    int(status in {401, 402, 403, 429, 432, 433}),
+                    # An official page's 403 speaks for that page, not its whole site: an
+                    # nginx 403 on one PBC column once held back every PBC page for a day.
+                    int(
+                        status in {401, 402, 429, 432, 433}
+                        or (status == 403 and row["channel"] != "official")
+                    ),
                     json.dumps(cost),
                     provider_request_id,
                     json.dumps(
