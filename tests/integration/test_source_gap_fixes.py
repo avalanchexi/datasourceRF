@@ -48,7 +48,7 @@ def completed(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Runtim
         paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
         models = ModelRepository(paths.database)
         models.register(effective_model_manifest())
-        models.activate("model-v0012", explicitly_approved=True)
+        models.activate("model-v0013", explicitly_approved=True)
 
         class FixtureOpener:
             def open(self, request: Any, *, timeout: int) -> BytesIO:
@@ -71,7 +71,7 @@ def completed(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Runtim
         run = RunRepository(paths.database).submit_manual_full(
             target_business_date=TARGET.isoformat(),
             client_request_id="margin-sse-szse",
-            model_version_id="model-v0012",
+            model_version_id="model-v0013",
             system_as_of=datetime.now(UTC),
         )
         process_pending_run(paths, report_adapters=())

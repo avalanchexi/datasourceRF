@@ -14,7 +14,9 @@ from time import monotonic
 from zoneinfo import ZoneInfo
 
 from pring_cycle.ai_websearch import ai_websearch_adapter, ai_websearch_enabled
+from pring_cycle.basket import BASKET_METRICS
 from pring_cycle.batches import code_version, processing_batch
+from pring_cycle.breadth import BREADTH_METRICS
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import (
@@ -1736,7 +1738,6 @@ def refresh_context_sources(
     target_quarter = f"{target.year}Q{(target.month - 1) // 3 + 1}"
     start_quarter = f"{target.year - 2}Q{(target.month - 1) // 3 + 1}"
     daily_start = target - timedelta(days=220)
-    breadth_start = target - timedelta(days=420)
     adapter = _context_adapter(token)
     reviewed_deliveries = {
         metric_id: source_code
@@ -1772,16 +1773,12 @@ def refresh_context_sources(
         ),
         (
             "market_breadth",
-            (
-                "CN_EQ_ADV_DEC",
-                "CN_EQ_AD_RATIO",
-                "CN_EQ_NEW_HIGH_LOW_120",
-                "CN_EQ_ABOVE_MA120",
-                "CN_EQ_ADV_AMOUNT_SHARE",
-            ),
-            lambda: adapter.market_breadth(
-                start_date=breadth_start,
+            tuple(BREADTH_METRICS),
+            lambda: adapter.breadth(
                 end_date=target,
+                held_days=_held_days(
+                    paths, ("CN_EQ_ADV_DEC", "CN_EQ_ABOVE_MA90"), definition_version
+                ),
             ),
         ),
         (
@@ -1801,11 +1798,10 @@ def refresh_context_sources(
         ),
         (
             "commodity_basket",
-            (
-                "CN_COMMODITY_EX_HOG_BASKET",
-                "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+            tuple(sorted(BASKET_METRICS)),
+            lambda: adapter.ex_hog_basket(
+                end_date=target, held_levels=_held_basket_levels(paths, definition_version)
             ),
-            lambda: adapter.commodity_basket(start_date=daily_start, end_date=target),
         ),
         (
             "pmi",
@@ -1873,9 +1869,15 @@ def refresh_context_sources(
         ),
     )
     for family, metric_ids, retrieve in families:
-        # The two margin identities are alternatives; only the one the catalog carries is fetched.
+        # The two margin identities are alternatives; only the one the catalog carries is
+        # fetched. Breadth and the basket are computed only for the catalog registering them
+        # from TuShare's own deliveries (ADR-0030).
         if family.startswith("margin_financing") and not all(
             _in_catalog(paths, metric_id, definition_version) for metric_id in metric_ids
+        ):
+            continue
+        if family in INCREMENTAL_FAMILIES and not _registers_tushare_derived(
+            paths, metric_ids, definition_version
         ):
             continue
         try:
@@ -1892,9 +1894,11 @@ def refresh_context_sources(
                 family=family,
             )
         except (KeyError, TypeError, ValueError) as error:
-            if isinstance(error, ContextObservationsMissingError) and all(
-                reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids
+            if isinstance(error, ContextObservationsMissingError) and (
+                family in INCREMENTAL_FAMILIES
+                or all(reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids)
             ):
+                # Nothing new: every day of the window is held already.
                 record(metric_ids, "tushare", "missing_values", family=family)
                 continue
             # Gate ③ rejects the response; the metrics become gaps for retrieval, whatever
@@ -1924,6 +1928,66 @@ def refresh_context_sources(
             )
             if missing_metrics:
                 record(missing_metrics, "tushare", "missing_fields", family=family)
+
+
+# Families that compute only the window's days not yet held.
+INCREMENTAL_FAMILIES = frozenset({"market_breadth", "commodity_basket"})
+
+
+def _registers_tushare_derived(
+    paths: RuntimePaths, metric_ids: tuple[str, ...], definition_version: str
+) -> bool:
+    """Whether the catalog registers these metrics as computed from TuShare (ADR-0030)."""
+    from pring_cycle.basket import SOURCE_CODE as BASKET_SOURCE_CODE
+
+    if definition_version in BUILTIN_CATALOG_VERSIONS:
+        return False
+    expected = {metric_id: code for metric_id, (code, _measures) in BREADTH_METRICS.items()}
+    expected.update({metric_id: BASKET_SOURCE_CODE for metric_id in BASKET_METRICS})
+    for metric_id in metric_ids:
+        try:
+            definition = metric_definition(
+                metric_id, definition_version=definition_version, database_path=paths.database
+            )
+        except (KeyError, LookupError, ValueError):
+            return False
+        if definition.source_codes != (expected[metric_id],):
+            return False
+    return True
+
+
+def _held_days(
+    paths: RuntimePaths, metric_ids: tuple[str, ...], definition_version: str
+) -> frozenset[date]:
+    """The days every one of these metrics already holds a value for."""
+    repository = EvidenceRepository(paths.database)
+    held: frozenset[date] | None = None
+    for metric_id in metric_ids:
+        days = frozenset(
+            date.fromisoformat(point.period_end)
+            for point in repository.metric_series(
+                metric_id,
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=definition_version,
+            )
+            if point.selected_value is not None
+        )
+        held = days if held is None else held & days
+    return held or frozenset()
+
+
+def _held_basket_levels(paths: RuntimePaths, definition_version: str) -> dict[date, float]:
+    return {
+        date.fromisoformat(point.period_end): point.selected_value
+        for point in EvidenceRepository(paths.database).metric_series(
+            "CN_COMMODITY_EX_HOG_BASKET",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=definition_version,
+        )
+        if point.selected_value is not None
+    }
 
 
 def _in_catalog(paths: RuntimePaths, metric_id: str, definition_version: str) -> bool:

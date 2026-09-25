@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Type: task
 Blocked by: 08
 
@@ -12,3 +12,5 @@ Blocked by: 08
 - 验收：`model-register`/`model-activate` 可登记与切换；生效目录完整运行在 v0013 上跑通。
 
 ## Comments
+
+- 2026-09-25 实施：`effective_model_manifest()` 现返回 `model-v0013`/`metric-catalog-v0005`（61 项）：删 120 日两项，新增 `CN_EQ_NEW_HIGH_LOW_90/250`、`CN_EQ_ABOVE_MA90/250`，广度来源码 `tushare:daily:breadth-v0003`、`tushare:daily:breadth-amount-v0003`、`tushare:stk_factor_pro:breadth-window-v0003`，篮子 `tushare:fut_daily:ex-hog-calendar-settlement-v0003`；旧清单改名 `model_v0012_manifest()` 保留。时效登记新增 4 项（`tushare:stk_factor_pro`，18:00）。`source_contract_review._tushare_derived_claim` 只做结构校验（ADR-0021）。

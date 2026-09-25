@@ -1,6 +1,6 @@
 """Gap sources 2026-09-25: repairs behind the remaining gaps of the effective catalog.
 
-One manual full run on model-v0012 with offline TuShare and official doubles; each test
+One manual full run on model-v0013 with offline TuShare and official doubles; each test
 reads what that run holds, and how its gap list explains what it could not hold.
 """
 
@@ -109,6 +109,85 @@ def official_quote(request: Any, *, timeout: float) -> OfficialFile:
     raise OSError("offline")
 
 
+# Breadth: three ordinary shares, all long listed, and a B share outside the members.
+SHARES = {"600000.SH": 10.5, "000001.SZ": 9.5, "920001.BJ": 10.0, "900901.SH": 11.0}
+SUFFIX = {"SHFE": "SHF", "DCE": "DCE", "CZCE": "ZCE", "INE": "INE"}
+
+
+def breadth_response(payload: dict[str, Any]) -> bytes:
+    api_name, params = payload["api_name"], payload["params"]
+    if api_name == "stock_basic":
+        listed = [code for code in SHARES if params["list_status"] == "L"]
+        rows = [[code, params["list_status"], "20000104", None] for code in listed]
+        return _response(["ts_code", "list_status", "list_date", "delist_date"], rows)
+    day = params["trade_date"]
+    if api_name == "daily":
+        rows = [[code, day, close, 10.0, 100.0, 1000.0] for code, close in SHARES.items()]
+        return _response(["ts_code", "trade_date", "close", "pre_close", "vol", "amount"], rows)
+    rows = [[code, day, close, 10.0, 10.0, 300.0, 0.0] for code, close in SHARES.items()]
+    return _response(
+        ["ts_code", "trade_date", "close_qfq", "ma_qfq_90", "ma_qfq_250", "topdays", "lowdays"],
+        rows,
+    )
+
+
+def futures_response(payload: dict[str, Any]) -> bytes:
+    """One contract a month for each product, every settlement 0.5% above the last."""
+    api_name, params = payload["api_name"], payload["params"]
+    if api_name == "fut_basic":
+        product, exchange = params["fut_code"], params["exchange"]
+        unit = "桶" if product == "SC" else "吨"
+        months = [f"{year}{month:02d}" for year in (2026, 2027) for month in range(1, 13)]
+        return _response(
+            [
+                "ts_code",
+                "symbol",
+                "exchange",
+                "fut_code",
+                "d_month",
+                "list_date",
+                "delist_date",
+                "quote_unit",
+                "per_unit",
+                "trade_unit",
+            ],
+            [
+                [
+                    f"{product}{m[2:]}.{SUFFIX[exchange]}",
+                    f"{product}{m[2:]}",
+                    exchange,
+                    product,
+                    m,
+                    "20250101",
+                    f"{m}15",
+                    f"人民币元/{unit}",
+                    10,
+                    unit,
+                ]
+                for m in months
+            ],
+        )
+    days = [
+        datetime.strptime(params["start_date"], "%Y%m%d").date() + timedelta(days=n)
+        for n in range(
+            (
+                datetime.strptime(params["end_date"], "%Y%m%d")
+                - datetime.strptime(params["start_date"], "%Y%m%d")
+            ).days
+            + 1
+        )
+    ]
+    if api_name == "fut_trade_cal":
+        return _response(
+            ["exchange", "cal_date", "is_open"],
+            [[params["exchange"], d.strftime("%Y%m%d"), int(d.weekday() < 5)] for d in days],
+        )
+    return _response(
+        ["ts_code", "trade_date", "pre_settle", "settle"],
+        [[params["ts_code"], d.strftime("%Y%m%d"), 100.0, 100.5] for d in days if d.weekday() < 5],
+    )
+
+
 class FixtureOpener:
     def open(self, request: Any, *, timeout: int) -> BytesIO:
         payload = json.loads(request.data)
@@ -117,11 +196,19 @@ class FixtureOpener:
             return BytesIO(treasury_response(payload))
         if api_name == "fut_wsr":
             return BytesIO(warrant_response(payload))
+        if api_name in {"stock_basic", "daily", "stk_factor_pro"}:
+            return BytesIO(breadth_response(payload))
+        if api_name in {"fut_basic", "fut_trade_cal", "fut_daily"}:
+            return BytesIO(futures_response(payload))
+        if api_name == "index_dailybasic":
+            # A delivery for another period than asked: refused by its structure check.
+            return BytesIO(
+                _response(
+                    ["ts_code", "trade_date", "turnover_rate", "pe", "pb"],
+                    [[payload["params"]["ts_code"], "20200102", 1.0, 12.0, 1.2]],
+                )
+            )
         code = payload["params"].get("ts_code")
-        if api_name == "fut_daily":
-            # The retired close-return basket still computes; its claims no longer fit the
-            # registered settlement contract (ticket 08) and are refused at ingest.
-            return BytesIO(historical_response(payload))
         if api_name != "trade_cal" and code not in {"000985.CSI", "000012.SH", "NHII.NH"}:
             raise OSError("fixture_context_unavailable")
         return BytesIO(historical_response(payload))
@@ -143,7 +230,7 @@ def completed(
         paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
         models = ModelRepository(paths.database)
         models.register(effective_model_manifest())
-        models.activate("model-v0012", explicitly_approved=True)
+        models.activate("model-v0013", explicitly_approved=True)
         monkeypatch.setattr("pring_cycle.source_adapters.build_opener", FixtureOpener)
         monkeypatch.setattr(
             "pring_cycle.tushare_context.build_opener", lambda *handlers: FixtureOpener()
@@ -151,7 +238,7 @@ def completed(
         run = RunRepository(paths.database).submit_manual_full(
             target_business_date=TARGET.isoformat(),
             client_request_id="gap-source-repairs",
-            model_version_id="model-v0012",
+            model_version_id="model-v0013",
             system_as_of=datetime.now(UTC),
         )
         process_pending_run(paths, report_adapters=())
@@ -207,17 +294,63 @@ def test_cotton_warrants_are_held_as_warehouse_totals(
     assert "CN_FUTURES_WARRANTS" not in gaps(paths)
 
 
+def test_breadth_is_held_from_tushare_quotes_and_factors(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    paths, _run_id = completed
+
+    universe = '"universe": "point_in_time_traded_a_shares"'
+    advances = latest_values(paths, "CN_EQ_ADV_DEC")
+    # 600000 advances, 000001 declines, 920001 is flat; the B share is not a member.
+    assert advances['{"measure": "advances", ' + universe + "}"] == 1.0
+    assert advances['{"measure": "participants", ' + universe + "}"] == 3.0
+    assert latest_values(paths, "CN_EQ_ABOVE_MA250") == {
+        '{"measure": "above_ma_share", ' + universe + "}": pytest.approx(100 / 3)
+    }
+    listed = gaps(paths)
+    for metric_id in (
+        "CN_EQ_ADV_DEC",
+        "CN_EQ_AD_RATIO",
+        "CN_EQ_ADV_AMOUNT_SHARE",
+        "CN_EQ_NEW_HIGH_LOW_90",
+        "CN_EQ_NEW_HIGH_LOW_250",
+        "CN_EQ_ABOVE_MA90",
+        "CN_EQ_ABOVE_MA250",
+    ):
+        assert metric_id not in listed, listed.get(metric_id)
+
+
+def test_the_basket_is_chained_from_its_base_on_settlements(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    paths, _run_id = completed
+
+    sessions = sum(
+        (date(2026, 3, 6) + timedelta(days=n)).weekday() < 5
+        for n in range(1, (TARGET - date(2026, 3, 6)).days + 1)
+    )
+    level = latest_values(paths, "CN_COMMODITY_EX_HOG_BASKET")
+    assert level == {
+        '{"formula_version": "ex-hog-calendar-settlement-v0003"}': pytest.approx(
+            1000 * 1.005**sessions
+        )
+    }
+    assert {"CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"}.isdisjoint(
+        gaps(paths)
+    )
+
+
 def test_values_refused_at_ingest_are_listed_with_the_reason_code(
     completed: tuple[RuntimePaths, str],
 ) -> None:
     paths, _run_id = completed
 
-    basket = gaps(paths)["CN_COMMODITY_EX_HOG_BASKET"]
+    valuation = gaps(paths)["CN_INDEX_VALUATION"]
 
-    assert basket["category"] == "ingest_rejected"
-    assert basket["reason"] == "registered_commodity_basket_source_identity_mismatch"
-    # No web page carries a computed basket: a property of the gap, not why it is missing.
-    assert basket["no_web_fallback"] is True
+    assert valuation["category"] == "ingest_rejected"
+    assert valuation["reason"] == "tushare_response_period_mismatch"
+    # No web page carries it: a property of the gap, not why it is missing.
+    assert valuation["no_web_fallback"] is True
 
 
 def test_a_source_that_did_not_answer_is_listed_as_fetch_failed(
@@ -225,10 +358,10 @@ def test_a_source_that_did_not_answer_is_listed_as_fetch_failed(
 ) -> None:
     paths, _run_id = completed
 
-    breadth = gaps(paths)["CN_EQ_ADV_DEC"]
+    dr007 = gaps(paths)["CN_DR007"]
 
-    assert breadth["category"] == "fetch_failed"
-    assert breadth["no_web_fallback"] is True
+    assert dr007["category"] == "fetch_failed"
+    assert dr007["no_web_fallback"] is True
     assert "no_searchable_source" not in {item["category"] for item in gaps(paths).values()}
 
 

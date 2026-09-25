@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Type: task
 Blocked by: 10
 
@@ -12,3 +12,5 @@ Blocked by: 10
 - 验收：主接缝完整运行中篮子与 7 个袖套持有、不在缺口清单；适配器测试覆盖换月、断链重建、上一日水平接续。
 
 ## Comments
+
+- 2026-09-25 实施：`src/pring_cycle/basket.py`，适配器 `TushareContextAdapter.ex_hog_basket`，公式版本 `ex-hog-calendar-settlement-v0003`。合约只看上市日早于 T 的；`fut_trade_cal` 取基日至候选合约最晚到期日；只为被选中的合约各取一次 `fut_daily`。最近持有的水平为锚，无锚时从基日重建，只输出窗口内未持有的日子；某日缺结算价或选约失败即停链。

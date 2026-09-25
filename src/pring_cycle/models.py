@@ -444,7 +444,8 @@ BEFORE DELETE ON model_version BEGIN SELECT RAISE(ABORT, 'model_version_is_immut
 """
 
 
-EFFECTIVE_CATALOG_VERSION = "metric-catalog-v0004"
+EFFECTIVE_CATALOG_VERSION = "metric-catalog-v0005"
+MODEL_V0012_CATALOG_VERSION = "metric-catalog-v0004"
 # Registered TuShare-derived deliveries whose contracts replace the builtin placeholders.
 _REGISTERED_DELIVERIES = {
     "CN_EQ_ADV_DEC": "tushare:daily:breadth-v0002",
@@ -471,6 +472,49 @@ _OFFICIAL_SAMPLED = {
 
 
 def effective_model_manifest() -> dict[str, Any]:
+    """model-v0013: breadth and the basket from TuShare's own deliveries (ADR-0030).
+
+    v0004's definitions, with the two 120-day breadth windows replaced by 90- and 250-day
+    ones and the breadth and basket source codes naming the new calculations. Registering
+    and activating it is an explicit step (ADR-0022).
+    """
+    from pring_cycle.basket import SOURCE_CODE as BASKET_SOURCE_CODE
+    from pring_cycle.breadth import BREADTH_METRICS
+
+    manifest = model_v0012_manifest()
+    definitions = {item["metric_id"]: item for item in manifest["metric_definitions"]}
+    window = definitions.pop("CN_EQ_NEW_HIGH_LOW_120")
+    above = definitions.pop("CN_EQ_ABOVE_MA120")
+    for metric_id, (source_code, _measures) in BREADTH_METRICS.items():
+        base = definitions.get(metric_id) or (above if "ABOVE" in metric_id else window)
+        definitions[metric_id] = {
+            **base,
+            "metric_id": metric_id,
+            "name_cn": metric_id,
+            "release_event_family": metric_id.lower(),
+            "source_codes": [source_code],
+            "source_candidates": [source_code],
+        }
+    for metric_id in ("CN_COMMODITY_EX_HOG_BASKET", "CN_COMMODITY_SLEEVE_CONTRIBUTION"):
+        definitions[metric_id] = {
+            **definitions[metric_id],
+            "source_codes": [BASKET_SOURCE_CODE],
+            "source_candidates": [BASKET_SOURCE_CODE],
+        }
+    manifest.update(
+        {
+            "model_version_id": "model-v0013",
+            "metric_catalog_version": EFFECTIVE_CATALOG_VERSION,
+            "metric_definitions": [
+                {**definition, "definition_version": EFFECTIVE_CATALOG_VERSION}
+                for definition in definitions.values()
+            ],
+        }
+    )
+    return manifest
+
+
+def model_v0012_manifest() -> dict[str, Any]:
     """The 59-metric effective catalog with the current formulas, ready to register.
 
     Definitions are the reviewed v0003 ones (units, dimensions and delivery identities), with
@@ -505,7 +549,7 @@ def effective_model_manifest() -> dict[str, Any]:
             item = replace(reviewed[metric_id], frequency=expected.frequency)
         else:
             item = expected  # The migrated identities and CNY030 are already complete.
-        definitions.append({**asdict(item), "definition_version": EFFECTIVE_CATALOG_VERSION})
+        definitions.append({**asdict(item), "definition_version": MODEL_V0012_CATALOG_VERSION})
     for definition in definitions:
         metric_id = definition["metric_id"]
         if metric_id in _REGISTERED_DELIVERIES:
@@ -524,7 +568,7 @@ def effective_model_manifest() -> dict[str, Any]:
     manifest.update(
         {
             "model_version_id": "model-v0012",
-            "metric_catalog_version": EFFECTIVE_CATALOG_VERSION,
+            "metric_catalog_version": MODEL_V0012_CATALOG_VERSION,
             "metric_identity_migration": CNY030_OPTIONAL_MIGRATION,
             "metric_definitions": definitions,
         }

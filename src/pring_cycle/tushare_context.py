@@ -3,11 +3,10 @@ from __future__ import annotations
 import calendar
 import hashlib
 import json
-from collections import defaultdict, deque
+from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, timedelta
-from decimal import Decimal
 from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
@@ -23,15 +22,7 @@ from pring_cycle.evidence import (
     SourceClaimInput,
     StoredSourceClaim,
 )
-from pring_cycle.futures_inputs import FuturesInputAcquisition
 from pring_cycle.http_transport import NoRedirect
-from pring_cycle.market_breadth import (
-    DailyBreadthResult,
-    FullDaySuspensionEvidence,
-    MarketBreadthDay,
-    _input_day,
-    _listing_intervals,
-)
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
 from pring_cycle.source_families import (
@@ -62,24 +53,6 @@ VALUATION_FIELDS = (
     ("pb", "price_book", "multiple"),
     ("turnover_rate", "turnover_rate", "percent"),
 )
-FUTURES_SLEEVE_CODES = {
-    "copper": ("CU.SHF",),
-    "rebar": ("RB.SHF",),
-    "polypropylene": ("PP.DCE",),
-    "textiles": ("CF.ZCE", "TA.ZCE"),
-    "rubber": ("RU.SHF",),
-    "pulp": ("SP.SHF",),
-    "crude_oil": ("SC.INE",),
-}
-FUTURES_SLEEVE_WEIGHTS = {
-    "copper": 2.0 / 15.0,
-    "rebar": 2.0 / 15.0,
-    "polypropylene": 2.0 / 15.0,
-    "textiles": 2.0 / 15.0,
-    "rubber": 2.0 / 15.0,
-    "pulp": 2.0 / 15.0,
-    "crude_oil": 1.0 / 5.0,
-}
 _WARRANT_UNITS = {
     "吨": "tonne",
     "千克": "kilogram",
@@ -183,9 +156,6 @@ class TushareContextAdapter:
         self._receipts: list[AcquisitionReceipt] = []
         self._request_wrapper: ContextRequestWrapper | None = None
         self._field_rejections: list[dict[str, str]] = []
-        self._daily_breadth: list[DailyBreadthResult] = []
-        self._window_breadth: list[dict[str, Any]] = []
-        self._amount_breadth: list[dict[str, Any]] = []
 
     def acquire_scalars(
         self,
@@ -201,107 +171,10 @@ class TushareContextAdapter:
         self._receipts = []
         self._request_wrapper = request_wrapper
         self._field_rejections = []
-        self._daily_breadth = []
-        self._window_breadth = []
-        self._amount_breadth = []
         try:
             scalars = retrieve()
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
-            has_amount_inputs = any(r.api_name == "breadth_amount_inputs" for r in self._receipts)
-            has_window_inputs = any(r.api_name == "breadth_window_inputs" for r in self._receipts)
-            if (
-                has_amount_inputs
-                or has_window_inputs
-                or any(r.api_name == "breadth_universe" for r in self._receipts)
-            ):
-                from pring_cycle.market_amount import (
-                    AMOUNT_BREADTH_MEASURES,
-                    AMOUNT_BREADTH_SOURCE_CODE,
-                    amount_breadth_scalars,
-                    parse_amount_breadth_acquisitions,
-                )
-                from pring_cycle.market_breadth import (
-                    DAILY_BREADTH_MEASURES,
-                    DAILY_BREADTH_SOURCE_CODE,
-                    WINDOW_BREADTH_MEASURES,
-                    WINDOW_BREADTH_SOURCE_CODE,
-                    parse_daily_breadth_acquisitions,
-                    parse_window_breadth_acquisitions,
-                    validate_daily_breadth_scalars,
-                    window_breadth_scalars,
-                )
-                from pring_cycle.source_contract_review import require_registered_source_contract
-
-                if definition_version in BUILTIN_CATALOG_VERSIONS:
-                    raise ValueError("breadth_registered_definition_required")
-                measures = WINDOW_BREADTH_MEASURES if has_window_inputs else DAILY_BREADTH_MEASURES
-                source_code = (
-                    WINDOW_BREADTH_SOURCE_CODE if has_window_inputs else DAILY_BREADTH_SOURCE_CODE
-                )
-                if has_amount_inputs:
-                    measures = AMOUNT_BREADTH_MEASURES
-                    source_code = AMOUNT_BREADTH_SOURCE_CODE
-                definitions = {
-                    metric: metric_definition(
-                        metric, definition_version=definition_version, database_path=paths.database
-                    )
-                    for metric in measures
-                }
-                if any(d.source_codes != (source_code,) for d in definitions.values()):
-                    family = (
-                        "amount"
-                        if has_amount_inputs
-                        else "window"
-                        if has_window_inputs
-                        else "daily"
-                    )
-                    raise ValueError(f"registered_{family}_breadth_source_contract_unsupported")
-                originals = tuple(
-                    (r, self._acquisitions.read_content(r.acquisition_id, "raw"))
-                    for r in self._receipts
-                )
-                if has_amount_inputs:
-                    self._amount_breadth = parse_amount_breadth_acquisitions(
-                        originals, paths.artifacts
-                    )
-                    _require_breadth_scalar_match(
-                        scalars,
-                        amount_breadth_scalars(self._amount_breadth),
-                        definition_version=definition_version,
-                        family="amount",
-                    )
-                elif has_window_inputs:
-                    self._window_breadth = parse_window_breadth_acquisitions(
-                        originals, paths.artifacts
-                    )
-                    _require_breadth_scalar_match(
-                        scalars,
-                        window_breadth_scalars(self._window_breadth),
-                        definition_version=definition_version,
-                        family="window",
-                    )
-                else:
-                    days = parse_daily_breadth_acquisitions(originals, paths.artifacts)
-                    if days != self._daily_breadth:
-                        raise ValueError("breadth_daily_inputs_mismatch")
-                    validate_daily_breadth_scalars(
-                        scalars, days, definition_version=definition_version
-                    )
-                for scalar in scalars:
-                    require_registered_source_contract(
-                        definitions[scalar.metric_id],
-                        provider="tushare",
-                        source_reference=f"tushare:{scalar.api_name}:{scalar.source_field}:{scalar.period_end}",
-                        period_kind=scalar.period_kind,
-                        dimensions=scalar.dimensions,
-                        unit=scalar.unit,
-                        period_start=scalar.period_start,
-                        period_end=scalar.period_end,
-                        database_path=paths.database,
-                        value=scalar.value,
-                        acquisition_ids=(),
-                    )
             if definition_version not in BUILTIN_CATALOG_VERSIONS:
                 family_contracts = (
                     ("margin", {"CN_MARGIN_BALANCE"}, {"margin"}, parse_margin_acquisition),
@@ -376,36 +249,6 @@ class TushareContextAdapter:
                     ]
                     if not inputs:
                         raise ValueError("registered_gdp_acquisition_member_missing")
-                if self._window_breadth and scalar.api_name == "window_breadth":
-                    output = next(
-                        day
-                        for day in self._window_breadth
-                        if day["business_date"] == scalar.period_end
-                    )
-                    input_dates = {day.replace("-", "") for day in output["input_dates"]}
-                    inputs = [
-                        receipt
-                        for receipt in self._receipts
-                        if receipt.api_name
-                        in {"breadth_window_inputs", "breadth_universe", "trade_cal"}
-                        or receipt.api_name in {"daily", "suspend_d"}
-                        and receipt.parameters.get("trade_date") in input_dates
-                    ]
-                if self._amount_breadth and scalar.api_name == "amount_breadth":
-                    inputs = [
-                        r
-                        for r in self._receipts
-                        if r.api_name in {"breadth_amount_inputs", "breadth_universe", "trade_cal"}
-                        or r.parameters.get("trade_date") == scalar.period_end.replace("-", "")
-                    ]
-                if self._daily_breadth and scalar.api_name == "daily_breadth":
-                    inputs = [
-                        receipt
-                        for receipt in self._receipts
-                        if receipt.api_name in {"breadth_universe", "trade_cal"}
-                        or receipt.parameters.get("trade_date")
-                        == scalar.period_end.replace("-", "")
-                    ]
                 if (
                     definition_version not in BUILTIN_CATALOG_VERSIONS
                     and scalar.metric_id in MARKET_INDEX_IDENTITIES
@@ -428,6 +271,15 @@ class TushareContextAdapter:
                     ]
                     if not inputs:
                         raise ValueError("registered_valuation_acquisition_missing")
+                if scalar.api_name == "breadth":
+                    # A day's figures come from that day's deliveries and the listings.
+                    day = scalar.period_end.replace("-", "")
+                    inputs = [
+                        receipt
+                        for receipt in self._receipts
+                        if receipt.api_name in {"stock_basic", "trade_cal"}
+                        or receipt.parameters.get("trade_date") == day
+                    ]
                 if scalar.metric_id == "CN_FUTURES_WARRANTS" and scalar.api_name == "fut_wsr":
                     inputs = warrant_inputs.get(_warrant_input_identity(scalar), [])
                     if not inputs:
@@ -436,18 +288,6 @@ class TushareContextAdapter:
                     replace(scalar, acquisition_ids=tuple(r.acquisition_id for r in inputs))
                 )
             normalized: object = [asdict(s) for s in linked]
-            if self._window_breadth:
-                normalized = {
-                    "accepted_scalars": normalized,
-                    "window_breadth": self._window_breadth,
-                }
-            if self._amount_breadth:
-                normalized = {
-                    "accepted_scalars": normalized,
-                    "amount_breadth": self._amount_breadth,
-                }
-            if self._daily_breadth:
-                normalized = {"accepted_scalars": normalized, "daily_breadth": self._daily_breadth}
             if self._field_rejections:
                 normalized = {
                     "accepted_scalars": normalized,
@@ -461,25 +301,9 @@ class TushareContextAdapter:
                 f"context-acquisition:{self._receipts[0].acquisition_id}",
             )
             for receipt in self._receipts:
-                receipt_document: object
-                if self._window_breadth or self._amount_breadth:
-                    # The immutable batch remains auditable; each scalar names its own parents.
-                    receipt_document = normalized
-                else:
-                    receipt_document = [
-                        asdict(s) for s in linked if receipt.acquisition_id in s.acquisition_ids
-                    ]
-                if self._daily_breadth:
-                    receipt_document = {
-                        "accepted_scalars": receipt_document,
-                        "daily_breadth": [
-                            day
-                            for day in self._daily_breadth
-                            if receipt.api_name in {"breadth_universe", "trade_cal"}
-                            or day["business_date"].replace("-", "")
-                            == receipt.parameters.get("trade_date")
-                        ],
-                    }
+                receipt_document: object = [
+                    asdict(s) for s in linked if receipt.acquisition_id in s.acquisition_ids
+                ]
                 rejected = [
                     item for item in self._field_rejections if item["api_name"] == receipt.api_name
                 ]
@@ -502,8 +326,6 @@ class TushareContextAdapter:
                     receipt.acquisition_id,
                     receipt_document,
                 )
-            if (self._daily_breadth or self._window_breadth or self._amount_breadth) and not linked:
-                return ContextIngestionResult(0, (), (), ())
             try:
                 result = ingest_context_scalars(
                     paths,
@@ -529,9 +351,6 @@ class TushareContextAdapter:
             self._receipts = []
             self._request_wrapper = None
             self._field_rejections = []
-            self._daily_breadth = []
-            self._window_breadth = []
-            self._amount_breadth = []
 
     @property
     def network_requests(self) -> int:
@@ -1039,443 +858,19 @@ class TushareContextAdapter:
             scalars.extend(_valuation_scalars(source_code, rows))
         return tuple(scalars)
 
-    def market_breadth_inputs(
-        self,
-        *,
-        trading_days: tuple[date, ...],
-        full_day_suspension_evidence: tuple[FullDaySuspensionEvidence, ...] = (),
-    ) -> tuple[MarketBreadthDay, ...]:
-        """Reconstruct listing intervals; these are not historical publication claims.
+    def breadth(self, *, end_date: date, held_days: Iterable[date]) -> tuple[ContextScalar, ...]:
+        """The seven breadth metrics of the window's days not yet held (ADR-0030)."""
+        from pring_cycle.breadth import breadth_scalars
 
-        Include currently delisted/suspended listings, not just current survivors.
-        bak_basic is insufficient: it can omit still-trading delisting-period stocks.
-        Dated, previously reviewed official evidence can resolve an S/R conflict;
-        its hash is preserved in the frame and never establishes public availability.
-        """
-        if not trading_days or len(set(trading_days)) != len(trading_days):
-            raise ValueError("tushare_breadth_calendar_invalid")
-        evidence_keys = {
-            (item.business_date, item.ts_code) for item in full_day_suspension_evidence
-        }
-        if len(evidence_keys) != len(full_day_suspension_evidence) or any(
-            day not in trading_days for day, _ in evidence_keys
-        ):
-            raise ValueError("tushare_breadth_suspension_evidence_invalid")
-        member_rows: list[dict[str, object]] = []
-        for status in ("L", "D", "P"):
-            rows = self._call(
-                "stock_basic",
-                {"list_status": status},
-                ("ts_code", "list_status", "list_date", "delist_date"),
-            )
-            if len(rows) >= 6_000:
-                raise ValueError("tushare_breadth_response_incomplete")
-            if any(row["list_status"] != status for row in rows):
-                raise ValueError("tushare_breadth_listing_status_invalid")
-            member_rows.extend(rows)
-        listings = _listing_intervals(
-            tuple(member_rows), first_day=min(trading_days), last_day=max(trading_days)
-        )
-        result = []
-        for trading_day in sorted(trading_days):
-            params = {"trade_date": trading_day.strftime("%Y%m%d")}
-            quotes = self._call(
-                "daily",
-                params,
-                ("ts_code", "trade_date", "close", "pre_close", "amount", "ah_amount"),
-            )
-            suspensions = self._call(
-                "suspend_d", params, ("ts_code", "trade_date", "suspend_type", "suspend_timing")
-            )
-            result.append(
-                _input_day(
-                    trading_day,
-                    listings=listings,
-                    quotes=quotes,
-                    suspensions=suspensions,
-                    full_day_suspension_evidence=tuple(
-                        item
-                        for item in full_day_suspension_evidence
-                        if item.business_date == trading_day
-                    ),
-                )
-            )
-        return tuple(result)
+        return breadth_scalars(self._call, end_date=end_date, held_days=held_days)
 
-    def _reviewed_daily_breadth(
-        self, start: date, end: date, universe_hash: str
+    def ex_hog_basket(
+        self, *, end_date: date, held_levels: Mapping[date, float]
     ) -> tuple[ContextScalar, ...]:
-        from pring_cycle.market_breadth import (
-            _breadth_artifact,
-            daily_breadth_day,
-            daily_breadth_scalars,
-            load_breadth_universe,
-        )
+        """The basket and its sleeves on the window's days not yet held (ADR-0030)."""
+        from pring_cycle.basket import basket_scalars
 
-        if self._acquisitions is None:
-            raise ValueError("breadth_acquisition_required")
-        acquisitions = self._acquisitions
-        captured = acquisitions.capture(
-            provider="reviewed_evidence",
-            api_name="breadth_universe",
-            parameters={"universe_hash": universe_hash},
-            fields="",
-            parser_version="market-breadth-universe-v0001",
-            fetch=lambda: _breadth_artifact(acquisitions.artifacts, universe_hash),
-            parse=lambda raw: load_breadth_universe(raw, acquisitions.artifacts),
-            normalize=lambda document: document,
-            defer_validation=True,
-        )
-        self._receipts.append(captured.receipt)
-        calendar_rows = self._call(
-            "trade_cal",
-            {
-                "exchange": "SSE",
-                "start_date": start.strftime("%Y%m%d"),
-                "end_date": end.strftime("%Y%m%d"),
-                "is_open": "1",
-            },
-            ("cal_date", "is_open"),
-        )
-        days = sorted(
-            _compact_date(row["cal_date"]) for row in calendar_rows if str(row["is_open"]) == "1"
-        )
-        for day in days:
-            params = {"trade_date": day.strftime("%Y%m%d")}
-            quotes = self._call(
-                "daily", params, ("ts_code", "trade_date", "close", "pre_close", "vol")
-            )
-            # The generic API parser uses floats. Daily price classification must
-            # retain every decimal digit delivered in the captured JSON number.
-            quote_receipt = self._receipts[-1]
-            if quote_receipt.api_name != "daily" or quote_receipt.parameters != params:
-                raise ValueError("breadth_daily_receipt_missing")
-            quotes = _response_rows(
-                json.loads(
-                    acquisitions.read_content(quote_receipt.acquisition_id, "raw"),
-                    parse_float=Decimal,
-                ),
-                required_fields=("ts_code", "trade_date", "close", "pre_close", "vol"),
-            )
-            suspensions = self._call(
-                "suspend_d", params, ("ts_code", "trade_date", "suspend_type", "suspend_timing")
-            )
-            result = daily_breadth_day(day, captured.value, quotes, suspensions)
-            self._daily_breadth.append(result)
-        return daily_breadth_scalars(self._daily_breadth)
-
-    def _reviewed_window_breadth(
-        self,
-        start: date,
-        end: date,
-        universe_hash: str,
-        window_inputs_hash: str,
-        *,
-        output_days: int,
-    ) -> tuple[ContextScalar, ...]:
-        from pring_cycle.market_breadth import (
-            _breadth_artifact,
-            load_breadth_window_inputs,
-            parse_window_breadth_acquisitions,
-            window_breadth_scalars,
-        )
-
-        if self._acquisitions is None:
-            raise ValueError("breadth_acquisition_required")
-        acquisitions = self._acquisitions
-        captured = acquisitions.capture(
-            provider="reviewed_evidence",
-            api_name="breadth_window_inputs",
-            parameters={
-                "window_inputs_hash": window_inputs_hash,
-                "output_start": start.isoformat(),
-                "output_end": end.isoformat(),
-                "output_days": str(output_days),
-            },
-            fields="",
-            parser_version="market-breadth-window-inputs-v0001",
-            fetch=lambda: _breadth_artifact(acquisitions.artifacts, window_inputs_hash),
-            parse=lambda raw: load_breadth_window_inputs(raw, acquisitions.artifacts),
-            normalize=lambda document: document,
-            defer_validation=True,
-        )
-        self._receipts.append(captured.receipt)
-        self._reviewed_daily_breadth(
-            date.fromisoformat(captured.value["coverage_start"]), end, universe_hash
-        )
-        self._daily_breadth = []
-        self._window_breadth = parse_window_breadth_acquisitions(
-            tuple(
-                (receipt, acquisitions.read_content(receipt.acquisition_id, "raw"))
-                for receipt in self._receipts
-            ),
-            acquisitions.artifacts,
-        )
-        return window_breadth_scalars(self._window_breadth)
-
-    def _reviewed_amount_breadth(
-        self, start: date, end: date, universe_hash: str, amount_inputs_hash: str
-    ) -> tuple[ContextScalar, ...]:
-        from pring_cycle.market_amount import (
-            amount_breadth_scalars,
-            load_breadth_amount_inputs,
-            parse_amount_breadth_acquisitions,
-        )
-        from pring_cycle.market_breadth import _breadth_artifact
-
-        if self._acquisitions is None:
-            raise ValueError("breadth_acquisition_required")
-        acquisitions = self._acquisitions
-        captured = acquisitions.capture(
-            provider="reviewed_evidence",
-            api_name="breadth_amount_inputs",
-            parameters={"amount_inputs_hash": amount_inputs_hash},
-            fields="",
-            parser_version="market-breadth-amount-inputs-v0001",
-            fetch=lambda: _breadth_artifact(acquisitions.artifacts, amount_inputs_hash),
-            parse=lambda raw: load_breadth_amount_inputs(raw, acquisitions.artifacts),
-            normalize=lambda document: document,
-            defer_validation=True,
-        )
-        self._receipts.append(captured.receipt)
-        self._reviewed_daily_breadth(start, end, universe_hash)
-        self._daily_breadth = []
-        self._amount_breadth = parse_amount_breadth_acquisitions(
-            tuple((r, acquisitions.read_content(r.acquisition_id, "raw")) for r in self._receipts),
-            acquisitions.artifacts,
-        )
-        return amount_breadth_scalars(self._amount_breadth)
-
-    def market_breadth(
-        self,
-        *,
-        start_date: date,
-        end_date: date,
-        window_days: int = 120,
-        output_days: int = 120,
-        universe_hash: str | None = None,
-        window_inputs_hash: str | None = None,
-        amount_inputs_hash: str | None = None,
-    ) -> tuple[ContextScalar, ...]:
-        if amount_inputs_hash is not None:
-            if universe_hash is None or window_inputs_hash is not None:
-                raise ValueError("breadth_amount_inputs_invalid")
-            return self._reviewed_amount_breadth(
-                start_date, end_date, universe_hash, amount_inputs_hash
-            )
-        if window_inputs_hash is not None:
-            if (
-                universe_hash is None
-                or window_days != 120
-                or type(output_days) is not int
-                or output_days < 1
-            ):
-                raise ValueError("breadth_window_inputs_invalid")
-            return self._reviewed_window_breadth(
-                start_date, end_date, universe_hash, window_inputs_hash, output_days=output_days
-            )
-        if universe_hash is not None:
-            return self._reviewed_daily_breadth(start_date, end_date, universe_hash)
-        if end_date < start_date:
-            raise ValueError("tushare_date_range_invalid")
-        if window_days < 2 or output_days < 1:
-            raise ValueError("tushare_breadth_window_invalid")
-        calendar_rows = self._call(
-            "trade_cal",
-            {
-                "exchange": "SSE",
-                "start_date": start_date.strftime("%Y%m%d"),
-                "end_date": end_date.strftime("%Y%m%d"),
-                "is_open": "1",
-            },
-            ("cal_date", "is_open"),
-        )
-        trading_days = sorted(
-            _compact_date(row.get("cal_date"))
-            for row in calendar_rows
-            if str(row.get("is_open")) == "1"
-        )
-        required_days = window_days + output_days - 1
-        if len(trading_days) < required_days:
-            raise ValueError("tushare_breadth_history_incomplete")
-        trading_days = trading_days[-required_days:]
-        normalized_prices: dict[str, float] = {}
-        price_windows: dict[str, deque[float]] = defaultdict(lambda: deque(maxlen=window_days))
-        outputs: list[ContextScalar] = []
-        output_dates = set(trading_days[-output_days:])
-        for trading_day in trading_days:
-            rows = self._call(
-                "daily",
-                {"trade_date": trading_day.strftime("%Y%m%d")},
-                ("ts_code", "trade_date", "pct_chg", "amount"),
-            )
-            advances = declines = flats = 0
-            advancing_amount = total_amount = 0.0
-            new_highs = new_lows = above_ma = eligible_ma = 0
-            for row in rows:
-                if _compact_date(row.get("trade_date")) != trading_day:
-                    raise ValueError("tushare_breadth_trade_date_mismatch")
-                ts_code = _required_text(row.get("ts_code"), "tushare_breadth_code_missing")
-                pct_change = _number(row.get("pct_chg"))
-                amount = _number(row.get("amount"))
-                if pct_change is None or amount is None or amount < 0:
-                    continue
-                if pct_change > 0:
-                    advances += 1
-                    advancing_amount += amount
-                elif pct_change < 0:
-                    declines += 1
-                else:
-                    flats += 1
-                total_amount += amount
-                previous = normalized_prices.get(ts_code, 1.0)
-                normalized = previous * (1.0 + pct_change / 100.0)
-                normalized_prices[ts_code] = normalized
-                window = price_windows[ts_code]
-                window.append(normalized)
-                if len(window) == window_days:
-                    eligible_ma += 1
-                    tolerance = max(abs(normalized) * 1e-12, 1e-12)
-                    if normalized >= max(window) - tolerance:
-                        new_highs += 1
-                    if normalized <= min(window) + tolerance:
-                        new_lows += 1
-                    if normalized > sum(window) / window_days:
-                        above_ma += 1
-            if trading_day not in output_dates:
-                continue
-            if advances + declines + flats == 0 or eligible_ma == 0 or total_amount <= 0:
-                raise ValueError("tushare_breadth_observations_incomplete")
-            measures = (
-                ("CN_EQ_ADV_DEC", "advances", float(advances), "count"),
-                ("CN_EQ_ADV_DEC", "declines", float(declines), "count"),
-                ("CN_EQ_ADV_DEC", "flats", float(flats), "count"),
-                ("CN_EQ_ADV_DEC", "net", float(advances - declines), "count"),
-                ("CN_EQ_AD_RATIO", "advance_decline_ratio", advances / max(declines, 1), "ratio"),
-                ("CN_EQ_NEW_HIGH_LOW_120", "new_highs", float(new_highs), "count"),
-                ("CN_EQ_NEW_HIGH_LOW_120", "new_lows", float(new_lows), "count"),
-                ("CN_EQ_ABOVE_MA120", "above_ma_share", 100.0 * above_ma / eligible_ma, "percent"),
-                (
-                    "CN_EQ_ADV_AMOUNT_SHARE",
-                    "advancing_amount_share",
-                    100.0 * advancing_amount / total_amount,
-                    "percent",
-                ),
-            )
-            for metric_id, measure, value, unit in measures:
-                outputs.append(
-                    _business_day_scalar(
-                        metric_id=metric_id,
-                        api_name="daily_breadth",
-                        source_field=measure,
-                        business_date=trading_day,
-                        dimensions={
-                            "measure": measure,
-                            "universe": "point_in_time_traded_a_shares",
-                        },
-                        value=value,
-                        unit=unit,
-                    )
-                )
-        return tuple(outputs)
-
-    def acquire_futures_inputs(
-        self,
-        paths: RuntimePaths,
-        *,
-        products: tuple[str, ...],
-        start_date: date,
-        end_date: date,
-        evidence_hash: str | None = None,
-    ) -> FuturesInputAcquisition:
-        from pring_cycle.futures_inputs import acquire_futures_inputs
-
-        return acquire_futures_inputs(
-            paths,
-            request=lambda payload: self._transport({**payload, "token": self._token}),
-            products=products,
-            start_date=start_date,
-            end_date=end_date,
-            evidence_hash=evidence_hash,
-        )
-
-    def commodity_basket(
-        self,
-        *,
-        start_date: date,
-        end_date: date,
-        output_days: int = 120,
-    ) -> tuple[ContextScalar, ...]:
-        if end_date < start_date or output_days < 1:
-            raise ValueError("tushare_date_range_invalid")
-        returns_by_code: dict[str, dict[date, float]] = {}
-        for source_code in sorted(
-            code for codes in FUTURES_SLEEVE_CODES.values() for code in codes
-        ):
-            rows = self._call(
-                "fut_daily",
-                {
-                    "ts_code": source_code,
-                    "start_date": start_date.strftime("%Y%m%d"),
-                    "end_date": end_date.strftime("%Y%m%d"),
-                },
-                ("ts_code", "trade_date", "close", "pre_close"),
-            )
-            code_returns: dict[date, float] = {}
-            for row in rows:
-                if str(row.get("ts_code")) != source_code:
-                    raise ValueError("tushare_futures_basket_identity_mismatch")
-                close = _number(row.get("close"))
-                previous = _number(row.get("pre_close"))
-                if close is None or previous is None or previous <= 0:
-                    continue
-                code_returns[_compact_date(row.get("trade_date"))] = close / previous - 1.0
-            returns_by_code[source_code] = code_returns
-        common_dates = sorted(
-            set.intersection(*(set(values) for values in returns_by_code.values()))
-        )
-        if len(common_dates) < output_days:
-            raise ValueError("tushare_futures_basket_history_incomplete")
-        index_level = 1000.0
-        scalars: list[ContextScalar] = []
-        for trading_day in common_dates:
-            sleeve_returns = {
-                sleeve: sum(returns_by_code[code][trading_day] for code in codes) / len(codes)
-                for sleeve, codes in FUTURES_SLEEVE_CODES.items()
-            }
-            basket_return = sum(
-                FUTURES_SLEEVE_WEIGHTS[sleeve] * value for sleeve, value in sleeve_returns.items()
-            )
-            index_level *= 1.0 + basket_return
-            if trading_day not in set(common_dates[-output_days:]):
-                continue
-            scalars.append(
-                _business_day_scalar(
-                    metric_id="CN_COMMODITY_EX_HOG_BASKET",
-                    api_name="fut_daily_basket",
-                    source_field="weighted_return_index",
-                    business_date=trading_day,
-                    dimensions={"formula_version": "ex-hog-basket-v0001"},
-                    value=index_level,
-                    unit="index_points",
-                )
-            )
-            for sleeve, sleeve_return in sleeve_returns.items():
-                scalars.append(
-                    _business_day_scalar(
-                        metric_id="CN_COMMODITY_SLEEVE_CONTRIBUTION",
-                        api_name="fut_daily_basket",
-                        source_field="weighted_daily_contribution",
-                        business_date=trading_day,
-                        dimensions={
-                            "formula_version": "ex-hog-basket-v0001",
-                            "sleeve": sleeve,
-                        },
-                        value=100.0 * FUTURES_SLEEVE_WEIGHTS[sleeve] * sleeve_return,
-                        unit="percentage_points",
-                    )
-                )
-        return tuple(scalars)
+        return basket_scalars(self._call, end_date=end_date, held_levels=held_levels)
 
     def _call(
         self,
@@ -1543,22 +938,6 @@ class TushareContextAdapter:
         )
         with build_opener(NoRedirect()).open(request, timeout=30) as response:
             return bytes(response.read())
-
-
-def _require_breadth_scalar_match(
-    scalars: tuple[ContextScalar, ...],
-    expected: tuple[ContextScalar, ...],
-    *,
-    definition_version: str,
-    family: str,
-) -> None:
-    if any(s.definition_version not in (None, definition_version) for s in scalars):
-        raise ValueError(f"breadth_{family}_scalar_definition_mismatch")
-    outputs = tuple(replace(s, definition_version=None, acquisition_ids=()) for s in scalars)
-    if sorted(_canonical_json(asdict(s)) for s in outputs) != sorted(
-        _canonical_json(asdict(s)) for s in expected
-    ):
-        raise ValueError(f"breadth_{family}_scalar_values_mismatch")
 
 
 def ingest_context_scalars(

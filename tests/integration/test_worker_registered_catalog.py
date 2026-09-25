@@ -304,7 +304,7 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0012", explicitly_approved=True)
+    models.activate("model-v0013", explicitly_approved=True)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n")
     paths.secrets.chmod(0o600)
     requested = serve_august_ppi(monkeypatch)
@@ -321,7 +321,7 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     submitted = runs.submit_manual_full(
         target_business_date=TARGET_BUSINESS_DATE,
         client_request_id="full-automatic-ppi-fallback",
-        model_version_id="model-v0012",
+        model_version_id="model-v0013",
         system_as_of=datetime.now(UTC),
     )
 

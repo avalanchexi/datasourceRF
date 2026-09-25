@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Type: task
 Blocked by: 10
 
@@ -14,3 +14,5 @@ Blocked by: 10
 - 验收：主接缝完整运行中 7 项持有、不在缺口清单；适配器测试覆盖分页、首日、停牌、零成交、上市不满 N 日与因子为空。
 
 ## Comments
+
+- 2026-09-25 实施：`src/pring_cycle/breadth.py`，适配器 `TushareContextAdapter.breadth`。先取 SSE 日历（目标日前 600 天），取最近 120 个交易日中尚未持有的日子，才取 `stock_basic` L/D/P；每页 6000 行、满页才翻页（2026-09-25 实测 `daily` 5557 行、`stk_factor_pro` 5556 行、`stock_basic` L 5569 行，均一页取完）。涨跌比在无下跌时不出值；未识别的证券代码整批拒收（`tushare_breadth_security_scope_unknown`）。每个值只关联当日的 `daily`/`stk_factor_pro` 与名册、日历回执。维度沿用 `universe=point_in_time_traded_a_shares`。

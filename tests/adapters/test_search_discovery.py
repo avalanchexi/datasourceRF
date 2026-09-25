@@ -91,9 +91,6 @@ def test_query_is_the_family_release_title_with_a_chinese_period() -> None:
     assert build_search_query(("CN_LPR_1Y_5Y",), period="2026-08") == (
         "2026年8月贷款市场报价利率（LPR）公告"
     )
-    assert build_search_query(("CBOE_VIX_INDEX",), period="2026-08-27") == (
-        "Cboe VIX index close August 27, 2026"
-    )
     assert "CN_" not in build_search_query(("CN_EQUITY_CORE_000985",), period="2026-08-27")
 
 

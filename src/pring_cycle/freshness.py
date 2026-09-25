@@ -89,6 +89,16 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
     "CN_EQ_AD_RATIO": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
     "CN_EQ_NEW_HIGH_LOW_120": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
     "CN_EQ_ABOVE_MA120": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
+    # ADR-0030: the windows read TuShare's technical factors, published after the quotes.
+    **{
+        metric_id: _daily("tushare:stk_factor_pro", time(18, 0), _TUSHARE_DOCS)
+        for metric_id in (
+            "CN_EQ_NEW_HIGH_LOW_90",
+            "CN_EQ_NEW_HIGH_LOW_250",
+            "CN_EQ_ABOVE_MA90",
+            "CN_EQ_ABOVE_MA250",
+        )
+    },
     "CN_EQ_ADV_AMOUNT_SHARE": _daily("tushare:daily", time(16, 0), _TUSHARE_DOCS),
     # TuShare documents index_dailybasic only for 上证综指/深证成指/上证50/中证500/中小板指/
     # 创业板指 (doc_id=128), i.e. not 000300 or 000852; real requests on 2026-09-22 still

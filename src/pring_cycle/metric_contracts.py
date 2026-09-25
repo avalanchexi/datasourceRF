@@ -262,31 +262,19 @@ def required_dimension_members(
             measures += ("cumulative_average_yoy",)
         return tuple({"category": categories[metric_id], "measure": value} for value in measures)
     if definition_version not in BUILTIN_CATALOG_VERSIONS:
-        from pring_cycle.commodity_basket import COMMODITY_FORMULA_VERSION, COMMODITY_METRICS
-        from pring_cycle.market_breadth import DAILY_BREADTH_MEASURES, WINDOW_BREADTH_MEASURES
+        from pring_cycle import basket, breadth
         from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
 
-        if metric_id in COMMODITY_METRICS:
+        if metric_id in basket.BASKET_METRICS:
             commodity_members = REQUIRED_DIMENSION_MEMBERS.get(metric_id, ({},))
             return tuple(
-                {"formula_version": COMMODITY_FORMULA_VERSION, **m} for m in commodity_members
+                {"formula_version": basket.FORMULA_VERSION, **m} for m in commodity_members
             )
 
-        if metric_id == "CN_EQ_ADV_AMOUNT_SHARE":
-            return (
-                {"measure": "advancing_amount_share", "universe": "point_in_time_traded_a_shares"},
-            )
-
-        if metric_id in WINDOW_BREADTH_MEASURES:
+        if metric_id in breadth.BREADTH_METRICS:
             return tuple(
-                {"measure": m, "universe": "point_in_time_traded_a_shares"}
-                for m in WINDOW_BREADTH_MEASURES[metric_id]
-            )
-
-        if metric_id in DAILY_BREADTH_MEASURES:
-            return tuple(
-                {"measure": m, "universe": "point_in_time_traded_a_shares"}
-                for m in DAILY_BREADTH_MEASURES[metric_id]
+                {"measure": measure, "universe": breadth.UNIVERSE}
+                for measure, _unit in breadth.BREADTH_METRICS[metric_id][1]
             )
 
         if metric_id in MARKET_INDEX_IDENTITIES:

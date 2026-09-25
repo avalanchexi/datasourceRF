@@ -19,12 +19,6 @@ from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.freshness import period_status
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
-from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES
-from pring_cycle.market_breadth import (
-    DAILY_BREADTH_MEASURES,
-    WINDOW_BREADTH_MEASURES,
-    breadth_claims_matching_acquisitions,
-)
 from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
     china_business_day_end,
@@ -193,15 +187,6 @@ class ModelInputSelector:
         scope, recheck their selected claims against the acquired originals, and accept only
         the claims that came back valid. Adding a family means adding one entry here.
         """
-        from pring_cycle.commodity_basket import (
-            COMMODITY_METRICS,
-            commodity_claims_matching_acquisitions,
-        )
-
-        artifacts = self.database_path.parent / "artifacts" / "sha256"
-        breadth_measures = (
-            DAILY_BREADTH_MEASURES | WINDOW_BREADTH_MEASURES | AMOUNT_BREADTH_MEASURES
-        )
 
         def points_of(metric_ids: tuple[str, ...]) -> tuple[MetricSeriesPoint, ...]:
             # A metric named twice in one scope still contributes its points once.
@@ -297,27 +282,6 @@ class ModelInputSelector:
                     points_of(metric_ids),
                     definition_version=self.version,
                     parse=parse_valuation_acquisition,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id in breadth_measures,
-                lambda metric_ids: breadth_claims_matching_acquisitions(
-                    self.core_evidence,
-                    points_of(metric_ids),
-                    definition_version=self.version,
-                    artifacts=artifacts,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id in COMMODITY_METRICS,
-                lambda metric_ids: commodity_claims_matching_acquisitions(
-                    self.core_evidence,
-                    series_by_metric(metric_ids),
-                    database_path=self.database_path,
-                    artifacts=artifacts,
-                    definition_version=self.version,
-                    mode=self.mode,
-                    as_of=self.as_of,
                 ),
             ),
         )

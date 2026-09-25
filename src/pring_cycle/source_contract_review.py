@@ -120,6 +120,68 @@ def require_source_contract(definition_version: str, *, metric_id: str | None = 
 _TREASURY_FIELDS = {"UST2Y_NOMINAL_YIELD": "y2", "UST10Y_NOMINAL_YIELD": "y10"}
 
 
+def _tushare_derived_claim(
+    definition: MetricDefinition,
+    *,
+    provider: str,
+    source_reference: str,
+    period_kind: str,
+    dimensions: Mapping[str, str],
+    unit: str,
+    period_start: str,
+    period_end: str,
+) -> bool:
+    """Check a breadth or basket claim computed from TuShare's own deliveries (ADR-0030).
+
+    False when the catalog registers another contract for the metric. Only the structure is
+    checked: the delivery was computed from registered interfaces (ADR-0021).
+    """
+    from pring_cycle import basket, breadth
+
+    metric_id = definition.metric_id
+    if metric_id in breadth.BREADTH_METRICS:
+        source_code, measures = breadth.BREADTH_METRICS[metric_id]
+        if definition.source_codes != (source_code,):
+            return False
+        units = dict(measures)
+        measure = dimensions.get("measure", "")
+        field = breadth.source_field(metric_id, measure)
+        expected_dimensions = {"measure": measure, "universe": breadth.UNIVERSE}
+        expected_unit = units.get(measure)
+        family = "breadth"
+    elif metric_id in basket.BASKET_METRICS:
+        if definition.source_codes != (basket.SOURCE_CODE,):
+            return False
+        level = metric_id == "CN_COMMODITY_EX_HOG_BASKET"
+        field = "level" if level else dimensions.get("sleeve", "")
+        expected_dimensions = {"formula_version": basket.FORMULA_VERSION}
+        if not level:
+            expected_dimensions["sleeve"] = field
+        sleeves = {sleeve for sleeve, _members, _weight in basket.SLEEVES}
+        expected_unit = "index_points" if level else "percentage_points"
+        family = "commodity_basket"
+        if not level and field not in sleeves:
+            expected_unit = None
+    else:
+        return False
+    try:
+        start, end = date.fromisoformat(period_start), date.fromisoformat(period_end)
+    except ValueError:
+        raise ValueError(f"registered_{family}_source_period_mismatch") from None
+    if start != end or end.isoformat() != period_end:
+        raise ValueError(f"registered_{family}_source_period_mismatch")
+    if (
+        provider != "tushare"
+        or period_kind != "business_day"
+        or dict(dimensions) != expected_dimensions
+        or expected_unit is None
+        or unit != expected_unit
+        or source_reference != f"tushare:{family}:{field}:{period_end}"
+    ):
+        raise ValueError(f"registered_{family}_source_identity_mismatch")
+    return True
+
+
 def require_registered_source_contract(
     definition: MetricDefinition,
     *,
@@ -138,6 +200,17 @@ def require_registered_source_contract(
 ) -> None:
     """New catalog identity alone does not certify an existing parser's output."""
     if definition.definition_version in BUILTIN_CATALOG_VERSIONS:
+        return
+    if _tushare_derived_claim(
+        definition,
+        provider=provider,
+        source_reference=source_reference,
+        period_kind=period_kind,
+        dimensions=dimensions,
+        unit=unit,
+        period_start=period_start,
+        period_end=period_end,
+    ):
         return
     if definition.metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS":
         from pring_cycle.ecb_reference import require_ecb_reference_claim
@@ -326,19 +399,6 @@ def require_registered_source_contract(
                 public_available_at,
             )
         return
-    from pring_cycle.commodity_basket import (
-        COMMODITY_FORMULA_VERSION,
-        COMMODITY_METRICS,
-        COMMODITY_SLEEVES,
-        COMMODITY_SOURCE_CODE,
-    )
-    from pring_cycle.market_amount import AMOUNT_BREADTH_MEASURES, AMOUNT_BREADTH_SOURCE_CODE
-    from pring_cycle.market_breadth import (
-        DAILY_BREADTH_MEASURES,
-        DAILY_BREADTH_SOURCE_CODE,
-        WINDOW_BREADTH_MEASURES,
-        WINDOW_BREADTH_SOURCE_CODE,
-    )
     from pring_cycle.tushare_context import (
         MARKET_INDEX_IDENTITIES,
         VALUATION_FIELDS,
@@ -362,10 +422,6 @@ def require_registered_source_contract(
     contracts.update(
         {metric_id: ("market_index", "tushare") for metric_id in MARKET_INDEX_IDENTITIES}
     )
-    contracts.update({metric: ("daily_breadth", "tushare") for metric in DAILY_BREADTH_MEASURES})
-    contracts.update({metric: ("window_breadth", "tushare") for metric in WINDOW_BREADTH_MEASURES})
-    contracts.update({metric: ("amount_breadth", "tushare") for metric in AMOUNT_BREADTH_MEASURES})
-    contracts.update({metric: ("commodity_basket", "tushare") for metric in COMMODITY_METRICS})
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
@@ -386,10 +442,6 @@ def require_registered_source_contract(
         "margin_sse_szse",
         "market_index",
         "valuation",
-        "daily_breadth",
-        "window_breadth",
-        "amount_breadth",
-        "commodity_basket",
         "treasury_tushare",
     }:
         supported = metric_definition(reference_id, definition_version=METRIC_CATALOG_V0003)
@@ -399,14 +451,6 @@ def require_registered_source_contract(
             source_codes=("SSE_SZSE_MARGIN_BALANCE",),
             release_event_family="cn_margin_balance_sse_szse",
         )
-    if family == "amount_breadth":
-        supported = replace(supported, source_codes=(AMOUNT_BREADTH_SOURCE_CODE,))
-    if family == "commodity_basket":
-        supported = replace(supported, source_codes=(COMMODITY_SOURCE_CODE,))
-    if family == "window_breadth":
-        supported = replace(supported, source_codes=(WINDOW_BREADTH_SOURCE_CODE,))
-    if family == "daily_breadth":
-        supported = replace(supported, source_codes=(DAILY_BREADTH_SOURCE_CODE,))
     if family == "cpi":
         # Headline and core values are fields of the same NBS publication.
         supported = replace(supported, release_event_family="nbs_core_cpi")
@@ -439,67 +483,6 @@ def require_registered_source_contract(
         definition.allowed_units or (definition.unit,)
     ) != set(supported.allowed_units or (supported.unit,)):
         raise ValueError(f"registered_{family}_source_contract_unsupported")
-    if family == "commodity_basket":
-        basket = definition.metric_id == "CN_COMMODITY_EX_HOG_BASKET"
-        field = "level" if basket else dimensions.get("sleeve", "")
-        expected = {"formula_version": COMMODITY_FORMULA_VERSION}
-        if not basket:
-            expected["sleeve"] = field
-        if (
-            provider != supported_provider
-            or period_kind != "business_day"
-            or dimensions != expected
-            or (not basket and field not in {s[0] for s in COMMODITY_SLEEVES})
-            or unit != ("index_points" if basket else "percentage_points")
-            or source_reference != f"tushare:commodity_basket:{field}:{period_end}"
-            or period_start != period_end
-            or date.fromisoformat(period_end).isoformat() != period_end
-        ):
-            raise ValueError("registered_commodity_basket_source_identity_mismatch")
-        return
-    if family == "amount_breadth":
-        if (
-            provider != supported_provider
-            or period_kind != "business_day"
-            or dimensions
-            != {"measure": "advancing_amount_share", "universe": "point_in_time_traded_a_shares"}
-            or unit != "percent"
-            or source_reference != f"tushare:amount_breadth:advancing_amount_share:{period_end}"
-            or period_start != period_end
-            or date.fromisoformat(period_end).isoformat() != period_end
-        ):
-            raise ValueError("registered_amount_breadth_source_identity_mismatch")
-        return
-    if family == "daily_breadth":
-        breadth_measure = dimensions.get("measure")
-        if (
-            provider != supported_provider
-            or period_kind != "business_day"
-            or dimensions
-            != {"measure": breadth_measure, "universe": "point_in_time_traded_a_shares"}
-            or breadth_measure not in DAILY_BREADTH_MEASURES[definition.metric_id]
-            or unit != ("count" if definition.metric_id == "CN_EQ_ADV_DEC" else "ratio")
-            or source_reference != f"tushare:daily_breadth:{breadth_measure}:{period_end}"
-            or period_start != period_end
-            or date.fromisoformat(period_end).isoformat() != period_end
-        ):
-            raise ValueError("registered_daily_breadth_source_identity_mismatch")
-        return
-    if family == "window_breadth":
-        breadth_measure = dimensions.get("measure")
-        if (
-            provider != supported_provider
-            or period_kind != "business_day"
-            or dimensions
-            != {"measure": breadth_measure, "universe": "point_in_time_traded_a_shares"}
-            or breadth_measure not in WINDOW_BREADTH_MEASURES[definition.metric_id]
-            or unit != ("percent" if definition.metric_id == "CN_EQ_ABOVE_MA120" else "count")
-            or source_reference != f"tushare:window_breadth:{breadth_measure}:{period_end}"
-            or period_start != period_end
-            or date.fromisoformat(period_end).isoformat() != period_end
-        ):
-            raise ValueError("registered_window_breadth_source_identity_mismatch")
-        return
     if family == "valuation":
         valuation_measure = dimensions.get("measure", "")
         measures = {measure: (field, unit) for field, measure, unit in VALUATION_FIELDS}

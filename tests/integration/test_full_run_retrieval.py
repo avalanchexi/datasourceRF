@@ -1077,11 +1077,11 @@ def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0012", explicitly_approved=True)
+    models.activate("model-v0013", explicitly_approved=True)
     run = runs.submit_manual_full(
         target_business_date="2026-09-23",
         client_request_id="latest-released-period",
-        model_version_id="model-v0012",
+        model_version_id="model-v0013",
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
@@ -1109,11 +1109,11 @@ def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0012", explicitly_approved=True)
+    models.activate("model-v0013", explicitly_approved=True)
     run = runs.submit_manual_full(
         target_business_date="2026-09-10",
         client_request_id="lpr-before-fixing",
-        model_version_id="model-v0012",
+        model_version_id="model-v0013",
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
