@@ -180,3 +180,52 @@ def test_a_contract_row_that_is_not_its_delivery_month_is_refused(
 
     with pytest.raises(ValueError, match=f"futures_input_contract_{reason}"):
         contract_data(row, "CU")
+
+
+def test_a_duplicated_settlement_refuses_the_delivery() -> None:
+    def duplicated(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        rows = fake_call([])(api, params, fields)
+        if api == "fut_daily":
+            return (*rows, {**rows[-1], "settle": 110.0})
+        return rows
+
+    with pytest.raises(ValueError, match="commodity_settlement_duplicate"):
+        basket_scalars(
+            duplicated,
+            end_date=date(2026, 9, 24),
+            held_levels={d: 1000.0 for d in weekdays(date(2026, 3, 9), date(2026, 9, 23))},
+        )
+
+
+def test_an_earlier_gap_does_not_stop_a_day_whose_previous_level_is_held() -> None:
+    def missing_22nd(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        rows = fake_call([])(api, params, fields)
+        if api == "fut_daily":
+            return tuple(
+                {**row, "settle": None} if row["trade_date"] == "20260922" else row for row in rows
+            )
+        return rows
+
+    held = {d: 1000.0 for d in weekdays(date(2026, 3, 9), date(2026, 9, 21))}
+    held[date(2026, 9, 23)] = 1200.0
+
+    scalars = basket_scalars(missing_22nd, end_date=date(2026, 9, 24), held_levels=held)
+
+    # The 22nd stays missing; the 24th builds on the held 23rd.
+    assert levels(scalars) == {"2026-09-24": pytest.approx(1200.0 * 1.01)}
+
+
+def test_nothing_computable_raises_the_first_reason() -> None:
+    def ambiguous(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        rows = fake_call([])(api, params, fields)
+        if api == "fut_basic":
+            twin = {**rows[0], "ts_code": rows[0]["ts_code"], "d_month": rows[0]["d_month"]}
+            return (*rows, twin)
+        return rows
+
+    with pytest.raises(ValueError, match="commodity_expiry_ambiguous"):
+        basket_scalars(
+            ambiguous,
+            end_date=date(2026, 9, 24),
+            held_levels={d: 1000.0 for d in weekdays(date(2026, 3, 9), date(2026, 9, 23))},
+        )

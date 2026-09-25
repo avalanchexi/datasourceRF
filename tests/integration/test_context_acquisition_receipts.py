@@ -736,3 +736,28 @@ def test_accepted_ingest_is_kept_on_the_receipt(tmp_path: Path) -> None:
     assert {receipts.ingest_result(r.acquisition_id) for r in receipts.history()} == {
         ("accepted", None)
     }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_an_ingest_result_is_written_once_and_never_rewritten(tmp_path: Path) -> None:
+    import sqlite3
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    adapter = TushareContextAdapter("fixture-secret", transport=index_response)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.treasury_yields(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)),
+        definition_version="metric-catalog-v0002",
+    )
+    (receipt,) = AcquisitionRepository(paths.database, paths.artifacts).history()
+
+    for update in (
+        "UPDATE acquisition_request SET ingest_rejection_reason='rewritten'",
+        "UPDATE acquisition_request SET ingest_result='rejected'",
+    ):
+        with (
+            pytest.raises(sqlite3.IntegrityError, match="acquisition_ingest_result_is_immutable"),
+            sqlite3.connect(paths.database) as connection,
+        ):
+            connection.execute(update + " WHERE acquisition_id=?", (receipt.acquisition_id,))

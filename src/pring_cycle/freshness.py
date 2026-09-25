@@ -797,11 +797,16 @@ def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, s
         ).fetchone()
         if run is None:
             return {}
+        # One Worker runs one batch at a time: this run's attempts fall between its acceptance
+        # and the next run's.
+        following = connection.execute(
+            "SELECT min(accepted_at) FROM parent_run WHERE accepted_at > ?", (run[0],)
+        ).fetchone()[0]
         rows = connection.execute(
             "SELECT metric_id, outcome, safe_metadata_json FROM retrieval_attempt "
-            "WHERE fetched_at >= ? AND outcome IN (SELECT value FROM json_each(?)) "
-            "ORDER BY fetched_at, rowid",
-            (run[0], json.dumps(sorted(_ACQUISITION_OUTCOMES))),
+            "WHERE fetched_at >= ? AND (? IS NULL OR fetched_at < ?) "
+            "AND outcome IN (SELECT value FROM json_each(?)) ORDER BY fetched_at, rowid",
+            (run[0], following, following, json.dumps(sorted(_ACQUISITION_OUTCOMES))),
         ).fetchall()
     latest: dict[str, tuple[str, dict[str, str]]] = {}
     for metric_id, outcome, metadata_json in rows:

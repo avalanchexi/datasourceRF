@@ -196,3 +196,37 @@ def test_ambiguous_response_fields_are_refused_before_rows_are_read(extra_field:
     adapter = TushareContextAdapter("fixture-token", transport=transport)
     with pytest.raises(ValueError, match="response_schema_invalid"):
         adapter.breadth(end_date=DAY, held_days=())
+
+
+def test_a_failed_factor_delivery_leaves_the_daily_figures_standing() -> None:
+    inner = fake_call([])
+
+    def call(api: str, params: dict[str, str], fields: tuple[str, ...]) -> Any:
+        if api == "stk_factor_pro":
+            raise OSError("fixture_permission_denied")
+        return inner(api, params, fields)
+
+    result = values(breadth_scalars(call, end_date=DAY, window=1))
+
+    assert result[("CN_EQ_ADV_DEC", "advances")] == 2
+    assert result[("CN_EQ_ADV_AMOUNT_SHARE", "advancing_amount_share")] == 80.0
+    assert not any(metric.startswith("CN_EQ_ABOVE_MA") for metric, _ in result)
+
+
+def test_a_share_outside_its_listing_interval_is_not_a_member() -> None:
+    LISTINGS["L"][0] = ("600000.SH", "20260925")  # Listed the day after.
+    try:
+        result = values(breadth_scalars(fake_call([]), end_date=DAY, window=1))
+    finally:
+        LISTINGS["L"][0] = ("600000.SH", "19991110")
+
+    assert result[("CN_EQ_ADV_DEC", "participants")] == 2
+
+
+def test_a_non_finite_price_refuses_the_delivery() -> None:
+    QUOTES[0] = ("600000.SH", float("nan"), 10.0, 1000.0, 5000.0)
+    try:
+        with pytest.raises(ValueError, match="tushare_breadth_value_invalid"):
+            breadth_scalars(fake_call([]), end_date=DAY, window=1)
+    finally:
+        QUOTES[0] = ("600000.SH", 10.5, 10.0, 1000.0, 5000.0)

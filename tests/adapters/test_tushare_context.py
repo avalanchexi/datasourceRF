@@ -751,3 +751,14 @@ def test_candidate_context_revision_without_new_time_remains_system_only(
         ).selected_value
         == 50.1
     )
+
+
+def test_a_refused_call_is_a_source_failure_not_a_rejected_response() -> None:
+    from pring_cycle.tushare_context import TushareSourceError
+
+    adapter = TushareContextAdapter(
+        "fixture-token", transport=lambda _: {"code": 2002, "msg": "权限不足", "data": None}
+    )
+
+    with pytest.raises(TushareSourceError, match="tushare_source_failed"):
+        adapter.treasury_yields(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))

@@ -95,6 +95,7 @@ from pring_cycle.tushare_context import (
     ContextObservationsMissingError,
     ContextScalar,
     TushareContextAdapter,
+    TushareSourceError,
 )
 
 CORE_METRICS = {
@@ -1776,9 +1777,8 @@ def refresh_context_sources(
             tuple(BREADTH_METRICS),
             lambda: adapter.breadth(
                 end_date=target,
-                held_days=_held_days(
-                    paths, ("CN_EQ_ADV_DEC", "CN_EQ_ABOVE_MA90"), definition_version
-                ),
+                # A day is done once all seven hold a value; otherwise it is fetched again.
+                held_days=_held_days(paths, tuple(BREADTH_METRICS), definition_version),
             ),
         ),
         (
@@ -1885,13 +1885,15 @@ def refresh_context_sources(
                 result = adapter.acquire_scalars(
                     paths, retrieve, definition_version=definition_version
                 )
-        except OSError as error:
+        except (OSError, TushareSourceError) as error:
+            # No data came: the source failed or refused the call (permission, rate limit).
             record(
                 metric_ids,
                 "tushare",
                 "source_failed",
                 error_type=type(error).__name__,
                 family=family,
+                reason=str(error)[:300],
             )
         except (KeyError, TypeError, ValueError) as error:
             if isinstance(error, ContextObservationsMissingError) and (

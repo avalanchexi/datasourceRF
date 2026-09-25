@@ -154,8 +154,8 @@ def basket_scalars(
     ``end_date`` that is not already held.
 
     ``held_levels`` are the levels already held; a held day anchors the chain, so only the
-    days after it are recalculated. The chain stops at the first day it cannot compute, and
-    the days after it stay missing.
+    days after it are recalculated. A day the chain cannot compute breaks it until the next
+    held level; when no requested day can be computed, the first reason is raised.
     """
     if end_date <= BASE_DATE:
         return ()
@@ -195,38 +195,50 @@ def basket_scalars(
     wanted = [day for day in chain[-window:] if day not in held_levels]
     if not wanted:
         return ()
-    # Anchor at the latest held day before the first requested one, else at the base.
-    level, start = BASE_LEVEL, 0
-    for index, day in enumerate(chain):
-        if day >= wanted[0]:
-            break
-        if day in held_levels:
-            level, start = Fraction(str(held_levels[day])), index + 1
-    days = [day for day in chain[start:] if day in wanted or day not in held_levels]
-    choices = {
-        day: {
-            product: select_contract(contracts[product], calendars[PRODUCT_EXCHANGES[product]], day)
-            for product in PRODUCTS
-        }
-        for day in _selectable(days, contracts, calendars)
-    }
-    settlements = _settlements(call, choices)
-    scalars: list[ContextScalar] = []
-    for day in chain[start:]:
-        if day in held_levels and day not in wanted:
-            level = Fraction(str(held_levels[day]))
-            continue
-        if day not in choices:
-            break
+    held = {day: Fraction(str(value)) for day, value in held_levels.items()}
+    # Each requested day, and before it every day back to a held level (or the base).
+    needed: set[date] = set()
+    for day in wanted:
+        index = chain.index(day)
+        while index >= 0 and chain[index] not in held and chain[index] not in needed:
+            needed.add(chain[index])
+            index -= 1
+    choices: dict[date, dict[str, str]] = {}
+    failures: list[str] = []
+    for day in sorted(needed):
         try:
-            returns = {
-                product: settlements[choices[day][product], day][0]
-                / settlements[choices[day][product], day][1]
-                - 1
+            choices[day] = {
+                product: select_contract(
+                    contracts[product], calendars[PRODUCT_EXCHANGES[product]], day
+                )
                 for product in PRODUCTS
             }
-        except KeyError:
-            break
+        except ValueError as error:
+            failures.append(str(error))
+    settlements = _settlements(call, choices)
+    scalars: list[ContextScalar] = []
+    level: Fraction | None = BASE_LEVEL
+    for day in chain:
+        if day in held:
+            level = held[day]
+            continue
+        if day not in needed:
+            level = None  # Neither held nor needed: no later day builds on it.
+            continue
+        prices = (
+            [settlements.get((choices[day][p], day)) for p in PRODUCTS] if day in choices else []
+        )
+        if level is None or not prices or any(price is None for price in prices):
+            # The chain breaks here; a later day resumes only from a held level.
+            if day in choices and level is not None:
+                failures.append("commodity_settlement_unavailable")
+            level = None
+            continue
+        returns = {
+            product: price[0] / price[1] - 1
+            for product, price in zip(PRODUCTS, prices, strict=True)
+            if price is not None
+        }
         contributions = {
             sleeve: weight * sum(returns[p] for p in members) / len(members)
             for sleeve, members, weight in SLEEVES
@@ -246,6 +258,9 @@ def basket_scalars(
             )
             for sleeve, value in contributions.items()
         )
+    if not scalars and failures:
+        # Nothing could be computed: the first reason is what the maintainer has to see.
+        raise ValueError(failures[0])
     return tuple(scalars)
 
 
@@ -267,23 +282,6 @@ def _scalar(
     )
 
 
-def _selectable(
-    days: list[date],
-    contracts: dict[str, list[dict[str, Any]]],
-    calendars: dict[str, dict[date, bool]],
-) -> list[date]:
-    """The days, in order, up to the first whose contracts cannot all be chosen."""
-    selectable = []
-    for day in days:
-        try:
-            for product in PRODUCTS:
-                select_contract(contracts[product], calendars[PRODUCT_EXCHANGES[product]], day)
-        except ValueError:
-            break
-        selectable.append(day)
-    return selectable
-
-
 def _settlements(
     call: Call, choices: dict[date, dict[str, str]]
 ) -> dict[tuple[str, date], tuple[Fraction, Fraction]]:
@@ -293,6 +291,7 @@ def _settlements(
         for code in chosen.values():
             days_by_contract.setdefault(code, []).append(day)
     prices: dict[tuple[str, date], tuple[Fraction, Fraction]] = {}
+    unavailable: set[tuple[str, date]] = set()
     for code, days in sorted(days_by_contract.items()):
         rows = call(
             "fut_daily",
@@ -309,8 +308,10 @@ def _settlements(
             if row["ts_code"] != code:
                 raise ValueError("commodity_settlement_identity_mismatch")
             if day in wanted:
+                if (code, day) in prices or (code, day) in unavailable:
+                    raise ValueError("commodity_settlement_duplicate")
                 try:
                     prices[code, day] = (_settlement(row["settle"]), _settlement(row["pre_settle"]))
                 except ValueError:
-                    continue  # That day stays uncomputable; the chain stops there.
+                    unavailable.add((code, day))  # That day stays uncomputable.
     return prices

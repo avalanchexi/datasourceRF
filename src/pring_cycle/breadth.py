@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from datetime import date, timedelta
+from math import isfinite
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -119,35 +120,41 @@ def _day(value: object) -> date:
 
 
 def _number(value: object) -> float | None:
-    if value is None or isinstance(value, bool):
+    if value is None:
         return None
-    if not isinstance(value, int | float):
+    if isinstance(value, bool) or not isinstance(value, int | float) or not isfinite(value):
         raise ValueError("tushare_breadth_value_invalid")
     return float(value)
 
 
-def listing_starts(rows: Rows) -> dict[str, date]:
-    """Each ordinary A share's listing date, from ``stock_basic`` in all three states."""
-    starts: dict[str, date] = {}
+def listing_intervals(rows: Rows) -> dict[str, tuple[date, date | None]]:
+    """Each ordinary A share's listing and delisting dates, from ``stock_basic``'s three states."""
+    intervals: dict[str, tuple[date, date | None]] = {}
     for row in rows:
         code = row.get("ts_code")
         if not isinstance(code, str) or not ordinary_share(code):
             continue
-        if code in starts:
+        if code in intervals:
             raise ValueError("tushare_breadth_listing_duplicate")
-        starts[code] = _day(row.get("list_date"))
-    return starts
+        delisted = row.get("delist_date")
+        intervals[code] = (_day(row.get("list_date")), _day(delisted) if delisted else None)
+    return intervals
+
+
+def _listed(interval: tuple[date, date | None], day: date) -> bool:
+    listed, delisted = interval
+    return listed <= day and (delisted is None or day < delisted)
 
 
 def day_scalars(
     business_date: date,
     quotes: Rows,
-    factors: Rows,
+    factors: Rows | None,
     *,
-    listed_on: dict[str, date],
+    listings: dict[str, tuple[date, date | None]],
     open_days: list[date],
 ) -> tuple[ContextScalar, ...]:
-    """The seven metrics of one trading day."""
+    """The seven metrics of one trading day; the four windows only when ``factors`` came."""
     from pring_cycle.tushare_context import ContextScalar
 
     traded: dict[str, tuple[float, float, float]] = {}
@@ -157,8 +164,10 @@ def day_scalars(
             raise ValueError("tushare_breadth_trade_date_mismatch")
         if not ordinary_share(code):
             continue
-        if code not in listed_on:
+        if code not in listings:
             raise ValueError("tushare_breadth_listing_missing")
+        if not _listed(listings[code], business_date):
+            continue  # Outside its listing interval: not a member that day.
         if code in traded:
             raise ValueError("tushare_breadth_quote_duplicate")
         close, previous = _number(row.get("close")), _number(row.get("pre_close"))
@@ -193,7 +202,8 @@ def day_scalars(
                 100 * advancing_amount / total_amount,
             )
         )
-    values += _window_values(business_date, factors, traded, listed_on, open_days)
+    if factors is not None:
+        values += _window_values(business_date, factors, traded, listings, open_days)
     units = {
         (metric_id, measure): unit
         for metric_id, (_code, measures) in BREADTH_METRICS.items()
@@ -219,7 +229,7 @@ def _window_values(
     business_date: date,
     factors: Rows,
     traded: dict[str, tuple[float, float, float]],
-    listed_on: dict[str, date],
+    listings: dict[str, tuple[date, date | None]],
     open_days: list[date],
 ) -> list[tuple[str, str, float]]:
     seen: set[str] = set()
@@ -234,7 +244,7 @@ def _window_values(
         seen.add(code)
         if code not in traded:
             continue
-        listed = listed_on[code]
+        listed = listings[code][0]
         # Listed before the calendar fetched: well over the longest window.
         age = len(open_days) + 1 if listed < first_open else _open_days_between(open_days, listed)
         for window in WINDOWS:
@@ -306,18 +316,23 @@ def breadth_scalars(
         if any(row.get("list_status") != status for row in rows):
             raise ValueError("tushare_breadth_listing_status_invalid")
         listings.extend(rows)
-    listed_on = listing_starts(tuple(listings))
+    members = listing_intervals(tuple(listings))
     scalars: list[ContextScalar] = []
     for day in days:
         params = {"trade_date": day.strftime("%Y%m%d")}
         quotes = paged(call, "daily", params, _DAILY_FIELDS)
-        factors = paged(call, "stk_factor_pro", params, _FACTOR_FIELDS)
+        factors: Rows | None
+        try:
+            factors = paged(call, "stk_factor_pro", params, _FACTOR_FIELDS)
+        except (OSError, ValueError):
+            # The windows stay missing for the day; the daily figures do not depend on them.
+            factors = None
         scalars.extend(
             day_scalars(
                 day,
                 quotes,
                 factors,
-                listed_on=listed_on,
+                listings=members,
                 open_days=[session for session in sessions if session <= day],
             )
         )

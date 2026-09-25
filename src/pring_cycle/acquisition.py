@@ -517,7 +517,16 @@ def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
         "SELECT sql FROM sqlite_master WHERE type='trigger' "
         "AND name='acquisition_request_terminal_no_update'"
     ).fetchone()
-    if guard is not None and "UPDATE OF" in str(guard[0]):
+    once = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='trigger' "
+        "AND name='acquisition_request_ingest_result_once'"
+    ).fetchone()
+    if (
+        guard is not None
+        and "UPDATE OF" in str(guard[0])
+        and once is not None
+        and "NEW.ingest_result IS NULL" in str(once[0])
+    ):
         return
     connection.execute("DROP TRIGGER IF EXISTS acquisition_request_terminal_no_update")
     connection.execute(
@@ -526,9 +535,12 @@ def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
         + " ON acquisition_request WHEN OLD.state IN ('validated', 'failed') BEGIN "
         "SELECT RAISE(ABORT, 'acquisition_receipt_is_immutable'); END"
     )
+    # Both ingest columns are written once, together, and only on a validated receipt.
+    connection.execute("DROP TRIGGER IF EXISTS acquisition_request_ingest_result_once")
     connection.execute(
-        "CREATE TRIGGER IF NOT EXISTS acquisition_request_ingest_result_once BEFORE UPDATE OF "
+        "CREATE TRIGGER acquisition_request_ingest_result_once BEFORE UPDATE OF "
         "ingest_result, ingest_rejection_reason ON acquisition_request "
-        "WHEN OLD.state <> 'validated' OR OLD.ingest_result IS NOT NULL BEGIN "
+        "WHEN OLD.state <> 'validated' OR OLD.ingest_result IS NOT NULL "
+        "OR OLD.ingest_rejection_reason IS NOT NULL OR NEW.ingest_result IS NULL BEGIN "
         "SELECT RAISE(ABORT, 'acquisition_ingest_result_is_immutable'); END"
     )

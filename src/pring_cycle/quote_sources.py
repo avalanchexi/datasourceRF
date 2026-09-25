@@ -246,8 +246,23 @@ def refresh_quote_source(
         for row in acquired.value
         if held.get(row.business_date) != row.value
     )
-    if claims:
-        repository.append_source_claims(claims, availability_clock=utc_now)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    try:
+        if claims:
+            repository.append_source_claims(claims, availability_clock=utc_now)
+    except ValueError as error:
+        # The file read well; the registered contract refused its values.
+        acquisitions.record_ingest_result(receipt.acquisition_id, error)
+        repository.record_retrieval_attempt(
+            metric_id=source.metric_id,
+            channel=source.channel,
+            outcome="validation_failed",
+            fetched_at=utc_now(),
+            acquisition_ids=(receipt.acquisition_id,),
+            safe_metadata={**metadata, "stage": "ingest", "reason": str(error)[:300]},
+        )
+        raise
+    acquisitions.record_ingest_result(receipt.acquisition_id, None)
     repository.record_retrieval_attempt(
         metric_id=source.metric_id,
         channel=source.channel,

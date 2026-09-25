@@ -141,6 +141,10 @@ class ContextObservationsMissingError(ValueError):
         super().__init__("tushare_context_observations_missing")
 
 
+class TushareSourceError(ValueError):
+    """TuShare answered without data: a non-zero code such as a permission or rate limit."""
+
+
 class ContextIngestRejectedError(ValueError):
     """The responses passed their structure check; the evidence store refused the values."""
 
@@ -889,7 +893,7 @@ class TushareContextAdapter:
         def parse(response: bytes | dict[str, Any]) -> tuple[dict[str, object], ...]:
             document = json.loads(response) if isinstance(response, bytes) else response
             if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
-                raise ValueError("tushare_source_failed")
+                raise TushareSourceError("tushare_source_failed")
             rows = _response_rows(document, required_fields=fields)
             _validate_response_periods(rows, params)
             return rows
@@ -2086,7 +2090,13 @@ def _warrant_reconciliation(members: Iterable[_WarrantMember]) -> dict[str, list
     """
     by_identity = {(m.business_date, m.warehouse, m.exchange): m for m in members}
     dates = sorted({identity[0] for identity in by_identity})
-    previous_date = dict(zip(dates[1:], dates, strict=False))
+    # The previous delivered day stands for the previous session unless the delivery skips
+    # more than a long holiday; then the day is left unchecked.
+    previous_date = {
+        day: earlier
+        for day, earlier in zip(dates[1:], dates, strict=False)
+        if (day - earlier).days <= 10
+    }
     mismatches = []
     for (business_date, warehouse, exchange), member in sorted(by_identity.items()):
         earlier = previous_date.get(business_date)
@@ -2109,7 +2119,8 @@ def _warrant_reconciliation(members: Iterable[_WarrantMember]) -> dict[str, list
                     "change_sum": member.values["vol_chg"],
                 }
             )
-    return {"unchecked_dates": [day.isoformat() for day in dates[:1]], "mismatches": mismatches}
+    unchecked = [day.isoformat() for day in dates if day not in previous_date]
+    return {"unchecked_dates": unchecked, "mismatches": mismatches}
 
 
 _WARRANT_FIELDS = (
