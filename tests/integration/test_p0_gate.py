@@ -143,6 +143,37 @@ def test_context_window_accepts_a_published_month_that_overlaps_the_target_windo
         validate_analytical_projection(current.envelope, future_daily)
 
 
+def test_context_window_accepts_a_current_baseline_from_before_it(tmp_path: Path) -> None:
+    projections = ProjectionSetRepository.create(tmp_path / "projection.sqlite3")
+    P0ProjectionService(projections).publish(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 10, tzinfo=UTC),
+        assets=(
+            readiness("bond", CoreAssetState.BULL),
+            readiness("stock", CoreAssetState.BULL),
+            readiness("commodity", CoreAssetState.BEAR),
+        ),
+        last_confirmed_stage=None,
+    )
+    current = projections.current()
+
+    def policy(metric_id: str, day: str) -> dict[str, object]:
+        datasets = deepcopy(current.datasets)
+        datasets["macro"]["policy_action"]["evidence"] = [  # type: ignore[index]
+            {"metric_id": metric_id, "period_start": day, "period": day}
+        ]
+        return datasets
+
+    # An RRR in force until changed is shown however old (ADR-0028).
+    validate_analytical_projection(current.envelope, policy("CN_RRR_EVENT", "2025-05-15"))
+    for stale in (policy("CN_DR007", "2025-05-15"), policy("CN_RRR_EVENT", "2026-08-31")):
+        with pytest.raises(
+            ValueError,
+            match="projection_context_evidence_outside_visible_window",
+        ):
+            validate_analytical_projection(current.envelope, stale)
+
+
 def test_noncanonical_valid_combination_publishes_current_states_and_preserves_history(
     tmp_path: Path,
 ) -> None:

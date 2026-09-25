@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.batches import add_batch_columns, current_batch_id
+from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.source_contract_review import require_stored_model_source_contract
 from pring_cycle.storage import database_connection
 
@@ -467,11 +468,13 @@ def _validate_visible_context_window(
                     raise ValueError(
                         "projection_context_evidence_outside_visible_window"
                     ) from error
+                # A metric in force until changed is shown however old (ADR-0028).
+                baseline = value["metric_id"] in EFFECTIVE_UNTIL_CHANGED_METRICS
                 if (
                     not isinstance(period, str)
                     or not isinstance(period_start, str)
                     or evidence_start > evidence_end
-                    or evidence_end < visible_start
+                    or (evidence_end < visible_start and not baseline)
                     or evidence_start > visible_end
                 ):
                     raise ValueError("projection_context_evidence_outside_visible_window")
