@@ -15,3 +15,5 @@ status: accepted
 取舍：USDCNY 的授权条款是 CFETS 对数据使用的限制，个人本机研究不对外分发，用户接受这一风险换取汇率背景完整；SOX 没有可依法确认的免费渠道，照受限授权处理比依赖未公开接口更稳。仓单若维持“多行即拒收”，棉花会长期缺数；按仓库合计与下游按仓库对账的结构一致。已知代价：TuShare 合计可能偏低（见上），注记让对不上的仓库-日期可追溯。
 
 本 ADR 部分取代 [ADR-0023](0023-retrieval-verification-by-registered-parsers.md) 中这三个 P2 指标的检索渠道。
+
+郑商所品种（TA、CF）的仓单来源已由 [ADR-0032](0032-czce-warrants-from-exchange-daily.md) 改为交易所日报。
