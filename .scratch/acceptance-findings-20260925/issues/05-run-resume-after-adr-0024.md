@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: done
 Type: task
 
 # 05 — ADR-0024 已取消检查点恢复，`run-resume` 仍在
@@ -8,3 +8,4 @@ Type: task
 **待决定：** 按 ADR 删除恢复链（CLI、`RunRepository.resume`、Worker 检查点复用及测试），还是修订 ADR-0024 承认保留。实际运行刚受益于恢复（检索约 20 分钟，恢复后约 1 分钟），这一点应纳入考量。
 
 ## Comments
+- 2026-09-25 用户决定保留 `run-resume`，见 [ADR-0031](../../../docs/adr/0031-keep-run-resume.md)（部分取代 ADR-0024）；代码不改，CONTEXT.md“运行中断”已同步。

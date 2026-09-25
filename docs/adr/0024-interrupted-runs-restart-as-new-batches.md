@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted（部分被 ADR-0031 取代：保留运行恢复）
 ---
 
 # 中断的运行作为新批次从头重跑，窗口内漏跑日自动补算

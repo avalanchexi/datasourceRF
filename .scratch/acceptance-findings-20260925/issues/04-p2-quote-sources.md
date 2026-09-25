@@ -1,4 +1,4 @@
-Status: needs-info
+Status: done
 Type: grilling
 
 # 04 — USDCNY 16:30、VIX、SOX 需要结构化来源
@@ -10,3 +10,4 @@ Type: grilling
 **建议：** 并入 18 个缺口的统一取舍，用 `/grill-with-docs` 逐项决定后再立实施票。
 
 ## Comments
+- 2026-09-25 已按 ADR-0029 实施：VIX、USDCNY 16:30 走官方文件（gap-sources 票 06/07），SOX 列授权缺失（票 04）。

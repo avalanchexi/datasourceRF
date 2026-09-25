@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: ready-for-agent
 Type: task
 
 # 06 — 报告正文 30 天清空与 120 交易日统一保留并存
@@ -8,3 +8,4 @@ Type: task
 **待决定：** 报告正文是否也按 120 交易日保留（删 30 天规则），还是 30 天是有意的额外约束（则应写入 ADR-0022 或新 ADR）。
 
 ## Comments
+- 2026-09-25 用户决定删除 30 天清空规则，报告正文同为 120 交易日；ADR-0022 已修订，实施见 [gap-sources 票 14](../../gap-sources-20260925/issues/14-report-body-120-days.md)。

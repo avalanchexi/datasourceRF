@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted（2026-09-25 修订：报告正文同为 120 交易日）
 ---
 
 # 明细、汇总与加工批次统一只留 120 个交易日
@@ -9,3 +9,5 @@ status: accepted
 取舍：不可变 vintage、双时点与并行版本回放服务的是长期历史重现与无前视校准，而它们的存储、夹具与认证成本正是开发周期被拖慢的主因。接受的代价是：超过 120 个交易日的阶段史、报告与投影不再可见，旧判断无法用新模型重算，也无法重现某一天的历史页面。细节见[留存与批次](../../.scratch/pring-fast-refactor-20260923/issues/06-detail-retention-and-processing-batch.md)。
 
 本 ADR 取代 [ADR-0006](0006-dual-as-of-and-immutable-evidence-vintages.md) 与 [ADR-0012](0012-atomic-model-versions-and-parallel-replay.md)。[ADR-0008](0008-atomic-analytical-projection-sets.md) 的原子发布继续有效。
+
+**2026-09-25 修订（用户选择，验收发现 [06](../../.scratch/acceptance-findings-20260925/issues/06-report-body-30-day-clear.md)）**：报告正文与其他汇总一样保留 120 个交易日，删除维护清理中“30 天后清空报告正文”的规则。事件指标现行基准的窗口外保留例外仍见 [ADR-0028](0028-event-metrics-current-baseline-and-discovery.md)。
