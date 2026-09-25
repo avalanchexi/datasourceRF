@@ -149,13 +149,15 @@ def test_nothing_left_to_compute_fetches_only_the_calendar() -> None:
     assert [api for api, _ in calls] == ["trade_cal"]
 
 
-def test_an_unknown_security_code_refuses_the_delivery() -> None:
+def test_an_unknown_security_code_that_trades_refuses_the_delivery() -> None:
     LISTINGS["L"].append(("123456.SH", "20200101"))
+    QUOTES.append(("123456.SH", 5.0, 5.0, 10.0, 50.0))
     try:
         with pytest.raises(ValueError, match="tushare_breadth_security_scope_unknown"):
             breadth_scalars(fake_call([]), end_date=DAY, window=1)
     finally:
         LISTINGS["L"].pop()
+        QUOTES.pop()
 
 
 @pytest.mark.parametrize(
@@ -230,3 +232,13 @@ def test_a_non_finite_price_refuses_the_delivery() -> None:
             breadth_scalars(fake_call([]), end_date=DAY, window=1)
     finally:
         QUOTES[0] = ("600000.SH", 10.5, 10.0, 1000.0, 5000.0)
+
+
+def test_a_code_retired_before_the_window_needs_no_classification() -> None:
+    LISTINGS["D"].append(("T600018.SH", "19930101"))
+    try:
+        result = values(breadth_scalars(fake_call([]), end_date=DAY, window=1))
+    finally:
+        LISTINGS["D"].pop()
+
+    assert result[("CN_EQ_ADV_DEC", "participants")] == 3

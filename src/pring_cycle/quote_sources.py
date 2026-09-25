@@ -121,7 +121,8 @@ class QuoteSource:
 CBOE_VIX = QuoteSource(
     metric_id="CBOE_VIX_INDEX",
     provider="Cboe Global Markets",
-    url="https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+    # cdn.cboe.com answers 307 to this host since 2026-09-26; redirects are not followed.
+    url="https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
     channel="cboe_official",
     fields="DATE,CLOSE",
     parser_version="cboe-vix-history-parser-v0001",

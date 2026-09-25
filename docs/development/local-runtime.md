@@ -324,7 +324,7 @@ TuShare（数据接口或资讯）取到值后不再去官方或媒体页面。�
 重试后直接列入缺口清单，并带“无网页补缺渠道”属性。
 
 **P2 行情官方文件（ADR-0029）。** VIX 每轮直接取 Cboe 日历史 CSV
-（`cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`），USDCNY 16:30 直接取中国货币网
+（`cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`；原 `cdn.cboe.com` 自 2026-09-26 起 307 跳转到此），USDCNY 16:30 直接取中国货币网
 日内走势文件（`rfx-sp-iday-chrt.json` 的 `closeSpotPrice`，须与快照里 16:30 那一点一致；最新价是 03:00
 夜盘收盘，不取），二者都不检索；文件结构不符记“来源失败”并附原因码。USDCNY 16:30 持有前一交易日即算
 现行；Cboe 文件更新不逐日稳定，VIX 宽限 3 个交易日。SOX 为受限授权，缺口清单列“授权缺失”，不检索。

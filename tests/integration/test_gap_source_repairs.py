@@ -102,7 +102,7 @@ class OfficialFile(BytesIO):
 
 def official_quote(request: Any, *, timeout: float) -> OfficialFile:
     url = request.full_url
-    if url.startswith("https://cdn.cboe.com/"):
+    if url.startswith("https://cdn-api.cboe.com/"):
         return OfficialFile(url, VIX_CSV)
     if url.startswith("https://www.chinamoney.com.cn/"):
         return OfficialFile(url, CFETS_JSON)

@@ -128,12 +128,16 @@ def _number(value: object) -> float | None:
 
 
 def listing_intervals(rows: Rows) -> dict[str, tuple[date, date | None]]:
-    """Each ordinary A share's listing and delisting dates, from ``stock_basic``'s three states."""
+    """Each security's listing and delisting dates, from ``stock_basic``'s three states.
+
+    Only a code that trades on a computed day is classified; the listings also carry codes
+    retired long before the window, some in formats no current rule covers (``T600018.SH``).
+    """
     intervals: dict[str, tuple[date, date | None]] = {}
     for row in rows:
         code = row.get("ts_code")
-        if not isinstance(code, str) or not ordinary_share(code):
-            continue
+        if not isinstance(code, str):
+            raise ValueError("tushare_breadth_listing_code_invalid")
         if code in intervals:
             raise ValueError("tushare_breadth_listing_duplicate")
         delisted = row.get("delist_date")

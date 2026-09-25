@@ -5,7 +5,7 @@ Type: task
 
 规格“VIX”一节（用户故事 17–19），依据 ADR-0029。
 
-- 来源：`https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`（`DATE,OPEN,HIGH,LOW,CLOSE`，自 1990 年起）。只取日期与收盘值；表头或行结构不符记来源失败，不取值。
+- 来源：`https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv`（2026-09-26 起 `cdn.cboe.com` 307 跳转到此）（`DATE,OPEN,HIGH,LOW,CLOSE`，自 1990 年起）。只取日期与收盘值；表头或行结构不符记来源失败，不取值。
 - 时效登记由 `search:cboe` 改为官方来源，移除宽松检索家族。
 
 ## 实测更新时刻

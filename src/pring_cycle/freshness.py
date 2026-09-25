@@ -141,7 +141,7 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
         "daily",
         1,
         time(6, 0),
-        "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
+        "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
         grace=3,
     ),
     # Restricted licence (ADR-0029): Nasdaq offers no documented free feed for SOX.
