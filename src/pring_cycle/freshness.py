@@ -701,6 +701,23 @@ def _failed_candidates(database: Path, run_id: str) -> dict[str, list[dict[str, 
     }
 
 
+def _backtracked(database: Path, run_id: str) -> dict[str, str]:
+    """Per event metric the run traced back, how that ended (found, none_found, source_failed)."""
+    from pring_cycle.storage import database_connection
+
+    with database_connection(database) as connection:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
+        ).fetchone():
+            return {}
+        row = connection.execute(
+            "SELECT document_json FROM full_run_gap_plan "
+            "WHERE run_id=? AND phase='event_backtrack'",
+            (run_id,),
+        ).fetchone()
+    return dict(json.loads(row[0])["metrics"]) if row else {}
+
+
 _GAP_ORDER = (
     "missing",
     "no_searchable_source",
@@ -729,10 +746,16 @@ def gap_list(
 
     priorities = {item.metric_id: item.priority for item in definitions}
     failed_candidates = _failed_candidates(database, run_id)
+    backtracked = _backtracked(database, run_id)
     gaps: list[dict[str, object]] = []
     for metric_id, row in batch_freshness(database, run_id).items():
         status, behind = row["status"], row["periods_behind"]
-        if status == "missing":
+        if status == "missing" and backtracked.get(metric_id) == "none_found":
+            # Traced back to the source's end without one: nothing is owed (ADR-0028).
+            continue
+        if status == "missing" and backtracked.get(metric_id) == "source_failed":
+            category, reason = "retrieval_failed", "backtrack_incomplete"
+        elif status == "missing":
             category, reason = "missing", "not_held"
         elif status == "stale" and behind == 1:
             category, reason = "freshness_gap", "one_period_behind_carried"

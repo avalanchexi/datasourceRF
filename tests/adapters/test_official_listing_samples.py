@@ -116,3 +116,41 @@ def test_omo_notices_are_the_day_s_entries_newest_first() -> None:
     assert release_urls(listing, family="pbc_omo_notice", listing_url=OMO, period="2026-09-24") == (
         notice.format("2026092408454713496"),
     )
+
+
+CHRONICLES = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/index.html"
+
+
+def test_the_chronicle_column_lists_each_issue_with_the_months_it_covers() -> None:
+    """Event #03: the RRR is traced back through the monetary policy chronicles."""
+    from pring_cycle.official_listing import (
+        RRR_CHRONICLE_LISTING,
+        chronicle_entries,
+        chronicle_next_page,
+    )
+
+    assert RRR_CHRONICLE_LISTING == CHRONICLES
+    first = page("pbc_125963_index_20260925.html")
+    entries = chronicle_entries(first, CHRONICLES)
+
+    assert len(entries) == 20
+    newest = entries[0]
+    assert newest.url == CHRONICLES.replace("index.html", "2026081218415997958/index.html")
+    assert (newest.year, newest.through_month, newest.published) == (2026, 6, "2026-08-12")
+    # A year's issue covers it to December; a first quarter's to March.
+    assert [(e.year, e.through_month, e.published) for e in entries[1:3]] == [
+        (2026, 3, "2026-05-11"),
+        (2025, 12, "2026-02-10"),
+    ]
+    assert (entries[3].year, entries[3].through_month) == (2025, 9)
+    assert chronicle_next_page(first, CHRONICLES) == CHRONICLES.replace(
+        "index.html", "17134-2.html"
+    )
+
+    second = page("pbc_125963_17134-2_20260925.html")
+    older = chronicle_entries(second, CHRONICLES.replace("index.html", "17134-2.html"))
+    # Before 2021 a quarter's issue is titled by the quarter alone.
+    assert [(e.year, e.through_month) for e in older[:3]] == [(2021, 6), (2021, 3), (2020, 12)]
+    assert chronicle_next_page(second, CHRONICLES) == CHRONICLES.replace(
+        "index.html", "17134-3.html"
+    )

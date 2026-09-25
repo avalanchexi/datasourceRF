@@ -786,4 +786,6 @@ def test_a_held_rrr_needs_no_retrieval_when_the_news_states_none(
     assert attempts == (0,)
     plan = RunRepository(paths.database).full_retrieval_plan(run.run_id)
     assert plan["event_monitoring"]["metrics"] == {"CN_RRR_EVENT": "none_stated"}
+    # Event #03: a held RRR is not traced back.
+    assert "event_backtrack" not in plan
     assert rrr_rows(paths, model_id, now, "2026-09-28") == [("current", -0.5)]

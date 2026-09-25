@@ -68,7 +68,8 @@ def runtime_clock(
 
 @pytest.fixture(scope="session", autouse=True)
 def _official_pages_offline() -> Iterator[None]:
-    """The CSI page and NBS schedule page are never reached unless a test serves its own.
+    """The CSI page, NBS schedule page and official context pages (a first full run traces
+    the RRR back through the PBC's chronicles) are never reached unless a test serves its own.
 
     Module-scoped runtime fixtures run before function-scoped patches, so the default has
     to be installed for the whole session.
@@ -77,9 +78,13 @@ def _official_pages_offline() -> Iterator[None]:
     def offline(url: str) -> bytes:
         raise OSError("official_page_offline_in_tests")
 
+    def offline_request(request: object, *, timeout: float) -> bytes:
+        raise OSError("official_page_offline_in_tests")
+
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr("pring_cycle.official_core._fetch", offline)
         patch.setattr("pring_cycle.release_schedule._fetch_page", offline)
+        patch.setattr("pring_cycle.official_context.urlopen", offline_request)
         yield
 
 

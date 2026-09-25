@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from urllib.parse import urljoin, urlsplit
 
@@ -161,3 +162,79 @@ def worth_older_pages(months: list[str], period: str) -> bool:
     newest = max(months)
     gap = (int(newest[:4]) - int(last[:4])) * 12 + int(newest[4:]) - int(last[4:])
     return gap <= 6
+
+
+RRR_CHRONICLE_LISTING = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125227/125963/index.html"
+# "2026年上半年中国货币政策大事记"; before 2021 a quarter's issue is titled by the quarter.
+_CHRONICLE_TITLE = re.compile(
+    r"^(?P<year>20\d{2})年(?P<part>第一季度|第二季度|第三季度|第四季度|上半年|前三季度)?"
+    r"中国货币政策大事记$"
+)
+_CHRONICLE_THROUGH = {
+    "第一季度": 3,
+    "第二季度": 6,
+    "上半年": 6,
+    "第三季度": 9,
+    "前三季度": 9,
+    "第四季度": 12,
+    None: 12,
+}
+
+
+@dataclass(frozen=True)
+class ChronicleEntry:
+    """One issue of the PBC's monetary policy chronicle: its year, to which month it goes,
+    and the day the column lists it as published."""
+
+    url: str
+    year: int
+    through_month: int
+    published: str
+
+
+class _DatedLinks(_ReleaseLinks):
+    """Links with the first date (YYYY-MM-DD) written after each, as the column lists it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.dates: dict[int, str] = {}
+
+    def handle_data(self, data: str) -> None:
+        super().handle_data(data)
+        last = len(self.links) - 1
+        if (
+            self.href is None
+            and last not in self.dates
+            and self.links
+            and (match := re.search(r"20\d{2}-\d{2}-\d{2}", data))
+        ):
+            self.dates[last] = match.group(0)
+
+
+def chronicle_entries(content: bytes, listing_url: str) -> tuple[ChronicleEntry, ...]:
+    """The chronicle issues on one page of the column, in its order (newest first)."""
+    parser = _DatedLinks()
+    parser.feed(content.decode("utf-8-sig", "replace"))
+    entries = []
+    for index, (href, title) in enumerate(parser.links):
+        match = _CHRONICLE_TITLE.match(title)
+        if match is None or index not in parser.dates:
+            continue
+        entries.append(
+            ChronicleEntry(
+                urljoin(listing_url, href),
+                int(match["year"]),
+                _CHRONICLE_THROUGH[match["part"]],
+                parser.dates[index],
+            )
+        )
+    return tuple(entries)
+
+
+def chronicle_next_page(content: bytes, listing_url: str) -> str | None:
+    """The column's next page, from its pager ("下一页" names it in ``tagname``)."""
+    match = re.search(
+        r"<a[^>]*tagname=\"(?P<page>[^\"\[][^\"]*)\"[^>]*>\s*下一页\s*</a>",
+        content.decode("utf-8-sig", "replace"),
+    )
+    return urljoin(listing_url, match["page"]) if match else None

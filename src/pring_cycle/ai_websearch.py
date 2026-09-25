@@ -22,7 +22,9 @@ import time
 import tomllib
 import uuid
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
+from datetime import time as clock_time
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -164,56 +166,60 @@ def ai_websearch_adapter(
             return RetrievalAdapterResponse(
                 "not_attempted", classification=str(error), cache_hit=error.cache_hit
             )
-        prompt = _prompt(scope, query, domains)
-        answered: tuple[str, dict[str, Any]] | None = None
-        attempts: list[dict[str, Any]] = []
-        for adapter in adapters:
-            if remaining <= 0:
-                break
-            started = time.monotonic()
-            outcome = run_structured_cli(
-                adapter,
-                prompt,
-                CANDIDATE_SCHEMA,
-                timeout_seconds=min(AI_CALL_SECONDS, remaining),
-                audit={"retrieval_request_id": request_id, "adapter": adapter},
-                web_search=True,
-            )
-            classification = outcome.classification
-            if outcome.document is not None:
-                if outcome.tool_events:
-                    classification = "tool_use_rejected"
-                elif _candidates(outcome.document) is None:
-                    classification = "schema_validation_failed"
-            attempts.append(
-                {
-                    "adapter": adapter,
-                    "outcome": classification or "succeeded",
-                    "tool_events": outcome.tool_events,
-                    "cli_version": outcome.version,
-                    "audit": outcome.audit,
-                }
-            )
-            if classification is None and outcome.document is not None:
-                answered = (adapter, outcome.document)
-                break
-            remaining -= time.monotonic() - started
-        document = {
-            "adapters": attempts,
-            "answer": answered[1] if answered else None,
-        }
-        response = _record_answer(
+        adapter, document = _ask(_prompt(scope, query, domains), request_id, remaining, adapters)
+        return _record_answer(
             paths,
             ledger,
             request_id,
             scope_run,
-            answered[0] if answered else _last_adapter(attempts, adapters),
+            adapter,
             document,
             definition_version=definition_version,
         )
-        return response
 
     return retrieve
+
+
+def _ask(
+    prompt: str, request_id: str, remaining: float, adapters: tuple[str, ...]
+) -> tuple[str, dict[str, Any]]:
+    """Each CLI in turn until one answers in the fixed structure: the one that answered (or
+    the last tried) and the exchange, whose ``answer`` is None when none did."""
+    answered: tuple[str, dict[str, Any]] | None = None
+    attempts: list[dict[str, Any]] = []
+    for adapter in adapters:
+        if remaining <= 0:
+            break
+        started = time.monotonic()
+        outcome = run_structured_cli(
+            adapter,
+            prompt,
+            CANDIDATE_SCHEMA,
+            timeout_seconds=min(AI_CALL_SECONDS, remaining),
+            audit={"retrieval_request_id": request_id, "adapter": adapter},
+            web_search=True,
+        )
+        classification = outcome.classification
+        if outcome.document is not None:
+            if outcome.tool_events:
+                classification = "tool_use_rejected"
+            elif _candidates(outcome.document) is None:
+                classification = "schema_validation_failed"
+        attempts.append(
+            {
+                "adapter": adapter,
+                "outcome": classification or "succeeded",
+                "tool_events": outcome.tool_events,
+                "cli_version": outcome.version,
+                "audit": outcome.audit,
+            }
+        )
+        if classification is None and outcome.document is not None:
+            answered = (adapter, outcome.document)
+            break
+        remaining -= time.monotonic() - started
+    document = {"adapters": attempts, "answer": answered[1] if answered else None}
+    return (answered[0] if answered else _last_adapter(attempts, adapters)), document
 
 
 def _last_adapter(attempts: list[dict[str, Any]], adapters: tuple[str, ...]) -> str:
@@ -249,31 +255,13 @@ def _record_answer(
     definition_version: str,
 ) -> RetrievalAdapterResponse:
     """Keep the exchange as an acquisition, then check each candidate on its own."""
-    from pring_cycle.acquisition import AcquisitionRepository
     from pring_cycle.search_evidence import select_retrieval_input
 
     scope = run.retrieval_scope
     assert scope is not None
-    raw = json.dumps(document, ensure_ascii=False, sort_keys=True).encode()
     answer = document["answer"]
-    try:
-        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
-            provider=adapter,
-            api_name="ai_websearch",
-            parameters={
-                "metric_ids": ",".join(scope.metric_ids),
-                "period": scope.period,
-                "retrieval_request_id": request_id,
-            },
-            fields="candidates",
-            parser_version=AI_PARSER_VERSION,
-            fetch=lambda: raw,
-            parse=lambda _raw: _candidates(answer) if answer is not None else [],
-            normalize=lambda candidates: {"candidates": candidates},
-            on_started=lambda acquisition_id: ledger.attach_acquisition(request_id, acquisition_id),
-        )
-    except ValueError:
-        ledger.complete(request_id, outcome="failed", classification="semantic_validation_failed")
+    acquired = _keep_exchange(paths, ledger, request_id, scope, adapter, document)
+    if acquired is None:
         return RetrievalAdapterResponse("failed", classification="semantic_validation_failed")
     candidates = acquired.value or []
     if answer is None:
@@ -307,6 +295,142 @@ def _record_answer(
     )
 
 
+def _keep_exchange(
+    paths: RuntimePaths,
+    ledger: RetrievalLedger,
+    request_id: str,
+    scope: RetrievalScope,
+    adapter: str,
+    document: dict[str, Any],
+) -> Any:
+    """The exchange kept as an acquisition, or None (the request failed) when it cannot be."""
+    from pring_cycle.acquisition import AcquisitionRepository
+
+    raw = json.dumps(document, ensure_ascii=False, sort_keys=True).encode()
+    answer = document["answer"]
+    try:
+        return AcquisitionRepository(paths.database, paths.artifacts).capture(
+            provider=adapter,
+            api_name="ai_websearch",
+            parameters={
+                "metric_ids": ",".join(scope.metric_ids),
+                "period": scope.period,
+                "retrieval_request_id": request_id,
+            },
+            fields="candidates",
+            parser_version=AI_PARSER_VERSION,
+            fetch=lambda: raw,
+            parse=lambda _raw: _candidates(answer) if answer is not None else [],
+            normalize=lambda candidates: {"candidates": candidates},
+            on_started=lambda acquisition_id: ledger.attach_acquisition(request_id, acquisition_id),
+        )
+    except ValueError:
+        ledger.complete(request_id, outcome="failed", classification="semantic_validation_failed")
+        return None
+
+
+def discover_event(
+    paths: RuntimePaths,
+    scope_run: RunRecord,
+    *,
+    since: date | None,
+    until: date,
+    definition_version: str,
+    adapters: tuple[str, ...] = AI_ADAPTERS,
+) -> tuple[str, tuple[str, ...]]:
+    """Ask for the latest event effective after ``since`` (or ever) and by ``until``.
+
+    An event never held is traced back (ADR-0028): the scope names its metrics and the
+    backtrack's gap. Each candidate is checked as a gap's is, on the effective day it
+    gives, which must lie in the window; an adopted one is public by the end of the day its
+    page was published. The outcome is ``new_event`` (claims stored), ``none_stated`` (the
+    answer has no candidate), ``rejected`` (none usable) or ``unavailable`` (no answer, or
+    AI WebSearch is off, out of time or held back by the ledger).
+    """
+    from pring_cycle.news_rules import rules_for
+    from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked
+    from pring_cycle.retrieval_registry import search_domains, search_query
+    from pring_cycle.search_evidence import DATE_AFTER_CUTOFF, PERIOD_MISMATCH
+
+    scope = scope_run.retrieval_scope
+    assert scope is not None
+    remaining = AI_RUN_BUDGET.total_seconds() - ai_seconds_used(paths, scope_run.run_id)
+    if not ai_websearch_enabled(paths) or remaining <= 0:
+        return "unavailable", ()
+    query = search_query(scope.metric_ids, until.isoformat()[:7])
+    domains = search_domains(scope.metric_ids)
+    ledger = RetrievalLedger(paths.database, scope_run=scope_run)
+    try:
+        request_id = ledger.reserve(
+            scope_run.run_id, "ai_websearch", scope.release_event_id, query, domains=domains
+        )
+    except RetrievalBudgetBlocked:
+        return "unavailable", ()
+    prompt = json.dumps(
+        {
+            "instruction": (
+                "用联网搜索查找下列指标在 effective_after 之后（为 null 时不限）、"
+                "effective_by 当日及以前生效的最近一次调整。"
+                "只能采用 allowed_domains 中的网站（含其子域名）上的页面；"
+                "quote 必须逐字摘录页面上宣布该调整的原句，原句须写明生效日期（含年份）与调整幅度；"
+                "适用范围不同的调整各给一条候选；"
+                "value 为原句中的调整幅度（只写数字）；"
+                "period 为生效日期（YYYY-MM-DD）；"
+                "published_date 为页面发布日期（YYYY-MM-DD）。"
+                "区间内没有调整就返回空数组，不得推算或编造。"
+            ),
+            "metric_ids": list(scope.metric_ids),
+            "effective_after": since.isoformat() if since is not None else None,
+            "effective_by": until.isoformat(),
+            "search_query": query,
+            "allowed_domains": list(domains),
+            "sentence_patterns": [rule.pattern.pattern for rule in rules_for(scope.metric_ids)],
+        },
+        ensure_ascii=False,
+    )
+    adapter, document = _ask(prompt, request_id, remaining, adapters)
+    acquired = _keep_exchange(paths, ledger, request_id, scope, adapter, document)
+    if acquired is None:
+        return "unavailable", ()
+    if document["answer"] is None:
+        ledger.complete(request_id, outcome="failed", classification="ai_websearch_unavailable")
+        return "unavailable", ()
+    candidates = acquired.value or []
+    claim_ids: list[str] = []
+    for candidate in candidates:
+        reason: str | None
+        stored: tuple[str, ...]
+        day = candidate["period"]
+        try:
+            effective = date.fromisoformat(day) if len(day) == 10 else None
+        except ValueError:
+            effective = None
+        if effective is None or effective > until or (since is not None and effective <= since):
+            reason, stored = PERIOD_MISMATCH, ()
+        elif candidate["published_date"] > until.isoformat():
+            # Out after the target day, it is not what the target day knew.
+            reason, stored = DATE_AFTER_CUTOFF, ()
+        else:
+            on_day = replace(scope_run, retrieval_scope=replace(scope, period=day))
+            reason, stored = _adopt(
+                paths,
+                on_day,
+                candidate,
+                acquired.receipt,
+                adapter,
+                definition_version=definition_version,
+                public_by_published_day=True,
+            )
+        claim_ids.extend(stored)
+        _record_validation(paths, scope_run, request_id, candidate, reason, stored)
+    if claim_ids:
+        ledger.complete(request_id, outcome="verified", classification="event_discovered")
+        return "new_event", tuple(claim_ids)
+    status = "candidate_source" if candidates else "not_found"
+    ledger.complete(request_id, outcome=status, classification="candidate_validation_unresolved")
+    return ("rejected" if candidates else "none_stated"), ()
+
+
 def _adopt(
     paths: RuntimePaths,
     run: RunRecord,
@@ -315,8 +439,13 @@ def _adopt(
     adapter: str,
     *,
     definition_version: str,
+    public_by_published_day: bool = False,
 ) -> tuple[str | None, tuple[str, ...]]:
-    """Why a candidate is not adopted (None when it is), and the claims it stored."""
+    """Why a candidate is not adopted (None when it is), and the claims it stored.
+
+    ``public_by_published_day``: a past event found by a backtrack was public, at the
+    latest, by the end of the day its page was published.
+    """
     from pring_cycle.news_rules import (
         AI_WEBSEARCH,
         NewsValue,
@@ -384,6 +513,11 @@ def _adopt(
                 fetched_at=receipt.received_at or receipt.started_at,
                 # A date alone does not say when that day: the time stays unknown.
                 release_at=None,
+                public_at=(
+                    datetime.combine(published, clock_time.max, tzinfo=_SHANGHAI)
+                    if public_by_published_day
+                    else None
+                ),
             )
             for item in values
         ),

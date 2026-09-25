@@ -32,6 +32,10 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.http_transport import open_no_redirects as urlopen
 from pring_cycle.official_listing import (
+    RRR_CHRONICLE_LISTING,
+    ChronicleEntry,
+    chronicle_entries,
+    chronicle_next_page,
     is_release_listing,
     listing_months,
     listing_page_url,
@@ -821,6 +825,172 @@ def refresh_official_context_document(
                 },
             )
         raise
+
+
+# A chronicle entry opens with its day ("5月15日，"); a change of the RRR in it is written
+# with its direction near the rate ("下调金融机构存款准备金率", "定向下调存款准备金率").
+_ENTRY_DAY = re.compile(r"(\d{1,2})月(\d{1,2})日")
+_RRR_CHANGE_MENTION = re.compile(r"(?:下调|上调|降低|提高)[^。；，]{0,30}?(?<!外汇)存款准备金率")
+
+
+@dataclass(frozen=True)
+class RrrBacktrack:
+    """What the chronicles gave: the latest cut's claims (none when no issue up to the
+    column's last page states one), and the last day the newest issue read covers."""
+
+    claim_ids: tuple[str, ...]
+    covered_through: date | None
+
+
+def backtrack_rrr_chronicle(
+    paths: RuntimePaths,
+    *,
+    until: date,
+    fetched_at: datetime,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
+    definition_version: str = METRIC_CATALOG_VERSION,
+    on_acquisition_started: Callable[[str], None] | None = None,
+) -> RrrBacktrack:
+    """The latest RRR change effective by ``until``, traced back through the chronicles.
+
+    The PBC's own RRR column stopped in 2020; its monetary policy chronicle states each
+    change by the day it took effect (ADR-0028). Issues listed by ``until`` are read newest
+    first, each from its last month back, and the first cut found is the latest: an issue
+    goes no later than the ones published after it. That issue is then read again as the
+    month's release and kept. A cut the parser cannot read stops the search (an older one
+    must not stand in for it), and so does any page that cannot be read.
+    """
+    family = "pbc_rrr_notice"
+    covered_through = None
+    page_url: str | None = RRR_CHRONICLE_LISTING
+    while page_url is not None:
+        entries, page_url = _read_chronicle_page(paths, page_url, fetcher, on_acquisition_started)
+        for entry in entries:
+            if entry.published > until.isoformat() or entry.year > until.year:
+                continue
+            if covered_through is None:
+                last = calendar.monthrange(entry.year, entry.through_month)[1]
+                covered_through = date(entry.year, entry.through_month, last)
+            period = _scan_chronicle(paths, entry, until, fetcher, on_acquisition_started)
+            if period is not None:
+                result = refresh_official_context_document(
+                    paths,
+                    family=family,
+                    source_url=entry.url,
+                    expected_period=period,
+                    fetched_at=fetched_at,
+                    fetcher=fetcher,
+                    definition_version=definition_version,
+                    on_acquisition_started=on_acquisition_started,
+                )
+                return RrrBacktrack(result.claim_ids, covered_through)
+    return RrrBacktrack((), covered_through)
+
+
+def _read_chronicle_page(
+    paths: RuntimePaths,
+    page_url: str,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
+    started: Callable[[str], None] | None,
+) -> tuple[tuple[ChronicleEntry, ...], str | None]:
+    family = "pbc_rrr_notice"
+    responses: list[FetchedOfficialContextDocument] = []
+
+    def fetch() -> bytes:
+        response = (fetcher or _fetch_official_context_document)(page_url)
+        responses.append(response)
+        return response.content
+
+    def parse(content: bytes) -> tuple[tuple[ChronicleEntry, ...], str | None]:
+        _validate_fetched_document(family, page_url, responses[0])
+        if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
+            raise ValueError("official_context_document_size_invalid")
+        entries = chronicle_entries(content, page_url)
+        if not entries:
+            # A changed or replaced page is not the column's end.
+            raise ValueError("official_context_release_link_not_found")
+        following = chronicle_next_page(content, page_url)
+        for url in (*(entry.url for entry in entries), *((following,) if following else ())):
+            _validate_source_identity(family, url)
+        return entries, following
+
+    discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=_validate_source_identity(family, page_url),
+        api_name="official_listing_get",
+        parameters={"source_url": page_url, "family": family},
+        fields="href,title,date",
+        parser_version="official-chronicle-listing-v0001",
+        fetch=fetch,
+        parse=parse,
+        normalize=lambda value: {
+            "entries": [asdict(entry) for entry in value[0]],
+            "next_page": value[1],
+        },
+        on_started=started,
+    )
+    return discovered.value
+
+
+def _scan_chronicle(
+    paths: RuntimePaths,
+    entry: ChronicleEntry,
+    until: date,
+    fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
+    started: Callable[[str], None] | None,
+) -> str | None:
+    """The month of the latest cut in force by ``until`` that this issue states, if any."""
+    family = "pbc_rrr_notice"
+    responses: list[FetchedOfficialContextDocument] = []
+
+    def fetch() -> bytes:
+        response = (fetcher or _fetch_official_context_document)(entry.url)
+        responses.append(response)
+        return response.content
+
+    def parse(content: bytes) -> str | None:
+        _validate_fetched_document(family, entry.url, responses[0])
+        parser = _OfficialHtmlParser()
+        parser.feed(_decode_document(content))
+        text = _normalized_text(" ".join(parser.parts))
+        # The months whose entries change the RRR, read or not (the FX RRR is another).
+        changed = {
+            int(dated[-1][0])
+            for mention in _RRR_CHANGE_MENTION.finditer(text)
+            if (dated := _ENTRY_DAY.findall(text, 0, mention.start()))
+        }
+        last = entry.through_month if entry.year < until.year else until.month
+        for month in range(min(entry.through_month, last), 0, -1):
+            if month not in changed:
+                continue
+            period = f"{entry.year:04d}-{month:02d}"
+            try:
+                parsed = parse_official_context_document(
+                    content,
+                    family=family,
+                    source_url=entry.url,
+                    expected_period=period,
+                    fetched_at=utc_now(),
+                )
+            except ValueError as error:
+                if str(error) == "official_context_table_schema_mismatch":
+                    raise ValueError("official_context_rrr_change_unreadable") from error
+                raise
+            if all(item.period_end <= until.isoformat() for item in parsed.scalars):
+                return period
+        return None
+
+    scanned = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider=_validate_source_identity(family, entry.url),
+        api_name="official_listing_get",
+        parameters={"source_url": entry.url, "until": until.isoformat(), "family": family},
+        fields="rrr_change_month",
+        parser_version="official-rrr-chronicle-scan-v0001",
+        fetch=fetch,
+        parse=parse,
+        normalize=lambda period: {"period": period},
+        on_started=started,
+    )
+    return scanned.value
 
 
 def _fetch_official_context_document(source_url: str) -> FetchedOfficialContextDocument:

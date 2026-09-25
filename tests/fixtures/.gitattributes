@@ -5,3 +5,5 @@ nbs_gdp_2023q4.html -text -diff
 eia/*.htm -text -diff
 official_listing/pbc_125475_index_20260924.html -text -diff
 pbc_omo_notice/*.html -text -diff
+official_listing/pbc_125963_*.html -text -diff
+pbc_rrr_chronicle/*.html -text -diff

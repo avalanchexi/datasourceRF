@@ -65,6 +65,8 @@ class FullRunRetrieval:
             self._pull_news(run)
         else:
             initial = plan["initial"]
+        if plan.get("event_backtrack") is None:
+            self._backtrack_events(run)
         version = str(initial["definition_version"])
         if dates := initial.get("daily_window", {}).get("dates"):
             # Judge release times against the run's SSE calendar, not weekdays.
@@ -205,6 +207,113 @@ class FullRunRetrieval:
                     "claim_ids": list(stored),
                 },
             )
+
+    def _backtrack_events(self, run: RunRecord) -> None:
+        """Trace back an RRR never held to its latest change (ADR-0028), once per run.
+
+        The PBC's policy chronicles are read back from the target month; AI WebSearch is
+        asked for the days after the newest issue, or for the latest change when the column
+        cannot be read. A column read to its end without one is "none found", which is not a
+        gap; only a search that did not finish is.
+        """
+        from pring_cycle.ai_websearch import discover_event
+        from pring_cycle.official_context import backtrack_rrr_chronicle
+        from pring_cycle.official_listing import RRR_CHRONICLE_LISTING
+
+        rules = ContextProjectionRules.from_manifest(
+            ModelRepository(self.paths.database).manifest(run.model_version_id)
+        )
+        definition = next(
+            (d for d in rules.metric_definitions if d.metric_id == "CN_RRR_EVENT"), None
+        )
+        if definition is None or any(
+            point.period_start <= run.target_business_date
+            for point in ModelInputSelector(self.paths, run).series(definition.metric_id)
+        ):
+            return
+        until = date.fromisoformat(run.target_business_date)
+        version = rules.metric_catalog_version
+        scope = RetrievalScope(
+            f"backtrack:{definition.release_event_family}:{until.isoformat()}",
+            (definition.metric_id,),
+            until.isoformat(),
+            definition.priority,
+            RRR_CHRONICLE_LISTING,
+        )
+        scoped = replace(run, retrieval_scope=scope)
+        RetrievalLedger(self.paths.database, scope_run=scoped).bind_run(scoped, version)
+        found = None
+        official = "not_configured"
+        if _official_candidate((definition,)) is not None:
+
+            def chronicles(started: Any) -> str:
+                nonlocal found
+                found = backtrack_rrr_chronicle(
+                    self.paths,
+                    until=until,
+                    fetched_at=utc_now(),
+                    definition_version=version,
+                    on_acquisition_started=started,
+                )
+                return "chronicle:" + ",".join(found.claim_ids)
+
+            with own_acquisitions(
+                self.paths.database,
+                run.run_id,
+                "event_backtrack",
+                metric_ids=scope.metric_ids,
+            ):
+                RetrievalLedger(self.paths.database, scope_run=scoped).trace_acquisition(
+                    run.run_id,
+                    "official",
+                    scope.release_event_id,
+                    RRR_CHRONICLE_LISTING,
+                    chronicles,
+                )
+            official = (
+                "source_failed" if found is None else "found" if found.claim_ids else "none_found"
+            )
+        claim_ids = list(found.claim_ids) if found is not None else []
+        tail = None
+        with own_acquisitions(
+            self.paths.database, run.run_id, "event_backtrack", metric_ids=scope.metric_ids
+        ):
+            if found is None:
+                _asked, stored = discover_event(
+                    self.paths, scoped, since=None, until=until, definition_version=version
+                )
+            elif found.covered_through is None or found.covered_through < until:
+                asked, stored = discover_event(
+                    self.paths,
+                    scoped,
+                    since=found.covered_through,
+                    until=until,
+                    definition_version=version,
+                )
+                tail = "unchecked" if asked == "unavailable" else asked
+            else:
+                stored, tail = (), "not_needed"
+        claim_ids += stored
+        self._record(
+            run.run_id,
+            "event_backtrack",
+            {
+                # A tail candidate turned down leaves the search unsettled, not "none".
+                "metrics": {
+                    definition.metric_id: "found"
+                    if claim_ids
+                    else "none_found"
+                    if found is not None and tail != "rejected"
+                    else "source_failed"
+                },
+                "official": official,
+                "covered_through": found.covered_through.isoformat()
+                if found is not None and found.covered_through is not None
+                else None,
+                "tail": tail,
+                "claim_ids": claim_ids,
+            },
+        )
 
     def _plan(self, run: RunRecord) -> dict[str, Any]:
         from pring_cycle.worker import _retrieval_release_status

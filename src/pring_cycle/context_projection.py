@@ -23,6 +23,7 @@ from pring_cycle.domain.macro import (
 )
 from pring_cycle.evidence import (
     AsOfMode,
+    ClaimView,
     EvidenceRepository,
     EvidenceValueState,
     MetricSeriesPoint,
@@ -621,9 +622,11 @@ class TargetBoundEvidenceRepository:
             )
             is not None
         )
+        metric_id = args[0] if args else kwargs.get("metric_id")
+        if metric_id == "CN_RRR_EVENT":
+            points = _official_days_whole(points, tolerance=tolerance)
         if self._visible_start is None:
             return points
-        metric_id = args[0] if args else kwargs.get("metric_id")
         # A metric in force until changed shows each member's latest value however old:
         # it is the current baseline (ADR-0028).
         baselines = (
@@ -668,6 +671,34 @@ class TargetBoundEvidenceRepository:
         return getattr(self._repository, name)
 
 
+def _official_days_whole(
+    points: tuple[MetricSeriesPoint, ...], *, tolerance: float
+) -> tuple[MetricSeriesPoint, ...]:
+    """On a day an official notice states the RRR, every member is read from the notice.
+
+    News may state only some of a day's members; chosen member by member, they would split
+    the notice, which must keep all it published (ADR-0028). A member the notice does not
+    state is then left out of that day.
+    """
+    from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
+
+    provider = OFFICIAL_CONTEXT_FAMILIES["pbc_rrr_notice"].provider
+    official_days = {
+        point.period_end
+        for point in points
+        if any(claim.provider == provider for claim in point.claims)
+    }
+    kept = []
+    for point in points:
+        if point.period_end not in official_days:
+            kept.append(point)
+            continue
+        claims = tuple(c for c in point.claims if c.provider == provider)
+        if claims:
+            kept.append(_selected_among(point, claims, tolerance=tolerance))
+    return tuple(kept)
+
+
 def _point_at_target(
     point: MetricSeriesPoint,
     target_date: date,
@@ -692,6 +723,12 @@ def _point_at_target(
     )
     if not claims:
         return None
+    return _selected_among(point, claims, tolerance=tolerance)
+
+
+def _selected_among(
+    point: MetricSeriesPoint, claims: tuple[ClaimView, ...], *, tolerance: float
+) -> MetricSeriesPoint:
     selected = sorted(claims, key=lambda claim: claim.provider)[0]
     reported_values = [
         claim.value

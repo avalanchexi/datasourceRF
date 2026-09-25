@@ -843,6 +843,8 @@ class TakenValue:
     acquisition_id: str
     fetched_at: datetime
     release_at: datetime | None
+    # When the text was public, if known otherwise than by ``release_at``.
+    public_at: datetime | None = None
 
 
 def store_news_values(
@@ -891,7 +893,8 @@ def store_news_values(
                     f"{route}:{value.metric_id}:{period}:{item.acquisition_id}#{item.body_hash}"
                 ),
                 release_at=item.release_at,
-                public_available_at=item.release_at if published_is_public else None,
+                public_available_at=item.public_at
+                or (item.release_at if published_is_public else None),
                 fetched_at=item.fetched_at,
                 available_at=available_at,
                 quality_status="validated",
