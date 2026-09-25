@@ -4,13 +4,14 @@
 
 **Blocked by:** —
 
-**Status:** ready-for-agent
+**Status:** done
 
 Spec: [spec.md](../spec.md)
 
-- [ ] 列表样本测试：用真实栏目页（本轮原件 raw_hash af394ef30305…，存为 `tests/fixtures/official_listing/pbc_125475_index_20260924.html`）选中 9/24 的第 189 号
-- [ ] 同日多份时逐份解析，只采用含 7 天期逆回购的一份；都不含记检索未通过
-- [ ] 经公开入口断言：资讯不可用时 OMO 利率与操作量经官网取到
-- [ ] 受影响测试经 `check.py quick` 通过；切片收尾两例快速冒烟通过（按 ADR-0025）
+- [x] 列表样本测试：用真实栏目页（本轮原件 raw_hash af394ef30305…，存为 `tests/fixtures/official_listing/pbc_125475_index_20260924.html`）选中 9/24 的第 189 号
+- [x] 同日多份时逐份解析，只采用含 7 天期逆回购的一份；都不含记检索未通过
+- [x] 资讯不可用时 OMO 利率与操作量经官网取到（`refresh_official_context_document` 断言；真实定向刷新见下）
+- [x] 受影响测试经 `check.py quick` 通过；切片收尾两例快速冒烟通过（按 ADR-0025）
 
 ## Comments
+- 2026-09-25 完成：`official_listing.release_urls` 对 `pbc_omo_notice` 按路径日期列出当日全部公告（列表原序，新在前）；`refresh_official_context_document` 逐份解析，仅 `official_context_table_schema_mismatch`（如同日央票公告）时换下一份。样本：栏目页（真实运行原件）与第 187/188/189 号公告（`tests/fixtures/pbc_omo_notice/`）。旧代码下测试即报真实运行的 `table_schema_mismatch`。受影响 199 例 + 完整目录正例通过。

@@ -35,7 +35,7 @@ from pring_cycle.official_listing import (
     is_release_listing,
     listing_months,
     listing_page_url,
-    release_url,
+    release_urls,
     worth_older_pages,
 )
 from pring_cycle.release_calendar import month_bounds
@@ -663,18 +663,19 @@ def _release_from_listing(
     expected_period: str,
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
     started: Callable[[str], None],
-) -> str:
+) -> tuple[str, ...]:
     """The period's release, looked up on the listing and, for NBS, on its older pages.
 
     Each page read is kept. A page without the release that already reaches back to the
     period ends the search: the release is not listed (not found, which is not ambiguous).
+    An OMO day may list several notices: all are returned, and parsing tells them apart.
     """
     page = 0
     while (page_url := listing_page_url(family, listing_url, page)) is not None:
         resolved, months = _read_listing_page(
             paths, family, page_url, expected_period, fetcher, started
         )
-        if resolved is not None:
+        if resolved:
             return resolved
         if not worth_older_pages(months, expected_period):
             break
@@ -689,7 +690,7 @@ def _read_listing_page(
     expected_period: str,
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None,
     started: Callable[[str], None],
-) -> tuple[str | None, list[str]]:
+) -> tuple[tuple[str, ...], list[str]]:
     responses: list[FetchedOfficialContextDocument] = []
 
     def fetch_listing() -> bytes:
@@ -697,13 +698,15 @@ def _read_listing_page(
         responses.append(response)
         return response.content
 
-    def parse_listing(content: bytes) -> tuple[str | None, list[str]]:
+    def parse_listing(content: bytes) -> tuple[tuple[str, ...], list[str]]:
         _validate_fetched_document(family, page_url, responses[0])
         if not content or len(content) > MAX_OFFICIAL_CONTEXT_BYTES:
             raise ValueError("official_context_document_size_invalid")
-        resolved = release_url(content, family=family, listing_url=page_url, period=expected_period)
-        if resolved is not None:
-            _validate_source_identity(family, resolved)
+        resolved = release_urls(
+            content, family=family, listing_url=page_url, period=expected_period
+        )
+        for url in resolved:
+            _validate_source_identity(family, url)
         return resolved, listing_months(content)
 
     discovered = AcquisitionRepository(paths.database, paths.artifacts).capture(
@@ -714,7 +717,11 @@ def _read_listing_page(
         parser_version="official-release-listing-v0002",
         fetch=fetch_listing,
         parse=parse_listing,
-        normalize=lambda value: {"source_url": value[0], "entry_months": value[1]},
+        normalize=lambda value: {
+            "source_url": value[0][0] if value[0] else None,
+            "candidates": list(value[0]),
+            "entry_months": value[1],
+        },
         on_started=started,
     )
     return discovered.value
@@ -746,11 +753,7 @@ def refresh_official_context_document(
         if on_acquisition_started is not None:
             on_acquisition_started(acquisition_id)
 
-    try:
-        if is_release_listing(family, source_url):
-            source_url = _release_from_listing(
-                paths, family, source_url, expected_period, fetcher, started
-            )
+    def ingest(source_url: str) -> OfficialContextIngestionResult:
         response_holder: list[FetchedOfficialContextDocument] = []
 
         def fetch() -> bytes:
@@ -786,6 +789,21 @@ def refresh_official_context_document(
         return ingest_acquired_official_release(
             paths, acquired, definition_version=definition_version, metric_ids=metric_ids
         )
+
+    try:
+        candidates = (
+            _release_from_listing(paths, family, source_url, expected_period, fetcher, started)
+            if is_release_listing(family, source_url)
+            else (source_url,)
+        )
+        # Another of the day's notices (central bank bills) has another table: try the next.
+        for candidate in candidates[:-1]:
+            try:
+                return ingest(candidate)
+            except ValueError as error:
+                if str(error) != "official_context_table_schema_mismatch":
+                    raise
+        return ingest(candidates[-1])
     except (OSError, TypeError, ValueError) as error:
         repository = EvidenceRepository(paths.database)
         for metric_id in sorted(requested):

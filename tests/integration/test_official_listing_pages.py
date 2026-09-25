@@ -101,3 +101,54 @@ def test_full_run_follows_the_nbs_listing_back_to_the_gdp_release(
         if r.parameters.get("family") == "nbs_gdp" and r.parameters["period"] == "2024-Q2"
     ]
     assert history == [LISTING]
+
+
+def test_the_day_s_reverse_repo_notice_is_read_from_the_omo_column(tmp_path: Path) -> None:
+    """Event #04: the real run of 2026-09-25 parsed the OMO column itself as a notice. 9/23
+    listed two notices; the central bank bills (no. 188) is passed over for no. 187."""
+    from pring_cycle.catalog import METRIC_CATALOG_VERSION
+    from pring_cycle.official_context import refresh_official_context_document
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    column = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"
+    bills, repo = (
+        column + "2026092311141529051/index.html",
+        column + "2026092308513432696/index.html",
+    )
+    documents = {
+        column + "index.html": FIXTURES / "official_listing" / "pbc_125475_index_20260924.html",
+        bills: FIXTURES / "pbc_omo_notice" / "2026092311141529051.html",
+        repo: FIXTURES / "pbc_omo_notice" / "2026092308513432696.html",
+    }
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        return FetchedOfficialContextDocument(documents[url].read_bytes(), "text/html", url, 200)
+
+    refresh_official_context_document(
+        paths,
+        family="pbc_omo_notice",
+        source_url=column + "index.html",
+        expected_period="2026-09-23",
+        fetched_at=datetime.now(UTC),
+        fetcher=fetch,
+    )
+
+    assert requested == [column + "index.html", bills, repo]
+    evidence = EvidenceRepository(paths.database)
+    values = {
+        metric: [
+            p.selected_value
+            for p in evidence.metric_series(
+                metric,
+                mode=AsOfMode.SYSTEM,
+                as_of=datetime.now(UTC),
+                definition_version=METRIC_CATALOG_VERSION,
+            )
+            if p.period_end == "2026-09-23"
+        ]
+        for metric in ("CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT")
+    }
+    assert values == {"CN_OMO_7D_RATE": [1.4], "CN_OMO_7D_AMOUNT": [80.0]}

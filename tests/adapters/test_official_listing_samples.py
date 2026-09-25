@@ -95,3 +95,24 @@ def test_industrial_finance_is_followed_from_its_registered_listing() -> None:
     assert select("nbs_zxfb_index_20260923.html", "nbs_industrial_finance", "2026-07") == (
         "https://www.stats.gov.cn/sj/zxfb/202608/t20260827_1965126.html"
     )
+
+
+OMO = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html"
+
+
+def test_omo_notices_are_the_day_s_entries_newest_first() -> None:
+    """Event #04: OMO notice titles carry no date; the entry's path does (…/2026092308…/)."""
+    from pring_cycle.official_listing import is_release_listing, release_urls
+
+    listing = page("pbc_125475_index_20260924.html")
+    notice = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/{}/index.html"
+
+    assert is_release_listing("pbc_omo_notice", OMO)
+    # 9/23 had two: the HK central bank bills (no. 188), then the day's reverse repo (187).
+    assert release_urls(listing, family="pbc_omo_notice", listing_url=OMO, period="2026-09-23") == (
+        notice.format("2026092311141529051"),
+        notice.format("2026092308513432696"),
+    )
+    assert release_urls(listing, family="pbc_omo_notice", listing_url=OMO, period="2026-09-24") == (
+        notice.format("2026092408454713496"),
+    )

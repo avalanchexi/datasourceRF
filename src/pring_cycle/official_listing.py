@@ -9,6 +9,8 @@ def is_release_listing(family: str, source_url: str) -> bool:
     path = urlsplit(source_url).path
     if family in _NBS_FAMILIES:
         return path in {"/sj/zxfb/", "/sj/zxfbhjd/"}
+    if family == "pbc_omo_notice":
+        return path == _OMO_LISTING
     return (
         family in {"pbc_money", "pbc_social_financing"}
         and path == "/diaochatongjisi/116219/index.html"
@@ -37,6 +39,9 @@ class _ReleaseLinks(HTMLParser):
             self.href = None
 
 
+_OMO_LISTING = "/zhengcehuobisi/125207/125213/125431/125475/index.html"
+# An OMO notice is dated only by its path: .../125475/2026092308513432696/index.html.
+_OMO_NOTICE = re.compile(r"/125475/(20\d{6})\d+/index\.html$")
 # Listing pages the NBS release list is followed back through (index, index_1, ...).
 NBS_LISTING_PAGES = 10
 _NBS_FAMILIES = {"nbs_core_cpi", "nbs_ppi", "nbs_pmi", "nbs_gdp", "nbs_industrial_finance"}
@@ -98,6 +103,27 @@ def release_url(content: bytes, *, family: str, listing_url: str, period: str) -
     if len(matches) > 1:
         raise ValueError("official_context_release_link_not_unique")
     return matches.pop() if matches else None
+
+
+def release_urls(content: bytes, *, family: str, listing_url: str, period: str) -> tuple[str, ...]:
+    """The releases on this listing page that may be the period's, in the listing's order.
+
+    An OMO day can have several notices (a reverse repo, central bank bills), titled alike
+    and dated only by their paths: each is a candidate, and parsing tells which it is. Every
+    other family has at most the one release ``release_url`` selects.
+    """
+    if family != "pbc_omo_notice":
+        found = release_url(content, family=family, listing_url=listing_url, period=period)
+        return (found,) if found is not None else ()
+    parser = _ReleaseLinks()
+    parser.feed(content.decode("utf-8-sig", "replace"))
+    day = period.replace("-", "")
+    urls = [
+        urljoin(listing_url, href)
+        for href, _title in parser.links
+        if href and (match := _OMO_NOTICE.search(href)) and match.group(1) == day
+    ]
+    return tuple(dict.fromkeys(urls))
 
 
 def listing_months(content: bytes) -> list[str]:
