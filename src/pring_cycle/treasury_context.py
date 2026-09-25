@@ -209,15 +209,36 @@ def treasury_claims_matching_acquisitions(
     *,
     definition_version: str,
 ) -> set[str]:
-    """Match selected Treasury values to complete CSV receipts, without inventing PUBLIC time."""
+    """Match selected Treasury values to complete CSV receipts, without inventing PUBLIC time.
+
+    A catalog registering ``us_tycr`` delivers the same yields through TuShare; those
+    claims are matched to their TuShare deliveries instead.
+    """
+    from pring_cycle.tushare_context import (
+        parse_treasury_acquisition,
+        tushare_claims_matching_acquisitions,
+    )
+
     selected = {
         point.selected_claim_id: (metric, point)
         for metric, points in points_by_metric.items()
         for point in points
         if metric in TREASURY_METRICS and point.selected_claim_id is not None
     }
+    valid_ids: set[str] = tushare_claims_matching_acquisitions(
+        repository,
+        tuple(
+            point
+            for _metric, point in selected.values()
+            if any(
+                c.claim_id == point.selected_claim_id and c.provider == "tushare"
+                for c in point.claims
+            )
+        ),
+        definition_version=definition_version,
+        parse=parse_treasury_acquisition,
+    )
     checked: dict[str, TreasuryYieldBatch | None] = {}
-    valid_ids: set[str] = set()
     for claim_id, acquisitions in repository.source_claim_acquisitions_many(
         tuple(selected)
     ).items():

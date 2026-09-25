@@ -117,6 +117,9 @@ def require_source_contract(definition_version: str, *, metric_id: str | None = 
         raise ValueError(f"source_certification_contract_unresolved:{definition_version}")
 
 
+_TREASURY_FIELDS = {"UST2Y_NOMINAL_YIELD": "y2", "UST10Y_NOMINAL_YIELD": "y10"}
+
+
 def require_registered_source_contract(
     definition: MetricDefinition,
     *,
@@ -366,6 +369,11 @@ def require_registered_source_contract(
     if definition.metric_id not in contracts:
         raise ValueError(f"registered_source_contract_not_implemented:{definition.metric_id}")
     family, supported_provider = contracts[definition.metric_id]
+    if family == "treasury" and definition.source_codes == (
+        "us_tycr." + _TREASURY_FIELDS[definition.metric_id],
+    ):
+        # A catalog registering TuShare's us_tycr delivers the yields through TuShare.
+        family, supported_provider = "treasury_tushare", "tushare"
     # The two-exchange identity is the reviewed margin definition renamed by the scope
     # migration, so it is compared against that definition under its new identity.
     reference_id = "CN_MARGIN_BALANCE" if family == "margin_sse_szse" else definition.metric_id
@@ -382,6 +390,7 @@ def require_registered_source_contract(
         "window_breadth",
         "amount_breadth",
         "commodity_basket",
+        "treasury_tushare",
     }:
         supported = metric_definition(reference_id, definition_version=METRIC_CATALOG_V0003)
     if family == "margin_sse_szse":
@@ -572,6 +581,24 @@ def require_registered_source_contract(
                 for scalar in scalars
             ):
                 raise ValueError("registered_margin_acquisition_value_mismatch")
+        return
+    if family == "treasury_tushare":
+        try:
+            start = date.fromisoformat(period_start)
+            end = date.fromisoformat(period_end)
+        except ValueError:
+            raise ValueError("registered_treasury_source_period_mismatch") from None
+        if start != end or start.isoformat() != period_start or end.isoformat() != period_end:
+            raise ValueError("registered_treasury_source_period_mismatch")
+        field = _TREASURY_FIELDS[definition.metric_id]
+        if (
+            provider != supported_provider
+            or period_kind != "business_day"
+            or dimensions != {}
+            or unit != "percent"
+            or source_reference != f"tushare:us_tycr:{field}:{period_end}"
+        ):
+            raise ValueError("registered_treasury_source_identity_mismatch")
         return
     if family == "treasury":
         try:

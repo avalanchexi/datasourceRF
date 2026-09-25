@@ -486,6 +486,14 @@ class TushareContextAdapter:
                         "accepted_scalars": receipt_document,
                         "rejected_fields": rejected,
                     }
+                if receipt.api_name == "fut_wsr":
+                    receipt_document = {
+                        "accepted_scalars": receipt_document,
+                        "warrant_reconciliation": _warrant_receipt_reconciliation(
+                            receipt,
+                            self._acquisitions.read_content(receipt.acquisition_id, "raw"),
+                        ),
+                    }
                 self._acquisitions.complete_validation(
                     receipt.acquisition_id,
                     receipt_document,
@@ -519,7 +527,7 @@ class TushareContextAdapter:
     def _warrant_receipt_inputs(
         self,
     ) -> dict[tuple[str, str, str, str, str, str, float], list[AcquisitionReceipt]]:
-        """Index only complete physical warrant responses by their actual scalar rows."""
+        """Index only complete physical warrant responses by the warehouse totals they give."""
         result: dict[tuple[str, str, str, str, str, str, float], list[AcquisitionReceipt]] = {}
         assert self._acquisitions is not None
         for receipt in self._receipts:
@@ -529,21 +537,17 @@ class TushareContextAdapter:
             rows = _response_rows(document, required_fields=tuple(receipt.fields.split(",")))
             if len(rows) >= _FUTURES_WARRANT_RESPONSE_LIMIT:
                 continue
-            for row in rows:
-                source_symbol = str(row["symbol"]).strip()
-                symbol = "TA" if source_symbol == "PTA" else source_symbol
-                unit = _WARRANT_UNITS[str(row["unit"]).strip()]
-                for field in ("pre_vol", "vol", "vol_chg"):
-                    value = _number(row.get(field))
-                    if value is None:
-                        continue
+            source_symbol = receipt.parameters["symbol"]
+            symbol = "TA" if source_symbol == "PTA" else source_symbol
+            for member in _warrant_members(rows, source_symbol, _WARRANT_FIELDS).values():
+                for field, value in member.values.items():
                     identity = (
                         symbol,
-                        _compact_date(row["trade_date"]).isoformat(),
-                        str(row["warehouse"]).strip(),
-                        str(row["exchange"]).strip(),
+                        member.business_date.isoformat(),
+                        member.warehouse,
+                        member.exchange,
                         field,
-                        unit,
+                        member.unit,
                         value,
                     )
                     result.setdefault(identity, []).append(receipt)
@@ -2043,6 +2047,28 @@ def parse_margin_acquisition(
     )
 
 
+def parse_treasury_acquisition(
+    receipt: AcquisitionReceipt,
+    raw: bytes,
+) -> tuple[ContextScalar, ...]:
+    """Rebuild the 2Y and 10Y yields from one complete ``us_tycr`` delivery."""
+    if (
+        receipt.provider != "tushare"
+        or receipt.api_name != "us_tycr"
+        or receipt.parser_version != "tushare-context-parser-v0002"
+        or receipt.fields != "date,y2,y10"
+        or set(receipt.parameters) != {"start_date", "end_date"}
+    ):
+        raise ValueError("registered_treasury_acquisition_identity_mismatch")
+    rows = _response_rows(json.loads(raw), required_fields=("date", "y2", "y10"))
+    _validate_response_periods(rows, receipt.parameters)
+    adapter = TushareContextAdapter("receipt-reparse", transport=lambda _: raw)
+    return adapter.treasury_yields(
+        start_date=_compact_date(receipt.parameters["start_date"]),
+        end_date=_compact_date(receipt.parameters["end_date"]),
+    )
+
+
 def _parse_monthly_acquisition(
     receipt: AcquisitionReceipt,
     raw: bytes,
@@ -2496,17 +2522,18 @@ def parse_warrant_acquisition(
     _validate_response_periods(rows, receipt.parameters)
     if len(rows) >= _FUTURES_WARRANT_RESPONSE_LIMIT:
         raise ValueError("tushare_warrant_response_truncated")
-    scalars = _warrant_scalars(
-        rows,
-        symbol,
-        source_symbol,
-        (
-            ("pre_vol", "previous_registered_receipts"),
-            ("vol", "registered_receipts"),
-            ("vol_chg", "registered_receipts_change"),
-        ),
-    )
+    scalars = _warrant_scalars(rows, symbol, source_symbol, _WARRANT_FIELDS)
     normalized_scalars = json.loads(normalized)
+    if isinstance(normalized_scalars, dict):
+        # Deliveries since the warehouse totals also carry their reconciliation notes.
+        if set(normalized_scalars) != {
+            "accepted_scalars",
+            "warrant_reconciliation",
+        } or normalized_scalars["warrant_reconciliation"] != _warrant_receipt_reconciliation(
+            receipt, raw
+        ):
+            raise ValueError("tushare_warrant_normalized_mismatch")
+        normalized_scalars = normalized_scalars["accepted_scalars"]
     if not isinstance(normalized_scalars, list) or len(normalized_scalars) != len(scalars):
         raise ValueError("tushare_warrant_normalized_mismatch")
     expected = sorted(_canonical_json(asdict(scalar)) for scalar in scalars)
@@ -2554,18 +2581,41 @@ def parse_warrant_acquisition(
     return WarrantAcquisition(
         symbol,
         tuple(scalar for scalar in verified if scalar.period_end == period),
-        sum(_compact_date(row.get("trade_date")).isoformat() == period for row in rows),
+        sum(
+            identity[0].isoformat() == period
+            for identity in _warrant_members(rows, source_symbol, _WARRANT_FIELDS)
+        ),
     )
 
 
-def _warrant_scalars(
+def _warrant_receipt_reconciliation(
+    receipt: AcquisitionReceipt, raw: bytes
+) -> dict[str, list[Any]]:
+    rows = _response_rows(json.loads(raw), required_fields=tuple(receipt.fields.split(",")))
+    return _warrant_reconciliation(
+        _warrant_members(rows, receipt.parameters["symbol"], _WARRANT_FIELDS).values()
+    )
+
+
+@dataclass(frozen=True)
+class _WarrantMember:
+    """One warehouse's total for a day: TuShare drops the exchange's per-lot columns."""
+
+    business_date: date
+    warehouse: str
+    exchange: str
+    unit: str
+    values: dict[str, float]
+
+
+def _warrant_members(
     rows: ContextRows,
-    normalized_symbol: str,
     source_symbol: str,
     fields: tuple[tuple[str, str], ...],
-) -> tuple[ContextScalar, ...]:
-    scalars: list[ContextScalar] = []
-    identities: set[tuple[date, str, str, str]] = set()
+) -> dict[tuple[date, str, str], _WarrantMember]:
+    """Sum each warehouse's rows for a day (ADR-0029); a field is kept only if every row has it."""
+    grouped: dict[tuple[date, str, str], list[dict[str, object]]] = {}
+    units: dict[tuple[date, str, str], str] = {}
     for row in rows:
         row_symbol = _required_text(row.get("symbol"), "tushare_warrant_symbol_invalid")
         if row_symbol != source_symbol:
@@ -2578,38 +2628,103 @@ def _warrant_scalars(
             row.get("exchange"),
             "tushare_warrant_exchange_missing",
         )
-        identity = (_compact_date(row.get("trade_date")), row_symbol, warehouse, exchange)
-        if identity in identities:
-            raise ValueError("tushare_warrant_duplicate_member")
-        identities.add(identity)
         source_unit = _required_text(row.get("unit"), "tushare_warrant_unit_missing")
         try:
             unit = _WARRANT_UNITS[source_unit]
         except KeyError as error:
             raise ValueError("tushare_warrant_unit_unknown") from error
-        for source_field, measure in fields:
+        identity = (_compact_date(row.get("trade_date")), warehouse, exchange)
+        if units.setdefault(identity, unit) != unit:
+            raise ValueError("tushare_warrant_unit_conflict")
+        for source_field in ("pre_vol", "vol"):
             value = _number(row.get(source_field))
-            if value is None:
-                continue
-            if source_field in {"pre_vol", "vol"} and value < 0:
+            if value is not None and value < 0:
                 raise ValueError("tushare_warrant_quantity_negative")
-            scalars.append(
-                _daily_scalar(
-                    "CN_FUTURES_WARRANTS",
-                    "fut_wsr",
-                    source_field,
-                    row,
-                    date_field="trade_date",
-                    dimensions={
-                        "symbol": normalized_symbol,
-                        "warehouse": warehouse,
-                        "exchange": exchange,
-                        "measure": measure,
-                    },
-                    unit=unit,
-                )
+        grouped.setdefault(identity, []).append(row)
+    members = {}
+    for identity, member_rows in grouped.items():
+        values = {}
+        for source_field, _measure in fields:
+            reported = [_number(row.get(source_field)) for row in member_rows]
+            if all(value is None for value in reported):
+                continue
+            if any(value is None for value in reported):
+                raise ValueError("tushare_warrant_member_field_partial")
+            values[source_field] = float(sum(value for value in reported if value is not None))
+        business_date, warehouse, exchange = identity
+        members[identity] = _WarrantMember(
+            business_date, warehouse, exchange, units[identity], values
+        )
+    return members
+
+
+def _warrant_scalars(
+    rows: ContextRows,
+    normalized_symbol: str,
+    source_symbol: str,
+    fields: tuple[tuple[str, str], ...],
+) -> tuple[ContextScalar, ...]:
+    return tuple(
+        _business_day_scalar(
+            metric_id="CN_FUTURES_WARRANTS",
+            api_name="fut_wsr",
+            source_field=source_field,
+            business_date=member.business_date,
+            dimensions={
+                "symbol": normalized_symbol,
+                "warehouse": member.warehouse,
+                "exchange": member.exchange,
+                "measure": measure,
+            },
+            value=member.values[source_field],
+            unit=member.unit,
+        )
+        for member in _warrant_members(rows, source_symbol, fields).values()
+        for source_field, measure in fields
+        if source_field in member.values
+    )
+
+
+def _warrant_reconciliation(members: Iterable[_WarrantMember]) -> dict[str, list[Any]]:
+    """Note where a warehouse's summed change disagrees with its day-on-day totals.
+
+    TuShare loses lot rows as well as columns, so the two disagree now and then. Such a day is
+    kept and noted, not rejected (user decision 2026-09-25). The first day in a delivery has no
+    earlier total in it to check against.
+    """
+    by_identity = {(m.business_date, m.warehouse, m.exchange): m for m in members}
+    dates = sorted({identity[0] for identity in by_identity})
+    previous_date = dict(zip(dates[1:], dates, strict=False))
+    mismatches = []
+    for (business_date, warehouse, exchange), member in sorted(by_identity.items()):
+        earlier = previous_date.get(business_date)
+        previous = by_identity.get((earlier, warehouse, exchange)) if earlier else None
+        if (
+            previous is None
+            or "vol" not in previous.values
+            or not {"vol", "vol_chg"} <= set(member.values)
+        ):
+            continue
+        movement = member.values["vol"] - previous.values["vol"]
+        if abs(movement - member.values["vol_chg"]) > 1e-9:
+            mismatches.append(
+                {
+                    "business_date": business_date.isoformat(),
+                    "warehouse": warehouse,
+                    "exchange": exchange,
+                    "total": member.values["vol"],
+                    "previous_total": previous.values["vol"],
+                    "change_sum": member.values["vol_chg"],
+                }
             )
-    return tuple(scalars)
+    return {"unchecked_dates": [day.isoformat() for day in dates[:1]], "mismatches": mismatches}
+
+
+_WARRANT_FIELDS = (
+    ("pre_vol", "previous_registered_receipts"),
+    ("vol", "registered_receipts"),
+    ("vol_chg", "registered_receipts_change"),
+)
 
 
 def _warrant_input_identity(scalar: ContextScalar) -> tuple[str, str, str, str, str, str, float]:

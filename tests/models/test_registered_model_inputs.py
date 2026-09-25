@@ -491,7 +491,7 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
 
 
 @pytest.mark.usefixtures("runtime_clock")
-@pytest.mark.parametrize("fault", ["api", "field", "duplicate", "conflicting"])
+@pytest.mark.parametrize("fault", ["api", "field", "unit_conflict", "partial"])
 def test_registered_warrant_invalid_delivery_rejects_atomic_import(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], fault: str
 ) -> None:
@@ -502,16 +502,18 @@ def test_registered_warrant_invalid_delivery_rejects_atomic_import(
     capsys.readouterr()
     version = request["manifest"]["metric_catalog_version"]
     rows = [["20260828", "CU", "synthetic-warehouse", 225, 225, 0, "吨", "SHFE"]]
-    if fault in {"duplicate", "conflicting"}:
+    if fault in {"unit_conflict", "partial"}:
+        # Several rows of one warehouse are summed (ADR-0029), but only in one unit and only
+        # for a field every row reports.
         rows.append(
             [
                 "20260828",
                 "CU",
                 "synthetic-warehouse",
                 225,
-                226 if fault == "conflicting" else 225,
+                None if fault == "partial" else 225,
                 0,
-                "吨",
+                "千克" if fault == "unit_conflict" else "吨",
                 "SHFE",
             ]
         )
@@ -539,7 +541,7 @@ def test_registered_warrant_invalid_delivery_rejects_atomic_import(
         scalars = adapter.futures_warrants(
             start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol="CU"
         )
-        if fault in {"duplicate", "conflicting"}:
+        if fault in {"unit_conflict", "partial"}:
             return scalars
         return tuple(
             (
@@ -552,11 +554,10 @@ def test_registered_warrant_invalid_delivery_rejects_atomic_import(
             for s in scalars
         )
 
-    expected_error = (
-        "tushare_warrant_duplicate_member"
-        if fault in {"duplicate", "conflicting"}
-        else "registered_warrant_source_field_mismatch"
-    )
+    expected_error = {
+        "unit_conflict": "tushare_warrant_unit_conflict",
+        "partial": "tushare_warrant_member_field_partial",
+    }.get(fault, "registered_warrant_source_field_mismatch")
     with pytest.raises(ValueError, match=expected_error):
         adapter.acquire_scalars(paths, retrieve, definition_version=version)
     assert not EvidenceRepository(paths.database).metric_series(
@@ -565,7 +566,7 @@ def test_registered_warrant_invalid_delivery_rejects_atomic_import(
         as_of=datetime.now(UTC),
         definition_version=version,
     )
-    if fault in {"duplicate", "conflicting"}:
+    if fault in {"unit_conflict", "partial"}:
         acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
         (receipt,) = acquisitions.history()
         assert receipt.state == "failed"

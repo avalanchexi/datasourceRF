@@ -9,7 +9,7 @@ import pytest
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.tushare_context import TushareContextAdapter
+from pring_cycle.tushare_context import TushareContextAdapter, parse_warrant_acquisition
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -109,3 +109,121 @@ def test_saturated_single_day_warrant_response_remains_incomplete(tmp_path: Path
         )
         == ()
     )
+
+
+# Zhengzhou cotton, 2026-09-23/24 as TuShare delivers it (ADR-0029): the exchange report
+# lists a warehouse per crop year, grade and origin, which TuShare drops, so one warehouse
+# comes back as several rows, some identical in every field.
+WARRANT_FIELDS = [
+    "trade_date",
+    "symbol",
+    "warehouse",
+    "pre_vol",
+    "vol",
+    "vol_chg",
+    "unit",
+    "exchange",
+]
+COTTON_ROWS = [
+    # 衡水棉麻: 422 then 419 in total; -4 reported where the totals moved by -3.
+    ["20260923", "CF", "衡水棉麻", None, 301, 0, "张", "CZCE"],
+    ["20260923", "CF", "衡水棉麻", None, 79, -1, "张", "CZCE"],
+    ["20260923", "CF", "衡水棉麻", None, 42, 0, "张", "CZCE"],
+    ["20260924", "CF", "衡水棉麻", None, 298, -3, "张", "CZCE"],
+    ["20260924", "CF", "衡水棉麻", None, 78, -1, "张", "CZCE"],
+    ["20260924", "CF", "衡水棉麻", None, 43, 0, "张", "CZCE"],
+    # 豫棉物流: two identical rows each day; the change agrees with the totals.
+    ["20260923", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
+    ["20260923", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
+    ["20260924", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
+    ["20260924", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
+    ["20260924", "CF", "豫棉物流", None, 5, 5, "张", "CZCE"],
+]
+
+
+def cotton_response(payload: dict[str, object]) -> bytes:
+    fields = str(payload["fields"]).split(",")
+    rows = [dict(zip(WARRANT_FIELDS, row, strict=True)) for row in COTTON_ROWS]
+    return json.dumps(
+        {"code": 0, "data": {"fields": fields, "items": [[r[f] for f in fields] for r in rows]}}
+    ).encode()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_warehouse_rows_are_held_as_warehouse_totals(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    adapter = TushareContextAdapter("fixture-secret", transport=cotton_response)
+
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.futures_warrants(
+            start_date=date(2026, 9, 23), end_date=date(2026, 9, 24), symbol="CF"
+        ),
+        definition_version="metric-catalog-v0002",
+    )
+
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_FUTURES_WARRANTS",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version="metric-catalog-v0002",
+    )
+    held = {
+        (p.period_end, p.dimensions["warehouse"], p.dimensions["measure"]): p.selected_value
+        for p in points
+    }
+    assert held == {
+        ("2026-09-23", "衡水棉麻", "registered_receipts"): 422.0,
+        ("2026-09-23", "衡水棉麻", "registered_receipts_change"): -1.0,
+        ("2026-09-23", "豫棉物流", "registered_receipts"): 24.0,
+        ("2026-09-23", "豫棉物流", "registered_receipts_change"): 0.0,
+        ("2026-09-24", "衡水棉麻", "registered_receipts"): 419.0,
+        ("2026-09-24", "衡水棉麻", "registered_receipts_change"): -4.0,
+        ("2026-09-24", "豫棉物流", "registered_receipts"): 29.0,
+        ("2026-09-24", "豫棉物流", "registered_receipts_change"): 5.0,
+    }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_warehouse_change_that_disagrees_with_the_totals_is_noted_not_rejected(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    adapter = TushareContextAdapter("fixture-secret", transport=cotton_response)
+
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.futures_warrants(
+            start_date=date(2026, 9, 23), end_date=date(2026, 9, 24), symbol="CF"
+        ),
+        definition_version="metric-catalog-v0002",
+    )
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = receipts.history()
+    assert receipt.state == "validated"
+    notes = json.loads(receipts.read_content(receipt.acquisition_id, "normalized"))[
+        "warrant_reconciliation"
+    ]
+    # The first delivered day has no earlier total in the delivery to check against.
+    assert notes["unchecked_dates"] == ["2026-09-23"]
+    assert notes["mismatches"] == [
+        {
+            "business_date": "2026-09-24",
+            "warehouse": "衡水棉麻",
+            "exchange": "CZCE",
+            "total": 419.0,
+            "previous_total": 422.0,
+            "change_sum": -4.0,
+        }
+    ]
+    delivery = parse_warrant_acquisition(
+        receipt,
+        receipts.read_content(receipt.acquisition_id, "raw"),
+        receipts.read_content(receipt.acquisition_id, "normalized"),
+        period="2026-09-24",
+        definition_version="metric-catalog-v0002",
+    )
+    assert delivery.current_member_count == 2

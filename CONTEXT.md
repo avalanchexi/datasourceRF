@@ -293,7 +293,7 @@ _Avoid_: 无需凭据、任意公开网页
 _Avoid_: 搜索结果替代、相似指数代理、默认可用 P2
 
 **仓单成员（Warrant Member）**：
-期货仓单明细的一个成员：同一交易日、品种、仓库、交易所。上游在仓库之下分产地、年度等多行时，成员取多行之和；当日变动之和须与前一交易日成员合计之差相符（[ADR-0029](docs/adr/0029-p2-quote-sources-and-warrant-members.md)）。
+期货仓单明细的一个成员：同一交易日、品种、仓库、交易所。上游在仓库之下分产地、年度等多行时，成员取多行之和；当日变动之和与前一交易日成员合计之差不符时只记注记、不拒收（[ADR-0029](docs/adr/0029-p2-quote-sources-and-warrant-members.md)）。
 _Avoid_: 仓单行、逐行成员
 
 **手动深搜（Manual Deep Search）**：
