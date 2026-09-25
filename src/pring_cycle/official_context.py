@@ -232,7 +232,6 @@ def parse_official_context_document(
     source_url: str,
     expected_period: str,
     fetched_at: datetime,
-    parser_text_limit: int | None = None,
 ) -> ParsedOfficialContextRelease:
     provider = _validate_source_identity(family, source_url)
     if fetched_at.tzinfo is None:
@@ -243,8 +242,6 @@ def parse_official_context_document(
     parser = _OfficialHtmlParser()
     parser.feed(document)
     text = _normalized_text(" ".join(parser.parts))
-    if parser_text_limit is not None and len(text) > parser_text_limit:
-        raise ValueError("official_parser_fragment_too_large")
     source_timezone = ZoneInfo("Asia/Shanghai")
     published = _release_timestamp(text)
     release_at, public_at = publication_times(published, source_timezone)
@@ -741,7 +738,6 @@ def refresh_official_context_document(
     fetcher: Callable[[str], FetchedOfficialContextDocument] | None = None,
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
-    parser_text_limit: int | None = None,
     metric_ids: tuple[str, ...] | None = None,
     admit: Callable[[ParsedOfficialContextRelease], None] | None = None,
 ) -> OfficialContextIngestionResult:
@@ -773,7 +769,6 @@ def refresh_official_context_document(
                 source_url=source_url,
                 expected_period=expected_period,
                 fetched_at=utc_now(),
-                parser_text_limit=parser_text_limit,
             )
             if admit is not None:
                 admit(parsed)

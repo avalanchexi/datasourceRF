@@ -800,10 +800,16 @@ def test_unknown_official_url_does_not_claim_old_period_is_unreleased(
 
 
 @pytest.mark.usefixtures("runtime_clock")
-def test_candidate_parser_limit_preserves_original_without_claiming_complete_fields(
+def test_candidate_page_is_parsed_whole_however_long_its_surroundings(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """The refetched original goes to the registered parser whole, as on the direct path.
+
+    A 1,600-character fragment cap came from trimming what a model would read (ADR-0005);
+    registered parsers replaced that reading (ADR-0023), and the cap had kept every PBC
+    release page, navigation included, from ever passing.
+    """
     paths, runs = prepare(tmp_path)
     paths.secrets.write_text("TAVILY_API_KEY=fixture-secret\n")
     now = datetime.now(UTC)
@@ -839,10 +845,10 @@ def test_candidate_parser_limit_preserves_original_without_claiming_complete_fie
     )
     process_pending_run(paths, report_adapters=(), retrieval_now=now)
     stored = runs.get(submitted.run_id)
-    assert stored.status == "action_required"
+    assert stored.status == "completed"
     validation = stored.retrieval_ledger["candidate_validations"][0]
-    assert validation["reason"] == "parse_failed"
-    assert validation["claim_ids"] == []
+    assert validation["outcome"] == "model_usable"
+    assert len(validation["claim_ids"]) == 2
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     official = next(r for r in acquisitions.history() if r.api_name == "official_http_get")
     assert acquisitions.read_content(official.acquisition_id, "raw") == oversized

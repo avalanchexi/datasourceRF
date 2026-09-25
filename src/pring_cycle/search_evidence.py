@@ -1070,7 +1070,6 @@ def verify_search_candidates(
                         fetched_at=utc_now(),
                         definition_version=version,
                         on_acquisition_started=started,
-                        parser_text_limit=1600,
                         admit=admit,
                     )
                     claim_ids.extend(refreshed.claim_ids)
@@ -1088,7 +1087,6 @@ def verify_search_candidates(
                         fetched_at=utc_now(),
                         definition_version=version,
                         on_acquisition_started=started,
-                        parser_text_limit=1600,
                         admit=admit,
                     )
                     claim_ids.extend(context_refreshed.claim_ids)

@@ -112,7 +112,6 @@ def parse_lpr_announcement(
     source_url: str,
     fetched_at: datetime,
     expected_period: str,
-    parser_text_limit: int | None = None,
 ) -> ParsedLprRelease:
     url_date = _validate_official_url(source_url)
     if fetched_at.tzinfo is None:
@@ -126,8 +125,6 @@ def parse_lpr_announcement(
     extractor = _TextExtractor()
     extractor.feed(document)
     text = re.sub(r"\s+", "", " ".join(extractor.parts))
-    if parser_text_limit is not None and len(text) > parser_text_limit:
-        raise ValueError("official_parser_fragment_too_large")
     if "全国银行间同业拆借中心受权公布贷款市场报价利率" not in text:
         raise ValueError("lpr_announcement_identity_missing")
     if "中国人民银行授权全国银行间同业拆借中心公布" not in text:
@@ -386,7 +383,6 @@ def refresh_lpr_release(
     fetcher: Callable[[str], FetchedOfficialDocument] | None = None,
     definition_version: str = METRIC_CATALOG_VERSION,
     on_acquisition_started: Callable[[str], None] | None = None,
-    parser_text_limit: int | None = None,
     admit: Callable[[ParsedLprRelease], None] | None = None,
 ) -> LprIngestionResult:
     """Fetch and store one announcement; ``admit`` may reject the parsed release first."""
@@ -414,7 +410,6 @@ def refresh_lpr_release(
                 source_url=source_url,
                 fetched_at=utc_now(),
                 expected_period=expected_period,
-                parser_text_limit=parser_text_limit,
             )
             if admit is not None:
                 admit(parsed)
