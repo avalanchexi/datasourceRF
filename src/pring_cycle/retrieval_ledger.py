@@ -16,7 +16,8 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import response_retention_deadline
-from pring_cycle.catalog import metric_definition
+from pring_cycle.batches import code_version
+from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS, RetrievalAdapterResponse
@@ -74,7 +75,7 @@ class RetrievalLedger:
                 definition = metric_definition(
                     metric_id, definition_version=definition_version, database_path=self.database
                 )
-                event_key = json.dumps([definition.release_event_family, scope.period])
+                event_key = _event_key(definition, scope.period)
                 identity = {
                     "model_version_id": run.model_version_id,
                     "definition_version": definition_version,
@@ -870,18 +871,30 @@ def _legacy_event_keys(
 ) -> set[str]:
     manifest = json.loads(row["manifest_json"])
     return {
-        json.dumps(
-            [
-                metric_definition(
-                    metric_id,
-                    definition_version=manifest["metric_catalog_version"],
-                    database_path=database_path,
-                ).release_event_family,
-                row["period"],
-            ]
+        _event_key(
+            metric_definition(
+                metric_id,
+                definition_version=manifest["metric_catalog_version"],
+                database_path=database_path,
+            ),
+            row["period"],
         )
         for metric_id in json.loads(metric_ids_json or row["metric_ids_json"])
     }
+
+
+def _event_key(definition: MetricDefinition, period: str) -> str:
+    """A gap's release event, under the contract it is fetched and checked against.
+
+    A negative cache holds back the same event under the same contract only: the registered
+    catalog version and the code that parses and checks the event, shared by every metric of
+    its family. A repair lets the next run try again at once (gap sources #05); older keys
+    name no contract and match none.
+    """
+    contract = hashlib.sha256(
+        json.dumps([definition.definition_version, code_version()]).encode()
+    ).hexdigest()[:16]
+    return json.dumps([definition.release_event_family, period, contract])
 
 
 def _provider_key(channel: str, query: str) -> str:

@@ -86,3 +86,38 @@ def test_same_official_release_reuses_negative_cache_across_target_dates(
                 minutes=15
             )
             assert all(item["run_id"] != submitted.run_id for item in ledger["requests"])
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_changed_contract_is_not_held_back_by_the_old_contracts_negative_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Gap sources #05: a repaired contract is tried again at once, not when the cache ends."""
+    paths, runs = prepared_runtime(tmp_path)
+    paths.secrets.write_text("")
+    cutoff = datetime.now(UTC)
+    monkeypatch.setattr("pring_cycle.retrieval_ledger.utc_now", lambda: cutoff)
+    calls = []
+
+    def offline(request, *, timeout):
+        calls.append(request.full_url)
+        raise OSError("fixture official source unavailable")
+
+    monkeypatch.setattr("pring_cycle.official_context.urlopen", offline)
+    for target, code in (("2026-09-11", "code-before-repair"), ("2026-09-18", "code-after")):
+        # The code that parses and checks the release is part of the contract it is held to.
+        monkeypatch.setattr("pring_cycle.retrieval_ledger.code_version", lambda code=code: code)
+        runs.submit(
+            command_type="targeted_refresh",
+            target_business_date=target,
+            client_request_id=f"contract-{target}",
+            model_version_id="model-v0001",
+            system_as_of=cutoff,
+            release_event_id="sf:2026-08",
+            metric_ids=("CN_SF_TOTAL",),
+            period="2026-08",
+            source_url=PBC_LISTING,
+        )
+        process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
+
+    assert calls == [PBC_LISTING] * 6
