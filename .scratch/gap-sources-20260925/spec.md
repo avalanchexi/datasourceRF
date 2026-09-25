@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Type: spec
 Date: 2026-09-25
 Basis: 2026-09-25 缺口取舍访谈（本会话）；[ADR-0029](../../docs/adr/0029-p2-quote-sources-and-warrant-members.md)、ADR-0021、ADR-0023、ADR-0025；根因调查见 [acceptance-findings-20260925](../acceptance-findings-20260925/README.md)。测试接缝经用户确认：生效目录完整运行为主接缝，适配器/解析器为次接缝，不新增接缝。
