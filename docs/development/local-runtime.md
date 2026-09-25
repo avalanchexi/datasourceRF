@@ -37,14 +37,10 @@ UV_PROJECT_ENVIRONMENT="$PRING_CYCLE_DEV_ENV" \
 ```
 
 `--reinstall-package pring-cycle` 只重装项目本身，依赖仍走锁文件和缓存，实测约 1 秒，
-可以无条件执行。验证环境与源码一致：
-
-```bash
-ls "$PRING_CYCLE_DEV_ENV"/lib/python3.12/site-packages/pring_cycle/*.py | wc -l
-ls src/pring_cycle/*.py | wc -l
-```
-
-两个数字不相等就是环境落后了，此时任何测试结果都不可信。
+可以无条件执行。`tools/check.py` 开跑前会逐个比对包内全部文件（含子包与资源文件）的
+内容，缺少、多出或内容不同都会列出并拒绝运行；只比文件名或个数不够——旧副本通常模块齐全，
+只是代码落后（2026-09-25 验收中仓库内旧 `.venv` 有 7 个模块内容与 `src/` 不同，按文件名
+比对未报）。环境不一致时，任何测试结果都不可信。
 
 `uv.lock` 固定 FastAPI、Dash 4.2、SQLAlchemy、Alembic 和其他依赖版本。应用启动和日常离线
 验收不安装依赖，也不访问包索引。

@@ -67,3 +67,52 @@ def test_quick_runs_named_files(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert code == 0
     assert "tests/domain/test_trend_state.py" in launched[0]
+
+
+def write_package(root: Path, files: dict[str, str]) -> Path:
+    for name, text in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    return root
+
+
+def test_package_drift_is_none_when_every_file_matches(tmp_path: Path) -> None:
+    check = load_check()
+    files = {"a.py": "x = 1\n", "domain/b.py": "y = 2\n", "assets/c.css": "p {}\n"}
+    tree = write_package(tmp_path / "tree", files)
+    installed = write_package(tmp_path / "installed", files)
+    (installed / "__pycache__").mkdir()
+    (installed / "__pycache__" / "a.cpython-312.pyc").write_bytes(b"\0")
+
+    assert check._package_drift(tree, installed) is None
+
+
+def test_package_drift_names_a_module_whose_content_changed(tmp_path: Path) -> None:
+    """The copy that `uv sync` leaves behind keeps every file name while the code moves on."""
+    check = load_check()
+    tree = write_package(tmp_path / "tree", {"a.py": "x = 2\n", "b.py": "y = 2\n"})
+    installed = write_package(tmp_path / "installed", {"a.py": "x = 1\n", "b.py": "y = 2\n"})
+
+    drift = check._package_drift(tree, installed)
+
+    assert drift == "changed 1: a.py"
+
+
+def test_package_drift_looks_inside_subpackages(tmp_path: Path) -> None:
+    check = load_check()
+    tree = write_package(tmp_path / "tree", {"a.py": "", "domain/new.py": ""})
+    installed = write_package(tmp_path / "installed", {"a.py": "", "domain/old.py": ""})
+
+    drift = check._package_drift(tree, installed)
+
+    assert drift == "missing 1: domain/new.py; stale 1: domain/old.py"
+
+
+def test_package_drift_leaves_out_what_a_build_would_not_take(tmp_path: Path) -> None:
+    """Hatchling skips git-ignored files, so their absence from the copy is not drift."""
+    check = load_check()
+    tree = write_package(tmp_path / "tree", {"a.py": "", "debug.log": "noise"})
+    installed = write_package(tmp_path / "installed", {"a.py": ""})
+
+    assert check._package_drift(tree, installed, packaged={"a.py"}) is None

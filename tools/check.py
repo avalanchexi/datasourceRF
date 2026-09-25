@@ -33,18 +33,55 @@ def _stale_environment() -> str | None:
     installed_dir = Path(spec.origin).parent
     if installed_dir == ROOT / "src" / "pring_cycle":
         return None  # An editable or path install already reads the tree.
-    tree = {path.name for path in (ROOT / "src" / "pring_cycle").glob("*.py")}
-    installed = {path.name for path in installed_dir.glob("*.py")}
-    if tree == installed:
+    tree = ROOT / "src" / "pring_cycle"
+    return _package_drift(tree, installed_dir, packaged=_packaged_names(tree))
+
+
+def _packaged_names(tree: Path) -> set[str] | None:
+    """What the wheel takes from the tree: hatchling leaves out whatever git ignores."""
+    try:
+        listed = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "."],
+            cwd=tree,
+            capture_output=True,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
         return None
-    missing = sorted(tree - installed)
-    extra = sorted(installed - tree)
-    parts = []
-    if missing:
-        parts.append(f"missing {len(missing)}: {', '.join(missing[:5])}")
-    if extra:
-        parts.append(f"stale {len(extra)}: {', '.join(extra[:5])}")
-    return "; ".join(parts)
+    return {name for name in listed.decode().split("\0") if name}
+
+
+def _package_drift(tree: Path, installed: Path, *, packaged: set[str] | None = None) -> str | None:
+    """Compare every packaged file by content, subpackages included.
+
+    Names alone miss the usual case: an old copy keeps the same modules while their code moves
+    on. Bytecode is left out; it is what the installed copy writes, not what it was built from.
+    ``packaged`` narrows the tree to what a build would take from it.
+    """
+
+    def files(root: Path) -> dict[str, bytes]:
+        return {
+            path.relative_to(root).as_posix(): path.read_bytes()
+            for path in root.rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts and path.suffix != ".pyc"
+        }
+
+    tree_files, installed_files = files(tree), files(installed)
+    if packaged is not None:
+        tree_files = {name: data for name, data in tree_files.items() if name in packaged}
+    missing = sorted(tree_files.keys() - installed_files.keys())
+    extra = sorted(installed_files.keys() - tree_files.keys())
+    changed = sorted(
+        name
+        for name in tree_files.keys() & installed_files.keys()
+        if tree_files[name] != installed_files[name]
+    )
+    parts = [
+        f"{label} {len(names)}: {', '.join(names[:5])}"
+        for label, names in (("missing", missing), ("stale", extra), ("changed", changed))
+        if names
+    ]
+    return "; ".join(parts) or None
 
 
 def main() -> int:
