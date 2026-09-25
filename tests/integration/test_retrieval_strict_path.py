@@ -218,6 +218,11 @@ def test_gap_list_names_each_failed_candidate_under_retrieval_failed(
     gaps = projection.datasets["cycle_overview"]["gap_list"]
 
     failed = [gap for gap in gaps if gap["category"] == "retrieval_failed"]
+    # Offline, the RRR backtrack cannot read the PBC column: unfinished, with no period
+    # owed and no candidate to name (ADR-0028).
+    backtrack = [gap for gap in failed if gap["reason"] == "backtrack_incomplete"]
+    assert [gap["metric_id"] for gap in backtrack] == ["CN_RRR_EVENT"]
+    failed = [gap for gap in failed if gap not in backtrack]
     assert failed
     for gap in failed:
         assert gap["due_period"]
