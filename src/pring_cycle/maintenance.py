@@ -27,7 +27,6 @@ class CapacityState:
 class CleanupResult:
     deleted_object_ids: tuple[str, ...]
     reclaimed_bytes: int
-    expired_report_bodies: int
 
 
 def capacity_state(free_bytes: int) -> CapacityState:
@@ -148,21 +147,6 @@ class MaintenanceRepository:
                 deleted.append(object_id)
                 reclaimed_bytes += byte_count
                 active_sizes[kind] = max(0, active_sizes.get(kind, 0) - byte_count)
-            expired_report_bodies = 0
-            report_table = connection.execute(
-                """
-                SELECT 1 FROM sqlite_master
-                WHERE type='table' AND name='report_snapshot'
-                """
-            ).fetchone()
-            if report_table is not None:
-                expired_report_bodies = connection.execute(
-                    """
-                    UPDATE report_snapshot SET body_json='{}', body_retained=0
-                    WHERE body_retained=1 AND created_at <= ?
-                    """,
-                    ((observed_at - timedelta(days=30)).isoformat(),),
-                ).rowcount
             connection.execute(
                 """
                 INSERT INTO maintenance_audit(
@@ -171,7 +155,7 @@ class MaintenanceRepository:
                 """,
                 (len(deleted), reclaimed_bytes, observed_at.isoformat()),
             )
-        return CleanupResult(tuple(deleted), reclaimed_bytes, expired_report_bodies)
+        return CleanupResult(tuple(deleted), reclaimed_bytes)
 
     def audit_events(self) -> tuple[dict[str, object], ...]:
         with self._connect() as connection:

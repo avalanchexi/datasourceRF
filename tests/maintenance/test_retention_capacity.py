@@ -149,3 +149,38 @@ def test_upgrade_failure_requires_reinitialization_without_destructive_recovery(
         "backup_mode": "none",
         "destructive_recovery_available": False,
     }
+
+
+def test_cleanup_keeps_report_bodies_for_the_whole_retention_window(tmp_path: Path) -> None:
+    """ADR-0022 (revised 2026-09-25): a report body is not cleared after 30 days."""
+    import json
+
+    from pring_cycle.reports import ReportRepository
+    from pring_cycle.runtime import RuntimePaths, initialize_runtime
+    from pring_cycle.storage import database_connection
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    database = paths.database
+    maintenance = MaintenanceRepository(database)
+    ReportRepository(database)  # Creates the report tables.
+    with database_connection(database) as connection:
+        connection.execute(
+            "INSERT INTO report_snapshot(report_snapshot_id, client_request_id, "
+            "projection_set_id, target_business_date, version, status, adapter, current_stage, "
+            "bundle_id, bundle_hash, model_version_id, schema_version, prompt_version, "
+            "body_json, body_retained, created_at) VALUES ('report-old', 'old', "
+            "'projection-old', '2026-06-30', 1, 'completed', 'deterministic', NULL, "
+            "'bundle-old', 'hash', 'model-v0012', 'report-schema-v0003', 'report-prompt-v0003', "
+            "?, 1, ?)",
+            (json.dumps({"summary": "六十天前的报告"}), (NOW - timedelta(days=60)).isoformat()),
+        )
+
+    maintenance.cleanup(now=NOW)
+
+    with database_connection(database) as connection:
+        body, retained = connection.execute(
+            "SELECT body_json, body_retained FROM report_snapshot WHERE report_snapshot_id=?",
+            ("report-old",),
+        ).fetchone()
+    assert (json.loads(body), retained) == ({"summary": "六十天前的报告"}, 1)
