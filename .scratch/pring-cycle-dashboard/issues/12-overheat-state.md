@@ -35,3 +35,5 @@
 `de31cc45d16c47dddfb5f5082722ee1bdb22acd5f29b1bff0629f0f611f18cbf`、
 `77c04ac9c0322bc481280ef665ce9c0c2bb575ab22deb9a3d0753db8a7f5cf06`。离线失败契约、派生
 固定状态及正式阶段隔离测试均通过，最后一项闭合。
+
+- 2026-09-25 现状核对：C 部分取代。依据与被取代部分见[现状核对](../status-review-2026-09-25.md)（ADR-0021–0028、fast-refactor）。

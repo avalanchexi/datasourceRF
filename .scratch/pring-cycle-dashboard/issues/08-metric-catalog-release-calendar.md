@@ -37,3 +37,5 @@
 写入两条 `certified/validated` claim；点时追溯可见真实 `release_at/public_available_at` 与
 首次系统取得时间，发布日历在系统取得后返回 `current`、2 条关联观测和精确来源。既有 REST、
 页面与离线契约自动化同时通过，最后一项端到端门闭合。
+
+- 2026-09-25 现状核对：C 部分取代。依据与被取代部分见[现状核对](../status-review-2026-09-25.md)（ADR-0021–0028、fast-refactor）。

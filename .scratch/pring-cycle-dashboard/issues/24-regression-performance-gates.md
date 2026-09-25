@@ -4,7 +4,7 @@
 
 **Blocked by:** 22 — 模型升级、并行回放与30交易日回退；23 — 桌面视觉与无障碍验收
 
-**Status:** ready-for-human
+**Status:** superseded (was ready-for-human)
 
 - [x] 35个 `REG-*` 全部映射到规格、ADR、负责票和自动化测试，旧报告、旧阶段和旧golden不作为oracle。
 - [x] 统一验收命令通过公开CLI与临时SQLite完成证据、点时查询、趋势、阶段、投影、运行恢复和确定性报告端到端路径。
@@ -46,3 +46,5 @@
 `88d5bae76939ab8516635977e2550c4bbbca4c03e96ae3d4fd95150092197734`。验收套件 23.028 秒，
 2018 起回放 0.549 秒，REST p95 9.676ms，Dashboard 首内容 18.734ms，冷启动 9.393 秒；
 先前指纹下的制品只保留为审计历史。
+
+- 2026-09-25 现状核对：A 被取代。依据与被取代部分见[现状核对](../status-review-2026-09-25.md)（ADR-0021–0028、fast-refactor）。

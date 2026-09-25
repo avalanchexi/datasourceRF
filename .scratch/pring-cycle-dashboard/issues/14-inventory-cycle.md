@@ -38,3 +38,5 @@
 `.scratch/pring-cycle-dashboard/source-availability-triage-2026-08-31.md`，并阻塞 22、25。
 
 2026-09-05: Warrant pagination and optional-field fixes survived independent re-review. Ticket 14 is ready for human review; model/source certification and real cutover remain open under 22/25. Final verification is recorded in `../closeout-2026-09-05.md`.
+
+- 2026-09-25 现状核对：B 已交付仍有效，待人工复核。依据与被取代部分见[现状核对](../status-review-2026-09-25.md)（ADR-0021–0028、fast-refactor）。

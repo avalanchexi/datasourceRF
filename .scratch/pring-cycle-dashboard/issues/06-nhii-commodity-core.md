@@ -32,3 +32,5 @@ Worker 来源声明门禁已实现，`REG-TREND/FUT` 已通过。官方成分/�
 解释输入，官方 NHII 聚合点位不被拆解重投票。两项外部门闭合，smoke 与历史制品哈希分别为
 `9f40a85fa3717bbc7503ba703aa01b187b66a387fc81bcecd9cbc1474b9fc334` 和
 `0cee34f3352095bdbb204ec21b0433bbee02cbe19aed5f6e280296dedeef5fbe`。
+
+- 2026-09-25 现状核对：C 部分取代。依据与被取代部分见[现状核对](../status-review-2026-09-25.md)（ADR-0021–0028、fast-refactor）。

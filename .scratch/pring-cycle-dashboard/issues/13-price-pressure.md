@@ -38,3 +38,5 @@
 `EIA_API_KEY`，EIA 官方文档又明确要求每个 API 用户的唯一 key，因此没有伪造演示凭据；EIA
 继续为 `awaiting_source_certification`。TuShare CPI/PPI 仍无正式公告时间字段，故前两项保持
 未勾选并准确披露缺口。
+
+- 2026-09-25 现状核对：C 部分取代。依据与被取代部分见[现状核对](../status-review-2026-09-25.md)（ADR-0021–0028、fast-refactor）。
