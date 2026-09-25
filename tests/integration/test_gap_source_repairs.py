@@ -7,6 +7,7 @@ reads what that run holds, and how its gap list explains what it could not hold.
 from __future__ import annotations
 
 import json
+import sqlite3
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
@@ -77,6 +78,10 @@ class FixtureOpener:
         if api_name == "fut_wsr":
             return BytesIO(warrant_response(payload))
         code = payload["params"].get("ts_code")
+        if api_name == "fut_daily":
+            # The retired close-return basket still computes; its claims no longer fit the
+            # registered settlement contract (ticket 08) and are refused at ingest.
+            return BytesIO(historical_response(payload))
         if api_name != "trade_cal" and code not in {"000985.CSI", "000012.SH", "NHII.NH"}:
             raise OSError("fixture_context_unavailable")
         return BytesIO(historical_response(payload))
@@ -159,3 +164,44 @@ def test_cotton_warrants_are_held_as_warehouse_totals(
     }
     assert cotton == {"registered_receipts": 25.0, "registered_receipts_change": 0.0}
     assert "CN_FUTURES_WARRANTS" not in gaps(paths)
+
+
+def test_values_refused_at_ingest_are_listed_with_the_reason_code(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    paths, _run_id = completed
+
+    basket = gaps(paths)["CN_COMMODITY_EX_HOG_BASKET"]
+
+    assert basket["category"] == "ingest_rejected"
+    assert basket["reason"] == "registered_commodity_basket_source_identity_mismatch"
+    # No web page carries a computed basket: a property of the gap, not why it is missing.
+    assert basket["no_web_fallback"] is True
+
+
+def test_a_source_that_did_not_answer_is_listed_as_fetch_failed(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    paths, _run_id = completed
+
+    breadth = gaps(paths)["CN_EQ_ADV_DEC"]
+
+    assert breadth["category"] == "fetch_failed"
+    assert breadth["no_web_fallback"] is True
+    assert "no_searchable_source" not in {item["category"] for item in gaps(paths).values()}
+
+
+def test_sox_is_a_license_gap_that_is_never_searched(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    paths, _run_id = completed
+
+    sox = gaps(paths)["NASDAQ_SOX_INDEX"]
+
+    assert (sox["category"], sox["reason"]) == ("license_missing", "restricted_license")
+    with sqlite3.connect(paths.database) as connection:
+        searched = connection.execute(
+            "SELECT count(*) FROM retrieval_attempt WHERE metric_id='NASDAQ_SOX_INDEX' "
+            "AND outcome <> 'not_attempted'"
+        ).fetchone()[0]
+    assert searched == 0

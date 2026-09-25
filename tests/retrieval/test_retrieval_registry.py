@@ -20,7 +20,6 @@ from pring_cycle.retrieval_registry import is_searchable_gap, registered_host
         "CN_BOND_CORE_000012",
         "CN_USDCNY_CLOSE_1630",
         "CBOE_VIX_INDEX",
-        "NASDAQ_SOX_INDEX",
     ],
 )
 def test_parser_families_and_lenient_hosts_are_searchable(metric_id: str) -> None:
@@ -38,6 +37,8 @@ def test_parser_families_and_lenient_hosts_are_searchable(metric_id: str) -> Non
         "CN_INDEX_VALUATION",
         "CN_MARGIN_BALANCE",
         "CN_EQ_CSI300",
+        # A restricted-licence gap, never searched (ADR-0029).
+        "NASDAQ_SOX_INDEX",
         *DERIVED_INPUTS,
     ],
 )

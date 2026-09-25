@@ -47,6 +47,8 @@ class FreshnessRule:
     basis: str
     grace: int | None = None
     day_of_month: int | None = None
+    # A source we hold no licence to take automatically: a transparent gap, never searched.
+    restricted_license: bool = False
 
     @property
     def grace_days(self) -> int:
@@ -121,7 +123,15 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
         "search:chinamoney", time(16, 35), "https://www.chinamoney.com.cn/chinese/"
     ),
     "CBOE_VIX_INDEX": _daily("search:cboe", time(6, 0), "https://www.cboe.com/", lag=1),
-    "NASDAQ_SOX_INDEX": _daily("search:nasdaq", time(6, 0), "https://www.nasdaq.com/", lag=1),
+    # Restricted licence (ADR-0029): Nasdaq offers no documented free feed for SOX.
+    "NASDAQ_SOX_INDEX": FreshnessRule(
+        "nasdaq:licensed",
+        "daily",
+        1,
+        time(6, 0),
+        "https://www.nasdaq.com/",
+        restricted_license=True,
+    ),
     "UST10Y_NOMINAL_YIELD": _daily("tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1),
     "UST2Y_NOMINAL_YIELD": _daily("tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1),
     "EIA_BRENT_RBRTE": FreshnessRule(
@@ -732,26 +742,76 @@ def _backtracked(database: Path, run_id: str) -> dict[str, str]:
 
 _GAP_ORDER = (
     "missing",
-    "no_searchable_source",
+    "fetch_failed",
+    "ingest_rejected",
     "retrieval_failed",
+    "license_missing",
     "freshness_gap",
     "unconfigured",
     "rejected",
 )
+# Acquisition outcomes of a registered source, as the Worker records them; the last one a
+# run recorded for a metric says whether that source failed it (gap sources #04).
+_FETCH_FAILED = frozenset({"source_failed", "adapter_failed", "missing_credentials"})
+_ACQUISITION_OUTCOMES = _FETCH_FAILED | {
+    "validation_failed",
+    "verified_candidate",
+    "partial_validation",
+    "missing_fields",
+    "missing_values",
+}
+
+
+def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, str]]:
+    """Per metric, how the run's last registered-source acquisition failed, if it did."""
+    from pring_cycle.storage import database_connection
+
+    with database_connection(database) as connection:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='retrieval_attempt'"
+        ).fetchone():
+            return {}
+        run = connection.execute(
+            "SELECT accepted_at, target_business_date FROM parent_run WHERE run_id=?", (run_id,)
+        ).fetchone()
+        if run is None:
+            return {}
+        rows = connection.execute(
+            "SELECT metric_id, outcome, safe_metadata_json FROM retrieval_attempt "
+            "WHERE fetched_at >= ? AND outcome IN (SELECT value FROM json_each(?)) "
+            "ORDER BY fetched_at, rowid",
+            (run[0], json.dumps(sorted(_ACQUISITION_OUTCOMES))),
+        ).fetchall()
+    latest: dict[str, tuple[str, dict[str, str]]] = {}
+    for metric_id, outcome, metadata_json in rows:
+        metadata = json.loads(metadata_json)
+        if metadata.get("target_business_date", run[1]) == run[1]:
+            latest[str(metric_id)] = (str(outcome), metadata)
+    failures = {}
+    for metric_id, (outcome, metadata) in latest.items():
+        detail = metadata.get("reason") or metadata.get("condition") or metadata.get("error_type")
+        if outcome in _FETCH_FAILED:
+            failures[metric_id] = ("fetch_failed", str(detail or outcome))
+        elif outcome == "validation_failed":
+            failures[metric_id] = ("ingest_rejected", str(detail or outcome))
+    return failures
 
 
 def gap_list(
     database: Path, run_id: str, definitions: Iterable[MetricDefinition]
 ) -> list[dict[str, object]]:
-    """Gate ①'s visible gap list for one batch, grouped by what the maintainer should do.
+    """Gate ①'s visible gap list for one batch, grouped by why each metric is missing.
 
-    ``missing``: nothing held, or two or more periods behind (not used in calculation);
-    ``freshness_gap``: one period behind, carried forward; ``unconfigured``: no freshness
-    registry row; ``rejected``: a response failed its structure check (gate ③);
-    ``retrieval_failed``: still missing or behind after search candidates were refetched
-    and none passed, listing up to three URLs each with its reason (ticket 19);
-    ``no_searchable_source``: missing, and no web page can carry the metric (it belongs to
-    no registered retrieval family), so it was retried through TuShare but never searched.
+    Why, not what to do next (gap sources #04): ``fetch_failed``, the registered source did
+    not answer; ``ingest_rejected``, it answered and the response or the registered contract
+    refused the values, with the reason code; ``retrieval_failed``, still missing after search
+    candidates were refetched and none passed, listing up to three URLs each with its reason
+    (ticket 19); ``license_missing``, a restricted source that is never taken or searched;
+    ``missing``, nothing held for another reason. Timing keeps its own categories:
+    ``freshness_gap``, one period behind and carried forward; ``unconfigured``, no freshness
+    registry row. ``rejected`` lists a response that failed its structure check (gate ③)
+    for a metric not otherwise listed. ``no_web_fallback`` says whether a web page could
+    carry the metric at all: it belongs to no registered retrieval family.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
     from pring_cycle.storage import database_connection
@@ -759,6 +819,7 @@ def gap_list(
     priorities = {item.metric_id: item.priority for item in definitions}
     failed_candidates = _failed_candidates(database, run_id)
     backtracked = _backtracked(database, run_id)
+    acquisition_failures = _acquisition_failures(database, run_id)
     gaps: list[dict[str, object]] = []
     for metric_id, row in batch_freshness(database, run_id).items():
         status, behind = row["status"], row["periods_behind"]
@@ -777,8 +838,11 @@ def gap_list(
             category, reason = "unconfigured", "freshness_not_registered"
         else:
             continue
-        if category == "missing" and not is_searchable_gap(metric_id):
-            category = "no_searchable_source"
+        rule = FRESHNESS_REGISTRY.get(metric_id)
+        if category == "missing" and rule is not None and rule.restricted_license:
+            category, reason = "license_missing", "restricted_license"
+        elif category == "missing" and metric_id in acquisition_failures:
+            category, reason = acquisition_failures[metric_id]
         gap: dict[str, object] = {
             "metric_id": metric_id,
             "priority": priorities.get(metric_id),
@@ -787,6 +851,7 @@ def gap_list(
             "due_period": row["due_period"],
             "held_period": row["held_period"],
             "periods_behind": behind,
+            "no_web_fallback": not is_searchable_gap(metric_id),
         }
         if metric_id in failed_candidates:
             # An unconfigured metric has no due period; it keeps its category.
@@ -803,8 +868,9 @@ def gap_list(
             """,
             (run_id,),
         ).fetchall()
-    # A rejected search candidate is already shown with its URL under retrieval_failed.
-    seen = set(failed_candidates)
+    # A rejected search candidate is already shown with its URL under retrieval_failed, and a
+    # metric already listed says why it is missing there.
+    seen = set(failed_candidates) | {str(gap["metric_id"]) for gap in gaps}
     for metric_ids_json, api_name, reason in rejected:
         for metric_id in json.loads(metric_ids_json or "[]"):
             if metric_id in seen or metric_id not in priorities or metric_id in NOT_ASSESSED:
@@ -819,6 +885,7 @@ def gap_list(
                     "due_period": None,
                     "held_period": None,
                     "periods_behind": None,
+                    "no_web_fallback": not is_searchable_gap(metric_id),
                 }
             )
     return sorted(

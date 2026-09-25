@@ -265,11 +265,15 @@ def _carry_forward_notice(value: object) -> list[html.P]:
 
 GAP_CATEGORY_LABELS = {
     "missing": "缺失",
-    "no_searchable_source": "无可检索来源",
+    "fetch_failed": "取数失败",
+    "ingest_rejected": "入库校验失败",
     "retrieval_failed": "检索未通过",
+    "license_missing": "授权缺失",
     "freshness_gap": "时效缺口",
     "unconfigured": "未配置时效",
     "rejected": "拒收",
+    # Lists published before gap sources #04 still carry the old category.
+    "no_searchable_source": "无可检索来源",
 }
 
 
@@ -324,6 +328,7 @@ def _gap_list(value: object) -> html.Div:
                                         else ""
                                     )
                                     + _candidate_reasons(item.get("candidates"))
+                                    + ("；无网页补缺渠道" if item.get("no_web_fallback") else "")
                                 )
                                 for item in rows
                             ]

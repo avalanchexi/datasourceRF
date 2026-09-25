@@ -85,9 +85,9 @@ def test_unsearchable_gaps_are_not_searched_and_are_listed_apart(
     assert recorded["domains"] == lpr["include_domains"]
     projection = ProjectionSetRepository(paths.database).current()
     gaps = {g["metric_id"]: g for g in projection.datasets["cycle_overview"]["gap_list"]}
-    assert gaps["CN_DR007"]["category"] == "no_searchable_source"
-    assert gaps["CN_SHIBOR_ON_1W_3M"]["category"] == "no_searchable_source"
+    assert gaps["CN_DR007"]["no_web_fallback"] is True
+    assert gaps["CN_SHIBOR_ON_1W_3M"]["no_web_fallback"] is True
     assert "CN_LPR_1Y_5Y" not in gaps
     from pring_cycle.dashboard import _home_page
 
-    assert "无可检索来源" in str(_home_page(projection))
+    assert "无网页补缺渠道" in str(_home_page(projection))

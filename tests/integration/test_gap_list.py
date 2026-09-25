@@ -126,10 +126,13 @@ def test_gap_list_classifies_each_freshness_disposition(
         "freshness_gap",
         1,
     )
-    # Index closes and money-market rates come from TuShare alone: no page to search.
-    assert gaps["CN_EQ_CSI1000"]["category"] == "no_searchable_source"
+    # Index closes and money-market rates come from TuShare alone: no page to search. That
+    # is a property of the gap, not why it is missing (gap sources #04).
+    assert gaps["CN_EQ_CSI1000"]["category"] == "missing"
     assert gaps["CN_EQ_CSI1000"]["reason"] == "two_or_more_periods_behind"
-    assert gaps["CN_SHIBOR_ON_1W_3M"]["category"] == "no_searchable_source"
+    assert gaps["CN_EQ_CSI1000"]["no_web_fallback"] is True
+    assert gaps["CN_SHIBOR_ON_1W_3M"]["no_web_fallback"] is True
+    assert gaps["CN_EQ_CSI500"]["no_web_fallback"] is True
     assert gaps["CN_USDCNH_FXCM"]["category"] == "unconfigured"
     assert all(item["priority"] != "P0" for item in gaps.values())
 
@@ -177,7 +180,7 @@ def test_page_and_report_show_the_same_gap_list(published: tuple[RuntimePaths, A
     page = str(_home_page(projection))
 
     assert report.body["gap_list"] == projection.datasets["cycle_overview"]["gap_list"]
-    for label in ("缺口清单", "无可检索来源", "时效缺口", "未配置时效", "CN_EQ_CSI500"):
+    for label in ("缺口清单", "无网页补缺渠道", "时效缺口", "未配置时效", "CN_EQ_CSI500"):
         assert label in page
 
 

@@ -124,13 +124,7 @@ RETRIEVAL_FAMILIES: dict[str, RetrievalFamily] = {
         "lenient",
         "Cboe VIX index close {en_date}",
     ),
-    "nasdaq_sox": RetrievalFamily(
-        "Nasdaq",
-        (("www.nasdaq.com", "/"), ("indexes.nasdaqomx.com", "/")),
-        ("NASDAQ_SOX_INDEX",),
-        "lenient",
-        "PHLX Semiconductor Index SOX close {en_date}",
-    ),
+    # SOX is a restricted-licence gap and is never searched (ADR-0029).
 }
 
 # Mainstream financial media a search may land on (ADR-0026). A host matches a domain
