@@ -131,12 +131,6 @@ def test_official_document_preserves_publication_precision_and_receipt(
         )
 
 
-
-
-
-
-
-
 @pytest.mark.usefixtures("runtime_clock")
 def test_lpr_document_import_links_both_tenors_to_original(tmp_path: Path) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -683,3 +677,62 @@ def test_system_series_respects_exact_secondary_public_cutoff(tmp_path: Path) ->
     )
     assert before == ()
     assert len(after) == 2 and all(point.selected_value is not None for point in after)
+
+
+def index_response(payload: dict[str, Any]) -> bytes:
+    fields = payload["fields"].split(",")
+    row = {
+        "ts_code": payload["params"].get("ts_code"),
+        "trade_date": "20260828",
+        "close": 1234.5,
+        "date": "20260828",
+        "y2": 3.6,
+        "y10": 4.2,
+    }
+    return json.dumps(
+        {"code": 0, "data": {"fields": fields, "items": [[row[f] for f in fields]]}}
+    ).encode()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_ingest_rejection_after_a_passed_structure_check_is_kept_on_the_receipt(
+    tmp_path: Path,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    adapter = TushareContextAdapter("fixture-secret", transport=index_response)
+
+    # The frozen v3 contract refuses these claims only once they reach the evidence store.
+    with pytest.raises(ValueError, match="source_certification_contract_unresolved"):
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.market_indices(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)
+            ),
+            definition_version="metric-catalog-v0003",
+        )
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    history = receipts.history()
+    assert history and all(receipt.state == "validated" for receipt in history)
+    assert {receipts.ingest_result(receipt.acquisition_id) for receipt in history} == {
+        ("rejected", "source_certification_contract_unresolved:metric-catalog-v0003")
+    }
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_accepted_ingest_is_kept_on_the_receipt(tmp_path: Path) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    adapter = TushareContextAdapter("fixture-secret", transport=index_response)
+
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.treasury_yields(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28)),
+        definition_version="metric-catalog-v0002",
+    )
+
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+    assert {receipts.ingest_result(r.acquisition_id) for r in receipts.history()} == {
+        ("accepted", None)
+    }

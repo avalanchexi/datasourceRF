@@ -88,6 +88,7 @@ from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
+    ContextIngestRejectedError,
     ContextObservationsMissingError,
     ContextScalar,
     TushareContextAdapter,
@@ -1881,7 +1882,17 @@ def refresh_context_sources(
             # Gate ③ rejects the response; the metrics become gaps for retrieval, whatever
             # their priority, and the run goes on (ticket 17).
             outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
-            record(metric_ids, "tushare", outcome, error_type=type(error).__name__, family=family)
+            # The reason code says what refused it: the response's structure check, or the
+            # registered contract once the response had passed (gap sources #03).
+            record(
+                metric_ids,
+                "tushare",
+                outcome,
+                error_type=type(error).__name__,
+                family=family,
+                stage="ingest" if isinstance(error, ContextIngestRejectedError) else "response",
+                reason=str(error)[:300],
+            )
         else:
             record(
                 result.metric_ids,

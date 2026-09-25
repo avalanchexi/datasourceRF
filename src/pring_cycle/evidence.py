@@ -19,6 +19,7 @@ from pring_cycle.acquisition import (
     AcquisitionReceipt,
     AcquisitionRepository,
     acquisition_analysis_context,
+    add_ingest_result_columns,
     receipt_from_row,
 )
 from pring_cycle.batches import add_batch_columns, current_batch_id
@@ -1329,6 +1330,7 @@ class EvidenceRepository:
             connection.executescript(_EVIDENCE_INDEX_EXTENSIONS_SCHEMA)
             connection.executescript(ACQUISITION_SCHEMA)
             add_batch_columns(connection)
+            add_ingest_result_columns(connection)
             add_inferred_public_time(connection)
 
     @contextmanager

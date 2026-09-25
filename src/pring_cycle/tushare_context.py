@@ -168,6 +168,10 @@ class ContextObservationsMissingError(ValueError):
         super().__init__("tushare_context_observations_missing")
 
 
+class ContextIngestRejectedError(ValueError):
+    """The responses passed their structure check; the evidence store refused the values."""
+
+
 class TushareContextAdapter:
     def __init__(self, token: str, *, transport: Transport | None = None) -> None:
         if not token:
@@ -500,12 +504,21 @@ class TushareContextAdapter:
                 )
             if (self._daily_breadth or self._window_breadth or self._amount_breadth) and not linked:
                 return ContextIngestionResult(0, (), (), ())
-            result = ingest_context_scalars(
-                paths,
-                tuple(linked),
-                fetched_at=utc_now(),
-                definition_version=definition_version,
-            )
+            try:
+                result = ingest_context_scalars(
+                    paths,
+                    tuple(linked),
+                    fetched_at=utc_now(),
+                    definition_version=definition_version,
+                )
+            except ContextObservationsMissingError:
+                raise
+            except (KeyError, TypeError, ValueError) as error:
+                for receipt in self._receipts:
+                    self._acquisitions.record_ingest_result(receipt.acquisition_id, error)
+                raise ContextIngestRejectedError(str(error)) from error
+            for receipt in self._receipts:
+                self._acquisitions.record_ingest_result(receipt.acquisition_id, None)
             return replace(result, rejected_field_count=len(self._field_rejections))
         except Exception as error:
             for receipt in self._receipts:

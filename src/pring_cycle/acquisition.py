@@ -285,6 +285,34 @@ class AcquisitionRepository:
                 (type(error).__name__, str(error)[:300], acquisition_id),
             )
 
+    def record_ingest_result(self, acquisition_id: str, error: Exception | None) -> None:
+        """Say once whether a validated call's values entered the evidence store, and if not why.
+
+        The structure check and the ingest are separate: a response can pass the first and still
+        be refused by the registered contract, which its receipt has to say (gap sources #03).
+        """
+        with self._connect() as connection:
+            connection.execute(
+                """UPDATE acquisition_request SET ingest_result=?, ingest_rejection_reason=?
+                   WHERE acquisition_id=? AND state='validated' AND ingest_result IS NULL""",
+                (
+                    "accepted" if error is None else "rejected",
+                    None if error is None else str(error)[:300],
+                    acquisition_id,
+                ),
+            )
+
+    def ingest_result(self, acquisition_id: str) -> tuple[str | None, str | None]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT ingest_result, ingest_rejection_reason FROM acquisition_request "
+                "WHERE acquisition_id=?",
+                (acquisition_id,),
+            ).fetchone()
+        if row is None:
+            raise LookupError("acquisition_not_found")
+        return row[0], row[1]
+
     def _receive(
         self, acquisition_id: str, raw: bytes, received_at: datetime, started_at: datetime
     ) -> None:
@@ -451,3 +479,56 @@ BEFORE DELETE ON source_claim_acquisition BEGIN
     SELECT RAISE(ABORT, 'claim_acquisition_is_immutable');
 END;
 """
+
+# Every column but the ingest result: a terminal receipt never changes them.
+_TERMINAL_COLUMNS = (
+    "acquisition_id",
+    "provider",
+    "api_name",
+    "parameters_json",
+    "fields",
+    "parser_version",
+    "started_at",
+    "received_at",
+    "validated_at",
+    "state",
+    "raw_hash",
+    "normalized_hash",
+    "error_type",
+    "row_count",
+    "structure_check",
+    "rejection_reason",
+)
+
+
+def add_ingest_result_columns(connection: sqlite3.Connection) -> None:
+    """Let a validated receipt record its ingest result once; safe to repeat.
+
+    The terminal guard is narrowed to the other columns, and a second guard lets the two
+    ingest columns be written only while still empty on a validated receipt.
+    """
+    existing = {str(row[1]) for row in connection.execute("PRAGMA table_info(acquisition_request)")}
+    if not existing:
+        return
+    for column in ("ingest_result", "ingest_rejection_reason"):
+        if column not in existing:
+            connection.execute(f"ALTER TABLE acquisition_request ADD COLUMN {column} TEXT")
+    guard = connection.execute(
+        "SELECT sql FROM sqlite_master WHERE type='trigger' "
+        "AND name='acquisition_request_terminal_no_update'"
+    ).fetchone()
+    if guard is not None and "UPDATE OF" in str(guard[0]):
+        return
+    connection.execute("DROP TRIGGER IF EXISTS acquisition_request_terminal_no_update")
+    connection.execute(
+        "CREATE TRIGGER acquisition_request_terminal_no_update BEFORE UPDATE OF "
+        + ", ".join(_TERMINAL_COLUMNS)
+        + " ON acquisition_request WHEN OLD.state IN ('validated', 'failed') BEGIN "
+        "SELECT RAISE(ABORT, 'acquisition_receipt_is_immutable'); END"
+    )
+    connection.execute(
+        "CREATE TRIGGER IF NOT EXISTS acquisition_request_ingest_result_once BEFORE UPDATE OF "
+        "ingest_result, ingest_rejection_reason ON acquisition_request "
+        "WHEN OLD.state <> 'validated' OR OLD.ingest_result IS NOT NULL BEGIN "
+        "SELECT RAISE(ABORT, 'acquisition_ingest_result_is_immutable'); END"
+    )
