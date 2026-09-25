@@ -511,7 +511,9 @@ def test_worker_fails_closed_and_classifies_context_validation_failures(
 
     class Opener:
         def open(self, request: Any, *, timeout: int) -> BytesIO:
-            return BytesIO(b'{"code":-1,"msg":"fixture_source_schema_failed"}')
+            # An answer without the requested fields: refused by its structure check. (A
+            # non-zero code is TuShare refusing the call, a source failure instead.)
+            return BytesIO(b'{"code":0,"data":{"fields":["fixture"],"items":[]}}')
 
     monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: Opener())
 
