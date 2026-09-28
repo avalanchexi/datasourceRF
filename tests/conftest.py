@@ -69,8 +69,8 @@ def runtime_clock(
 @pytest.fixture(scope="session", autouse=True)
 def _official_pages_offline() -> Iterator[None]:
     """The CSI page, NBS schedule page, official context pages (a first full run traces the
-    RRR back through the PBC's chronicles) and CZCE's warrant report are never reached unless
-    a test serves its own.
+    RRR back through the PBC's chronicles), CZCE's warrant report and the Cboe and CFETS quote
+    files are never reached unless a test serves its own.
 
     Module-scoped runtime fixtures run before function-scoped patches, so the default has
     to be installed for the whole session.
@@ -87,6 +87,7 @@ def _official_pages_offline() -> Iterator[None]:
         patch.setattr("pring_cycle.release_schedule._fetch_page", offline)
         patch.setattr("pring_cycle.official_context.urlopen", offline_request)
         patch.setattr("pring_cycle.czce_warrants._fetch", offline)
+        patch.setattr("pring_cycle.quote_sources.open_no_redirects", offline_request)
         # A test serving CZCE's reports need not wait between them.
         patch.setattr("pring_cycle.czce_warrants._sleep", lambda seconds: None)
         yield

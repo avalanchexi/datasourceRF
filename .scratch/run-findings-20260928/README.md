@@ -21,7 +21,7 @@
 | [01](issues/01-wsl-clock-acquisition-time.md) | Windows 时钟快约 9.6 秒，WSL 被两边来回拉扯而跳变，回执时间不单调，报 `acquisition_time_invalid` | 根因是 Windows 时钟未对时、快约 9.6 秒；已同步。代码是否防护待复验后定 | done |
 | [02](issues/02-fut-wsr-request-volume.md) | 补缺对每个缺日重取全部 6 个品种（本轮 714 次）；失败回执在 `started` 阶段丢原因码 | 失败都记原因码；补缺只取缺失的品种（缺日根因是时钟，已修） | done（待真实运行确认）|
 | [03](issues/03-mid-autumn-due-period.md) | 中秋休市的 9/25 被当成应到期：银行间日频指标和中间价按落后一期计 | 查时效到期日所用的日历 | wontfix |
-| [04](issues/04-vix-scope-test-order.md) | 全套里 `test_full_run_plans_the_latest_released_period_of_a_metric_not_held` 失败，单独跑能过 | 查测试之间的串扰；真实运行里 VIX 没有进入检索范围 | needs-triage |
+| [04](issues/04-vix-scope-test-order.md) | 全套里 `test_full_run_plans_the_latest_released_period_of_a_metric_not_held` 失败，单独跑能过 | 不是串扰：conftest 离线默认漏了 `quote_sources`，用例真实访问 Cboe，失败时 VIX 进入检索范围；已补离线默认并由用例提供 Cboe 夹具 | done |
 | [05](issues/05-heartbeat-overlap-test.md) | `test_a_heartbeat_blocked_by_a_long_write_keeps_the_lease` 稳定失败，在 `9d230f9` 上也失败 | 查锁为何提前释放；可能与票 01 的时钟有关 | done |
 | [06](issues/06-context-trade-cal-empty.md) | 今天两次 context 口径的 `trade_cal`（`is_open=1`）都返回 0 行，上次返回 1560 行 | 先确认是否影响任何指标 | needs-info |
 | [07](issues/07-bytecode-in-src.md) | 全套里字节码用例失败：`src/pring_cycle/__pycache__` 是 9/26 用系统 Python 3.10 留下的 | 已清除，单独复跑通过；只记录 | wontfix |

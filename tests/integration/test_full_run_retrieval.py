@@ -1070,10 +1070,27 @@ def test_full_run_core_selection_preserves_explicit_as_of_mode(
 
 
 def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The real run of 2026-09-24: August's industrial finance comes out on 9/27 and 9/23's
     VIX at 06:00 the next morning, so what a run for 9/23 can fetch is July and 9/22."""
+    # Cboe's file as it stood on 9/25, ending on 9/22. Unserved, VIX would rest on whether
+    # the real host answered, and a missing VIX is planned like any other gap.
+    url = "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+    vix = Path(__file__).parents[1] / "fixtures/quote_sources/VIX_History-20260925.csv"
+
+    class Response(BytesIO):
+        status = 200
+
+        def geturl(self) -> str:
+            return url
+
+    def cboe(request, *, timeout):
+        if request.full_url != url:
+            raise OSError("official_page_offline_in_tests")
+        return Response(vix.read_bytes())
+
+    monkeypatch.setattr("pring_cycle.quote_sources.open_no_redirects", cboe)
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
