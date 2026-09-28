@@ -1,4 +1,4 @@
-Status: done（待真实运行验证）
+Status: done
 Category: bug
 Type: task
 
@@ -51,7 +51,7 @@ Type: task
 - [ ] 行名为“7天期逆回购”的旧版表格，解析出的成员与新版相同。
 - [ ] 两者之外的行名（例如“14天期逆回购”）仍然拒收。
 - [ ] 身份或契约校验失败时，运行库里能查到具体原因码，而不只是 `parse_failed`/`ValueError`。
-- [ ] 真实完整运行后，工具流动性不再出现在缺口清单里。
+- [x] 真实完整运行后，工具流动性不再出现在缺口清单里。
 
 **Out of scope:**
 - OMO 逐日指标（`CN_OMO_7D_AMOUNT`/`CN_OMO_7D_RATE`）对隔夜逆回购的处理（见票 04 的附注）。
@@ -69,3 +69,11 @@ Type: task
   - 7 月真实原件（旧行名）的参数化用例改为断言同一成员 `短期逆回购`。
   - `test_an_unknown_reverse_repo_row_is_refused_and_the_receipt_says_why`：把行名改成“14天期逆回购”，入库拒收，回执为 `("rejected", "registered_official_source_identity_mismatch")`。
 - 验收最后一条（真实完整运行后不在缺口清单里）待下次真实运行确认。
+
+### 真实运行验收（2026-09-28）
+
+> *本段由 AI 在验收时生成。*
+
+真实完整运行 `run-dc0bb2d9db7068bf552d`，目标日 2026-09-24（9/25 中秋休市，9/26–27 周末），代码 `18899cf`，北京时间 12:58 开始，用时 57 分钟，状态 `completed`，1171 张回执。缺口清单与分流见 [run-findings-20260928](../../run-findings-20260928/README.md)。
+
+- `CN_TOOL_LIQUIDITY_MONTHLY` 持有 `period_end=2026-08-31` 的 24 个标量，发布时间为 2026-09-02 17:00（北京），不在缺口清单里。已勾选最后一条验收，状态改为 done。

@@ -66,3 +66,12 @@ OMO 列表页同一天可以有几份公告（逆回购、央行票据，包括�
 - 测试：`tests/integration/test_official_listing_pages.py` 用 9/23 的第 187、188 号公告真实原件，分别验证“跳过不提示”和“只有央票仍拒收”。
 - 验收第 1–4 条：前两条由上述两例覆盖；其他错误行为不变、已有 OMO 用例全部通过（`test_official_listing_pages.py`、`test_omo_invalid_flow.py`）。
 - 审查补正（2026-09-28）：检索账本在逐份候选之间只放行“已验证”的上一份回执，被跳过的央票公告会让下一份公告直接报 `retrieval_previous_acquisition_not_validated`，因此跳过在检索路径上并不生效（改动前就有这个问题）。现在 `structure_check='skipped'` 的上一份也放行，物理请求记为 `intermediate_candidate_skipped`。新增用例 `test_a_passed_over_notice_does_not_stop_the_next_under_the_retrieval_ledger`：去掉修复即失败。
+
+### 真实运行验收（2026-09-28）
+
+> *本段由 AI 在验收时生成。*
+
+真实完整运行 `run-dc0bb2d9db7068bf552d`，目标日 2026-09-24（9/25 中秋休市，9/26–27 周末），代码 `18899cf`，北京时间 12:58 开始，用时 57 分钟，状态 `completed`，1171 张回执。缺口清单与分流见 [run-findings-20260928](../../run-findings-20260928/README.md)。
+
+- 缺口清单不再有 `CN_OMO_7D_AMOUNT` 的 `official_context_table_schema_mismatch` 拒收提示；本轮那份央票公告的回执为 `CandidateSkipped`（`official_context_table_schema_mismatch`）。
+- OMO 两项仍出现在清单里，但类别是 `freshness_gap`（持有 9/24、按 9/25 计为落后一期），与本票无关，是中秋休市的时效计算问题，见 20260928 票 03。
