@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -442,6 +443,37 @@ def test_context_invalid_scalar_keeps_failed_receipt_and_original(tmp_path: Path
     assert receipt.state == "failed"
     assert receipt.validated_at is None
     assert receipts.read_content(receipt.acquisition_id, "raw") == original[0]
+
+
+def test_a_call_failing_before_its_answer_is_recorded_keeps_why(tmp_path: Path) -> None:
+    """Run findings 2026-09-28, ticket 02: a clock stepping back while a call was in flight
+    failed it before its answer was recorded, and the receipt kept only ``ValueError``."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    started = datetime(2026, 9, 28, 5, 9, 42, tzinfo=UTC)
+    times = iter((started, started - timedelta(seconds=7)))
+    receipts = AcquisitionRepository(paths.database, paths.artifacts)
+
+    with pytest.raises(ValueError, match="acquisition_time_invalid"):
+        receipts.capture(
+            provider="tushare",
+            api_name="fut_wsr",
+            parameters={"symbol": "CU"},
+            fields="vol",
+            parser_version="fixture-parser",
+            fetch=lambda: b"{}",
+            parse=json.loads,
+            normalize=lambda value: value,
+            clock=lambda: next(times),
+        )
+
+    with sqlite3.connect(paths.database) as connection:
+        row = connection.execute(
+            "SELECT state, received_at, error_type, structure_check, rejection_reason "
+            "FROM acquisition_request"
+        ).fetchone()
+    # No answer was recorded, so no structure check ran; the reason is kept all the same.
+    assert row == ("failed", None, "ValueError", None, "acquisition_time_invalid")
 
 
 def test_new_official_revision_recovers_from_previous_unknown_time(tmp_path: Path) -> None:

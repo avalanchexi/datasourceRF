@@ -890,8 +890,12 @@ class TushareContextAdapter:
 
         def parse(response: bytes | dict[str, Any]) -> tuple[dict[str, object], ...]:
             document = json.loads(response) if isinstance(response, bytes) else response
-            if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
-                raise TushareSourceError("tushare_source_failed")
+            code = int(document.get("code", -1)) if isinstance(document, dict) else -1
+            if code != 0:
+                # The code tells a rate limit from a permission refusal on the receipt.
+                raise TushareSourceError(
+                    "tushare_rate_limited" if code == 40203 else f"tushare_source_failed:{code}"
+                )
             rows = _response_rows(document, required_fields=fields)
             _validate_response_periods(rows, params)
             return rows

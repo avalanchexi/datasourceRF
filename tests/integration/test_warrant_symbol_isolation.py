@@ -16,6 +16,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -29,7 +30,7 @@ from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
-from pring_cycle.targeted_context import retrieve_tushare_context
+from pring_cycle.targeted_context import _warrant_symbols_to_refetch, retrieve_tushare_context
 from pring_cycle.tushare_context import WARRANT_SYMBOLS
 from pring_cycle.worker import refresh_context_sources
 from tests.conftest import install_runtime_clock
@@ -237,3 +238,100 @@ def test_a_gap_day_refetch_holds_the_symbols_that_pass(
     assert outcomes.pop("SC") == {("failed", "tushare_warrant_quantity_negative", None)}
     assert set(outcomes) == {"CU", "PP", "RB", "RU", "SP"}
     assert all(found == {("validated", None, "accepted")} for found in outcomes.values())
+
+
+class EverySymbolAvailable(WarrantsOnly):
+    negative = None
+
+
+def test_a_gap_day_refetch_asks_only_for_the_symbols_still_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """Run findings 2026-09-28, ticket 02: with only copper missing, a gap day was refetched
+    for all six TuShare symbols, 714 calls where 119 would do."""
+    paths, run = prepared(monkeypatch, request, tmp_path, CopperUnavailable)
+    refresh(paths, run)
+    monkeypatch.setattr(
+        "pring_cycle.tushare_context.build_opener", lambda *handlers: EverySymbolAvailable()
+    )
+    monkeypatch.setattr("pring_cycle.targeted_context.RetrievalLedger", PassThroughLedger)
+    day = TARGET.isoformat()
+    scope_run = replace(
+        run,
+        retrieval_scope=RetrievalScope(
+            f"warrants:{day}", ("CN_FUTURES_WARRANTS",), day, "P2", None
+        ),
+    )
+
+    with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+        retrieve_tushare_context(paths, run.run_id, "fixture-secret", scope_run=scope_run)
+
+    with sqlite3.connect(paths.database) as connection:
+        refetched = connection.execute(
+            """SELECT r.parameters_json, r.state FROM acquisition_request r
+               JOIN full_run_acquisition a USING (acquisition_id)
+               WHERE a.phase='gap_retrieval' AND r.api_name='fut_wsr'"""
+        ).fetchall()
+    assert [(json.loads(p)["symbol"], state) for p, state in refetched] == [("CU", "validated")]
+
+
+def test_a_gap_day_missing_only_czce_symbols_asks_tushare_for_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """TA and CF are CZCE's alone (ADR-0032); CZCE is unreachable here, so they stay missing."""
+    paths, run = prepared(monkeypatch, request, tmp_path, EverySymbolAvailable)
+    refresh(paths, run)
+    monkeypatch.setattr("pring_cycle.targeted_context.RetrievalLedger", PassThroughLedger)
+    day = TARGET.isoformat()
+    scope_run = replace(
+        run,
+        retrieval_scope=RetrievalScope(
+            f"warrants:{day}", ("CN_FUTURES_WARRANTS",), day, "P2", None
+        ),
+    )
+
+    with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+        response = retrieve_tushare_context(
+            paths, run.run_id, "fixture-secret", scope_run=scope_run
+        )
+
+    with sqlite3.connect(paths.database) as connection:
+        refetched = connection.execute(
+            """SELECT count(*) FROM acquisition_request r
+               JOIN full_run_acquisition a USING (acquisition_id)
+               WHERE a.phase='gap_retrieval' AND r.api_name='fut_wsr'"""
+        ).fetchone()[0]
+    assert refetched == 0
+    assert response.classification == "incomplete_model_input"
+
+
+ALL_TUSHARE = ("CU", "PP", "RB", "RU", "SC", "SP")
+
+
+@pytest.mark.parametrize(
+    ("missing", "asked"),
+    [
+        ((), ()),
+        (("symbol_missing:CF", "symbol_missing:TA"), ()),
+        (("symbol_missing:CF", "symbol_missing:TA", "warehouse_member_missing:CU"), ("CU",)),
+        (("symbol_missing:SC", "warehouse_member_missing:CU"), ("CU", "SC")),
+        (("delivery_conflicted:RB",), ("RB",)),
+        (("unrecognised",), ALL_TUSHARE),
+        (("symbol_missing:SC", "unrecognised"), ALL_TUSHARE),
+    ],
+)
+def test_a_gap_day_refetch_asks_for_every_symbol_its_shortfall_names(
+    monkeypatch: pytest.MonkeyPatch, missing: tuple[str, ...], asked: tuple[str, ...]
+) -> None:
+    """Each kind of shortfall naming a symbol asks for that symbol; one naming none asks for all
+    six, even beside shortfalls that do name one."""
+    members = tuple(
+        f"CN_FUTURES_WARRANTS:{m}" if m != "unrecognised" else "CN_FUTURES_WARRANTS:unknown"
+        for m in missing
+    )
+    monkeypatch.setattr(
+        "pring_cycle.targeted_context.select_retrieval_input",
+        lambda paths, run: SimpleNamespace(missing_members=members),
+    )
+
+    assert _warrant_symbols_to_refetch(Path("unused"), None) == asked  # type: ignore[arg-type]

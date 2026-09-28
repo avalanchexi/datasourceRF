@@ -249,7 +249,7 @@ def test_all_exchange_margin_receipt_recheck_waits_for_the_partial_latest_day() 
 def test_margin_receipt_recheck_still_requires_a_successful_response() -> None:
     raw = json.dumps({**margin_response(PARTIAL_LATEST_DAY[:3]), "code": 40203}).encode()
 
-    with pytest.raises(ValueError, match="tushare_source_failed"):
+    with pytest.raises(ValueError, match="tushare_rate_limited"):
         parse_margin_acquisition(margin_receipt(), raw)
 
 

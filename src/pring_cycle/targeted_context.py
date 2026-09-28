@@ -17,6 +17,7 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import select_retrieval_input
 from pring_cycle.tushare_context import (
     TUSHARE_WARRANT_SYMBOLS,
+    WARRANT_SYMBOLS,
     ContextRequestOperation,
     ContextRows,
     ContextScalar,
@@ -27,6 +28,20 @@ from pring_cycle.tushare_context import (
 class _RequestFailed(Exception):
     def __init__(self, response: RetrievalAdapterResponse) -> None:
         self.response = response
+
+
+def _warrant_symbols_to_refetch(paths: RuntimePaths, run: RunRecord) -> tuple[str, ...]:
+    """The TuShare symbols the day's warrant input still lacks (run findings 2026-09-28,
+    ticket 02): a symbol already held is not asked for again. Every shortfall of the input
+    reads ``CN_FUTURES_WARRANTS:<kind>:<symbol>``; one naming no symbol asks for all of them,
+    as before, even beside shortfalls that do name one."""
+    named: set[str] = set()
+    for member in select_retrieval_input(paths, run).missing_members:
+        metric, _, symbol = member.rpartition(":")
+        if not metric.startswith("CN_FUTURES_WARRANTS:") or symbol not in WARRANT_SYMBOLS:
+            return tuple(sorted(TUSHARE_WARRANT_SYMBOLS))
+        named.add(symbol)
+    return tuple(sorted(named & TUSHARE_WARRANT_SYMBOLS))
 
 
 def retrieve_tushare_context(
@@ -71,7 +86,7 @@ def retrieve_tushare_context(
                 refresh_czce_warrants(paths, days=(day,), definition_version=version)
             retrievals = tuple(
                 partial(adapter.futures_warrants, start_date=day, end_date=day, symbol=symbol)
-                for symbol in sorted(TUSHARE_WARRANT_SYMBOLS)
+                for symbol in _warrant_symbols_to_refetch(paths, run)
             )
         daily_methods = (
             ({"CN_DR007", "CN_SHIBOR_ON_1W_3M"}, adapter.transmission),
@@ -96,7 +111,8 @@ def retrieve_tushare_context(
                 break
     if retrieve is not None:
         retrievals = (retrieve,)
-    if not retrievals:
+    # Warrants may need nothing from TuShare: the day then stands on what is already held.
+    if not retrievals and metrics != {"CN_FUTURES_WARRANTS"}:
         return RetrievalAdapterResponse(
             "not_configured", classification="targeted_tushare_family_unavailable"
         )

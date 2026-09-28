@@ -747,3 +747,20 @@ def test_a_refused_call_is_a_source_failure_not_a_rejected_response() -> None:
 
     with pytest.raises(TushareSourceError, match="tushare_source_failed"):
         adapter.treasury_yields(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+
+
+@pytest.mark.parametrize(
+    ("code", "reason"),
+    [(2002, "tushare_source_failed:2002"), (40203, "tushare_rate_limited")],
+)
+def test_a_refused_call_says_which_code_refused_it(code: int, reason: str) -> None:
+    """Run findings 2026-09-28, ticket 02: a permission refusal and a rate limit read alike."""
+    from pring_cycle.tushare_context import TushareSourceError
+
+    adapter = TushareContextAdapter(
+        "fixture-token", transport=lambda _: {"code": code, "msg": "拒绝", "data": None}
+    )
+
+    with pytest.raises(TushareSourceError) as refused:
+        adapter.treasury_yields(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
+    assert str(refused.value) == reason

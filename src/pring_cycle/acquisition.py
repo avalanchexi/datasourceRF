@@ -284,13 +284,17 @@ class AcquisitionRepository:
 
     def fail_validation(self, acquisition_id: str, error: Exception) -> None:
         """Close a call as failed; one that had answered was rejected by its structure check,
-        or skipped when the caller passed it over for another candidate."""
+        or skipped when the caller passed it over for another candidate.
+
+        Why it failed is kept either way: a call failing before its answer was recorded (a
+        clock stepping back, an unreachable source) otherwise left only the exception class.
+        """
         check = "skipped" if isinstance(error, CandidateSkipped) else "rejected"
         with self._connect() as connection:
             connection.execute(
                 """UPDATE acquisition_request SET state='failed', error_type=?,
                    structure_check=CASE WHEN state='received' THEN ? END,
-                   rejection_reason=CASE WHEN state='received' THEN ? END
+                   rejection_reason=?
                    WHERE acquisition_id=? AND state IN ('started', 'received')""",
                 (type(error).__name__, check, str(error)[:300], acquisition_id),
             )

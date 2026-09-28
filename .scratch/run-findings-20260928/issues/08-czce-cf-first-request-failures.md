@@ -1,4 +1,4 @@
-Status: needs-triage
+Status: duplicate（并入票 02）
 Category: bug
 Type: task
 
@@ -13,3 +13,9 @@ Type: task
 
 - 失败回执要记下原因码（ADR-0022 的回执可追溯）。
 - 查失败原因：同一文件间隔太短、网络，还是票 01 的时钟问题。
+
+## Comments
+
+> *本段由 AI 在分流时生成。*
+
+原因码为空的根因与票 02 相同（`fail_validation()` 只在 `received` 状态写原因），并入票 02 一起修。失败本身多半也是时钟回拨造成的，时钟已经修好（票 01）。
