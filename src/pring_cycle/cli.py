@@ -544,7 +544,7 @@ def _parser() -> argparse.ArgumentParser:
         required=True,
     )
     evidence_query.add_argument("--as-of", required=True)
-    evidence_query.add_argument("--tolerance", type=float, default=0.0)
+    evidence_query.add_argument("--tolerance", type=float, default=None)
     report_generate = _runtime_parser(subparsers, "report-generate")
     report_generate.add_argument("--request-id", required=True)
     report_generate.add_argument("--deterministic-only", action="store_true")

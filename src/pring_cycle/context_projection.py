@@ -27,6 +27,7 @@ from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     MetricSeriesPoint,
+    value_conflict_reason,
 )
 from pring_cycle.freshness import period_status
 from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
@@ -606,7 +607,7 @@ class TargetBoundEvidenceRepository:
         self._allow_system_at_target = allow_system_at_target
 
     def metric_series(self, *args: Any, **kwargs: Any) -> tuple[MetricSeriesPoint, ...]:
-        tolerance = float(kwargs.get("tolerance", 0.0))
+        tolerance = kwargs.get("tolerance")
         query_kwargs = self._query_at_target(kwargs)
         use_system = query_kwargs["allow_system_at_public_cutoff"]
         points = tuple(
@@ -672,7 +673,7 @@ class TargetBoundEvidenceRepository:
 
 
 def _official_days_whole(
-    points: tuple[MetricSeriesPoint, ...], *, tolerance: float
+    points: tuple[MetricSeriesPoint, ...], *, tolerance: float | None
 ) -> tuple[MetricSeriesPoint, ...]:
     """On a day an official notice states the RRR, every member is read from the notice.
 
@@ -703,7 +704,7 @@ def _point_at_target(
     point: MetricSeriesPoint,
     target_date: date,
     *,
-    tolerance: float,
+    tolerance: float | None,
     allow_system_at_target: bool = False,
 ) -> MetricSeriesPoint | None:
     if date.fromisoformat(point.period_start) > target_date:
@@ -727,7 +728,7 @@ def _point_at_target(
 
 
 def _selected_among(
-    point: MetricSeriesPoint, claims: tuple[ClaimView, ...], *, tolerance: float
+    point: MetricSeriesPoint, claims: tuple[ClaimView, ...], *, tolerance: float | None
 ) -> MetricSeriesPoint:
     selected = sorted(claims, key=lambda claim: claim.provider)[0]
     reported_values = [
@@ -737,7 +738,7 @@ def _selected_among(
         and claim.value_state is EvidenceValueState.REPORTED_VALUE
         and claim.value is not None
     ]
-    conflicted = bool(reported_values) and (max(reported_values) - min(reported_values) > tolerance)
+    reason = value_conflict_reason(reported_values, tolerance=tolerance)
     return MetricSeriesPoint(
         observation_id=point.observation_id,
         period_start=point.period_start,
@@ -745,9 +746,10 @@ def _selected_among(
         dimensions=point.dimensions,
         selected_value=selected.value,
         value_state=selected.value_state,
-        selection_status="conflicted" if conflicted else "selected",
+        selection_status="conflicted" if reason is not None else "selected",
         selected_claim_id=selected.claim_id,
         claims=claims,
+        conflict_reason=reason,
     )
 
 
@@ -1701,6 +1703,11 @@ def _metric_rows(
                 "value": value,
                 "value_state": (
                     current.value_state.value if current.value_state is not None else None
+                ),
+                **(
+                    {"conflict_reason": current.conflict_reason}
+                    if status == "conflicted"
+                    else {}
                 ),
             }
         )

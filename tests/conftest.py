@@ -1,3 +1,4 @@
+import socket
 from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from itertools import count
@@ -90,6 +91,37 @@ def _official_pages_offline() -> Iterator[None]:
         patch.setattr("pring_cycle.quote_sources.open_no_redirects", offline_request)
         # A test serving CZCE's reports need not wait between them.
         patch.setattr("pring_cycle.czce_warrants._sleep", lambda seconds: None)
+        yield
+
+
+_LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", ""})
+# The discard port: nothing listens, so a request through it is refused at once.
+_UNREACHABLE_PROXY = "http://127.0.0.1:9"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _network_offline() -> Iterator[None]:
+    """No test reaches the internet; a test serves what it needs (run findings 2026-09-28, #11).
+
+    Proxies point at a closed local port, which a Worker started as a subprocess inherits,
+    and a host other than this machine does not resolve. Either way the source fails at once
+    as it would offline, instead of waiting on a real server or depending on its answer.
+    """
+    resolve = socket.getaddrinfo
+
+    def loopback_only(host: object, *args: object, **kwargs: object) -> object:
+        name = host.decode() if isinstance(host, bytes) else str(host or "")
+        if name not in _LOOPBACK_HOSTS and not name.startswith("127."):
+            raise socket.gaierror(socket.EAI_NONAME, f"network_offline_in_tests:{name}")
+        return resolve(host, *args, **kwargs)  # type: ignore[arg-type]
+
+    with pytest.MonkeyPatch.context() as patch:
+        for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+            patch.setenv(name, _UNREACHABLE_PROXY)
+            patch.setenv(name.lower(), _UNREACHABLE_PROXY)
+        patch.setenv("NO_PROXY", "localhost,127.0.0.1,::1")
+        patch.setenv("no_proxy", "localhost,127.0.0.1,::1")
+        patch.setattr(socket, "getaddrinfo", loopback_only)
         yield
 
 

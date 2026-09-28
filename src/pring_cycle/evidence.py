@@ -4,12 +4,12 @@ import hashlib
 import json
 import sqlite3
 from bisect import bisect_right
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
-from math import isfinite
+from math import isfinite, log10
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -30,7 +30,7 @@ from pring_cycle.source_contract_review import (
     require_registered_source_contract,
     require_source_contract,
 )
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import database_connection, ensure_wal
 
 
 class AsOfMode(StrEnum):
@@ -140,6 +140,7 @@ class EvidenceQueryResult:
     selected_value: float | None
     value_state: EvidenceValueState | None
     claims: tuple[ClaimView, ...]
+    conflict_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -153,6 +154,7 @@ class MetricSeriesPoint:
     selection_status: str
     selected_claim_id: str | None
     claims: tuple[ClaimView, ...]
+    conflict_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -904,7 +906,7 @@ class EvidenceRepository:
         *,
         mode: AsOfMode,
         as_of: datetime,
-        tolerance: float = 0.0,
+        tolerance: float | None = None,
     ) -> EvidenceQueryResult:
         if as_of.tzinfo is None:
             raise ValueError("as_of_must_be_timezone_aware")
@@ -947,7 +949,7 @@ class EvidenceRepository:
         as_of: datetime,
         public_as_of: datetime | None = None,
         allow_system_at_public_cutoff: bool = False,
-        tolerance: float = 0.0,
+        tolerance: float | None = None,
         definition_version: str | None = None,
     ) -> tuple[MetricSeriesPoint, ...]:
         if as_of.tzinfo is None:
@@ -1027,6 +1029,7 @@ class EvidenceRepository:
                     selection_status=result.selection_status,
                     selected_claim_id=result.selected_claim_id,
                     claims=result.claims,
+                    conflict_reason=result.conflict_reason,
                 )
             state.visible_count = visible_count
             state.tolerance = tolerance
@@ -1084,6 +1087,7 @@ class EvidenceRepository:
                         selection_status=result.selection_status,
                         selected_claim_id=result.selected_claim_id,
                         claims=result.claims,
+                        conflict_reason=result.conflict_reason,
                     )
                 )
         points.sort(key=lambda point: (point.period_end, point.observation_id))
@@ -1095,7 +1099,7 @@ class EvidenceRepository:
         *,
         mode: AsOfMode,
         as_of: datetime,
-        tolerance: float = 0.0,
+        tolerance: float | None = None,
     ) -> EvidenceTrace:
         with self._connect() as connection:
             row = connection.execute(
@@ -1337,7 +1341,7 @@ class EvidenceRepository:
         with database_connection(self._database_path) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
+            ensure_wal(connection, self._database_path)
             yield connection
 
 
@@ -1359,7 +1363,7 @@ def _select_claim_rows(
     *,
     mode: AsOfMode,
     as_of: datetime,
-    tolerance: float,
+    tolerance: float | None,
 ) -> EvidenceQueryResult:
     time_column = "public_available_at" if mode == AsOfMode.PUBLIC else "available_at"
     # SQLite julianday is only a coarse index filter: it rounds sub-millisecond
@@ -1403,17 +1407,56 @@ def _select_claim_rows(
         and item.value_state is EvidenceValueState.REPORTED_VALUE
         and item.value is not None
     ]
-    conflicted = bool(reported_values) and (max(reported_values) - min(reported_values) > tolerance)
+    reason = value_conflict_reason(reported_values, tolerance=tolerance)
     return EvidenceQueryResult(
         observation_id=observation_id,
         mode=mode,
         as_of=as_of,
-        selection_status="conflicted" if conflicted else "selected",
+        selection_status="conflicted" if reason is not None else "selected",
         selected_claim_id=selected.claim_id,
         selected_value=selected.value,
         value_state=selected.value_state,
         claims=claims,
+        conflict_reason=reason,
     )
+
+
+COMPATIBLE_RELATIVE_DEVIATION = 0.005
+_UNIT_SCALE_RELATIVE_ERROR = 0.01
+
+
+def value_conflict_reason(values: Sequence[float], *, tolerance: float | None = None) -> str | None:
+    """Why reported values of one observation conflict, or None when they agree.
+
+    Sources disclose at different precision: 23.91 trillion and 239109 hundred million are
+    the same figure. Values within 0.5% of each other agree; a ratio near a power of ten is
+    a unit slip; any other gap is a disagreement (ADR-0033). An explicit absolute tolerance
+    replaces these tiers.
+    """
+    if len(values) < 2:
+        return None
+    if tolerance is not None:
+        return "value_disagreement" if max(values) - min(values) > tolerance else None
+    reason = None
+    for index, first in enumerate(values):
+        for second in values[index + 1 :]:
+            pair = _pair_conflict_reason(first, second)
+            if pair == "unit_scale_mismatch":
+                return pair
+            reason = reason or pair
+    return reason
+
+
+def _pair_conflict_reason(first: float, second: float) -> str | None:
+    larger = max(abs(first), abs(second))
+    if larger == 0 or abs(first - second) / larger <= COMPATIBLE_RELATIVE_DEVIATION:
+        return None
+    if first != 0 and second != 0 and (first > 0) == (second > 0):
+        exponent = log10(abs(first) / abs(second))
+        power = round(exponent)
+        if power != 0 and abs(10 ** (exponent - power) - 1) <= _UNIT_SCALE_RELATIVE_ERROR:
+            return "unit_scale_mismatch"
+    return "value_disagreement"
 
 
 def _validate_claim(claim: SourceClaimInput, database_path: Path) -> None:

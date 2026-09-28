@@ -310,7 +310,9 @@ def test_a_run_under_write_contention_still_publishes_and_reports_its_state(
     def neighbour() -> None:
         """Keep taking the write lock for short bursts, the way a second writer would."""
         nonlocal grabs
-        while not stop_writing.wait(0.05):
+        # Held a fifth of the time: every write of the run meets it, yet the run is not
+        # made to queue behind it for minutes (it took 237 s when held four fifths).
+        while not stop_writing.wait(0.2):
             try:
                 with sqlite3.connect(paths.database, timeout=0.2) as connection:
                     connection.execute("BEGIN IMMEDIATE")
@@ -319,7 +321,7 @@ def test_a_run_under_write_contention_still_publishes_and_reports_its_state(
                         "WHERE lease_name = 'worker:global-execution'"
                     )
                     grabs += 1
-                    time.sleep(0.2)
+                    time.sleep(0.05)
             except sqlite3.OperationalError:
                 continue
 

@@ -14,6 +14,7 @@ from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     SourceClaimInput,
+    value_conflict_reason,
 )
 
 
@@ -694,3 +695,70 @@ def test_derived_trace_is_point_in_time_gated(tmp_path: Path) -> None:
             mode=AsOfMode.PUBLIC,
             as_of=datetime(2026, 7, 17, tzinfo=UTC),
         )
+
+
+@pytest.mark.parametrize(
+    ("values", "reason"),
+    [
+        ((239109.0, 239100.0), None),
+        ((239109.0, 23.9109), "unit_scale_mismatch"),
+        ((239109.0, 2391.09), "unit_scale_mismatch"),
+        ((2.391, 23910.0), "unit_scale_mismatch"),
+        ((100.0, 101.0), "value_disagreement"),
+        ((100.0, 100.0, 101.0), "value_disagreement"),
+        ((100.0, 101.0, 1.0), "unit_scale_mismatch"),
+        ((0.0, 0.0), None),
+        ((0.0, 1.0), "value_disagreement"),
+        ((-10.0, 10.0), "value_disagreement"),
+        ((5.0,), None),
+    ],
+)
+def test_reported_values_agree_within_half_a_percent_and_flag_unit_slips(
+    values: tuple[float, ...], reason: str | None
+) -> None:
+    """Disclosed precision differs across sources; units must not (ADR-0033)."""
+    assert value_conflict_reason(values) == reason
+
+
+def test_explicit_tolerance_replaces_the_relative_tiers() -> None:
+    assert value_conflict_reason((239109.0, 239100.0), tolerance=0.0) == "value_disagreement"
+    assert value_conflict_reason((100.0, 101.0), tolerance=1.5) is None
+
+
+@pytest.mark.parametrize(
+    ("second", "status", "reason"),
+    [
+        (239100.0, "selected", None),
+        (23.9109, "conflicted", "unit_scale_mismatch"),
+    ],
+)
+def test_query_compares_certified_values_by_relative_tiers(
+    tmp_path: Path, second: float, status: str, reason: str | None
+) -> None:
+    evidence = repository(tmp_path)
+    first = evidence.append_source_claim(
+        claim(
+            value=239109.0,
+            public_at="2026-07-15T02:00:00+00:00",
+            system_at="2026-07-15T02:05:00+00:00",
+            certification_status="certified",
+        )
+    )
+    evidence.append_source_claim(
+        claim(
+            value=second,
+            public_at="2026-07-15T02:00:00+00:00",
+            system_at="2026-07-15T02:06:00+00:00",
+            provider="certified_backup",
+            certification_status="certified",
+        )
+    )
+
+    result = evidence.query(
+        first.observation_id,
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime(2026, 7, 16, tzinfo=UTC),
+    )
+
+    assert result.selection_status == status
+    assert result.conflict_reason == reason

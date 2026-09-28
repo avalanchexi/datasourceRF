@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import database_connection, ensure_wal
 
 GIB = 1024**3
 MIB = 1024**2
@@ -205,7 +205,7 @@ class MaintenanceRepository:
     def _connect(self) -> Iterator[sqlite3.Connection]:
         with database_connection(self._database_path) as connection:
             connection.row_factory = sqlite3.Row
-            connection.execute("PRAGMA journal_mode=WAL")
+            ensure_wal(connection, self._database_path)
             yield connection
 
 

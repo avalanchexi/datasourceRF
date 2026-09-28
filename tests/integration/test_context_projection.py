@@ -995,8 +995,14 @@ def test_public_context_release_status_uses_public_not_system_visibility(
     assert {row["status"] for row in lpr_rows} == {"current"}
 
 
+@pytest.mark.parametrize(
+    ("conflicting_value", "reason"),
+    [(3.1, "value_disagreement"), (300.0, "unit_scale_mismatch")],
+)
 def test_conflicted_certified_sources_keep_every_claim_and_do_not_drive_state(
     tmp_path: Path,
+    conflicting_value: float,
+    reason: str,
 ) -> None:
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -1018,7 +1024,7 @@ def test_conflicted_certified_sources_keep_every_claim_and_do_not_drive_state(
             period_start="2026-08-01",
             period_end="2026-08-31",
             dimensions={"tenor": "1y"},
-            value=3.1,
+            value=conflicting_value,
             value_state=EvidenceValueState.REPORTED_VALUE,
             unit="percent",
             provider="certified-secondary-fixture",
@@ -1045,9 +1051,63 @@ def test_conflicted_certified_sources_keep_every_claim_and_do_not_drive_state(
     )
 
     assert lpr_1y["status"] == "conflicted"
-    assert {claim["value"] for claim in lpr_1y["claims"]} == {3.0, 3.1}
+    assert lpr_1y["conflict_reason"] == reason
+    assert {claim["value"] for claim in lpr_1y["claims"]} == {3.0, conflicting_value}
     assert set(ingested.claim_ids) | {conflicting.claim_id} <= set(context.observation_version_ids)
     assert context.macro["credit_response"] == "insufficient_data"
+
+
+def test_certified_sources_within_half_a_percent_agree(tmp_path: Path) -> None:
+    """3.0 and 3.01 differ only in disclosed precision; neither is a conflict (ADR-0033)."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    content = (Path(__file__).parents[1] / "fixtures/chinamoney_lpr_20260820.html").read_bytes()
+    ingest_lpr_document(
+        paths,
+        content,
+        source_url=OFFICIAL_URL,
+        fetched_at=datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
+        expected_period="2026-08",
+        clock=lambda: datetime(2026, 8, 20, 1, 2, tzinfo=UTC),
+    )
+    repository.append_source_claim(
+        SourceClaimInput(
+            metric_id="CN_LPR_1Y_5Y",
+            definition_version="metric-catalog-v0002",
+            period_kind="month",
+            period_start="2026-08-01",
+            period_end="2026-08-31",
+            dimensions={"tenor": "1y"},
+            value=3.01,
+            value_state=EvidenceValueState.REPORTED_VALUE,
+            unit="percent",
+            provider="certified-secondary-fixture",
+            source_reference="fixture:precise-lpr-1y",
+            release_event_id="fixture:lpr:2026-08",
+            release_at=datetime(2026, 8, 20, 1, tzinfo=UTC),
+            public_available_at=datetime(2026, 8, 20, 1, tzinfo=UTC),
+            fetched_at=datetime(2026, 8, 20, 1, 3, tzinfo=UTC),
+            available_at=datetime(2026, 8, 20, 1, 3, tzinfo=UTC),
+            certification_status="certified",
+            quality_status="validated",
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 20, 2, tzinfo=UTC),
+        model_manifest=_v2_manifest(),
+    )
+    lpr_1y = next(
+        row
+        for row in context.macro["credit"]["evidence"]  # type: ignore[index]
+        if row["dimensions"] == {"tenor": "1y"}
+    )
+
+    assert lpr_1y["status"] != "conflicted"
+    assert "conflict_reason" not in lpr_1y
+    assert {claim["value"] for claim in lpr_1y["claims"]} == {3.0, 3.01}
 
 
 def test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages(

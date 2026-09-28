@@ -13,7 +13,7 @@ from typing import Any
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.source_contract_review import require_stored_model_source_contract
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import database_connection, ensure_wal
 
 ANALYTICAL_DATASETS = (
     "cycle_overview",
@@ -363,7 +363,7 @@ class ProjectionSetRepository:
         with database_connection(self._database_path) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
+            ensure_wal(connection, self._database_path)
             yield connection
 
 

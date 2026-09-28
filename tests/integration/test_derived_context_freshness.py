@@ -11,6 +11,7 @@ import pytest
 from pring_cycle.catalog import metric_catalog_v0003
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.freshness import add_projection_gaps
 from pring_cycle.models import analytical_model_v0002_manifest
 
 
@@ -235,3 +236,145 @@ def test_credit_impulse_checks_both_terminal_periods_without_rejecting_preheat(
     gaps = cast(list[dict[str, object]], overheat["gaps"])
     assert (derived_id in {str(row["observation_id"]) for row in support}) == (status == "current")
     assert (derived_id in {str(row["observation_id"]) for row in gaps}) == (status == "stale")
+
+
+_CREDIT_REQUIREMENT = {
+    "metric_id": "CN_CREDIT_IMPULSE",
+    "formula_version": "credit-impulse-ytd-flow-v0002",
+    "required_input_periods": {"CN_SF_TOTAL": 25, "CN_GDP": 9},
+}
+
+
+def _credit_documents(formula_status: str, sf_status: str = "current") -> tuple[object, ...]:
+    """The shapes a macro projection carries: evidence rows and the formula document."""
+    sf_row = {
+        "metric_id": "CN_SF_TOTAL",
+        "period": "2026-08-31",
+        "dimensions": {"measure": "ytd_increment"},
+        "status": sf_status,
+        "claims": [{"metric_id": "CN_SF_TOTAL", "status": "conflicted"}],
+        **({"conflict_reason": "unit_scale_mismatch"} if sf_status == "conflicted" else {}),
+    }
+    macro = {
+        "credit": {
+            "evidence": [sf_row, {"metric_id": "CN_CREDIT_IMPULSE", "status": "missing"}],
+            "formula": {
+                "metric_id": "CN_CREDIT_IMPULSE",
+                "formula_version": "credit-impulse-ytd-flow-v0002",
+                "formula": "100 * (...)",
+                "status": formula_status,
+            },
+        },
+        # The same row shown again under another card is one gap.
+        "overheat": {"evidence": [sf_row]},
+    }
+    inventory = {
+        "real_inventory_approximation": {
+            "formula_version": "inventory-ppi-common-month-v0002",
+            "formula": "nominal / (1 + ppi / 100)",
+            "status": "available",
+        }
+    }
+    return macro, inventory
+
+
+def test_a_formula_missing_inputs_is_a_gap_naming_the_parent_periods() -> None:
+    """Freshness follows the parents: a formula that never computes looked current (#09)."""
+    gaps = add_projection_gaps(
+        (),
+        _credit_documents("missing_inputs"),
+        derived_requirements=(
+            _CREDIT_REQUIREMENT,
+            {
+                "metric_id": "CN_REAL_FINISHED_GOODS_INVENTORY_PROXY",
+                "required_input_periods": {"CN_FINISHED_GOODS_INVENTORY": 1, "CN_PPI": 1},
+            },
+            # A change of the metric's own series is shown with its own rows.
+            {"metric_id": "CN_LOAN_STRUCTURE", "required_input_periods": {"CN_LOAN_STRUCTURE": 2}},
+        ),
+        plan_gaps=(
+            {
+                "complete": False,
+                "metric_id": "CN_SF_TOTAL",
+                "period": "2024-08",
+                "missing_members": ['CN_SF_TOTAL:{"measure": "ytd_increment"}'],
+            },
+            {"complete": True, "metric_id": "CN_SF_TOTAL", "period": "2024-09"},
+            {"complete": False, "metric_id": "CN_PPI", "period": "2026-08"},
+        ),
+        definitions=metric_catalog_v0003(),
+    )
+
+    (gap,) = gaps
+    assert gap["metric_id"] == "CN_CREDIT_IMPULSE"
+    assert gap["category"] == "derived_failed"
+    assert gap["reason"] == gap["formula_status"] == "missing_inputs"
+    assert gap["missing_inputs"] == [
+        {
+            "metric_id": "CN_SF_TOTAL",
+            "period": "2024-08",
+            "missing_members": ['CN_SF_TOTAL:{"measure": "ytd_increment"}'],
+        }
+    ]
+
+
+def test_a_conflicted_metric_is_one_gap_listing_each_conflict() -> None:
+    gaps = add_projection_gaps(
+        (),
+        _credit_documents("available", sf_status="conflicted"),
+        derived_requirements=(_CREDIT_REQUIREMENT,),
+        plan_gaps=(),
+        definitions=metric_catalog_v0003(),
+    )
+
+    (gap,) = gaps
+    assert gap["metric_id"] == "CN_SF_TOTAL"
+    assert gap["category"] == "source_conflict"
+    assert gap["reason"] == "unit_scale_mismatch"
+    assert gap["held_period"] == "2026-08-31"
+    assert gap["conflicts"] == [
+        {
+            "period": "2026-08-31",
+            "dimensions": {"measure": "ytd_increment"},
+            "reason": "unit_scale_mismatch",
+        }
+    ]
+
+
+def test_a_metric_already_listed_keeps_one_row_with_what_the_projection_adds() -> None:
+    listed = {
+        "metric_id": "CN_CREDIT_IMPULSE",
+        "priority": "P1",
+        "category": "missing",
+        "reason": "not_held",
+        "due_period": "2026-08-31",
+        "held_period": None,
+        "periods_behind": None,
+        "no_web_fallback": True,
+    }
+
+    gaps = add_projection_gaps(
+        (listed,),
+        _credit_documents("missing_inputs"),
+        derived_requirements=(_CREDIT_REQUIREMENT,),
+        plan_gaps=(),
+        definitions=metric_catalog_v0003(),
+    )
+
+    (gap,) = gaps
+    assert gap["category"] == "missing" and gap["reason"] == "not_held"
+    assert gap["formula_status"] == "missing_inputs"
+    assert gap["missing_inputs"] == []
+
+
+def test_a_computed_formula_leaves_no_gap() -> None:
+    assert (
+        add_projection_gaps(
+            (),
+            _credit_documents("available"),
+            derived_requirements=(_CREDIT_REQUIREMENT,),
+            plan_gaps=(),
+            definitions=metric_catalog_v0003(),
+        )
+        == []
+    )

@@ -272,6 +272,8 @@ GAP_CATEGORY_LABELS = {
     "freshness_gap": "时效缺口",
     "unconfigured": "未配置时效",
     "rejected": "拒收",
+    "derived_failed": "派生失败",
+    "source_conflict": "来源冲突",
     # Lists published before gap sources #04 still carry the old category.
     "no_searchable_source": "无可检索来源",
 }

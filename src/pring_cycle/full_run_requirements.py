@@ -104,6 +104,19 @@ def required_calendar(
     }
 
 
+# Twelve months (four quarters) and the twelve (four) before them.
+CREDIT_IMPULSE_INPUT_PERIODS = {"CN_SF_TOTAL": 24, "CN_GDP": 8}
+
+
+def credit_lookback_start(metric_id: str, latest_period: str) -> str:
+    """The first period the credit impulse reads when its newest is ``latest_period``.
+
+    Flows are differenced from year-to-date figures, so the window needs the period before
+    it as well (run findings 2026-09-28, ticket 09).
+    """
+    return preceding_periods(latest_period, CREDIT_IMPULSE_INPUT_PERIODS[metric_id] + 1)[0]
+
+
 def formula_requirements(
     rules: ContextProjectionRules,
     selector: ModelInputSelector,
@@ -112,7 +125,7 @@ def formula_requirements(
     counts: dict[str, int] = {}
     derived = []
     mappings = {
-        "credit_impulse": ("CN_CREDIT_IMPULSE", {"CN_SF_TOTAL": 24, "CN_GDP": 8}),
+        "credit_impulse": ("CN_CREDIT_IMPULSE", CREDIT_IMPULSE_INPUT_PERIODS),
         "dr007_policy_spread": ("CN_DR007_POLICY_SPREAD", {"CN_DR007": 1, "CN_OMO_7D_RATE": 1}),
         "loan_monthly_change": ("CN_LOAN_STRUCTURE", {"CN_LOAN_STRUCTURE": 2}),
         "omo_net_injection": ("CN_OMO_7D_AMOUNT", {"CN_OMO_7D_AMOUNT": 1}),

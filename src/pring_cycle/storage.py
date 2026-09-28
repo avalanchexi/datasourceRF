@@ -26,6 +26,19 @@ def database_connection(database: Path | str, *, uri: bool = False) -> Iterator[
         connection.close()
 
 
+# Databases this process has put in WAL mode. The mode is stored in the file, so setting it on
+# every connection only repeats a statement; a full run opens tens of thousands of connections
+# (run findings 2026-09-28, ticket 11).
+_WAL_DATABASES: set[str] = set()
+
+
+def ensure_wal(connection: sqlite3.Connection, database: Path | str) -> None:
+    key = str(database)
+    if key not in _WAL_DATABASES:
+        connection.execute("PRAGMA journal_mode=WAL")
+        _WAL_DATABASES.add(key)
+
+
 @contextmanager
 def keep_database_open(database: Path) -> Iterator[None]:
     """Defer last-connection WAL cleanup until concurrent work has stopped.

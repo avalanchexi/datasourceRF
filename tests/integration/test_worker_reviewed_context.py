@@ -15,6 +15,7 @@ from typing import Any
 
 import pytest
 
+import pring_cycle.tushare_context as tushare_context
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
@@ -166,6 +167,35 @@ def test_worker_money_delivery_satisfies_the_new_four_member_contract(
         if item["acquisition_id"] == receipt.acquisition_id
     ]
     assert owned["metric_ids"] == ["CN_M1_M2"] and owned["state"] == "validated"
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_credit_inputs_are_fetched_back_to_the_differencing_baseline(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The impulse differences 24 months and 8 quarters of year-to-date figures (ticket 09).
+
+    On 2026-09-18 the newest released periods are 2026-08 and 2026-Q2, so the fetch must
+    start at 2024-08 and 2024-Q2, the baselines before each window.
+    """
+    paths, run, version = reviewed_run(tmp_path, capsys)
+    context_http(monkeypatch, {})
+    requested: dict[str, dict[str, str]] = {}
+    original_open = tushare_context.build_opener().open
+
+    class Recording:
+        def open(self, request: Any, *, timeout: float) -> BytesIO:
+            payload = json.loads(request.data)
+            requested[payload["api_name"]] = payload["params"]
+            return original_open(request, timeout=timeout)
+
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *args: Recording())
+
+    with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
+        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+
+    assert requested["sf_month"] == {"start_m": "202408", "end_m": "202609"}
+    assert requested["cn_gdp"] == {"start_q": "2024Q2", "end_q": "2026Q3"}
 
 
 @pytest.mark.usefixtures("runtime_clock")

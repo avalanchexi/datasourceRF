@@ -806,6 +806,8 @@ _GAP_ORDER = (
     "freshness_gap",
     "unconfigured",
     "rejected",
+    "derived_failed",
+    "source_conflict",
 )
 # Acquisition outcomes of a registered source, as the Worker records them; the last one a
 # run recorded for a metric says whether that source failed it (gap sources #04).
@@ -953,6 +955,10 @@ def gap_list(
                     "no_web_fallback": not is_searchable_gap(metric_id),
                 }
             )
+    return sort_gaps(gaps)
+
+
+def sort_gaps(gaps: Iterable[dict[str, object]]) -> list[dict[str, object]]:
     return sorted(
         gaps,
         key=lambda item: (
@@ -961,3 +967,121 @@ def gap_list(
             str(item["metric_id"]),
         ),
     )
+
+
+# A formula document that names no metric of its own.
+_FORMULA_DOCUMENTS = {"real_inventory_approximation": "CN_REAL_FINISHED_GOODS_INVENTORY_PROXY"}
+_USABLE_DERIVED_STATUSES = frozenset({"current", "stale", "available", "disabled_by_model"})
+
+
+def add_projection_gaps(
+    gaps: Iterable[Mapping[str, object]],
+    documents: Iterable[object],
+    *,
+    derived_requirements: Iterable[Mapping[str, object]],
+    plan_gaps: Iterable[Mapping[str, object]],
+    definitions: Iterable[MetricDefinition],
+) -> list[dict[str, object]]:
+    """Add what only the computed projection shows, which timeliness cannot see (ticket 09).
+
+    A derived metric follows its parents' timeliness, so a formula that never computes stays
+    ``current``, and a conflict is a selection, not a period. A formula metric whose parents
+    are other metrics and that has no usable row gets ``formula_status`` and
+    ``missing_inputs``, the parent periods the run plan could not complete; a metric with
+    observations whose sources disagree gets ``conflicts``, each with the reason the
+    comparison gave (ADR-0033). The list keeps one row per metric: a metric not listed yet
+    is added as ``derived_failed`` or ``source_conflict``.
+    """
+    from pring_cycle.retrieval_registry import is_searchable_gap
+
+    priorities = {item.metric_id: item.priority for item in definitions}
+    rows: list[dict[str, object]] = []
+    formula_status: dict[str, str] = {}
+
+    def walk(value: object, key: str | None) -> None:
+        if isinstance(value, Mapping):
+            metric_id = value.get("metric_id") or _FORMULA_DOCUMENTS.get(key or "")
+            if isinstance(metric_id, str) and isinstance(value.get("status"), str):
+                if "formula_version" in value and "formula" in value:
+                    formula_status[metric_id] = str(value["status"])
+                else:
+                    rows.append(dict(value, metric_id=metric_id))
+            for child_key, child in value.items():
+                if child_key != "claims":
+                    walk(child, str(child_key))
+        elif isinstance(value, list):
+            for child in value:
+                walk(child, key)
+
+    for document in documents:
+        walk(document, None)
+    listed = {str(gap["metric_id"]): dict(gap) for gap in gaps}
+
+    def entry(metric_id: str, category: str, reason: str) -> dict[str, object]:
+        return listed.setdefault(
+            metric_id,
+            {
+                "metric_id": metric_id,
+                "priority": priorities.get(metric_id),
+                "category": category,
+                "reason": reason,
+                "due_period": None,
+                "held_period": None,
+                "periods_behind": None,
+                "no_web_fallback": not is_searchable_gap(metric_id),
+            },
+        )
+
+    incomplete = [gap for gap in plan_gaps if not gap.get("complete", True)]
+    for requirement in derived_requirements:
+        metric_id = str(requirement["metric_id"])
+        parents = requirement.get("required_input_periods")
+        parents = set(parents) if isinstance(parents, Mapping) else set()
+        if metric_id in parents:
+            continue  # A change of the metric's own series, shown with its own rows.
+        statuses = [str(row["status"]) for row in rows if row["metric_id"] == metric_id]
+        status = formula_status.get(metric_id)
+        if status in _USABLE_DERIVED_STATUSES or (
+            status is None and any(item in _USABLE_DERIVED_STATUSES for item in statuses)
+        ):
+            continue
+        status = status or (statuses[0] if statuses else "not_computed")
+        entry(metric_id, "derived_failed", status).update(
+            formula_status=status,
+            missing_inputs=[
+                {
+                    "metric_id": gap["metric_id"],
+                    "period": gap.get("period"),
+                    "missing_members": _members(gap.get("missing_members")),
+                }
+                for gap in incomplete
+                if gap.get("metric_id") in parents
+            ],
+        )
+    conflicts: dict[str, dict[tuple[object, str], dict[str, object]]] = {}
+    for row in rows:
+        if row["status"] == "conflicted":
+            dimensions = row.get("dimensions") or {}
+            conflicts.setdefault(str(row["metric_id"]), {})[
+                (row.get("period"), json.dumps(dimensions, sort_keys=True))
+            ] = {
+                "period": row.get("period"),
+                "dimensions": dimensions,
+                "reason": row.get("conflict_reason") or "value_disagreement",
+            }
+    for metric_id, by_member in conflicts.items():
+        items = sorted(by_member.values(), key=lambda item: str(item["period"]))
+        reasons = [str(item["reason"]) for item in items]
+        gap = entry(
+            metric_id,
+            "source_conflict",
+            "unit_scale_mismatch" if "unit_scale_mismatch" in reasons else reasons[0],
+        )
+        if gap["category"] == "source_conflict":
+            gap["held_period"] = items[-1]["period"]
+        gap["conflicts"] = items
+    return sort_gaps(listed.values())
+
+
+def _members(value: object) -> list[object]:
+    return list(value) if isinstance(value, list) else []

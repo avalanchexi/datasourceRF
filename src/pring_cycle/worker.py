@@ -40,6 +40,7 @@ from pring_cycle.evidence import (
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
     TradingCalendar,
+    add_projection_gaps,
     gap_list,
     period_status,
     record_run_freshness,
@@ -493,7 +494,15 @@ def _execute_run(
         macro_document=context.macro,
         inventory_document=context.inventory,
         release_calendar_events=release_calendar_events,
-        gap_list=gaps,
+        gap_list=tuple(
+            add_projection_gaps(
+                gaps,
+                (context.macro, context.inventory),
+                derived_requirements=plan["final"]["derived_requirements"],
+                plan_gaps=plan["final"]["gaps"],
+                definitions=model_rules.metric_definitions,
+            )
+        ),
     )
     if result.assessment_id is not None:
         runs.record_checkpoint(
@@ -1756,6 +1765,9 @@ def refresh_context_sources(
     end_month = target.strftime("%Y%m")
     target_quarter = f"{target.year}Q{(target.month - 1) // 3 + 1}"
     start_quarter = f"{target.year - 2}Q{(target.month - 1) // 3 + 1}"
+    financing_start, gdp_start = _credit_lookback_starts(target)
+    financing_start = min(financing_start, start_month)
+    gdp_start = min(gdp_start, start_quarter)
     daily_start = target - timedelta(days=220)
     adapter = _context_adapter(token)
     reviewed_deliveries = {
@@ -1844,7 +1856,7 @@ def refresh_context_sources(
             "social_financing",
             ("CN_SF_TOTAL",),
             lambda: financing(
-                start_month=start_month,
+                start_month=financing_start,
                 end_month=end_month,
             ),
         ),
@@ -1867,7 +1879,7 @@ def refresh_context_sources(
             "gdp",
             ("CN_GDP",),
             lambda: adapter.gdp(
-                start_quarter=start_quarter,
+                start_quarter=gdp_start,
                 end_quarter=target_quarter,
             ),
         ),
@@ -1955,6 +1967,27 @@ def refresh_context_sources(
             )
             if missing_metrics:
                 record(missing_metrics, "tushare", "missing_fields", **details)
+
+
+def _credit_lookback_starts(target: date) -> tuple[str, str]:
+    """The first social financing month and GDP quarter the credit impulse needs.
+
+    Counted back from each series' newest released period, the same registry the run plan
+    judges them by, so the fetch holds what the plan asks for, the differencing baseline
+    included (run findings 2026-09-28, ticket 09).
+    """
+    from pring_cycle.freshness import FRESHNESS_REGISTRY, current_calendar, latest_released_period
+    from pring_cycle.full_run_requirements import credit_lookback_start
+
+    cutoff = datetime.combine(target, time.max, tzinfo=ZoneInfo("Asia/Shanghai"))
+    calendar = current_calendar()
+    month = latest_released_period(FRESHNESS_REGISTRY["CN_SF_TOTAL"], cutoff, calendar)
+    quarter = latest_released_period(FRESHNESS_REGISTRY["CN_GDP"], cutoff, calendar)
+    first_month = credit_lookback_start("CN_SF_TOTAL", f"{month:%Y-%m}")
+    first_quarter = credit_lookback_start(
+        "CN_GDP", f"{quarter.year}-Q{(quarter.month - 1) // 3 + 1}"
+    )
+    return first_month.replace("-", ""), first_quarter.replace("-", "")
 
 
 # Families that compute only the window's days not yet held.

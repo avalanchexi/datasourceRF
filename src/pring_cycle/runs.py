@@ -13,7 +13,7 @@ from typing import Any
 
 from pring_cycle.batches import add_batch_columns
 from pring_cycle.run_cutoffs import cutoff_contract, upgrade_run_cutoffs
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import database_connection, ensure_wal
 
 # A lease is written with this lifetime past each heartbeat, and read back with it to decide
 # whether an owner is still alive. The Worker's heartbeat loop needs the same number to know
@@ -72,6 +72,32 @@ class LeaseDecision:
     owner_state: str
     run_id: str | None
     next_action: str
+
+
+# Parsed scopes of initial plans, by document hash. A plan is immutable once written, and a
+# full run records an attempt per candidate: parsing the whole plan each time cost a test run
+# a fifth of its time (run findings 2026-09-28, ticket 11).
+_INITIAL_SCOPES: dict[str, dict[str, dict[str, Any]]] = {}
+
+
+def _initial_plan_scopes(connection: sqlite3.Connection, run_id: str) -> dict[str, dict[str, Any]]:
+    row = connection.execute(
+        "SELECT document_hash FROM full_run_gap_plan WHERE run_id=? AND phase='initial'",
+        (run_id,),
+    ).fetchone()
+    if row is None:
+        return {}
+    digest = str(row[0])
+    if digest not in _INITIAL_SCOPES:
+        (document,) = connection.execute(
+            "SELECT document_json FROM full_run_gap_plan WHERE run_id=? AND phase='initial'",
+            (run_id,),
+        ).fetchone()
+        scopes: dict[str, dict[str, Any]] = {}
+        for item in json.loads(document)["scopes"]:
+            scopes.setdefault(item["release_event_id"], item)
+        _INITIAL_SCOPES[digest] = scopes
+    return _INITIAL_SCOPES[digest]
 
 
 class RunRepository:
@@ -703,23 +729,7 @@ class RunRepository:
         with self._connect() as connection:
             scope = self._retrieval_scope(connection, run_id)
             if scope is None:
-                plan = connection.execute(
-                    "SELECT document_json FROM full_run_gap_plan "
-                    "WHERE run_id=? AND phase='initial'",
-                    (run_id,),
-                ).fetchone()
-                planned = (
-                    next(
-                        (
-                            item
-                            for item in json.loads(plan[0])["scopes"]
-                            if item["release_event_id"] == release_event_id
-                        ),
-                        None,
-                    )
-                    if plan
-                    else None
-                )
+                planned = _initial_plan_scopes(connection, run_id).get(release_event_id)
                 if planned is None:
                     raise ValueError("retrieval_attempt_requires_scoped_run")
                 scope = RetrievalScope(
@@ -931,7 +941,7 @@ class RunRepository:
         with database_connection(self._database_path) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
+            ensure_wal(connection, self._database_path)
             yield connection
 
     def _run_record(self, connection: sqlite3.Connection, row: sqlite3.Row) -> RunRecord:

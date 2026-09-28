@@ -19,7 +19,7 @@ from pring_cycle.catalog import (
     metric_catalog_v0003,
 )
 from pring_cycle.source_contract_review import require_model_source_contract
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import database_connection, ensure_wal
 
 
 @dataclass(frozen=True)
@@ -398,7 +398,7 @@ class ModelRepository:
         with database_connection(self._database_path) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
+            ensure_wal(connection, self._database_path)
             yield connection
 
 

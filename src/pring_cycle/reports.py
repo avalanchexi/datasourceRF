@@ -15,7 +15,7 @@ from typing import Any, Protocol
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.cli_process import run_structured_cli
 from pring_cycle.projections import ProjectionSet
-from pring_cycle.storage import database_connection
+from pring_cycle.storage import database_connection, ensure_wal
 
 REPORT_SCHEMA_VERSION = "report-schema-v0004"
 PROMPT_CONTRACT_VERSION = "report-prompt-v0004"
@@ -668,7 +668,7 @@ class ReportRepository:
         with database_connection(self._database_path) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA foreign_keys=ON")
-            connection.execute("PRAGMA journal_mode=WAL")
+            ensure_wal(connection, self._database_path)
             yield connection
 
 
