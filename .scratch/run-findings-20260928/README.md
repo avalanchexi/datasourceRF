@@ -18,7 +18,7 @@
 
 | 票 | 问题 | 建议 | 状态 |
 |---|---|---|---|
-| [01](issues/01-wsl-clock-acquisition-time.md) | WSL 时钟比 Windows 慢约 9 秒且会跳变，回执时间不单调，报 `acquisition_time_invalid` | **最先做**：先校准时钟（需要用户执行），再决定代码是否容忍时钟回拨 | needs-triage |
+| [01](issues/01-wsl-clock-acquisition-time.md) | WSL 时钟比 Windows 慢约 9 秒且会跳变，回执时间不单调，报 `acquisition_time_invalid` | 根因是 Windows 时钟未对时、快约 9.6 秒；已同步。代码是否防护待复验后定 | needs-triage |
 | [02](issues/02-fut-wsr-request-volume.md) | 按品种逐日取 `fut_wsr` 约 720 次，42 次没收到应答；CU 缺 10 天，其余各缺 1 天 | 查限频；考虑按日取整族再按品种拆分隔离 | needs-triage |
 | [03](issues/03-mid-autumn-due-period.md) | 中秋休市的 9/25 被当成应到期：银行间日频指标和中间价按落后一期计 | 查时效到期日所用的日历 | needs-triage |
 | [04](issues/04-vix-scope-test-order.md) | 全套里 `test_full_run_plans_the_latest_released_period_of_a_metric_not_held` 失败，单独跑能过 | 查测试之间的串扰；真实运行里 VIX 没有进入检索范围 | needs-triage |
