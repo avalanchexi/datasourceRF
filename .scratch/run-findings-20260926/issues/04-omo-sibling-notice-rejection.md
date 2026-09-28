@@ -65,3 +65,4 @@ OMO 列表页同一天可以有几份公告（逆回购、央行票据，包括�
 - 最后一份候选（包括当日只有央票公告）照旧 `rejected`；其他错误照旧中止。
 - 测试：`tests/integration/test_official_listing_pages.py` 用 9/23 的第 187、188 号公告真实原件，分别验证“跳过不提示”和“只有央票仍拒收”。
 - 验收第 1–4 条：前两条由上述两例覆盖；其他错误行为不变、已有 OMO 用例全部通过（`test_official_listing_pages.py`、`test_omo_invalid_flow.py`）。
+- 审查补正（2026-09-28）：检索账本在逐份候选之间只放行“已验证”的上一份回执，被跳过的央票公告会让下一份公告直接报 `retrieval_previous_acquisition_not_validated`，因此跳过在检索路径上并不生效（改动前就有这个问题）。现在 `structure_check='skipped'` 的上一份也放行，物理请求记为 `intermediate_candidate_skipped`。新增用例 `test_a_passed_over_notice_does_not_stop_the_next_under_the_retrieval_ledger`：去掉修复即失败。

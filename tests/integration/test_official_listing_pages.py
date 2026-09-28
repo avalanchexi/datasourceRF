@@ -6,6 +6,7 @@ import contextlib
 import hashlib
 import json
 import sqlite3
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -252,4 +253,73 @@ def test_a_day_with_only_a_bills_notice_is_still_rejected(tmp_path: Path) -> Non
     assert check == "rejected"
     assert [(gap["metric_id"], gap["reason"]) for gap in gaps if gap["category"] == "rejected"] == [
         ("CN_OMO_7D_AMOUNT", "official_http_get:official_context_table_schema_mismatch")
+    ]
+
+
+def test_a_passed_over_notice_does_not_stop_the_next_under_the_retrieval_ledger(
+    tmp_path: Path,
+) -> None:
+    """Searched candidates reach the notices through the retrieval ledger, which used to refuse
+    to go on after an acquisition that did not validate."""
+    from pring_cycle.catalog import METRIC_CATALOG_VERSION
+    from pring_cycle.models import (
+        EFFECTIVE_CATALOG_VERSION,
+        ModelRepository,
+        effective_model_manifest,
+    )
+    from pring_cycle.official_context import refresh_official_context_document
+    from pring_cycle.retrieval import RetrievalAdapterResponse
+    from pring_cycle.retrieval_ledger import RetrievalLedger
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate("model-v0013", explicitly_approved=True)
+    run = RunRepository(paths.database).submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-09-23",
+        client_request_id="omo-sibling-ledger",
+        model_version_id="model-v0013",
+        system_as_of=datetime.now(UTC),
+        release_event_id="omo:2026-09-23",
+        metric_ids=("CN_OMO_7D_AMOUNT",),
+        period="2026-09-23",
+    )
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        return FetchedOfficialContextDocument(
+            OMO_DOCUMENTS[url].read_bytes(), "text/html", url, 200
+        )
+
+    def operation(started: Callable[[str], None]) -> RetrievalAdapterResponse:
+        refresh_official_context_document(
+            paths,
+            family="pbc_omo_notice",
+            source_url=OMO_COLUMN + "index.html",
+            expected_period="2026-09-23",
+            fetched_at=datetime.now(UTC),
+            fetcher=fetch,
+            definition_version=METRIC_CATALOG_VERSION,
+            on_acquisition_started=started,
+        )
+        return RetrievalAdapterResponse("candidate_source", classification="document_validated")
+
+    ledger = RetrievalLedger(paths.database)
+    ledger.bind_run(run, EFFECTIVE_CATALOG_VERSION)
+    response = ledger.trace_acquisition(
+        run.run_id, "official", "omo:2026-09-23", OMO_COLUMN + "index.html", operation
+    )
+
+    assert response.status == "candidate_source", response
+    with sqlite3.connect(paths.database) as connection:
+        classifications = [
+            row[0]
+            for row in connection.execute(
+                "SELECT classification FROM retrieval_physical_request ORDER BY rowid"
+            )
+        ]
+    assert classifications[:2] == [
+        "intermediate_acquisition_validated",
+        "intermediate_candidate_skipped",
     ]

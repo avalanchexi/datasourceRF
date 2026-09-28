@@ -398,7 +398,7 @@ class RetrievalLedger:
                 ).fetchone()
                 previous = (
                     connection.execute(
-                        "SELECT a.state FROM retrieval_physical_request p "
+                        "SELECT a.state, a.structure_check FROM retrieval_physical_request p "
                         "JOIN acquisition_request a USING(acquisition_id) WHERE p.request_id=?",
                         (request_id,),
                     ).fetchone()
@@ -406,12 +406,23 @@ class RetrievalLedger:
                     else None
                 )
             if request_id is not None:
-                if previous is None or previous["state"] != "validated":
+                # A candidate passed over for the next of the day's notices (run findings 04)
+                # is done with, like one that validated.
+                skipped = (
+                    previous is not None
+                    and previous["state"] == "failed"
+                    and previous["structure_check"] == "skipped"
+                )
+                if previous is None or (previous["state"] != "validated" and not skipped):
                     raise ValueError("retrieval_previous_acquisition_not_validated")
                 self.complete(
                     request_id,
                     outcome="candidate_source",
-                    classification="intermediate_acquisition_validated",
+                    classification=(
+                        "intermediate_candidate_skipped"
+                        if skipped
+                        else "intermediate_acquisition_validated"
+                    ),
                 )
                 request_id = None
             parameters = json.loads(acquisition["parameters_json"]) if acquisition else {}

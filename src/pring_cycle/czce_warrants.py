@@ -337,8 +337,12 @@ def refresh_czce_warrants(
             (sleep or _sleep)(REQUEST_INTERVAL_SECONDS)
         requested = True
         response = _DayResponse(czce_warrant_url(day), fetch or _fetch)
-        previous = ordered[index - 1].isoformat() if index else None
         for symbol in missing:
+            previous = (
+                ordered[index - 1].isoformat()
+                if index
+                else _latest_held_before(totals, symbol, day)
+            )
             if _take(
                 paths,
                 repository,
@@ -384,6 +388,18 @@ class _DayResponse:
         return (
             isinstance(self._outcome, OSError) and _ANSWERED.fullmatch(str(self._outcome)) is None
         )
+
+
+def _latest_held_before(
+    totals: dict[tuple[str, str, str], float], symbol: str, day: date
+) -> str | None:
+    """The last day held before ``day``, standing for the previous session when no window was
+    given (a gap day's refetch); like ADR-0029, not across a gap longer than a long holiday."""
+    earlier = [held for s, held, _w in totals if s == symbol and held < day.isoformat()]
+    latest = max(earlier, default=None)
+    if latest is None or (day - date.fromisoformat(latest)).days > 10:
+        return None
+    return latest
 
 
 def _held_totals(

@@ -20,6 +20,7 @@ from pring_cycle.metric_contracts import CZCE_PROVIDER, czce_warrant_url
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.warrant_inputs import select_warrant_inputs
+from tests.fixtures.czce_report import czce_exchange, czce_report
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "czce_warrants"
 MAY_19, SEP_02 = date(2026, 5, 19), date(2026, 9, 2)
@@ -269,3 +270,40 @@ def test_the_window_is_the_last_120_sessions_the_calendar_responses_cover(
     assert len(window) == 120
     assert window[-1] == target
     assert all(day.weekday() < 5 for day in window)
+
+
+def test_a_gap_day_refetch_notes_a_change_that_disagrees_with_the_held_session_before(
+    paths: RuntimePaths,
+) -> None:
+    monday, tuesday = date(2026, 9, 21), date(2026, 9, 22)
+    reports = {
+        monday: czce_report(monday, pta=[("甲库", 100, 0)], cotton=[("乙库", 30, 0)]),
+        # PTA moved by +5 but reports +3; cotton agrees.
+        tuesday: czce_report(tuesday, pta=[("甲库", 105, 3)], cotton=[("乙库", 28, -2)]),
+    }
+    exchange = czce_exchange(lambda day: False, overrides=reports)
+    refresh_czce_warrants(
+        paths, days=(monday,), definition_version=EFFECTIVE_CATALOG_VERSION, fetch=exchange
+    )
+
+    # A gap day's refetch asks for that day alone.
+    refresh_czce_warrants(
+        paths, days=(tuesday,), definition_version=EFFECTIVE_CATALOG_VERSION, fetch=exchange
+    )
+
+    with sqlite3.connect(paths.database) as connection:
+        notes = {
+            meta["symbol"]: json.loads(meta["reconciliation"])
+            for meta in (
+                json.loads(row[0])
+                for row in connection.execute(
+                    "SELECT safe_metadata_json FROM retrieval_attempt "
+                    "WHERE channel='czce_official' AND outcome='verified_candidate'"
+                )
+            )
+            if meta["business_date"] == "2026-09-22"
+        }
+    assert notes == {
+        "CF": [],
+        "TA": [{"warehouse": "甲库", "total": 105, "previous_total": 100.0, "change": 3}],
+    }
