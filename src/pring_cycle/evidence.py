@@ -25,6 +25,7 @@ from pring_cycle.acquisition import (
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
+from pring_cycle.metric_contracts import CZCE_PROVIDER, CZCE_WARRANT_SYMBOLS, warrant_provider
 from pring_cycle.source_contract_review import (
     require_registered_source_contract,
     require_source_contract,
@@ -1340,6 +1341,18 @@ class EvidenceRepository:
             yield connection
 
 
+def _retired_source(row: sqlite3.Row) -> bool:
+    """A claim from a source no longer taken for its member, never selected nor a conflict.
+
+    TuShare's TA and CF warrants gave way to CZCE's own report with no fallback (ADR-0032);
+    both name the same warehouses, so the older claims would otherwise contest the new ones.
+    """
+    if row["metric_id"] != "CN_FUTURES_WARRANTS" or row["provider"] == CZCE_PROVIDER:
+        return False
+    symbol = str(json.loads(row["dimensions_json"]).get("symbol", ""))
+    return symbol in CZCE_WARRANT_SYMBOLS and row["provider"] != warrant_provider(symbol)
+
+
 def _select_claim_rows(
     observation_id: str,
     rows: list[sqlite3.Row],
@@ -1352,7 +1365,11 @@ def _select_claim_rows(
     # SQLite julianday is only a coarse index filter: it rounds sub-millisecond
     # timestamps. Preserve the exact cutoff and revision order here.
     rows = sorted(
-        (row for row in rows if _required_datetime(row[time_column]) <= as_of),
+        (
+            row
+            for row in rows
+            if _required_datetime(row[time_column]) <= as_of and not _retired_source(row)
+        ),
         key=lambda row: (
             _required_datetime(row[time_column]),
             _required_datetime(row["available_at"]),

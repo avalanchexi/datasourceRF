@@ -23,6 +23,7 @@ from pring_cycle.evidence import (
     StoredSourceClaim,
 )
 from pring_cycle.http_transport import NoRedirect
+from pring_cycle.metric_contracts import CZCE_WARRANT_SYMBOLS
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TUSHARE_ENDPOINT
 from pring_cycle.source_families import (
@@ -37,6 +38,8 @@ from pring_cycle.source_families import (
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
 WARRANT_SYMBOLS = frozenset({"CU", "RB", "PP", "CF", "TA", "RU", "SP", "SC"})
+# TA and CF come from CZCE's own report instead, with no TuShare fallback (ADR-0032).
+TUSHARE_WARRANT_SYMBOLS = WARRANT_SYMBOLS - CZCE_WARRANT_SYMBOLS
 _FUTURES_WARRANT_CHUNK_DAYS = 31
 _FUTURES_WARRANT_RESPONSE_LIMIT = 1_000
 MARKET_INDEX_IDENTITIES = {
@@ -61,7 +64,6 @@ _WARRANT_UNITS = {
     "手": "lot",
     "桶": "barrel",
 }
-_WARRANT_SOURCE_SYMBOLS = {"TA": "PTA"}
 
 
 @dataclass(frozen=True)
@@ -512,13 +514,9 @@ class TushareContextAdapter:
     ) -> tuple[ContextScalar, ...]:
         if end_date < start_date:
             raise ValueError("tushare_date_range_invalid")
-        normalized_symbol = symbol.upper()
-        if normalized_symbol not in WARRANT_SYMBOLS:
+        source_symbol = normalized_symbol = symbol.upper()
+        if normalized_symbol not in TUSHARE_WARRANT_SYMBOLS:
             raise ValueError("tushare_warrant_symbol_not_allowed")
-        source_symbol = _WARRANT_SOURCE_SYMBOLS.get(
-            normalized_symbol,
-            normalized_symbol,
-        )
         fields = (
             ("pre_vol", "previous_registered_receipts"),
             ("vol", "registered_receipts"),

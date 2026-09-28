@@ -2,7 +2,9 @@
 
 Run findings 2026-09-26, ticket 01: a PTA row with a negative quantity used to refuse every
 symbol's receipts of the run, since all eight were fetched in one acquisition. Held apart,
-a symbol still missing on the target day keeps the metric in the gap list.
+a symbol still missing on the target day keeps the metric in the gap list. TA and CF now
+come from CZCE's own report (ticket 02, ADR-0032), unreachable here, so TuShare is asked for
+the other six only and a crude oil row stands in for the bad one.
 """
 
 from __future__ import annotations
@@ -63,7 +65,7 @@ def warrant_response(
 
 class WarrantsOnly:
     unavailable: str | None = None
-    negative: str | None = "PTA"
+    negative: str | None = "SC"
 
     def open(self, request: Any, *, timeout: int) -> BytesIO:
         payload = json.loads(request.data)
@@ -152,9 +154,10 @@ def test_a_bad_symbol_leaves_the_other_symbols_held(refreshed: RuntimePaths) -> 
         for symbol in WARRANT_SYMBOLS
     }
 
-    assert held_days["TA"] == set()
-    others = {symbol: days for symbol, days in held_days.items() if symbol != "TA"}
-    # Every weekday of the 220-day window, for each of the seven clean symbols.
+    # Crude refused; TA and CF are CZCE's, unreachable in this run.
+    assert held_days["SC"] == held_days["TA"] == held_days["CF"] == set()
+    others = {s: days for s, days in held_days.items() if s not in {"SC", "TA", "CF"}}
+    # Every weekday of the 220-day window, for each of the five clean TuShare symbols.
     assert {len(days) for days in others.values()} == {
         sum((TARGET - timedelta(days=n)).weekday() < 5 for n in range(221))
     }
@@ -163,8 +166,9 @@ def test_a_bad_symbol_leaves_the_other_symbols_held(refreshed: RuntimePaths) -> 
 def test_only_the_bad_symbols_receipts_are_refused(refreshed: RuntimePaths) -> None:
     outcomes = warrant_outcomes(refreshed)
 
-    assert outcomes.pop("PTA") == {("failed", "tushare_warrant_quantity_negative", None)}
-    assert len(outcomes) == 7
+    assert outcomes.pop("SC") == {("failed", "tushare_warrant_quantity_negative", None)}
+    # TuShare is never asked for TA (PTA) or CF (ADR-0032).
+    assert set(outcomes) == {"CU", "PP", "RB", "RU", "SP"}
     assert all(found == {("validated", None, "accepted")} for found in outcomes.values())
 
 
@@ -230,6 +234,6 @@ def test_a_gap_day_refetch_holds_the_symbols_that_pass(
         retrieve_tushare_context(paths, run.run_id, "fixture-secret", scope_run=scope_run)
 
     outcomes = warrant_outcomes(paths)
-    assert outcomes.pop("PTA") == {("failed", "tushare_warrant_quantity_negative", None)}
-    assert len(outcomes) == 7
+    assert outcomes.pop("SC") == {("failed", "tushare_warrant_quantity_negative", None)}
+    assert set(outcomes) == {"CU", "PP", "RB", "RU", "SP"}
     assert all(found == {("validated", None, "accepted")} for found in outcomes.values())

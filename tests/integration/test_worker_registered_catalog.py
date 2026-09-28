@@ -24,6 +24,7 @@ from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
+from tests.fixtures.czce_report import czce_exchange
 
 SCRATCH = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
 CORE_TRANSPORT = SCRATCH / "core-transport-196"
@@ -210,8 +211,6 @@ def extended_context_opener(requested: list[str], invalid_api: str | None = None
         "SP": ("SHFE", "吨"),
         "SC": ("INE", "桶"),
         "PP": ("DCE", "手"),
-        "CF": ("CZCE", "张"),
-        "PTA": ("CZCE", "张"),
     }
 
     def rows(api: str, params: dict[str, Any]) -> tuple[list[str], list[list[Any]]]:
@@ -317,6 +316,9 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
         "pring_cycle.tushare_context.build_opener",
         lambda *h: extended_context_opener(context_requests),
     )
+    # TA and CF from CZCE's own report (ADR-0032), over the same sessions as the others.
+    sessions = {d for d in (*trading_days(), *EXTENSION_SESSIONS) if d >= date(2026, 3, 2)}
+    monkeypatch.setattr("pring_cycle.czce_warrants._fetch", czce_exchange(sessions.__contains__))
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date=TARGET_BUSINESS_DATE,

@@ -14,6 +14,29 @@ from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 EFFECTIVE_UNTIL_CHANGED_METRICS = frozenset({"CN_OMO_7D_RATE", "CN_RRR_EVENT"})
 
 
+# ADR-0032: CZCE's own daily report is the only source of its warrant symbols; TuShare
+# delivers the others and no longer delivers, or backs up, these two.
+CZCE_PROVIDER = "郑州商品交易所"
+CZCE_WARRANT_SYMBOLS = frozenset({"CF", "TA"})
+
+
+def warrant_provider(symbol: str) -> str:
+    """Who delivers a warrant symbol's warehouse totals."""
+    return CZCE_PROVIDER if symbol in CZCE_WARRANT_SYMBOLS else "tushare"
+
+
+def czce_warrant_url(day: date) -> str:
+    """CZCE's warrant report of one trading day, every symbol in one plain-text file."""
+    return (
+        "https://www.czce.com.cn/cn/DFSStaticFiles/Future/"
+        f"{day.year}/{day:%Y%m%d}/FutureDataWhsheet.txt"
+    )
+
+
+def czce_source_reference(day: date, symbol: str) -> str:
+    return f"{czce_warrant_url(day)}#symbol={symbol}"
+
+
 def china_business_day_end(day: date) -> datetime:
     """The instant a session's public knowledge is read at, in the market's own zone."""
     return datetime.combine(day, time.max, ZoneInfo("Asia/Shanghai"))

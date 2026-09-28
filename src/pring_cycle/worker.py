@@ -91,7 +91,7 @@ from pring_cycle.source_adapters import (
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.tushare_context import (
-    WARRANT_SYMBOLS,
+    TUSHARE_WARRANT_SYMBOLS,
     ContextIngestRejectedError,
     ContextObservationsMissingError,
     ContextScalar,
@@ -1725,6 +1725,23 @@ def refresh_context_sources(
                     definition_version=definition_version,
                 )
 
+    # TA and CF warrants from CZCE's own report (ADR-0032): each session of the window not
+    # yet held, one serial request a day. Each symbol-day records its own outcome.
+    if definition_version not in BUILTIN_CATALOG_VERSIONS and _in_catalog(
+        paths, "CN_FUTURES_WARRANTS", definition_version
+    ):
+        from pring_cycle.czce_warrants import refresh_czce_warrants, window_trading_days
+
+        with (
+            contextlib.suppress(OSError, ValueError),
+            acquisition_metrics(("CN_FUTURES_WARRANTS",)),
+        ):
+            refresh_czce_warrants(
+                paths,
+                days=window_trading_days(paths, target),
+                definition_version=definition_version,
+            )
+
     token = secrets.get("TUSHARE_TOKEN")
     if token is None:
         record(
@@ -1844,7 +1861,7 @@ def refresh_context_sources(
                     symbol=symbol,
                 ),
             )
-            for symbol in sorted(WARRANT_SYMBOLS)
+            for symbol in sorted(TUSHARE_WARRANT_SYMBOLS)
         ),
         (
             "gdp",

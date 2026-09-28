@@ -262,7 +262,7 @@ def test_search_candidate_rejections_and_discovery_bounds(
 
 @pytest.mark.parametrize("pp_failures", [0, 2, 3])
 @pytest.mark.usefixtures("runtime_clock")
-def test_targeted_warrants_records_each_of_eight_deliveries(
+def test_targeted_warrants_records_each_of_six_tushare_deliveries(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
     pp_failures: int,
@@ -368,12 +368,13 @@ def test_targeted_warrants_records_each_of_eight_deliveries(
     process_pending_run(paths, report_adapters=(), retrieval_now=now)
     stored = runs.get(submitted.run_id)
     # PP is tried three times at most; its exhausted transport leaves the other symbols
-    # fetched and held (run findings 2026-09-26, ticket 01).
+    # fetched and held (run findings 2026-09-26, ticket 01). TA and CF are CZCE's own
+    # (ADR-0032): TuShare is never asked for them.
     pp_calls = min(pp_failures + 1, 3)
-    assert calls == ["CF", "CU", *(["PP"] * pp_calls), "RB", "RU", "SC", "SP", "PTA"]
+    assert calls == ["CU", *(["PP"] * pp_calls), "RB", "RU", "SC", "SP"]
     assert stored.status == "action_required"  # Raw delivery cannot establish PUBLIC time.
     physical = [r for r in stored.retrieval_ledger["requests"] if r["channel"] == "tushare"]
-    assert len(physical) == 7 + pp_calls
+    assert len(physical) == 5 + pp_calls
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     for item in physical:
         receipt = acquisitions.get(item["acquisition_id"])
@@ -398,15 +399,13 @@ def test_targeted_warrants_records_each_of_eight_deliveries(
         if any(c.provider == "tushare" for c in p.claims)
     ]
     # Three fields a warehouse; copper has two warehouses.
-    assert len(points) == (24 if pp_failures == 3 else 27)
+    assert len(points) == (18 if pp_failures == 3 else 21)
     for point in points:
         assert all(c.parsed_public_available_at is None for c in point.claims)
         (receipt,) = evidence.trace(
             point.observation_id, mode=AsOfMode.SYSTEM, as_of=stored.system_as_of
         ).acquisitions
-        assert receipt.parameters["symbol"] == (
-            "PTA" if point.dimensions["symbol"] == "TA" else point.dimensions["symbol"]
-        )
+        assert receipt.parameters["symbol"] == point.dimensions["symbol"]
     assert "fixture-secret" not in json.dumps(stored.retrieval_ledger)
 
 

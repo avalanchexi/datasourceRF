@@ -111,9 +111,10 @@ def test_saturated_single_day_warrant_response_remains_incomplete(tmp_path: Path
     )
 
 
-# Zhengzhou cotton, 2026-09-23/24 as TuShare delivers it (ADR-0029): the exchange report
-# lists a warehouse per crop year, grade and origin, which TuShare drops, so one warehouse
-# comes back as several rows, some identical in every field.
+# Shanghai rubber in the shape TuShare delivered Zhengzhou cotton in, 2026-09-23/24
+# (ADR-0029): the exchange report lists a warehouse per year, grade and origin, which
+# TuShare drops, so one warehouse comes back as several rows, some identical in every field.
+# Cotton itself now comes from CZCE's own report (ADR-0032).
 WARRANT_FIELDS = [
     "trade_date",
     "symbol",
@@ -126,18 +127,18 @@ WARRANT_FIELDS = [
 ]
 COTTON_ROWS = [
     # 衡水棉麻: 422 then 419 in total; -4 reported where the totals moved by -3.
-    ["20260923", "CF", "衡水棉麻", None, 301, 0, "张", "CZCE"],
-    ["20260923", "CF", "衡水棉麻", None, 79, -1, "张", "CZCE"],
-    ["20260923", "CF", "衡水棉麻", None, 42, 0, "张", "CZCE"],
-    ["20260924", "CF", "衡水棉麻", None, 298, -3, "张", "CZCE"],
-    ["20260924", "CF", "衡水棉麻", None, 78, -1, "张", "CZCE"],
-    ["20260924", "CF", "衡水棉麻", None, 43, 0, "张", "CZCE"],
+    ["20260923", "RU", "衡水棉麻", None, 301, 0, "吨", "SHFE"],
+    ["20260923", "RU", "衡水棉麻", None, 79, -1, "吨", "SHFE"],
+    ["20260923", "RU", "衡水棉麻", None, 42, 0, "吨", "SHFE"],
+    ["20260924", "RU", "衡水棉麻", None, 298, -3, "吨", "SHFE"],
+    ["20260924", "RU", "衡水棉麻", None, 78, -1, "吨", "SHFE"],
+    ["20260924", "RU", "衡水棉麻", None, 43, 0, "吨", "SHFE"],
     # 豫棉物流: two identical rows each day; the change agrees with the totals.
-    ["20260923", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
-    ["20260923", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
-    ["20260924", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
-    ["20260924", "CF", "豫棉物流", None, 12, 0, "张", "CZCE"],
-    ["20260924", "CF", "豫棉物流", None, 5, 5, "张", "CZCE"],
+    ["20260923", "RU", "豫棉物流", None, 12, 0, "吨", "SHFE"],
+    ["20260923", "RU", "豫棉物流", None, 12, 0, "吨", "SHFE"],
+    ["20260924", "RU", "豫棉物流", None, 12, 0, "吨", "SHFE"],
+    ["20260924", "RU", "豫棉物流", None, 12, 0, "吨", "SHFE"],
+    ["20260924", "RU", "豫棉物流", None, 5, 5, "吨", "SHFE"],
 ]
 
 
@@ -158,7 +159,7 @@ def test_warehouse_rows_are_held_as_warehouse_totals(tmp_path: Path) -> None:
     adapter.acquire_scalars(
         paths,
         lambda: adapter.futures_warrants(
-            start_date=date(2026, 9, 23), end_date=date(2026, 9, 24), symbol="CF"
+            start_date=date(2026, 9, 23), end_date=date(2026, 9, 24), symbol="RU"
         ),
         definition_version="metric-catalog-v0002",
     )
@@ -196,7 +197,7 @@ def test_warehouse_change_that_disagrees_with_the_totals_is_noted_not_rejected(
     adapter.acquire_scalars(
         paths,
         lambda: adapter.futures_warrants(
-            start_date=date(2026, 9, 23), end_date=date(2026, 9, 24), symbol="CF"
+            start_date=date(2026, 9, 23), end_date=date(2026, 9, 24), symbol="RU"
         ),
         definition_version="metric-catalog-v0002",
     )
@@ -213,7 +214,7 @@ def test_warehouse_change_that_disagrees_with_the_totals_is_noted_not_rejected(
         {
             "business_date": "2026-09-24",
             "warehouse": "衡水棉麻",
-            "exchange": "CZCE",
+            "exchange": "SHFE",
             "total": 419.0,
             "previous_total": 422.0,
             "change_sum": -4.0,

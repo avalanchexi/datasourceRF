@@ -12,7 +12,12 @@ from typing import Any
 from pring_cycle.adapters import CORE_SOURCE_CODES
 from pring_cycle.catalog import METRIC_CATALOG_V0003, MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
-from pring_cycle.metric_contracts import official_source_members
+from pring_cycle.metric_contracts import (
+    CZCE_PROVIDER,
+    czce_source_reference,
+    official_source_members,
+    warrant_provider,
+)
 from pring_cycle.source_families import (
     OFFICIAL_CONTEXT_FAMILIES,
     OFFICIAL_CONTEXT_FAMILY_BY_METRIC,
@@ -601,8 +606,13 @@ def require_registered_source_contract(
             raise ValueError("registered_treasury_source_identity_mismatch")
         return
     if family == "warrant":
+        # TA and CF come from CZCE's own report, the others from TuShare (ADR-0032).
+        symbol = dimensions.get("symbol", "")
+        czce = warrant_provider(symbol) == CZCE_PROVIDER
         if (
-            provider != supported_provider
+            provider != (CZCE_PROVIDER if czce else supported_provider)
+            or (czce and (dimensions.get("exchange") != "CZCE" or unit != "sheet"))
+            or (czce and source_reference != _czce_reference(period_end, symbol))
             or period_kind != "business_day"
             or set(dimensions) != {"symbol", "warehouse", "exchange", "measure"}
             or dimensions.get("symbol") not in {"CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA"}
@@ -785,3 +795,10 @@ def active_source_contract_review(database: Path) -> dict[str, Any] | None:
     return source_contract_review(
         str(models.manifest(model.model_version_id).get("metric_catalog_version", ""))
     )
+
+
+def _czce_reference(period_end: str, symbol: str) -> str | None:
+    try:
+        return czce_source_reference(date.fromisoformat(period_end), symbol)
+    except ValueError:
+        return None

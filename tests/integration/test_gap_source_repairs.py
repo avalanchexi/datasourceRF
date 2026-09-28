@@ -22,6 +22,7 @@ from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
 from tests.conftest import install_runtime_clock
+from tests.fixtures.czce_report import czce_exchange
 from tests.integration.test_core_history_refresh import historical_response
 
 TARGET = date(2026, 8, 3)
@@ -50,21 +51,19 @@ def treasury_response(payload: dict[str, Any]) -> bytes:
     )
 
 
-WARRANT_UNITS = {"CF": "张", "TA": "张", "SC": "桶"}
+WARRANT_UNITS = {"SC": "桶"}
 
 
 def warrant_response(payload: dict[str, Any]) -> bytes:
-    """Cotton comes back as several rows per warehouse, the others one row each."""
+    """One row a warehouse for TuShare's six symbols; TA and CF come from CZCE's report."""
     symbol = payload["params"]["symbol"]
-    exchange = {"CF": "CZCE", "PTA": "CZCE", "SC": "INE"}.get(symbol, "SHFE")
-    unit = WARRANT_UNITS.get("TA" if symbol == "PTA" else symbol, "吨")
-    lots = (10, 10, 5) if symbol == "CF" else (20,)
+    exchange = {"SC": "INE"}.get(symbol, "SHFE")
+    unit = WARRANT_UNITS.get(symbol, "吨")
     return _response(
         ["trade_date", "symbol", "warehouse", "pre_vol", "vol", "vol_chg", "unit", "exchange"],
         [
-            [day.strftime("%Y%m%d"), symbol, f"{symbol}-warehouse", None, lot, 0, unit, exchange]
+            [day.strftime("%Y%m%d"), symbol, f"{symbol}-warehouse", None, 20, 0, unit, exchange]
             for day in _weekdays(payload)
-            for lot in lots
         ],
     )
 
@@ -225,6 +224,10 @@ def completed(
             lambda *args, **kwargs: (_ for _ in ()).throw(OSError("offline")),
         )
         monkeypatch.setattr("pring_cycle.quote_sources.open_no_redirects", official_quote)
+        # TA and CF from CZCE's own report (ADR-0032), a report every weekday.
+        monkeypatch.setattr(
+            "pring_cycle.czce_warrants._fetch", czce_exchange(lambda day: day.weekday() < 5)
+        )
         paths = RuntimePaths.discover(tmp_path_factory.mktemp("gap-sources") / "runtime")
         initialize_runtime(paths)
         paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
@@ -282,6 +285,7 @@ def test_treasury_yields_are_held_from_tushare_us_tycr(
 def test_cotton_warrants_are_held_as_warehouse_totals(
     completed: tuple[RuntimePaths, str],
 ) -> None:
+    """Cotton is each warehouse's subtotal in CZCE's own report (ADR-0032)."""
     paths, _run_id = completed
 
     held = latest_values(paths, "CN_FUTURES_WARRANTS")

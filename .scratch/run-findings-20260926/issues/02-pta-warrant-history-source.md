@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done（待真实运行验证）
 Category: bug
 Type: task
 Blocked by: 01
@@ -109,3 +109,27 @@ A 的前提是先拿官网日报核对几个日期，确认“剔除负数行、
 - 其他交易所品种（CU、RB、PP、RU、SP、SC）的来源。
 - 官网 `.htm`/`.xlsx` 格式，以及郑商所其他品种。
 - 票 01 的分品种隔离，由票 01 负责。
+
+### 实施记录（2026-09-28）
+
+> *本段由 AI 在实施时生成。*
+
+- **新模块** `src/pring_cycle/czce_warrants.py`：
+  - `parse_czce_warrants` 按品种块读“小计”。块缺失、表头不符、行不属于任何仓库、小计之和对不上“总计”、报表日期不符，都拒收并带原因码（`czce_warrant_*`）。
+  - `refresh_czce_warrants` 只取给定日期里两个品种还没都持有的交易日，从旧到新串行，两次请求之间停 1 秒。一天只请求一次，TA、CF 各开一张回执；每个品种、每一天各自记结局。交易所返回 HTTP 状态码时只缺那一天；完全连不上时停止本轮请求。
+  - `window_trading_days` 取已验证的上交所日历里最后 120 个交易日，日历不全时只取目标日。
+- **接线**：
+  - Worker 在 TuShare token 门槛之前调用官网取数（非内置目录）。
+  - 补缺单日重取对 TA、CF 走官网，对另外 6 个品种走 TuShare。
+  - `TUSHARE_WARRANT_SYMBOLS`（6 个品种）取代八品种循环；`futures_warrants` 拒绝 TA、CF。
+  - 时效登记的来源改为 `tushare:fut_wsr+czce:warehouse_receipts`，可用时刻仍为 18:00。
+- **下游复核**：
+  - `warrant_inputs` 按提供方分派重解析（`parse_czce_warrant_acquisition`）；`_matches_original` 按品种要求对应的提供方与引用。
+  - 注册契约的仓单分支：TA、CF 只收“郑州商品交易所”、交易所 CZCE、单位 `sheet` 和官网引用。
+  - `evidence._retired_source`：旧的 TuShare TA、CF 声明保留，但不再被选中，也不构成冲突。运行库核对过，两边仓库名完全一致（CF 24 个、TA 26 个）。
+- **差额核对**：每个仓库与窗口里前一交易日的已持有合计比较，不符之处记在 `verified_candidate` 取数记录的 `reconciliation` 注记里，只记不拒。
+- **测试**：
+  - 新增 `tests/adapters/test_czce_warrants.py`（两份真实原件）和 `tests/integration/test_czce_warrant_refresh.py`（串行只取未持有日、单品种单日拒收、缺文件只缺那一天、连不上即停、下游重解析接受、旧 TuShare 声明不被选中、窗口日历）。
+  - 新增共用夹具 `tests/fixtures/czce_report.py`；测试会话默认让官网离线、不等待。
+  - 调整了 7 个原本假设八品种都走 TuShare 的测试文件。
+- **验收**：前 5 条与第 7 条已由测试和文档覆盖；第 6 条（真实完整运行后 TA、CF 持有完整历史）待真实运行确认。

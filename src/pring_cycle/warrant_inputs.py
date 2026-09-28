@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from pring_cycle.acquisition import AcquisitionReceipt, receipt_key
+from pring_cycle.czce_warrants import parse_czce_warrant_acquisition
 from pring_cycle.evidence import (
     AsOfMode,
     ClaimView,
@@ -12,7 +13,12 @@ from pring_cycle.evidence import (
     EvidenceValueState,
     MetricSeriesPoint,
 )
-from pring_cycle.metric_contracts import minimum_context_daily_observations
+from pring_cycle.metric_contracts import (
+    CZCE_PROVIDER,
+    czce_source_reference,
+    minimum_context_daily_observations,
+    warrant_provider,
+)
 from pring_cycle.tushare_context import (
     WARRANT_SYMBOLS,
     ContextScalar,
@@ -44,8 +50,12 @@ def _parsed_warrant_delivery(
     if key not in _WARRANT_PARSES:
         outcome: WarrantAcquisition | Exception
         try:
-            outcome = parse_warrant_acquisition(
-                receipt, raw, normalized, period=period, definition_version=definition_version
+            outcome = (
+                parse_czce_warrant_acquisition(receipt, raw, normalized, period=period)
+                if receipt.provider == CZCE_PROVIDER
+                else parse_warrant_acquisition(
+                    receipt, raw, normalized, period=period, definition_version=definition_version
+                )
             )
         except (TypeError, ValueError, KeyError) as error:
             outcome = error
@@ -188,12 +198,19 @@ def select_warrant_inputs(
 
 
 def _matches_original(point: MetricSeriesPoint, claim: ClaimView, scalar: ContextScalar) -> bool:
+    # Each symbol has one source (ADR-0032): an original from the other one never matches.
+    symbol = scalar.dimensions.get("symbol", "")
+    reference = (
+        czce_source_reference(date.fromisoformat(scalar.period_end), symbol)
+        if warrant_provider(symbol) == CZCE_PROVIDER
+        else f"tushare:fut_wsr:{scalar.source_field}:{scalar.period_end}"
+    )
     return (
         point.period_start == scalar.period_start
         and point.period_end == scalar.period_end
         and point.dimensions == scalar.dimensions
-        and claim.provider == "tushare"
-        and claim.source_reference == f"tushare:fut_wsr:{scalar.source_field}:{scalar.period_end}"
+        and claim.provider == warrant_provider(symbol)
+        and claim.source_reference == reference
         and claim.unit == scalar.unit
         and (
             # Ingestion conservatively clears both times on a changed value.

@@ -7,6 +7,8 @@ from dataclasses import replace
 from datetime import date
 from functools import partial
 
+from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
+from pring_cycle.czce_warrants import refresh_czce_warrants
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import RetrievalLedger
@@ -14,7 +16,7 @@ from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import select_retrieval_input
 from pring_cycle.tushare_context import (
-    WARRANT_SYMBOLS,
+    TUSHARE_WARRANT_SYMBOLS,
     ContextRequestOperation,
     ContextRows,
     ContextScalar,
@@ -63,9 +65,13 @@ def retrieve_tushare_context(
     elif len(scope.period) == 10:
         day = date.fromisoformat(scope.period)
         if metrics == {"CN_FUTURES_WARRANTS"}:
+            # TA and CF are taken from CZCE's report of the day, never from TuShare (ADR-0032);
+            # that source records its own outcome per symbol.
+            if version not in BUILTIN_CATALOG_VERSIONS:
+                refresh_czce_warrants(paths, days=(day,), definition_version=version)
             retrievals = tuple(
                 partial(adapter.futures_warrants, start_date=day, end_date=day, symbol=symbol)
-                for symbol in sorted(WARRANT_SYMBOLS)
+                for symbol in sorted(TUSHARE_WARRANT_SYMBOLS)
             )
         daily_methods = (
             ({"CN_DR007", "CN_SHIBOR_ON_1W_3M"}, adapter.transmission),

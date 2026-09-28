@@ -17,6 +17,7 @@ from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.cli import main
 from pring_cycle.context_projection import build_context_projection
+from pring_cycle.czce_warrants import refresh_czce_warrants
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import (
     ModelRepository,
@@ -34,7 +35,13 @@ from pring_cycle.search_discovery import (
     search_discovery_adapter,
 )
 from pring_cycle.search_evidence import select_retrieval_input
-from pring_cycle.tushare_context import ContextScalar, TushareContextAdapter, ingest_context_scalars
+from pring_cycle.tushare_context import (
+    TUSHARE_WARRANT_SYMBOLS,
+    ContextScalar,
+    TushareContextAdapter,
+    ingest_context_scalars,
+)
+from tests.fixtures.czce_report import czce_exchange
 from tests.fixtures.model_registration import (
     bind_synthetic_review,
     encode,
@@ -330,8 +337,24 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
     submit(paths, save(paths, request))
     model_id = json.loads(capsys.readouterr().out)["model_version_id"]
     version = request["manifest"]["metric_catalog_version"]
-    old_public = datetime(2026, 8, 28, 9, tzinfo=UTC)
-    new_public = datetime(2026, 8, 28, 10, tzinfo=UTC)
+    # After CZCE's 18:00 report, so that TA and CF (ADR-0032) are public at both cutoffs.
+    old_public = datetime(2026, 8, 28, 10, 30, tzinfo=UTC)
+    new_public = datetime(2026, 8, 28, 11, tzinfo=UTC)
+    refresh_czce_warrants(
+        paths,
+        days=(date(2026, 8, 28),),
+        definition_version=version,
+        fetch=czce_exchange(lambda day: day == date(2026, 8, 28)),
+    )
+    czce_ids = {
+        p.selected_claim_id
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_FUTURES_WARRANTS",
+            mode=AsOfMode.SYSTEM,
+            as_of=datetime.now(UTC),
+            definition_version=version,
+        )
+    }
 
     def transport(payload: dict[str, Any]) -> bytes:
         symbol = payload["params"]["symbol"]
@@ -361,7 +384,7 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
         paths,
         lambda: tuple(
             replace(s, release_at=old_public, public_available_at=old_public)
-            for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+            for symbol in sorted(TUSHARE_WARRANT_SYMBOLS)
             for s in adapter.futures_warrants(
                 start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=symbol
             )
@@ -427,7 +450,7 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
             paths,
             lambda: tuple(
                 replace(s, release_at=old_public, public_available_at=old_public)
-                for symbol in ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+                for symbol in sorted(TUSHARE_WARRANT_SYMBOLS)
                 for s in adapter.futures_warrants(
                     start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=symbol
                 )
@@ -487,7 +510,7 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
             assert set(revision.claim_ids) <= set(before.selected_claim_ids)
         after = select_retrieval_input(paths, run, mode=AsOfMode.SYSTEM)
         assert after.complete
-        assert set(after.selected_claim_ids) == set(original.claim_ids)
+        assert set(after.selected_claim_ids) == set(original.claim_ids) | czce_ids
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -2150,6 +2173,13 @@ def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
     missing = set(required[40 : 40 + missing_days])
     pp_missing = set(required[60:66]) if staggered else set()
     symbols = ("CF", "CU", "PP", "RB", "RU", "SC", "SP", "TA")
+    # TA and CF from CZCE's own report every session (ADR-0032), the others from TuShare.
+    refresh_czce_warrants(
+        paths,
+        days=tuple(date.fromisoformat(day) for day in required),
+        definition_version=version,
+        fetch=czce_exchange(lambda day: day.isoformat() in required),
+    )
 
     def transport(payload: dict[str, Any]) -> bytes:
         symbol = str(payload["params"]["symbol"])
@@ -2213,7 +2243,7 @@ def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
                 release_at=datetime.fromisoformat(f"{scalar.period_end}T09:00:00+00:00"),
                 public_available_at=datetime.fromisoformat(f"{scalar.period_end}T09:00:00+00:00"),
             )
-            for symbol in symbols
+            for symbol in sorted(TUSHARE_WARRANT_SYMBOLS)
             for scalar in adapter.futures_warrants(
                 start_date=date(2026, 3, 9), end_date=date(2026, 8, 28), symbol=symbol
             )
@@ -2222,7 +2252,8 @@ def test_warrant_history_coverage_counts_only_complete_daily_warehouses(
     adapter.acquire_scalars(paths, retrieve, definition_version=version)
     context = build_context_projection(
         EvidenceRepository(paths.database),
-        as_of=datetime(2026, 8, 28, 9, tzinfo=UTC),
+        # After CZCE's 18:00 report of the last session.
+        as_of=datetime(2026, 8, 28, 10, 30, tzinfo=UTC),
         as_of_mode=AsOfMode.PUBLIC,
         model_manifest=ModelRepository(paths.database).manifest(model_id),
         target_business_date="2026-08-28",

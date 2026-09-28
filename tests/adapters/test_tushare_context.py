@@ -257,21 +257,7 @@ def test_futures_warrant_contract_accepts_live_exchange_shape_variants() -> None
                     }
                 ]
             )
-        assert requested_symbol == "PTA"
-        return response(
-            [
-                {
-                    "trade_date": "20260828",
-                    "symbol": "PTA",
-                    "warehouse": "郑州商品交易所",
-                    "pre_vol": None,
-                    "vol": 800,
-                    "vol_chg": 20,
-                    "unit": "张",
-                    "exchange": "CZCE",
-                }
-            ]
-        )
+        raise AssertionError(f"unexpected symbol {requested_symbol}")
 
     adapter = TushareContextAdapter("fixture-token", transport=live_shape_transport)
 
@@ -280,19 +266,18 @@ def test_futures_warrant_contract_accepts_live_exchange_shape_variants() -> None
         end_date=date(2026, 8, 28),
         symbol="SC",
     )
-    pta = adapter.futures_warrants(
-        start_date=date(2026, 8, 28),
-        end_date=date(2026, 8, 28),
-        symbol="TA",
-    )
+    # TA and CF come from CZCE's own report (ADR-0032): TuShare is never asked for them.
+    for czce_symbol in ("TA", "CF", "PTA"):
+        with pytest.raises(ValueError, match="tushare_warrant_symbol_not_allowed"):
+            adapter.futures_warrants(
+                start_date=date(2026, 8, 28), end_date=date(2026, 8, 28), symbol=czce_symbol
+            )
 
-    assert requested_symbols == ["SC", "PTA"]
+    assert requested_symbols == ["SC"]
     assert {(item.source_field, item.value, item.unit) for item in crude} == {
         ("vol", 1200.0, "barrel"),
         ("vol_chg", -50.0, "barrel"),
     }
-    assert {item.dimensions["symbol"] for item in pta} == {"TA"}
-    assert {item.source_field for item in pta} == {"vol", "vol_chg"}
 
 
 def test_futures_warrant_long_range_is_requested_in_non_overlapping_chunks() -> None:
@@ -347,26 +332,26 @@ def test_futures_warrant_saturated_range_is_split_until_every_date_is_visible() 
         if start != end:
             row: dict[str, object] = {
                 "trade_date": start,
-                "symbol": "PTA",
-                "warehouse": "郑州商品交易所",
+                "symbol": "PP",
+                "warehouse": "大连商品交易所",
                 "pre_vol": None,
                 "vol": 800,
                 "vol_chg": None,
-                "unit": "张",
-                "exchange": "CZCE",
+                "unit": "吨",
+                "exchange": "DCE",
             }
             return response([row] * 1_200)
         return response(
             [
                 {
                     "trade_date": start,
-                    "symbol": "PTA",
-                    "warehouse": "郑州商品交易所",
+                    "symbol": "PP",
+                    "warehouse": "大连商品交易所",
                     "pre_vol": None,
                     "vol": 800,
                     "vol_chg": None,
-                    "unit": "张",
-                    "exchange": "CZCE",
+                    "unit": "吨",
+                    "exchange": "DCE",
                 }
             ]
         )
@@ -376,7 +361,7 @@ def test_futures_warrant_saturated_range_is_split_until_every_date_is_visible() 
     scalars = adapter.futures_warrants(
         start_date=date(2026, 8, 27),
         end_date=date(2026, 8, 28),
-        symbol="TA",
+        symbol="PP",
     )
 
     assert {(item.period_end, item.source_field) for item in scalars} == {

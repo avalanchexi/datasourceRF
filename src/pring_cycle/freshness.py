@@ -125,7 +125,10 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
     "CN_OMO_7D_AMOUNT": _daily("pbc:omo_notice", time(9, 15), "https://www.pbc.gov.cn/"),
     "CN_COMMODITY_EX_HOG_BASKET": _daily("tushare:fut_daily", _AFTER_CLOSE, _TUSHARE_DOCS),
     "CN_COMMODITY_SLEEVE_CONTRIBUTION": _daily("tushare:fut_daily", _AFTER_CLOSE, _TUSHARE_DOCS),
-    "CN_FUTURES_WARRANTS": _daily("tushare:fut_wsr", _AFTER_CLOSE, _TUSHARE_DOCS),
+    # TA and CF from CZCE's own report (ADR-0032), the other symbols from TuShare.
+    "CN_FUTURES_WARRANTS": _daily(
+        "tushare:fut_wsr+czce:warehouse_receipts", _AFTER_CLOSE, _TUSHARE_DOCS
+    ),
     "CN_USDCNY_CENTRAL_PARITY": _daily(
         "pbc:central_parity", time(9, 15), "https://www.pbc.gov.cn/"
     ),
