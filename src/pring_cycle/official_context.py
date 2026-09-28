@@ -516,9 +516,14 @@ def ingest_acquired_official_release(
     definition_version: str,
     clock: Callable[[], datetime] = utc_now,
     metric_ids: tuple[str, ...] | None = None,
+    held_members: frozenset[str] = frozenset(),
 ) -> OfficialContextIngestionResult:
     """Store a validated release's claims; its receipt says whether they entered, and if not
-    why (run findings 03: a contract refusal used to leave only a ValueError behind)."""
+    why (run findings 03: a contract refusal used to leave only a ValueError behind).
+
+    ``held_members`` (``METRIC:{dimensions}``) are left out: another source delivered them.
+    A page fetched for GDP's real growth also states nominal levels in their first release,
+    which would contest the revised levels already held (run findings 2026-09-28, #12)."""
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     try:
         result = _ingest_acquired_official_release(
@@ -527,6 +532,7 @@ def ingest_acquired_official_release(
             definition_version=definition_version,
             clock=clock,
             metric_ids=metric_ids,
+            held_members=held_members,
         )
     except (KeyError, TypeError, ValueError) as error:
         acquisitions.record_ingest_result(acquired.receipt.acquisition_id, error)
@@ -542,6 +548,7 @@ def _ingest_acquired_official_release(
     definition_version: str,
     clock: Callable[[], datetime],
     metric_ids: tuple[str, ...] | None,
+    held_members: frozenset[str] = frozenset(),
 ) -> OfficialContextIngestionResult:
     parsed, receipt = acquired.value, acquired.receipt
     requested = (
@@ -551,7 +558,12 @@ def _ingest_acquired_official_release(
     )
     # Keep the original and its normalized full announcement intact for revalidation.
     # A retrieval scope controls which claims are admitted, not what the source published.
-    scalars = tuple(scalar for scalar in parsed.scalars if scalar.metric_id in requested)
+    scalars = tuple(
+        scalar
+        for scalar in parsed.scalars
+        if scalar.metric_id in requested
+        and official_member(scalar.metric_id, scalar.dimensions) not in held_members
+    )
     if not scalars:
         raise ValueError("official_context_requested_metrics_missing")
     if receipt.received_at is None or receipt.validated_at is None or receipt.raw_hash is None:
@@ -677,6 +689,11 @@ def _ingest_acquired_official_release(
     )
 
 
+def official_member(metric_id: str, dimensions: Mapping[str, str]) -> str:
+    """A member's key as a run plan lists it among ``missing_members``."""
+    return f"{metric_id}:{json.dumps(dict(dimensions), sort_keys=True)}"
+
+
 def _official_metric_scope(family: str, metric_ids: tuple[str, ...] | None) -> frozenset[str]:
     requested = _FAMILY_METRICS[family] if metric_ids is None else frozenset(metric_ids)
     if not requested or not requested.issubset(_FAMILY_METRICS[family]):
@@ -767,8 +784,10 @@ def refresh_official_context_document(
     on_acquisition_started: Callable[[str], None] | None = None,
     metric_ids: tuple[str, ...] | None = None,
     admit: Callable[[ParsedOfficialContextRelease], None] | None = None,
+    held_members: frozenset[str] = frozenset(),
 ) -> OfficialContextIngestionResult:
-    """Fetch and store one release; ``admit`` may reject the parsed release first."""
+    """Fetch and store one release; ``admit`` may reject the parsed release first, and
+    ``held_members`` another source delivered are left out."""
     _validate_source_identity(family, source_url)
     requested = _official_metric_scope(family, metric_ids)
     if fetched_at.tzinfo is None:
@@ -819,7 +838,11 @@ def refresh_official_context_document(
             on_started=started,
         )
         return ingest_acquired_official_release(
-            paths, acquired, definition_version=definition_version, metric_ids=metric_ids
+            paths,
+            acquired,
+            definition_version=definition_version,
+            metric_ids=metric_ids,
+            held_members=held_members,
         )
 
     try:

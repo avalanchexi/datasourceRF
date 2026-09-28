@@ -19,6 +19,7 @@ from pring_cycle.official_context import (
     FetchedOfficialContextDocument,
     ingest_official_context_document,
     official_claims_matching_acquisitions,
+    official_member,
     refresh_official_context_document,
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger
@@ -305,6 +306,9 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
         assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
         assert selection.missing_members
         assert all("real_quarter_yoy" in member for member in selection.missing_members)
+        # What an official page fetched for the gap must not restate (ticket 12).
+        assert len(selection.held_members) == 4
+        assert all("nominal_ytd_level" in member for member in selection.held_members)
     else:
         assert set(selection.selected_claim_ids) == {p.selected_claim_id for p in points}
     context = build_context_projection(
@@ -320,6 +324,62 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
     provider = "tushare" if delivered else "国家统计局"
     assert_delivered_points(points, provider)
     assert_delivered_rows(rows, provider)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_page_fetched_for_real_growth_admits_no_first_release_levels(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """TuShare's levels are revised; the page fetched for real growth states first releases.
+
+    Admitting both made the two versions contest each quarter, and the credit impulse lost
+    its baseline (run findings 2026-09-28, ticket 12). What TuShare delivered is left out.
+    """
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    _, version = admit_gdp_candidate(paths, capsys)
+    adapter = TushareContextAdapter("fixture-only", transport=delivery)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.gdp(start_quarter="2026Q2", end_quarter="2026Q2"),
+        definition_version=version,
+    )
+    fixtures = Path(__file__).parents[1] / "fixtures/official_period_fallback"
+    article = (fixtures / "nbs_gdp.html").read_bytes()
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        content = f'<a href="{ARTICLE}">{Q2_TITLE}</a>'.encode() if url == LISTING else article
+        return FetchedOfficialContextDocument(content, "text/html", url, 200)
+
+    refresh_official_context_document(
+        paths,
+        family="nbs_gdp",
+        source_url=LISTING,
+        expected_period="2026-Q2",
+        fetched_at=datetime.now(UTC),
+        fetcher=fetch,
+        definition_version=version,
+        held_members=frozenset(
+            official_member("CN_GDP", {"aggregate": aggregate, "measure": "nominal_ytd_level"})
+            for aggregate in ("total", "primary", "secondary", "tertiary")
+        ),
+    )
+
+    points = {
+        (p.dimensions["aggregate"], p.dimensions["measure"]): p
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_GDP", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+        )
+    }
+    assert len(points) == 8
+    assert all(p.selection_status == "selected" for p in points.values())
+    levels = [p for (_, measure), p in points.items() if measure == "nominal_ytd_level"]
+    assert {claim.provider for p in levels for claim in p.claims} == {"tushare"}
+    assert points[("total", "nominal_ytd_level")].selected_value == 690000.0
+    assert points[("total", "real_quarter_yoy")].selected_value == 4.3
+    assert {claim.provider for claim in points[("total", "real_quarter_yoy")].claims} == {
+        "国家统计局"
+    }
 
 
 @pytest.mark.usefixtures("runtime_clock")

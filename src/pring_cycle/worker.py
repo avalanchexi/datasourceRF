@@ -1060,8 +1060,14 @@ def _official_context_retrieval(
         official_family_for_metrics,
         refresh_official_context_document,
     )
+    from pring_cycle.search_evidence import ModelInputSelector
 
     family = official_family_for_metrics(scope.metric_ids)
+    # Not what another source delivered: a page fetched for GDP's real growth also states
+    # the nominal levels in their first release, which would contest the revised levels
+    # already held (run findings 2026-09-28, ticket 12).
+    run = scope_run or RunRepository(paths.database).get(run_id)
+    held = ModelInputSelector(paths, run).select(scope).held_members
     refresh_official_context_document(
         paths,
         family=family,
@@ -1071,6 +1077,7 @@ def _official_context_retrieval(
         definition_version=definition_version,
         on_acquisition_started=on_acquisition_started,
         metric_ids=scope.metric_ids,
+        held_members=frozenset(held),
     )
     return _local_retrieval(paths, run_id, scope_run=scope_run) or RetrievalAdapterResponse(
         "candidate_source", evidence=scope.source_url, classification="incomplete_model_input"

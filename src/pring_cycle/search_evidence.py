@@ -74,6 +74,8 @@ class ModelInputSelection:
     selected_claim_ids: tuple[str, ...]
     missing_members: tuple[str, ...]
     material_checks: tuple[MetricMaterialCheck, ...] = ()
+    # Required members already held, each by exactly one selected claim.
+    held_members: tuple[str, ...] = ()
 
 
 def select_retrieval_input(
@@ -310,6 +312,7 @@ class ModelInputSelector:
         )
         selected_ids: list[str] = []
         missing: list[str] = []
+        held: list[str] = []
         dimension_checks: dict[str, str] = {}
         material_checks = []
         for metric_id in scope.metric_ids:
@@ -423,6 +426,7 @@ class ModelInputSelector:
                         accepted.append(claim.claim_id)
                 if len(accepted) == 1:
                     selected_ids.extend(accepted)
+                    held.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
                 else:
                     missing.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
         for metric_id in dict.fromkeys(scope.metric_ids):
@@ -461,6 +465,7 @@ class ModelInputSelector:
             tuple(selected_ids),
             tuple(missing),
             tuple(material_checks),
+            tuple(held),
         )
 
 
@@ -922,6 +927,9 @@ def verify_search_candidates(
         )
     ]
     strict = scope.priority in {"P0", "P1"}
+    # An official page does not restate what another source delivered (run findings
+    # 2026-09-28, ticket 12).
+    held = frozenset(ModelInputSelector(paths, run).select(scope).held_members)
     for index, url in enumerate(urls[:3]):
         summary = summaries[index] if index < len(summaries) else ""
         validation_id = "candidate-validation-" + uuid4().hex
@@ -1052,6 +1060,7 @@ def verify_search_candidates(
                         definition_version=version,
                         on_acquisition_started=started,
                         admit=admit,
+                        held_members=held,
                     )
                     claim_ids.extend(context_refreshed.claim_ids)
             except (OSError, TypeError, ValueError) as error:

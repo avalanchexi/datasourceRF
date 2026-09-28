@@ -1,7 +1,7 @@
 Status: ready-for-agent
 Category: bug
 Type: task
-Blocked by: 10（仅真实运行验收一项）
+Blocked by: 12（真实运行验收：公式仍被 GDP 版本冲突挡住）
 
 # 09 — 信用脉冲一直缺失，却不在缺口清单里
 
