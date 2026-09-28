@@ -235,7 +235,8 @@ def official_source_members(metric_id: str, period: str) -> tuple[OfficialMember
                 "中期借贷便利（MLF）",
                 "抵押补充贷款（PSL）",
                 "其他结构性货币政策工具",
-                "7天期逆回购",
+                # "7天期逆回购", or "隔夜、7天期逆回购" from August 2026 (run findings 03).
+                "短期逆回购",
                 "其他期限逆回购",
                 "公开市场国债买卖",
                 "中央国库现金管理",

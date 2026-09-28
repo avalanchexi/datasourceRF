@@ -517,6 +517,32 @@ def ingest_acquired_official_release(
     clock: Callable[[], datetime] = utc_now,
     metric_ids: tuple[str, ...] | None = None,
 ) -> OfficialContextIngestionResult:
+    """Store a validated release's claims; its receipt says whether they entered, and if not
+    why (run findings 03: a contract refusal used to leave only a ValueError behind)."""
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    try:
+        result = _ingest_acquired_official_release(
+            paths,
+            acquired,
+            definition_version=definition_version,
+            clock=clock,
+            metric_ids=metric_ids,
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        acquisitions.record_ingest_result(acquired.receipt.acquisition_id, error)
+        raise
+    acquisitions.record_ingest_result(acquired.receipt.acquisition_id, None)
+    return result
+
+
+def _ingest_acquired_official_release(
+    paths: RuntimePaths,
+    acquired: Acquired[ParsedOfficialContextRelease],
+    *,
+    definition_version: str,
+    clock: Callable[[], datetime],
+    metric_ids: tuple[str, ...] | None,
+) -> OfficialContextIngestionResult:
     parsed, receipt = acquired.value, acquired.receipt
     requested = (
         frozenset(scalar.metric_id for scalar in parsed.scalars)
@@ -823,6 +849,7 @@ def refresh_official_context_document(
                     "family": family,
                     "period": expected_period,
                     "definition_version": definition_version,
+                    **({"reason": str(error)[:300]} if isinstance(error, ValueError) else {}),
                 },
             )
         raise
@@ -1973,6 +2000,15 @@ def _parse_rrr_notice(
     )
 
 
+# The PBC's row names for one member. From August 2026 the table reads "隔夜、7天期逆回购"
+# where it read "7天期逆回购": the one short reverse repo series, continued (run findings
+# 03). The original keeps the row name; any other name is left as written and refused.
+_TOOL_LIQUIDITY_ROW_MEMBERS = {
+    "7天期逆回购": "短期逆回购",
+    "隔夜、7天期逆回购": "短期逆回购",
+}
+
+
 def _parse_tool_liquidity(
     tables: list[list[tuple[str, ...]]],
     period: str,
@@ -2014,6 +2050,7 @@ def _parse_tool_liquidity(
             tool, values = row[0], (row[1], row[2], row[3])
         if not tool.strip():
             raise ValueError("official_context_row_identity_mismatch")
+        tool = _TOOL_LIQUIDITY_ROW_MEMBERS.get(_compact_text(tool), tool.strip())
         injection = _bounded_number(values[0], minimum=0)
         withdrawal = _bounded_number(values[1], minimum=0)
         net = _bounded_number(values[2])
@@ -2032,7 +2069,7 @@ def _parse_tool_liquidity(
                     "month",
                     period_start,
                     period_end,
-                    {"tool": tool.strip(), "measure": measure},
+                    {"tool": tool, "measure": measure},
                     value,
                     "hundred_million_cny",
                     release_at,

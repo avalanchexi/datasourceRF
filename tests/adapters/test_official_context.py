@@ -439,7 +439,7 @@ def test_pbc_monthly_liquidity_contract_accepts_live_rowspan_shape() -> None:
 
     assert len(parsed.scalars) == 21
     assert any(
-        item.dimensions == {"tool": "7天期逆回购", "measure": "net_injection"}
+        item.dimensions == {"tool": "短期逆回购", "measure": "net_injection"}
         and item.value == -2495
         for item in parsed.scalars
     )

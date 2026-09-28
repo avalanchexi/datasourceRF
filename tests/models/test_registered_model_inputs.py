@@ -1082,7 +1082,7 @@ def test_pmi_invalid_latest_period_does_not_restore_older_derived_values(
             24,
             {
                 "CN_TOOL_LIQUIDITY_MONTHLY": (
-                    {"tool": "7天期逆回购", "measure": "net_injection"},
+                    {"tool": "短期逆回购", "measure": "net_injection"},
                     -2495,
                     "hundred_million_cny",
                 )
@@ -1194,6 +1194,103 @@ def test_registered_official_original_reaches_selection_and_context(
             assert isinstance(after_inputs, list)
             assert set(imported.claim_ids).isdisjoint(after_inputs)
             assert set(imported.claim_ids) <= set(after_context.observation_version_ids)
+
+
+def test_the_overnight_and_7_day_reverse_repo_row_continues_the_7_day_member(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Run findings 03: from August the PBC table reads "隔夜、7天期逆回购" where July read
+    "7天期逆回购"; both are the one short reverse repo member, and all 24 values are held."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    digest = "4d104698df655c19c27e4a697ef4bd55cc1c0b30ad9aae265e7db3c955bc90c2"
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == digest
+    now = datetime(2026, 9, 3, tzinfo=UTC)
+
+    imported = ingest_official_context_document(
+        paths,
+        raw,
+        family="pbc_tool_liquidity_monthly",
+        source_url=(
+            "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/"
+            "2026090214213398506/index.html"
+        ),
+        expected_period="2026-08",
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=version,
+    )
+
+    assert len(imported.claim_ids) == 24
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_TOOL_LIQUIDITY_MONTHLY", mode=AsOfMode.PUBLIC, as_of=now, definition_version=version
+    )
+    assert {p.period_end for p in points} == {"2026-08-31"}
+    (short,) = (
+        p for p in points if p.dimensions == {"tool": "短期逆回购", "measure": "net_injection"}
+    )
+    assert short.selected_value == -6415
+    (claim,) = (c for c in short.claims if c.claim_id == short.selected_claim_id)
+    assert claim.release_at == datetime(2026, 9, 2, 9, tzinfo=UTC)
+
+
+def test_an_unknown_reverse_repo_row_is_refused_and_the_receipt_says_why(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Run findings 03: only the two known names of the short reverse repo row are one member;
+    another name is refused, and the refusal code is kept, not only a ValueError."""
+    from pring_cycle.official_context import (
+        FetchedOfficialContextDocument,
+        refresh_official_context_document,
+    )
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    request, _ = prepared_request(paths)
+    submit(paths, save(paths, request))
+    model_id = json.loads(capsys.readouterr().out)["model_version_id"]
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    digest = "4d104698df655c19c27e4a697ef4bd55cc1c0b30ad9aae265e7db3c955bc90c2"
+    raw = (
+        Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair/evidence-13" / digest
+    ).read_bytes()
+    assert "隔夜、7天期逆回购".encode() in raw
+    renamed = raw.replace("隔夜、7天期逆回购".encode(), "14天期逆回购".encode())
+    url = (
+        "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/5727710/2026090214213398506/index.html"
+    )
+
+    with pytest.raises(ValueError, match="registered_official_source_identity_mismatch"):
+        refresh_official_context_document(
+            paths,
+            family="pbc_tool_liquidity_monthly",
+            source_url=url,
+            expected_period="2026-08",
+            fetched_at=datetime.now(UTC),
+            fetcher=lambda u: FetchedOfficialContextDocument(renamed, "text/html", u, 200),
+            definition_version=version,
+        )
+
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    (receipt,) = acquisitions.history()
+    assert receipt.state == "validated"
+    assert acquisitions.ingest_result(receipt.acquisition_id) == (
+        "rejected",
+        "registered_official_source_identity_mismatch",
+    )
+    assert not EvidenceRepository(paths.database).metric_series(
+        "CN_TOOL_LIQUIDITY_MONTHLY",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=version,
+    )
 
 
 @pytest.mark.parametrize(

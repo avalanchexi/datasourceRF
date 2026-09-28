@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done（待真实运行验证）
 Category: bug
 Type: task
 
@@ -56,3 +56,16 @@ Type: task
 **Out of scope:**
 - OMO 逐日指标（`CN_OMO_7D_AMOUNT`/`CN_OMO_7D_RATE`）对隔夜逆回购的处理（见票 04 的附注）。
 - 央行栏目入口 403 的负缓存策略。
+
+### 实施记录（2026-09-28）
+
+> *本段由 AI 在实施时生成。*
+
+- **稳定成员：** 契约里原“7天期逆回购”一项改为 `短期逆回购`（`metric_contracts.official_source_members`）。解析器只把两个已知行名“7天期逆回购”“隔夜、7天期逆回购”归到它（`official_context._TOOL_LIQUIDITY_ROW_MEMBERS`，按去空白后的全文精确匹配），其他行名原样保留，因此在契约身份校验时被拒，不做模糊匹配。改名没有历史数据要迁移：这个指标此前一条声明都没有持有。
+- **原件行名的追溯：** 行名不进入成员身份。原件照旧按 ADR-0022 保留，声明的 `source_reference` 指向原件哈希，从原件可以查到当期实际行名。没有给规范化结果新增字段：`ParsedOfficialContextRelease` 的规范化哈希被所有官方家族的重建复核引用，加字段会让全部既有回执失配。
+- **原因码可追溯：** `ingest_acquired_official_release` 在入库成功或失败后都写回执的 `ingest_result`／`ingest_rejection_reason`（沿用 gap-sources 票 03 的机制）。官方直取失败的 `retrieval_attempt` 元数据另加 `reason`（仅 `ValueError`），缺口清单的 `ingest_rejected` 因此能显示具体原因码，而不只是 `ValueError`。
+- **测试：** `tests/models/test_registered_model_inputs.py`
+  - `test_the_overnight_and_7_day_reverse_repo_row_continues_the_7_day_member`：9/2 发布页真实原件（`evidence-13/4d104698…`），24 个标量，`period_end=2026-08-31`，发布时间 9/2 17:00（北京），`短期逆回购` 净投放 −6415。
+  - 7 月真实原件（旧行名）的参数化用例改为断言同一成员 `短期逆回购`。
+  - `test_an_unknown_reverse_repo_row_is_refused_and_the_receipt_says_why`：把行名改成“14天期逆回购”，入库拒收，回执为 `("rejected", "registered_official_source_identity_mismatch")`。
+- 验收最后一条（真实完整运行后不在缺口清单里）待下次真实运行确认。
