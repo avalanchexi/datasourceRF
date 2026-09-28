@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -152,3 +154,102 @@ def test_the_day_s_reverse_repo_notice_is_read_from_the_omo_column(tmp_path: Pat
         for metric in ("CN_OMO_7D_RATE", "CN_OMO_7D_AMOUNT")
     }
     assert values == {"CN_OMO_7D_RATE": [1.4], "CN_OMO_7D_AMOUNT": [80.0]}
+
+
+def _omo_gaps(
+    tmp_path: Path, source_url: str, documents: dict[str, Path]
+) -> tuple[RuntimePaths, list[dict[str, object]]]:
+    """Refresh the OMO notices of 9/23 inside a run, then read that run's gap list."""
+    from pring_cycle.acquisition import own_acquisitions
+    from pring_cycle.catalog import METRIC_CATALOG_VERSION
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.freshness import gap_list
+    from pring_cycle.models import ModelRepository, effective_model_manifest
+    from pring_cycle.official_context import refresh_official_context_document
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    models = ModelRepository(paths.database)
+    models.register(effective_model_manifest())
+    models.activate("model-v0013", explicitly_approved=True)
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date="2026-09-23",
+        client_request_id="omo-sibling-notice",
+        model_version_id="model-v0013",
+        system_as_of=datetime.now(UTC),
+    )
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        return FetchedOfficialContextDocument(documents[url].read_bytes(), "text/html", url, 200)
+
+    with (
+        own_acquisitions(
+            paths.database, run.run_id, "direct_context_refresh", metric_ids=("CN_OMO_7D_AMOUNT",)
+        ),
+        contextlib.suppress(ValueError),
+    ):
+        refresh_official_context_document(
+            paths,
+            family="pbc_omo_notice",
+            source_url=source_url,
+            expected_period="2026-09-23",
+            fetched_at=datetime.now(UTC),
+            fetcher=fetch,
+            definition_version=METRIC_CATALOG_VERSION,
+        )
+    definitions = ContextProjectionRules.from_manifest(
+        models.manifest("model-v0013")
+    ).metric_definitions
+    return paths, gap_list(paths.database, run.run_id, definitions)
+
+
+OMO_COLUMN = "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"
+OMO_BILLS = OMO_COLUMN + "2026092311141529051/index.html"
+OMO_REPO = OMO_COLUMN + "2026092308513432696/index.html"
+OMO_DOCUMENTS = {
+    OMO_COLUMN + "index.html": FIXTURES / "official_listing" / "pbc_125475_index_20260924.html",
+    OMO_BILLS: FIXTURES / "pbc_omo_notice" / "2026092311141529051.html",
+    OMO_REPO: FIXTURES / "pbc_omo_notice" / "2026092308513432696.html",
+}
+
+
+def test_a_same_day_bills_notice_passed_over_is_skipped_not_rejected(tmp_path: Path) -> None:
+    """Run findings 04: no. 188 (central bank bills) is passed over by design for no. 187;
+    its receipt says so, and the gap list no longer shows it as a rejection."""
+    paths, gaps = _omo_gaps(tmp_path, OMO_COLUMN + "index.html", OMO_DOCUMENTS)
+
+    checks = {
+        r.parameters["source_url"]: (r.state, r.acquisition_id)
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.api_name == "official_http_get"
+    }
+    with sqlite3.connect(paths.database) as connection:
+        structure = dict(
+            connection.execute(
+                "SELECT acquisition_id, structure_check || ':' || coalesce(rejection_reason, '') "
+                "FROM acquisition_request"
+            ).fetchall()
+        )
+    assert structure[checks[OMO_BILLS][1]] == "skipped:official_context_table_schema_mismatch"
+    assert structure[checks[OMO_REPO][1]] == "passed:"
+    assert [gap for gap in gaps if gap["category"] == "rejected"] == []
+
+
+def test_a_day_with_only_a_bills_notice_is_still_rejected(tmp_path: Path) -> None:
+    """With no reverse repo notice to fall back on, the mismatch is a real failure."""
+    paths, gaps = _omo_gaps(tmp_path, OMO_BILLS, OMO_DOCUMENTS)
+
+    (receipt,) = (
+        r
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.api_name == "official_http_get"
+    )
+    with sqlite3.connect(paths.database) as connection:
+        check = connection.execute(
+            "SELECT structure_check FROM acquisition_request WHERE acquisition_id=?",
+            (receipt.acquisition_id,),
+        ).fetchone()[0]
+    assert check == "rejected"
+    assert [(gap["metric_id"], gap["reason"]) for gap in gaps if gap["category"] == "rejected"] == [
+        ("CN_OMO_7D_AMOUNT", "official_http_get:official_context_table_schema_mismatch")
+    ]

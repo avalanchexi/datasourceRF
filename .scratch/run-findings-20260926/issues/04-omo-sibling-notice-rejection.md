@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -56,3 +56,12 @@ OMO 列表页同一天可以有几份公告（逆回购、央行票据，包括�
 **Out of scope:**
 - 按标题在列表阶段过滤公告。
 - 只有隔夜、没有 7 天期逆回购的日子怎么处理（9/28–10/8 看真实运行再定）。
+
+### 实施记录（2026-09-28）
+
+> *本段由 AI 在实施时生成。*
+
+- 同日候选里不是最后一份、因 `official_context_table_schema_mismatch` 被跳过的公告，在解析处改抛 `CandidateSkipped`（`ValueError` 子类）。回执照旧 `state=failed`，但 `structure_check='skipped'`，`rejection_reason` 仍记原因码。缺口清单只读 `structure_check='rejected'`，因此不再提示。
+- 最后一份候选（包括当日只有央票公告）照旧 `rejected`；其他错误照旧中止。
+- 测试：`tests/integration/test_official_listing_pages.py` 用 9/23 的第 187、188 号公告真实原件，分别验证“跳过不提示”和“只有央票仍拒收”。
+- 验收第 1–4 条：前两条由上述两例覆盖；其他错误行为不变、已有 OMO 用例全部通过（`test_official_listing_pages.py`、`test_omo_invalid_flow.py`）。

@@ -64,6 +64,14 @@ def acquisition_metrics(metric_ids: tuple[str, ...]) -> Iterator[None]:
         _acquisition_owner.reset(token)
 
 
+class CandidateSkipped(ValueError):
+    """A candidate passed over by design for another of its kind, not a rejected response.
+
+    Its receipt records the structure check as ``skipped`` with the reason, so the gap list,
+    which lists rejections, does not show it (run findings 04).
+    """
+
+
 @dataclass(frozen=True)
 class AcquisitionReceipt:
     acquisition_id: str
@@ -275,14 +283,16 @@ class AcquisitionRepository:
         return self.get(acquisition_id)
 
     def fail_validation(self, acquisition_id: str, error: Exception) -> None:
-        """Close a call as failed; one that had answered was rejected by its structure check."""
+        """Close a call as failed; one that had answered was rejected by its structure check,
+        or skipped when the caller passed it over for another candidate."""
+        check = "skipped" if isinstance(error, CandidateSkipped) else "rejected"
         with self._connect() as connection:
             connection.execute(
                 """UPDATE acquisition_request SET state='failed', error_type=?,
-                   structure_check=CASE WHEN state='received' THEN 'rejected' END,
+                   structure_check=CASE WHEN state='received' THEN ? END,
                    rejection_reason=CASE WHEN state='received' THEN ? END
                    WHERE acquisition_id=? AND state IN ('started', 'received')""",
-                (type(error).__name__, str(error)[:300], acquisition_id),
+                (type(error).__name__, check, str(error)[:300], acquisition_id),
             )
 
     def record_ingest_result(self, acquisition_id: str, error: Exception | None) -> None:

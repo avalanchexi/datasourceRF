@@ -17,6 +17,7 @@ from pring_cycle.acquisition import (
     Acquired,
     AcquisitionReceipt,
     AcquisitionRepository,
+    CandidateSkipped,
     receipt_key,
     utc_now,
 )
@@ -753,7 +754,7 @@ def refresh_official_context_document(
         if on_acquisition_started is not None:
             on_acquisition_started(acquisition_id)
 
-    def ingest(source_url: str) -> OfficialContextIngestionResult:
+    def ingest(source_url: str, *, last: bool = True) -> OfficialContextIngestionResult:
         response_holder: list[FetchedOfficialContextDocument] = []
 
         def fetch() -> bytes:
@@ -763,13 +764,19 @@ def refresh_official_context_document(
 
         def parse(raw: bytes) -> ParsedOfficialContextRelease:
             _validate_fetched_document(family, source_url, response_holder[0])
-            parsed = parse_official_context_document(
-                raw,
-                family=family,
-                source_url=source_url,
-                expected_period=expected_period,
-                fetched_at=utc_now(),
-            )
+            try:
+                parsed = parse_official_context_document(
+                    raw,
+                    family=family,
+                    source_url=source_url,
+                    expected_period=expected_period,
+                    fetched_at=utc_now(),
+                )
+            except ValueError as error:
+                # Another of the day's notices, passed over for the next: skipped, not refused.
+                if not last and str(error) == "official_context_table_schema_mismatch":
+                    raise CandidateSkipped(str(error)) from error
+                raise
             if admit is not None:
                 admit(parsed)
             return parsed
@@ -798,10 +805,9 @@ def refresh_official_context_document(
         # Another of the day's notices (central bank bills) has another table: try the next.
         for candidate in candidates[:-1]:
             try:
-                return ingest(candidate)
-            except ValueError as error:
-                if str(error) != "official_context_table_schema_mismatch":
-                    raise
+                return ingest(candidate, last=False)
+            except CandidateSkipped:
+                pass
         return ingest(candidates[-1])
     except (OSError, TypeError, ValueError) as error:
         repository = EvidenceRepository(paths.database)
