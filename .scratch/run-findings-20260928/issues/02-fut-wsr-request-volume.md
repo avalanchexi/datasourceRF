@@ -1,4 +1,4 @@
-Status: done（待下次真实运行确认补缺请求数）
+Status: done
 Category: bug
 Type: task
 
@@ -77,3 +77,9 @@ Type: task
 - **审查（Codex 两轴）：** 发现 1 项 P2 问题：最初只认前两种缺口，`warehouse_member_missing` 会被漏掉。已修复，并补了参数化测试。其余核查项（缺口清单、终态触发器、业务码的使用方、零请求时的后续流程）都没有问题。
 - **测试：** 新增 `test_a_call_failing_before_its_answer_is_recorded_keeps_why`、`test_a_refused_call_says_which_code_refused_it`（2 例）、`test_a_gap_day_refetch_asks_only_for_the_symbols_still_missing`、`test_a_gap_day_missing_only_czce_symbols_asks_tushare_for_nothing`、`test_a_gap_day_refetch_asks_for_every_symbol_its_shortfall_names`（7 例）。第一轮受影响测试 115 个全过，用时 7 分 59 秒，超出 3 分钟目标，因为范围里有几个较重的集成文件；修复后复跑 95 个全过，用时 3 分 39 秒。
 
+
+### 真实运行确认（2026-09-28 晚）
+
+> *本段由 AI 在验收时生成。*
+
+`run-67ad41fc9072b672e3bb`（目标日 9/28，代码 `d351c06`）：`fut_wsr` 共 54 次（6 个品种各 9 次），全部通过校验；上一轮是 714 次。本次运行 261 张回执中，没有一张失败回执缺少原因码。两条都已确认。

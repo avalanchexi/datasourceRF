@@ -19,12 +19,34 @@
 | 票 | 问题 | 建议 | 状态 |
 |---|---|---|---|
 | [01](issues/01-wsl-clock-acquisition-time.md) | Windows 时钟快约 9.6 秒，WSL 被两边来回拉扯而跳变，回执时间不单调，报 `acquisition_time_invalid` | 根因是 Windows 时钟未对时、快约 9.6 秒；已同步。代码是否防护待复验后定 | done |
-| [02](issues/02-fut-wsr-request-volume.md) | 补缺对每个缺日重取全部 6 个品种（本轮 714 次）；失败回执在 `started` 阶段丢原因码 | 失败都记原因码；补缺只取缺失的品种（缺日根因是时钟，已修） | done（待真实运行确认）|
+| [02](issues/02-fut-wsr-request-volume.md) | 补缺对每个缺日重取全部 6 个品种（本轮 714 次）；失败回执在 `started` 阶段丢原因码 | 失败都记原因码；补缺只取缺失的品种（缺日根因是时钟，已修） | done（晚间运行已确认）|
 | [03](issues/03-mid-autumn-due-period.md) | 中秋休市的 9/25 被当成应到期：银行间日频指标和中间价按落后一期计 | 查时效到期日所用的日历 | wontfix |
 | [04](issues/04-vix-scope-test-order.md) | 全套里 `test_full_run_plans_the_latest_released_period_of_a_metric_not_held` 失败，单独跑能过 | 不是串扰：conftest 离线默认漏了 `quote_sources`，用例真实访问 Cboe，失败时 VIX 进入检索范围；已补离线默认并由用例提供 Cboe 夹具 | done |
 | [05](issues/05-heartbeat-overlap-test.md) | `test_a_heartbeat_blocked_by_a_long_write_keeps_the_lease` 稳定失败，在 `9d230f9` 上也失败 | 查锁为何提前释放；可能与票 01 的时钟有关 | done |
 | [06](issues/06-context-trade-cal-empty.md) | 今天两次 context 口径的 `trade_cal`（`is_open=1`）都返回 0 行，上次返回 1560 行 | 先确认是否影响任何指标 | needs-info |
 | [07](issues/07-bytecode-in-src.md) | 全套里字节码用例失败：`src/pring_cycle/__pycache__` 是 9/26 用系统 Python 3.10 留下的 | 已清除，单独复跑通过；只记录 | wontfix |
 | [08](issues/08-czce-cf-first-request-failures.md) | 郑商所 CF 有 6 天首次请求 `ValueError`、没有原因码，同一运行内重取成功 | 补上原因码；可能与票 01 有关 | duplicate（并入 02）|
+| [09](issues/09-credit-impulse-missing-silently.md) | 信用脉冲自 9/25 起一直 `missing_inputs`，过热卡 `insufficient_data`，但不在缺口清单里 | 现库里从未算出过（不是 9/25 起）。根因：回看起点少了差分基线期（社融 `2024-08`、GDP `2024Q2`），补缺也不走 TuShare。修取数起点；派生失败与冲突进缺口清单（用户定） | ready-for-agent |
+| [10](issues/10-sf-total-conflicted.md) | 社融总量 2026-08 自 9/26 起有一条 `conflicted`，也不在缺口清单里 | TuShare 239109 与央行"23.91 万亿"是精度差，零容差判成冲突。改三档：0.5% 内相容、单位错判冲突、其余冲突（ADR-0033）。是票 09 的第二道阻断 | ready-for-agent |
+| [11](issues/11-tests-reach-network.md) | 修掉 Cboe 后仍有测试真实访问外网（疑似 EIA、ECB） | 断网跑全套列出依赖，补会话级离线默认 | needs-triage |
 
 用户确认数据时效只需 T+1（2026-09-28）：01、05 已关闭，03 不修。处理顺序：02 → 04 → 08，06 继续观察。
+
+## 验收运行（2026-09-28 晚）
+
+> *本段由 AI 在验收时生成。*
+
+代码 `d351c06`。全套 `check.py full`：1229 例全过，76 分钟，退出码 0（上午那轮 84 分钟、3 例失败）。
+
+真实完整运行 `run-67ad41fc9072b672e3bb`：提交时**不指定** `--target-date`，系统自动定为 2026-09-28，提交成功（票 01 的症状没有再出现）。`completed`，用时 13 分钟（上一轮 57 分钟），261 张回执，检索用量为 Tavily 11 次、AI 联网搜索 3 次、Exa 0 次。
+
+- **缺口清单只有 1 项**：SOX `license_missing`，符合预期。因为目标日是 9/28，中秋造成的落后一期也不再出现。
+- 票 01：时间相关错误 0 次。票 02：`fut_wsr` 54 次，失败回执都带原因码，已确认。票 04：全套里通过。
+- 票 06：context 口径 `trade_cal` 这次返回 13 行（应约 400 行），仍不可靠。
+- 缺口清单之外的发现：信用脉冲一直缺失（票 09）、社融总量有冲突（票 10），两者都早于本轮，缺口清单都看不到。
+
+结论：取数链路（时钟、请求量、原因码、行情文件）已经稳定，按缺口清单验收全部达标。但缺口清单看不到派生指标和冲突，所以"清单里只剩 SOX"不等于所有输出都完整。09、10 需要先分流。
+
+**下一阶段（用户选择，2026-09-28）：** 先修票 09、10（信用脉冲与社融冲突），按 `/triage` 分流后用 `/diagnosing-bugs` 查根因；之后做测试提速（`/improve-codebase-architecture`，票 11 一并纳入），再转入日常运行。
+
+**分流（2026-09-28）：** 09、10 转 `ready-for-agent`，实施顺序 10 → 09（09 的真实运行验收依赖 10）。新增 [ADR-0033](../../docs/adr/0033-cross-source-values-compatible-within-half-percent.md)。
