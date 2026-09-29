@@ -2217,6 +2217,7 @@ def _credit_impulse_proxy(
     gdp_numbers: list[float]
     gdp_input_measure: str
     quarter_values: dict[str, float] = {}
+    one_delivery: set[str] = set()
     if len(reported_quarterly_gdp) >= 8:
         gdp_period_points = reported_quarterly_gdp[-8:]
         gdp_input_points = gdp_period_points
@@ -2250,6 +2251,7 @@ def _credit_impulse_proxy(
             for point, value, _inputs in selected_quarters
             if point.selected_claim_id is not None
         }
+        one_delivery = _quarters_from_one_delivery(repository, selected_quarters)
     social_input_points: list[MetricSeriesPoint]
     social_numbers: list[float]
     social_period_points: list[MetricSeriesPoint]
@@ -2303,8 +2305,13 @@ def _credit_impulse_proxy(
         )
         if selected_parent_ids - valid_parents:
             return None, {**formula, "status": "incomplete_source_artifacts"}, ()
-        if quarter_values and set(quarter_values) - official_gdp_quarters_matching_baselines(
-            repository, quarter_values
+        announced = {
+            claim_id: value
+            for claim_id, value in quarter_values.items()
+            if claim_id not in one_delivery
+        }
+        if announced and set(announced) - official_gdp_quarters_matching_baselines(
+            repository, announced
         ):
             return None, {**formula, "status": "incomparable_gdp_vintages"}, ()
     current_social_financing = sum(social_numbers[-12:])
@@ -2434,6 +2441,45 @@ def _periods_are_consecutive(
             ordinal = period.year * 4 + (period.month - 1) // 3
         ordinals.append(ordinal)
     return all(right - left == 1 for left, right in zip(ordinals, ordinals[1:], strict=False))
+
+
+def _quarters_from_one_delivery(
+    repository: Any,
+    quarters: list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]],
+) -> set[str]:
+    """Quarters whose year-to-date endpoints came in one TuShare delivery.
+
+    Differencing across official releases can mix vintages, so such a quarter must match the
+    one its release announced. Levels delivered together are one vintage already: TuShare's
+    census-revised series has no release of its own to check against (run findings
+    2026-09-28, ticket 13).
+    """
+    claim_ids = tuple(
+        dict.fromkeys(
+            str(point.selected_claim_id)
+            for _quarter, _value, inputs in quarters
+            for point in inputs
+            if point.selected_claim_id is not None
+        )
+    )
+    links = repository.source_claim_acquisitions_many(claim_ids)
+    together: set[str] = set()
+    for quarter, _value, inputs in quarters:
+        deliveries = [
+            {
+                link.receipt.acquisition_id
+                for link in links.get(str(point.selected_claim_id), ())
+                if link.receipt.provider == "tushare"
+            }
+            for point in inputs
+        ]
+        if (
+            quarter.selected_claim_id is not None
+            and all(deliveries)
+            and set.intersection(*deliveries)
+        ):
+            together.add(quarter.selected_claim_id)
+    return together
 
 
 def _quarter_levels_from_ytd(

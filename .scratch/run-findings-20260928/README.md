@@ -29,7 +29,9 @@
 | [09](issues/09-credit-impulse-missing-silently.md) | 信用脉冲自 9/25 起一直 `missing_inputs`，过热卡 `insufficient_data`，但不在缺口清单里 | 现库里从未算出过（不是 9/25 起）。根因：回看起点少了差分基线期（社融 `2024-08`、GDP `2024Q2`），补缺也不走 TuShare。修取数起点；派生失败与冲突进缺口清单（用户定）。已实施；9/29 运行中缺口清单可见，但公式仍被票 12 挡住 | ready-for-agent（blocked by 12） |
 | [10](issues/10-sf-total-conflicted.md) | 社融总量 2026-08 自 9/26 起有一条 `conflicted`，也不在缺口清单里 | TuShare 239109 与央行"23.91 万亿"是精度差，零容差判成冲突。改三档：0.5% 内相容、单位错判冲突、其余冲突（ADR-0033）。是票 09 的第二道阻断。9/29 运行已确认冲突消失 | done |
 | [11](issues/11-tests-reach-network.md) | 修掉 Cboe 后仍有测试真实访问外网 | 会话级离线拦截（代理指向关闭端口、只解析本机）；离线全套没有用例因断网失败。另做三处提速，全套 76 → 44 分钟 | done |
-| [12](issues/12-gdp-official-backfill-imports-vintage.md) | 补缺为取 GDP 实际同比，把统计局初值也导入了，与 TuShare 修订值冲突，信用脉冲仍缺 | 待定：补缺只导入缺失成员，还是导入后按版本选值 | needs-triage |
+| [12](issues/12-gdp-official-backfill-imports-vintage.md) | 补缺为取 GDP 实际同比，把统计局初值也导入了，与 TuShare 修订值冲突，信用脉冲仍缺 | 用户定：补缺跳过已由其他来源交付的成员 | done |
+| [13](issues/13-gdp-vintage-check-rejects-tushare.md) | GDP 版本相容性检查只认统计局公告页，TuShare 交付的名义值一律不相容，信用脉冲卡在 `incomparable_gdp_vintages` | 用户定：同一次 TuShare 交付视为同版本；其余照旧核对 | ready-for-agent |
+| [14](issues/14-usdcny-close-document-invalid.md) | 外汇交易中心 16:30 收盘价页面被拒（`chinamoney_close_document_invalid`） | 下次运行仍出现再取原件对照 | needs-info |
 
 用户确认数据时效只需 T+1（2026-09-28）：01、05 已关闭，03 不修。处理顺序：02 → 04 → 08，06 继续观察。
 
@@ -62,3 +64,5 @@
 
 - 票 10：社融 2026-08 `ytd_increment` 这次是 `current`，冲突消失。
 - 票 09：取数起点已覆盖基线（`202408`、`2024Q2`）；缺口清单现在列出 `CN_CREDIT_IMPULSE derived_failed`，并指出缺的是哪几期，不再只有 SOX。**但信用脉冲仍然算不出来**：补缺带回的统计局 GDP 初值与 TuShare 的普查修订值相差约 2.7%，2024-Q2、2024-Q3 被判为冲突（票 12）。
+
+第二次真实运行 `run-32e17c10a10e4cdad483`（代码 `0b78061`，全套 1251 例全过，49.5 分钟）：`completed`，10 分钟。票 12 已生效，GDP 名义值不再冲突，信用脉冲的输入已齐全，但停在 GDP 版本相容性检查 `incomparable_gdp_vintages`（票 13）；缺口清单另有 USDCNY 16:30 收盘价被拒（票 14）。

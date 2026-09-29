@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 

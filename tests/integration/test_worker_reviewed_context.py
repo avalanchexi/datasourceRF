@@ -169,6 +169,87 @@ def test_worker_money_delivery_satisfies_the_new_four_member_contract(
     assert owned["metric_ids"] == ["CN_M1_M2"] and owned["state"] == "validated"
 
 
+# 2024-Q2 to 2026-Q2, census-revised as TuShare delivers them (run findings 2026-09-28).
+_GDP_YTD = {
+    "2024Q2": 633599.4,
+    "2024Q3": 974553.8,
+    "2024Q4": 1348066.2,
+    "2025Q1": 318466.4,
+    "2025Q2": 659861.6,
+    "2025Q3": 1013967.9,
+    "2025Q4": 1401879.2,
+    "2026Q1": 334192.9,
+    "2026Q2": 695704.0,
+}
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_credit_impulse_computes_from_levels_tushare_delivered_together(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One delivery is one vintage: its quarters need no release to reconcile (ticket 13).
+
+    The check against each statistics bureau release stays for levels from different
+    releases; TuShare's revised series has none, so it held the impulse missing for good.
+    """
+    from pring_cycle.context_projection import build_context_projection
+
+    paths, run, version = reviewed_run(
+        tmp_path, capsys, extra_markers={"CN_GDP": "tushare:cn_gdp:official-sampled-v0001"}
+    )
+    months = [f"{year}{month:02d}" for year in (2024, 2025, 2026) for month in range(1, 13)]
+    months = months[months.index("202408") : months.index("202608") + 1]
+    rows = {
+        "sf_month": [
+            {
+                "month": month,
+                "inc_cumval": 30000.0 * int(month[4:]),
+                "stk_endval": 400.0 + index,
+            }
+            for index, month in enumerate(months)
+        ],
+        "cn_gdp": [
+            {
+                "quarter": quarter,
+                "gdp": level,
+                "gdp_yoy": 5.0,
+                "pi": level * 0.07,
+                "pi_yoy": 3.5,
+                "si": level * 0.36,
+                "si_yoy": 5.0,
+                "ti": level * 0.57,
+                "ti_yoy": 5.0,
+            }
+            for quarter, level in _GDP_YTD.items()
+        ],
+    }
+
+    class Opener:
+        def open(self, request: Any, *, timeout: float) -> BytesIO:
+            payload = json.loads(request.data)
+            fields = payload["fields"].split(",")
+            items = [[row[field] for field in fields] for row in rows.get(payload["api_name"], [])]
+            if not items:
+                raise OSError("fixture source unavailable")
+            return BytesIO(
+                json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
+            )
+
+    context_http(monkeypatch, {})
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *args: Opener())
+
+    with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
+        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=datetime.now(UTC),
+        model_manifest=ModelRepository(paths.database).manifest(run.model_version_id),
+    )
+    formula = context.macro["credit"]["formula"]  # type: ignore[index]
+    assert formula["status"] == "available", formula
+
+
 @pytest.mark.usefixtures("runtime_clock")
 def test_credit_inputs_are_fetched_back_to_the_differencing_baseline(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
