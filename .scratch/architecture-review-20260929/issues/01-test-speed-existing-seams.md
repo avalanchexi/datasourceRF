@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: enhancement
 Type: task
 
@@ -22,6 +22,20 @@ Type: task
 
 ## 验收
 
-- [ ] 改动前后各跑一次 `test_full_run_retrieval.py`，记录总耗时与最慢 10 例。
-- [ ] 断言语义不变：被改写的用例在删去对应行为时仍会失败。
-- [ ] 不删除必要测试凑时限（`docs/agents/testing.md`）。
+- [x] 改动前后各跑一次 `test_full_run_retrieval.py`，记录总耗时与最慢 10 例。
+- [x] 断言语义不变：被改写的用例在删去对应行为时仍会失败。
+- [x] 不删除必要测试凑时限（`docs/agents/testing.md`）。
+
+## Comments
+
+**2026-09-29 实施记录**
+
+- 计时（同一台机器、同在 `/mnt/d` 工作区，`PYTHONPATH=src`，串行各跑一次）：
+  - 改动前（HEAD 版测试文件的临时副本）：28 例全过，**524.16 秒**。最慢 10 例：treasury_partial 45.42、searches_real_gap 38.11、shares_hard_search_budget 37.10、plan_includes_missing_historical 33.97、adoption_excludes_uncertified 33.96、lpr_direction[True] 30.74、treasury_schema 28.72、gdp_no_levels 28.55、p2_projection[failure1] 27.57、p2_projection[failure2] 27.48。
+  - 改动后：28 例全过，**399.38 秒**（−24%）。最慢 10 例在 22.8–24.6 秒之间：searches_real_gap 24.61、treasury_partial 24.51、p2_projection[None] 24.50、treasury_schema 24.01、gdp_no_levels 23.87、lpr_direction[True] 23.58、independent_calendar 23.51、credit_formula 23.32、p2_projection[failure2] 23.08、adoption_excludes_uncertified 22.78。
+  - 预算用例单独计时：37.10 → 24.30 秒。剩下的主要是 `prepare` 与 180 天夹具的开销，每例约 20 秒，跑不跑完整 Worker 都一样；要再降，得减夹具天数或共享库，不在本票范围。
+- 断言语义：临时让 `retrieval_ledger.py` 的每轮上限不再拦截（`blocked = "run_limit"` 改为 `None`），预算用例失败（Tavily 调用 184 次，期望 16），随即还原。夹具改用 `append_source_claims`：单条追加本身就调批量追加（`evidence.py:551`），写入语义相同。
+- 预算与运行记录的关联仍由 `test_full_run_searches_real_gap_and_publishes_traceable_adoption` 经完整运行断言（`consumed_budget["tavily"]` 等于实际调用次数）。
+- `test_gap_source_repairs.py`：按票面只记录，不改。
+- 未删测试。收尾冒烟两例通过（53.7 秒）。
+

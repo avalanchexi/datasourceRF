@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
@@ -331,6 +332,7 @@ def seed_core_history(
         if day.weekday() < 5:
             days.append(day)
         day -= timedelta(days=1)
+    claims: list[SourceClaimInput] = []
     for index, observed in enumerate(reversed(days)):
         known = datetime.combine(observed, datetime.min.time(), tzinfo=UTC)
         calendar_claim = SourceClaimInput(
@@ -354,7 +356,7 @@ def seed_core_history(
             quality_status="validated",
         )
         if include_calendar:
-            evidence.append_source_claim(calendar_claim)
+            claims.append(calendar_claim)
         for metric_id, value in (
             ("CN_BOND_CORE_000012", 100.0 + index),
             ("CN_EQUITY_CORE_000985", 1000.0 - index),
@@ -363,7 +365,7 @@ def seed_core_history(
             if metric_id == "CN_EQUITY_CORE_000985" and observed.isoformat() == omit_stock_on:
                 continue
             api, code = CORE_API_IDENTITIES[metric_id]
-            evidence.append_source_claim(
+            claims.append(
                 SourceClaimInput(
                     metric_id=metric_id,
                     definition_version=definition_version,
@@ -385,6 +387,8 @@ def seed_core_history(
                     quality_status="validated",
                 )
             )
+    # One transaction for all 720 claims instead of one per claim.
+    evidence.append_source_claims(tuple(claims))
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -606,21 +610,25 @@ def test_full_run_shares_hard_search_budget_across_periods(
         return Response(b'{"results":[]}')
 
     monkeypatch.setattr("pring_cycle.search_discovery.urlopen", search)
-    run = runs.submit_manual_full(
+    submitted = runs.submit_manual_full(
         target_business_date="2026-08-28",
         client_request_id="shared-budget",
         model_version_id="model-v0001",
         system_as_of=datetime.now(UTC),
     )
-    process_pending_run(paths, report_adapters=())
+    # The budget is the retrieval's rule; the full run's link to it is covered by
+    # test_full_run_searches_real_gap_and_publishes_traceable_adoption.
+    run = runs.advance(submitted.run_id, "refreshing_evidence")
+    retrieval = FullRunRetrieval(paths)
+    retrieval.retrieve(run)
     stored = runs.get(run.run_id)
-    assert stored.status == "completed", stored.error_classification
     # Tavily's per-run cap is 16; Exa waits for Tavily's monthly quota (ticket 20).
     assert stored.consumed_budget == {"tavily": 16, "exa": 0, "ai_websearch": 0}
     assert calls.count("https://api.tavily.com/search") == 16
     assert calls.count("https://api.exa.ai/search") == 0
     assert any(attempt["classification"] == "run_limit" for attempt in stored.retrieval_attempts)
     assert any(attempt["outcome"] == "not_configured" for attempt in stored.retrieval_attempts)
+    retrieval.evaluate(runs.freeze_cutoffs(run.run_id, system_as_of=datetime.now(UTC)))
     final = runs.full_retrieval_plan(run.run_id)["final"]
     core = [gap for gap in final["gaps"] if gap["metric_id"] == "CN_EQUITY_CORE_000985"]
     assert len(core) == 120
