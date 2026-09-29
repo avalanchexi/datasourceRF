@@ -621,6 +621,33 @@ def _execute_retrieval_run(
     )
 
 
+class SeriesReads:
+    """Each metric's series read once per cutoff, for a loop that stores no claims.
+
+    A full run's plan judges thousands of scopes against the same few series. Share one
+    of these only where nothing is written between reads: retrieval stores claims between
+    scopes, some with an availability earlier than their storage, so it reads afresh.
+    """
+
+    def __init__(self, repository: EvidenceRepository) -> None:
+        self._repository = repository
+        self._series: dict[tuple[str, datetime, datetime, str], tuple[MetricSeriesPoint, ...]] = {}
+
+    def __call__(
+        self, metric_id: str, *, as_of: datetime, public_as_of: datetime, definition_version: str
+    ) -> tuple[MetricSeriesPoint, ...]:
+        key = (metric_id, as_of, public_as_of, definition_version)
+        if key not in self._series:
+            self._series[key] = self._repository.metric_series(
+                metric_id,
+                mode=AsOfMode.SYSTEM,
+                as_of=as_of,
+                public_as_of=public_as_of,
+                definition_version=definition_version,
+            )
+        return self._series[key]
+
+
 def _retrieval_release_status(
     paths: RuntimePaths,
     scope: RetrievalScope,
@@ -629,14 +656,15 @@ def _retrieval_release_status(
     definition_version: str,
     public_as_of: datetime | None = None,
     latest_only: bool = False,
+    reads: SeriesReads | None = None,
 ) -> str:
-    repository = EvidenceRepository(paths.database)
+    """Whether the scope's period is published by ``now``; ``reads`` shares series reads."""
+    series = reads or SeriesReads(EvidenceRepository(paths.database))
     public_cutoff = min(now, public_as_of) if public_as_of is not None else now
     states: list[str] = []
     for metric_id in scope.metric_ids:
-        points = repository.metric_series(
+        points = series(
             metric_id,
-            mode=AsOfMode.SYSTEM,
             as_of=now,
             public_as_of=public_cutoff,
             definition_version=definition_version,

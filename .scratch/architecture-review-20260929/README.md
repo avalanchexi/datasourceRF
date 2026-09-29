@@ -165,7 +165,7 @@
 | [12](issues/12-backfill-day-evidence-snapshot.md) | 补算日冻结证据快照 | 10 | ready-for-agent |
 | [13](issues/13-backfill-does-not-move-current-pointer.md) | 补算日不切换当前指针 | 10 | ready-for-agent |
 | [14](issues/14-projection-stage-history-up-to-day.md) | 历史投影集的阶段史只含该日及之前（低优先级） | 10 | ready-for-agent |
-| [15](issues/15-release-status-reads-series-once.md) | 判断是否已公布时每个指标只读一次序列 | 无 | ready-for-agent |
+| [15](issues/15-release-status-reads-series-once.md) | 判断是否已公布时每个指标只读一次序列 | 无 | done |
 | [16](issues/16-acquisition-outcome-module.md) | 获取结果模块（纯重构） | 无 | ready-for-agent |
 | [17](issues/17-attempt-attribution-contract.md) | 获取尝试的归属契约 | 16 | ready-for-agent |
 | [18](issues/18-attempt-classification-contract.md) | 获取尝试的分类契约 | 17 | ready-for-agent |

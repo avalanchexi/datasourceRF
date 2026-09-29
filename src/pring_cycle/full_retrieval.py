@@ -310,7 +310,7 @@ class FullRunRetrieval:
         )
 
     def _plan(self, run: RunRecord) -> dict[str, Any]:
-        from pring_cycle.worker import _retrieval_release_status
+        from pring_cycle.worker import SeriesReads, _retrieval_release_status
 
         rules = ContextProjectionRules.from_manifest(
             ModelRepository(self.paths.database).manifest(run.model_version_id)
@@ -471,6 +471,8 @@ class FullRunRetrieval:
                 groups.items(), key=lambda item: (item[0][2], item[0][:3], item[0][3] or "")
             )
         ]
+        # Nothing is stored while the plan is judged, so each series is read once.
+        reads = SeriesReads(EvidenceRepository(self.paths.database))
         for document in scopes:
             document["release_status"] = _retrieval_release_status(
                 self.paths,
@@ -479,6 +481,7 @@ class FullRunRetrieval:
                 definition_version=rules.metric_catalog_version,
                 public_as_of=min(selector.as_of, utc_now(), _target_end(run)),
                 latest_only=True,
+                reads=reads,
             )
         return {
             "origin": "before_gap_retrieval",
