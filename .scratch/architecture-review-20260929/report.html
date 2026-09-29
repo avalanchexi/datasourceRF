@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>架构加深评审</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { useMaxWidth: true } });
+</script>
+<style>
+  .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: #f8fafc; }
+  .seam { border-style: dashed; }
+  .label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
+  .diagram { min-height: 300px; }
+  .mermaid { display: flex; justify-content: center; }
+</style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="max-w-6xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+
+<header class="space-y-4">
+  <h1 class="font-serif text-3xl sm:text-4xl">datasourceRF · 架构加深评审</h1>
+  <p class="text-sm text-slate-500">2026-09-29 · 范围：9/15 以来 204 次提交的热点（worker 33 次、freshness 19、search_evidence 17、tushare_context 16、official_context 15、evidence 15、context_projection 14、full_retrieval 12）＋ 慢测试 · 调查：Codex 只读，关键论据已抽查</p>
+  <div class="flex flex-wrap gap-4 text-xs text-slate-600">
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border border-slate-500 bg-white"></span>模块（module）</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 border-2 border-dashed border-indigo-500"></span>接缝（seam）</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-6 h-0.5 bg-red-600"></span>泄漏（知识越过接缝）</span>
+    <span class="flex items-center gap-2"><span class="inline-block w-5 h-4 deep"></span>深模块</span>
+  </div>
+  <p class="text-xs text-slate-500">术语：接口＝调用方须知的一切（签名、不变量、顺序、错误模式、配置）；深度＝接口处的杠杆（leverage）；局部性（locality）＝改动、缺陷与验证集中在一处。</p>
+</header>
+
+<section id="candidates" class="space-y-10">
+
+<!-- 1 -->
+<article id="c1" class="rounded-xl border border-slate-200 bg-white p-5 sm:p-7 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">1 · 加深交易日历模块（目标交易日 ／ 120 日证据窗口）</h2>
+    <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-0.5 text-xs font-semibold">Strong</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">local-substitutable（SQLite）＋ mock（TuShare）</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>freshness.py:628 launch_calendar</li>
+    <li>full_run_requirements.py:29 required_calendar</li>
+    <li>czce_warrants.py:259 window_trading_days</li>
+    <li>tushare_context.py:280–309（广度写入日历回执）</li>
+    <li>cli.py:314 · full_retrieval.py:358 · worker.py:1749</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-2">现在：三个调用方各写 SQL、各猜口径</div>
+      <pre class="mermaid">
+flowchart LR
+  CLI[提交运行] --> LC[launch_calendar]
+  FR[完整运行规划] --> RC[required_calendar]
+  WK[仓单刷新] --> WT[window_trading_days]
+  LC -- SQL＋解析 --> R[(取数回执)]
+  RC -- SQL＋解析 --> R
+  WT -- SQL＋解析 --> R
+  BR[市场广度] -- 整组标量写进 normalized --> R
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class LC,RC,WT,BR leak
+  linkStyle 3,4,5,6 stroke:#dc2626,stroke-width:2px
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-2">加深后：口径、覆盖、冲突集中在一个接口背后</div>
+      <pre class="mermaid">
+flowchart LR
+  CLI[提交运行] --> CAL
+  FR[完整运行规划] --> CAL
+  WK[仓单刷新] --> CAL
+  subgraph CAL[交易日历模块]
+    direction TB
+    a[认口径] --> b[读原件] --> c[算覆盖与冲突]
+  end
+  CAL -.接缝.-> R[(取数回执)]
+  CAL -.mock 适配器.-> T[TuShare]
+  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a;
+  class CAL deep
+      </pre>
+    </div>
+  </div>
+  <p><span class="font-semibold">问题：</span>每个调用方都得知道日历回执的解析器、normalized 形状和覆盖规则；今天的 7f5a2bb 就是这份知识在两处漏掉造成的。</p>
+  <p><span class="font-semibold">方案：</span>日历模块集中解释口径、原件、覆盖区间与冲突，对外只给"目标交易日"和"证据窗口"这样的领域结果；三种用途各自的降级选择保留，但在接口上明说。</p>
+  <ul class="grid sm:grid-cols-2 gap-1 text-sm list-disc pl-5">
+    <li>局部性：口径判断只写一处</li>
+    <li>杠杆：一个接口，三个调用方</li>
+    <li>今天两条回归用例合并到一个测试面</li>
+    <li>日历断言移出完整运行（该例约 32.5 秒）</li>
+    <li>删除测试：删掉它，知识散回三处</li>
+    <li>不做万能回执读取模块</li>
+  </ul>
+  <div class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-3 py-2">不与 ADR 冲突：保留独立日历、完整窗口要求，以及郑商所日历不足时只取目标日（ADR-0032）。</div>
+</article>
+
+<!-- 2 -->
+<article id="c2" class="rounded-xl border border-slate-200 bg-white p-5 sm:p-7 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">2 · 加深"来源声明 → 已验证证据"选值模块</h2>
+    <span class="rounded-full bg-emerald-100 text-emerald-800 px-3 py-0.5 text-xs font-semibold">Strong</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process ＋ local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>search_evidence.py:185 ModelInputSelector 家族分派</li>
+    <li>context_projection.py:1487 家族分派（LPR／官方宏观／银行间／国债／仓单）</li>
+    <li>official_context.py:396 原件核对分派</li>
+    <li>evidence.py:366 source_claim_acquisitions_many（已深，保留）</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-2">现在：两套家族分派各自判"能不能采用"</div>
+      <pre class="mermaid">
+flowchart TB
+  S[检索选值] --> D1{按家族分派}
+  P[上下文投影] --> D2{按家族分派}
+  D1 --> O[官方原件核对]
+  D2 --> O
+  D1 --> N[资讯命中原话]
+  D2 --> M[成员完整性]
+  O --> E[(证据仓库)]
+  classDef leak stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class D1,D2 leak
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-2">加深后：证据仓库直接回答"可采用的已验证证据"</div>
+      <pre class="mermaid">
+flowchart TB
+  S[检索选值] --> EV
+  P[上下文投影] --> EV
+  subgraph EV[证据仓库 · 选值]
+    direction LR
+    f[家族分派] --> o[原件核对] --> m[成员与命中原话]
+  end
+  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a;
+  class EV deep
+      </pre>
+    </div>
+  </div>
+  <p><span class="font-semibold">问题：</span>拿到来源声明后，调用方还得懂家族归属、原件核对、命中原话和成员完整性，才能判断能不能用。</p>
+  <p><span class="font-semibold">方案：</span>把这套判断收进证据仓库，检索和投影共用同一个结论。</p>
+  <ul class="grid sm:grid-cols-2 gap-1 text-sm list-disc pl-5">
+    <li>局部性：采用规则只写一处</li>
+    <li>测试用少量声明，不用 180 天夹具</li>
+    <li>国债取值断言可移出 89 秒共享 setup</li>
+    <li>接口吸收两套家族分派</li>
+  </ul>
+  <div class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-3 py-2">不与 ADR 冲突，但须原样保留：注册来源结构校验（0021）、资讯家族规则（0026）、郑商所来源（0032）、0.5% 相容（0033）；不恢复来源认证。</div>
+</article>
+
+<!-- 3 -->
+<article id="c3" class="rounded-xl border border-slate-200 bg-white p-5 sm:p-7 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">3 · 加深单日汇总模块（目标交易日 → 汇总结果 ／ 分析投影集）</h2>
+    <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-0.5 text-xs font-semibold">Worth exploring</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process ＋ local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>worker.py:407–445 目标日路径</li>
+    <li>worker.py:530 _backfill_missed_days · :571 _summarize_day</li>
+    <li>p0.py:59 发布（调用方须先备齐材料）</li>
+    <li>context_projection.py:294</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-3">现在：两条路径各走一遍，都藏在 Worker 里</div>
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="space-y-1">
+          <div class="label text-slate-400">目标日</div>
+          <div class="h-9 border-l-4 border-slate-400 bg-slate-50 pl-2 flex items-center">核心就绪</div>
+          <div class="h-9 border-l-4 border-slate-400 bg-slate-50 pl-2 flex items-center">上下文计算</div>
+          <div class="h-9 border-l-4 border-slate-400 bg-slate-50 pl-2 flex items-center">冻结快照</div>
+          <div class="h-9 border-l-4 border-slate-400 bg-slate-50 pl-2 flex items-center">原子发布</div>
+        </div>
+        <div class="space-y-1">
+          <div class="label text-slate-400">补算 × 119 天</div>
+          <div class="h-9 border-l-4 border-red-500 bg-red-50 pl-2 flex items-center">核心就绪</div>
+          <div class="h-9 border-l-4 border-red-500 bg-red-50 pl-2 flex items-center">上下文计算</div>
+          <div class="h-9 border-l-4 border-red-500 bg-red-50 pl-2 flex items-center">原子发布</div>
+          <div class="text-red-700 pt-1">首次运行必走，测试每例都付</div>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-3">加深后：一个单日模块，两条路径共用</div>
+      <div class="grid grid-cols-2 gap-3 text-xs items-start">
+        <div class="space-y-2">
+          <div class="border border-slate-300 rounded px-2 py-2">目标日运行</div>
+          <div class="border border-slate-300 rounded px-2 py-2">漏跑日补算</div>
+          <div class="border border-slate-300 rounded px-2 py-2">测试：备 1 天证据</div>
+        </div>
+        <div class="deep rounded-lg p-3 space-y-1 border-2 border-dashed border-indigo-400">
+          <div class="label text-slate-300">单日汇总模块</div>
+          <div class="opacity-60">核心就绪</div>
+          <div class="opacity-60">上下文计算</div>
+          <div class="opacity-60">汇总一致性</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p><span class="font-semibold">问题：</span>"如何从某天的证据得到一致的汇总"是 Worker 内部的实现知识；现有发布接口要求调用方先把核心状态、宏观、库存、缺口都备好。</p>
+  <p><span class="font-semibold">方案：</span>把单日核心就绪、上下文计算和汇总一致性收成一个可直接调用的模块，目标日运行和补算共用。</p>
+  <ul class="grid sm:grid-cols-2 gap-1 text-sm list-disc pl-5">
+    <li>单日测试：120 天补算减到 1 天</li>
+    <li>P2、沿用、冲突可直接测</li>
+    <li>慢例上限约 33–35 秒／例</li>
+    <li>保留少量完整运行关联测试</li>
+  </ul>
+  <div class="rounded-md bg-amber-50 border border-amber-200 text-amber-900 text-sm px-3 py-2">不与 ADR 冲突：原子投影（0008）、补算与恢复（0024、0031）不变。定为 Worth exploring，是因为目标日与补算日的快照、可见时间、报告职责确有差异，不能机械合并。</div>
+</article>
+
+<!-- 4 -->
+<article id="c4" class="rounded-xl border border-slate-200 bg-white p-5 sm:p-7 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">4 · 加深"加工批次中的获取尝试结果"模块</h2>
+    <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-0.5 text-xs font-semibold">Worth exploring</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process ＋ local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>worker.py:1932 异常 → 获取结果</li>
+    <li>freshness.py:829 按时间区间与品种归并</li>
+    <li>evidence.py:884 按截止时间取最新尝试</li>
+    <li>context_projection.py:304 再解释 metadata</li>
+    <li>freshness.py:930 缺口清单查结构拒收</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-2">现在：五处各自重建"这批取到了什么、为何失败"</div>
+      <pre class="mermaid">
+flowchart LR
+  A[(尝试＋回执＋metadata)]
+  A -- 重建 --> W[Worker]
+  A -- 重建 --> F1[时效]
+  A -- 重建 --> F2[缺口清单]
+  A -- 重建 --> E[证据仓库]
+  A -- 重建 --> C[上下文投影]
+  linkStyle 0,1,2,3,4 stroke:#dc2626,stroke-width:2px
+      </pre>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-2">加深后：批次获取结果只解释一次</div>
+      <pre class="mermaid">
+flowchart LR
+  A[(尝试＋回执)] -.接缝.-> B[批次获取结果模块]
+  B --> F1[时效]
+  B --> F2[缺口清单]
+  B --> C[上下文投影]
+  B --> W[运行读模型]
+  classDef deep fill:#0f172a,color:#f8fafc,stroke:#0f172a;
+  class B deep
+      </pre>
+    </div>
+  </div>
+  <p><span class="font-semibold">问题：</span>时间归属、后续成功覆盖失败、品种隔离这些规则由各调用方各自承担。</p>
+  <p><span class="font-semibold">方案：</span>把批次获取结果的归属与解释收进一个模块，给缺口清单、投影、读模型提供一致的领域结果。</p>
+  <ul class="grid sm:grid-cols-2 gap-1 text-sm list-disc pl-5">
+    <li>P2 三分支移出完整运行</li>
+    <li>慢例 35.4 ／ 34.5 秒</li>
+    <li>国债缺字段、仓单隔离复用</li>
+    <li>各消费者视图可以不同，不强行统一</li>
+  </ul>
+</article>
+
+<!-- 5 -->
+<article id="c5" class="rounded-xl border border-slate-200 bg-white p-5 sm:p-7 space-y-5 shadow-sm">
+  <div class="flex flex-wrap items-center gap-2">
+    <h2 class="font-serif text-2xl mr-2">5 · 加深信用响应中的信用脉冲派生观测模块</h2>
+    <span class="rounded-full bg-amber-100 text-amber-800 px-3 py-0.5 text-xs font-semibold">Worth exploring</span>
+    <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-0.5 text-xs">in-process ＋ local-substitutable</span>
+  </div>
+  <ul class="font-mono text-sm text-slate-600 grid sm:grid-cols-2 gap-x-6">
+    <li>worker.py:1979 取数起点</li>
+    <li>full_run_requirements.py:107 公式所需期数</li>
+    <li>context_projection.py:2143 差分基期、连续性、血缘</li>
+    <li>domain/macro.py:49 只收四个数的算术</li>
+  </ul>
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-3">现在：公式模块很浅，知识散在三处</div>
+      <div class="flex items-end gap-6 h-56">
+        <div class="flex flex-col items-center gap-1 w-24">
+          <div class="w-full bg-red-200 border border-red-400" style="height:70px"></div>
+          <div class="w-full bg-slate-300 border border-slate-400" style="height:20px"></div>
+          <div class="label text-slate-500 text-center">macro.py<br>接口 ≈ 实现</div>
+        </div>
+        <div class="text-xs text-slate-600 space-y-2">
+          <div class="border-l-4 border-red-500 pl-2">worker：回看起点（票 09 缺了差分基期）</div>
+          <div class="border-l-4 border-red-500 pl-2">requirements：24 个月、8 个季度</div>
+          <div class="border-l-4 border-red-500 pl-2">projection：差分、版本、血缘（票 12、13）</div>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 diagram">
+      <div class="label text-slate-500 mb-3">加深后：小接口，公式知识全在里面</div>
+      <div class="flex items-end gap-6 h-56">
+        <div class="flex flex-col items-center gap-1 w-24">
+          <div class="w-full bg-emerald-200 border border-emerald-500" style="height:18px"></div>
+          <div class="w-full deep" style="height:150px"></div>
+          <div class="label text-slate-500 text-center">信用脉冲<br>接口 ≪ 实现</div>
+        </div>
+        <div class="text-xs text-slate-600 space-y-2">
+          <div>回看需求、输入解释、失败原因、派生血缘都在一处</div>
+          <div class="text-slate-400">取数、规划、投影只问它要结果</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p><span class="font-semibold">问题：</span>调用方必须理解 24 个月、8 个季度、累计差分基期和输入血缘；9/28–29 的票 09、12、13 就分别修在三个不同文件。</p>
+  <p><span class="font-semibold">方案：</span>把公式回看需求、输入解释、失败原因和派生血缘收成一个领域模块。</p>
+  <ul class="grid sm:grid-cols-2 gap-1 text-sm list-disc pl-5">
+    <li>局部性：信用脉冲只修一处</li>
+    <li>需求与结果一致性直接可测</li>
+    <li>避开三核心夹具与完整运行</li>
+    <li>不扩大证据窗口（ADR-0022）</li>
+  </ul>
+</article>
+
+<aside class="rounded-xl border border-slate-200 bg-stone-100 p-5 sm:p-7 space-y-3 text-sm">
+  <h3 class="font-serif text-xl">不需要新模块就能提速的</h3>
+  <ul class="list-disc pl-5 space-y-1">
+    <li><span class="font-semibold">已有接缝没用上：</span>共享检索预算的慢例可以改为直接穿过 <code class="font-mono">FullRunRetrieval.retrieve()</code>（full_retrieval.py:116），只留一例完整运行做关联验证。</li>
+    <li><span class="font-semibold">夹具逐条写入：</span><code class="font-mono">seed_core_history</code> 每例逐条写 720 条来源声明（180 天 ×〔日历＋三核心〕），证据仓库已有批量追加（evidence.py:577）。</li>
+    <li><span class="font-semibold">89 秒是共享 setup：</span>test_gap_source_repairs 的模块级夹具跑一次完整 Worker 给整个文件复用，不是国债单例的成本。</li>
+    <li><span class="font-semibold">不建议：</span>仅凭 21 处回执 SQL 新建万能回执读取模块。获取模块已隐藏状态推进、原件与哈希，已经够深；各处 SQL 语义不同，只搬 SQL 不增加深度。</li>
+  </ul>
+</aside>
+
+</section>
+
+<section id="top-recommendation" class="rounded-2xl deep p-6 sm:p-8 space-y-3">
+  <div class="label text-emerald-300">首选</div>
+  <h2 class="font-serif text-2xl sm:text-3xl"><a href="#c1" class="underline decoration-emerald-400 underline-offset-4">加深交易日历模块</a></h2>
+  <p class="text-slate-200">三个真实调用方，今天刚因口径混淆出过缺陷，回归用例现成可迁移；加深后调用方不再需要知道解析器身份和覆盖规则，三种用途的降级语义照旧保留。杠杆、局部性和验证范围在五个候选里最明确，改动面最小。</p>
+</section>
+
+</main>
+</body>
+</html>
