@@ -1,4 +1,4 @@
-Status: needs-info
+Status: superseded (was needs-info)
 Review state: 任务审阅稿；仅等待本轮测试入口/粒度/依赖确认，批准发布后为 ready-for-agent。
 
 # 19: 汇总认证证据并创建新完整候选模型
@@ -9,7 +9,7 @@ Review state: 任务审阅稿；仅等待本轮测试入口/粒度/依赖确认�
 
 **Dependency rationale:** 需要三核心、全部 42 项 P1、P2 明确状态及修复后的输出语义；09/10 已包含 08，12 已包含 11。
 
-**Status:** needs-info（未批准草稿，不可误领为正式实现票）
+**Status:** superseded（未批准草稿，已发布为正式票，不可领取）
 
 ## Acceptance criteria
 
@@ -34,3 +34,5 @@ Review state: 任务审阅稿；仅等待本轮测试入口/粒度/依赖确认�
 
 - 2026-09-06：由已完成事实审查综合；尚未实施、调用外部源或改变生产状态。
 
+
+- 2026-09-29 标记为被取代：本草稿已于 2026-09-06 由 `aeb6b41` 发布为正式票 [../../issues/19-immutable-candidate-catalog.md](../../issues/19-immutable-candidate-catalog.md)，以正式票为准；正式票本身已于 2026-09-24 被 fast-refactor 路线（ADR-0021–0025、`.scratch/pring-fast-refactor-20260923`）取代或完成。本草稿不再领取。

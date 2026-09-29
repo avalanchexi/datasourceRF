@@ -1,4 +1,4 @@
-Status: needs-info
+Status: superseded (was needs-info)
 Type: grilling
 
 # 全面审查数据获取至 Pring 结论
@@ -12,3 +12,4 @@ Q1 已确认以模型可用缺口补齐率为主指标，定义同步到根 CONT
 ## Comments
 
 - 2026-09-06：事实查询只读运行库，无网络请求，无生产写入。新增文档、已确认的术语；保留旧五家族审查及原任务22/25状态。
+- 2026-09-29 标记为被取代：Q1 已落入根 CONTEXT.md；待答的 Q2（阶段/指标计算与报告解释分别验收）已由 [ADR-0027](../../../docs/adr/0027-report-input-is-verified-results-without-evidence-chain.md) 取代——报告只接收已验证结果、不再逐条引用证据，"报告解释有完整证据支持"这一验收项不复存在。审查结论已于 `aeb6b41` 转成 [pring-data-acquisition-repair](../../pring-data-acquisition-repair/spec.md) 票，那批票又被 fast-refactor 路线（ADR-0021–0025、`.scratch/pring-fast-refactor-20260923`）取代。本票不再等待回答。

@@ -23,7 +23,7 @@
 | [03](issues/03-mid-autumn-due-period.md) | 中秋休市的 9/25 被当成应到期：银行间日频指标和中间价按落后一期计 | 查时效到期日所用的日历 | wontfix |
 | [04](issues/04-vix-scope-test-order.md) | 全套里 `test_full_run_plans_the_latest_released_period_of_a_metric_not_held` 失败，单独跑能过 | 不是串扰：conftest 离线默认漏了 `quote_sources`，用例真实访问 Cboe，失败时 VIX 进入检索范围；已补离线默认并由用例提供 Cboe 夹具 | done |
 | [05](issues/05-heartbeat-overlap-test.md) | `test_a_heartbeat_blocked_by_a_long_write_keeps_the_lease` 稳定失败，在 `9d230f9` 上也失败 | 查锁为何提前释放；可能与票 01 的时钟有关 | done |
-| [06](issues/06-context-trade-cal-empty.md) | 今天两次 context 口径的 `trade_cal`（`is_open=1`）都返回 0 行，上次返回 1560 行 | 先确认是否影响任何指标 | needs-info |
+| [06](issues/06-context-trade-cal-empty.md) | 今天两次 context 口径的 `trade_cal`（`is_open=1`）都返回 0 行，上次返回 1560 行 | 读错了数字：`row_count` 计的是广度整组产出的标量（1560=13×120，13=新算 1 天，0=无新日），TuShare 日历每次 403/404 天正常。顺带修复两处不分口径读日历（提交时定目标日、郑商所仓单窗口），改为只读核心口径 | done |
 | [07](issues/07-bytecode-in-src.md) | 全套里字节码用例失败：`src/pring_cycle/__pycache__` 是 9/26 用系统 Python 3.10 留下的 | 已清除，单独复跑通过；只记录 | wontfix |
 | [08](issues/08-czce-cf-first-request-failures.md) | 郑商所 CF 有 6 天首次请求 `ValueError`、没有原因码，同一运行内重取成功 | 补上原因码；可能与票 01 有关 | duplicate（并入 02）|
 | [09](issues/09-credit-impulse-missing-silently.md) | 信用脉冲自 9/25 起一直 `missing_inputs`，过热卡 `insufficient_data`，但不在缺口清单里 | 现库里从未算出过（不是 9/25 起）。根因：回看起点少了差分基线期（社融 `2024-08`、GDP `2024Q2`），补缺也不走 TuShare。修取数起点；派生失败与冲突进缺口清单（用户定）。已实施；9/29 第四次运行信用脉冲 `available`（−3.93），过热卡 `cooling` | done |
@@ -31,7 +31,7 @@
 | [11](issues/11-tests-reach-network.md) | 修掉 Cboe 后仍有测试真实访问外网 | 会话级离线拦截（代理指向关闭端口、只解析本机）；离线全套没有用例因断网失败。另做三处提速，全套 76 → 44 分钟 | done |
 | [12](issues/12-gdp-official-backfill-imports-vintage.md) | 补缺为取 GDP 实际同比，把统计局初值也导入了，与 TuShare 修订值冲突，信用脉冲仍缺 | 用户定：补缺跳过已由其他来源交付的成员 | done |
 | [13](issues/13-gdp-vintage-check-rejects-tushare.md) | GDP 版本相容性检查只认统计局公告页，TuShare 交付的名义值一律不相容，信用脉冲卡在 `incomparable_gdp_vintages` | 用户定：同一次 TuShare 交付视为同版本（按取值判断）；其余照旧核对 | done |
-| [14](issues/14-usdcny-close-document-invalid.md) | 外汇交易中心 16:30 收盘价页面被拒（`chinamoney_close_document_invalid`） | 下次运行仍出现再取原件对照 | needs-info |
+| [14](issues/14-usdcny-close-document-invalid.md) | 外汇交易中心 16:30 收盘价页面被拒（`chinamoney_close_document_invalid`） | 只出现一次，前后四次运行都没有；按偶发关闭，再出现另开新票并保存原件 | wontfix |
 
 用户确认数据时效只需 T+1（2026-09-28）：01、05 已关闭，03 不修。处理顺序：02 → 04 → 08，06 继续观察。
 
@@ -72,3 +72,15 @@
 **第四次真实运行 `run-c28425a3901b9d5f607c`**（代码 `403cba4`，全套 1254 例全过，56 分钟）：`completed`，11 分钟，Tavily 9 次、AI 联网搜索 1 次。**信用脉冲 `available`，2026-08 值 −3.93；过热卡由 `insufficient_data` 变为 `cooling`；缺口清单只剩 SOX。** 缺口清单现在也会列出派生失败和来源冲突，所以"只剩 SOX"这次代表所有输出都完整。
 
 结论：票 09–13 全部关闭，14 继续观察，06 继续观察。本阶段转入日常运行。
+
+## 收口（2026-09-29 午间）
+
+> *本段由 AI 在分流与验收时生成。*
+
+- **票 06 → done**：原来的"行数不可靠"是读错了数字。context 口径的 `trade_cal` 由市场广度发起，回执的 `row_count` 计的是整组产出的广度标量，TuShare 日历每次都完整（403/404 个开市日）。顺带查出并修复两处不分口径读日历的潜在缺陷：提交时定目标日（同一天再次提交会报错或把节假日当交易日）、郑商所仓单 120 日窗口（空的广度回执会冒充日历覆盖）。提交 `7f5a2bb`；受影响的 56 例全过（12 分 37 秒），Codex 两轴审查无阻断。
+- **票 14 → wontfix**：只出现一次，按偶发关闭。
+- **旧票**：`pring-data-acquisition-repair/drafts/issues/01–22`（草稿已于 `aeb6b41` 发布为正式票）、`pring-data-acquisition-audit/01`（Q2 由 ADR-0027 取代）、`pring-cycle-dashboard/25`（由 fast-refactor 票 15/16 与 FR28 取代）改为 `superseded`，各票 Comments 写明依据。
+
+**真实完整运行 `run-ad6793255ccb423e2bd1`**（代码 `7f5a2bb`）：提交时不指定目标日，系统自动定为 2026-09-28（午盘时提交，当日未收盘），`completed`，取数约 9 分钟，229 张回执，Tavily 9 次、AI 联网搜索 1 次。**缺口清单只剩 SOX `license_missing`。** 两个口径的 `trade_cal` 都已校验；郑商所仓单窗口内各天均已持有，本次没有新取数。完成后已用 SIGTERM 停止 Worker。
+
+结论：run-findings-20260928 的 14 张票全部有最终状态，任务跟踪器里不再有 `needs-info` 的票。
