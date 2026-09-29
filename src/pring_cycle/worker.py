@@ -39,14 +39,12 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
-    TradingCalendar,
     add_projection_gaps,
     gap_list,
     period_status,
     record_run_freshness,
-    run_calendar_scope,
+    release_schedule_scope,
     use_release_schedule,
-    use_run_calendar,
 )
 from pring_cycle.logging import write_runtime_event
 from pring_cycle.maintenance import mutation_rejection
@@ -91,6 +89,7 @@ from pring_cycle.source_adapters import (
 )
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
+from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
 from pring_cycle.tushare_context import (
     TUSHARE_WARRANT_SYMBOLS,
     ContextIngestRejectedError,
@@ -215,7 +214,12 @@ def process_pending_run(
             # A Worker run never captures reviewed futures inputs (only their reviewed import
             # does) or alters stored claims' parents, so one run shares one read of those.
             runs.record_code_version(queued.run_id, code_version())
-            with shared_read_scope(), processing_batch(queued.run_id), run_calendar_scope():
+            with (
+                shared_read_scope(),
+                processing_batch(queued.run_id),
+                run_calendar_scope(),
+                release_schedule_scope(),
+            ):
                 _execute_run(
                     paths,
                     runs,
@@ -821,11 +825,11 @@ def _registered_release_state(
     """
     from pring_cycle.freshness import (
         FRESHNESS_REGISTRY,
-        current_calendar,
         latest_released_period,
         period_end,
         release_at,
     )
+    from pring_cycle.trading_calendar import current_calendar
 
     rule = FRESHNESS_REGISTRY.get(metric_id)
     if rule is None or rule.frequency == "event":
@@ -1983,8 +1987,9 @@ def _credit_lookback_starts(target: date) -> tuple[str, str]:
     judges them by, so the fetch holds what the plan asks for, the differencing baseline
     included (run findings 2026-09-28, ticket 09).
     """
-    from pring_cycle.freshness import FRESHNESS_REGISTRY, current_calendar, latest_released_period
+    from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
     from pring_cycle.full_run_requirements import credit_lookback_start
+    from pring_cycle.trading_calendar import current_calendar
 
     cutoff = datetime.combine(target, time.max, tzinfo=ZoneInfo("Asia/Shanghai"))
     calendar = current_calendar()

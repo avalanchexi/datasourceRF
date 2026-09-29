@@ -18,6 +18,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.trading_calendar import CalendarAdapter, acquire_sse_calendar
 
 CORE_HISTORY_SCHEMA_VERSION = "tushare-core-history-v0001"
 
@@ -34,11 +35,7 @@ class CoreHistoryRefreshResult:
     rejected_metrics: tuple[str, ...] = ()
 
 
-class CoreHistoryAdapter(Protocol):
-    def acquire_calendar(
-        self, repository: AcquisitionRepository, start: date, end: date
-    ) -> Acquired[tuple[date, ...]]: ...
-
+class CoreHistoryAdapter(CalendarAdapter, Protocol):
     def acquire_core_bars(
         self,
         repository: AcquisitionRepository,
@@ -88,7 +85,7 @@ def refresh_core_history(
         ]
     )
     for chunk_start, chunk_end in ranges:
-        calendar = adapter.acquire_calendar(acquisitions, chunk_start, chunk_end).value
+        calendar = acquire_sse_calendar(paths, adapter, chunk_start, chunk_end)
         if latest_observations is not None:
             calendar = calendar[-latest_observations:]
             if not calendar or calendar[-1] != end:

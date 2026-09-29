@@ -13,12 +13,13 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.freshness import TradingCalendar, public_available_at
+from pring_cycle.freshness import public_available_at
 from pring_cycle.models import ModelRepository
 from pring_cycle.official_core import parse_csindex_perf
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.trading_calendar import TradingCalendar
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_core_history_refresh import historical_response
 

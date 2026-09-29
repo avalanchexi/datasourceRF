@@ -642,8 +642,9 @@ def _accept_lenient_candidate(
 
     from pring_cycle.acquisition import AcquisitionRepository
     from pring_cycle.evidence import SourceClaimInput
-    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.freshness import public_available_at
     from pring_cycle.http_transport import open_no_redirects
+    from pring_cycle.trading_calendar import current_calendar
 
     scope = run.retrieval_scope
     assert scope is not None
@@ -726,7 +727,7 @@ def _accept_media_candidate(
     from urllib.request import Request
 
     from pring_cycle.acquisition import AcquisitionRepository
-    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.freshness import public_available_at
     from pring_cycle.http_transport import open_no_redirects
     from pring_cycle.news_rules import (
         MEDIA_PAGE,
@@ -743,6 +744,7 @@ def _accept_media_candidate(
         store_news_values,
         text_hash,
     )
+    from pring_cycle.trading_calendar import current_calendar
 
     scope = run.retrieval_scope
     assert scope is not None
@@ -857,8 +859,9 @@ def _refetch_csindex_candidate(
 ) -> tuple[str, ...]:
     """A CSI core candidate is refetched from the registered CSI page and parsed there."""
     from pring_cycle.adapters import MarketBar
-    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.freshness import public_available_at
     from pring_cycle.official_core import is_csindex_page, refresh_csindex_core
+    from pring_cycle.trading_calendar import current_calendar
 
     scope = run.retrieval_scope
     assert scope is not None

@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
@@ -14,6 +14,8 @@ from pring_cycle.adapters import MarketBar, validate_core_market_bars
 from pring_cycle.evidence import EvidenceRepository, MetricSeriesPoint
 
 TUSHARE_ENDPOINT = "https://api.tushare.pro"
+# The parser the core adapter records its receipts under; the SSE calendar is read by it.
+CORE_PARSER_VERSION = "tushare-core-parser-v0002"
 
 CORE_API_IDENTITIES = {
     "CN_EQUITY_CORE_000985": ("index_daily", "000985.CSI"),
@@ -39,7 +41,7 @@ def parse_core_acquisition(
         receipt.state != "validated"
         or receipt.provider != "tushare"
         or receipt.api_name != api
-        or receipt.parser_version != "tushare-core-parser-v0002"
+        or receipt.parser_version != CORE_PARSER_VERSION
         or receipt.fields != fields
         or set(receipt.parameters) != {"ts_code", "start_date", "end_date"}
         or receipt.parameters.get("ts_code") != code
@@ -229,7 +231,7 @@ class TushareCoreAdapter:
             api_name=api_name,
             parameters=parameters,
             fields=fields,
-            parser_version="tushare-core-parser-v0002",
+            parser_version=CORE_PARSER_VERSION,
             fetch=fetch,
             parse=lambda raw: parse(_response_document(raw)),
             normalize=normalize,
@@ -297,38 +299,6 @@ class TushareCoreAdapter:
         )
         with build_opener().open(request, timeout=30) as response:
             return bytes(response.read())
-
-
-def calendar_coverage(receipt: AcquisitionReceipt, raw: bytes) -> dict[str, Any]:
-    """Prove natural-date coverage of the bound, unfiltered trade_cal response.
-
-    Open-session lists alone cannot distinguish a missing row from a closure.
-    The original must explicitly supply either 0 or 1 for every requested date.
-    """
-    start = date.fromisoformat(str(receipt.parameters["start_date"]))
-    end = date.fromisoformat(str(receipt.parameters["end_date"]))
-    rows = _rows(_response_document(raw))
-    dates = {date.fromisoformat(str(row["cal_date"])) for row in rows}
-    missing = [
-        (start + timedelta(days=i)).isoformat()
-        for i in range((end - start).days + 1)
-        if start + timedelta(days=i) not in dates
-    ]
-    unfiltered = "is_open" not in receipt.parameters
-    valid_flags = all(str(row["is_open"]) in {"0", "1"} for row in rows)
-    complete = unfiltered and valid_flags and not missing and start <= end
-    return {
-        "status": "complete" if complete else "unproven",
-        "basis": "unfiltered_natural_date_range",
-        "start": start.isoformat(),
-        "end": end.isoformat(),
-        "unfiltered": unfiltered,
-        "valid_open_flags": valid_flags,
-        "missing_dates": missing,
-        "acquisition_id": receipt.acquisition_id,
-        "raw_hash": receipt.raw_hash,
-        "normalized_hash": receipt.normalized_hash,
-    }
 
 
 def _calendar_rows(response: dict[str, Any], start: date, end: date) -> tuple[date, ...]:

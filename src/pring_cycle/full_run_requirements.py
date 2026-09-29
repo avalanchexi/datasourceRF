@@ -1,107 +1,56 @@
 from __future__ import annotations
 
-import json
-from datetime import UTC, date, datetime
+from datetime import date
 from typing import Any
 
-from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import EvidenceValueState
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
-from pring_cycle.storage import database_connection
-
-
-class CalendarMaterialError(ValueError):
-    """An invalid calendar artifact, with the identity of the attempted receipt."""
-
-    def __init__(self, error: Exception, receipt: AcquisitionReceipt) -> None:
-        super().__init__(str(error))
-        self.provenance: dict[str, Any] = {
-            "claim_ids": [],
-            "acquisition_id": receipt.acquisition_id,
-            "raw_hash": receipt.raw_hash,
-            "normalized_hash": receipt.normalized_hash,
-        }
+from pring_cycle.trading_calendar import CalendarMaterialError, SseCalendar
 
 
 def required_calendar(
     paths: RuntimePaths, run: RunRecord, selector: ModelInputSelector
 ) -> dict[str, Any]:
-    """Use independent calendar evidence, never the price series being checked."""
-    points = selector.series("CN_TRADE_CALENDAR")
-    days, claim_ids = [], []
-    for point in points:
-        claim = next((c for c in point.claims if c.claim_id == point.selected_claim_id), None)
-        if (
-            point.period_end <= run.target_business_date
-            and point.selection_status == "selected"
-            and point.value_state is EvidenceValueState.REPORTED_VALUE
-            and point.selected_value == 1
-            and claim is not None
-            and claim.quality_status == "validated"
-        ):
-            days.append(point.period_end)
-            claim_ids.append(claim.claim_id)
-    dates = sorted(set(days))[-120:]
-    proof: dict[str, Any] = {"claim_ids": claim_ids, "acquisition_id": None}
-    basis = "validated_trade_calendar_claims"
-    if len(dates) < 120 or not dates or dates[-1] != run.target_business_date:
-        dates = []
-        with database_connection(paths.database) as connection:
-            receipts = connection.execute(
-                "SELECT acquisition_id, validated_at FROM acquisition_request "
-                "WHERE provider='tushare' "
-                "AND api_name='trade_cal' AND state='validated' "
-                "AND parser_version='tushare-core-parser-v0002' "
-                "AND julianday(validated_at)<=julianday(?) ORDER BY julianday(validated_at) DESC",
-                (selector.as_of.astimezone(UTC).isoformat(),),
-            ).fetchall()
-        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
-        for acquisition_id, validated_at in sorted(
-            receipts, key=lambda row: datetime.fromisoformat(row[1]), reverse=True
-        ):
-            if datetime.fromisoformat(validated_at) > selector.as_of:
-                continue
-            receipt = acquisitions.get(acquisition_id)
-            try:
-                document = json.loads(acquisitions.read_receipt_content(receipt, "normalized"))
-            except (ValueError, LookupError, OSError, TypeError) as error:
-                raise CalendarMaterialError(error, receipt) from error
-            if not isinstance(document, list) or not all(isinstance(day, str) for day in document):
-                continue
-            candidates = sorted(
-                {
-                    date.fromisoformat(day).isoformat()
-                    for day in document
-                    if day <= run.target_business_date
-                }
-            )[-120:]
-            if len(candidates) == 120 and candidates[-1] == run.target_business_date:
-                dates = candidates
-                proof = {"claim_ids": [], "acquisition_id": acquisition_id}
-                basis = "validated_independent_calendar_response"
-                break
-    if any(
-        point.selection_status == "conflicted"
-        and (dates[0] if dates else run.target_business_date)
-        <= point.period_end
-        <= run.target_business_date
-        for point in points
+    """The 120 SSE sessions to the target day, strictly: the calendar, never the prices.
+
+    A full run takes no fewer sessions and no weekday stand-ins; an unreadable calendar
+    response not superseded by a newer readable one stops it rather than being skipped. A
+    day a later response revised is noted.
+    """
+    target = date.fromisoformat(run.target_business_date)
+    calendar = SseCalendar(paths, as_of=selector.as_of)
+    window = calendar.window(target, 120)
+    # An unreadable response stops the run unless a newer readable one states the window.
+    if (
+        unreadable := calendar.unreadable_since(window[0], target)
+        if window
+        else calendar.unreadable
     ):
+        error, receipt = unreadable[0]
+        raise CalendarMaterialError(error, receipt) from error
+    if not window:
         return {
             "dates": [],
-            "basis": "calendar_source_conflict",
+            "basis": "independent_calendar_unavailable",
             "status": "unavailable",
-            "provenance": proof,
+            "provenance": {"claim_ids": [], "acquisition_id": None},
         }
-    return {
-        "dates": dates,
-        "basis": basis if dates else "independent_calendar_unavailable",
-        "status": "available" if len(dates) == 120 else "unavailable",
-        "provenance": proof,
+    document: dict[str, Any] = {
+        "dates": [day.isoformat() for day in window],
+        "basis": "validated_independent_calendar_response",
+        "status": "available",
+        "provenance": {
+            "claim_ids": [],
+            "acquisition_id": calendar.sources(target, target)[0],
+            "acquisition_ids": list(calendar.sources(window[0], target)),
+        },
     }
+    if revisions := calendar.revisions_between(window[0], target):
+        document["revisions"] = [item.document() for item in revisions]
+    return document
 
 
 # Twelve months (four quarters) and the twelve (four) before them.

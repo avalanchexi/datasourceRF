@@ -13,7 +13,11 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.worker import process_pending_run
-from tests.integration.test_full_run_retrieval import prepare, seed_core_history
+from tests.integration.test_full_run_retrieval import (
+    prepare,
+    record_core_calendar,
+    seed_core_history,
+)
 
 
 def context_requests(monkeypatch: pytest.MonkeyPatch, requested: list[str]) -> None:
@@ -46,6 +50,9 @@ def test_a_verified_daily_series_is_not_requested_again(
     context_requests(monkeypatch, requested)
 
     for index in (1, 2):
+        if index > 1:
+            # Each run fetches its calendar; the first run's retention dropped the response.
+            record_core_calendar(paths)
         run = runs.submit_manual_full(
             target_business_date="2026-08-28",
             client_request_id=f"daily-reacquisition-{index}",

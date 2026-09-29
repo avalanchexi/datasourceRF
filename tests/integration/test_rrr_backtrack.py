@@ -227,8 +227,9 @@ def backtrack_run(
 
 def rrr_gaps(paths: RuntimePaths, model_id: str, run_id: str) -> list[dict[str, object]]:
     from pring_cycle.context_projection import ContextProjectionRules
-    from pring_cycle.freshness import TradingCalendar, gap_list, record_run_freshness
+    from pring_cycle.freshness import gap_list, record_run_freshness
     from pring_cycle.models import ModelRepository
+    from pring_cycle.trading_calendar import TradingCalendar
 
     definitions = ContextProjectionRules.from_manifest(
         ModelRepository(paths.database).manifest(model_id)

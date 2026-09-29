@@ -32,6 +32,12 @@ from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
     REQUIRED_DIMENSION_MEMBERS,
 )
+from pring_cycle.trading_calendar import (
+    SseCalendar,
+    TradingCalendar,
+    acquire_sse_calendar,
+    current_calendar,
+)
 
 if TYPE_CHECKING:
     from pring_cycle.catalog import MetricDefinition
@@ -210,41 +216,6 @@ NOT_ASSESSED = frozenset(
     {"CN_TRADE_CALENDAR", "CN_RELEASE_SCHEDULE", "SOURCE_OBSERVED_AVAILABILITY"}
 )
 CORE_METRICS = ("CN_EQUITY_CORE_000985", "CN_BOND_CORE_000012", "CN_COMMODITY_CORE_NHII")
-
-
-class TradingCalendar:
-    """SSE sessions known from the calendar source, and weekdays beyond what it covers.
-
-    The sessions alone cover only up to the last of them; ``through`` extends that when the
-    source listed later days as closed (a range ending on a holiday).
-    """
-
-    def __init__(self, days: Iterable[date] = (), *, through: date | None = None) -> None:
-        self._days = frozenset(days)
-        self._first = min(self._days, default=None)
-        self._last = max(self._days, default=None)
-        if through is not None and self._last is not None:
-            self._last = max(self._last, through)
-
-    def is_trading(self, day: date) -> bool:
-        if self._first is not None and self._last is not None and self._first <= day <= self._last:
-            return day in self._days
-        return day.weekday() < 5
-
-    def nth_from(self, day: date, n: int) -> date:
-        """The ``n``-th session counted from ``day``; the 0th is the first on or after it."""
-        while not self.is_trading(day):
-            day += timedelta(days=1)
-        for _ in range(n):
-            day += timedelta(days=1)
-            while not self.is_trading(day):
-                day += timedelta(days=1)
-        return day
-
-    def latest_on_or_before(self, day: date) -> date:
-        while not self.is_trading(day):
-            day -= timedelta(days=1)
-        return day
 
 
 @dataclass(frozen=True)
@@ -627,71 +598,40 @@ def record_run_freshness(
 
 def launch_calendar(paths: RuntimePaths, launched_at: datetime) -> TradingCalendar:
     """The SSE sessions around a launch: stored calendar, else TuShare, else weekdays."""
-    from pring_cycle.acquisition import AcquisitionRepository
     from pring_cycle.secrets import parse_data_source_secrets
     from pring_cycle.source_adapters import TushareCoreAdapter
-    from pring_cycle.storage import database_connection
 
     day = launched_at.astimezone(SHANGHAI).date()
-    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
-    with database_connection(paths.database) as connection:
-        rows = connection.execute(
-            "SELECT acquisition_id FROM acquisition_request WHERE provider='tushare' "
-            "AND api_name='trade_cal' AND state='validated' "
-            "AND parser_version='tushare-core-parser-v0002' ORDER BY validated_at DESC"
-        ).fetchall()
-    for (acquisition_id,) in rows:
-        receipt = acquisitions.get(acquisition_id)
-        end = str(receipt.parameters.get("end_date", ""))
-        if end < day.strftime("%Y%m%d"):
-            continue
-        try:
-            document = json.loads(acquisitions.read_receipt_content(receipt, "normalized"))
-        except (ValueError, LookupError, OSError):
-            continue
-        if isinstance(document, list):
-            # An unfiltered response states every day of its range, closures included.
-            filtered = "is_open" in receipt.parameters
-            return TradingCalendar(
-                (date.fromisoformat(item) for item in document),
-                through=None if filtered else datetime.strptime(end, "%Y%m%d").date(),
-            )
+    known = SseCalendar(paths).around(day)
+    if known is not None:
+        return known
     token = parse_data_source_secrets(paths.secrets).get("TUSHARE_TOKEN")
     if token is None:
         return TradingCalendar()
-    acquired = TushareCoreAdapter(token).acquire_calendar(
-        acquisitions, day - timedelta(days=30), day
-    )
-    return TradingCalendar(acquired.value, through=day)
+    sessions = acquire_sse_calendar(paths, TushareCoreAdapter(token), day - timedelta(days=30), day)
+    return TradingCalendar(sessions, through=day)
 
 
-class _CalendarSlot:
-    calendar: TradingCalendar | None = None
+class _ScheduleSlot:
     schedule: Mapping[str, tuple[datetime | date, ...]] = {}
 
 
-_run_calendar: ContextVar[_CalendarSlot | None] = ContextVar("run_calendar", default=None)
+_release_schedule: ContextVar[_ScheduleSlot | None] = ContextVar("release_schedule", default=None)
 
 
 @contextmanager
-def run_calendar_scope() -> Iterator[None]:
-    """Open a slot for the run's SSE calendar, filled once the run has validated one."""
-    token = _run_calendar.set(_CalendarSlot())
+def release_schedule_scope() -> Iterator[None]:
+    """Open a slot for the run's release pre-announcements, filled once they are read."""
+    token = _release_schedule.set(_ScheduleSlot())
     try:
         yield
     finally:
-        _run_calendar.reset(token)
-
-
-def current_calendar() -> TradingCalendar:
-    """The run's SSE calendar once known, else weekdays."""
-    slot = _run_calendar.get()
-    return (slot.calendar if slot is not None else None) or TradingCalendar()
+        _release_schedule.reset(token)
 
 
 def use_release_schedule(schedule: Mapping[str, tuple[datetime | date, ...]]) -> None:
     """Take release times from these pre-announcements for the rest of the run."""
-    slot = _run_calendar.get()
+    slot = _release_schedule.get()
     if slot is not None:
         slot.schedule = schedule
 
@@ -716,7 +656,7 @@ def announced_period_end(source: str, frequency: str, published: date) -> date |
 
 
 def _announced_release(rule: FreshnessRule, end: date) -> datetime | None:
-    slot = _run_calendar.get()
+    slot = _release_schedule.get()
     if slot is None:
         return None
     for announced in slot.schedule.get(rule.source, ()):
@@ -726,13 +666,6 @@ def _announced_release(rule: FreshnessRule, end: date) -> datetime | None:
                 return announced
             return datetime.combine(announced, rule.update_time, SHANGHAI)
     return None
-
-
-def use_run_calendar(calendar: TradingCalendar) -> None:
-    """Judge freshness for the rest of the run against ``calendar``."""
-    slot = _run_calendar.get()
-    if slot is not None:
-        slot.calendar = calendar
 
 
 def period_status(metric_id: str, held_period_end: str, as_of: datetime) -> str:

@@ -24,13 +24,14 @@ import pytest
 from pring_cycle.acquisition import own_acquisitions
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
-from pring_cycle.freshness import TradingCalendar, gap_list, record_run_freshness
+from pring_cycle.freshness import gap_list, record_run_freshness
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.retrieval import RetrievalAdapterResponse
 from pring_cycle.retrieval_ledger import utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.targeted_context import _warrant_symbols_to_refetch, retrieve_tushare_context
+from pring_cycle.trading_calendar import TradingCalendar
 from pring_cycle.tushare_context import WARRANT_SYMBOLS
 from pring_cycle.worker import refresh_context_sources
 from tests.conftest import install_runtime_clock

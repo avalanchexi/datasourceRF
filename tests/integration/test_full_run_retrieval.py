@@ -18,6 +18,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
+from tests.integration.test_trading_calendar import record_sse_calendar
 
 
 def prepare(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
@@ -322,48 +323,18 @@ def seed_core_history(
     paths: RuntimePaths,
     *,
     definition_version: str = "metric-catalog-v0001",
-    omit_stock_on: str | None = None,
     include_calendar: bool = True,
 ) -> None:
     evidence = EvidenceRepository(paths.database)
-    day = date(2026, 8, 28)
-    days = []
-    while len(days) < 180:
-        if day.weekday() < 5:
-            days.append(day)
-        day -= timedelta(days=1)
+    days = core_history_days()
     claims: list[SourceClaimInput] = []
     for index, observed in enumerate(reversed(days)):
         known = datetime.combine(observed, datetime.min.time(), tzinfo=UTC)
-        calendar_claim = SourceClaimInput(
-            metric_id="CN_TRADE_CALENDAR",
-            definition_version=definition_version,
-            period_kind="business_day",
-            period_start=observed.isoformat(),
-            period_end=observed.isoformat(),
-            dimensions={},
-            value=1.0,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit="scalar",
-            provider="fixture:independent-calendar",
-            source_reference=f"fixture:calendar:{observed}",
-            release_event_id=f"fixture:calendar:{observed}",
-            release_at=known,
-            public_available_at=known,
-            fetched_at=known,
-            available_at=known,
-            certification_status="certified",
-            quality_status="validated",
-        )
-        if include_calendar:
-            claims.append(calendar_claim)
         for metric_id, value in (
             ("CN_BOND_CORE_000012", 100.0 + index),
             ("CN_EQUITY_CORE_000985", 1000.0 - index),
             ("CN_COMMODITY_CORE_NHII", 100.0 + index),
         ):
-            if metric_id == "CN_EQUITY_CORE_000985" and observed.isoformat() == omit_stock_on:
-                continue
             api, code = CORE_API_IDENTITIES[metric_id]
             claims.append(
                 SourceClaimInput(
@@ -387,8 +358,26 @@ def seed_core_history(
                     quality_status="validated",
                 )
             )
-    # One transaction for all 720 claims instead of one per claim.
+    # One transaction for all 540 claims instead of one per claim.
     evidence.append_source_claims(tuple(claims))
+    if include_calendar:
+        record_core_calendar(paths)
+
+
+def core_history_days() -> list[date]:
+    """The 180 weekdays to 2026-08-28, newest first, that the core history holds."""
+    day = date(2026, 8, 28)
+    days = []
+    while len(days) < 180:
+        if day.weekday() < 5:
+            days.append(day)
+        day -= timedelta(days=1)
+    return days
+
+
+def record_core_calendar(paths: RuntimePaths) -> None:
+    """The run's SSE calendar response; each run fetches its own, so retention drops it."""
+    record_sse_calendar(paths, core_history_days())
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -885,30 +874,6 @@ def test_cancel_during_tavily_stops_following_physical_requests(
     assert runs.full_retrieval_plan(run.run_id)["adoption"] is None
 
 
-def test_independent_calendar_keeps_missing_core_day_in_required_window(tmp_path: Path) -> None:
-    paths, runs = prepare(tmp_path)
-    seed_core_history(paths, omit_stock_on="2026-08-20")
-    run = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="missing-core-day",
-        model_version_id="model-v0001",
-        system_as_of=datetime.now(UTC),
-    )
-    process_pending_run(paths, report_adapters=())
-    plan = runs.full_retrieval_plan(run.run_id)
-    assert "2026-08-20" in plan["initial"]["daily_window"]["dates"]
-    gap = next(
-        g
-        for g in plan["final"]["gaps"]
-        if g["metric_id"] == "CN_EQUITY_CORE_000985" and g["period"] == "2026-08-20"
-    )
-    assert gap["complete"] is False
-    # A missing core session holds the stage; the rest is still published (ticket 21).
-    assert runs.get(run.run_id).status == "completed"
-    overview = ProjectionSetRepository(paths.database).current().datasets["cycle_overview"]
-    assert (overview["current_stage"], overview["stage_reason"]) == (None, "core_data_pending")
-
-
 def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path) -> None:
     paths, runs = prepare(tmp_path)
     seed_core_history(paths)
@@ -929,49 +894,6 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
     assert any(
         r["metric_id"] == "CN_CREDIT_IMPULSE" for r in plan["initial"]["derived_requirements"]
     )
-
-
-@pytest.mark.usefixtures("unavailable_optional_eia")
-def test_conflicting_calendar_cannot_claim_complete_window(tmp_path: Path) -> None:
-    paths, runs = prepare(tmp_path)
-    seed_core_history(paths)
-    known = datetime(2026, 8, 20, tzinfo=UTC)
-    EvidenceRepository(paths.database).append_source_claim(
-        SourceClaimInput(
-            metric_id="CN_TRADE_CALENDAR",
-            definition_version="metric-catalog-v0001",
-            period_kind="business_day",
-            period_start="2026-08-20",
-            period_end="2026-08-20",
-            dimensions={},
-            value=0.0,
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            unit="scalar",
-            provider="fixture:conflicting-calendar",
-            source_reference="fixture:calendar-closed:2026-08-20",
-            release_event_id="fixture:calendar-closed:2026-08-20",
-            release_at=known,
-            public_available_at=known,
-            fetched_at=known,
-            available_at=known,
-            certification_status="certified",
-            quality_status="validated",
-        )
-    )
-    run = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="conflicting-calendar",
-        model_version_id="model-v0001",
-        system_as_of=datetime.now(UTC),
-    )
-    process_pending_run(paths, report_adapters=())
-    calendar = runs.full_retrieval_plan(run.run_id)["initial"]["daily_window"]
-    assert calendar["status"] == "unavailable"
-    assert calendar["basis"] == "calendar_source_conflict"
-    stored = runs.get(run.run_id)
-    assert stored.status == "action_required"
-    assert stored.error_classification == "p0_required_calendar_unavailable"
-    assert stored.projection_set_id is None
 
 
 @pytest.mark.parametrize(

@@ -17,7 +17,7 @@ import re
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date
 from http.client import HTTPException
 from urllib.error import HTTPError
 from urllib.request import Request
@@ -33,7 +33,7 @@ from pring_cycle.metric_contracts import (
     czce_warrant_url,
 )
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.storage import database_connection
+from pring_cycle.trading_calendar import SseCalendar
 from pring_cycle.tushare_context import ContextScalar, WarrantAcquisition
 
 METRIC_ID = "CN_FUTURES_WARRANTS"
@@ -257,51 +257,12 @@ def _fetch(url: str) -> bytes:
 
 
 def window_trading_days(paths: RuntimePaths, target: date) -> tuple[date, ...]:
-    """The last 120 sessions to ``target`` from the validated SSE calendar responses.
+    """The last 120 SSE sessions to ``target``; with no complete window, only ``target``.
 
-    CZCE keeps the SSE's sessions. Only days inside a range some response covered count; with
-    no complete window on record, only the target day is known to be a session.
+    CZCE keeps the SSE's sessions. Without a complete window on record, only the target day
+    is known to be a session.
     """
-    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
-    with database_connection(paths.database) as connection:
-        rows = connection.execute(
-            "SELECT acquisition_id FROM acquisition_request WHERE provider='tushare' "
-            "AND api_name='trade_cal' AND state='validated' "
-            "AND parser_version='tushare-core-parser-v0002'"
-        ).fetchall()
-    sessions: set[date] = set()
-    covered: list[tuple[date, date]] = []
-    for (acquisition_id,) in rows:
-        receipt = acquisitions.get(acquisition_id)
-        try:
-            start = datetime.strptime(receipt.parameters["start_date"], "%Y%m%d").date()
-            end = datetime.strptime(receipt.parameters["end_date"], "%Y%m%d").date()
-            document = json.loads(acquisitions.read_receipt_content(receipt, "normalized"))
-        except (KeyError, ValueError, LookupError, OSError):
-            continue
-        if not isinstance(document, list) or not all(isinstance(day, str) for day in document):
-            continue
-        covered.append((start, end))
-        sessions.update(date.fromisoformat(day) for day in document)
-    window = sorted(day for day in sessions if day <= target)[-WINDOW_TRADING_DAYS:]
-    complete = (
-        len(window) == WINDOW_TRADING_DAYS
-        and window[-1] == target
-        and _covers(covered, window[0], target)
-    )
-    return tuple(window) if complete else (target,)
-
-
-def _covers(ranges: list[tuple[date, date]], first: date, last: date) -> bool:
-    reached = first
-    for start, end in sorted(ranges):
-        if start > reached:
-            break
-        if end >= reached:
-            reached = date.fromordinal(end.toordinal() + 1)
-        if reached > last:
-            return True
-    return reached > last
+    return SseCalendar(paths).window(target, WINDOW_TRADING_DAYS) or (target,)
 
 
 def refresh_czce_warrants(

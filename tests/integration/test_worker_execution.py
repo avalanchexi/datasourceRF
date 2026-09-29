@@ -32,6 +32,7 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run, submit_schedule_if_crossed
+from tests.integration.test_trading_calendar import record_sse_calendar
 
 
 def runtime(tmp_path: Path) -> RuntimePaths:
@@ -42,32 +43,8 @@ def runtime(tmp_path: Path) -> RuntimePaths:
 
 
 def seed_independent_calendar(paths: RuntimePaths, days: list[date]) -> None:
-    claims = []
-    for day in days:
-        known = datetime.combine(day, datetime.min.time(), tzinfo=UTC)
-        claims.append(
-            SourceClaimInput(
-                metric_id="CN_TRADE_CALENDAR",
-                definition_version="metric-catalog-v0001",
-                period_kind="business_day",
-                period_start=day.isoformat(),
-                period_end=day.isoformat(),
-                dimensions={},
-                value=1.0,
-                value_state=EvidenceValueState.REPORTED_VALUE,
-                unit="scalar",
-                provider="fixture:independent-calendar",
-                source_reference=f"fixture:calendar:{day}",
-                release_event_id=f"fixture:calendar:{day}",
-                release_at=known,
-                public_available_at=known,
-                fetched_at=known,
-                available_at=known,
-                certification_status="certified",
-                quality_status="validated",
-            )
-        )
-    EvidenceRepository(paths.database).append_source_claims(tuple(claims))
+    """The SSE calendar as a core response listing ``days``, independent of the prices."""
+    record_sse_calendar(paths, days)
 
 
 @pytest.fixture

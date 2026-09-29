@@ -114,6 +114,8 @@ def test_new_model_reports_actual_candidate_days_and_preserves_old_snapshots(
     )
     candidate = models.create_candidate(manifest)
     models.activate(candidate.model_version_id, explicitly_approved=True)
+    # Each run fetches its calendar; the first run's retention dropped the unowned response.
+    seed_independent_calendar(paths, calendar)
     new_run = runs.submit_manual_full(
         target_business_date="2026-08-03",
         client_request_id="actual-duration",

@@ -1659,7 +1659,8 @@ def _inferred_public_time(claim: SourceClaimInput) -> datetime | None:
     """
     if claim.public_available_at is not None:
         return None
-    from pring_cycle.freshness import current_calendar, public_available_at
+    from pring_cycle.freshness import public_available_at
+    from pring_cycle.trading_calendar import current_calendar
 
     return public_available_at(
         claim.metric_id,
