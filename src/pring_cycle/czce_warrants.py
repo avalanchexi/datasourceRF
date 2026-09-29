@@ -266,7 +266,8 @@ def window_trading_days(paths: RuntimePaths, target: date) -> tuple[date, ...]:
     with database_connection(paths.database) as connection:
         rows = connection.execute(
             "SELECT acquisition_id FROM acquisition_request WHERE provider='tushare' "
-            "AND api_name='trade_cal' AND state='validated'"
+            "AND api_name='trade_cal' AND state='validated' "
+            "AND parser_version='tushare-core-parser-v0002'"
         ).fetchall()
     sessions: set[date] = set()
     covered: list[tuple[date, date]] = []

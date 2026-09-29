@@ -285,3 +285,55 @@ def test_run_submit_on_a_closed_day_ending_the_calendar_targets_the_last_session
     assert submit_at(datetime(2026, 9, 25, 18, 30, tzinfo=SHANGHAI)) == "2026-09-24"
     assert submit_at(datetime(2026, 9, 25, 20, tzinfo=SHANGHAI)) == "2026-09-24"
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "breadth_output",
+    [[], [{"metric_id": "CN_EQ_ADV_DEC", "period_end": "2026-09-25", "value": 1}]],
+    ids=["nothing_new", "a_new_day"],
+)
+def test_run_submit_ignores_the_breadth_calendar_request_of_a_run_that_day(
+    submit_at: Any, monkeypatch: pytest.MonkeyPatch, breadth_output: list[object]
+) -> None:
+    # Breadth asks trade_cal for open days too, but its receipt keeps the breadth figures the
+    # whole group produced, not the calendar; a later submit that day must not read it.
+    from pring_cycle.acquisition import AcquisitionRepository
+
+    paths = submit_at.paths
+    paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
+    calls = []
+
+    class CalendarOpener:
+        def open(self, request: Any, *, timeout: int) -> BytesIO:
+            payload = json.loads(request.data)
+            calls.append(payload["params"])
+            start = datetime.strptime(payload["params"]["start_date"], "%Y%m%d").date()
+            end = datetime.strptime(payload["params"]["end_date"], "%Y%m%d").date()
+            items = []
+            for offset in range((end - start).days + 1):
+                day = start + timedelta(days=offset)
+                is_open = int(day.weekday() < 5 and day != date(2026, 9, 25))
+                items.append([day.strftime("%Y%m%d"), is_open])
+            document = {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}}
+            return BytesIO(json.dumps(document).encode())
+
+    monkeypatch.setattr("pring_cycle.source_adapters.build_opener", CalendarOpener)
+    assert submit_at(datetime(2026, 9, 25, 18, 30, tzinfo=SHANGHAI)) == "2026-09-24"
+    AcquisitionRepository(paths.database, paths.artifacts).capture(
+        provider="tushare",
+        api_name="trade_cal",
+        parameters={
+            "exchange": "SSE",
+            "start_date": "20250202",
+            "end_date": "20260925",
+            "is_open": "1",
+        },
+        fields="cal_date,is_open",
+        parser_version="tushare-context-parser-v0002",
+        fetch=lambda: b"{}",
+        parse=lambda raw: breadth_output,
+        normalize=lambda output: output,
+    )
+
+    assert submit_at(datetime(2026, 9, 25, 20, tzinfo=SHANGHAI)) == "2026-09-24"
+    assert len(calls) == 1

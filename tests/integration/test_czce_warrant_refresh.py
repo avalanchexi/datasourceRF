@@ -307,3 +307,41 @@ def test_a_gap_day_refetch_notes_a_change_that_disagrees_with_the_held_session_b
         "CF": [],
         "TA": [{"warehouse": "甲库", "total": 105, "previous_total": 100.0, "change": 3}],
     }
+
+
+def test_the_breadth_calendar_request_does_not_cover_a_gap_in_the_calendar_responses(
+    paths: RuntimePaths,
+) -> None:
+    # Breadth's trade_cal receipt keeps the breadth figures, here none, not the sessions.
+    target = date(2026, 9, 24)
+    sessions = [
+        day.isoformat()
+        for day in (date.fromordinal(target.toordinal() - n) for n in range(400))
+        if day.weekday() < 5
+    ]
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    ranges = (
+        ("20250801", "20251231", "tushare-core-parser-v0002", None),
+        ("20260601", "20260924", "tushare-core-parser-v0002", None),
+        ("20250801", "20260924", "tushare-context-parser-v0002", "1"),
+    )
+    for start, end, parser_version, is_open in ranges:
+        parameters = {"exchange": "SSE", "start_date": start, "end_date": end}
+        if is_open is not None:
+            parameters["is_open"] = is_open
+        acquisitions.capture(
+            provider="tushare",
+            api_name="trade_cal",
+            parameters=parameters,
+            fields="cal_date,is_open",
+            parser_version=parser_version,
+            fetch=lambda: b"{}",
+            parse=lambda raw, start=start, end=end, parser_version=parser_version: (
+                []
+                if "context" in parser_version
+                else [day for day in sessions if start <= day.replace("-", "") <= end]
+            ),
+            normalize=lambda days: days,
+        )
+
+    assert window_trading_days(paths, target) == (target,)

@@ -637,7 +637,8 @@ def launch_calendar(paths: RuntimePaths, launched_at: datetime) -> TradingCalend
     with database_connection(paths.database) as connection:
         rows = connection.execute(
             "SELECT acquisition_id FROM acquisition_request WHERE provider='tushare' "
-            "AND api_name='trade_cal' AND state='validated' ORDER BY validated_at DESC"
+            "AND api_name='trade_cal' AND state='validated' "
+            "AND parser_version='tushare-core-parser-v0002' ORDER BY validated_at DESC"
         ).fetchall()
     for (acquisition_id,) in rows:
         receipt = acquisitions.get(acquisition_id)
