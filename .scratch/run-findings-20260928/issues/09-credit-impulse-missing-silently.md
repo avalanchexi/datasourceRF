@@ -1,7 +1,6 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
-Blocked by: 12（真实运行验收：公式仍被 GDP 版本冲突挡住）
 
 # 09 — 信用脉冲一直缺失，却不在缺口清单里
 
@@ -76,3 +75,5 @@ Blocked by: 12（真实运行验收：公式仍被 GDP 版本冲突挡住）
 - 缺口清单：新增 `projection_gaps(...)`（时效模块），在投影算完之后补上两类条目：`derived_failed`（纯派生指标没有可用行，原因取公式状态，`missing_inputs` 列出运行计划里父指标未齐的期）和 `source_conflict`（冲突观测，按指标、期、维度去重，带原因码）。Worker 把它和时效缺口合并、排序后交给发布，周期总览与 AI 报告共用同一份清单；看板新增"派生失败""来源冲突"两个分组。
 - 测试：`test_worker_reviewed_context.py` 断言 9/18 的 `sf_month`、`cn_gdp` 请求起点分别是 `202408`、`2024Q2`；`test_derived_context_freshness.py` 覆盖派生失败条目（只列未齐父期、跳过自身序列类派生）、冲突去重与原因码、公式可用时无缺口。父输入齐全时公式为 `available` 并写出派生值，由现有用例 `test_credit_impulse_is_persisted_with_exact_point_in_time_input_vintages` 覆盖。
 - 受影响测试 86 例（含缺口清单、看板和两例冒烟）全部通过。真实运行验收待做。
+
+**验收（2026-09-29）**：`run-c28425a3901b9d5f607c`（代码 `403cba4`）中，信用脉冲为 `available`，2026-08 值 −3.93，并写出派生值；过热卡由 `insufficient_data` 变为 `cooling`；库存卡上的信用证据为 `current`；缺口清单只剩 SOX。途中依次解决了三道障碍：社融精度冲突（票 10）、补缺带回的 GDP 初值（票 12）、GDP 版本相容性检查（票 13）。

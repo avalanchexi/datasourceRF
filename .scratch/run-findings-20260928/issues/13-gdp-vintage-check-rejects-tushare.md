@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -25,3 +25,5 @@ Type: task
 **修正**：改为按取值判断：只要存在一次 TuShare 交付同时给出了差分两端，且取值与选中值一致，就视为同一版本（`EvidenceRepository.delivered_values`，只看截至 `as_of` 已入库的声明）。单独重取、取值不变的季度仍然相容；TuShare 修订了其中一端时，两端不再同见于任何一次交付，照旧走公告核对。用例参数化覆盖三种情况：只有一次交付、重取值不变（都是 `available`）、重取值被修订（`incomparable_gdp_vintages`）。受影响的 109 例全部通过。
 
 另外，补缺为了实际同比逐季重取 TuShare 是白费的：TuShare 的同比字段未通过语义审核，永远补不上。这里只记录，不在本票处理。
+
+**验收（2026-09-29）**：`run-c28425a3901b9d5f607c` 中信用脉冲为 `available`（见票 09）。
