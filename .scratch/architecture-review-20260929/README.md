@@ -160,7 +160,7 @@
 | [07](issues/07-warrant-missing-members-per-variety.md) | 仓单缺成员只让该品种不完整 | 05 | ready-for-agent |
 | [08](issues/08-target-reselection-uses-repository-ordering.md) | 目标日重选复用仓库的选值排序与冲突范围 | 无 | ready-for-agent |
 | [09](issues/09-gap-list-keeps-conflict-with-source-failed.md) | 缺口清单同时列出冲突与来源失败（低优先级） | 05、16 | ready-for-agent |
-| [10](issues/10-day-summary-module.md) | 单日汇总模块（纯重构＋测试迁移） | 02、05 | ready-for-agent |
+| [10](issues/10-day-summary-module.md) | 单日汇总模块（纯重构＋测试迁移） | 02、05 | done |
 | [11](issues/11-gate-one-per-day-window-gaps.md) | 门①由单日汇总按日枚举窗口缺口 | 10 | ready-for-agent |
 | [12](issues/12-backfill-day-evidence-snapshot.md) | 补算日冻结证据快照 | 10 | ready-for-agent |
 | [13](issues/13-backfill-does-not-move-current-pointer.md) | 补算日不切换当前指针 | 10 | ready-for-agent |

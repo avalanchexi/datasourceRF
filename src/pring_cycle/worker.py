@@ -8,7 +8,6 @@ import sqlite3
 import threading
 from collections import Counter
 from collections.abc import Callable, Mapping
-from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from time import monotonic
@@ -20,14 +19,17 @@ from pring_cycle.batches import code_version, processing_batch
 from pring_cycle.breadth import BREADTH_METRICS
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
-from pring_cycle.claim_adoption import ClaimAdoption, core_identity_holds
 from pring_cycle.context_projection import (
     ContextProjection,
     ContextProjectionRules,
-    build_context_projection,
 )
-from pring_cycle.domain import FormalStage
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
+from pring_cycle.day_summary import (
+    CORE_METRICS,
+    DaySummaries,
+    FailedDay,
+    ModelRules,
+    RunMaterials,
+)
 from pring_cycle.eia_context import (
     EiaPetroleumAdapter,
 )
@@ -40,7 +42,6 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.freshness import (
     DERIVED_INPUTS,
-    add_projection_gaps,
     gap_list,
     period_status,
     record_run_freshness,
@@ -57,7 +58,6 @@ from pring_cycle.metric_contracts import (
 )
 from pring_cycle.models import ModelRepository
 from pring_cycle.news_rules import rules_cover, rules_for
-from pring_cycle.p0 import CARRIED_FORWARD, CoreAssetReadiness, P0ProjectionService
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.read_scope import shared_read_scope
 from pring_cycle.release_schedule import (
@@ -95,12 +95,6 @@ from pring_cycle.tushare_context import (
     TushareContextAdapter,
     TushareSourceError,
 )
-
-CORE_METRICS = {
-    "bond": "CN_BOND_CORE_000012",
-    "stock": "CN_EQUITY_CORE_000985",
-    "commodity": "CN_COMMODITY_CORE_NHII",
-}
 
 
 def run_worker(paths: RuntimePaths) -> None:
@@ -396,115 +390,75 @@ def _execute_run(
         runs.mark_action_required(run.run_id, "p0_required_calendar_unavailable")
         return
     runs.advance(run.run_id, "validating_evidence")
+    summary_model = ModelRules.of(ModelRepository(paths.database), run.model_version_id)
     # A core day missing inside the window (other than the target itself, which is the
     # carry-forward case) is missing detail: it holds the formal stage (gate ①).
-    window_gaps = {
+    window_gaps = frozenset(
         gap["metric_id"]
         for gap in plan["final"]["gaps"]
         if not gap["complete"]
         and gap["metric_id"] in model_manifest["core_metrics"].values()
         and gap.get("period") != run.target_business_date
-    }
-    readiness = _core_readiness(
-        paths,
-        run,
-        rules=_trend_rules_for_model(paths, run.model_version_id),
-        definition_version=definition_version,
-        calendar=calendar,
-        window_gaps=window_gaps,
-    )
-    runs.advance(run.run_id, "evaluating_core_readiness")
-    runs.advance(run.run_id, "deriving_states")
-    context = build_context_projection(
-        EvidenceRepository(paths.database),
-        as_of=run.system_as_of,
-        model_manifest=model_manifest,
-        target_business_date=run.target_business_date,
-        visible_evidence_start=max(
-            (
-                item.evidence_window_start
-                for item in readiness
-                if item.evidence_window_start is not None
-            ),
-            default=None,
-        ),
     )
     release_calendar_events = _release_calendar_documents(
         paths,
         run,
         definition_version=definition_version,
     )
-    runs.advance(run.run_id, "building_projection")
-    _backfill_missed_days(
-        paths,
-        run,
-        window=tuple(plan["final"]["daily_window"].get("dates", ())),
-        calendar=calendar,
-        model_manifest=model_manifest,
-        definition_version=definition_version,
-    )
-    runs.advance(run.run_id, "publishing_projection")
-    last_stage = _last_confirmed_stage(paths, run.target_business_date)
-    observation_versions = (
-        tuple(version_id for item in readiness for version_id in item.observation_version_ids)
-        + tuple(
-            version_id
-            for item in readiness
-            for version_id in (item.model_input_observation_version_ids or ())
-        )
-        + context.observation_version_ids
-    )
-    evidence_snapshot_id = None
-    if observation_versions:
-        evidence_snapshot_id = (
-            EvidenceRepository(paths.database)
-            .freeze_snapshot(
-                observation_versions,
-                mode=AsOfMode.SYSTEM,
-                as_of=run.system_as_of,
-            )
-            .evidence_snapshot_id
-        )
-        runs.record_checkpoint(
-            run.run_id,
-            "verified_evidence",
-            evidence_snapshot_id,
-            verified=True,
-        )
     if ModelRepository(paths.database).active().model_version_id != run.model_version_id:
         runs.mark_action_required(run.run_id, "active_model_changed_during_run")
         return
-    result = P0ProjectionService(ProjectionSetRepository(paths.database)).publish(
-        target_business_date=run.target_business_date,
+
+    def explanatory_warnings(context: ContextProjection) -> tuple[str, ...]:
+        return _explanatory_evidence_warnings(
+            paths, run, definitions=model_rules.metric_definitions, context=context
+        )
+
+    run_steps = {
+        "core_readiness": ("evaluating_core_readiness", "deriving_states"),
+        "context": ("building_projection",),
+        "backfill": ("publishing_projection",),
+    }
+
+    def step_done(step: str) -> None:
+        # Advancing checks the run is still live, so a cancelled run publishes nothing.
+        for run_step in run_steps[step]:
+            runs.advance(run.run_id, run_step)
+
+    def snapshot_frozen(snapshot_id: str) -> None:
+        runs.record_checkpoint(run.run_id, "verified_evidence", snapshot_id, verified=True)
+
+    def day_failed(failed: FailedDay) -> None:
+        # One day that cannot be summarized stays missing (a later run retries it); it
+        # never fails the target day's run.
+        write_runtime_event(
+            paths, "worker", f"backfill_day_failed:{failed.day}:{failed.error}", "warning"
+        )
+
+    summary = DaySummaries(
+        EvidenceRepository(paths.database),
+        ProjectionSetRepository(paths.database),
+        summary_model,
+        calendar=calendar,
+        release_schedule=batch_schedule(paths.database, run.run_id),
+        batch_id=run.run_id,
+    ).summarize_target(
+        run.target_business_date,
         system_as_of=run.system_as_of,
-        assets=readiness,
-        last_confirmed_stage=last_stage,
-        model_version_id=run.model_version_id,
-        warnings=tuple(
-            dict.fromkeys(
-                _explanatory_evidence_warnings(
-                    paths,
-                    run,
-                    definitions=model_rules.metric_definitions,
-                    context=context,
-                )
-                + context.warnings
-            )
+        run_materials=RunMaterials(
+            window_gaps=window_gaps,
+            freshness_gaps=gaps,
+            plan_gaps=tuple(plan["final"]["gaps"]),
+            derived_requirements=tuple(plan["final"]["derived_requirements"]),
+            release_calendar_events=release_calendar_events,
+            explanatory_warnings=explanatory_warnings,
+            step_done=step_done,
+            snapshot_frozen=snapshot_frozen,
+            day_failed=day_failed,
         ),
-        evidence_snapshot_id=evidence_snapshot_id,
-        macro_document=context.macro,
-        inventory_document=context.inventory,
-        release_calendar_events=release_calendar_events,
-        gap_list=tuple(
-            add_projection_gaps(
-                gaps,
-                (context.macro, context.inventory),
-                derived_requirements=plan["final"]["derived_requirements"],
-                plan_gaps=plan["final"]["gaps"],
-                definitions=model_rules.metric_definitions,
-            )
-        ),
+        backfill_window=tuple(plan["final"]["daily_window"].get("dates", ())),
     )
+    result = summary.result
     if result.assessment_id is not None:
         runs.record_checkpoint(
             run.run_id,
@@ -526,98 +480,6 @@ def _execute_run(
     from pring_cycle.retention import prune_to_window
 
     prune_to_window(paths)
-
-
-def _backfill_missed_days(
-    paths: RuntimePaths,
-    run: RunRecord,
-    *,
-    window: tuple[str, ...],
-    calendar: TradingCalendar,
-    model_manifest: Mapping[str, object],
-    definition_version: str,
-) -> None:
-    """Summarize each window day before the target that has no summary (ticket 24).
-
-    With no summary at all this is the first initialization: every earlier day of the
-    120-session window is summarized in order, which rebuilds the stage history. A daily
-    run fills only the days it missed. Each day sees only details public by that day's end,
-    and none gets a report.
-    """
-    projections = ProjectionSetRepository(paths.database)
-    summarized = projections.summarized_dates()
-    missed = [day for day in window if day < run.target_business_date and day not in summarized]
-    rules = _trend_rules_for_model(paths, run.model_version_id)
-    service = P0ProjectionService(projections)
-    for day in missed:
-        try:
-            _summarize_day(
-                paths,
-                run,
-                day,
-                service=service,
-                rules=rules,
-                calendar=calendar,
-                model_manifest=model_manifest,
-                definition_version=definition_version,
-            )
-        except (KeyError, LookupError, TypeError, ValueError) as error:
-            # One day that cannot be summarized stays missing (a later run retries it);
-            # it never fails the target day's run.
-            write_runtime_event(
-                paths, "worker", f"backfill_day_failed:{day}:{type(error).__name__}", "warning"
-            )
-
-
-def _summarize_day(
-    paths: RuntimePaths,
-    run: RunRecord,
-    day: str,
-    *,
-    service: P0ProjectionService,
-    rules: TrendRules,
-    calendar: TradingCalendar,
-    model_manifest: Mapping[str, object],
-    definition_version: str,
-) -> None:
-    """Publish one earlier day's summary from what was public by that day's end."""
-    day_run = replace(run, target_business_date=day)
-    public_end = datetime.combine(
-        date.fromisoformat(day), time.max, tzinfo=ZoneInfo("Asia/Shanghai")
-    )
-    readiness = _core_readiness(
-        paths,
-        day_run,
-        rules=rules,
-        definition_version=definition_version,
-        calendar=calendar,
-        public_as_of=public_end,
-    )
-    context = build_context_projection(
-        EvidenceRepository(paths.database),
-        as_of=run.system_as_of,
-        model_manifest=model_manifest,
-        target_business_date=day,
-        visible_evidence_start=max(
-            (
-                item.evidence_window_start
-                for item in readiness
-                if item.evidence_window_start is not None
-            ),
-            default=None,
-        ),
-        persist_derived=False,
-    )
-    service.publish(
-        target_business_date=day,
-        system_as_of=run.system_as_of,
-        assets=readiness,
-        last_confirmed_stage=_last_confirmed_stage(paths, day),
-        model_version_id=run.model_version_id,
-        warnings=context.warnings,
-        macro_document=context.macro,
-        inventory_document=context.inventory,
-    )
 
 
 def _execute_retrieval_run(
@@ -1113,157 +975,6 @@ def _release_calendar_documents(
         }
         for event in events
     )
-
-
-def _core_originals_disagree(
-    evidence: EvidenceRepository,
-    definition_version: str,
-    metric_id: str,
-    series: tuple[MetricSeriesPoint, ...],
-) -> bool:
-    """Whether a registered core's originals no longer state the selected closes.
-
-    Only asked once every cheaper reason has passed, since it reparses the originals.
-    """
-    adoption = ClaimAdoption(evidence, definition_version=definition_version).check(
-        {metric_id: series}
-    )[metric_id]
-    return adoption.rechecked and any(
-        point.selected_claim_id not in adoption.adoptable for point in series
-    )
-
-
-def _core_readiness(
-    paths: RuntimePaths,
-    run: RunRecord,
-    *,
-    rules: TrendRules,
-    definition_version: str,
-    calendar: TradingCalendar | None = None,
-    window_gaps: set[str] | frozenset[str] = frozenset(),
-    public_as_of: datetime | None = None,
-) -> tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]:
-    """Each core's state on the run's target day; ``public_as_of`` hides later publications."""
-    evidence = EvidenceRepository(paths.database)
-    target = date.fromisoformat(run.target_business_date)
-    previous_session = (calendar or TradingCalendar()).latest_on_or_before(
-        target - timedelta(days=1)
-    )
-    results = []
-    for asset, metric_id in CORE_METRICS.items():
-        series = tuple(
-            point
-            for point in evidence.metric_series(
-                metric_id,
-                mode=AsOfMode.SYSTEM,
-                as_of=run.system_as_of,
-                public_as_of=public_as_of,
-                definition_version=definition_version,
-            )
-            if point.period_end <= run.target_business_date
-        )
-        reason = "validated"
-        state = None
-        candidate_state = None
-        candidate_days = 0
-        candidate_30d = None
-        proxy_12m = None
-        distance_pct = None
-        slope_pct = None
-        noise_band_pct = None
-        model_inputs: tuple[str, ...] = ()
-        # One session behind is carried: the previous close stands in for the target in the
-        # calculation only and is never stored as a claim. Two or more is a real gap.
-        carried = bool(series) and series[-1].period_end == previous_session.isoformat()
-        if not series:
-            reason = "source_missing"
-        elif metric_id in window_gaps:
-            reason = "window_session_missing"
-        elif any(item.selection_status == "conflicted" for item in series):
-            reason = "source_conflict"
-        elif series[-1].period_end != run.target_business_date and not carried:
-            reason = "stale_for_target_business_date"
-        elif any(not core_identity_holds(metric_id, point) for point in series):
-            reason = "source_identity_invalid"
-        elif any(
-            item.value_state is not EvidenceValueState.REPORTED_VALUE or item.selected_value is None
-            for item in series
-        ):
-            reason = "nonnumeric_core_observation"
-        elif _core_originals_disagree(evidence, definition_version, metric_id, series):
-            reason = "source_original_invalid"
-        else:
-            points = [
-                PricePoint(date.fromisoformat(item.period_end), float(item.selected_value))
-                for item in series
-                if item.selected_value is not None
-            ]
-            if carried:
-                points.append(PricePoint(target, points[-1].value))
-                reason = CARRIED_FORWARD
-            trend = evaluate_trend(points, rules)
-            model_inputs = tuple(
-                item.selected_claim_id for item in series if item.selected_claim_id is not None
-            )
-            state = trend.stable_state
-            candidate_state = trend.candidate_state
-            candidate_days = rules.candidate_days_for_output(trend)
-            candidate_30d = trend.candidate_30d
-            proxy_12m = trend.proxy_12m
-            distance_pct = trend.distance_pct
-            slope_pct = trend.slope_pct
-            noise_band_pct = trend.noise_band_pct
-            if state is None:
-                reason = trend.reason
-        results.append(
-            # Keep the price display at 120 observations. The separate input
-            # manifest preserves the full preheat used by the stateful trend.
-            CoreAssetReadiness(
-                asset=asset,
-                metric_id=metric_id,
-                state=state,
-                reason=reason,
-                observation_count=len(series[-120:]),
-                latest_business_date=series[-1].period_end if series else None,
-                observation_version_ids=tuple(
-                    item.selected_claim_id
-                    for item in series[-120:]
-                    if item.selected_claim_id is not None
-                ),
-                evidence_window_start=series[-120].period_end if len(series) >= 120 else None,
-                candidate_state=candidate_state,
-                candidate_days=candidate_days,
-                candidate_30d=candidate_30d,
-                proxy_12m=proxy_12m,
-                distance_pct=distance_pct,
-                slope_pct=slope_pct,
-                noise_band_pct=noise_band_pct,
-                model_input_observation_version_ids=model_inputs,
-                carried_forward=carried and state is not None,
-            )
-        )
-    return tuple(results)  # type: ignore[return-value]
-
-
-def _trend_rules_for_model(paths: RuntimePaths, model_version_id: str) -> TrendRules:
-    manifest = ModelRepository(paths.database).manifest(model_version_id)
-    document = manifest.get("trend_rules")
-    if not isinstance(document, dict):
-        raise ValueError("model_trend_rules_missing")
-    try:
-        return TrendRules(
-            window_days=int(document["window_days"]),
-            slope_days=int(document["slope_days"]),
-            volatility_days=int(document["volatility_days"]),
-            noise_multiplier=float(document["noise_multiplier"]),
-            persistence_days=int(document["persistence_days"]),
-            candidate_window_days=int(document["candidate_window_days"]),
-            candidate_duration_rule_version=str(
-                document.get("candidate_duration_rule_version", "candidate-duration-v0001")
-            ),
-        )
-    except (KeyError, TypeError, ValueError) as error:
-        raise ValueError("model_trend_rules_invalid") from error
 
 
 def _explanatory_evidence_warnings(
@@ -2152,16 +1863,6 @@ def _refresh_core_sources(
             )
         except (KeyError, TypeError, ValueError, OSError):
             continue
-
-
-def _last_confirmed_stage(
-    paths: RuntimePaths,
-    target_business_date: str,
-) -> FormalStage | None:
-    value = ProjectionSetRepository(paths.database).last_confirmed_stage(
-        on_or_before=target_business_date
-    )
-    return FormalStage(str(value)) if value is not None else None
 
 
 def _generate_report(

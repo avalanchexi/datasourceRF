@@ -154,6 +154,8 @@ Status: ready-for-agent
 
 ### 四、单日汇总模块（候选 3；票 10–15）
 
+> **实施订正（票 10，2026-09-29）**：`summarize_target` 另收 `backfill_window`（补算在目标日计算之后、发布之前，保持旧的先后），返回 `TargetSummary`（发布结果＋快照 id＋补算失败日）；`RunMaterials` 带回调，让 Worker 在原来的时机推进状态、记快照检查点、写补算失败事件。见票 10 Comments。
+
 - **术语**：`CONTEXT.md`"单日汇总"指这一步计算，"汇总结果"指产物。
 - **位置**：新建 `pring_cycle.day_summary`；`P0ProjectionService` 留在 `p0`，作为阶段推导与投影集组装层由模块调用。`_core_readiness`、`_summarize_day`、`_backfill_missed_days`、`_last_confirmed_stage` 从 Worker 移入。
 - **收**：核心就绪 → 上下文投影 → 发布该日分析投影集，目标日与补算日共用；补算循环（挑漏跑日、按日升序、失败日以清单返回）；快照冻结（返回快照 id，Worker 用它记 `verified_evidence` 检查点）。

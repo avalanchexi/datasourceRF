@@ -38,8 +38,8 @@ _current_batch: ContextVar[str | None] = ContextVar("processing_batch", default=
 
 
 @contextmanager
-def processing_batch(run_id: str) -> Iterator[None]:
-    """Attribute every summary row written inside this block to ``run_id``."""
+def processing_batch(run_id: str | None) -> Iterator[None]:
+    """Attribute every summary row written inside this block to ``run_id`` (or to none)."""
     token = _current_batch.set(run_id)
     try:
         yield

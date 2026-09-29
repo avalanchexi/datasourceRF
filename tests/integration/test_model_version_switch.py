@@ -15,7 +15,7 @@ from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_decertified_main_chain import TARGET, seed_published_inputs
-from tests.integration.test_worker_execution import runtime
+from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
 
 def cli(paths: RuntimePaths, capsys: pytest.CaptureFixture[str], *argv: str) -> dict[str, Any]:
@@ -65,7 +65,7 @@ def test_activation_moves_the_pointer_for_later_runs_only(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     paths = runtime(tmp_path)
-    seed_published_inputs(paths)
+    days = seed_published_inputs(paths)
     first = run_once(paths, capsys, "before-switch")
     published = summaries(paths)
     variant = certified_model_v0001_manifest()
@@ -78,6 +78,8 @@ def test_activation_moves_the_pointer_for_later_runs_only(
     activated = cli(
         paths, capsys, "model-activate", "--model", variant["model_version_id"], "--confirm"
     )
+    # Each run fetches its calendar; the previous run's retention dropped the response.
+    seed_independent_calendar(paths, days)
     second = run_once(paths, capsys, "after-switch")
 
     assert registered["status"] == "registered"
@@ -88,6 +90,7 @@ def test_activation_moves_the_pointer_for_later_runs_only(
     assert len(summaries(paths)) == len(published) + 1
 
     cli(paths, capsys, "model-activate", "--model", "model-v0001", "--confirm")
+    seed_independent_calendar(paths, days)
     third = run_once(paths, capsys, "rolled-back")
 
     assert batch_model(paths, third) == "model-v0001"

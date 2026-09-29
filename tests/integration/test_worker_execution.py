@@ -12,6 +12,7 @@ import pytest
 
 import pring_cycle.worker as worker_module
 from pring_cycle.catalog import metric_definition
+from pring_cycle.day_summary import DaySummaries
 from pring_cycle.domain import CoreAssetState
 from pring_cycle.evidence import (
     AsOfMode,
@@ -514,7 +515,7 @@ def test_worker_fails_closed_and_classifies_context_validation_failures(
         "_refresh_core_sources",
         lambda *_args, **_kwargs: None,
     )
-    monkeypatch.setattr(worker_module, "_core_readiness", lambda *_args, **_kwargs: readiness)
+    monkeypatch.setattr(DaySummaries, "_core_readiness", lambda *_args, **_kwargs: readiness)
     runs = RunRepository(paths.database)
     submitted = runs.submit_manual_full(
         target_business_date="2026-08-28",

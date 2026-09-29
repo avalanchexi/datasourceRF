@@ -12,6 +12,7 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
+from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_decertified_main_chain import claim
@@ -36,9 +37,10 @@ def sessions() -> list[date]:
     return list(reversed(days))
 
 
-def publish(tmp_path: Path, *, commodity_missing: int = 0, stock_conflict: bool = False) -> Any:
+def seed_cores(
+    paths: RuntimePaths, *, commodity_missing: int = 0, stock_conflict: bool = False
+) -> None:
     """Rising cores for 180 sessions; the commodity core lacks its last ``commodity_missing``."""
-    paths = runtime(tmp_path)
     days = sessions()
     seed_independent_calendar(paths, days)
     claims = []
@@ -73,6 +75,11 @@ def publish(tmp_path: Path, *, commodity_missing: int = 0, stock_conflict: bool 
             )
         )
     EvidenceRepository(paths.database).append_source_claims(tuple(claims))
+
+
+def publish(tmp_path: Path, *, commodity_missing: int = 0) -> Any:
+    paths = runtime(tmp_path)
+    seed_cores(paths, commodity_missing=commodity_missing)
     run = RunRepository(paths.database).submit_manual_full(
         target_business_date=TARGET.isoformat(),
         client_request_id="carry",
@@ -120,10 +127,3 @@ def test_two_sessions_behind_holds_the_stage_but_publishes_the_rest(tmp_path: Pa
     assert "gap_list" in overview
     assert report.projection_set_id == projection.envelope.projection_set_id
     assert report.current_stage is None
-
-
-def test_a_core_conflict_holds_the_stage(tmp_path: Path) -> None:
-    _paths, projection = publish(tmp_path, stock_conflict=True)
-    overview = projection.datasets["cycle_overview"]
-
-    assert (overview["current_stage"], overview["stage_reason"]) == (None, "core_data_pending")

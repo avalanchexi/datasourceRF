@@ -9,12 +9,15 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
 from pring_cycle.evidence import EvidenceRepository
+from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.trading_calendar import TradingCalendar
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_decertified_main_chain import claim, rows_for
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
@@ -109,6 +112,25 @@ def published(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Runtim
     yield paths, ProjectionSetRepository(paths.database).current()
 
 
+@pytest.fixture(scope="module")
+def summarized(tmp_path_factory: pytest.TempPathFactory) -> Any:
+    """The target day's summary alone, without a run around it."""
+    paths = runtime(tmp_path_factory.mktemp("gap-summary"))
+    seed(paths)
+    result = (
+        DaySummaries(
+            EvidenceRepository(paths.database),
+            ProjectionSetRepository(paths.database),
+            ModelRules.of(ModelRepository(paths.database), "model-v0001"),
+            calendar=TradingCalendar(sessions()),
+        )
+        .summarize_target(TARGET.isoformat(), system_as_of=CUTOFF, run_materials=RunMaterials())
+        .result
+    )
+    assert result.projection_set_id is not None
+    return ProjectionSetRepository(paths.database).get(result.projection_set_id)
+
+
 def by_metric(projection: Any) -> dict[str, dict[str, object]]:
     return {
         str(item["metric_id"]): item for item in projection.datasets["cycle_overview"]["gap_list"]
@@ -154,10 +176,8 @@ def test_trade_calendar_is_operational_evidence_not_a_gap(
     assert assessed and "CN_TRADE_CALENDAR" not in assessed
 
 
-def test_one_period_behind_is_used_and_two_behind_is_not(
-    published: tuple[RuntimePaths, Any],
-) -> None:
-    _paths, projection = published
+def test_one_period_behind_is_used_and_two_behind_is_not(summarized: Any) -> None:
+    projection = summarized
 
     bond = next(rows_for(projection.datasets, "CN_BOND_10Y_930916"))
     dr007 = next(rows_for(projection.datasets, "CN_DR007"))
@@ -166,8 +186,8 @@ def test_one_period_behind_is_used_and_two_behind_is_not(
     assert dr007["status"] == "stale"
 
 
-def test_p1_gaps_do_not_withhold_the_formal_stage(published: tuple[RuntimePaths, Any]) -> None:
-    _paths, projection = published
+def test_p1_gaps_do_not_withhold_the_formal_stage(summarized: Any) -> None:
+    projection = summarized
 
     assert projection.datasets["cycle_overview"]["current_stage"] is not None
 

@@ -10,12 +10,15 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
+from pring_cycle.trading_calendar import TradingCalendar
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_worker_execution import runtime, seed_independent_calendar
 
@@ -60,7 +63,7 @@ def rows_for(document: object, metric_id: str) -> Iterator[dict[str, Any]]:
             yield from rows_for(child, metric_id)
 
 
-def seed_published_inputs(paths: RuntimePaths) -> None:
+def seed_published_inputs(paths: RuntimePaths) -> list[date]:
     """180 sessions of rising cores and a flat DR007, none carrying certification."""
     evidence = EvidenceRepository(paths.database)
     days: list[date] = []
@@ -100,22 +103,30 @@ def seed_published_inputs(paths: RuntimePaths) -> None:
             )
         )
     evidence.append_source_claims(tuple(claims))
+    return days
 
 
 @pytest.fixture(scope="module")
 def published(tmp_path_factory: pytest.TempPathFactory) -> tuple[RuntimePaths, Any]:
+    """The target day's summary of the uncertified inputs (ADR-0034)."""
     paths = runtime(tmp_path_factory.mktemp("decertified"))
-    seed_published_inputs(paths)
-    run = RunRepository(paths.database).submit_manual_full(
-        target_business_date=TARGET.isoformat(),
-        client_request_id="decertified",
-        model_version_id="model-v0001",
-        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
-        cutoff_mode="explicit",
+    days = seed_published_inputs(paths)
+    result = (
+        DaySummaries(
+            EvidenceRepository(paths.database),
+            ProjectionSetRepository(paths.database),
+            ModelRules.of(ModelRepository(paths.database), "model-v0001"),
+            calendar=TradingCalendar(days),
+        )
+        .summarize_target(
+            TARGET.isoformat(),
+            system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+            run_materials=RunMaterials(),
+        )
+        .result
     )
-    process_pending_run(paths, report_adapters=())
-    assert RunRepository(paths.database).get(run.run_id).status == "completed"
-    return paths, ProjectionSetRepository(paths.database).current()
+    assert result.projection_set_id is not None
+    return paths, ProjectionSetRepository(paths.database).get(result.projection_set_id)
 
 
 def test_uncertified_registered_values_reach_a_formal_stage(
@@ -128,6 +139,24 @@ def test_uncertified_registered_values_reach_a_formal_stage(
     assert {asset["state"] for asset in assets} == {"bull"}
     dr007 = next(rows_for(projection.datasets, "CN_DR007"))
     assert (dr007["status"], dr007["value"]) == ("current", 1.5)
+
+
+def test_the_uncertified_main_chain_completes_a_run_and_its_report(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> None:
+    paths = runtime(tmp_path_factory.mktemp("decertified-run"))
+    seed_published_inputs(paths)
+    run = RunRepository(paths.database).submit_manual_full(
+        target_business_date=TARGET.isoformat(),
+        client_request_id="decertified",
+        model_version_id="model-v0001",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        cutoff_mode="explicit",
+    )
+    process_pending_run(paths, report_adapters=())
+
+    assert RunRepository(paths.database).get(run.run_id).status == "completed"
+    projection = ProjectionSetRepository(paths.database).current()
     report = ReportRepository(paths.database).history()[0]
     assert report.projection_set_id == projection.envelope.projection_set_id
 

@@ -323,6 +323,7 @@ def seed_core_history(
     paths: RuntimePaths,
     *,
     definition_version: str = "metric-catalog-v0001",
+    omit_stock_on: str | None = None,
     include_calendar: bool = True,
 ) -> None:
     evidence = EvidenceRepository(paths.database)
@@ -335,6 +336,8 @@ def seed_core_history(
             ("CN_EQUITY_CORE_000985", 1000.0 - index),
             ("CN_COMMODITY_CORE_NHII", 100.0 + index),
         ):
+            if metric_id == "CN_EQUITY_CORE_000985" and observed.isoformat() == omit_stock_on:
+                continue
             api, code = CORE_API_IDENTITIES[metric_id]
             claims.append(
                 SourceClaimInput(
@@ -872,6 +875,35 @@ def test_cancel_during_tavily_stops_following_physical_requests(
     assert calls == ["https://api.tavily.com/search"]
     assert runs.get(run.run_id).cutoffs_frozen is False
     assert runs.full_retrieval_plan(run.run_id)["adoption"] is None
+
+
+def test_a_core_session_missing_inside_the_window_holds_the_core_through_the_run(
+    tmp_path: Path,
+) -> None:
+    # The window comes from the calendar, not the prices, so the missing session stays in
+    # it as an incomplete plan gap, which the run hands the day summary as gate ①. The
+    # stage that holds is asked of the day summary itself (test_day_summary).
+    paths, runs = prepare(tmp_path)
+    seed_core_history(paths, omit_stock_on="2026-08-20")
+    run = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="missing-core-day",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    process_pending_run(paths, report_adapters=())
+    plan = runs.full_retrieval_plan(run.run_id)
+    assert "2026-08-20" in plan["initial"]["daily_window"]["dates"]
+    gap = next(
+        g
+        for g in plan["final"]["gaps"]
+        if g["metric_id"] == "CN_EQUITY_CORE_000985" and g["period"] == "2026-08-20"
+    )
+    assert gap["complete"] is False
+    assert runs.get(run.run_id).status == "completed"
+    assets = ProjectionSetRepository(paths.database).current().datasets["core_assets"]["assets"]
+    stock = next(item for item in assets if item["asset"] == "stock")
+    assert stock["reason"] == "window_session_missing"
 
 
 def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path) -> None:
