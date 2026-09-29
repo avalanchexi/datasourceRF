@@ -2251,7 +2251,9 @@ def _credit_impulse_proxy(
             for point, value, _inputs in selected_quarters
             if point.selected_claim_id is not None
         }
-        one_delivery = _quarters_from_one_delivery(repository, selected_quarters)
+        one_delivery = _quarters_from_one_delivery(
+            repository, selected_quarters, definition_version=definition_version, as_of=as_of
+        )
     social_input_points: list[MetricSeriesPoint]
     social_numbers: list[float]
     social_period_points: list[MetricSeriesPoint]
@@ -2446,38 +2448,34 @@ def _periods_are_consecutive(
 def _quarters_from_one_delivery(
     repository: Any,
     quarters: list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]],
+    *,
+    definition_version: str,
+    as_of: datetime,
 ) -> set[str]:
-    """Quarters whose year-to-date endpoints came in one TuShare delivery.
+    """Quarters whose year-to-date ends one TuShare delivery stated together, as selected.
 
     Differencing across official releases can mix vintages, so such a quarter must match the
-    one its release announced. Levels delivered together are one vintage already: TuShare's
-    census-revised series has no release of its own to check against (run findings
-    2026-09-28, ticket 13).
+    one its release announced. Levels TuShare delivered together are one vintage already:
+    its census-revised series has no release of its own to check against. A quarter fetched
+    again alone still counts while its value is unchanged; a revised end no longer matches
+    any delivery of both and is reconciled as before (run findings 2026-09-28, ticket 13).
     """
-    claim_ids = tuple(
-        dict.fromkeys(
-            str(point.selected_claim_id)
-            for _quarter, _value, inputs in quarters
-            for point in inputs
-            if point.selected_claim_id is not None
-        )
-    )
-    links = repository.source_claim_acquisitions_many(claim_ids)
     together: set[str] = set()
     for quarter, _value, inputs in quarters:
-        deliveries = [
-            {
-                link.receipt.acquisition_id
-                for link in links.get(str(point.selected_claim_id), ())
-                if link.receipt.provider == "tushare"
-            }
-            for point in inputs
-        ]
-        if (
-            quarter.selected_claim_id is not None
-            and all(deliveries)
-            and set.intersection(*deliveries)
+        if quarter.selected_claim_id is None or any(
+            point.selected_value is None for point in inputs
         ):
+            continue
+        selected = {point.period_end: float(point.selected_value or 0.0) for point in inputs}
+        deliveries = repository.delivered_values(
+            "CN_GDP",
+            quarter.dimensions,
+            tuple(selected),
+            provider="tushare",
+            definition_version=definition_version,
+            as_of=as_of,
+        )
+        if any(stated == selected for stated in deliveries.values()):
             together.add(quarter.selected_claim_id)
     return together
 

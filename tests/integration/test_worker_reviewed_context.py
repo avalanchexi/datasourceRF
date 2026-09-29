@@ -184,8 +184,22 @@ _GDP_YTD = {
 
 
 @pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize(
+    ("refetched_level", "status"),
+    [
+        (None, "available"),
+        # A gap refetches each quarter alone; the same level is still the same vintage.
+        (659861.6, "available"),
+        # A revised end matches no delivery of both, so its release must reconcile it.
+        (662000.0, "incomparable_gdp_vintages"),
+    ],
+)
 def test_credit_impulse_computes_from_levels_tushare_delivered_together(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    refetched_level: float | None,
+    status: str,
 ) -> None:
     """One delivery is one vintage: its quarters need no release to reconcile (ticket 13).
 
@@ -240,6 +254,15 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
         refresh_context_sources(paths, run.target_business_date, definition_version=version)
+    if refetched_level is not None:
+        rows["cn_gdp"] = [dict(rows["cn_gdp"][4], gdp=refetched_level)]
+        assert rows["cn_gdp"][0]["quarter"] == "2025Q2"
+        adapter = tushare_context.TushareContextAdapter("fixture-only")
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.gdp(start_quarter="2025Q2", end_quarter="2025Q2"),
+            definition_version=version,
+        )
 
     context = build_context_projection(
         EvidenceRepository(paths.database),
@@ -247,7 +270,7 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
         model_manifest=ModelRepository(paths.database).manifest(run.model_version_id),
     )
     formula = context.macro["credit"]["formula"]  # type: ignore[index]
-    assert formula["status"] == "available", formula
+    assert formula["status"] == status, formula
 
 
 @pytest.mark.usefixtures("runtime_clock")

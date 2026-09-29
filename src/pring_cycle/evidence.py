@@ -326,6 +326,43 @@ class EvidenceRepository:
             for claim_id, items in self.source_claim_acquisitions_many(claim_ids).items()
         }
 
+    def delivered_values(
+        self,
+        metric_id: str,
+        dimensions: Mapping[str, str],
+        period_ends: tuple[str, ...],
+        *,
+        provider: str,
+        definition_version: str,
+        as_of: datetime,
+    ) -> dict[str, dict[str, float]]:
+        """What each of a provider's deliveries stated for these periods of one member.
+
+        Keyed by acquisition, then period end; only claims available by ``as_of`` count.
+        """
+        if as_of.tzinfo is None:
+            raise ValueError("as_of_must_be_timezone_aware")
+        placeholders = ",".join("?" for _ in period_ends)
+        with self._connect() as connection:
+            rows = connection.execute(
+                f"""SELECT link.acquisition_id, claim.period_end, claim.value,
+                           claim.dimensions_json, claim.available_at
+                    FROM source_claim AS claim
+                    JOIN source_claim_acquisition AS link USING(claim_id)
+                    WHERE claim.metric_id=? AND claim.provider=? AND claim.definition_version=?
+                      AND claim.period_end IN ({placeholders}) AND claim.value IS NOT NULL""",
+                (metric_id, provider, definition_version, *period_ends),
+            ).fetchall()
+        delivered: dict[str, dict[str, float]] = {}
+        for row in rows:
+            if (
+                json.loads(row["dimensions_json"]) == dict(dimensions)
+                and _required_datetime(row["available_at"]) <= as_of
+            ):
+                stated = delivered.setdefault(str(row["acquisition_id"]), {})
+                stated[str(row["period_end"])] = float(row["value"])
+        return delivered
+
     def source_claim_acquisitions_many(
         self, claim_ids: tuple[str, ...]
     ) -> dict[str, tuple[SourceClaimAcquisition, ...]]:

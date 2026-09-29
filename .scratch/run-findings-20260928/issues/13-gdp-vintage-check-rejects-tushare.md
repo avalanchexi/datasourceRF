@@ -19,3 +19,9 @@ Type: task
 **用户决定（2026-09-29）**：差分两端来自同一次 TuShare 交付时，视为同一版本、直接相容；来自统计局公告页或跨回执的，仍按原规则核对。
 
 **实施**：`_credit_impulse_proxy` 在调用官方核对之前，先用 `_quarters_from_one_delivery` 找出两端声明共同链接到同一张 TuShare 回执的季度，这些季度跳过公告核对，其余季度照旧。新增 `test_worker_reviewed_context.py::test_credit_impulse_computes_from_levels_tushare_delivered_together`：走注册目录，TuShare 一次交付 25 个月社融、9 个季度 GDP（普查修订值），信用脉冲为 `available`；在去掉该放行的情况下，用例复现出 `incomparable_gdp_vintages`。受影响的 97 例全部通过。
+
+**第三次真实运行（`run-7e5c2fab7f22529c7250`，代码 `a8455c4`，全套 1252 例全过，52.7 分钟）仍是 `incomparable_gdp_vintages`**。原因是直接取数（`2024Q2—2026Q3` 一次交付）之后，补缺因为实际同比缺失，又逐季向 TuShare 重取了 8 次；每次重取都生成新声明，选值取最新的一条。于是各季度的选中声明来自 8 张不同的回执，按"同一张回执"判断不成立。
+
+**修正**：改为按取值判断：只要存在一次 TuShare 交付同时给出了差分两端，且取值与选中值一致，就视为同一版本（`EvidenceRepository.delivered_values`，只看截至 `as_of` 已入库的声明）。单独重取、取值不变的季度仍然相容；TuShare 修订了其中一端时，两端不再同见于任何一次交付，照旧走公告核对。用例参数化覆盖三种情况：只有一次交付、重取值不变（都是 `available`）、重取值被修订（`incomparable_gdp_vintages`）。受影响的 109 例全部通过。
+
+另外，补缺为了实际同比逐季重取 TuShare 是白费的：TuShare 的同比字段未通过语义审核，永远补不上。这里只记录，不在本票处理。
