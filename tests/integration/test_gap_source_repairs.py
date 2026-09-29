@@ -276,8 +276,7 @@ def test_treasury_yields_are_held_from_tushare_us_tycr(
 ) -> None:
     paths, _run_id = completed
 
-    assert latest_values(paths, "UST2Y_NOMINAL_YIELD") == {"{}": 3.5}
-    assert latest_values(paths, "UST10Y_NOMINAL_YIELD") == {"{}": 4.25}
+    # The yields' values are asserted on the claim adoption module (test_claim_adoption).
     listed = gaps(paths)
     assert {"UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD", "UST_2S10S_SPREAD"}.isdisjoint(listed)
 

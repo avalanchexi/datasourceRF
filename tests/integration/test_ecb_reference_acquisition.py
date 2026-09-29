@@ -24,6 +24,7 @@ from tests.fixtures.model_registration import (
     save,
     submit,
 )
+from tests.integration.test_claim_adoption import adoption_of
 
 METRIC = "CN_USDCNY_ECB_REFERENCE_CROSS"
 SOURCE_URL = (
@@ -312,12 +313,17 @@ def test_ecb_projection_rechecks_the_original_before_using_a_certified_cross(
         return next(r for r in context.macro["international_context"] if r["metric_id"] == METRIC)
 
     assert row()["value"] == pytest.approx(6.707516766832157, rel=0, abs=1e-12)
+    version = manifest["metric_catalog_version"]
+    kept = adoption_of(paths, METRIC, version, as_of=datetime.now(UTC))
+    assert kept.rechecked and len(kept.adoptable) == 1
     receipt = AcquisitionRepository(paths.database, paths.artifacts).get(result.acquisition_id)
     assert receipt.raw_hash is not None
     (paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash).write_bytes(b"damaged original")
     rejected = row()
     # Existing projections retain the recorded value for audit and mark it unusable.
     assert rejected["status"] == "source_failed"
+    damaged = adoption_of(paths, METRIC, version, as_of=datetime.now(UTC))
+    assert damaged.adoptable == frozenset() and damaged.not_adoptable == kept.adoptable
 
 
 @pytest.mark.usefixtures("runtime_clock")

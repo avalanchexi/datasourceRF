@@ -20,6 +20,7 @@ from pring_cycle.batches import code_version, processing_batch
 from pring_cycle.breadth import BREADTH_METRICS
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
+from pring_cycle.claim_adoption import ClaimAdoption, core_identity_holds
 from pring_cycle.context_projection import (
     ContextProjection,
     ContextProjectionRules,
@@ -82,11 +83,7 @@ from pring_cycle.retrieval_registry import parser_for_scope
 from pring_cycle.runs import LEASE_VALID_SECONDS, RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimeNotInitializedError, RuntimePaths
 from pring_cycle.secrets import parse_data_source_secrets
-from pring_cycle.source_adapters import (
-    CoreInputValidator,
-    TushareCoreAdapter,
-    selected_core_claim_is_valid,
-)
+from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
@@ -1118,6 +1115,24 @@ def _release_calendar_documents(
     )
 
 
+def _core_originals_disagree(
+    evidence: EvidenceRepository,
+    definition_version: str,
+    metric_id: str,
+    series: tuple[MetricSeriesPoint, ...],
+) -> bool:
+    """Whether a registered core's originals no longer state the selected closes.
+
+    Only asked once every cheaper reason has passed, since it reparses the originals.
+    """
+    adoption = ClaimAdoption(evidence, definition_version=definition_version).check(
+        {metric_id: series}
+    )[metric_id]
+    return adoption.rechecked and any(
+        point.selected_claim_id not in adoption.adoptable for point in series
+    )
+
+
 def _core_readiness(
     paths: RuntimePaths,
     run: RunRecord,
@@ -1147,15 +1162,6 @@ def _core_readiness(
             )
             if point.period_end <= run.target_business_date
         )
-        core_inputs = CoreInputValidator(
-            evidence,
-            tuple(
-                point.selected_claim_id
-                for point in series
-                if definition_version not in BUILTIN_CATALOG_VERSIONS
-                and point.selected_claim_id is not None
-            ),
-        )
         reason = "validated"
         state = None
         candidate_state = None
@@ -1177,16 +1183,14 @@ def _core_readiness(
             reason = "source_conflict"
         elif series[-1].period_end != run.target_business_date and not carried:
             reason = "stale_for_target_business_date"
-        elif any(not selected_core_claim_is_valid(metric_id, point) for point in series):
+        elif any(not core_identity_holds(metric_id, point) for point in series):
             reason = "source_identity_invalid"
         elif any(
             item.value_state is not EvidenceValueState.REPORTED_VALUE or item.selected_value is None
             for item in series
         ):
             reason = "nonnumeric_core_observation"
-        elif definition_version not in BUILTIN_CATALOG_VERSIONS and any(
-            not core_inputs.is_valid(metric_id, point) for point in series
-        ):
+        elif _core_originals_disagree(evidence, definition_version, metric_id, series):
             reason = "source_original_invalid"
         else:
             points = [

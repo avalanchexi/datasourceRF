@@ -11,14 +11,13 @@ from uuid import uuid4
 
 from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import (
-    BUILTIN_CATALOG_VERSIONS,
     SYSTEM_TARGET_CUTOFF_VERSION,
     require_registered_manifest,
 )
+from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.context_projection import TargetBoundEvidenceRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.freshness import period_status
-from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
 from pring_cycle.metric_contracts import (
     EFFECTIVE_UNTIL_CHANGED_METRICS,
     china_business_day_end,
@@ -26,14 +25,11 @@ from pring_cycle.metric_contracts import (
     required_dimension_members,
 )
 from pring_cycle.models import ModelRepository
-from pring_cycle.news_rules import news_claims_matching_quotes, rules_for
+from pring_cycle.news_rules import rules_for
 from pring_cycle.official_context import (
-    OFFICIAL_CONTEXT_INTEGRITY_METRICS,
     ParsedOfficialContextRelease,
-    official_claims_matching_acquisitions,
 )
-from pring_cycle.official_lpr import ParsedLprRelease, lpr_claims_matching_acquisitions
-from pring_cycle.published_events import select_published_rrr_events
+from pring_cycle.official_lpr import ParsedLprRelease
 from pring_cycle.retrieval import RetrievalAdapterResponse, matches_retrieval_period
 from pring_cycle.retrieval_ledger import RetrievalBudgetBlocked, RetrievalLedger, utc_now
 from pring_cycle.retrieval_registry import (
@@ -46,18 +42,8 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import (
     CORE_API_IDENTITIES,
-    CoreInputValidator,
-    selected_core_claim_is_valid,
 )
 from pring_cycle.storage import database_connection
-from pring_cycle.treasury_context import TREASURY_METRICS, treasury_claims_matching_acquisitions
-from pring_cycle.tushare_context import (
-    MARKET_INDEX_IDENTITIES,
-    parse_market_index_acquisition,
-    parse_valuation_acquisition,
-    tushare_claims_matching_acquisitions,
-)
-from pring_cycle.warrant_inputs import select_warrant_inputs
 
 
 @dataclass(frozen=True)
@@ -85,14 +71,6 @@ def select_retrieval_input(
     if scope is None:
         raise ValueError("retrieval_scope_required")
     return ModelInputSelector(paths, run, mode=mode).select(scope)
-
-
-@dataclass(frozen=True)
-class _ClaimFamily:
-    """A family of registered metrics and the recheck that decides which claims stay valid."""
-
-    owns: Callable[[str], bool]
-    check: Callable[[tuple[str, ...]], set[str]]
 
 
 class ModelInputSelector:
@@ -182,133 +160,25 @@ class ModelInputSelector:
                 )
         return self._adoptable[key]
 
-    def _claim_families(self, period: str) -> tuple[_ClaimFamily, ...]:
-        """Each registered family's metrics and how its selected claims are rechecked.
-
-        Every family has the same shape at the call site: take this family's metrics from the
-        scope, recheck their selected claims against the acquired originals, and accept only
-        the claims that came back valid. Adding a family means adding one entry here.
-        """
-
-        def points_of(metric_ids: tuple[str, ...]) -> tuple[MetricSeriesPoint, ...]:
-            # A metric named twice in one scope still contributes its points once.
-            return tuple(
-                point
-                for metric_id in dict.fromkeys(metric_ids)
-                for point in self.adoptable(metric_id, period)
-            )
-
-        def series_by_metric(
-            metric_ids: tuple[str, ...],
-        ) -> dict[str, tuple[MetricSeriesPoint, ...]]:
-            return {
-                metric_id: self.adoptable(metric_id, period)
-                for metric_id in dict.fromkeys(metric_ids)
-            }
-
-        return (
-            _ClaimFamily(
-                lambda metric_id: metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS",
-                lambda metric_ids: self.core_evidence.source_claims_matching_registered_contract(
-                    tuple(
-                        point.selected_claim_id
-                        for point in points_of(metric_ids)
-                        if point.selected_claim_id is not None
-                    ),
-                    definition_version=self.version,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id == "CN_LPR_1Y_5Y",
-                lambda metric_ids: (
-                    lpr_claims_matching_acquisitions(
-                        self.core_evidence,
-                        tuple(
-                            point
-                            for point in points_of(metric_ids)
-                            if point.selected_claim_id is not None
-                        ),
-                    )
-                    | news_claims_matching_quotes(self.database_path, series_by_metric(metric_ids))
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS,
-                # An official original, a TuShare delivery, or a news rule's matched quote.
-                lambda metric_ids: (
-                    official_claims_matching_acquisitions(
-                        self.core_evidence,
-                        series_by_metric(metric_ids),
-                        definition_version=self.version,
-                    )
-                    | news_claims_matching_quotes(self.database_path, series_by_metric(metric_ids))
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id in INTERBANK_METRICS,
-                lambda metric_ids: interbank_claims_matching_acquisitions(
-                    self.core_evidence,
-                    series_by_metric(metric_ids),
-                    definition_version=self.version,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id in TREASURY_METRICS,
-                lambda metric_ids: treasury_claims_matching_acquisitions(
-                    self.core_evidence,
-                    series_by_metric(metric_ids),
-                    definition_version=self.version,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id == "CN_MARGIN_BALANCE",
-                lambda metric_ids: tushare_claims_matching_acquisitions(
-                    self.core_evidence,
-                    points_of(metric_ids),
-                    definition_version=self.version,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id in MARKET_INDEX_IDENTITIES,
-                lambda metric_ids: tushare_claims_matching_acquisitions(
-                    self.core_evidence,
-                    points_of(metric_ids),
-                    definition_version=self.version,
-                    parse=parse_market_index_acquisition,
-                ),
-            ),
-            _ClaimFamily(
-                lambda metric_id: metric_id == "CN_INDEX_VALUATION",
-                lambda metric_ids: tushare_claims_matching_acquisitions(
-                    self.core_evidence,
-                    points_of(metric_ids),
-                    definition_version=self.version,
-                    parse=parse_valuation_acquisition,
-                ),
-            ),
-        )
-
     def select(self, scope: RetrievalScope) -> ModelInputSelection:
-        registered = self.version not in BUILTIN_CATALOG_VERSIONS
-        core_inputs = CoreInputValidator(
-            self.core_evidence,
-            tuple(
-                point.selected_claim_id
-                for metric_id in scope.metric_ids
-                if metric_id in CORE_API_IDENTITIES and registered
-                for point in self.series(metric_id)
-                if point.selected_claim_id is not None
-                and matches_retrieval_period(point.period_end, scope.period)
-            ),
-        )
-        families = self._claim_families(scope.period) if registered else ()
-        checked_families = tuple(
-            (
-                family,
-                family.check(metric_ids),
-            )
-            for family in families
-            if (metric_ids := tuple(m for m in scope.metric_ids if family.owns(m)))
+        # Only the points this period can adopt are rechecked; an RRR announcement is
+        # rechecked whole, and warrants are selected for the scope's day.
+        adoption = ClaimAdoption(
+            self.core_evidence, definition_version=self.version, mode=self.mode
+        ).check(
+            {
+                metric_id: (
+                    tuple(
+                        p
+                        for p in self.series(metric_id)
+                        if matches_retrieval_period(p.period_end, scope.period)
+                    )
+                    if metric_id == "CN_RRR_EVENT"
+                    else self.adoptable(metric_id, scope.period)
+                )
+                for metric_id in dict.fromkeys(scope.metric_ids)
+            },
+            period=scope.period,
         )
         selected_ids: list[str] = []
         missing: list[str] = []
@@ -319,14 +189,8 @@ class ModelInputSelector:
             definition = metric_definition(
                 metric_id, definition_version=self.version, database_path=self.database_path
             )
-            if metric_id == "CN_FUTURES_WARRANTS" and self.version not in BUILTIN_CATALOG_VERSIONS:
-                warrants = select_warrant_inputs(
-                    self.core_evidence,
-                    self.series(metric_id),
-                    period=scope.period,
-                    mode=self.mode,
-                    definition_version=self.version,
-                )
+            members = adoption[metric_id]
+            if metric_id == "CN_FUTURES_WARRANTS" and members.decides_members:
                 material_checks.append(
                     MetricMaterialCheck(
                         metric_id,
@@ -339,18 +203,10 @@ class ModelInputSelector:
                         "executed",
                     )
                 )
-                selected_ids.extend(warrants.selected_claim_ids)
-                missing.extend(warrants.missing_members)
+                selected_ids.extend(members.selected_members)
+                missing.extend(members.missing_members)
                 continue
-            if metric_id == "CN_RRR_EVENT" and self.version not in BUILTIN_CATALOG_VERSIONS:
-                result = select_published_rrr_events(
-                    self.core_evidence,
-                    tuple(
-                        p
-                        for p in self.series(metric_id)
-                        if matches_retrieval_period(p.period_end, scope.period)
-                    ),
-                )
+            if metric_id == "CN_RRR_EVENT" and members.decides_members:
                 material_checks.append(
                     MetricMaterialCheck(
                         metric_id,
@@ -364,13 +220,13 @@ class ModelInputSelector:
                         if any(
                             "publication_contract_unavailable" in member
                             or "publication_time_invalid" in member
-                            for member in result.missing_members
+                            for member in members.missing_members
                         )
                         else "executed",
                     )
                 )
-                selected_ids.extend(result.selected_claim_ids)
-                missing.extend(result.missing_members)
+                selected_ids.extend(members.selected_members)
+                missing.extend(members.missing_members)
                 continue
             expected = required_dimension_members(
                 metric_id, definition_version=self.version, period=scope.period
@@ -407,21 +263,7 @@ class ModelInputSelector:
                         and point.selected_value is not None
                         and claim is not None
                         and claim.quality_status == "validated"
-                        and all(
-                            not family.owns(metric_id)
-                            or not registered
-                            or claim.claim_id in valid_claim_ids
-                            for family, valid_claim_ids in checked_families
-                        )
-                        and (
-                            metric_id not in CORE_API_IDENTITIES
-                            or selected_core_claim_is_valid(metric_id, point)
-                        )
-                        and (
-                            metric_id not in CORE_API_IDENTITIES
-                            or self.version in BUILTIN_CATALOG_VERSIONS
-                            or core_inputs.is_valid(metric_id, point)
-                        )
+                        and claim.claim_id in members.adoptable
                     ):
                         accepted.append(claim.claim_id)
                 if len(accepted) == 1:
@@ -430,7 +272,7 @@ class ModelInputSelector:
                 else:
                     missing.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
         for metric_id in dict.fromkeys(scope.metric_ids):
-            # Core history and financing retain their own checks; the dedicated
+            # Cores and financing are recorded elsewhere or not at all; the dedicated
             # event/warrant paths recorded their execution above.
             if metric_id in CORE_API_IDENTITIES or metric_id in {
                 "CN_MARGIN_BALANCE",
@@ -439,19 +281,13 @@ class ModelInputSelector:
                 "CN_FUTURES_WARRANTS",
             }:
                 continue
-            matching = [
-                (family, valid) for family, valid in checked_families if family.owns(metric_id)
-            ]
+            matching = adoption[metric_id].rechecked
             claim_ids = {
                 point.selected_claim_id
                 for point in self.adoptable(metric_id, scope.period)
                 if point.selected_claim_id is not None
             }
-            invalid = {
-                claim_id
-                for claim_id in claim_ids
-                if any(claim_id not in valid for _, valid in matching)
-            }
+            invalid = claim_ids - adoption.adoptable(metric_id) if matching else set()
             material_checks.append(
                 MetricMaterialCheck(
                     metric_id,

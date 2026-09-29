@@ -49,6 +49,7 @@ from tests.fixtures.model_registration import (
     save,
     submit,
 )
+from tests.integration.test_claim_adoption import adoption_of, damage_original
 
 
 def admitted_gdp_manifest(
@@ -499,6 +500,61 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
         else:
             assert old_cu_ids.isdisjoint(inputs)
             assert (set(original.claim_ids) - old_cu_ids) | set(revision.claim_ids) <= set(inputs)
+    if missing_current:
+        # Only CU's delivery lacks a warehouse member; the other symbols stay adoptable.
+        warrants = adoption_of(
+            paths,
+            "CN_FUTURES_WARRANTS",
+            version,
+            as_of=new_public,
+            mode=AsOfMode.PUBLIC,
+            period="2026-08-28",
+        )
+        assert warrants.decides_members
+        assert list(warrants.missing_by_period) == ["2026-08-28"]
+        assert warrants.missing_members == warrants.missing_by_period["2026-08-28"]
+        assert all(member.endswith(":CU") for member in warrants.missing_members)
+        adopted_symbols = {
+            point.dimensions["symbol"]
+            for point in evidence.metric_series(
+                "CN_FUTURES_WARRANTS",
+                mode=AsOfMode.PUBLIC,
+                as_of=new_public,
+                definition_version=version,
+            )
+            if point.selected_claim_id in warrants.adoptable
+        }
+        assert adopted_symbols and "CU" not in adopted_symbols
+    if missing_current and not redeliver_old:
+        # A damaged original leaves its symbol's delivery unadoptable too.
+        damaged_symbol = sorted(adopted_symbols - {"TA", "CF"})[0]
+        damage_original(
+            paths,
+            next(
+                point.selected_claim_id
+                for point in evidence.metric_series(
+                    "CN_FUTURES_WARRANTS",
+                    mode=AsOfMode.PUBLIC,
+                    as_of=new_public,
+                    definition_version=version,
+                )
+                if point.dimensions["symbol"] == damaged_symbol
+                and point.selected_claim_id in warrants.adoptable
+            ),
+        )
+        after_damage = adoption_of(
+            paths,
+            "CN_FUTURES_WARRANTS",
+            version,
+            as_of=new_public,
+            mode=AsOfMode.PUBLIC,
+            period="2026-08-28",
+        )
+        assert any(
+            member.endswith(f":{damaged_symbol}")
+            for member in after_damage.missing_by_period["2026-08-28"]
+        )
+        assert after_damage.adoptable < warrants.adoptable
     if redeliver_old:
         before = select_retrieval_input(
             paths,
@@ -673,6 +729,15 @@ def test_registered_interbank_rejects_mixed_api_claim_links(
     selection = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
     assert selection.complete is (not mixed_api)
     assert selection.selected_claim_ids == (() if mixed_api else imported.claim_ids)
+    dr007 = adoption_of(paths, "CN_DR007", version, as_of=run.system_as_of, mode=AsOfMode.PUBLIC)
+    assert dr007.rechecked
+    assert dr007.adoptable == (frozenset() if mixed_api else set(imported.claim_ids))
+    if not mixed_api:
+        damage_original(paths, imported.claim_ids[0])
+        damaged = adoption_of(
+            paths, "CN_DR007", version, as_of=run.system_as_of, mode=AsOfMode.PUBLIC
+        )
+        assert damaged.adoptable == frozenset()
 
 
 @pytest.mark.parametrize("fault", ["dr_field", "dr_api", "shibor_field"])
@@ -1815,6 +1880,8 @@ def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_syste
             == 3
         )
     assert selected == set(ingested.claim_ids)
+    cpi = adoption_of(paths, "CN_CPI_HEADLINE", version, as_of=acquired_at, mode=AsOfMode.PUBLIC)
+    assert cpi.rechecked and len(cpi.adoptable) == 3
     run = RunRepository(paths.database).submit(
         command_type="targeted_refresh",
         target_business_date="2026-08-28",
@@ -1841,6 +1908,10 @@ def test_admitted_catalog_consumes_cpi_with_separate_categories_and_public_syste
         (paths.artifacts / receipt.normalized_hash[:2] / receipt.normalized_hash).write_bytes(
             b"damaged CPI normalized"
         )
+        damaged = adoption_of(
+            paths, "CN_CPI_HEADLINE", version, as_of=acquired_at, mode=AsOfMode.PUBLIC
+        )
+        assert damaged.adoptable == frozenset() and len(damaged.not_adoptable) == 3
         if consumer == "selection":
             after = select_retrieval_input(paths, run, mode=AsOfMode.PUBLIC)
             assert not after.complete
@@ -2068,6 +2139,14 @@ def test_admitted_catalog_consumes_lpr_through_evidence_selection_and_context(
     assert set(ingested.claim_ids) <= set(context.observation_version_ids)
     with pytest.raises(LookupError, match="active_model_unavailable"):
         ModelRepository(paths.database).active()
+    lpr = adoption_of(paths, "CN_LPR_1Y_5Y", version, as_of=acquired_at)
+    assert lpr.rechecked and lpr.adoptable == set(ingested.claim_ids)
+    (receipt,) = AcquisitionRepository(paths.database, paths.artifacts).history()
+    assert receipt.raw_hash is not None
+    (paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash).write_bytes(b"damaged LPR page")
+    damaged = adoption_of(paths, "CN_LPR_1Y_5Y", version, as_of=acquired_at)
+    assert damaged.adoptable == frozenset()
+    assert damaged.not_adoptable == set(ingested.claim_ids)
 
 
 @pytest.mark.parametrize("consumer", ["selection", "context", "ledger"])
@@ -2569,6 +2648,8 @@ def test_registered_margin_selection_requires_readable_originals(
     selection = select_retrieval_input(paths, run)
     assert selection.complete
     assert set(selection.selected_claim_ids) == set(result.claim_ids)
+    margin = adoption_of(paths, "CN_MARGIN_BALANCE", version, as_of=run.system_as_of)
+    assert margin.rechecked and margin.adoptable == set(result.claim_ids)
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     (receipt,) = acquisitions.history()
     digest = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
@@ -2581,6 +2662,9 @@ def test_registered_margin_selection_requires_readable_originals(
     rejected = select_retrieval_input(paths, run)
     assert not rejected.complete
     assert rejected.selected_claim_ids == ()
+    damaged = adoption_of(paths, "CN_MARGIN_BALANCE", version, as_of=run.system_as_of)
+    assert damaged.adoptable == frozenset()
+    assert damaged.not_adoptable == set(result.claim_ids)
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -2971,6 +3055,11 @@ def test_registered_market_index_selection_requires_its_originals(
     rejected = select_retrieval_input(paths, runs[metric_id])
     assert not rejected.complete and rejected.selected_claim_ids == ()
     assert select_retrieval_input(paths, runs["CN_EQ_CSI300"]).complete
+    damaged = adoption_of(paths, metric_id, version, as_of=runs[metric_id].system_as_of)
+    assert damaged.rechecked and damaged.adoptable == frozenset() and damaged.not_adoptable
+    assert adoption_of(
+        paths, "CN_EQ_CSI300", version, as_of=runs["CN_EQ_CSI300"].system_as_of
+    ).adoptable
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -3318,6 +3407,11 @@ def test_registered_valuation_selection_rejects_damaged_index_originals(
     assert set(after.selected_claim_ids) == unaffected
     assert len(after.selected_claim_ids) == 6 and len(after.missing_members) == 3
     assert all("000852.SH" in missing for missing in after.missing_members)
+    valuation = adoption_of(
+        paths, "CN_INDEX_VALUATION", version, as_of=public_at, mode=AsOfMode.PUBLIC
+    )
+    assert valuation.adoptable == unaffected
+    assert len(valuation.not_adoptable) == 3
 
 
 @pytest.mark.usefixtures("runtime_clock")

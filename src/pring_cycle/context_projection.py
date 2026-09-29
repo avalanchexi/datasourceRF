@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
+from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.domain.macro import (
     EvidenceSignal,
     SignatureCard,
@@ -30,20 +31,15 @@ from pring_cycle.evidence import (
     value_conflict_reason,
 )
 from pring_cycle.freshness import period_status
-from pring_cycle.interbank_evidence import INTERBANK_METRICS, interbank_claims_matching_acquisitions
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
-from pring_cycle.news_rules import news_claims_matching_quotes
 from pring_cycle.official_context import (
-    OFFICIAL_CONTEXT_INTEGRITY_METRICS,
-    official_claims_matching_acquisitions,
     official_gdp_quarters_matching_baselines,
 )
-from pring_cycle.official_lpr import lpr_claims_matching_acquisitions
-from pring_cycle.published_events import select_published_rrr_events
-from pring_cycle.source_adapters import CoreInputValidator
+from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
-from pring_cycle.treasury_context import TREASURY_METRICS, treasury_claims_matching_acquisitions
-from pring_cycle.warrant_inputs import WarrantHistoryCoverage, select_warrant_inputs
+from pring_cycle.treasury_context import TREASURY_METRICS
+from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
+from pring_cycle.warrant_inputs import WarrantHistoryCoverage
 
 _POLICY_ACTION = {
     "CN_OMO_7D_RATE": "policy_action",
@@ -170,6 +166,13 @@ class ContextProjectionRules:
                 raise ValueError("context_model_formula_version_unsupported")
             formulas[raw_key] = raw_version
         return cls(catalog_version, definitions, formulas)
+
+
+# Metrics whose projection rows skip the family recheck: financing, index quotes and
+# valuations are rechecked by retrieval only (ticket 06); the cores by core readiness.
+_NOT_RECHECKED_IN_PROJECTION = frozenset(
+    {"CN_MARGIN_BALANCE", "CN_INDEX_VALUATION", *MARKET_INDEX_IDENTITIES, *CORE_API_IDENTITIES}
+)
 
 
 def context_metric_ids(rules: ContextProjectionRules) -> frozenset[str]:
@@ -573,19 +576,19 @@ def build_context_projection(
     )
 
 
-def _official_or_quoted_claims(
+def _adoptable_claims(
     repository: Any,
     points_by_metric: Mapping[str, tuple[MetricSeriesPoint, ...]],
     *,
     definition_version: str,
-) -> set[str]:
-    """An official original, a TuShare delivery, or a news rule's matched quote (ADR-0026).
-
-    Retrieval adopts all three; the analysis reads what retrieval adopted.
-    """
-    return official_claims_matching_acquisitions(
-        repository, points_by_metric, definition_version=definition_version
-    ) | news_claims_matching_quotes(repository.database_path, points_by_metric)
+) -> frozenset[str] | None:
+    """The selected claims that pass their family recheck, or None when none ran."""
+    adoption = ClaimAdoption(repository, definition_version=definition_version).check(
+        points_by_metric
+    )
+    if not any(adoption[metric_id].rechecked for metric_id in points_by_metric):
+        return None
+    return frozenset().union(*(adoption.adoptable(metric_id) for metric_id in points_by_metric))
 
 
 class TargetBoundEvidenceRepository:
@@ -771,14 +774,10 @@ def _derived_market_context_rows(
         as_of=as_of,
         definition_version=definition_version,
     )
-    valid_amount_claim_ids = (
-        _official_or_quoted_claims(
-            repository,
-            {"CN_OMO_7D_AMOUNT": reported_amount_points},
-            definition_version=definition_version,
-        )
-        if definition_version not in BUILTIN_CATALOG_VERSIONS
-        else None
+    valid_amount_claim_ids = _adoptable_claims(
+        repository,
+        {"CN_OMO_7D_AMOUNT": reported_amount_points},
+        definition_version=definition_version,
     )
     amount_points = [
         point
@@ -894,18 +893,15 @@ def _derived_market_context_rows(
             and target_date in invalid_maturity_dates
         )
         calendar_valid = True
-        if calendar_points and definition_version not in BUILTIN_CATALOG_VERSIONS:
-            calendar_inputs = CoreInputValidator(
+        # Sessions come only from the core the calendar metric names.
+        if calendar_points and trading_calendar_metric_id is not None:
+            calendar_claims = _adoptable_claims(
                 repository,
-                tuple(
-                    point.selected_claim_id
-                    for point in calendar_points
-                    if point.selected_claim_id is not None
-                ),
+                {trading_calendar_metric_id: tuple(calendar_points)},
+                definition_version=definition_version,
             )
-            calendar_valid = trading_calendar_metric_id is not None and all(
-                calendar_inputs.is_valid(trading_calendar_metric_id, point)
-                for point in calendar_points
+            calendar_valid = calendar_claims is None or all(
+                point.selected_claim_id in calendar_claims for point in calendar_points
             )
         if (
             maturity_basis is not None
@@ -938,11 +934,13 @@ def _derived_market_context_rows(
     )
     if (
         dr007 is not None
-        and definition_version not in BUILTIN_CATALOG_VERSIONS
-        and dr007.selected_claim_id
-        not in interbank_claims_matching_acquisitions(
-            repository, {"CN_DR007": (dr007,)}, definition_version=definition_version
+        and (
+            valid := _adoptable_claims(
+                repository, {"CN_DR007": (dr007,)}, definition_version=definition_version
+            )
         )
+        is not None
+        and dr007.selected_claim_id not in valid
     ):
         dr007 = None
     policy_rate = _latest_usable_point(
@@ -955,11 +953,15 @@ def _derived_market_context_rows(
     )
     if (
         policy_rate is not None
-        and definition_version not in BUILTIN_CATALOG_VERSIONS
-        and policy_rate.selected_claim_id
-        not in _official_or_quoted_claims(
-            repository, {"CN_OMO_7D_RATE": (policy_rate,)}, definition_version=definition_version
+        and (
+            valid := _adoptable_claims(
+                repository,
+                {"CN_OMO_7D_RATE": (policy_rate,)},
+                definition_version=definition_version,
+            )
         )
+        is not None
+        and policy_rate.selected_claim_id not in valid
     ):
         policy_rate = None
     dr007_formula = formula_versions.get("dr007_policy_spread")
@@ -1093,14 +1095,10 @@ def _derived_market_context_rows(
         and (definition_version not in BUILTIN_CATALOG_VERSIONS or _usable_point(point))
     ]
     loan_groups: dict[tuple[str, str], list[MetricSeriesPoint]] = {}
-    valid_loan_claim_ids = (
-        _official_or_quoted_claims(
-            repository,
-            {"CN_LOAN_STRUCTURE": tuple(loan_stock_points)},
-            definition_version=definition_version,
-        )
-        if definition_version not in BUILTIN_CATALOG_VERSIONS
-        else None
+    valid_loan_claim_ids = _adoptable_claims(
+        repository,
+        {"CN_LOAN_STRUCTURE": tuple(loan_stock_points)},
+        definition_version=definition_version,
     )
     for point in loan_stock_points:
         key = (point.dimensions.get("borrower", ""), point.dimensions.get("tenor", ""))
@@ -1409,18 +1407,13 @@ def _usable_points_by_period(
         as_of=as_of,
         definition_version=definition_version,
     )
+    # Only the PMI and treasury yields hold their latest period to the recheck here.
     valid_claim_ids = (
-        _official_or_quoted_claims(
-            repository, {metric_id: series}, definition_version=definition_version
-        )
+        _adoptable_claims(repository, {metric_id: series}, definition_version=definition_version)
         if metric_id in OFFICIAL_CONTEXT_FAMILIES["nbs_pmi"].metric_ids
-        and definition_version not in BUILTIN_CATALOG_VERSIONS
+        or metric_id in TREASURY_METRICS
         else None
     )
-    if metric_id in TREASURY_METRICS and definition_version not in BUILTIN_CATALOG_VERSIONS:
-        valid_claim_ids = treasury_claims_matching_acquisitions(
-            repository, {metric_id: series}, definition_version=definition_version
-        )
     matching_points = tuple(
         point for point in series if dimensions is None or point.dimensions == dimensions
     )
@@ -1484,106 +1477,37 @@ def _metric_rows(
         as_of=as_of,
         definition_version=definition.definition_version,
     )
-    incomplete_source_claims = (
-        set(select_published_rrr_events(repository, series).incomplete_claim_ids)
-        if definition.metric_id == "CN_RRR_EVENT"
-        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
-        else set()
-    )
-    if (
-        definition.metric_id == "CN_LPR_1Y_5Y"
-        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
-    ):
-        claim_ids = tuple(
-            point.selected_claim_id for point in series if point.selected_claim_id is not None
-        )
-        incomplete_source_claims.update(
-            set(claim_ids)
-            - lpr_claims_matching_acquisitions(repository, series)
-            - news_claims_matching_quotes(repository.database_path, {definition.metric_id: series})
-        )
-    if (
-        definition.metric_id in OFFICIAL_CONTEXT_INTEGRITY_METRICS
-        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
-    ):
-        official_claim_ids = tuple(
-            point.selected_claim_id for point in series if point.selected_claim_id is not None
-        )
-        incomplete_source_claims.update(
-            set(official_claim_ids)
-            - _official_or_quoted_claims(
-                repository,
-                {definition.metric_id: series},
-                definition_version=definition.definition_version,
-            )
-        )
-    if (
-        definition.metric_id in INTERBANK_METRICS
-        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
-    ):
-        incomplete_source_claims.update(
-            {point.selected_claim_id for point in series if point.selected_claim_id is not None}
-            - interbank_claims_matching_acquisitions(
-                repository,
-                {definition.metric_id: series},
-                definition_version=definition.definition_version,
-            )
-        )
+    incomplete_source_claims: set[str] = set()
     warrant_latest_period = None
-    if (
-        definition.metric_id in TREASURY_METRICS
-        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
-    ):
-        incomplete_source_claims.update(
-            {point.selected_claim_id for point in series if point.selected_claim_id is not None}
-            - treasury_claims_matching_acquisitions(
-                repository,
-                {definition.metric_id: series},
-                definition_version=definition.definition_version,
-            )
-        )
     warrant_history = None
-    if definition.metric_id == "CN_USDCNY_ECB_REFERENCE_CROSS":
-        claim_ids = tuple(
-            point.selected_claim_id for point in series if point.selected_claim_id is not None
-        )
-        incomplete_source_claims.update(
-            set(claim_ids)
-            - repository.source_claims_matching_registered_contract(
-                claim_ids, definition_version=definition.definition_version
-            )
-        )
-    if (
-        definition.metric_id == "CN_FUTURES_WARRANTS"
-        and definition.definition_version not in BUILTIN_CATALOG_VERSIONS
-    ):
-        warrant_latest_period = max((point.period_end for point in series), default=None)
-        complete_periods: dict[str, list[str]] = {}
-        for period in {point.period_end for point in series}:
-            selection = select_warrant_inputs(
-                repository,
-                series,
-                period=period,
-                mode=as_of_mode,
-                definition_version=definition.definition_version,
-            )
-            selected_ids = set(selection.selected_claim_ids)
-            for symbol in {
-                point.dimensions["symbol"]
+    # Financing, index quotes and valuations are not rechecked here yet (ticket 06); the
+    # cores are rechecked by core readiness.
+    if definition.metric_id not in _NOT_RECHECKED_IN_PROJECTION:
+        adoption = ClaimAdoption(
+            repository, definition_version=definition.definition_version, mode=as_of_mode
+        ).check({definition.metric_id: series})[definition.metric_id]
+        incomplete_source_claims.update(adoption.not_adoptable)
+        if definition.metric_id == "CN_FUTURES_WARRANTS" and adoption.decides_members:
+            warrant_latest_period = max((point.period_end for point in series), default=None)
+            # A day missing a warehouse member of any symbol is incomplete for every
+            # symbol here, though retrieval keeps the complete symbols (ticket 07).
+            incomplete_source_claims.update(
+                point.selected_claim_id
                 for point in series
-                if point.selected_claim_id in selected_ids
-            }:
-                complete_periods.setdefault(symbol, []).append(period)
-            incomplete_source_claims.update(selection.incomplete_claim_ids)
-            if selection.missing_members:
-                incomplete_source_claims.update(
-                    point.selected_claim_id
+                if point.period_end in adoption.missing_by_period
+                and point.selected_claim_id is not None
+            )
+            complete_periods: dict[str, list[str]] = {}
+            for period in {point.period_end for point in series}:
+                for symbol in {
+                    point.dimensions["symbol"]
                     for point in series
-                    if point.period_end == period and point.selected_claim_id is not None
-                )
-        warrant_history = WarrantHistoryCoverage(
-            {symbol: tuple(sorted(periods)) for symbol, periods in complete_periods.items()}
-        )
+                    if point.period_end == period and point.selected_claim_id in adoption.adoptable
+                }:
+                    complete_periods.setdefault(symbol, []).append(period)
+            warrant_history = WarrantHistoryCoverage(
+                {symbol: tuple(sorted(periods)) for symbol, periods in complete_periods.items()}
+            )
     release_status = _release_status(
         repository,
         definition,
@@ -2296,15 +2220,15 @@ def _credit_impulse_proxy(
         return None, formula, ()
     if any(not _usable_point(point) for point in (*social_input_points, *gdp_input_points)):
         return None, formula, ()
-    if definition_version not in BUILTIN_CATALOG_VERSIONS:
+    valid_parents = _adoptable_claims(
+        repository,
+        {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)},
+        definition_version=definition_version,
+    )
+    if valid_parents is not None:
         selected_parent_ids = {
             point.selected_claim_id for point in (*social_input_points, *gdp_input_points)
         }
-        valid_parents = _official_or_quoted_claims(
-            repository,
-            {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)},
-            definition_version=definition_version,
-        )
         if selected_parent_ids - valid_parents:
             return None, {**formula, "status": "incomplete_source_artifacts"}, ()
         announced = {

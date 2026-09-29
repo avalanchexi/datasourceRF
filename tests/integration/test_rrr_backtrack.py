@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -273,6 +273,39 @@ def test_an_rrr_never_held_is_traced_back_to_the_latest_chronicled_cut(
     assert len(backtrack["claim_ids"]) == 2
     assert card(paths, model_id) == [("current", -5.0), ("current", -0.5)]
     assert rrr_gaps(paths, model_id, run_id_of(paths)) == []
+
+    # The announcement is adopted whole; missing one of its members, none of it is.
+    from pring_cycle.claim_adoption import ClaimAdoption
+    from pring_cycle.models import ModelRepository
+    from pring_cycle.published_events import select_published_rrr_events
+
+    version = ModelRepository(paths.database).manifest(model_id)["metric_catalog_version"]
+    evidence = EvidenceRepository(paths.database)
+    points = evidence.metric_series(
+        "CN_RRR_EVENT",
+        mode=AsOfMode.SYSTEM,
+        # As the analysis card reads it.
+        as_of=NOW + timedelta(days=1),
+        definition_version=version,
+    )
+    adoption = ClaimAdoption(evidence, definition_version=version)
+    whole = adoption.check({"CN_RRR_EVENT": points})["CN_RRR_EVENT"]
+    assert whole.decides_members and not whole.missing_members
+    assert whole.adoptable == set(backtrack["claim_ids"])
+    assert set(select_published_rrr_events(evidence, points).selected_claim_ids) == set(
+        backtrack["claim_ids"]
+    )
+    partial = adoption.check({"CN_RRR_EVENT": points[:1]})["CN_RRR_EVENT"]
+    assert partial.adoptable == frozenset() and partial.missing_members
+    assert select_published_rrr_events(evidence, points[:1]).incomplete_claim_ids == (
+        points[0].selected_claim_id,
+    )
+    # A damaged original of the announcement leaves none of it adoptable.
+    from tests.integration.test_claim_adoption import damage_original
+
+    damage_original(paths, str(points[0].selected_claim_id))
+    damaged = adoption.check({"CN_RRR_EVENT": points})["CN_RRR_EVENT"]
+    assert damaged.adoptable == frozenset() and damaged.missing_members
 
 
 def test_a_cut_after_the_newest_chronicle_is_asked_of_ai_websearch(

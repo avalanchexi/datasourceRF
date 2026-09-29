@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 from io import BytesIO
@@ -17,6 +18,7 @@ from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository
+from pring_cycle.news_rules import news_claims_matching_quotes
 from pring_cycle.retention import prune_to_window
 from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -24,6 +26,7 @@ from pring_cycle.storage import database_connection
 from pring_cycle.tushare_news import pull_news, run_news
 from tests.conftest import install_runtime_clock
 from tests.fixtures.model_registration import prepared_request, save, submit
+from tests.integration.test_claim_adoption import adoption_of
 from tests.retrieval.test_news_rules import SAMPLE
 
 # Two days after the 8/2026 CPI release: August is the due period.
@@ -334,6 +337,26 @@ def test_lpr_is_filled_from_the_fixing_day_news(
     ]
     assert sorted(value for _status, value in lpr) == [3.0, 3.5]
     assert not {status for status, _value in lpr} & {"source_failed", "missing"}
+    # The LPR stands on the news rule's matched quotes: one that no longer states the
+    # value leaves its claim unadoptable.
+    points = EvidenceRepository(paths.database).metric_series(
+        "CN_LPR_1Y_5Y",
+        mode=AsOfMode.SYSTEM,
+        as_of=now + timedelta(days=1),
+        definition_version=version,
+    )
+    kept = adoption_of(paths, "CN_LPR_1Y_5Y", version, as_of=now + timedelta(days=1))
+    assert len(kept.adoptable) == 2
+    assert news_claims_matching_quotes(paths.database, {"CN_LPR_1Y_5Y": points}) == kept.adoptable
+    with sqlite3.connect(paths.database) as connection:
+        connection.execute(
+            "UPDATE claim_matched_quote SET quote=? "
+            "WHERE claim_id IN (SELECT value FROM json_each(?))",
+            ("贷款市场报价利率维持不变。", json.dumps(sorted(kept.adoptable))),
+        )
+    damaged = adoption_of(paths, "CN_LPR_1Y_5Y", version, as_of=now + timedelta(days=1))
+    assert damaged.adoptable == frozenset() and damaged.not_adoptable == kept.adoptable
+    assert news_claims_matching_quotes(paths.database, {"CN_LPR_1Y_5Y": points}) == set()
 
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
