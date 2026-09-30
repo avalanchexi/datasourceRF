@@ -15,8 +15,9 @@ import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.artifacts import store_artifact
+from pring_cycle.catalog import metric_definition
 from pring_cycle.cli import main
-from pring_cycle.context_projection import build_context_projection
+from pring_cycle.context_projection import _metric_rows, build_context_projection
 from pring_cycle.czce_warrants import refresh_czce_warrants
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import (
@@ -50,6 +51,43 @@ from tests.fixtures.model_registration import (
     submit,
 )
 from tests.integration.test_claim_adoption import adoption_of, damage_original
+from tests.integration.test_decertified_main_chain import rows_for
+
+
+def projected_rows(
+    paths: RuntimePaths,
+    metric_id: str,
+    version: str,
+    *,
+    as_of: datetime,
+    mode: AsOfMode = AsOfMode.SYSTEM,
+) -> tuple[dict[str, object], ...]:
+    """The rows the analysis projection's row builder gives the metric.
+
+    Asked of the row builder itself: of these metrics, the models in use read NHCI, CNY030
+    and 930916 as context rows (NHCI is checked through the projection below); financing,
+    valuations and the CSI indices would read the same way.
+    """
+    definition = metric_definition(
+        metric_id, definition_version=version, database_path=paths.database
+    )
+    return _metric_rows(
+        EvidenceRepository(paths.database), definition, as_of=as_of, as_of_mode=mode
+    ).rows
+
+
+def projected_statuses(
+    paths: RuntimePaths,
+    metric_id: str,
+    version: str,
+    *,
+    as_of: datetime,
+    mode: AsOfMode = AsOfMode.SYSTEM,
+) -> set[str]:
+    return {
+        str(row["status"])
+        for row in projected_rows(paths, metric_id, version, as_of=as_of, mode=mode)
+    }
 
 
 def admitted_gdp_manifest(
@@ -2650,6 +2688,8 @@ def test_registered_margin_selection_requires_readable_originals(
     assert set(selection.selected_claim_ids) == set(result.claim_ids)
     margin = adoption_of(paths, "CN_MARGIN_BALANCE", version, as_of=run.system_as_of)
     assert margin.rechecked and margin.adoptable == set(result.claim_ids)
+    held = projected_statuses(paths, "CN_MARGIN_BALANCE", version, as_of=run.system_as_of)
+    assert held and "source_failed" not in held
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     (receipt,) = acquisitions.history()
     digest = receipt.raw_hash if artifact_kind == "raw" else receipt.normalized_hash
@@ -2665,6 +2705,10 @@ def test_registered_margin_selection_requires_readable_originals(
     damaged = adoption_of(paths, "CN_MARGIN_BALANCE", version, as_of=run.system_as_of)
     assert damaged.adoptable == frozenset()
     assert damaged.not_adoptable == set(result.claim_ids)
+    # The analysis reads what retrieval would adopt: a damaged original is a source failure.
+    assert projected_statuses(paths, "CN_MARGIN_BALANCE", version, as_of=run.system_as_of) == {
+        "source_failed"
+    }
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -3057,6 +3101,25 @@ def test_registered_market_index_selection_requires_its_originals(
     assert select_retrieval_input(paths, runs["CN_EQ_CSI300"]).complete
     damaged = adoption_of(paths, metric_id, version, as_of=runs[metric_id].system_as_of)
     assert damaged.rechecked and damaged.adoptable == frozenset() and damaged.not_adoptable
+    assert "source_failed" in projected_statuses(
+        paths, metric_id, version, as_of=runs[metric_id].system_as_of
+    )
+    assert "source_failed" not in projected_statuses(
+        paths, "CN_EQ_CSI300", version, as_of=runs["CN_EQ_CSI300"].system_as_of
+    )
+    if metric_id == "CN_COMMODITY_BROAD_NHCI":
+        # NHCI is a context row of the model: the published analysis shows the failure.
+        context = build_context_projection(
+            EvidenceRepository(paths.database),
+            as_of=runs[metric_id].system_as_of,
+            model_manifest=ModelRepository(paths.database).manifest(model_id),
+        )
+        nhci = [
+            row
+            for document in (context.macro, context.inventory)
+            for row in rows_for(document, metric_id)
+        ]
+        assert nhci and {row["status"] for row in nhci} == {"source_failed"}
     assert adoption_of(
         paths, "CN_EQ_CSI300", version, as_of=runs["CN_EQ_CSI300"].system_as_of
     ).adoptable
@@ -3412,6 +3475,14 @@ def test_registered_valuation_selection_rejects_damaged_index_originals(
     )
     assert valuation.adoptable == unaffected
     assert len(valuation.not_adoptable) == 3
+    # Only the damaged index's three rows fail in the analysis; the other six stand.
+    rows = projected_rows(
+        paths, "CN_INDEX_VALUATION", version, as_of=public_at, mode=AsOfMode.PUBLIC
+    )
+    failed = [row for row in rows if row["status"] == "source_failed"]
+    assert len(failed) == 3
+    assert {row["dimensions"]["index"] for row in failed} == {"000852.SH"}  # type: ignore[index]
+    assert len(rows) - len(failed) == 6
 
 
 @pytest.mark.usefixtures("runtime_clock")

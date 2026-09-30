@@ -37,7 +37,6 @@ from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.treasury_context import TREASURY_METRICS
-from pring_cycle.tushare_context import MARKET_INDEX_IDENTITIES
 from pring_cycle.warrant_inputs import WarrantHistoryCoverage
 
 _POLICY_ACTION = {
@@ -163,11 +162,8 @@ class ContextProjectionRules:
         return cls(catalog_version, definitions, formulas)
 
 
-# Metrics whose projection rows skip the family recheck: financing, index quotes and
-# valuations are rechecked by retrieval only (ticket 06); the cores by core readiness.
-_NOT_RECHECKED_IN_PROJECTION = frozenset(
-    {"CN_MARGIN_BALANCE", "CN_INDEX_VALUATION", *MARKET_INDEX_IDENTITIES, *CORE_API_IDENTITIES}
-)
+# The cores' rows skip the family recheck here: core readiness rechecks them.
+_NOT_RECHECKED_IN_PROJECTION = frozenset(CORE_API_IDENTITIES)
 
 
 def context_metric_ids(rules: ContextProjectionRules) -> frozenset[str]:
@@ -1473,8 +1469,6 @@ def _metric_rows(
     incomplete_source_claims: set[str] = set()
     warrant_latest_period = None
     warrant_history = None
-    # Financing, index quotes and valuations are not rechecked here yet (ticket 06); the
-    # cores are rechecked by core readiness.
     if definition.metric_id not in _NOT_RECHECKED_IN_PROJECTION:
         adoption = ClaimAdoption(
             repository, definition_version=definition.definition_version, mode=as_of_mode
