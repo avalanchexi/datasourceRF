@@ -1405,6 +1405,29 @@ def _select_claim_rows(
             None,
             (),
         )
+    selected, reason = select_among(claims, tolerance=tolerance)
+    return EvidenceQueryResult(
+        observation_id=observation_id,
+        mode=mode,
+        as_of=as_of,
+        selection_status="conflicted" if reason is not None else "selected",
+        selected_claim_id=selected.claim_id,
+        selected_value=selected.value,
+        value_state=selected.value_state,
+        claims=claims,
+        conflict_reason=reason,
+    )
+
+
+def select_among(
+    claims: Sequence[ClaimView], *, tolerance: float | None
+) -> tuple[ClaimView, str | None]:
+    """The claim an observation selects among its sources' claims, and why they conflict.
+
+    A certified claim goes first, then by provider. Only certified, validated reported
+    values are compared: several registered sources can disagree, a news or search value
+    cannot (ADR-0033).
+    """
     selected = sorted(
         claims,
         key=lambda item: (item.certification_status != "certified", item.provider),
@@ -1417,18 +1440,7 @@ def _select_claim_rows(
         and item.value_state is EvidenceValueState.REPORTED_VALUE
         and item.value is not None
     ]
-    reason = value_conflict_reason(reported_values, tolerance=tolerance)
-    return EvidenceQueryResult(
-        observation_id=observation_id,
-        mode=mode,
-        as_of=as_of,
-        selection_status="conflicted" if reason is not None else "selected",
-        selected_claim_id=selected.claim_id,
-        selected_value=selected.value,
-        value_state=selected.value_state,
-        claims=claims,
-        conflict_reason=reason,
-    )
+    return selected, value_conflict_reason(reported_values, tolerance=tolerance)
 
 
 COMPATIBLE_RELATIVE_DEVIATION = 0.005

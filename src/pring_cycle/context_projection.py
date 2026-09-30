@@ -28,7 +28,7 @@ from pring_cycle.evidence import (
     EvidenceRepository,
     EvidenceValueState,
     MetricSeriesPoint,
-    value_conflict_reason,
+    select_among,
 )
 from pring_cycle.evidence import selected_claim as _selected_claim
 from pring_cycle.evidence import usable_point as _usable_point
@@ -722,15 +722,8 @@ def _point_at_target(
 def _selected_among(
     point: MetricSeriesPoint, claims: tuple[ClaimView, ...], *, tolerance: float | None
 ) -> MetricSeriesPoint:
-    selected = sorted(claims, key=lambda claim: claim.provider)[0]
-    reported_values = [
-        claim.value
-        for claim in claims
-        if claim.quality_status == "validated"
-        and claim.value_state is EvidenceValueState.REPORTED_VALUE
-        and claim.value is not None
-    ]
-    reason = value_conflict_reason(reported_values, tolerance=tolerance)
+    # The target day selects as the repository does, among the claims public by then.
+    selected, reason = select_among(claims, tolerance=tolerance)
     return MetricSeriesPoint(
         observation_id=point.observation_id,
         period_start=point.period_start,

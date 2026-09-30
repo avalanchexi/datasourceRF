@@ -1641,3 +1641,96 @@ def _certified_claim(
         certification_status="certified",
         quality_status="validated",
     )
+
+
+def _dr007_claim(provider: str, value: float, certification: str) -> SourceClaimInput:
+    known = datetime(2026, 8, 27, 4, tzinfo=UTC)
+    return SourceClaimInput(
+        metric_id="CN_DR007",
+        definition_version="metric-catalog-v0001",
+        period_kind="business_day",
+        period_start="2026-08-27",
+        period_end="2026-08-27",
+        dimensions={},
+        value=value,
+        value_state=EvidenceValueState.REPORTED_VALUE,
+        unit="scalar",
+        provider=provider,
+        source_reference=f"{provider}:dr007:2026-08-27",
+        release_event_id=f"{provider}:dr007:2026-08-27",
+        release_at=known,
+        public_available_at=known,
+        fetched_at=known,
+        available_at=known,
+        certification_status=certification,
+        quality_status="validated",
+    )
+
+
+@pytest.mark.parametrize(
+    ("claims", "selected", "status"),
+    [
+        # A news value is compared with no registered source (ADR-0033): no conflict.
+        (
+            (("tushare", 1.50, "certified"), ("tushare_news", 1.60, "not_applicable")),
+            1.50,
+            "current",
+        ),
+        # A certified value wins over an uncertified one whatever the providers' names.
+        (
+            (("zz_registered", 1.50, "certified"), ("ai_websearch:x", 1.60, "not_applicable")),
+            1.50,
+            "current",
+        ),
+        # With no certified claim the provider order still picks one.
+        (
+            (("ai_websearch:x", 1.60, "not_applicable"), ("tushare_news", 1.50, "not_applicable")),
+            1.60,
+            "current",
+        ),
+        # A source awaiting certification (EIA, VIX, ECB...) still gives the value.
+        ((("fixture:awaiting", 1.55, "awaiting_source_certification"),), 1.55, "current"),
+        (
+            (
+                ("fixture:awaiting", 1.55, "awaiting_source_certification"),
+                ("tushare_news", 1.70, "not_applicable"),
+            ),
+            1.55,
+            "current",
+        ),
+        # Two registered sources apart by more than 0.5% still conflict on the target day.
+        (
+            (("tushare", 1.50, "certified"), ("official", 1.60, "certified")),
+            1.60,
+            "conflicted",
+        ),
+    ],
+)
+def test_the_target_day_selects_as_the_repository_does(
+    tmp_path: Path,
+    claims: tuple[tuple[str, float, str], ...],
+    selected: float,
+    status: str,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    repository.append_source_claims(
+        tuple(_dr007_claim(provider, value, cert) for provider, value, cert in claims)
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        model_manifest=certified_model_v0001_manifest(),
+        target_business_date="2026-08-28",
+    )
+
+    (row,) = [
+        row
+        for card in context.macro.values()
+        if isinstance(card, dict)
+        for row in card.get("evidence", ())
+        if row["metric_id"] == "CN_DR007"
+    ]
+    assert (row["value"], row["status"]) == (selected, status)
