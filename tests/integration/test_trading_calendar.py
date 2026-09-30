@@ -16,7 +16,14 @@ from pring_cycle.czce_warrants import window_trading_days
 from pring_cycle.freshness import target_business_date
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.source_adapters import CORE_PARSER_VERSION, TushareCoreAdapter
-from pring_cycle.trading_calendar import SseCalendar, acquire_sse_calendar
+from pring_cycle.trading_calendar import (
+    US_EQUITY,
+    US_TREASURY,
+    SseCalendar,
+    acquire_sse_calendar,
+    us_equity_holidays,
+    us_treasury_holidays,
+)
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
@@ -336,3 +343,86 @@ def test_a_refused_breadth_calendar_is_a_source_failure_telling_a_rate_limit(
         )
         with pytest.raises(TushareSourceError, match=reason):
             _breadth_calendar(paths, "fixture-token", date(2026, 9, 24))
+
+
+def dates(*days: str) -> frozenset[date]:
+    return frozenset(date.fromisoformat(day) for day in days)
+
+
+# nyse.com "Holidays & Trading Hours" (2026-2028) and ICE's 2024-11-08 announcement (2025);
+# the national day of mourning closure of 2025-01-09 was unscheduled and is not a rule.
+NYSE = {
+    2025: dates(
+        "2025-01-01",
+        "2025-01-20",
+        "2025-02-17",
+        "2025-04-18",
+        "2025-05-26",
+        "2025-06-19",
+        "2025-07-04",
+        "2025-09-01",
+        "2025-11-27",
+        "2025-12-25",
+    ),
+    2026: dates(
+        "2026-01-01",
+        "2026-01-19",
+        "2026-02-16",
+        "2026-04-03",
+        "2026-05-25",
+        "2026-06-19",
+        "2026-07-03",
+        "2026-09-07",
+        "2026-11-26",
+        "2026-12-25",
+    ),
+}
+# sifma.org U.S. holiday recommendations and archive: full closes only.
+SIFMA = {
+    2025: NYSE[2025] | dates("2025-10-13", "2025-11-11"),
+    # Good Friday 2026 is an early close only: the employment report is released that day.
+    2026: (NYSE[2026] - dates("2026-04-03")) | dates("2026-10-12", "2026-11-11"),
+}
+
+
+@pytest.mark.parametrize("year", [2025, 2026])
+def test_the_us_markets_close_on_their_official_holidays(year: int) -> None:
+    assert us_equity_holidays(year) == NYSE[year]
+    assert us_treasury_holidays(year) == SIFMA[year]
+
+
+def test_weekend_holidays_move_as_the_markets_announce() -> None:
+    # 2027: Juneteenth, Independence Day and Christmas on weekends move to the nearest weekday.
+    assert dates("2027-06-18", "2027-07-05", "2027-12-24") <= us_equity_holidays(2027)
+    # New Year's Day 2028 falls on a Saturday: no weekday is taken for it.
+    assert not {
+        day
+        for day in us_equity_holidays(2027) | us_equity_holidays(2028)
+        if day.month == 12 and day.day == 31
+    }
+    assert US_EQUITY.is_trading(date(2027, 12, 31))
+    # Veterans Day 2023 fell on a Saturday; the Friday before stayed open for bonds.
+    assert US_TREASURY.is_trading(date(2023, 11, 10))
+
+
+def test_bonds_close_on_columbus_and_veterans_day_while_stocks_trade() -> None:
+    for day in (date(2026, 10, 12), date(2026, 11, 11)):
+        assert US_EQUITY.is_trading(day)
+        assert not US_TREASURY.is_trading(day)
+    # Good Friday: stocks shut; bonds only close early when the jobs report is out.
+    assert not US_EQUITY.is_trading(date(2026, 4, 3))
+    assert US_TREASURY.is_trading(date(2026, 4, 3))
+    assert not US_TREASURY.is_trading(date(2025, 4, 18))
+
+
+def test_the_bond_rules_hold_in_the_years_they_differ() -> None:
+    # Good Friday that is the month's first Friday: the jobs report keeps bonds open.
+    for good_friday in (date(2021, 4, 2), date(2023, 4, 7)):
+        assert not US_EQUITY.is_trading(good_friday)
+        assert US_TREASURY.is_trading(good_friday)
+    # New Year's Day 2022 on a Saturday: both markets open on 2021-12-31.
+    assert US_EQUITY.is_trading(date(2021, 12, 31))
+    assert US_TREASURY.is_trading(date(2021, 12, 31))
+    # Juneteenth is a holiday from 2022.
+    assert US_EQUITY.is_trading(date(2021, 6, 18))
+    assert not US_EQUITY.is_trading(date(2022, 6, 20))

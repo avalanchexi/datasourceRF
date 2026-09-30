@@ -98,9 +98,8 @@ def test_inventory_cards_do_not_duplicate_unrelated_evidence() -> None:
     assert all(card.evidence_ids == () for card in result.cards[1:])
 
 
-def test_inventory_card_with_current_evidence_is_not_marked_missing_when_quadrant_is_unresolved() -> (
-    None
-):
+def test_inventory_card_with_current_evidence_is_not_marked_missing_when_quadrant_is_unresolved(
+) -> None:
     result = derive_inventory_cycle(
         demand="up",
         production="down",

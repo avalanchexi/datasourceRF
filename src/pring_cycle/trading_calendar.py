@@ -1,4 +1,8 @@
-"""The SSE trading calendar: which days the market opens, read and fetched in one place.
+"""Trading calendars: which days each market opens, in one place.
+
+The SSE's is read and fetched here; the U.S. stock and Treasury markets' follow their
+announced holiday rules (``US_EQUITY``, ``US_TREASURY``), and ``market_calendar`` gives a
+metric's market its own.
 
 The calendar comes only from TuShare ``trade_cal`` responses captured by the core adapter
 (parser ``CORE_PARSER_VERSION``). Market breadth once asked the same API for open days
@@ -15,11 +19,12 @@ only the target day for CZCE warrants) is left to each caller.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from functools import cache
 from typing import Any, Protocol
 
 from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
@@ -28,7 +33,29 @@ from pring_cycle.source_adapters import CORE_PARSER_VERSION
 from pring_cycle.storage import database_connection
 
 
-class TradingCalendar:
+class Sessions:
+    """Counting over a market's sessions, given which days are sessions."""
+
+    def is_trading(self, day: date) -> bool:
+        raise NotImplementedError
+
+    def nth_from(self, day: date, n: int) -> date:
+        """The ``n``-th session counted from ``day``; the 0th is the first on or after it."""
+        while not self.is_trading(day):
+            day += timedelta(days=1)
+        for _ in range(n):
+            day += timedelta(days=1)
+            while not self.is_trading(day):
+                day += timedelta(days=1)
+        return day
+
+    def latest_on_or_before(self, day: date) -> date:
+        while not self.is_trading(day):
+            day -= timedelta(days=1)
+        return day
+
+
+class TradingCalendar(Sessions):
     """SSE sessions known from the calendar source, and weekdays beyond what it covers.
 
     The sessions alone cover only up to the last of them; ``through`` extends that when the
@@ -47,20 +74,107 @@ class TradingCalendar:
             return day in self._days
         return day.weekday() < 5
 
-    def nth_from(self, day: date, n: int) -> date:
-        """The ``n``-th session counted from ``day``; the 0th is the first on or after it."""
-        while not self.is_trading(day):
-            day += timedelta(days=1)
-        for _ in range(n):
-            day += timedelta(days=1)
-            while not self.is_trading(day):
-                day += timedelta(days=1)
-        return day
 
-    def latest_on_or_before(self, day: date) -> date:
-        while not self.is_trading(day):
-            day -= timedelta(days=1)
-        return day
+class HolidayCalendar(Sessions):
+    """A market whose sessions are the weekdays its holiday rules leave open."""
+
+    def __init__(self, holidays: Callable[[int], frozenset[date]]) -> None:
+        self._holidays = cache(holidays)
+
+    def is_trading(self, day: date) -> bool:
+        return day.weekday() < 5 and day not in self._holidays(day.year)
+
+
+def _nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
+    first = date(year, month, 1)
+    return first + timedelta(days=(weekday - first.weekday()) % 7 + 7 * (n - 1))
+
+
+def _last_weekday(year: int, month: int, weekday: int) -> date:
+    following = date(year + month // 12, month % 12 + 1, 1)
+    last = following - timedelta(days=1)
+    return last - timedelta(days=(last.weekday() - weekday) % 7)
+
+
+def _easter(year: int) -> date:
+    """Western Easter Sunday (the anonymous Gregorian computus)."""
+    a, b, c = year % 19, year // 100, year % 100
+    d, e = b // 4, b % 4
+    g = (8 * b + 13) // 25
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l_ = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 19 * l_) // 433
+    month = (h + l_ - 7 * m + 90) // 25
+    return date(year, month, (h + l_ - 7 * m + 33 * month + 19) % 32)
+
+
+def _observed(day: date, *, saturday_to_friday: bool = True) -> date | None:
+    """A fixed-date holiday falling on a weekend moves to the nearest weekday."""
+    if day.weekday() == 5:
+        return day - timedelta(days=1) if saturday_to_friday else None
+    if day.weekday() == 6:
+        return day + timedelta(days=1)
+    return day
+
+
+MONDAY, THURSDAY = 0, 3
+
+
+def us_equity_holidays(year: int) -> frozenset[date]:
+    """NYSE full closures (nyse.com holidays page; ICE announcement of 2025-2027).
+
+    New Year's Day falling on a Saturday is not observed on the Friday before; other
+    Saturday holidays close the Friday before, Sunday ones the Monday after. Unscheduled
+    closures (a national day of mourning) are left to the freshness grace.
+    """
+    days = {
+        _observed(date(year, 1, 1), saturday_to_friday=False),
+        _nth_weekday(year, 1, MONDAY, 3),  # Martin Luther King, Jr. Day
+        _nth_weekday(year, 2, MONDAY, 3),  # Washington's Birthday
+        _easter(year) - timedelta(days=2),  # Good Friday
+        _last_weekday(year, 5, MONDAY),  # Memorial Day
+        _observed(date(year, 7, 4)),
+        _nth_weekday(year, 9, MONDAY, 1),  # Labor Day
+        _nth_weekday(year, 11, THURSDAY, 4),  # Thanksgiving
+        _observed(date(year, 12, 25)),
+    }
+    if year >= 2022:
+        days.add(_observed(date(year, 6, 19)))  # Juneteenth
+    return frozenset(day for day in days if day is not None)
+
+
+def us_treasury_holidays(year: int) -> frozenset[date]:
+    """SIFMA's recommended full closes for U.S. dollar government securities.
+
+    The equity holidays, and Columbus Day and Veterans Day (a Saturday one is not moved).
+    Good Friday closes only an early session when it is the first Friday of its month, the
+    day the employment report is released (2021, 2023, 2026); an early close is a session.
+    """
+    good_friday = _easter(year) - timedelta(days=2)
+    days = set(us_equity_holidays(year))
+    if good_friday.day <= 7:
+        days.discard(good_friday)
+    days.add(_nth_weekday(year, 10, MONDAY, 2))  # Columbus Day
+    veterans = _observed(date(year, 11, 11), saturday_to_friday=False)
+    if veterans is not None:
+        days.add(veterans)
+    return frozenset(days)
+
+
+US_EQUITY = HolidayCalendar(us_equity_holidays)
+US_TREASURY = HolidayCalendar(us_treasury_holidays)
+
+
+def market_calendar(market: str, sse: Sessions) -> Sessions:
+    """The sessions of ``market``: the SSE's as given, or a U.S. market's by its rules."""
+    if market == "sse":
+        return sse
+    if market == "us_equity":
+        return US_EQUITY
+    if market == "us_treasury":
+        return US_TREASURY
+    raise ValueError(f"trading_calendar_market_unknown:{market}")
 
 
 class CalendarMaterialError(ValueError):
@@ -264,7 +378,10 @@ def current_calendar() -> TradingCalendar:
 
 
 def use_run_calendar(calendar: TradingCalendar) -> None:
-    """Judge freshness for the rest of the run against ``calendar``."""
+    """Judge freshness for the rest of the run against ``calendar``, the SSE's.
+
+    A U.S. metric's freshness swaps in its own market's calendar (``market_calendar``).
+    """
     slot = _run_calendar.get()
     if slot is not None:
         slot.calendar = calendar

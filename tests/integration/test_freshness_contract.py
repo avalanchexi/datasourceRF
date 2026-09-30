@@ -259,3 +259,95 @@ def test_run_submit_on_a_closed_day_ending_the_calendar_targets_the_last_session
     assert submit_at(datetime(2026, 9, 25, 18, 30, tzinfo=SHANGHAI)) == "2026-09-24"
     assert submit_at(datetime(2026, 9, 25, 20, tzinfo=SHANGHAI)) == "2026-09-24"
     assert len(calls) == 1
+
+
+def test_a_us_holiday_is_no_session_for_the_us_metrics_on_a_china_trading_day() -> None:
+    from pring_cycle.freshness import assess
+    from pring_cycle.trading_calendar import TradingCalendar
+
+    sse = TradingCalendar()  # weekdays: every day below is a China trading day
+    # Thanksgiving 2026-11-26: the 25th is VIX's newest session by the morning of the 27th.
+    vix = assess(
+        "CBOE_VIX_INDEX", date(2026, 11, 25), datetime(2026, 11, 27, 12, tzinfo=SHANGHAI), sse
+    )
+    assert (vix.status, vix.released_period) == ("current", "2026-11-25")
+    # Veterans Day 2026-11-11 closes the bond market while stocks trade.
+    yields = assess(
+        "UST10Y_NOMINAL_YIELD", date(2026, 11, 10), datetime(2026, 11, 12, 12, tzinfo=SHANGHAI), sse
+    )
+    assert (yields.status, yields.released_period) == ("current", "2026-11-10")
+
+
+def test_the_us_metrics_move_on_through_a_china_holiday() -> None:
+    from pring_cycle.freshness import assess
+    from pring_cycle.trading_calendar import TradingCalendar
+
+    # National Day 2026: the SSE shuts from 1 to 7 October; the U.S. trades 1, 2 and 5 October.
+    day, session = date(2026, 9, 1), []
+    while day <= date(2026, 10, 31):
+        if day.weekday() < 5 and not date(2026, 10, 1) <= day <= date(2026, 10, 7):
+            session.append(day)
+        day += timedelta(days=1)
+    sse = TradingCalendar(session)
+    cutoff = datetime(2026, 10, 6, 12, tzinfo=SHANGHAI)
+
+    vix = assess("CBOE_VIX_INDEX", date(2026, 10, 2), cutoff, sse)
+
+    assert vix.released_period == "2026-10-05"
+    # A China metric still counts SSE sessions: nothing is released during the holiday.
+    shibor = assess("CN_SHIBOR_ON_1W_3M", date(2026, 9, 30), cutoff, sse)
+    assert (shibor.status, shibor.released_period) == ("current", "2026-09-30")
+
+
+def test_only_the_us_metrics_leave_the_sse_calendar() -> None:
+    from pring_cycle.freshness import FRESHNESS_REGISTRY
+
+    assert {
+        metric_id: rule.market
+        for metric_id, rule in FRESHNESS_REGISTRY.items()
+        if rule.market != "sse"
+    } == {
+        "CBOE_VIX_INDEX": "us_equity",
+        "NASDAQ_SOX_INDEX": "us_equity",
+        "UST10Y_NOMINAL_YIELD": "us_treasury",
+        "UST2Y_NOMINAL_YIELD": "us_treasury",
+    }
+    # The ECB reference cross stays on the SSE calendar (Europe is not modelled yet).
+    assert FRESHNESS_REGISTRY["CN_USDCNY_ECB_REFERENCE_CROSS"].market == "sse"
+
+
+def test_on_the_us_holiday_itself_the_us_metrics_are_not_behind() -> None:
+    from pring_cycle.freshness import assess
+    from pring_cycle.trading_calendar import TradingCalendar
+
+    sse = TradingCalendar()
+    # Thanksgiving noon in Shanghai: Wednesday's close is only due on Friday's morning.
+    vix = assess(
+        "CBOE_VIX_INDEX", date(2026, 11, 24), datetime(2026, 11, 26, 12, tzinfo=SHANGHAI), sse
+    )
+    assert (vix.status, vix.released_period) == ("current", "2026-11-24")
+    # Veterans Day noon: the bond market shut, the 10th's yield is due on the 12th.
+    yields = assess(
+        "UST2Y_NOMINAL_YIELD", date(2026, 11, 9), datetime(2026, 11, 11, 12, tzinfo=SHANGHAI), sse
+    )
+    assert (yields.status, yields.released_period) == ("current", "2026-11-09")
+
+
+def test_the_ecb_cross_keeps_counting_sse_sessions_through_a_china_holiday() -> None:
+    from pring_cycle.freshness import assess
+    from pring_cycle.trading_calendar import TradingCalendar
+
+    day, session = date(2026, 9, 1), []
+    while day <= date(2026, 10, 31):
+        if day.weekday() < 5 and not date(2026, 10, 1) <= day <= date(2026, 10, 7):
+            session.append(day)
+        day += timedelta(days=1)
+
+    ecb = assess(
+        "CN_USDCNY_ECB_REFERENCE_CROSS",
+        date(2026, 9, 30),
+        datetime(2026, 10, 6, 12, tzinfo=SHANGHAI),
+        TradingCalendar(session),
+    )
+
+    assert (ecb.status, ecb.released_period) == ("current", "2026-09-30")

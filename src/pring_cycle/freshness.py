@@ -8,10 +8,12 @@ is the latest period whose inferred release plus grace has passed at the run's c
 - holding anything older is ``stale``, ``periods_behind`` counting the missing periods;
 - holding nothing is ``missing``; a metric with no registry row is ``unconfigured``.
 
-Release time is the ``lag``-th SSE trading day counted from the period end (the 0th being
-the first trading day on or after it) at the registered Shanghai update time. Every count
-uses the SSE calendar, foreign sources included. Freshness is recorded, never enforced
-here: rejecting data belongs to the structural gate alone.
+Release time is the ``lag``-th trading day counted from the period end (the 0th being
+the first trading day on or after it) at the registered Shanghai update time. Days are
+counted on the metric's own market: the SSE's, or the U.S. stock or Treasury market's for
+VIX, SOX and the Treasury yields (a Chinese holiday is a U.S. session, and the reverse).
+Freshness is recorded, never enforced here: rejecting data belongs to the structural gate
+alone.
 """
 
 from __future__ import annotations
@@ -33,10 +35,12 @@ from pring_cycle.metric_contracts import (
     REQUIRED_DIMENSION_MEMBERS,
 )
 from pring_cycle.trading_calendar import (
+    Sessions,
     SseCalendar,
     TradingCalendar,
     acquire_sse_calendar,
     current_calendar,
+    market_calendar,
 )
 
 if TYPE_CHECKING:
@@ -60,6 +64,8 @@ class FreshnessRule:
     day_of_month: int | None = None
     # A source we hold no licence to take automatically: a transparent gap, never searched.
     restricted_license: bool = False
+    # Whose sessions count the lag and grace: the SSE's, or a U.S. market's for its data.
+    market: str = "sse"
 
     @property
     def grace_days(self) -> int:
@@ -71,8 +77,10 @@ _NBS_2026 = "https://www.stats.gov.cn/xw/tjxw/tzgg/202512/t20251224_1962137.html
 _PBC_FINANCIAL = "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html"
 
 
-def _daily(source: str, at: time, basis: str, *, lag: int = 0) -> FreshnessRule:
-    return FreshnessRule(source, "daily", lag, at, basis)
+def _daily(
+    source: str, at: time, basis: str, *, lag: int = 0, market: str = "sse"
+) -> FreshnessRule:
+    return FreshnessRule(source, "daily", lag, at, basis, market=market)
 
 
 def _monthly(source: str, lag: int, at: time, basis: str) -> FreshnessRule:
@@ -157,6 +165,7 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
         time(6, 0),
         "https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv",
         grace=3,
+        market="us_equity",
     ),
     # Restricted licence (ADR-0029): Nasdaq offers no documented free feed for SOX.
     "NASDAQ_SOX_INDEX": FreshnessRule(
@@ -166,9 +175,14 @@ FRESHNESS_REGISTRY: dict[str, FreshnessRule] = {
         time(6, 0),
         "https://www.nasdaq.com/",
         restricted_license=True,
+        market="us_equity",
     ),
-    "UST10Y_NOMINAL_YIELD": _daily("tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1),
-    "UST2Y_NOMINAL_YIELD": _daily("tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1),
+    "UST10Y_NOMINAL_YIELD": _daily(
+        "tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1, market="us_treasury"
+    ),
+    "UST2Y_NOMINAL_YIELD": _daily(
+        "tushare:us_tycr", time(7, 0), _TUSHARE_DOCS, lag=1, market="us_treasury"
+    ),
     "EIA_BRENT_RBRTE": FreshnessRule(
         "eia:petroleum_spot", "weekly", 2, time(23, 0), "https://www.eia.gov/dnav/pet/"
     ),
@@ -232,7 +246,7 @@ class FreshnessAssessment:
     basis: str | None
 
 
-def period_end(frequency: str, day: date, calendar: TradingCalendar) -> date:
+def period_end(frequency: str, day: date, calendar: Sessions) -> date:
     """The end of the period ``day`` belongs to."""
     if frequency == "daily":
         return day
@@ -248,7 +262,7 @@ def period_end(frequency: str, day: date, calendar: TradingCalendar) -> date:
     raise ValueError(f"freshness_frequency_unsupported:{frequency}")
 
 
-def _previous_period(frequency: str, end: date, calendar: TradingCalendar) -> date:
+def _previous_period(frequency: str, end: date, calendar: Sessions) -> date:
     if frequency == "daily":
         return calendar.latest_on_or_before(end - timedelta(days=1))
     if frequency == "weekly":
@@ -261,15 +275,16 @@ def _quarter_start(day: date) -> date:
     return date(day.year, (day.month - 1) // 3 * 3 + 1, 1)
 
 
-def release_at(rule: FreshnessRule, end: date, calendar: TradingCalendar) -> datetime:
+def release_at(rule: FreshnessRule, end: date, calendar: Sessions) -> datetime:
     """When a registered source is taken to publish the period ending on ``end``.
 
-    A pre-announcement the batch received wins (ticket 25); otherwise the Nth SSE trading
-    day after the period end at the registered update time.
+    A pre-announcement the batch received wins (ticket 25); otherwise the Nth trading day
+    of the metric's market after the period end at the registered update time.
     """
     announced = _announced_release(rule, end)
     if announced is not None:
         return announced
+    calendar = market_calendar(rule.market, calendar)
     if rule.day_of_month is not None:
         day = calendar.nth_from(end.replace(day=rule.day_of_month), 0)
     else:
@@ -277,15 +292,15 @@ def release_at(rule: FreshnessRule, end: date, calendar: TradingCalendar) -> dat
     return datetime.combine(day, rule.update_time, SHANGHAI)
 
 
-def _due_at(rule: FreshnessRule, end: date, calendar: TradingCalendar) -> datetime:
+def _due_at(rule: FreshnessRule, end: date, calendar: Sessions) -> datetime:
     released = release_at(rule, end, calendar)
+    calendar = market_calendar(rule.market, calendar)
     day = calendar.nth_from(released.date(), rule.grace_days)
     return datetime.combine(day, rule.update_time, SHANGHAI)
 
 
-def _periods_back(
-    rule: FreshnessRule, cutoff: datetime, calendar: TradingCalendar
-) -> Iterator[date]:
+def _periods_back(rule: FreshnessRule, cutoff: datetime, calendar: Sessions) -> Iterator[date]:
+    calendar = market_calendar(rule.market, calendar)
     end = period_end(rule.frequency, cutoff.astimezone(SHANGHAI).date(), calendar)
     if rule.frequency == "daily":
         end = calendar.latest_on_or_before(end)
@@ -294,9 +309,7 @@ def _periods_back(
         end = _previous_period(rule.frequency, end, calendar)
 
 
-def latest_released_period(
-    rule: FreshnessRule, cutoff: datetime, calendar: TradingCalendar
-) -> date:
+def latest_released_period(rule: FreshnessRule, cutoff: datetime, calendar: Sessions) -> date:
     """The end of the newest period whose registered release time has passed at ``cutoff``."""
     for end in _periods_back(rule, cutoff, calendar):
         if release_at(rule, end, calendar) <= cutoff:
@@ -308,7 +321,7 @@ def assess(
     metric_id: str,
     held_period: date | None,
     cutoff: datetime,
-    calendar: TradingCalendar,
+    calendar: Sessions,
     *,
     first_acquired_at: datetime | None = None,
 ) -> FreshnessAssessment:
@@ -317,6 +330,7 @@ def assess(
         return FreshnessAssessment(
             metric_id, None, None, "unconfigured", _text(held_period), None, None, None, None, None
         )
+    calendar = market_calendar(rule.market, calendar)
     public = public_available_at(metric_id, held_period, first_acquired_at, calendar)
     if held_period is None:
         # Nothing held still owes a period: the gap list names it (ticket 19).
@@ -390,7 +404,7 @@ def public_available_at(
     metric_id: str,
     held_period: date | None,
     first_acquired_at: datetime | None,
-    calendar: TradingCalendar,
+    calendar: Sessions,
 ) -> datetime | None:
     """The earlier of the registered release time and when the system first held the value."""
     rule = FRESHNESS_REGISTRY.get(metric_id)
@@ -400,7 +414,7 @@ def public_available_at(
     return inferred if first_acquired_at is None else min(inferred, first_acquired_at)
 
 
-def target_business_date(launched_at: datetime, calendar: TradingCalendar) -> date:
+def target_business_date(launched_at: datetime, calendar: Sessions) -> date:
     """The latest session whose three core sources have all passed their update time."""
     if launched_at.tzinfo is None:
         raise ValueError("launched_at_must_be_timezone_aware")
@@ -484,7 +498,7 @@ def assess_catalog(
     metric_ids: Iterable[str],
     held: Mapping[str, tuple[date | None, datetime | None]],
     cutoff: datetime,
-    calendar: TradingCalendar,
+    calendar: Sessions,
 ) -> tuple[FreshnessAssessment, ...]:
     """Assess each catalog metric from its latest held period and first acquisition time."""
     ordered = [metric_id for metric_id in metric_ids if metric_id not in NOT_ASSESSED]
@@ -548,7 +562,7 @@ def record_run_freshness(
     run_id: str,
     definitions: Iterable[MetricDefinition],
     cutoff: datetime,
-    calendar: TradingCalendar,
+    calendar: Sessions,
 ) -> tuple[FreshnessAssessment, ...]:
     """Assess the catalog from what the system held at ``cutoff`` and record it in the batch."""
     from pring_cycle.evidence import AsOfMode, EvidenceRepository
