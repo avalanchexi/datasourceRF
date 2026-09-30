@@ -743,59 +743,19 @@ _GAP_ORDER = (
     "derived_failed",
     "source_conflict",
 )
-# Acquisition outcomes of a registered source, as the Worker records them; the last one a
-# run recorded for a metric says whether that source failed it (gap sources #04).
-_FETCH_FAILED = frozenset({"source_failed", "adapter_failed", "missing_credentials"})
-_ACQUISITION_OUTCOMES = _FETCH_FAILED | {
-    "validation_failed",
-    "verified_candidate",
-    "partial_validation",
-    "missing_fields",
-    "missing_values",
-}
 
 
 def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, str]]:
-    """Per metric (per warrant symbol), how the run's last acquisition failed, if it did."""
-    from pring_cycle.storage import database_connection
+    """Per metric, the gap category and reason of the batch's failed acquisition."""
+    from pring_cycle.acquisition_outcome import SOURCE_FAILED_OUTCOMES, AcquisitionOutcomes
 
-    with database_connection(database) as connection:
-        if not connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE name='retrieval_attempt'"
-        ).fetchone():
-            return {}
-        run = connection.execute(
-            "SELECT accepted_at, target_business_date FROM parent_run WHERE run_id=?", (run_id,)
-        ).fetchone()
-        if run is None:
-            return {}
-        # One Worker runs one batch at a time: this run's attempts fall between its acceptance
-        # and the next run's.
-        following = connection.execute(
-            "SELECT min(accepted_at) FROM parent_run WHERE accepted_at > ?", (run[0],)
-        ).fetchone()[0]
-        rows = connection.execute(
-            "SELECT metric_id, outcome, safe_metadata_json FROM retrieval_attempt "
-            "WHERE fetched_at >= ? AND (? IS NULL OR fetched_at < ?) "
-            "AND outcome IN (SELECT value FROM json_each(?)) ORDER BY fetched_at, rowid",
-            (run[0], following, following, json.dumps(sorted(_ACQUISITION_OUTCOMES))),
-        ).fetchall()
-    # By symbol too: each warrant symbol is acquired on its own, so one symbol's failure stands
-    # though another symbol succeeded after it. Alternative families (an API, then its page)
-    # still let a later success clear an earlier failure.
-    latest: dict[tuple[str, str | None], tuple[str, dict[str, str]]] = {}
-    for metric_id, outcome, metadata_json in rows:
-        metadata = json.loads(metadata_json)
-        if metadata.get("target_business_date", run[1]) == run[1]:
-            latest[(str(metric_id), metadata.get("symbol"))] = (str(outcome), metadata)
-    failures = {}
-    for (metric_id, _symbol), (outcome, metadata) in latest.items():
-        detail = metadata.get("reason") or metadata.get("condition") or metadata.get("error_type")
-        if outcome in _FETCH_FAILED:
-            failures[metric_id] = ("fetch_failed", str(detail or outcome))
-        elif outcome == "validation_failed":
-            failures[metric_id] = ("ingest_rejected", str(detail or outcome))
-    return failures
+    return {
+        metric_id: (
+            "fetch_failed" if attempt.outcome in SOURCE_FAILED_OUTCOMES else "ingest_rejected",
+            attempt.detail,
+        )
+        for metric_id, attempt in AcquisitionOutcomes(database).for_batch(run_id).failures().items()
+    }
 
 
 def gap_list(
@@ -815,7 +775,6 @@ def gap_list(
     carry the metric at all: it belongs to no registered retrieval family.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
-    from pring_cycle.storage import database_connection
 
     priorities = {item.metric_id: item.priority for item in definitions}
     failed_candidates = _failed_candidates(database, run_id)
@@ -860,20 +819,14 @@ def gap_list(
                 gap["category"] = "retrieval_failed"
             gap["candidates"] = failed_candidates[metric_id]
         gaps.append(gap)
-    with database_connection(database) as connection:
-        rejected = connection.execute(
-            """
-            SELECT a.metric_ids_json, r.api_name, r.rejection_reason
-            FROM full_run_acquisition a JOIN acquisition_request r USING (acquisition_id)
-            WHERE a.run_id=? AND r.structure_check='rejected'
-            """,
-            (run_id,),
-        ).fetchall()
+    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+
+    rejected = AcquisitionOutcomes(database).for_batch(run_id).structure_rejections()
     # A rejected search candidate is already shown with its URL under retrieval_failed, and a
     # metric already listed says why it is missing there.
     seen = set(failed_candidates) | {str(gap["metric_id"]) for gap in gaps}
-    for metric_ids_json, api_name, reason in rejected:
-        for metric_id in json.loads(metric_ids_json or "[]"):
+    for rejection in rejected:
+        for metric_id in rejection.metric_ids:
             if metric_id in seen or metric_id not in priorities or metric_id in NOT_ASSESSED:
                 continue
             seen.add(metric_id)
@@ -882,7 +835,7 @@ def gap_list(
                     "metric_id": metric_id,
                     "priority": priorities.get(metric_id),
                     "category": "rejected",
-                    "reason": f"{api_name}:{reason}",
+                    "reason": f"{rejection.api_name}:{rejection.reason}",
                     "due_period": None,
                     "held_period": None,
                     "periods_behind": None,

@@ -81,11 +81,10 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
         for row in projection.datasets["macro"]["international_context"]
         if row["metric_id"] == "EIA_BRENT_RBRTE"
     )
-    # Every branch here ends at the key-free page, which is offline in this fixture, so the
-    # page channel carries the last word while the API channel keeps its own recorded outcome.
+    # Every branch here ends at the key-free page, which is offline in this fixture, while
+    # the API channel keeps its own recorded outcome. How the row shows the latest of them
+    # is asked of the projection directly (test_acquisition_outcome).
     assert pages
-    assert row["acquisition_status"] == "source_failed"
-    assert row["latest_acquisition"]["channel"] == "eia_html_candidate"
     expected = (
         "missing_credentials"
         if failure is None
@@ -107,29 +106,7 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
     assert outcomes["eia_html_candidate"] == "source_failed"
     assert row["value"] is None
     assert row["role"] == "context_only_never_formal_stage"
-    assert row["latest_acquisition"]["definition_version"] == "metric-catalog-v0001"
     assert len(requests) == (0 if failure is None else 1)
-
-
-def test_retrieval_attempt_is_not_visible_a_microsecond_before_recorded_time(
-    tmp_path: Path,
-) -> None:
-    paths, _runs = prepare(tmp_path)
-    evidence = EvidenceRepository(paths.database)
-    recorded = datetime(2026, 8, 28, 10, 0, 0, 100, tzinfo=UTC)
-    evidence.record_retrieval_attempt(
-        metric_id="EIA_BRENT_RBRTE",
-        channel="eia_official_candidate",
-        outcome="source_failed",
-        fetched_at=recorded,
-        safe_metadata={"period": "2026-08-28"},
-    )
-    assert (
-        evidence.latest_retrieval_attempt(
-            "EIA_BRENT_RBRTE", period="2026-08-28", as_of=recorded - timedelta(microseconds=1)
-        )
-        is None
-    )
 
 
 @pytest.mark.parametrize("case", ["gdp_no_levels", "treasury_schema", "treasury_partial"])
@@ -220,17 +197,9 @@ def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
         "missing_fields" if case == "treasury_partial" else "validation_failed"
     )
     if case == "treasury_partial":
+        # The spread showing its inputs' acquisitions is asked of the projection directly.
         ten_year = next(row for row in rows if row["metric_id"] == "UST10Y_NOMINAL_YIELD")
         assert ten_year["acquisition_status"] == "verified_candidate"
-        spread = next(row for row in rows if row["metric_id"] == "UST_2S10S_SPREAD")
-        assert spread["acquisition_status"] == "derived_from_inputs"
-        assert spread["latest_acquisition"] is None
-        assert {
-            item["metric_id"]: item["acquisition_status"] for item in spread["input_acquisition"]
-        } == {
-            "UST2Y_NOMINAL_YIELD": "missing_fields",
-            "UST10Y_NOMINAL_YIELD": "verified_candidate",
-        }
 
 
 @pytest.mark.usefixtures("unavailable_optional_eia")

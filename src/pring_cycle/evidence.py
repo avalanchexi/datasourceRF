@@ -890,52 +890,25 @@ class EvidenceRepository:
         definition_version: str | None = None,
         target_business_date: str | None = None,
     ) -> RetrievalAttemptView | None:
-        if as_of.tzinfo is None:
-            raise ValueError("retrieval_attempt_as_of_must_be_timezone_aware")
-        with self._connect() as connection:
-            rows = connection.execute(
-                """
-                SELECT * FROM retrieval_attempt
-                WHERE metric_id=? AND julianday(fetched_at) <= julianday(?)
-                ORDER BY julianday(fetched_at) DESC, retrieval_attempt_id DESC
-                """,
-                (metric_id, _iso(as_of)),
-            ).fetchall()
-        rows.sort(
-            key=lambda row: (
-                _required_datetime(row["fetched_at"]),
-                str(row["retrieval_attempt_id"]),
-            ),
-            reverse=True,
+        from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+
+        attempt = AcquisitionOutcomes(self._database_path).latest(
+            metric_id,
+            as_of=as_of,
+            definition_version=definition_version,
+            target_business_date=target_business_date,
+            period=period,
         )
-        for row in rows:
-            if _required_datetime(row["fetched_at"]) > as_of:
-                continue
-            metadata = {
-                str(key): str(value)
-                for key, value in json.loads(str(row["safe_metadata_json"])).items()
-            }
-            if period is not None and metadata.get("period") != period:
-                continue
-            if (
-                target_business_date is not None
-                and metadata.get("target_business_date") != target_business_date
-            ):
-                continue
-            if (
-                definition_version is not None
-                and metadata.get("definition_version") != definition_version
-            ):
-                continue
-            return RetrievalAttemptView(
-                retrieval_attempt_id=str(row["retrieval_attempt_id"]),
-                metric_id=str(row["metric_id"]),
-                channel=str(row["channel"]),
-                outcome=str(row["outcome"]),
-                fetched_at=_required_datetime(row["fetched_at"]),
-                safe_metadata=metadata,
-            )
-        return None
+        if attempt is None:
+            return None
+        return RetrievalAttemptView(
+            retrieval_attempt_id=attempt.attempt_id,
+            metric_id=attempt.metric_id,
+            channel=attempt.channel,
+            outcome=attempt.outcome,
+            fetched_at=attempt.recorded_at,
+            safe_metadata={key: str(value) for key, value in attempt.metadata.items()},
+        )
 
     def query(
         self,

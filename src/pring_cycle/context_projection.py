@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.claim_adoption import ClaimAdoption
@@ -307,33 +308,31 @@ def build_context_projection(
     acquisition_period = (
         target_business_date or as_of.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
     )
+    outcomes = AcquisitionOutcomes(repository.database_path)
     for definition in definitions.values():
         if definition.priority != "P2":
             continue
-        attempt = repository.latest_retrieval_attempt(
+        attempt = outcomes.latest(
             definition.metric_id,
-            period=None,
             as_of=as_of,
             definition_version=definition.definition_version,
             target_business_date=acquisition_period,
         )
         latest = (
             {
-                "attempt_id": attempt.retrieval_attempt_id,
+                "attempt_id": attempt.attempt_id,
                 "channel": attempt.channel,
                 "outcome": attempt.outcome,
-                "recorded_at": attempt.fetched_at.isoformat(),
+                "recorded_at": attempt.recorded_at.isoformat(),
                 "definition_version": definition.definition_version,
-                "condition": attempt.safe_metadata.get("condition"),
-                "request_sent": False
-                if attempt.safe_metadata.get("request_sent") == "false"
-                else None,
-                "rejected_fields": attempt.safe_metadata.get("rejected_fields"),
-                "latest_source_period": attempt.safe_metadata.get("latest_source_period"),
-                "source_timezone": attempt.safe_metadata.get("source_timezone"),
-                "release_date": attempt.safe_metadata.get("release_date"),
-                "next_release_date": attempt.safe_metadata.get("next_release_date"),
-                "release_timezone": attempt.safe_metadata.get("release_timezone"),
+                "condition": attempt.condition,
+                "request_sent": False if attempt.request_sent is False else None,
+                "rejected_fields": attempt.rejected_fields,
+                "latest_source_period": attempt.latest_source_period,
+                "source_timezone": attempt.source_timezone,
+                "release_date": attempt.release_date,
+                "next_release_date": attempt.next_release_date,
+                "release_timezone": attempt.release_timezone,
             }
             if attempt is not None
             else None

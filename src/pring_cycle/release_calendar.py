@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, ReleaseEventView
 
 
@@ -199,10 +200,8 @@ def lpr_release_calendar(
     previous_event = current_event or (visible[-1] if visible else None)
     released = _released_observation(previous_event, mode=as_of_mode)
     attempt = (
-        repository.latest_retrieval_attempt(
-            expectation.metric_id,
-            period=period,
-            as_of=as_of,
+        AcquisitionOutcomes(repository.database_path).latest(
+            expectation.metric_id, as_of=as_of, period=period
         )
         if as_of_mode is AsOfMode.SYSTEM
         else None
@@ -238,7 +237,7 @@ def lpr_release_calendar(
             latest_fetched_at=(
                 current_event.latest_fetched_at
                 if current_event is not None
-                else attempt.fetched_at
+                else attempt.recorded_at
                 if attempt is not None
                 else previous_event.latest_fetched_at
                 if previous_event is not None

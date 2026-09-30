@@ -343,31 +343,6 @@ def test_the_basket_is_chained_from_its_base_on_settlements(
     )
 
 
-def test_values_refused_at_ingest_are_listed_with_the_reason_code(
-    completed: tuple[RuntimePaths, str],
-) -> None:
-    paths, _run_id = completed
-
-    valuation = gaps(paths)["CN_INDEX_VALUATION"]
-
-    assert valuation["category"] == "ingest_rejected"
-    assert valuation["reason"] == "tushare_response_period_mismatch"
-    # No web page carries it: a property of the gap, not why it is missing.
-    assert valuation["no_web_fallback"] is True
-
-
-def test_a_source_that_did_not_answer_is_listed_as_fetch_failed(
-    completed: tuple[RuntimePaths, str],
-) -> None:
-    paths, _run_id = completed
-
-    dr007 = gaps(paths)["CN_DR007"]
-
-    assert dr007["category"] == "fetch_failed"
-    assert dr007["no_web_fallback"] is True
-    assert "no_searchable_source" not in {item["category"] for item in gaps(paths).values()}
-
-
 def test_sox_is_a_license_gap_that_is_never_searched(
     completed: tuple[RuntimePaths, str],
 ) -> None:

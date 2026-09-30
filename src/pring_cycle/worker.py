@@ -13,6 +13,7 @@ from functools import partial
 from time import monotonic
 from zoneinfo import ZoneInfo
 
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.ai_websearch import ai_websearch_adapter, ai_websearch_enabled
 from pring_cycle.basket import BASKET_METRICS
 from pring_cycle.batches import code_version, processing_batch
@@ -1446,14 +1447,14 @@ def refresh_context_sources(
             # The adapter normally records the detailed transport/validation failure. Preserve
             # that receipt; also cover errors after capture so an older success cannot hide one.
             failed_at = datetime.now(UTC)
-            latest = repository.latest_retrieval_attempt(
-                ECB_METRIC, period=None, as_of=failed_at, definition_version=definition_version
+            latest = AcquisitionOutcomes(paths.database).latest(
+                ECB_METRIC, as_of=failed_at, definition_version=definition_version
             )
             if (
                 latest is None
                 or latest.outcome not in {"source_failed", "validation_failed"}
                 or not acquisition_ids
-                or latest.safe_metadata.get("acquisition_ids") != ",".join(acquisition_ids)
+                or latest.acquisition_ids != tuple(acquisition_ids)
             ):
                 repository.record_retrieval_attempt(
                     metric_id=ECB_METRIC,
