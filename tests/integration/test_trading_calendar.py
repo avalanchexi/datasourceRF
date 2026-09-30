@@ -6,6 +6,7 @@ import json
 from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -264,3 +265,74 @@ def test_only_an_unreadable_response_newer_than_the_window_s_sources_can_matter(
     capture_unreadable_calendar(paths, datetime(2026, 9, 20, tzinfo=UTC))
 
     assert len(SseCalendar(paths).unreadable_since(window[0], target)) == 1
+
+
+def test_the_sessions_of_a_range_are_known_only_when_every_day_is_covered(
+    paths: RuntimePaths,
+) -> None:
+    # Breadth reads 600 days of sessions; a range the responses leave a gap in is unknown.
+    acquire_sse_calendar(paths, sse_adapter(), date(2026, 1, 1), date(2026, 3, 31))
+    acquire_sse_calendar(paths, sse_adapter(), date(2026, 5, 1), date(2026, 6, 30))
+    calendar = SseCalendar(paths)
+
+    sessions = calendar.sessions_between(date(2026, 2, 1), date(2026, 3, 31))
+    assert sessions is not None and sessions[0] == date(2026, 2, 2)
+    assert all(day.weekday() < 5 for day in sessions)
+    assert calendar.sessions_between(date(2026, 3, 1), date(2026, 5, 31)) is None
+
+
+class CalendarOpener:
+    """TuShare's trade_cal over the network, or a refusal with ``code``."""
+
+    def __init__(self, calls: list[dict[str, str]], code: int = 0) -> None:
+        self.calls, self.code = calls, code
+
+    def open(self, request: Any, *, timeout: float) -> Any:
+        from io import BytesIO
+
+        payload = json.loads(request.data)
+        self.calls.append(payload["params"])
+        if self.code:
+            return BytesIO(json.dumps({"code": self.code, "msg": "refused"}).encode())
+        start = datetime.strptime(payload["params"]["start_date"], "%Y%m%d").date()
+        end = datetime.strptime(payload["params"]["end_date"], "%Y%m%d").date()
+        items = [
+            [day.strftime("%Y%m%d"), int(day.weekday() < 5)]
+            for day in (start + timedelta(days=n) for n in range((end - start).days + 1))
+        ]
+        document = {"code": 0, "data": {"fields": ["cal_date", "is_open"], "items": items}}
+        return BytesIO(json.dumps(document).encode())
+
+
+def test_breadth_reads_its_sessions_from_the_calendar_and_fetches_only_what_is_missing(
+    paths: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from pring_cycle.worker import _breadth_calendar
+
+    calls: list[dict[str, str]] = []
+    monkeypatch.setattr(
+        "pring_cycle.source_adapters.build_opener", lambda *handlers: CalendarOpener(calls)
+    )
+    target = date(2026, 9, 24)
+
+    sessions, calendar_ids = _breadth_calendar(paths, "fixture-token", target)
+    again, _ = _breadth_calendar(paths, "fixture-token", target)
+
+    assert calls == [{"exchange": "SSE", "start_date": "20250201", "end_date": "20260924"}]
+    assert sessions == again and sessions[-1] == target
+    assert len(calendar_ids) == 1
+
+
+def test_a_refused_breadth_calendar_is_a_source_failure_telling_a_rate_limit(
+    paths: RuntimePaths, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from pring_cycle.tushare_context import TushareSourceError
+    from pring_cycle.worker import _breadth_calendar
+
+    for code, reason in ((40203, "tushare_rate_limited"), (40001, "tushare_source_failed:40001")):
+        monkeypatch.setattr(
+            "pring_cycle.source_adapters.build_opener",
+            lambda *handlers, code=code: CalendarOpener([], code),
+        )
+        with pytest.raises(TushareSourceError, match=reason):
+            _breadth_calendar(paths, "fixture-token", date(2026, 9, 24))

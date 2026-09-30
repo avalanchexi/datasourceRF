@@ -361,12 +361,20 @@ def _core_number(value: object) -> float:
     return number
 
 
+class TushareRefused(ValueError):
+    """TuShare answered with a non-zero code (a permission refusal, a rate limit)."""
+
+    def __init__(self, code: int) -> None:
+        super().__init__("tushare_source_failed")
+        self.code = code
+
+
 def _response_document(response: bytes | dict[str, Any]) -> dict[str, Any]:
     document = json.loads(response) if isinstance(response, bytes) else response
     if not isinstance(document, dict):
         raise ValueError("tushare_response_invalid")
-    if int(document.get("code", -1)) != 0:
-        raise ValueError("tushare_source_failed")
+    if (code := int(document.get("code", -1))) != 0:
+        raise TushareRefused(code)
     return {str(key): value for key, value in document.items()}
 
 

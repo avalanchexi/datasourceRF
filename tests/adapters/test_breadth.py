@@ -63,8 +63,6 @@ def fake_call(calls: list[tuple[str, dict[str, str]]]):  # type: ignore[no-untyp
                 {"ts_code": code, "list_status": status, "list_date": listed or listed_100}
                 for code, listed in LISTINGS[status]
             ]
-        elif api == "trade_cal":
-            rows = [{"cal_date": d.strftime("%Y%m%d"), "is_open": 1} for d in sessions()]
         elif api == "daily":
             rows = [
                 dict(zip(("ts_code", "close", "pre_close", "vol", "amount"), q, strict=True))
@@ -89,7 +87,7 @@ def values(scalars: Any) -> dict[tuple[str, str], float]:
 
 
 def test_daily_breadth_counts_first_days_and_leaves_out_suspended_and_b_shares() -> None:
-    result = values(breadth_scalars(fake_call([]), end_date=DAY, window=1))
+    result = values(breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1))
 
     assert result[("CN_EQ_ADV_DEC", "advances")] == 2
     assert result[("CN_EQ_ADV_DEC", "declines")] == 1
@@ -101,7 +99,7 @@ def test_daily_breadth_counts_first_days_and_leaves_out_suspended_and_b_shares()
 
 
 def test_windows_count_only_shares_traded_listed_long_enough_and_with_the_factor() -> None:
-    result = values(breadth_scalars(fake_call([]), end_date=DAY, window=1))
+    result = values(breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1))
 
     # 90 days: the old share and the one listed 100 sessions ago (the first-day share has no
     # factor, the suspended one did not trade).
@@ -112,7 +110,10 @@ def test_windows_count_only_shares_traded_listed_long_enough_and_with_the_factor
     assert result[("CN_EQ_NEW_HIGH_LOW_250", "new_highs")] == 1
     assert result[("CN_EQ_NEW_HIGH_LOW_250", "new_lows")] == 0
     assert result[("CN_EQ_ABOVE_MA250", "above_ma_share")] == 0.0
-    assert {s.source_field for s in breadth_scalars(fake_call([]), end_date=DAY, window=1)} >= {
+    assert {
+        s.source_field
+        for s in breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1)
+    } >= {
         "new_highs_90",
         "above_ma_share_250",
         "advances",
@@ -123,7 +124,7 @@ def test_a_full_page_is_followed_by_the_next(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(breadth, "PAGE_ROWS", 2)
     calls: list[tuple[str, dict[str, str]]] = []
 
-    result = values(breadth_scalars(fake_call(calls), end_date=DAY, window=1))
+    result = values(breadth_scalars(fake_call(calls), end_date=DAY, sessions=sessions(), window=1))
 
     assert result[("CN_EQ_ADV_DEC", "participants")] == 3
     assert [p["offset"] for api, p in calls if api == "daily"] == ["0", "2", "4"]
@@ -133,7 +134,9 @@ def test_only_the_window_days_not_yet_held_are_fetched() -> None:
     calls: list[tuple[str, dict[str, str]]] = []
     previous = sessions()[-2]
 
-    scalars = breadth_scalars(fake_call(calls), end_date=DAY, held_days={previous}, window=3)
+    scalars = breadth_scalars(
+        fake_call(calls), end_date=DAY, sessions=sessions(), held_days={previous}, window=3
+    )
 
     assert {s.period_end for s in scalars} == {sessions()[-3].isoformat(), DAY.isoformat()}
     assert [p["trade_date"] for api, p in calls if api == "daily"] == [
@@ -142,11 +145,25 @@ def test_only_the_window_days_not_yet_held_are_fetched() -> None:
     ]
 
 
-def test_nothing_left_to_compute_fetches_only_the_calendar() -> None:
+def test_nothing_left_to_compute_fetches_nothing() -> None:
+    # The calendar comes from the SSE calendar module, not a request of breadth's own.
     calls: list[tuple[str, dict[str, str]]] = []
 
-    assert breadth_scalars(fake_call(calls), end_date=DAY, held_days={DAY}, window=1) == ()
-    assert [api for api, _ in calls] == ["trade_cal"]
+    assert (
+        breadth_scalars(
+            fake_call(calls), end_date=DAY, sessions=sessions(), held_days={DAY}, window=1
+        )
+        == ()
+    )
+    assert calls == []
+
+
+def test_every_figure_names_the_calendar_responses_it_counted_on() -> None:
+    scalars = breadth_scalars(
+        fake_call([]), end_date=DAY, sessions=sessions(), window=1, calendar_ids=("calendar",)
+    )
+
+    assert scalars and all(scalar.acquisition_ids == ("calendar",) for scalar in scalars)
 
 
 def test_an_unknown_security_code_that_trades_refuses_the_delivery() -> None:
@@ -154,7 +171,7 @@ def test_an_unknown_security_code_that_trades_refuses_the_delivery() -> None:
     QUOTES.append(("123456.SH", 5.0, 5.0, 10.0, 50.0))
     try:
         with pytest.raises(ValueError, match="tushare_breadth_security_scope_unknown"):
-            breadth_scalars(fake_call([]), end_date=DAY, window=1)
+            breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1)
     finally:
         LISTINGS["L"].pop()
         QUOTES.pop()
@@ -197,7 +214,7 @@ def test_ambiguous_response_fields_are_refused_before_rows_are_read(extra_field:
 
     adapter = TushareContextAdapter("fixture-token", transport=transport)
     with pytest.raises(ValueError, match="response_schema_invalid"):
-        adapter.breadth(end_date=DAY, held_days=())
+        adapter.breadth(end_date=DAY, sessions=tuple(sessions()), held_days=(), calendar_ids=())
 
 
 def test_a_failed_factor_delivery_leaves_the_daily_figures_standing() -> None:
@@ -208,7 +225,7 @@ def test_a_failed_factor_delivery_leaves_the_daily_figures_standing() -> None:
             raise OSError("fixture_permission_denied")
         return inner(api, params, fields)
 
-    result = values(breadth_scalars(call, end_date=DAY, window=1))
+    result = values(breadth_scalars(call, end_date=DAY, sessions=sessions(), window=1))
 
     assert result[("CN_EQ_ADV_DEC", "advances")] == 2
     assert result[("CN_EQ_ADV_AMOUNT_SHARE", "advancing_amount_share")] == 80.0
@@ -218,7 +235,7 @@ def test_a_failed_factor_delivery_leaves_the_daily_figures_standing() -> None:
 def test_a_share_outside_its_listing_interval_is_not_a_member() -> None:
     LISTINGS["L"][0] = ("600000.SH", "20260925")  # Listed the day after.
     try:
-        result = values(breadth_scalars(fake_call([]), end_date=DAY, window=1))
+        result = values(breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1))
     finally:
         LISTINGS["L"][0] = ("600000.SH", "19991110")
 
@@ -229,7 +246,7 @@ def test_a_non_finite_price_refuses_the_delivery() -> None:
     QUOTES[0] = ("600000.SH", float("nan"), 10.0, 1000.0, 5000.0)
     try:
         with pytest.raises(ValueError, match="tushare_breadth_value_invalid"):
-            breadth_scalars(fake_call([]), end_date=DAY, window=1)
+            breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1)
     finally:
         QUOTES[0] = ("600000.SH", 10.5, 10.0, 1000.0, 5000.0)
 
@@ -237,7 +254,7 @@ def test_a_non_finite_price_refuses_the_delivery() -> None:
 def test_a_code_retired_before_the_window_needs_no_classification() -> None:
     LISTINGS["D"].append(("T600018.SH", "19930101"))
     try:
-        result = values(breadth_scalars(fake_call([]), end_date=DAY, window=1))
+        result = values(breadth_scalars(fake_call([]), end_date=DAY, sessions=sessions(), window=1))
     finally:
         LISTINGS["D"].pop()
 

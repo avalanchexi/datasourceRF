@@ -153,7 +153,7 @@
 |---|---|---|---|
 | [01](issues/01-test-speed-existing-seams.md) | 慢测试改走已有接口、夹具改批量写入 | 无 | done |
 | [02](issues/02-trading-calendar-module.md) | 交易日历模块（纯重构） | 01 | done |
-| [03](issues/03-breadth-uses-trading-calendar.md) | 市场广度改用交易日历模块 | 02 | ready-for-agent |
+| [03](issues/03-breadth-uses-trading-calendar.md) | 市场广度改用交易日历模块 | 02 | done（真实运行核对留到终点） |
 | [04](issues/04-foreign-metrics-local-calendars.md) | 外盘指标按当地交易日历判断应有期（美股、美债） | 02 | ready-for-agent |
 | [05](issues/05-claim-adoption-module.md) | 可采用声明模块（纯重构） | 无 | done |
 | [06](issues/06-projection-rechecks-margin-index-valuation.md) | 投影也复核融资余额、指数行情、估值的原件 | 05 | ready-for-agent |

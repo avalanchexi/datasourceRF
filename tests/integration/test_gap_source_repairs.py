@@ -15,11 +15,13 @@ from typing import Any
 
 import pytest
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.source_adapters import CORE_PARSER_VERSION
 from pring_cycle.worker import process_pending_run
 from tests.conftest import install_runtime_clock
 from tests.fixtures.czce_report import czce_exchange
@@ -321,6 +323,36 @@ def test_breadth_is_held_from_tushare_quotes_and_factors(
         "CN_EQ_ABOVE_MA250",
     ):
         assert metric_id not in listed, listed.get(metric_id)
+
+
+def test_breadth_counts_on_the_core_calendar_not_a_calendar_of_its_own(
+    completed: tuple[RuntimePaths, str],
+) -> None:
+    """Breadth asks TuShare for no calendar; its figures trace to the SSE calendar's."""
+    paths, _run_id = completed
+    evidence = EvidenceRepository(paths.database)
+    point = evidence.metric_series(
+        "CN_EQ_ADV_DEC",
+        mode=AsOfMode.SYSTEM,
+        as_of=datetime.now(UTC),
+        definition_version=EFFECTIVE_CATALOG_VERSION,
+    )[-1]
+    assert point.selected_claim_id is not None
+    receipts = [
+        link.receipt
+        for link in evidence.source_claim_acquisitions_many((point.selected_claim_id,))[
+            point.selected_claim_id
+        ]
+    ]
+    calendars = [receipt for receipt in receipts if receipt.api_name == "trade_cal"]
+    assert calendars and all(r.parser_version == CORE_PARSER_VERSION for r in calendars)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    assert all(acquisitions.read_content(r.acquisition_id, "raw") for r in calendars)
+    assert not [
+        receipt
+        for receipt in acquisitions.history()
+        if receipt.api_name == "trade_cal" and receipt.parser_version != CORE_PARSER_VERSION
+    ]
 
 
 def test_the_basket_is_chained_from_its_base_on_settlements(

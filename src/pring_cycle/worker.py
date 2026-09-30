@@ -1537,6 +1537,17 @@ def refresh_context_sources(
         if reviewed_deliveries["CN_SF_TOTAL"]
         else adapter.social_financing
     )
+
+    def breadth() -> tuple[ContextScalar, ...]:
+        sessions, calendar_ids = _breadth_calendar(paths, token, target)
+        return adapter.breadth(
+            end_date=target,
+            # A day is done once all seven hold a value; otherwise it is fetched again.
+            held_days=_held_days(paths, tuple(BREADTH_METRICS), definition_version),
+            sessions=sessions,
+            calendar_ids=calendar_ids,
+        )
+
     families: tuple[
         tuple[
             str,
@@ -1560,11 +1571,7 @@ def refresh_context_sources(
         (
             "market_breadth",
             tuple(BREADTH_METRICS),
-            lambda: adapter.breadth(
-                end_date=target,
-                # A day is done once all seven hold a value; otherwise it is fetched again.
-                held_days=_held_days(paths, tuple(BREADTH_METRICS), definition_version),
-            ),
+            breadth,
         ),
         (
             "margin_financing",
@@ -1722,6 +1729,37 @@ def refresh_context_sources(
             )
             if missing_metrics:
                 record(missing_metrics, "tushare", "missing_fields", **details)
+
+
+def _breadth_calendar(
+    paths: RuntimePaths, token: str, target: date
+) -> tuple[tuple[date, ...], tuple[str, ...]]:
+    """The SSE sessions breadth reads, 600 days to ``target``, and the responses they are from.
+
+    The window, and before it enough sessions to tell any share's age up to 250. Read from
+    the core calendar; when a day of the range is not covered, the whole range is fetched.
+    TuShare refusing the call is a source failure, a rate limit told apart, as when breadth
+    asked for its own calendar.
+    """
+    from pring_cycle.source_adapters import TushareRefused
+    from pring_cycle.trading_calendar import SseCalendar, acquire_sse_calendar
+
+    first = target - timedelta(days=600)
+    calendar = SseCalendar(paths)
+    if calendar.sessions_between(first, target) is None:
+        try:
+            acquire_sse_calendar(paths, TushareCoreAdapter(token), first, target)
+        except TushareRefused as refusal:
+            raise TushareSourceError(
+                "tushare_rate_limited"
+                if refusal.code == 40203
+                else f"tushare_source_failed:{refusal.code}"
+            ) from refusal
+        calendar = SseCalendar(paths)
+    sessions = calendar.sessions_between(first, target)
+    if sessions is None:
+        raise ValueError("breadth_calendar_unavailable")
+    return sessions, calendar.sources(first, target)
 
 
 def _credit_lookback_starts(target: date) -> tuple[str, str]:

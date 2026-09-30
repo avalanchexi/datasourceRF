@@ -1,8 +1,9 @@
 """The SSE trading calendar: which days the market opens, read and fetched in one place.
 
 The calendar comes only from TuShare ``trade_cal`` responses captured by the core adapter
-(parser ``CORE_PARSER_VERSION``). Market breadth asks the same API for open days, but its
-receipt keeps breadth figures, not sessions, so it is never read as a calendar.
+(parser ``CORE_PARSER_VERSION``). Market breadth once asked the same API for open days
+itself; those older receipts keep breadth figures, not sessions, and are never read as a
+calendar. Breadth now reads its sessions here.
 
 Responses are data versions of one source: where two cover the same day, the later one
 wins, and each day it changes is kept as a revision (never a conflict that blocks a run).
@@ -187,6 +188,17 @@ class SseCalendar:
         first = segment[0]
         days = sorted(d for d, is_open in self._open.items() if is_open and first <= d <= target)
         return tuple(days[-sessions:]) if len(days) >= sessions else ()
+
+    def sessions_between(self, first: date, last: date) -> tuple[date, ...] | None:
+        """The sessions from ``first`` to ``last``, or None unless every day is covered."""
+        day = first
+        while day <= last:
+            if day not in self._open:
+                return None
+            day += timedelta(days=1)
+        return tuple(
+            sorted(d for d, is_open in self._open.items() if is_open and first <= d <= last)
+        )
 
     def sources(self, first: date, last: date) -> tuple[str, ...]:
         """The responses whose statements the days from ``first`` to ``last`` rest on."""

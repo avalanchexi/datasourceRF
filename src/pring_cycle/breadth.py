@@ -16,8 +16,9 @@ delivery, paged when the market outgrows a page; a day already held is not fetch
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from datetime import date, timedelta
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import replace
+from datetime import date
 from math import isfinite
 from typing import TYPE_CHECKING
 
@@ -289,27 +290,18 @@ def breadth_scalars(
     call: Call,
     *,
     end_date: date,
+    sessions: Sequence[date],
     held_days: Iterable[date] = (),
     window: int = 120,
+    calendar_ids: tuple[str, ...] = (),
 ) -> tuple[ContextScalar, ...]:
     """Each of the last ``window`` trading days to ``end_date`` not already held.
 
-    The calendar comes first; the listings only when a day is left to compute.
+    ``sessions`` are the SSE's, from the trading calendar: the window, and before it enough
+    to tell any share's age up to 250. Every figure names the calendar responses it counted
+    on (``calendar_ids``). The listings are fetched only when a day is left to compute.
     """
-    calendar = call(
-        "trade_cal",
-        {
-            "exchange": "SSE",
-            # The window, and before it enough sessions to tell any share's age up to 250.
-            "start_date": (end_date - timedelta(days=600)).strftime("%Y%m%d"),
-            "end_date": end_date.strftime("%Y%m%d"),
-            "is_open": "1",
-        },
-        ("cal_date", "is_open"),
-    )
-    sessions = sorted(
-        _day(row.get("cal_date")) for row in calendar if str(row.get("is_open")) == "1"
-    )
+    sessions = sorted(day for day in sessions if day <= end_date)
     held = set(held_days)
     days = [day for day in sessions[-window:] if day not in held]
     if not days:
@@ -340,4 +332,4 @@ def breadth_scalars(
                 open_days=[session for session in sessions if session <= day],
             )
         )
-    return tuple(scalars)
+    return tuple(replace(scalar, acquisition_ids=calendar_ids) for scalar in scalars)

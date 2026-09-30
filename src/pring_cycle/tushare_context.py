@@ -278,14 +278,25 @@ class TushareContextAdapter:
                     if not inputs:
                         raise ValueError("registered_valuation_acquisition_missing")
                 if scalar.api_name == "breadth":
-                    # A day's figures come from that day's deliveries and the listings.
+                    # A day's figures come from the SSE calendar's responses, which the scalar
+                    # names already, that day's deliveries and the listings.
                     day = scalar.period_end.replace("-", "")
                     inputs = [
                         receipt
                         for receipt in self._receipts
-                        if receipt.api_name in {"stock_basic", "trade_cal"}
+                        if receipt.api_name == "stock_basic"
                         or receipt.parameters.get("trade_date") == day
                     ]
+                    linked.append(
+                        replace(
+                            scalar,
+                            acquisition_ids=(
+                                *scalar.acquisition_ids,
+                                *(receipt.acquisition_id for receipt in inputs),
+                            ),
+                        )
+                    )
+                    continue
                 if scalar.metric_id == "CN_FUTURES_WARRANTS" and scalar.api_name == "fut_wsr":
                     inputs = warrant_inputs.get(_warrant_input_identity(scalar), [])
                     if not inputs:
@@ -860,11 +871,32 @@ class TushareContextAdapter:
             scalars.extend(_valuation_scalars(source_code, rows))
         return tuple(scalars)
 
-    def breadth(self, *, end_date: date, held_days: Iterable[date]) -> tuple[ContextScalar, ...]:
-        """The seven breadth metrics of the window's days not yet held (ADR-0030)."""
+    def breadth(
+        self,
+        *,
+        end_date: date,
+        held_days: Iterable[date],
+        sessions: tuple[date, ...],
+        calendar_ids: tuple[str, ...],
+    ) -> tuple[ContextScalar, ...]:
+        """The seven breadth metrics of the window's days not yet held (ADR-0030).
+
+        ``sessions`` and the responses they come from (``calendar_ids``) are the SSE
+        calendar's: breadth asks TuShare for no calendar of its own.
+        """
         from pring_cycle.breadth import breadth_scalars
 
-        return breadth_scalars(self._call, end_date=end_date, held_days=held_days)
+        scalars = breadth_scalars(
+            self._call,
+            end_date=end_date,
+            sessions=sessions,
+            held_days=held_days,
+            calendar_ids=calendar_ids,
+        )
+        if not scalars:
+            # Every day of the window is held already: nothing new, as for any delivery.
+            raise ContextObservationsMissingError()
+        return scalars
 
     def ex_hog_basket(
         self, *, end_date: date, held_levels: Mapping[date, float]
