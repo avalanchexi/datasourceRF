@@ -186,13 +186,16 @@ class ProjectionSetRepository:
             raise ValueError("p0_assessment_document_invalid")
         return {str(key): item for key, item in value.items()}
 
-    def stage_history(self) -> tuple[dict[str, object], ...]:
+    def stage_history(self, *, through: str | None = None) -> tuple[dict[str, object], ...]:
+        """Every assessment in day order; ``through`` keeps those dated on or before it."""
         with self._connect() as connection:
             rows = connection.execute(
                 """
                 SELECT document_json FROM p0_assessment
+                WHERE ? IS NULL OR target_business_date <= ?
                 ORDER BY target_business_date, julianday(system_as_of), assessment_id
-                """
+                """,
+                (through, through),
             ).fetchall()
         return tuple(
             {str(key): value for key, value in json.loads(str(row["document_json"])).items()}

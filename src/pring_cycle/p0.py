@@ -200,7 +200,9 @@ class P0ProjectionService:
         datasets["macro"].update(resolved_macro_document)
         datasets["inventory"].update(resolved_inventory_document)
         datasets["release_calendar"]["events"] = list(release_calendar_events)
-        history = list(self._projections.stage_history())
+        # A set is the record as of its day: no later day's event, even one summarized
+        # before this day was (ticket 14).
+        history = list(self._projections.stage_history(through=target_business_date))
         if not any(item.get("assessment_id") == assessment["assessment_id"] for item in history):
             history.append(assessment)
         datasets["stage_history"]["events"] = history

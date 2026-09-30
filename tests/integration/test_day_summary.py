@@ -258,6 +258,29 @@ def test_the_backfill_rebuilds_the_stage_history_day_by_day(tmp_path: Path) -> N
     assert [event["business_date"] for event in history] == list(window)
 
 
+def test_a_day_summarized_later_keeps_no_later_stage_event(tmp_path: Path) -> None:
+    # A set is the record as of its day: a missed day filled after the next one (ticket 14).
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    days = [day.isoformat() for day in sessions()]
+    module = summaries(paths)
+    assert module.backfill((days[-3],), target=days[-1], system_as_of=CUTOFF) == ()
+    module.summarize_target(days[-1], system_as_of=CUTOFF, run_materials=RunMaterials())
+    target_history = events(summary(paths, days[-1]))
+
+    assert module.backfill((days[-2],), target=days[-1], system_as_of=CUTOFF) == ()
+
+    assert events(summary(paths, days[-2])) == [days[-3], days[-2]]
+    assert events(summary(paths, days[-1])) == target_history == [days[-3], days[-1]]
+    # Read whole, the history still has every day.
+    history = ProjectionSetRepository(paths.database).stage_history()
+    assert [event["business_date"] for event in history] == days[-3:]
+
+
+def events(projection: ProjectionSet) -> list[str]:
+    return [event["business_date"] for event in projection.datasets["stage_history"]["events"]]
+
+
 def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -> None:
     # Moved from test_backfill: July's CPI became public on 5 August.
     paths = runtime(tmp_path)

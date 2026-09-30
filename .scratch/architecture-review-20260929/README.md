@@ -164,7 +164,7 @@
 | [11](issues/11-gate-one-per-day-window-gaps.md) | 门①由单日汇总按日枚举窗口缺口 | 10 | done |
 | [12](issues/12-backfill-day-evidence-snapshot.md) | 补算日冻结证据快照 | 10 | done |
 | [13](issues/13-backfill-does-not-move-current-pointer.md) | 补算日不切换当前指针 | 10 | done |
-| [14](issues/14-projection-stage-history-up-to-day.md) | 历史投影集的阶段史只含该日及之前（低优先级） | 10 | ready-for-agent |
+| [14](issues/14-projection-stage-history-up-to-day.md) | 历史投影集的阶段史只含该日及之前（低优先级） | 10 | done |
 | [15](issues/15-release-status-reads-series-once.md) | 判断是否已公布时每个指标只读一次序列 | 无 | done |
 | [16](issues/16-acquisition-outcome-module.md) | 获取结果模块（纯重构） | 无 | done |
 | [17](issues/17-attempt-attribution-contract.md) | 获取尝试的归属契约 | 16 | ready-for-agent |
