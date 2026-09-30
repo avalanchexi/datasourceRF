@@ -13,9 +13,17 @@ import pytest
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
+from tests.conftest import install_runtime_clock
 from tests.integration.test_full_run_retrieval import prepare, seed_core_history
 
 LPR_URL = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
+
+
+@pytest.fixture
+def runtime_clock(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> Any:
+    # Pinned between August's LPR (fixed on the 20th) and September's, so the run's cutoff
+    # does not owe a period the fixture's page cannot fill, whatever day the suite runs.
+    return install_runtime_clock(monkeypatch, request, datetime(2026, 9, 10, 1, tzinfo=UTC))
 
 
 @pytest.mark.usefixtures("runtime_clock")
