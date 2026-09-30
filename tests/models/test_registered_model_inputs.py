@@ -534,7 +534,17 @@ def test_warrant_same_day_revision_preserves_public_history_and_replaces_members
             assert set(original.claim_ids) <= set(inputs)
             assert set(revision.claim_ids).isdisjoint(inputs)
         elif missing_current:
-            assert set((*original.claim_ids, *revision.claim_ids)).isdisjoint(inputs)
+            # Only CU's latest delivery lacks a warehouse member: CU is left out that day,
+            # the other symbols are still read (ticket 07).
+            assert (set(revision.claim_ids) | old_cu_ids).isdisjoint(inputs)
+            assert set(original.claim_ids) - old_cu_ids <= set(inputs)
+            rows = projected_rows(
+                paths, "CN_FUTURES_WARRANTS", version, as_of=cutoff, mode=AsOfMode.PUBLIC
+            )
+            failed = {
+                row["dimensions"]["symbol"] for row in rows if row["status"] == "source_failed"
+            }  # type: ignore[index]
+            assert failed == {"CU"}
         else:
             assert old_cu_ids.isdisjoint(inputs)
             assert (set(original.claim_ids) - old_cu_ids) | set(revision.claim_ids) <= set(inputs)

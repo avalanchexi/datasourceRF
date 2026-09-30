@@ -1475,15 +1475,9 @@ def _metric_rows(
         ).check({definition.metric_id: series})[definition.metric_id]
         incomplete_source_claims.update(adoption.not_adoptable)
         if definition.metric_id == "CN_FUTURES_WARRANTS" and adoption.decides_members:
+            # A symbol missing a warehouse member is left out alone (its claims are not
+            # adoptable); the day's complete symbols stand, as in retrieval (ADR-0032).
             warrant_latest_period = max((point.period_end for point in series), default=None)
-            # A day missing a warehouse member of any symbol is incomplete for every
-            # symbol here, though retrieval keeps the complete symbols (ticket 07).
-            incomplete_source_claims.update(
-                point.selected_claim_id
-                for point in series
-                if point.period_end in adoption.missing_by_period
-                and point.selected_claim_id is not None
-            )
             complete_periods: dict[str, list[str]] = {}
             for period in {point.period_end for point in series}:
                 for symbol in {
