@@ -85,58 +85,83 @@ class ProjectionSetRepository:
         *,
         fail_before_pointer: bool = False,
         p0_assessment: dict[str, object] | None = None,
+        as_current: bool = True,
     ) -> None:
+        """Store the set; ``as_current`` lets it take the current pointer, never back in time.
+
+        A backfilled day's set is kept as history only: the page stays on the last whole
+        set until the run publishes its target (ADR-0008). A set already stored under its id
+        is not written again; with ``as_current`` it may still take the pointer.
+        """
         _validate_projection(envelope, datasets)
         envelope_json = _canonical_json(_envelope_document(envelope))
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             require_stored_model_source_contract(connection, envelope.model_version_id)
-            connection.execute(
-                "INSERT INTO projection_set(projection_set_id, envelope_json, batch_id) "
-                "VALUES (?, ?, ?)",
-                (envelope.projection_set_id, envelope_json, current_batch_id()),
-            )
-            for dataset_name in ANALYTICAL_DATASETS:
-                connection.execute(
-                    """
-                    INSERT INTO analytical_dataset(
-                        projection_set_id, dataset_name, document_json, batch_id
-                    ) VALUES (?, ?, ?, ?)
-                    """,
-                    (
-                        envelope.projection_set_id,
-                        dataset_name,
-                        _canonical_json(datasets[dataset_name]),
-                        current_batch_id(),
-                    ),
-                )
+            stored = connection.execute(
+                "SELECT 1 FROM projection_set WHERE projection_set_id=?",
+                (envelope.projection_set_id,),
+            ).fetchone()
+            if stored is None:
+                self._insert_set(connection, envelope, envelope_json, datasets)
             if fail_before_pointer:
                 connection.rollback()
                 raise RuntimeError("injected_projection_failure")
             if p0_assessment is not None:
                 self._insert_p0_assessment(connection, p0_assessment)
-            current_row = connection.execute(
+            if as_current:
+                self._take_current(connection, envelope)
+
+    def _insert_set(
+        self,
+        connection: sqlite3.Connection,
+        envelope: ProjectionEnvelope,
+        envelope_json: str,
+        datasets: dict[str, dict[str, object]],
+    ) -> None:
+        connection.execute(
+            "INSERT INTO projection_set(projection_set_id, envelope_json, batch_id) "
+            "VALUES (?, ?, ?)",
+            (envelope.projection_set_id, envelope_json, current_batch_id()),
+        )
+        for dataset_name in ANALYTICAL_DATASETS:
+            connection.execute(
                 """
-                SELECT projection_set.envelope_json
-                FROM current_projection
-                JOIN projection_set USING (projection_set_id)
-                WHERE current_projection.singleton=1
+                INSERT INTO analytical_dataset(
+                    projection_set_id, dataset_name, document_json, batch_id
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (
+                    envelope.projection_set_id,
+                    dataset_name,
+                    _canonical_json(datasets[dataset_name]),
+                    current_batch_id(),
+                ),
+            )
+
+    def _take_current(self, connection: sqlite3.Connection, envelope: ProjectionEnvelope) -> None:
+        current_row = connection.execute(
+            """
+            SELECT projection_set.envelope_json
+            FROM current_projection
+            JOIN projection_set USING (projection_set_id)
+            WHERE current_projection.singleton=1
+            """
+        ).fetchone()
+        current_target = None
+        if current_row is not None:
+            current_document = json.loads(str(current_row["envelope_json"]))
+            current_target = str(current_document["target_business_date"])
+        if current_target is None or envelope.target_business_date >= current_target:
+            connection.execute(
                 """
-            ).fetchone()
-            current_target = None
-            if current_row is not None:
-                current_document = json.loads(str(current_row["envelope_json"]))
-                current_target = str(current_document["target_business_date"])
-            if current_target is None or envelope.target_business_date >= current_target:
-                connection.execute(
-                    """
-                    INSERT INTO current_projection(singleton, projection_set_id, batch_id)
-                    VALUES (1, ?, ?)
-                    ON CONFLICT(singleton) DO UPDATE
-                    SET projection_set_id=excluded.projection_set_id, batch_id=excluded.batch_id
-                    """,
-                    (envelope.projection_set_id, current_batch_id()),
-                )
+                INSERT INTO current_projection(singleton, projection_set_id, batch_id)
+                VALUES (1, ?, ?)
+                ON CONFLICT(singleton) DO UPDATE
+                SET projection_set_id=excluded.projection_set_id, batch_id=excluded.batch_id
+                """,
+                (envelope.projection_set_id, current_batch_id()),
+            )
 
     def prepare_p0_assessment(self, document: dict[str, object]) -> dict[str, object]:
         normalized = _canonical_json(document)

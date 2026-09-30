@@ -70,6 +70,7 @@ class P0ProjectionService:
         inventory_document: dict[str, object] | None = None,
         release_calendar_events: tuple[dict[str, object], ...] = (),
         gap_list: tuple[dict[str, object], ...] = (),
+        as_current: bool = True,
     ) -> P0PublishResult:
         by_asset = {item.asset: item for item in assets}
         if set(by_asset) != {"bond", "stock", "commodity"}:
@@ -218,7 +219,9 @@ class P0ProjectionService:
                 (),
                 str(assessment["assessment_id"]),
             )
-        self._projections.publish(envelope, datasets, p0_assessment=assessment)
+        self._projections.publish(
+            envelope, datasets, p0_assessment=assessment, as_current=as_current
+        )
         return P0PublishResult(
             "published",
             projection_set_id,

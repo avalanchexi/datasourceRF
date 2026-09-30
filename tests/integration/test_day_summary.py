@@ -14,6 +14,7 @@ import pring_cycle.day_summary as day_summary
 from pring_cycle.day_summary import DaySummaries, FailedDay, ModelRules, RunMaterials
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import ModelRepository
+from pring_cycle.p0 import P0ProjectionService
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.trading_calendar import TradingCalendar
@@ -186,6 +187,56 @@ def test_a_failed_backfill_day_does_not_stop_the_target_and_is_told_at_once(
         "backfill",
         ("snapshot", target.evidence_snapshot_id),
     ]
+
+
+def test_only_the_target_day_moves_the_current_projection(tmp_path: Path) -> None:
+    # A run that stops after its backfill leaves the page on the last whole set (ticket 13).
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    days = [day.isoformat() for day in sessions()]
+    projections = ProjectionSetRepository(paths.database)
+    module = summaries(paths)
+
+    assert module.backfill(tuple(days[-6:-1]), target=days[-1], system_as_of=CUTOFF) == ()
+    with pytest.raises(LookupError, match="current_projection_unavailable"):
+        projections.current()
+    earlier = module.summarize_target(
+        days[-10], system_as_of=CUTOFF, run_materials=RunMaterials()
+    ).result.projection_set_id
+    assert module.backfill(tuple(days[-9:-6]), target=days[-1], system_as_of=CUTOFF) == ()
+    assert projections.current().envelope.projection_set_id == earlier
+
+    target = module.summarize_target(
+        days[-1], system_as_of=CUTOFF, run_materials=RunMaterials()
+    ).result
+    assert projections.current().envelope.projection_set_id == target.projection_set_id
+    assert summary(paths, days[-3]).envelope.target_business_date == days[-3]
+
+
+def test_a_stored_set_published_again_is_kept_once_and_may_take_the_pointer(
+    tmp_path: Path,
+) -> None:
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    service = P0ProjectionService(ProjectionSetRepository(paths.database))
+    readiness = summaries(paths)._core_readiness(TARGET.isoformat(), system_as_of=CUTOFF)
+
+    def publish(*, as_current: bool) -> str | None:
+        return service.publish(
+            target_business_date=TARGET.isoformat(),
+            system_as_of=CUTOFF,
+            assets=readiness,
+            last_confirmed_stage=None,
+            as_current=as_current,
+        ).projection_set_id
+
+    history = publish(as_current=False)
+    assert publish(as_current=False) == history
+    with pytest.raises(LookupError, match="current_projection_unavailable"):
+        ProjectionSetRepository(paths.database).current()
+    assert publish(as_current=True) == history
+    assert ProjectionSetRepository(paths.database).current().envelope.projection_set_id == history
+    assert query(paths, "SELECT count(*) FROM projection_set") == [(1,)]
 
 
 def test_the_backfill_rebuilds_the_stage_history_day_by_day(tmp_path: Path) -> None:

@@ -275,6 +275,7 @@ class DaySummaries:
             model_version_id=self._model.model_version_id,
             warnings=context.warnings,
             evidence_snapshot_id=self._freeze(readiness, context, system_as_of=system_as_of),
+            as_current=False,
             macro_document=context.macro,
             inventory_document=context.inventory,
         )
