@@ -10,6 +10,7 @@ import pytest
 
 from pring_cycle.catalog import metric_catalog_v0003
 from pring_cycle.context_projection import build_context_projection
+from pring_cycle.dashboard import _gap_list
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.freshness import add_projection_gaps
 from pring_cycle.models import analytical_model_v0002_manifest
@@ -365,6 +366,49 @@ def test_a_metric_already_listed_keeps_one_row_with_what_the_projection_adds() -
     assert gap["category"] == "missing" and gap["reason"] == "not_held"
     assert gap["formula_status"] == "missing_inputs"
     assert gap["missing_inputs"] == []
+
+
+def test_only_a_refused_claim_is_a_source_failure_shown_on_its_listed_gap() -> None:
+    """A failed fetch hides no conflict and stays out; a refused claim joins its gap (#09)."""
+    listed = {
+        "metric_id": "CN_SF_TOTAL",
+        "priority": "P1",
+        "category": "freshness_gap",
+        "reason": "one_period_behind_carried",
+        "due_period": "2026-09-30",
+        "held_period": "2026-08-31",
+        "periods_behind": 1,
+        "no_web_fallback": False,
+    }
+    refused = {
+        "metric_id": "CN_SF_TOTAL",
+        "period": "2026-08-31",
+        "dimensions": {"measure": "ytd_increment"},
+        "status": "source_failed",
+        "source_failure": "not_adoptable",
+    }
+    fetch_failed = {"metric_id": "CN_LPR_1Y_5Y", "status": "source_failed", "dimensions": {}}
+
+    gaps = add_projection_gaps(
+        (listed,),
+        ({"credit": {"evidence": [refused, fetch_failed]}},),
+        derived_requirements=(),
+        plan_gaps=(),
+        definitions=metric_catalog_v0003(),
+    )
+
+    (gap,) = gaps
+    assert gap["category"] == "freshness_gap" and gap["held_period"] == "2026-08-31"
+    assert gap["source_failures"] == [
+        {
+            "period": "2026-08-31",
+            "dimensions": {"measure": "ytd_increment"},
+            "reason": "not_adoptable",
+        }
+    ]
+    assert "conflicts" not in gap
+    page = str(_gap_list(gaps))
+    assert "时效缺口（1）" in page and "来源复核失败" in page and "来源同时冲突" not in page
 
 
 def test_a_computed_formula_leaves_no_gap() -> None:

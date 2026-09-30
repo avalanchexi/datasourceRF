@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Iterable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
@@ -755,6 +755,7 @@ _GAP_ORDER = (
     "unconfigured",
     "rejected",
     "derived_failed",
+    "source_failed",
     "source_conflict",
 )
 
@@ -888,10 +889,12 @@ def add_projection_gaps(
     A derived metric follows its parents' timeliness, so a formula that never computes stays
     ``current``, and a conflict is a selection, not a period. A formula metric whose parents
     are other metrics and that has no usable row gets ``formula_status`` and
-    ``missing_inputs``, the parent periods the run plan could not complete; a metric with
-    observations whose sources disagree gets ``conflicts``, each with the reason the
-    comparison gave (ADR-0033). The list keeps one row per metric: a metric not listed yet
-    is added as ``derived_failed`` or ``source_conflict``.
+    ``missing_inputs``, the parent periods the run plan could not complete; a metric whose
+    selected claims are not adoptable (their original, matched quote, members or registered
+    contract failed the family's recheck) gets ``source_failures``; a metric with observations whose sources disagree
+    gets ``conflicts``, each with the reason the comparison gave (ADR-0033), also when the
+    selected claim failed too. The list keeps one row per metric: a metric not listed yet
+    is added as ``derived_failed``, ``source_failed`` or ``source_conflict``.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
 
@@ -959,19 +962,25 @@ def add_projection_gaps(
                 if gap.get("metric_id") in parents
             ],
         )
-    conflicts: dict[str, dict[tuple[object, str], dict[str, object]]] = {}
-    for row in rows:
-        if row["status"] == "conflicted":
-            dimensions = row.get("dimensions") or {}
-            conflicts.setdefault(str(row["metric_id"]), {})[
-                (row.get("period"), json.dumps(dimensions, sort_keys=True))
-            ] = {
-                "period": row.get("period"),
-                "dimensions": dimensions,
-                "reason": row.get("conflict_reason") or "value_disagreement",
-            }
-    for metric_id, by_member in conflicts.items():
-        items = sorted(by_member.values(), key=lambda item: str(item["period"]))
+    failures = _by_member(
+        rows,
+        # Only a selected claim its family's recheck refused; a row failed otherwise (the
+        # release's fetch, or a claim no family rechecks) keeps to its status.
+        lambda row: "source_failure" in row,
+        lambda row: str(row["source_failure"]),
+    )
+    for metric_id, items in failures.items():
+        gap = entry(metric_id, "source_failed", str(items[0]["reason"]))
+        if gap["category"] == "source_failed":
+            gap["held_period"] = items[-1]["period"]
+        gap["source_failures"] = items
+    conflicts = _by_member(
+        rows,
+        # A failed recheck outranks the conflict in the row's status, not here (#09).
+        lambda row: row["status"] == "conflicted" or "conflict_reason" in row,
+        lambda row: str(row.get("conflict_reason") or "value_disagreement"),
+    )
+    for metric_id, items in conflicts.items():
         reasons = [str(item["reason"]) for item in items]
         gap = entry(
             metric_id,
@@ -982,6 +991,25 @@ def add_projection_gaps(
             gap["held_period"] = items[-1]["period"]
         gap["conflicts"] = items
     return sort_gaps(listed.values())
+
+
+def _by_member(
+    rows: Iterable[Mapping[str, object]],
+    matches: Callable[[Mapping[str, object]], bool],
+    reason: Callable[[Mapping[str, object]], str],
+) -> dict[str, list[dict[str, object]]]:
+    """Per metric, each matching member's period, dimensions and reason, by period."""
+    found: dict[str, dict[tuple[object, str], dict[str, object]]] = {}
+    for row in rows:
+        if matches(row):
+            dimensions = row.get("dimensions") or {}
+            found.setdefault(str(row["metric_id"]), {})[
+                (row.get("period"), json.dumps(dimensions, sort_keys=True))
+            ] = {"period": row.get("period"), "dimensions": dimensions, "reason": reason(row)}
+    return {
+        metric_id: sorted(by_member.values(), key=lambda item: str(item["period"]))
+        for metric_id, by_member in found.items()
+    }
 
 
 def _members(value: object) -> list[object]:

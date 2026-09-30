@@ -11,12 +11,16 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.catalog import metric_definition
 from pring_cycle.context_projection import build_context_projection
+from pring_cycle.dashboard import _gap_list
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
+from pring_cycle.freshness import add_projection_gaps
 from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository
 from pring_cycle.official_context import (
     FetchedOfficialContextDocument,
+    ingest_official_context_document,
     official_claims_matching_acquisitions,
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger
@@ -305,3 +309,94 @@ def test_pmi_revalidation_checks_full_response_and_independent_publication(
     assert not official_claims_matching_acquisitions(
         evidence, {"CN_PMI_INVENTORY": points}, definition_version=version
     )
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_conflict_whose_selected_delivery_fails_its_recheck_keeps_both_in_the_gap_list(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A failed recheck no longer hides the registered sources' disagreement (ticket 09)."""
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    candidate, version = admit_pmi_candidate(paths, capsys)
+
+    def transport(payload: dict) -> bytes:
+        fields = payload["fields"].split(",")
+        return json.dumps(
+            {"code": 0, "data": {"fields": fields, "items": [["202608", *range(40, 48)]]}}
+        ).encode()
+
+    adapter = TushareContextAdapter("fixture-only", transport=transport)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.pmi(start_month="2026-08", end_month="2026-08"),
+        definition_version=version,
+    )
+    fetched_at = datetime.now(UTC)
+    ingest_official_context_document(
+        paths,
+        (Path(__file__).parents[1] / "fixtures/official_period_fallback/nbs_pmi.html").read_bytes(),
+        family="nbs_pmi",
+        source_url="https://www.stats.gov.cn/sj/zxfb/202608/t20260831_1965154.html",
+        expected_period="2026-08",
+        fetched_at=fetched_at,
+        clock=lambda: fetched_at,
+        definition_version=version,
+    )
+    # TuShare goes first by provider; its delivery no longer matches what it stored.
+    receipt = next(
+        r
+        for r in AcquisitionRepository(paths.database, paths.artifacts).history()
+        if r.api_name == "cn_pmi"
+    )
+    assert receipt.raw_hash is not None
+    (paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash).write_bytes(b"{}")
+
+    context = build_context_projection(
+        EvidenceRepository(paths.database),
+        as_of=datetime.now(UTC),
+        model_manifest=ModelRepository(paths.database).manifest(candidate),
+    )
+    rows = [
+        row
+        for card in context.inventory["cards"]
+        for row in card["evidence"]
+        if row["metric_id"] == "CN_PMI_INVENTORY"
+    ]
+    assert rows and all(
+        row["status"] == "source_failed"
+        and row["source_failure"] == "not_adoptable"
+        and row["conflict_reason"] == "value_disagreement"
+        for row in rows
+    )
+
+    gaps = add_projection_gaps(
+        (),
+        (context.macro, context.inventory),
+        derived_requirements=(),
+        plan_gaps=(),
+        definitions=(
+            metric_definition(
+                "CN_PMI_INVENTORY", definition_version=version, database_path=paths.database
+            ),
+        ),
+    )
+    (gap,) = (gap for gap in gaps if gap["metric_id"] == "CN_PMI_INVENTORY")
+    members = [
+        {"period": "2026-08-31", "dimensions": {"measure": "level", "series": series}}
+        for series in ("finished_goods", "raw_materials")
+    ]
+    assert gap["category"] == "source_failed"
+    assert _sorted(gap["source_failures"]) == [
+        {**member, "reason": "not_adoptable"} for member in members
+    ]
+    assert _sorted(gap["conflicts"]) == [
+        {**member, "reason": "value_disagreement"} for member in members
+    ]
+    page = str(_gap_list(gaps))
+    assert "来源失败（" in page and "来源同时冲突" in page
+
+
+def _sorted(items: object) -> list[dict]:
+    assert isinstance(items, list)
+    return sorted(items, key=lambda item: item["dimensions"]["series"])

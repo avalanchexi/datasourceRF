@@ -159,7 +159,7 @@
 | [06](issues/06-projection-rechecks-margin-index-valuation.md) | 投影也复核融资余额、指数行情、估值的原件 | 05 | done |
 | [07](issues/07-warrant-missing-members-per-variety.md) | 仓单缺成员只让该品种不完整 | 05 | done |
 | [08](issues/08-target-reselection-uses-repository-ordering.md) | 目标日重选复用仓库的选值排序与冲突范围 | 无 | done |
-| [09](issues/09-gap-list-keeps-conflict-with-source-failed.md) | 缺口清单同时列出冲突与来源失败（低优先级） | 05、16 | ready-for-agent |
+| [09](issues/09-gap-list-keeps-conflict-with-source-failed.md) | 缺口清单同时列出冲突与来源失败（低优先级） | 05、16 | done |
 | [10](issues/10-day-summary-module.md) | 单日汇总模块（纯重构＋测试迁移） | 02、05 | done |
 | [11](issues/11-gate-one-per-day-window-gaps.md) | 门①由单日汇总按日枚举窗口缺口 | 10 | ready-for-agent |
 | [12](issues/12-backfill-day-evidence-snapshot.md) | 补算日冻结证据快照 | 10 | ready-for-agent |

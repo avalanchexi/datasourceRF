@@ -1602,9 +1602,15 @@ def _metric_rows(
                 "value_state": (
                     current.value_state.value if current.value_state is not None else None
                 ),
+                # A failed recheck outranks the conflict in the status, not in the row (#09).
                 **(
                     {"conflict_reason": current.conflict_reason}
-                    if status == "conflicted"
+                    if current.conflict_reason is not None
+                    else {}
+                ),
+                **(
+                    {"source_failure": "not_adoptable"}
+                    if current.selected_claim_id in incomplete_source_claims
                     else {}
                 ),
             }

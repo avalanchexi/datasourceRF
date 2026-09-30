@@ -273,6 +273,7 @@ GAP_CATEGORY_LABELS = {
     "unconfigured": "未配置时效",
     "rejected": "拒收",
     "derived_failed": "派生失败",
+    "source_failed": "来源失败",
     "source_conflict": "来源冲突",
     # Lists published before gap sources #04 still carry the old category.
     "no_searchable_source": "无可检索来源",
@@ -330,6 +331,17 @@ def _gap_list(value: object) -> html.Div:
                                         else ""
                                     )
                                     + _candidate_reasons(item.get("candidates"))
+                                    + (
+                                        "；来源复核失败"
+                                        if item.get("source_failures")
+                                        and category != "source_failed"
+                                        else ""
+                                    )
+                                    + (
+                                        "；来源同时冲突"
+                                        if item.get("conflicts") and category != "source_conflict"
+                                        else ""
+                                    )
                                     + ("；无网页补缺渠道" if item.get("no_web_fallback") else "")
                                 )
                                 for item in rows

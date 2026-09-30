@@ -949,6 +949,8 @@ def test_lpr_gap_uses_a_recorded_source_failure_after_the_release_window(
 
     assert lpr_rows[0]["status"] == "source_failed"
     assert lpr_rows[0]["value"] is None
+    # A failed fetch refused no claim: the gap list does not count it as one (ticket 09).
+    assert "source_failure" not in lpr_rows[0]
 
 
 def test_public_context_release_status_uses_public_not_system_visibility(
