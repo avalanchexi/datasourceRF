@@ -1731,18 +1731,16 @@ def _credit_lookback_starts(target: date) -> tuple[str, str]:
     judges them by, so the fetch holds what the plan asks for, the differencing baseline
     included (run findings 2026-09-28, ticket 09).
     """
+    from pring_cycle.credit_impulse import lookback_start
     from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
-    from pring_cycle.full_run_requirements import credit_lookback_start
     from pring_cycle.trading_calendar import current_calendar
 
     cutoff = datetime.combine(target, time.max, tzinfo=ZoneInfo("Asia/Shanghai"))
     calendar = current_calendar()
     month = latest_released_period(FRESHNESS_REGISTRY["CN_SF_TOTAL"], cutoff, calendar)
     quarter = latest_released_period(FRESHNESS_REGISTRY["CN_GDP"], cutoff, calendar)
-    first_month = credit_lookback_start("CN_SF_TOTAL", f"{month:%Y-%m}")
-    first_quarter = credit_lookback_start(
-        "CN_GDP", f"{quarter.year}-Q{(quarter.month - 1) // 3 + 1}"
-    )
+    first_month = lookback_start("CN_SF_TOTAL", f"{month:%Y-%m}")
+    first_quarter = lookback_start("CN_GDP", f"{quarter.year}-Q{(quarter.month - 1) // 3 + 1}")
     return first_month.replace("-", ""), first_quarter.replace("-", "")
 
 

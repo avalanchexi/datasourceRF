@@ -46,20 +46,6 @@ class InventoryCycle:
     score: None = None
 
 
-def calculate_credit_impulse(
-    *,
-    current_rolling_social_financing: float,
-    previous_rolling_social_financing: float,
-    current_rolling_nominal_gdp: float,
-    previous_rolling_nominal_gdp: float,
-) -> float:
-    if current_rolling_nominal_gdp <= 0 or previous_rolling_nominal_gdp <= 0:
-        raise ValueError("credit_impulse_gdp_must_be_positive")
-    current_share = current_rolling_social_financing / current_rolling_nominal_gdp
-    previous_share = previous_rolling_social_financing / previous_rolling_nominal_gdp
-    return (current_share - previous_share) * 100
-
-
 def derive_policy_direction(
     *, actions: list[EvidenceSignal], transmission: list[EvidenceSignal]
 ) -> MacroState:

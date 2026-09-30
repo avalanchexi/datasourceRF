@@ -1696,6 +1696,26 @@ def _stable_hash(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
 
 
+def selected_claim(point: MetricSeriesPoint) -> Any:
+    """The claim a point selected, if it still carries one."""
+    return next(
+        (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
+        None,
+    )
+
+
+def usable_point(point: MetricSeriesPoint) -> bool:
+    """A selected, reported, validated value a consumer can read."""
+    selected = selected_claim(point)
+    return bool(
+        point.selection_status == "selected"
+        and point.value_state is EvidenceValueState.REPORTED_VALUE
+        and point.selected_value is not None
+        and selected is not None
+        and selected.quality_status == "validated"
+    )
+
+
 def _iso(value: datetime | None) -> str | None:
     return value.astimezone(UTC).isoformat() if value is not None else None
 

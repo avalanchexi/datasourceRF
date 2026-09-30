@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from pring_cycle import credit_impulse
 from pring_cycle.context_projection import ContextProjectionRules
-from pring_cycle.evidence import EvidenceValueState
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector
@@ -53,19 +53,6 @@ def required_calendar(
     return document
 
 
-# Twelve months (four quarters) and the twelve (four) before them.
-CREDIT_IMPULSE_INPUT_PERIODS = {"CN_SF_TOTAL": 24, "CN_GDP": 8}
-
-
-def credit_lookback_start(metric_id: str, latest_period: str) -> str:
-    """The first period the credit impulse reads when its newest is ``latest_period``.
-
-    Flows are differenced from year-to-date figures, so the window needs the period before
-    it as well (run findings 2026-09-28, ticket 09).
-    """
-    return preceding_periods(latest_period, CREDIT_IMPULSE_INPUT_PERIODS[metric_id] + 1)[0]
-
-
 def formula_requirements(
     rules: ContextProjectionRules,
     selector: ModelInputSelector,
@@ -74,7 +61,7 @@ def formula_requirements(
     counts: dict[str, int] = {}
     derived = []
     mappings = {
-        "credit_impulse": ("CN_CREDIT_IMPULSE", CREDIT_IMPULSE_INPUT_PERIODS),
+        "credit_impulse": ("CN_CREDIT_IMPULSE", credit_impulse.INPUT_PERIODS),
         "dr007_policy_spread": ("CN_DR007_POLICY_SPREAD", {"CN_DR007": 1, "CN_OMO_7D_RATE": 1}),
         "loan_monthly_change": ("CN_LOAN_STRUCTURE", {"CN_LOAN_STRUCTURE": 2}),
         "omo_net_injection": ("CN_OMO_7D_AMOUNT", {"CN_OMO_7D_AMOUNT": 1}),
@@ -94,62 +81,14 @@ def formula_requirements(
     }
     for name, version in rules.formula_versions.items():
         metric, needs = mappings[name]
-        needs = dict(needs)
-        if name == "credit_impulse":
-            gdp_end = periods.get("CN_GDP")
-            if (
-                version in {"credit-impulse-rolling-share-v0001", "credit-impulse-ytd-flow-v0002"}
-                and _reported_count(
-                    selector, "CN_GDP", {"aggregate": "total", "measure": "nominal_quarterly_level"}
-                )
-                < 8
-                and gdp_end is not None
-                and not preceding_periods(gdp_end, 8)[0].endswith("Q1")
-            ):
-                needs["CN_GDP"] += 1
-            sf_end = periods.get("CN_SF_TOTAL")
-            if (
-                version == "credit-impulse-ytd-flow-v0002"
-                and _reported_count(selector, "CN_SF_TOTAL", {"measure": "monthly_increment"}) < 24
-                and sf_end is not None
-                and not preceding_periods(sf_end, 24)[0].endswith("-01")
-            ):
-                needs["CN_SF_TOTAL"] += 1
+        needs = (
+            credit_impulse.requirements(version, selector, periods)
+            if name == "credit_impulse"
+            else dict(needs)
+        )
         for source, count in needs.items():
             counts[source] = max(counts.get(source, 1), count)
         derived.append(
             {"metric_id": metric, "formula_version": version, "required_input_periods": needs}
         )
     return counts, derived
-
-
-def _reported_count(selector: ModelInputSelector, metric: str, dimensions: dict[str, str]) -> int:
-    return sum(
-        point.dimensions == dimensions
-        and point.selection_status == "selected"
-        and point.value_state is EvidenceValueState.REPORTED_VALUE
-        and point.selected_value is not None
-        and any(
-            claim.claim_id == point.selected_claim_id and claim.quality_status == "validated"
-            for claim in point.claims
-        )
-        for point in selector.series(metric)
-    )
-
-
-def preceding_periods(period: str, count: int) -> tuple[str, ...]:
-    if count == 1:
-        return (period,)
-    if "-Q" in period:
-        year, quarter = period.split("-Q")
-        last = int(year) * 4 + int(quarter) - 1
-        return tuple(
-            f"{ordinal // 4:04d}-Q{ordinal % 4 + 1}"
-            for ordinal in range(last - count + 1, last + 1)
-        )
-    year, month = period[:7].split("-")
-    last = int(year) * 12 + int(month) - 1
-    return tuple(
-        f"{ordinal // 12:04d}-{ordinal % 12 + 1:02d}"
-        for ordinal in range(last - count + 1, last + 1)
-    )

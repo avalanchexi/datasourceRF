@@ -10,6 +10,25 @@ def matches_retrieval_period(period_end: str, period: str) -> bool:
     return period_end.startswith(prefix)
 
 
+def preceding_periods(period: str, count: int) -> tuple[str, ...]:
+    """The ``count`` monthly (or quarterly) periods ending with ``period``, oldest first."""
+    if count == 1:
+        return (period,)
+    if "-Q" in period:
+        year, quarter = period.split("-Q")
+        last = int(year) * 4 + int(quarter) - 1
+        return tuple(
+            f"{ordinal // 4:04d}-Q{ordinal % 4 + 1}"
+            for ordinal in range(last - count + 1, last + 1)
+        )
+    year, month = period[:7].split("-")
+    last = int(year) * 12 + int(month) - 1
+    return tuple(
+        f"{ordinal // 12:04d}-{ordinal % 12 + 1:02d}"
+        for ordinal in range(last - count + 1, last + 1)
+    )
+
+
 @dataclass(frozen=True)
 class RetrievalRequest:
     release_event_id: str

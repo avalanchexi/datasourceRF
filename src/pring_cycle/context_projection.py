@@ -5,10 +5,10 @@ import json
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, time, timedelta
-from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle import credit_impulse
 from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
@@ -16,7 +16,6 @@ from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.domain.macro import (
     EvidenceSignal,
     SignatureCard,
-    calculate_credit_impulse,
     derive_credit_response,
     derive_inventory_cycle,
     derive_overheat_state,
@@ -31,11 +30,10 @@ from pring_cycle.evidence import (
     MetricSeriesPoint,
     value_conflict_reason,
 )
+from pring_cycle.evidence import selected_claim as _selected_claim
+from pring_cycle.evidence import usable_point as _usable_point
 from pring_cycle.freshness import period_status
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
-from pring_cycle.official_context import (
-    official_gdp_quarters_matching_baselines,
-)
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.treasury_context import TREASURY_METRICS
@@ -110,11 +108,7 @@ class _MetricRows:
 
 
 _SUPPORTED_FORMULA_VERSIONS = {
-    "credit_impulse": {
-        "credit-impulse-v0001",
-        "credit-impulse-rolling-share-v0001",
-        "credit-impulse-ytd-flow-v0002",
-    },
+    "credit_impulse": set(credit_impulse.VERSIONS),
     "dr007_policy_spread": {"dr007-policy-spread-v0001"},
     "loan_monthly_change": {
         "loan-stock-monthly-change-v0001",
@@ -2073,190 +2067,33 @@ def _credit_impulse_proxy(
     as_of_mode: AsOfMode,
     persist_derived: bool,
 ) -> tuple[dict[str, object] | None, dict[str, object], tuple[str, ...]]:
-    formula_version = configured_formula_version
+    result = credit_impulse.derive(
+        repository,
+        configured_formula_version,
+        as_of=as_of,
+        as_of_mode=as_of_mode,
+        definition_version=definition_version,
+    )
+    formula_version = result.formula_version
     formula: dict[str, object] = {
         "metric_id": "CN_CREDIT_IMPULSE",
         "formula_version": formula_version,
-        "formula": (
-            "100 * (rolling_12m_social_financing / rolling_4q_nominal_gdp "
-            "- prior_rolling_12m_social_financing / prior_rolling_4q_nominal_gdp)"
-        ),
-        "status": ("missing_inputs" if formula_version is not None else "disabled_by_model"),
+        "formula": credit_impulse.FORMULA,
+        "status": result.status,
     }
-    if formula_version is None:
+    if (
+        formula_version is None
+        or result.status != "available"
+        or result.value is None
+        or result.period is None
+        or result.latest_gdp_period is None
+        or result.social_financing_window is None
+        or result.gdp_window is None
+        or result.available_at is None
+    ):
         return None, formula, ()
-    reported_monthly_social_financing = [
-        point
-        for point in repository.metric_series(
-            "CN_SF_TOTAL",
-            mode=as_of_mode,
-            as_of=as_of,
-            definition_version=definition_version,
-        )
-        if point.dimensions == {"measure": "monthly_increment"} and point.claims
-    ]
-    reported_ytd_social_financing = [
-        point
-        for point in repository.metric_series(
-            "CN_SF_TOTAL",
-            mode=as_of_mode,
-            as_of=as_of,
-            definition_version=definition_version,
-        )
-        if point.dimensions == {"measure": "ytd_increment"} and point.claims
-    ]
-    reported_quarterly_gdp = [
-        point
-        for point in repository.metric_series(
-            "CN_GDP",
-            mode=as_of_mode,
-            as_of=as_of,
-            definition_version=definition_version,
-        )
-        if point.dimensions == {"aggregate": "total", "measure": "nominal_quarterly_level"}
-        and point.claims
-    ]
-    allow_ytd_gdp = configured_formula_version in {
-        "credit-impulse-rolling-share-v0001",
-        "credit-impulse-ytd-flow-v0002",
-    }
-    reported_ytd_gdp = (
-        [
-            point
-            for point in repository.metric_series(
-                "CN_GDP",
-                mode=as_of_mode,
-                as_of=as_of,
-                definition_version=definition_version,
-            )
-            if point.dimensions == {"aggregate": "total", "measure": "nominal_ytd_level"}
-            and point.claims
-        ]
-        if allow_ytd_gdp
-        else []
-    )
-    gdp_period_points: list[MetricSeriesPoint]
-    gdp_input_points: list[MetricSeriesPoint]
-    gdp_numbers: list[float]
-    gdp_input_measure: str
-    quarter_values: dict[str, float] = {}
-    one_delivery: set[str] = set()
-    if len(reported_quarterly_gdp) >= 8:
-        gdp_period_points = reported_quarterly_gdp[-8:]
-        gdp_input_points = gdp_period_points
-        gdp_numbers = [
-            float(point.selected_value)
-            for point in gdp_period_points
-            if point.selected_value is not None
-        ]
-        gdp_input_measure = "nominal_quarterly_level"
-    else:
-        derived_quarters = _quarter_levels_from_ytd(reported_ytd_gdp)
-        if (
-            len(derived_quarters) < 8
-            or derived_quarters[-1][0].period_end != reported_ytd_gdp[-1].period_end
-        ):
-            return None, formula, ()
-        selected_quarters = derived_quarters[-8:]
-        gdp_period_points = [point for point, _value, _inputs in selected_quarters]
-        gdp_numbers = [value for _point, value, _inputs in selected_quarters]
-        selected_input_ids = {
-            input_point.selected_claim_id
-            for _point, _value, inputs in selected_quarters
-            for input_point in inputs
-        }
-        gdp_input_points = [
-            point for point in reported_ytd_gdp if point.selected_claim_id in selected_input_ids
-        ]
-        gdp_input_measure = "nominal_ytd_level"
-        quarter_values = {
-            point.selected_claim_id: value
-            for point, value, _inputs in selected_quarters
-            if point.selected_claim_id is not None
-        }
-        one_delivery = _quarters_from_one_delivery(
-            repository, selected_quarters, definition_version=definition_version, as_of=as_of
-        )
-    social_input_points: list[MetricSeriesPoint]
-    social_numbers: list[float]
-    social_period_points: list[MetricSeriesPoint]
-    if len(reported_monthly_social_financing) >= 24:
-        social_period_points = reported_monthly_social_financing[-24:]
-        if not _periods_are_consecutive(social_period_points, periods_per_year=12):
-            return None, {**formula, "status": "nonconsecutive_social_financing_inputs"}, ()
-        values = [point.selected_value for point in social_period_points]
-        social_numbers = [value for value in values if value is not None]
-        social_input_points = social_period_points
-    elif configured_formula_version == "credit-impulse-ytd-flow-v0002":
-        monthly_flows = _monthly_flows_from_ytd(reported_ytd_social_financing)
-        if (
-            len(monthly_flows) < 24
-            or monthly_flows[-1][0].period_end != reported_ytd_social_financing[-1].period_end
-        ):
-            return None, formula, ()
-        selected_flows = monthly_flows[-24:]
-        social_period_points = [point for point, _value, _inputs in selected_flows]
-        social_numbers = [value for _point, value, _inputs in selected_flows]
-        selected_ids = {
-            input_point.selected_claim_id
-            for _point, _value, inputs in selected_flows
-            for input_point in inputs
-        }
-        social_input_points = [
-            point
-            for point in reported_ytd_social_financing
-            if point.selected_claim_id in selected_ids
-        ]
-    else:
-        return None, formula, ()
-    if len(social_period_points) < 24 or len(gdp_period_points) < 8:
-        return None, formula, ()
-    if not _periods_are_consecutive(social_period_points, periods_per_year=12):
-        return None, {**formula, "status": "nonconsecutive_social_financing_inputs"}, ()
-    if not _periods_are_consecutive(gdp_period_points, periods_per_year=4):
-        return None, {**formula, "status": "nonconsecutive_gdp_inputs"}, ()
-    if len(social_numbers) != 24 or len(gdp_numbers) != 8:
-        return None, formula, ()
-    if any(not _usable_point(point) for point in (*social_input_points, *gdp_input_points)):
-        return None, formula, ()
-    valid_parents = _adoptable_claims(
-        repository,
-        {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)},
-        definition_version=definition_version,
-    )
-    if valid_parents is not None:
-        selected_parent_ids = {
-            point.selected_claim_id for point in (*social_input_points, *gdp_input_points)
-        }
-        if selected_parent_ids - valid_parents:
-            return None, {**formula, "status": "incomplete_source_artifacts"}, ()
-        announced = {
-            claim_id: value
-            for claim_id, value in quarter_values.items()
-            if claim_id not in one_delivery
-        }
-        if announced and set(announced) - official_gdp_quarters_matching_baselines(
-            repository, announced
-        ):
-            return None, {**formula, "status": "incomparable_gdp_vintages"}, ()
-    current_social_financing = sum(social_numbers[-12:])
-    previous_social_financing = sum(social_numbers[:12])
-    current_gdp = sum(gdp_numbers[-4:])
-    previous_gdp = sum(gdp_numbers[:4])
-    try:
-        value = calculate_credit_impulse(
-            current_rolling_social_financing=current_social_financing,
-            previous_rolling_social_financing=previous_social_financing,
-            current_rolling_nominal_gdp=current_gdp,
-            previous_rolling_nominal_gdp=previous_gdp,
-        )
-    except ValueError:
-        return None, {**formula, "status": "invalid_gdp_denominator"}, ()
-    input_claim_ids = tuple(
-        point.selected_claim_id
-        for point in (*social_input_points, *gdp_input_points)
-        if point.selected_claim_id is not None
-    )
+    value = result.value
+    input_claim_ids = result.input_claim_ids
     derived_id = _derived_observation_identity(
         repository,
         metric_id="CN_CREDIT_IMPULSE",
@@ -2265,48 +2102,36 @@ def _credit_impulse_proxy(
         as_of_mode=as_of_mode,
         as_of_cutoff=as_of,
         value=value,
-        unit="percentage_points",
+        unit=result.unit,
         persist=persist_derived,
     )
-    selected_claims = [
-        selected
-        for point in (*social_input_points, *gdp_input_points)
-        if (selected := _selected_claim(point)) is not None
-    ]
-    available_at = max(claim.available_at for claim in selected_claims)
-    public_times = [
-        claim.public_available_at
-        for claim in selected_claims
-        if claim.public_available_at is not None
-    ]
-    public_available_at = (
-        max(public_times) if public_times and len(public_times) == len(selected_claims) else None
-    )
     stale_inputs = any(
-        _period_freshness(definitions[metric_id], point.period_end, as_of=as_of) == "stale"
-        for metric_id, point in (
-            ("CN_SF_TOTAL", social_period_points[-1]),
-            ("CN_GDP", gdp_period_points[-1]),
+        _period_freshness(definitions[metric_id], period_end, as_of=as_of) == "stale"
+        for metric_id, period_end in (
+            ("CN_SF_TOTAL", result.period),
+            ("CN_GDP", result.latest_gdp_period),
         )
     )
     row: dict[str, object] = {
-        "available_at": available_at.isoformat(),
+        "available_at": result.available_at.isoformat(),
         "derived_observation_id": derived_id,
         "dimensions": {},
         "direction": "up" if value > 0 else "down" if value < 0 else "flat",
         "input_observation_version_ids": list(input_claim_ids),
         "metric_id": "CN_CREDIT_IMPULSE",
         "observation_id": derived_id,
-        "period_start": social_period_points[-1].period_start,
-        "period": social_period_points[-1].period_end,
+        "period_start": result.period_start,
+        "period": result.period,
         "public_available_at": (
-            public_available_at.isoformat() if public_available_at is not None else None
+            result.public_available_at.isoformat()
+            if result.public_available_at is not None
+            else None
         ),
         "quality_status": "validated",
         "selected_claim_id": derived_id,
         "source_reference": f"formula:{formula_version}",
         "status": "stale" if stale_inputs else "current",
-        "unit": "percentage_points",
+        "unit": result.unit,
         "value": value,
         "value_state": EvidenceValueState.REPORTED_VALUE.value,
     }
@@ -2314,16 +2139,10 @@ def _credit_impulse_proxy(
         {
             "as_of_cutoff": as_of.isoformat(),
             "derived_observation_id": derived_id,
-            "gdp_input_measure": gdp_input_measure,
-            "gdp_window": [
-                gdp_period_points[0].period_start,
-                gdp_period_points[-1].period_end,
-            ],
+            "gdp_input_measure": result.gdp_input_measure,
+            "gdp_window": list(result.gdp_window),
             "input_observation_version_ids": list(input_claim_ids),
-            "social_financing_window": [
-                social_period_points[0].period_start,
-                social_period_points[-1].period_end,
-            ],
+            "social_financing_window": list(result.social_financing_window),
             "status": "stale_inputs" if stale_inputs else "available",
         }
     )
@@ -2332,136 +2151,6 @@ def _credit_impulse_proxy(
         formula,
         tuple((*input_claim_ids, derived_id)),
     )
-
-
-def _selected_claim(point: MetricSeriesPoint) -> Any:
-    return next(
-        (claim for claim in point.claims if claim.claim_id == point.selected_claim_id),
-        None,
-    )
-
-
-def _usable_point(point: MetricSeriesPoint) -> bool:
-    selected = _selected_claim(point)
-    return bool(
-        point.selection_status == "selected"
-        and point.value_state is EvidenceValueState.REPORTED_VALUE
-        and point.selected_value is not None
-        and selected is not None
-        and selected.quality_status == "validated"
-    )
-
-
-def _periods_are_consecutive(
-    points: list[MetricSeriesPoint],
-    *,
-    periods_per_year: int,
-) -> bool:
-    ordinals = []
-    for point in points:
-        period = date.fromisoformat(point.period_end)
-        if periods_per_year == 12:
-            ordinal = period.year * 12 + period.month
-        else:
-            ordinal = period.year * 4 + (period.month - 1) // 3
-        ordinals.append(ordinal)
-    return all(right - left == 1 for left, right in zip(ordinals, ordinals[1:], strict=False))
-
-
-def _quarters_from_one_delivery(
-    repository: Any,
-    quarters: list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]],
-    *,
-    definition_version: str,
-    as_of: datetime,
-) -> set[str]:
-    """Quarters whose year-to-date ends one TuShare delivery stated together, as selected.
-
-    Differencing across official releases can mix vintages, so such a quarter must match the
-    one its release announced. Levels TuShare delivered together are one vintage already:
-    its census-revised series has no release of its own to check against. A quarter fetched
-    again alone still counts while its value is unchanged; a revised end no longer matches
-    any delivery of both and is reconciled as before (run findings 2026-09-28, ticket 13).
-    """
-    together: set[str] = set()
-    for quarter, _value, inputs in quarters:
-        if quarter.selected_claim_id is None or any(
-            point.selected_value is None for point in inputs
-        ):
-            continue
-        selected = {point.period_end: float(point.selected_value or 0.0) for point in inputs}
-        deliveries = repository.delivered_values(
-            "CN_GDP",
-            quarter.dimensions,
-            tuple(selected),
-            provider="tushare",
-            definition_version=definition_version,
-            as_of=as_of,
-        )
-        if any(stated == selected for stated in deliveries.values()):
-            together.add(quarter.selected_claim_id)
-    return together
-
-
-def _quarter_levels_from_ytd(
-    points: list[MetricSeriesPoint],
-) -> list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]]:
-    derived: list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]] = []
-    for index, point in enumerate(points):
-        value = point.selected_value
-        if value is None:
-            continue
-        period = date.fromisoformat(point.period_end)
-        quarter = (period.month - 1) // 3 + 1
-        if quarter == 1:
-            derived.append((point, float(value), (point,)))
-            continue
-        if index == 0:
-            continue
-        previous = points[index - 1]
-        previous_period = date.fromisoformat(previous.period_end)
-        previous_quarter = (previous_period.month - 1) // 3 + 1
-        previous_value = previous.selected_value
-        if (
-            previous_period.year != period.year
-            or previous_quarter != quarter - 1
-            or previous_value is None
-        ):
-            continue
-        # Decimal source levels must not gain binary subtraction tails before
-        # comparison with the same release's announced quarterly amount.
-        quarter_value = float(Decimal(str(value)) - Decimal(str(previous_value)))
-        if quarter_value <= 0:
-            continue
-        derived.append((point, quarter_value, (previous, point)))
-    return derived
-
-
-def _monthly_flows_from_ytd(
-    points: list[MetricSeriesPoint],
-) -> list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]]:
-    derived: list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]] = []
-    for index, point in enumerate(points):
-        value = point.selected_value
-        if value is None:
-            continue
-        period = date.fromisoformat(point.period_end)
-        if period.month == 1:
-            derived.append((point, float(value), (point,)))
-            continue
-        if index == 0:
-            continue
-        previous = points[index - 1]
-        previous_period = date.fromisoformat(previous.period_end)
-        previous_value = previous.selected_value
-        if (
-            previous_period.year != period.year
-            or previous_period.month != period.month - 1
-            or previous_value is None
-        ):
-            continue
-        derived.append((point, float(value) - float(previous_value), (previous, point)))
-    return derived
 
 
 def _numeric_value(value: object) -> float | None:

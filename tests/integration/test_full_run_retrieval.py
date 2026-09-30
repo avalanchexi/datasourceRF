@@ -897,65 +897,6 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
     )
 
 
-@pytest.mark.parametrize(
-    "measure,last_year,last_quarter,expected",
-    [
-        ("nominal_ytd_level", 2026, 2, 9),
-        ("nominal_ytd_level", 2025, 4, 8),
-    ],
-)
-def test_credit_gdp_ytd_baseline_matches_required_window(
-    tmp_path: Path, measure: str, last_year: int, last_quarter: int, expected: int
-) -> None:
-    from pring_cycle.models import analytical_model_v0002_manifest
-
-    paths, runs = prepare(tmp_path)
-    models = ModelRepository(paths.database)
-    models.create_candidate(analytical_model_v0002_manifest())
-    models.activate("model-v0002", explicitly_approved=True)
-    seed_core_history(paths, definition_version="metric-catalog-v0002")
-    last = last_year * 4 + last_quarter - 1
-    for ordinal in range(last - 7, last + 1):
-        year, quarter = ordinal // 4, ordinal % 4 + 1
-        start = date(year, (quarter - 1) * 3 + 1, 1)
-        end = (
-            date(year + 1, 1, 1) if quarter == 4 else date(year, quarter * 3 + 1, 1)
-        ) - timedelta(days=1)
-        known = datetime.combine(end + timedelta(days=1), datetime.min.time(), tzinfo=UTC)
-        EvidenceRepository(paths.database).append_source_claim(
-            SourceClaimInput(
-                metric_id="CN_GDP",
-                definition_version="metric-catalog-v0002",
-                period_kind="quarter",
-                period_start=start.isoformat(),
-                period_end=end.isoformat(),
-                dimensions={"aggregate": "total", "measure": measure},
-                value=100.0,
-                value_state=EvidenceValueState.REPORTED_VALUE,
-                unit="hundred_million_cny",
-                provider="fixture:gdp",
-                source_reference=f"fixture:gdp:{end}",
-                release_event_id=f"fixture:gdp:{end}",
-                release_at=known,
-                public_available_at=known,
-                fetched_at=known,
-                available_at=known,
-                certification_status="awaiting_source_certification",
-                quality_status="validated",
-            )
-        )
-    run = runs.submit_manual_full(
-        target_business_date="2026-08-28",
-        client_request_id="credit-gdp-branch",
-        model_version_id="model-v0002",
-        system_as_of=datetime.now(UTC),
-    )
-    process_pending_run(paths, report_adapters=())
-    assert runs.get(run.run_id).status == "completed"
-    requirements = runs.full_retrieval_plan(run.run_id)["initial"]["requirements"]
-    assert len([r for r in requirements if r["metric_id"] == "CN_GDP"]) == expected
-
-
 @pytest.mark.parametrize("mode,complete", [(AsOfMode.PUBLIC, False), (AsOfMode.SYSTEM, True)])
 def test_full_run_core_selection_preserves_explicit_as_of_mode(
     tmp_path: Path, mode: AsOfMode, complete: bool

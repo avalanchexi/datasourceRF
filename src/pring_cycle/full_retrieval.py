@@ -18,7 +18,6 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueStat
 from pring_cycle.freshness import DERIVED_INPUTS, FRESHNESS_REGISTRY, latest_released_period
 from pring_cycle.full_run_requirements import (
     formula_requirements,
-    preceding_periods,
     required_calendar,
 )
 from pring_cycle.metric_contracts import evidence_frequency
@@ -30,6 +29,7 @@ from pring_cycle.retrieval import (
     RetrievalBudget,
     RetrievalRequest,
     matches_retrieval_period,
+    preceding_periods,
     run_retrieval_cascade,
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now

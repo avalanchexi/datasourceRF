@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 import pring_cycle.tushare_context as tushare_context
+from pring_cycle import credit_impulse
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
@@ -192,13 +193,15 @@ _GDP_YTD = {
         (659861.6, "available"),
         # A revised end matches no delivery of both, so its release must reconcile it.
         (662000.0, "incomparable_gdp_vintages"),
+        # A parent whose original no longer agrees cannot be adopted.
+        ("damaged_social_financing", "incomplete_source_artifacts"),
     ],
 )
 def test_credit_impulse_computes_from_levels_tushare_delivered_together(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
-    refetched_level: float | None,
+    refetched_level: float | str | None,
     status: str,
 ) -> None:
     """One delivery is one vintage: its quarters need no release to reconcile (ticket 13).
@@ -254,7 +257,14 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
         refresh_context_sources(paths, run.target_business_date, definition_version=version)
-    if refetched_level is not None:
+    if refetched_level == "damaged_social_financing":
+        (receipt,) = (
+            receipt
+            for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()
+            if receipt.api_name == "sf_month" and receipt.raw_hash is not None
+        )
+        (paths.artifacts / receipt.raw_hash[:2] / receipt.raw_hash).write_bytes(b"damaged")
+    elif refetched_level is not None:
         rows["cn_gdp"] = [dict(rows["cn_gdp"][4], gdp=refetched_level)]
         assert rows["cn_gdp"][0]["quarter"] == "2025Q2"
         adapter = tushare_context.TushareContextAdapter("fixture-only")
@@ -264,13 +274,21 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
             definition_version=version,
         )
 
-    context = build_context_projection(
+    manifest = ModelRepository(paths.database).manifest(run.model_version_id)
+    derived = credit_impulse.derive(
         EvidenceRepository(paths.database),
+        manifest["derived_formula_versions"]["credit_impulse"],
         as_of=datetime.now(UTC),
-        model_manifest=ModelRepository(paths.database).manifest(run.model_version_id),
+        as_of_mode=AsOfMode.SYSTEM,
+        definition_version=version,
     )
-    formula = context.macro["credit"]["formula"]  # type: ignore[index]
-    assert formula["status"] == status, formula
+    assert derived.status == status, derived
+    if refetched_level is None:
+        # The delivery reaches the analysis: the projection reads the same derivation.
+        context = build_context_projection(
+            EvidenceRepository(paths.database), as_of=datetime.now(UTC), model_manifest=manifest
+        )
+        assert context.macro["credit"]["formula"]["status"] == status  # type: ignore[index]
 
 
 @pytest.mark.usefixtures("runtime_clock")

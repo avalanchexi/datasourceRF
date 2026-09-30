@@ -173,7 +173,7 @@
 | [20](issues/20-member-date-outcomes.md) | 获取结果按品种与日期归并，缺口清单列出各失败品种 | 17 | ready-for-agent |
 | [21](issues/21-gap-list-only-unresolved-rejections.md) | 缺口清单只列尚未解决的获取结果 | 16、18 | ready-for-agent |
 | [22](issues/22-ledger-recognizes-tushare-rate-limit.md) | 检索账本认出 TuShare 限频 | 18 | ready-for-agent |
-| [23](issues/23-credit-impulse-module.md) | 信用脉冲模块（纯重构） | 05、10 | ready-for-agent |
+| [23](issues/23-credit-impulse-module.md) | 信用脉冲模块（纯重构） | 05、10 | done |
 | [24](issues/24-credit-lookback-one-answer.md) | 信用脉冲回看由模块给出同一个答案（按生效模型、覆盖窗口首日） | 23 | ready-for-agent |
 | [25](issues/25-model-v0014-twelve-month-horizon.md) | 新模型 v0014：12 个月信用脉冲、停用 12 月代理（用户注册与激活） | 23、24 | ready-for-agent |
 | [26](issues/26-credit-input-path-by-usable-points.md) | 信用脉冲按可用点选直接或累计口径 | 23 | ready-for-agent |
