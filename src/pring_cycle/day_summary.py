@@ -204,22 +204,7 @@ class DaySummaries:
             )
             run_materials.step_done("backfill")
             last_stage = self._last_confirmed_stage(day)
-            observation_versions = (
-                tuple(version for item in readiness for version in item.observation_version_ids)
-                + tuple(
-                    version
-                    for item in readiness
-                    for version in (item.model_input_observation_version_ids or ())
-                )
-                + context.observation_version_ids
-            )
-            snapshot_id = (
-                self._evidence.freeze_snapshot(
-                    observation_versions, mode=AsOfMode.SYSTEM, as_of=system_as_of
-                ).evidence_snapshot_id
-                if observation_versions
-                else None
-            )
+            snapshot_id = self._freeze(readiness, context, system_as_of=system_as_of)
             if snapshot_id is not None:
                 run_materials.snapshot_frozen(snapshot_id)
             result = P0ProjectionService(self._projections).publish(
@@ -289,9 +274,33 @@ class DaySummaries:
             last_confirmed_stage=self._last_confirmed_stage(day),
             model_version_id=self._model.model_version_id,
             warnings=context.warnings,
+            evidence_snapshot_id=self._freeze(readiness, context, system_as_of=system_as_of),
             macro_document=context.macro,
             inventory_document=context.inventory,
         )
+
+    def _freeze(
+        self, readiness: CoreReadiness, context: ContextProjection, *, system_as_of: datetime
+    ) -> str | None:
+        """Freeze what the day read: the cores shown, their model inputs, the context's.
+
+        At the run's cutoff, as the day's inputs were selected; a backfilled day's derived
+        identities are listed though not stored. None when the day read nothing.
+        """
+        observation_versions = (
+            tuple(version for item in readiness for version in item.observation_version_ids)
+            + tuple(
+                version
+                for item in readiness
+                for version in (item.model_input_observation_version_ids or ())
+            )
+            + context.observation_version_ids
+        )
+        if not observation_versions:
+            return None
+        return self._evidence.freeze_snapshot(
+            observation_versions, mode=AsOfMode.SYSTEM, as_of=system_as_of
+        ).evidence_snapshot_id
 
     def _context(
         self,

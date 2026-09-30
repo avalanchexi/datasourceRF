@@ -162,7 +162,7 @@
 | [09](issues/09-gap-list-keeps-conflict-with-source-failed.md) | 缺口清单同时列出冲突与来源失败（低优先级） | 05、16 | done |
 | [10](issues/10-day-summary-module.md) | 单日汇总模块（纯重构＋测试迁移） | 02、05 | done |
 | [11](issues/11-gate-one-per-day-window-gaps.md) | 门①由单日汇总按日枚举窗口缺口 | 10 | done |
-| [12](issues/12-backfill-day-evidence-snapshot.md) | 补算日冻结证据快照 | 10 | ready-for-agent |
+| [12](issues/12-backfill-day-evidence-snapshot.md) | 补算日冻结证据快照 | 10 | done |
 | [13](issues/13-backfill-does-not-move-current-pointer.md) | 补算日不切换当前指针 | 10 | ready-for-agent |
 | [14](issues/14-projection-stage-history-up-to-day.md) | 历史投影集的阶段史只含该日及之前（低优先级） | 10 | ready-for-agent |
 | [15](issues/15-release-status-reads-series-once.md) | 判断是否已公布时每个指标只读一次序列 | 无 | done |

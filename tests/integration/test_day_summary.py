@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -11,12 +12,12 @@ import pytest
 
 import pring_cycle.day_summary as day_summary
 from pring_cycle.day_summary import DaySummaries, FailedDay, ModelRules, RunMaterials
-from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSet, ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.trading_calendar import TradingCalendar
-from tests.integration.test_backfill import cpi_periods, summary
+from tests.integration.test_backfill import cpi_periods, query, summary
 from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
 from tests.integration.test_worker_execution import runtime
 
@@ -212,7 +213,7 @@ def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -
     seed_cores(paths)
     public = datetime(2026, 8, 5, 9, 30, tzinfo=SHANGHAI)
     acquired = datetime(2026, 8, 6, tzinfo=UTC)
-    EvidenceRepository(paths.database).append_source_claim(
+    cpi = EvidenceRepository(paths.database).append_source_claim(
         SourceClaimInput(
             metric_id="CN_CPI_HEADLINE",
             definition_version="metric-catalog-v0001",
@@ -239,3 +240,47 @@ def test_a_backfilled_day_sees_only_what_was_public_by_its_end(tmp_path: Path) -
 
     assert "2026-07-31" not in cpi_periods(summary(paths, "2026-08-04"))
     assert "2026-07-31" in cpi_periods(summary(paths, "2026-08-05"))
+    # Each day froze the inputs it read, as the target does (ticket 12).
+    for day, cpi_visible in (("2026-08-04", False), ("2026-08-05", True)):
+        projection = summary(paths, day)
+        members = snapshot_members(paths, projection.envelope.evidence_snapshot_id)
+        assert (cpi.claim_id in members) is cpi_visible
+        assert read_inputs(projection) <= members
+        # Nothing the day did not read: each member is one the day's projection names.
+        published = json.dumps(projection.datasets)
+        assert all(member in published for member in members)
+
+
+def snapshot_members(paths: RuntimePaths, snapshot_id: str) -> set[str]:
+    [(mode, cutoff, members)] = query(
+        paths,
+        "SELECT as_of_mode, as_of_cutoff, observation_version_ids_json FROM evidence_snapshot "
+        "WHERE evidence_snapshot_id=?",
+        snapshot_id,
+    )
+    assert (mode, datetime.fromisoformat(cutoff)) == (AsOfMode.SYSTEM.value, CUTOFF)
+    return set(json.loads(members))
+
+
+def read_inputs(projection: ProjectionSet) -> set[str]:
+    """The cores shown and their model inputs, the context's model inputs and claims."""
+    core = projection.datasets["core_assets"]
+    macro = projection.datasets["macro"]
+    shown = {version for item in core["assets"] for version in item["observation_version_ids"]}
+    # The cores' preheat reaches before the 120 closes shown.
+    assert set(core["model_input_observation_version_ids"]) - shown
+    return {
+        *shown,
+        *core["model_input_observation_version_ids"],
+        *macro["model_input_observation_version_ids"],
+        *claim_ids((macro, projection.datasets["inventory"])),
+    }
+
+
+def claim_ids(value: object) -> set[str]:
+    if isinstance(value, dict):
+        found = {str(value["claim_id"])} if isinstance(value.get("claim_id"), str) else set()
+        return found.union(*(claim_ids(item) for item in value.values()))
+    if isinstance(value, (list, tuple)):
+        return set().union(*(claim_ids(item) for item in value))
+    return set()
