@@ -891,10 +891,11 @@ def add_projection_gaps(
     are other metrics and that has no usable row gets ``formula_status`` and
     ``missing_inputs``, the parent periods the run plan could not complete; a metric whose
     selected claims are not adoptable (their original, matched quote, members or registered
-    contract failed the family's recheck) gets ``source_failures``; a metric with observations whose sources disagree
-    gets ``conflicts``, each with the reason the comparison gave (ADR-0033), also when the
-    selected claim failed too. The list keeps one row per metric: a metric not listed yet
-    is added as ``derived_failed``, ``source_failed`` or ``source_conflict``.
+    contract failed the family's recheck) gets ``source_failures``; a metric with
+    observations whose sources disagree gets ``conflicts``, each with the reason the
+    comparison gave (ADR-0033), also when the selected claim failed too. The list keeps
+    one row per metric: a metric not listed yet is added as ``derived_failed``,
+    ``source_failed`` or ``source_conflict``.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
 
