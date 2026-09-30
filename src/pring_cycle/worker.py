@@ -87,7 +87,12 @@ from pring_cycle.secrets import parse_data_source_secrets
 from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
-from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
+from pring_cycle.trading_calendar import (
+    SseCalendar,
+    TradingCalendar,
+    run_calendar_scope,
+    use_run_calendar,
+)
 from pring_cycle.tushare_context import (
     TUSHARE_WARRANT_SYMBOLS,
     ContextIngestRejectedError,
@@ -392,15 +397,6 @@ def _execute_run(
         return
     runs.advance(run.run_id, "validating_evidence")
     summary_model = ModelRules.of(ModelRepository(paths.database), run.model_version_id)
-    # A core day missing inside the window (other than the target itself, which is the
-    # carry-forward case) is missing detail: it holds the formal stage (gate ①).
-    window_gaps = frozenset(
-        gap["metric_id"]
-        for gap in plan["final"]["gaps"]
-        if not gap["complete"]
-        and gap["metric_id"] in model_manifest["core_metrics"].values()
-        and gap.get("period") != run.target_business_date
-    )
     release_calendar_events = _release_calendar_documents(
         paths,
         run,
@@ -436,18 +432,23 @@ def _execute_run(
             paths, "worker", f"backfill_day_failed:{failed.day}:{failed.error}", "warning"
         )
 
+    # A backfilled day's gate ① counts its own sessions back to the core's first close,
+    # before the target's window: the stretch covered at the cutoff, never weekdays.
+    window_calendar = SseCalendar(paths, as_of=run.system_as_of).around(
+        date.fromisoformat(run.target_business_date)
+    )
     summary = DaySummaries(
         EvidenceRepository(paths.database),
         ProjectionSetRepository(paths.database),
         summary_model,
         calendar=calendar,
+        window_calendar=window_calendar,
         release_schedule=batch_schedule(paths.database, run.run_id),
         batch_id=run.run_id,
     ).summarize_target(
         run.target_business_date,
         system_as_of=run.system_as_of,
         run_materials=RunMaterials(
-            window_gaps=window_gaps,
             freshness_gaps=gaps,
             plan_gaps=tuple(plan["final"]["gaps"]),
             derived_requirements=tuple(plan["final"]["derived_requirements"]),
@@ -1742,7 +1743,7 @@ def _breadth_calendar(
     asked for its own calendar.
     """
     from pring_cycle.source_adapters import TushareRefused
-    from pring_cycle.trading_calendar import SseCalendar, acquire_sse_calendar
+    from pring_cycle.trading_calendar import acquire_sse_calendar
 
     first = target - timedelta(days=600)
     calendar = SseCalendar(paths)

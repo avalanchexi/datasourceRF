@@ -38,15 +38,24 @@ def sessions() -> list[date]:
 
 
 def seed_cores(
-    paths: RuntimePaths, *, commodity_missing: int = 0, stock_conflict: bool = False
+    paths: RuntimePaths,
+    *,
+    commodity_missing: int = 0,
+    stock_conflict: bool = False,
+    stock_gap: date | None = None,
 ) -> None:
-    """Rising cores for 180 sessions; the commodity core lacks its last ``commodity_missing``."""
+    """Rising cores for 180 sessions; the commodity core lacks its last ``commodity_missing``.
+
+    The stock core lacks ``stock_gap``, a session inside the window.
+    """
     days = sessions()
     seed_independent_calendar(paths, days)
     claims = []
     for index, observed in enumerate(days):
         for asset, metric_id in CORES.items():
             if asset == "commodity" and observed in days[len(days) - commodity_missing :]:
+                continue
+            if asset == "stock" and observed == stock_gap:
                 continue
             api_name, code = CORE_API_IDENTITIES[metric_id]
             claims.append(

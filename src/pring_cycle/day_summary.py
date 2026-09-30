@@ -74,8 +74,7 @@ class FailedDay:
 class RunMaterials:
     """What only the target day's run brings, and how it follows the summary.
 
-    ``window_gaps`` are the cores missing a session inside the window (gate ①), taken
-    from the run's plan. ``explanatory_warnings`` reads the day's context for the
+    ``explanatory_warnings`` reads the day's context for the
     explanatory evidence warnings; its result goes before the context's own.
 
     ``step_done`` hears ``core_readiness``, ``context`` and ``backfill`` as each completes
@@ -84,7 +83,6 @@ class RunMaterials:
     ``day_failed`` each backfilled day that could not be summarized.
     """
 
-    window_gaps: frozenset[str] = frozenset()
     freshness_gaps: tuple[Mapping[str, object], ...] = ()
     plan_gaps: tuple[Mapping[str, object], ...] = ()
     derived_requirements: tuple[Mapping[str, object], ...] = ()
@@ -153,13 +151,17 @@ class DaySummaries:
         model: ModelRules,
         *,
         calendar: TradingCalendar,
+        window_calendar: TradingCalendar | None = None,
         release_schedule: Mapping[str, tuple[datetime | date, ...]] | None = None,
         batch_id: str | None = None,
     ) -> None:
+        """``window_calendar`` counts only gate ①'s windows, which for a backfilled day reach
+        before the run's; ``calendar`` stays the run's, as its gap list reads it."""
         self._evidence = evidence
         self._projections = projections
         self._model = model
         self._calendar = calendar
+        self._window_calendar = window_calendar or calendar
         self._schedule = release_schedule or {}
         self._batch_id = batch_id
 
@@ -190,9 +192,7 @@ class DaySummaries:
         rebuilt before it is published.
         """
         with self._scope():
-            readiness = self._core_readiness(
-                day, system_as_of=system_as_of, window_gaps=run_materials.window_gaps
-            )
+            readiness = self._core_readiness(day, system_as_of=system_as_of)
             run_materials.step_done("core_readiness")
             context = self._context(day, readiness, system_as_of=system_as_of)
             run_materials.step_done("context")
@@ -326,10 +326,15 @@ class DaySummaries:
         day: str,
         *,
         system_as_of: datetime,
-        window_gaps: frozenset[str] = frozenset(),
         public_as_of: datetime | None = None,
     ) -> CoreReadiness:
-        """Each core's state on ``day``; ``public_as_of`` hides later publications."""
+        """Each core's state on ``day``; ``public_as_of`` hides later publications.
+
+        Gate ①: a session of the 120 to ``day`` that the visible series lacks holds the
+        stage, ``day`` itself aside (the carry-forward case). Sessions before the series'
+        first close are short history, left to the trend, and a window the calendar does
+        not reach is a LookupError (ticket 11).
+        """
         rules = self._model.trend_rules
         target = date.fromisoformat(day)
         previous_session = self._calendar.latest_on_or_before(target - timedelta(days=1))
@@ -361,7 +366,7 @@ class DaySummaries:
             carried = bool(series) and series[-1].period_end == previous_session.isoformat()
             if not series:
                 reason = "source_missing"
-            elif metric_id in window_gaps:
+            elif self._window_missing(target, series):
                 reason = "window_session_missing"
             elif any(item.selection_status == "conflicted" for item in series):
                 reason = "source_conflict"
@@ -428,6 +433,13 @@ class DaySummaries:
                 )
             )
         return tuple(results)  # type: ignore[return-value]
+
+    def _window_missing(self, day: date, series: tuple[MetricSeriesPoint, ...]) -> bool:
+        held = {point.period_end for point in series}
+        window = self._window_calendar.sessions_to(
+            day, 120, since=date.fromisoformat(series[0].period_end)
+        )
+        return any(session.isoformat() not in held for session in window if session != day)
 
     def _originals_disagree(self, metric_id: str, series: tuple[MetricSeriesPoint, ...]) -> bool:
         """Whether a registered core's originals no longer state the selected closes.

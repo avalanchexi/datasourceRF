@@ -74,6 +74,19 @@ class TradingCalendar(Sessions):
             return day in self._days
         return day.weekday() < 5
 
+    def sessions_to(self, day: date, count: int, *, since: date) -> tuple[date, ...]:
+        """The last ``count`` sessions to ``day``, leaving out any before ``since``.
+
+        Only from what the source covers, never weekday stand-ins: LookupError when ``day``
+        is outside it or the sessions wanted reach before it.
+        """
+        if self._first is None or self._last is None or not self._first <= day <= self._last:
+            raise LookupError("window_calendar_unavailable")
+        known = sorted(d for d in self._days if max(since, self._first) <= d <= day)
+        if len(known) < count and since < self._first:
+            raise LookupError("window_calendar_unavailable")
+        return tuple(known[-count:])
+
 
 class HolidayCalendar(Sessions):
     """A market whose sessions are the weekdays its holiday rules leave open."""

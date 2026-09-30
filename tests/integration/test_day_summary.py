@@ -23,12 +23,13 @@ from tests.integration.test_worker_execution import runtime
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
-def summaries(paths: RuntimePaths) -> DaySummaries:
+def summaries(paths: RuntimePaths, window_calendar: TradingCalendar | None = None) -> DaySummaries:
     return DaySummaries(
         EvidenceRepository(paths.database),
         ProjectionSetRepository(paths.database),
         ModelRules.of(ModelRepository(paths.database), "model-v0001"),
         calendar=TradingCalendar(sessions()),
+        window_calendar=window_calendar,
     )
 
 
@@ -73,20 +74,53 @@ def test_a_core_conflict_holds_the_stage(tmp_path: Path) -> None:
     assert stage(target_projection(paths)) == (None, "core_data_pending")
 
 
-def test_a_core_session_missing_inside_the_window_holds_the_stage(tmp_path: Path) -> None:
-    # Gate ①: the run's plan names the core missing a window session.
-    paths = runtime(tmp_path)
-    seed_cores(paths)
-
-    projection = target_projection(
-        paths, RunMaterials(window_gaps=frozenset({"CN_EQUITY_CORE_000985"}))
+def core(projection: ProjectionSet, asset: str) -> dict[str, Any]:
+    return next(
+        item for item in projection.datasets["core_assets"]["assets"] if item["asset"] == asset
     )
+
+
+def test_a_core_session_missing_inside_the_window_holds_the_stage(tmp_path: Path) -> None:
+    # Gate ①: the window has a session the visible series lacks.
+    paths = runtime(tmp_path)
+    seed_cores(paths, stock_gap=sessions()[-10])
+
+    projection = target_projection(paths)
 
     assert stage(projection) == (None, "core_data_pending")
-    stock = next(
-        item for item in projection.datasets["core_assets"]["assets"] if item["asset"] == "stock"
+    assert core(projection, "stock")["reason"] == "window_session_missing"
+
+
+def test_a_backfilled_day_is_held_only_by_a_session_missing_by_then(tmp_path: Path) -> None:
+    # The same gate on a backfilled day, over its own window (ticket 11).
+    paths = runtime(tmp_path)
+    days = sessions()
+    seed_cores(paths, stock_gap=days[-4])
+    before, after = days[-6].isoformat(), days[-3].isoformat()
+
+    failed = summaries(paths).backfill(
+        (before, after), target=TARGET.isoformat(), system_as_of=CUTOFF
     )
-    assert stock["reason"] == "window_session_missing"
+
+    assert failed == ()
+    assert stage(summary(paths, before))[0] == "stage_iii"
+    assert stage(summary(paths, after)) == (None, "core_data_pending")
+    assert core(summary(paths, after), "stock")["reason"] == "window_session_missing"
+
+
+def test_a_backfilled_day_the_calendar_does_not_reach_back_for_fails(tmp_path: Path) -> None:
+    # Its window is not guessed from weekdays: the day is left for a later run.
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    days = sessions()
+    reached, unreached = days[-5].isoformat(), days[-20].isoformat()
+
+    failed = summaries(paths, TradingCalendar(days[-130:])).backfill(
+        (unreached, reached), target=TARGET.isoformat(), system_as_of=CUTOFF
+    )
+
+    assert failed == (FailedDay(unreached, "LookupError"),)
+    assert stage(summary(paths, reached))[0] == "stage_iii"
 
 
 def test_a_day_that_cannot_be_summarized_is_returned_and_the_rest_go_on(

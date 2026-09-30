@@ -20,6 +20,7 @@ from pring_cycle.trading_calendar import (
     US_EQUITY,
     US_TREASURY,
     SseCalendar,
+    TradingCalendar,
     acquire_sse_calendar,
     us_equity_holidays,
     us_treasury_holidays,
@@ -426,3 +427,30 @@ def test_the_bond_rules_hold_in_the_years_they_differ() -> None:
     # Juneteenth is a holiday from 2022.
     assert US_EQUITY.is_trading(date(2021, 6, 18))
     assert not US_EQUITY.is_trading(date(2022, 6, 20))
+
+
+def test_a_window_is_counted_only_over_the_sessions_the_source_covers() -> None:
+    """Gate ①'s windows (ticket 11): never weekdays standing in beyond the coverage."""
+    # 1 to 12 October 2026: a week of holiday, then the sessions of the 9th and 12th.
+    calendar = TradingCalendar(
+        (date(2026, 9, 30), date(2026, 10, 9), date(2026, 10, 12)), through=date(2026, 10, 13)
+    )
+
+    assert calendar.sessions_to(date(2026, 10, 12), 2, since=date(2026, 9, 1)) == (
+        date(2026, 10, 9),
+        date(2026, 10, 12),
+    )
+    # A closed day ends the window at the session before it; the source said it was closed.
+    assert calendar.sessions_to(date(2026, 10, 13), 1, since=date(2026, 9, 1)) == (
+        date(2026, 10, 12),
+    )
+    # Fewer sessions than wanted are enough when none is wanted before ``since``.
+    assert calendar.sessions_to(date(2026, 10, 12), 120, since=date(2026, 9, 30)) == (
+        date(2026, 9, 30),
+        date(2026, 10, 9),
+        date(2026, 10, 12),
+    )
+    with pytest.raises(LookupError, match="window_calendar_unavailable"):
+        calendar.sessions_to(date(2026, 10, 12), 120, since=date(2026, 9, 1))
+    with pytest.raises(LookupError, match="window_calendar_unavailable"):
+        calendar.sessions_to(date(2026, 10, 14), 1, since=date(2026, 9, 1))
