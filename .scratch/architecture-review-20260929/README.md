@@ -181,6 +181,7 @@
 | [28](issues/28-credit-failure-names-what-is-missing.md) | 信用脉冲失败说清缺了什么 | 23、27 | ready-for-agent |
 | [29](issues/29-retain-derived-parents.md) | 留存保留派生观测引用的父声明（低优先级） | 无 | ready-for-agent |
 | [30](issues/30-shrink-fetch-ranges.md) | 取数范围按窗口与尺度收缩，窗口首日附带上一期（低优先级） | 25、02 | ready-for-agent |
+| [31](issues/31-tushare-call-quota.md) | TuShare 调用限额：每分钟节流与每日额度（用户访谈 2026-10-01 新增，排在 M7 之前） | 22 | ready-for-agent |
 
 ## 规格与票面核对
 
