@@ -14,16 +14,18 @@ release rules have out by then, not at whatever happens to be held (ticket 24).
 Not here: fetching the inputs, whether a parent claim can be adopted (asked of claim
 adoption), the derived observation's identity and storage, and freshness labels.
 
-Kept as they are, and so documented here (each has its own ticket): the direct inputs
-are counted by held claims rather than usable ones, and a direct and a differenced
-reading are not compared by their end; stale inputs still compute (the caller labels
-them), and the gap list then counts ``stale_inputs`` as a failed derivation; several
-failures are reported as ``missing_inputs``.
+Each parent is read from usable points only, directly or differenced from year-to-date
+figures as the version allows; when both readings hold, the one ending later is taken,
+the direct one on the same end (ticket 26).
+
+Kept as they are, and so documented here (each has its own ticket): stale inputs still
+compute (the caller labels them), and the gap list then counts ``stale_inputs`` as a
+failed derivation; several failures are reported as ``missing_inputs``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Collection, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from decimal import Decimal
@@ -33,7 +35,6 @@ from zoneinfo import ZoneInfo
 from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.evidence import (
     AsOfMode,
-    EvidenceValueState,
     MetricSeriesPoint,
     selected_claim,
     usable_point,
@@ -142,9 +143,11 @@ def minimum_requirements(
     periods: dict[str, tuple[str, ...]] = {}
     for metric_id, latest in latest_released(public_cutoff, calendar).items():
         window = preceding_periods(latest, INPUT_PERIODS[metric_id])
+        # Read directly when every period is held so, else differenced from year to date.
+        direct_end = window[-1] if set(window) <= set(held.get(metric_id, ())) else None
         if (
             differenced[metric_id]
-            and not set(window) <= set(held.get(metric_id, ()))
+            and not _direct_wins(direct_end, window[-1])
             and not window[0].endswith(("-01", "-Q1"))
         ):
             window = (preceding_periods(window[0], 2)[0], *window)
@@ -180,22 +183,17 @@ def fetch_coverage(
 
 
 def direct_periods(selector: Any) -> dict[str, frozenset[str]]:
-    """The periods held as validated direct flows and quarterly levels, by parent."""
-    held: dict[str, frozenset[str]] = {}
-    for metric_id, dimensions in (("CN_SF_TOTAL", _SOCIAL_FINANCING), ("CN_GDP", _GDP)):
-        held[metric_id] = frozenset(
+    """The periods held as usable direct flows and quarterly levels, by parent.
+
+    Usable by the rule a derivation reads them by (ticket 26).
+    """
+    return {
+        metric_id: frozenset(
             _period_label(metric_id, point.period_end)
-            for point in selector.series(metric_id)
-            if point.dimensions == dimensions
-            and point.selection_status == "selected"
-            and point.value_state is EvidenceValueState.REPORTED_VALUE
-            and point.selected_value is not None
-            and any(
-                claim.claim_id == point.selected_claim_id and claim.quality_status == "validated"
-                for claim in point.claims
-            )
+            for point in _usable(selector.series(metric_id), dimensions)
         )
-    return held
+        for metric_id, dimensions in (("CN_SF_TOTAL", _SOCIAL_FINANCING), ("CN_GDP", _GDP))
+    }
 
 
 def _period_label(metric_id: str, period_end: str) -> str:
@@ -261,82 +259,61 @@ def derive(
         return CreditImpulseResult(formula_version, status)
 
     def held(metric_id: str, dimensions: Mapping[str, str]) -> list[MetricSeriesPoint]:
-        return [
-            point
-            for point in repository.metric_series(
+        return _usable(
+            repository.metric_series(
                 metric_id, mode=as_of_mode, as_of=as_of, definition_version=definition_version
-            )
-            if point.dimensions == dimensions and point.claims
-        ]
-
-    monthly_social_financing = held("CN_SF_TOTAL", _SOCIAL_FINANCING)
-    ytd_social_financing = held("CN_SF_TOTAL", _SOCIAL_FINANCING_YTD)
-    quarterly_gdp = held("CN_GDP", _GDP)
-    ytd_gdp = held("CN_GDP", _GDP_YTD) if version.gdp_from_ytd else []
-
-    quarter_values: dict[str, float] = {}
-    one_delivery: set[str] = set()
-    if len(quarterly_gdp) >= 8:
-        gdp_period_points = quarterly_gdp[-8:]
-        gdp_input_points = gdp_period_points
-        gdp_numbers = [
-            float(point.selected_value)
-            for point in gdp_period_points
-            if point.selected_value is not None
-        ]
-        gdp_input_measure = "nominal_quarterly_level"
-    else:
-        derived_quarters = _quarter_levels_from_ytd(ytd_gdp)
-        if len(derived_quarters) < 8 or derived_quarters[-1][0].period_end != (
-            ytd_gdp[-1].period_end
-        ):
-            return failed()
-        selected_quarters = derived_quarters[-8:]
-        gdp_period_points = [point for point, _value, _inputs in selected_quarters]
-        gdp_numbers = [value for _point, value, _inputs in selected_quarters]
-        gdp_input_points = _inputs_of(selected_quarters, ytd_gdp)
-        gdp_input_measure = "nominal_ytd_level"
-        quarter_values = {
-            point.selected_claim_id: value
-            for point, value, _inputs in selected_quarters
-            if point.selected_claim_id is not None
-        }
-        one_delivery = _quarters_from_one_delivery(
-            repository, selected_quarters, definition_version=definition_version, as_of=as_of
+            ),
+            dimensions,
         )
-    if len(monthly_social_financing) >= 24:
-        social_period_points = monthly_social_financing[-24:]
-        if not _periods_are_consecutive(social_period_points, periods_per_year=12):
-            return failed("nonconsecutive_social_financing_inputs")
-        social_numbers = [
-            point.selected_value
-            for point in social_period_points
-            if point.selected_value is not None
-        ]
-        social_input_points = social_period_points
-    elif version.social_financing_from_ytd:
-        monthly_flows = _monthly_flows_from_ytd(ytd_social_financing)
-        if len(monthly_flows) < 24 or monthly_flows[-1][0].period_end != (
-            ytd_social_financing[-1].period_end
-        ):
-            return failed()
-        selected_flows = monthly_flows[-24:]
-        social_period_points = [point for point, _value, _inputs in selected_flows]
-        social_numbers = [value for _point, value, _inputs in selected_flows]
-        social_input_points = _inputs_of(selected_flows, ytd_social_financing)
-    else:
+
+    ytd_gdp = held("CN_GDP", _GDP_YTD)
+    ytd_social_financing = held("CN_SF_TOTAL", _SOCIAL_FINANCING_YTD)
+    gdp_reading = _reading(
+        held("CN_GDP", _GDP),
+        ytd_gdp if version.gdp_from_ytd else None,
+        count=INPUT_PERIODS["CN_GDP"],
+        periods_per_year=4,
+        difference=_quarter_levels_from_ytd,
+    )
+    social_reading = _reading(
+        held("CN_SF_TOTAL", _SOCIAL_FINANCING),
+        ytd_social_financing if version.social_financing_from_ytd else None,
+        count=INPUT_PERIODS["CN_SF_TOTAL"],
+        periods_per_year=12,
+        difference=_monthly_flows_from_ytd,
+    )
+    if isinstance(gdp_reading, str) and gdp_reading == "missing":
         return failed()
-    if len(social_period_points) < 24 or len(gdp_period_points) < 8:
-        return failed()
-    if not _periods_are_consecutive(social_period_points, periods_per_year=12):
-        return failed("nonconsecutive_social_financing_inputs")
-    if not _periods_are_consecutive(gdp_period_points, periods_per_year=4):
+    if isinstance(social_reading, str):
+        return failed(
+            "nonconsecutive_social_financing_inputs"
+            if social_reading == "nonconsecutive"
+            else "missing_inputs"
+        )
+    if isinstance(gdp_reading, str):
         return failed("nonconsecutive_gdp_inputs")
-    if len(social_numbers) != 24 or len(gdp_numbers) != 8:
-        return failed()
+    gdp_period_points = gdp_reading.periods
+    gdp_numbers = gdp_reading.numbers
+    gdp_input_points = gdp_reading.inputs
+    gdp_input_measure = (
+        "nominal_ytd_level" if gdp_reading.differenced else "nominal_quarterly_level"
+    )
+    quarter_values = {
+        point.selected_claim_id: value
+        for point, value, _inputs in gdp_reading.differenced
+        if point.selected_claim_id is not None
+    }
+    one_delivery = (
+        _quarters_from_one_delivery(
+            repository, gdp_reading.differenced, definition_version=definition_version, as_of=as_of
+        )
+        if gdp_reading.differenced
+        else set()
+    )
+    social_period_points = social_reading.periods
+    social_numbers = social_reading.numbers
+    social_input_points = social_reading.inputs
     parents = (*social_input_points, *gdp_input_points)
-    if any(not usable_point(point) for point in parents):
-        return failed()
     adoption = ClaimAdoption(repository, definition_version=definition_version).check(
         {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)}
     )
@@ -387,6 +364,78 @@ def derive(
             max(public_times) if public_times and len(public_times) == len(claims) else None
         ),
     )
+
+
+def _usable(
+    points: Iterable[MetricSeriesPoint], dimensions: Mapping[str, str]
+) -> list[MetricSeriesPoint]:
+    """The points of one measure a derivation may read: selected, reported, validated."""
+    return [point for point in points if point.dimensions == dimensions and usable_point(point)]
+
+
+@dataclass(frozen=True)
+class _Reading:
+    """One parent's window, read directly or differenced from year-to-date figures."""
+
+    periods: list[MetricSeriesPoint]
+    numbers: list[float]
+    inputs: list[MetricSeriesPoint]
+    differenced: Differenced
+
+
+def _reading(
+    direct: list[MetricSeriesPoint],
+    ytd: list[MetricSeriesPoint] | None,
+    *,
+    count: int,
+    periods_per_year: int,
+    difference: Callable[[list[MetricSeriesPoint]], Differenced],
+) -> _Reading | str:
+    """The window a parent is read from, else ``missing`` or ``nonconsecutive``.
+
+    A reading counts when ``count`` usable periods run on without a break. When both can
+    be read, the one ending later is; on the same end, the direct one (``_direct_wins``).
+    ``ytd`` is None when the version may not difference this parent.
+    """
+    readings: list[_Reading] = []
+    broken = False
+    if len(direct) >= count:
+        window = direct[-count:]
+        if _periods_are_consecutive(window, periods_per_year=periods_per_year):
+            numbers = [float(point.selected_value or 0.0) for point in window]
+            readings.append(_Reading(window, numbers, window, []))
+        else:
+            broken = True
+    if ytd:
+        derived = difference(ytd)
+        if len(derived) >= count and derived[-1][0].period_end == ytd[-1].period_end:
+            selected = derived[-count:]
+            window = [point for point, _value, _inputs in selected]
+            if _periods_are_consecutive(window, periods_per_year=periods_per_year):
+                numbers = [value for _point, value, _inputs in selected]
+                readings.append(_Reading(window, numbers, _inputs_of(selected, ytd), selected))
+            else:
+                broken = True
+    if not readings:
+        return "nonconsecutive" if broken else "missing"
+    direct_reading = next((item for item in readings if not item.differenced), None)
+    differenced_reading = next((item for item in readings if item.differenced), None)
+    if direct_reading is not None and _direct_wins(
+        direct_reading.periods[-1].period_end,
+        differenced_reading.periods[-1].period_end if differenced_reading else None,
+    ):
+        return direct_reading
+    assert differenced_reading is not None
+    return differenced_reading
+
+
+def _direct_wins(direct_end: str | None, differenced_end: str | None) -> bool:
+    """Whether a parent is read directly: it can be, and ends no earlier (ticket 26).
+
+    The one rule for both the derivation and the plan's base periods; ends compare within
+    one parent, as period ends or as period labels.
+    """
+    return direct_end is not None and (differenced_end is None or direct_end >= differenced_end)
 
 
 def _inputs_of(derived: Differenced, held: list[MetricSeriesPoint]) -> list[MetricSeriesPoint]:

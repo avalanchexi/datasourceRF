@@ -6,6 +6,7 @@ import calendar
 from dataclasses import replace
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -340,6 +341,102 @@ def test_each_version_computes_from_the_inputs_it_may_read(
     # January opens its year, so no December before the window is read.
     assert set(result.input_claim_ids) == parents
     assert len(result.input_claim_ids) == len(parents)
+
+
+def test_a_direct_reading_with_an_unusable_point_gives_way_to_a_complete_ytd_one(
+    repository: EvidenceRepository,
+) -> None:
+    # Counted by claims held, the direct quarters were taken and then refused (ticket 26).
+    social_financing(repository, "monthly_increment")
+    gdp(repository, "nominal_ytd_level")
+    for year in (2024, 2025):
+        for quarter in range(1, 5):
+            claim = _certified_claim(
+                metric_id="CN_GDP",
+                period_start=f"{year:04d}-{quarter * 3 - 2:02d}-01",
+                period_end=month_end(year, quarter * 3),
+                dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"},
+                value=30.0,
+                unit="hundred_million_cny",
+            )
+            if (year, quarter) == (2025, 2):
+                claim = replace(claim, quality_status="unverified")
+            repository.append_source_claim(claim)
+
+    result = derive(repository, SHARE)
+
+    assert result.status == "available"
+    assert result.gdp_input_measure == "nominal_ytd_level"
+    assert result.value == pytest.approx(EXPECTED)
+
+
+def test_a_newer_ytd_reading_wins_over_an_older_direct_one(
+    repository: EvidenceRepository,
+) -> None:
+    # Direct flows end a month earlier (2023-12 to 2025-11) than the year-to-date ones.
+    for index in range(24):
+        year, month = 2023 + (index + 11) // 12, (index + 11) % 12 + 1
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_SF_TOTAL",
+                period_start=f"{year:04d}-{month:02d}-01",
+                period_end=month_end(year, month),
+                dimensions={"measure": "monthly_increment"},
+                value=9.0,
+                unit="hundred_million_cny",
+            )
+        )
+    social_financing(repository, "ytd_increment")
+    gdp(repository, "nominal_ytd_level")
+
+    result = derive(repository, YTD_FLOW)
+
+    assert result.status == "available"
+    assert result.social_financing_window == ("2024-01-01", "2025-12-31")
+    assert result.value == pytest.approx(EXPECTED)
+
+
+def test_on_the_same_end_the_direct_reading_wins(repository: EvidenceRepository) -> None:
+    social_financing(repository, "monthly_increment")
+    gdp(repository, "nominal_quarterly_level")
+    gdp(repository, "nominal_ytd_level")
+
+    result = derive(repository, SHARE)
+
+    assert result.status == "available"
+    assert result.gdp_input_measure == "nominal_quarterly_level"
+
+
+@pytest.mark.parametrize("unusable", [None, (2025, 2)])
+def test_the_plan_asks_for_a_base_period_by_the_rule_the_derivation_reads_by(
+    repository: EvidenceRepository, unusable: tuple[int, int] | None
+) -> None:
+    # Direct quarters 2024-Q2 to 2026-Q1; one not usable sends GDP to its year-to-date
+    # reading, which differences 2024-Q2 from 2024-Q1 (ticket 26).
+    for year, quarter in (
+        [(2024, q) for q in (2, 3, 4)] + [(2025, q) for q in (1, 2, 3, 4)] + [(2026, 1)]
+    ):
+        claim = _certified_claim(
+            metric_id="CN_GDP",
+            period_start=f"{year:04d}-{quarter * 3 - 2:02d}-01",
+            period_end=month_end(year, quarter * 3),
+            dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"},
+            value=30.0,
+            unit="hundred_million_cny",
+        )
+        if (year, quarter) == unusable:
+            claim = replace(claim, quality_status="unverified")
+        repository.append_source_claim(claim)
+    selector = SimpleNamespace(
+        series=lambda metric: repository.metric_series(
+            metric, mode=AsOfMode.SYSTEM, as_of=AS_OF, definition_version=VERSION
+        )
+    )
+    held = credit_impulse.direct_periods(selector)
+
+    result = needs(SHARE, day_end(date(2026, 4, 30)), **held)
+
+    assert result["CN_GDP"][:2] == (("2024-Q1", "2026-Q1") if unusable else ("2024-Q2", "2026-Q1"))
 
 
 def test_a_version_that_may_not_difference_does_not(repository: EvidenceRepository) -> None:
