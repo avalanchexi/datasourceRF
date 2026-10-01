@@ -760,23 +760,38 @@ _GAP_ORDER = (
 )
 
 
-def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, str]]:
-    """Per metric, the gap category and reason of the batch's failed acquisition."""
+def _acquisition_failures(
+    database: Path, run_id: str
+) -> dict[str, tuple[str, str, list[dict[str, object]]]]:
+    """Per metric, the gap category and reason of the batch's failed acquisition, and each
+    failed warrant symbol (and day) with its own reason (ticket 20)."""
     from pring_cycle.acquisition_outcome import (
         NOT_ATTEMPTED,
         SOURCE_FAILED_OUTCOMES,
         AcquisitionOutcomes,
     )
 
-    return {
-        metric_id: (
-            "fetch_failed"
-            if attempt.outcome in SOURCE_FAILED_OUTCOMES | {NOT_ATTEMPTED}
-            else "ingest_rejected",
-            attempt.detail,
+    failures: dict[str, tuple[str, str, list[dict[str, object]]]] = {}
+    for metric_id, attempts in AcquisitionOutcomes(database).for_batch(run_id).failures().items():
+        # A member the source failed (or this system, or no request) makes it a fetch
+        # failure, its reason the metric's; else an answer was refused.
+        fetched = [
+            item for item in attempts if item.outcome in SOURCE_FAILED_OUTCOMES | {NOT_ATTEMPTED}
+        ]
+        failures[metric_id] = (
+            "fetch_failed" if fetched else "ingest_rejected",
+            (fetched or list(attempts))[0].detail,
+            [
+                {
+                    "symbol": item.symbol,
+                    **({"business_date": item.business_date} if item.business_date else {}),
+                    "reason": item.detail,
+                }
+                for item in attempts
+                if item.symbol is not None
+            ],
         )
-        for metric_id, attempt in AcquisitionOutcomes(database).for_batch(run_id).failures().items()
-    }
+    return failures
 
 
 def gap_list(
@@ -826,7 +841,7 @@ def gap_list(
         if category == "missing" and rule is not None and rule.restricted_license:
             category, reason = "license_missing", "restricted_license"
         elif category == "missing" and metric_id in acquisition_failures:
-            category, reason = acquisition_failures[metric_id]
+            category, reason, _members = acquisition_failures[metric_id]
         gap: dict[str, object] = {
             "metric_id": metric_id,
             "priority": priorities.get(metric_id),
@@ -837,6 +852,9 @@ def gap_list(
             "periods_behind": behind,
             "no_web_fallback": not is_searchable_gap(metric_id),
         }
+        if metric_id in acquisition_failures and acquisition_failures[metric_id][2]:
+            # One row a metric, naming each warrant symbol (and day) that failed and why.
+            gap["failed_members"] = acquisition_failures[metric_id][2]
         if metric_id in failed_candidates:
             # An unconfigured metric has no due period; it keeps its category.
             if category != "unconfigured":

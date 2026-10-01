@@ -306,6 +306,19 @@ def _candidate_reasons(value: object) -> str:
     )
 
 
+def _failed_members(value: object) -> str:
+    """Each warrant symbol (and day) that failed, with its own reason (ticket 20)."""
+    members = _document_list(value)
+    if not members:
+        return ""
+    return "；失败品种 " + "；".join(
+        f"{item.get('symbol')}"
+        + (f" {item['business_date']}" if item.get("business_date") else "")
+        + f"（{item.get('reason')}）"
+        for item in members
+    )
+
+
 def _gap_list(value: object) -> html.Div:
     """One row per gap, grouped under its category, in the order the batch listed them."""
     gaps = _document_list(value)
@@ -331,6 +344,7 @@ def _gap_list(value: object) -> html.Div:
                                         else ""
                                     )
                                     + _candidate_reasons(item.get("candidates"))
+                                    + _failed_members(item.get("failed_members"))
                                     + (
                                         "；来源复核失败"
                                         if item.get("source_failures")

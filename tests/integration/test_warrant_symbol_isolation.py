@@ -194,7 +194,10 @@ def test_a_symbol_missing_on_the_target_day_keeps_the_warrants_listed_as_a_gap(
     )
 
     assert warrants["category"] == "fetch_failed"
-    assert warrants["reason"] == "fixture_warrant_unavailable"
+    # Each failed symbol keeps its own reason (ticket 20); CZCE's are unreachable here.
+    members = {item["symbol"]: item["reason"] for item in warrants["failed_members"]}
+    assert members["CU"] == "fixture_warrant_unavailable"
+    assert warrants["reason"] == warrants["failed_members"][0]["reason"]
 
 
 class PassThroughLedger:
@@ -286,7 +289,7 @@ def test_a_gap_day_refetch_clears_the_symbol_the_direct_refresh_failed(
     outcomes = AcquisitionOutcomes(paths.database).for_batch(run.run_id)
     with processing_batch(run.run_id):
         refresh(paths, run)
-        assert outcomes.failures()["CN_FUTURES_WARRANTS"].symbol == "CU"
+        assert "CU" in {item.symbol for item in outcomes.failures()["CN_FUTURES_WARRANTS"]}
         monkeypatch.setattr(
             "pring_cycle.tushare_context.build_opener", lambda *handlers: EverySymbolAvailable()
         )
@@ -302,7 +305,8 @@ def test_a_gap_day_refetch_clears_the_symbol_the_direct_refresh_failed(
             retrieve_tushare_context(paths, run.run_id, "fixture-secret", scope_run=scope_run)
 
     # CZCE's own symbols stay failed, unreachable here; copper no longer is.
-    assert outcomes.failures()["CN_FUTURES_WARRANTS"].symbol in {"CF", "TA"}
+    failed = {item.symbol for item in outcomes.failures()["CN_FUTURES_WARRANTS"]}
+    assert failed and "CU" not in failed and failed <= {"CF", "TA"}
 
 
 def test_a_gap_day_missing_only_czce_symbols_asks_tushare_for_nothing(

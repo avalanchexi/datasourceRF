@@ -171,7 +171,7 @@ def test_an_attempt_recorded_in_a_batch_is_that_batch_s_without_a_receipt(
         )
     outcomes = AcquisitionOutcomes(paths.database)
 
-    (attempt,) = outcomes.for_batch(first).failures().values()
+    ((attempt,),) = outcomes.for_batch(first).failures().values()
     assert (attempt.metric_id, attempt.metadata["run_id"]) == ("CN_GDP", first)
     assert attempt.target_business_date == TARGET and attempt.acquisition_ids == ()
     assert outcomes.for_batch(second).failures() == {}
@@ -248,10 +248,84 @@ def test_a_later_success_clears_a_failure_of_the_same_symbol_only(paths: Runtime
     failures = AcquisitionOutcomes(paths.database).for_batch(run).failures()
 
     assert set(failures) == {"CN_FUTURES_WARRANTS"}
-    assert (failures["CN_FUTURES_WARRANTS"].outcome, failures["CN_FUTURES_WARRANTS"].detail) == (
-        "validation_failed",
-        "unit",
+    ((cu),) = failures["CN_FUTURES_WARRANTS"]
+    assert (cu.symbol, cu.outcome, cu.detail) == ("CU", "validation_failed", "unit")
+
+
+def test_a_symbol_s_failure_one_day_stands_though_another_day_succeeded(
+    paths: RuntimePaths,
+) -> None:
+    """Ticket 20 (ADR-0032): only that symbol that day is missing."""
+    run, accepted = submit(paths, "warrant-days")
+    at = accepted + timedelta(seconds=1)
+    record(
+        paths, "CN_FUTURES_WARRANTS", "source_failed", at, symbol="TA", business_date="2026-05-19"
     )
+    record(
+        paths,
+        "CN_FUTURES_WARRANTS",
+        "succeeded",
+        at + timedelta(seconds=1),
+        symbol="TA",
+        business_date="2026-09-02",
+    )
+
+    ((ta),) = AcquisitionOutcomes(paths.database).for_batch(run).failures()["CN_FUTURES_WARRANTS"]
+
+    assert (ta.symbol, ta.business_date) == ("TA", "2026-05-19")
+
+
+def test_a_window_s_failure_is_cleared_by_a_later_day_s_success_of_its_symbol(
+    paths: RuntimePaths,
+) -> None:
+    """Ticket 20: a failure naming no day (the window's request) gives way to a gap day's
+    refetch; one naming its day stands against another day's success."""
+    run, accepted = submit(paths, "warrant-window")
+    at = accepted + timedelta(seconds=1)
+    record(paths, "CN_FUTURES_WARRANTS", "source_failed", at, symbol="CU")
+    record(
+        paths, "CN_FUTURES_WARRANTS", "source_failed", at, symbol="RB", business_date="2026-08-27"
+    )
+    later = at + timedelta(seconds=1)
+    for symbol in ("CU", "RB"):
+        record(
+            paths,
+            "CN_FUTURES_WARRANTS",
+            "succeeded",
+            later,
+            symbol=symbol,
+            business_date="2026-08-28",
+        )
+
+    failed = AcquisitionOutcomes(paths.database).for_batch(run).failures()["CN_FUTURES_WARRANTS"]
+
+    assert [(item.symbol, item.business_date) for item in failed] == [("RB", "2026-08-27")]
+
+
+def test_the_gap_list_names_each_failed_symbol_with_its_reason(paths: RuntimePaths) -> None:
+    """Ticket 20: one row for the metric, every failed symbol and why, page and report alike."""
+    from pring_cycle.dashboard import _gap_list
+
+    run, accepted = submit(paths, "warrant-symbols")
+    at = accepted + timedelta(seconds=1)
+    record(paths, "CN_FUTURES_WARRANTS", "source_failed", at, symbol="CU", reason="timeout")
+    record(
+        paths, "CN_FUTURES_WARRANTS", "structure_rejected", at, symbol="SC", rule_reason="negative"
+    )
+    with database_connection(paths.database) as connection:
+        record_batch_freshness(connection, run, (assess("CN_FUTURES_WARRANTS", "missing"),), at)
+    definition = metric_definition(
+        "CN_FUTURES_WARRANTS", definition_version=VERSION, database_path=paths.database
+    )
+
+    (gap,) = gap_list(paths.database, run, (definition,))
+
+    assert (gap["category"], gap["reason"]) == ("fetch_failed", "timeout")
+    assert gap["failed_members"] == [
+        {"symbol": "CU", "reason": "timeout"},
+        {"symbol": "SC", "reason": "negative"},
+    ]
+    assert "失败品种 CU（timeout）；SC（negative）" in str(_gap_list([gap]))
 
 
 def capture(paths: RuntimePaths, run: str, error: Exception) -> None:
@@ -287,7 +361,7 @@ def test_a_detail_recorded_as_null_gives_way_to_the_next(paths: RuntimePaths) ->
 
     failures = AcquisitionOutcomes(paths.database).for_batch(run).failures()
 
-    assert failures["CN_DR007"].detail == "timeout"
+    assert failures["CN_DR007"][0].detail == "timeout"
 
 
 def test_a_skipped_candidate_is_not_a_structure_rejection(paths: RuntimePaths) -> None:

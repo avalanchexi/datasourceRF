@@ -12,13 +12,12 @@ that consumer.
 Both views order attempts by their exact recorded time, then by writing order, and keep
 to a catalog: ``latest`` to the one asked for, the batch view to its run's model's, though
 it keeps an attempt that names no catalog and reads them all when the model is not on
-record (ticket 19). The
-batch view takes an attempt by the run it names, and one that names none (recorded before
-ticket 17) by time, from the run's acceptance to the next run's. Kept as they are, and so
+record (ticket 19). The batch view takes an attempt by the run it names, and one that
+names none (recorded before ticket 17) by time, from the run's acceptance to the next
+run's; it reads each warrant symbol and day apart (ticket 20). Kept as they are, and so
 documented here: ``latest`` may return the same target day's attempt from an earlier batch
-(it shows the latest acquisition honestly, with its recorded time); warrant symbols are
-grouped without their day, and several failing symbols of one metric collapse to one
-reason; a rejection a later delivery of the batch resolved is still listed.
+(it shows the latest acquisition honestly, with its recorded time); a rejection a later
+delivery of the batch resolved is still listed.
 
 The target-day view reads each recorded detail as text; the batch view reads them as
 recorded, so a detail recorded as null is absent there.
@@ -205,6 +204,10 @@ class AttemptView:
         return self._get("condition")
 
     @property
+    def business_date(self) -> str | None:
+        return self._get("business_date")
+
+    @property
     def step(self) -> str | None:
         return self._get("step")
 
@@ -304,12 +307,15 @@ class BatchAcquisition:
         self._database = database
         self._run_id = run_id
 
-    def failures(self) -> dict[str, AttemptView]:
-        """Per metric, the batch's last attempt of a registered source, when it failed.
+    def failures(self) -> dict[str, tuple[AttemptView, ...]]:
+        """Per metric, each member whose last attempt of a registered source failed.
 
-        Each warrant symbol is acquired on its own, so one symbol's failure stands though
-        another succeeded after it; alternative families (an API, then its page) still let
-        a later success clear an earlier failure. One failing symbol stands for the metric.
+        A member is a warrant symbol and the day it was acquired for, each acquired on its
+        own (ADR-0032: only that symbol that day is missing): one's failure stands though
+        another, or the same symbol another day, succeeded after it. A failure that names no
+        day (a window's request) is cleared by any later success of its symbol, such as a
+        gap day's refetch. Alternative families (an API, then its page) still let a later
+        success clear an earlier failure. Members come by symbol and day (ticket 20).
         """
         with database_connection(self._database) as connection:
             if not connection.execute(
@@ -346,7 +352,7 @@ class BatchAcquisition:
                     json.dumps(sorted(_ACQUISITION_OUTCOMES)),
                 ),
             ).fetchall()
-        latest: dict[tuple[str, object], AttemptView] = {}
+        latest: dict[tuple[str, object, object], AttemptView] = {}
         for row in sorted(rows, key=_recorded_order):
             attempt = _view(row[1:])
             owner = attempt.metadata.get("run_id")
@@ -356,12 +362,26 @@ class BatchAcquisition:
             if catalog is not None and attempt.definition_version not in {None, catalog}:
                 continue
             if attempt.metadata.get("target_business_date", run[1]) == run[1]:
-                latest[(attempt.metric_id, attempt.metadata.get("symbol"))] = attempt
-        return {
-            metric_id: attempt
-            for (metric_id, _symbol), attempt in latest.items()
-            if failed_to_acquire(attempt)
-        }
+                member = (attempt.metadata.get("symbol"), attempt.metadata.get("business_date"))
+                latest[(attempt.metric_id, *member)] = attempt
+        last_success: dict[tuple[str, object], datetime] = {}
+        for (metric_id, symbol, _day), attempt in latest.items():
+            if not failed_to_acquire(attempt):
+                symbol_key = (metric_id, symbol)
+                last_success[symbol_key] = max(
+                    attempt.recorded_at, last_success.get(symbol_key, attempt.recorded_at)
+                )
+        failed: dict[str, list[AttemptView]] = {}
+        for key in sorted(latest, key=lambda item: tuple(str(part or "") for part in item)):
+            attempt = latest[key]
+            if not failed_to_acquire(attempt):
+                continue
+            metric_id, symbol, day = key
+            succeeded = last_success.get((metric_id, symbol))
+            if day is None and succeeded is not None and succeeded > attempt.recorded_at:
+                continue
+            failed.setdefault(metric_id, []).append(attempt)
+        return {metric_id: tuple(members) for metric_id, members in failed.items()}
 
     def structure_rejections(self) -> tuple[StructureRejection, ...]:
         """The batch's responses refused by their structure check; a skipped one is not."""

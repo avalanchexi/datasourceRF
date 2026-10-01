@@ -177,6 +177,12 @@ def retrieve_tushare_context(
                         for key in ("symbol", "start_date", "end_date")
                         if key in asked
                     },
+                    # A day's refetch names its day, so a symbol's days stand apart (ticket 20).
+                    **(
+                        {"business_date": scope.period}
+                        if "symbol" in asked and len(scope.period) == 10
+                        else {}
+                    ),
                 },
             )
         except _RequestFailed as error:
