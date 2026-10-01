@@ -201,7 +201,10 @@ def lpr_release_calendar(
     released = _released_observation(previous_event, mode=as_of_mode)
     attempt = (
         AcquisitionOutcomes(repository.database_path).latest(
-            expectation.metric_id, as_of=as_of, period=period
+            expectation.metric_id,
+            as_of=as_of,
+            period=period,
+            definition_version=definition_version,
         )
         if as_of_mode is AsOfMode.SYSTEM
         else None

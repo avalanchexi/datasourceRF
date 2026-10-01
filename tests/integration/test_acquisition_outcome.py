@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,7 @@ def record(
     at: datetime,
     *,
     channel: str = "fixture_channel",
+    version: str | None = None,
     **metadata: str,
 ) -> str:
     return EvidenceRepository(paths.database).record_retrieval_attempt(
@@ -46,7 +47,10 @@ def record(
         channel=channel,
         outcome=outcome,
         fetched_at=at,
-        safe_metadata=metadata,
+        safe_metadata={
+            **metadata,
+            **({"definition_version": version} if version is not None else {}),
+        },
     )
 
 
@@ -171,6 +175,60 @@ def test_an_attempt_recorded_in_a_batch_is_that_batch_s_without_a_receipt(
     assert (attempt.metric_id, attempt.metadata["run_id"]) == ("CN_GDP", first)
     assert attempt.target_business_date == TARGET and attempt.acquisition_ids == ()
     assert outcomes.for_batch(second).failures() == {}
+
+
+def test_a_resumed_run_keeps_its_own_attempts_and_no_later_run_s(paths: RuntimePaths) -> None:
+    """Ticket 19: a run resumed after another for the same day sees only what it recorded."""
+    first, _ = submit(paths, "first")
+    second, second_accepted = submit(paths, "second")
+    at = second_accepted + timedelta(seconds=1)
+    with processing_batch(second):
+        record(paths, "CN_DR007", "source_failed", at)
+    with processing_batch(first):  # resumed: recorded long after the next run's acceptance
+        record(paths, "CN_SHIBOR_ON_1W_3M", "source_failed", at + timedelta(hours=1))
+    outcomes = AcquisitionOutcomes(paths.database)
+
+    assert set(outcomes.for_batch(first).failures()) == {"CN_SHIBOR_ON_1W_3M"}
+    assert set(outcomes.for_batch(second).failures()) == {"CN_DR007"}
+    # The target day's view crosses batches: the day's latest, whichever run recorded it.
+    latest = outcomes.latest("CN_DR007", as_of=at + timedelta(hours=2), target_business_date=TARGET)
+    assert latest is not None and latest.metadata["run_id"] == second
+
+
+def test_attempts_of_one_instant_follow_the_order_they_were_written(paths: RuntimePaths) -> None:
+    """Ticket 19: both views order by the exact time, then by writing order."""
+    run, accepted = submit(paths, "ties")
+    at = accepted + timedelta(seconds=1)
+    with processing_batch(run):
+        # A success written in another offset, then a failure of the same instant after it:
+        # as text the success would sort last.
+        record(
+            paths,
+            "CN_DR007",
+            "succeeded",
+            at.astimezone(timezone(timedelta(hours=8))),
+            version=VERSION,
+        )
+        record(paths, "CN_DR007", "source_failed", at, version=VERSION)
+    outcomes = AcquisitionOutcomes(paths.database)
+
+    assert set(outcomes.for_batch(run).failures()) == {"CN_DR007"}
+    latest = outcomes.latest("CN_DR007", as_of=at)
+    assert latest is not None and latest.outcome == "source_failed"
+
+
+def test_both_views_keep_to_the_catalog(paths: RuntimePaths) -> None:
+    """Ticket 19: an attempt for another catalog is no part of this batch, nor of a day's
+    view asked for this catalog."""
+    run, accepted = submit(paths, "catalog")
+    at = accepted + timedelta(seconds=1)
+    with processing_batch(run):
+        record(paths, "CN_DR007", "source_failed", at, version="metric-catalog-v0099")
+        record(paths, "CN_SHIBOR_ON_1W_3M", "source_failed", at, version=VERSION)
+    outcomes = AcquisitionOutcomes(paths.database)
+
+    assert set(outcomes.for_batch(run).failures()) == {"CN_SHIBOR_ON_1W_3M"}
+    assert outcomes.latest("CN_DR007", as_of=at, definition_version=VERSION) is None
 
 
 def test_a_later_success_clears_a_failure_of_the_same_symbol_only(paths: RuntimePaths) -> None:

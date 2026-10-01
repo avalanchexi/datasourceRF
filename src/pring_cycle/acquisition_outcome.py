@@ -9,14 +9,16 @@ Only what was recorded is read; no stage an attempt did not record is inferred. 
 outcome means to a consumer -- a gap category, a release state, a P2 label -- stays with
 that consumer.
 
-Kept as they are, and so documented here: ``latest`` orders by exact time and then
-attempt id, and may return the same target day's attempt from an earlier batch (it shows
-the latest acquisition honestly, with its recorded time); the batch view takes an attempt
-by the run it names, and one that names none by time (from the run's acceptance to the
-next run's), orders by recorded time and insertion, and does not filter by catalog, nor
-does the LPR release calendar's ``latest``;
-warrant symbols are grouped without their day, and several failing symbols of one metric
-collapse to one reason; a rejection a later delivery of the batch resolved is still listed.
+Both views order attempts by their exact recorded time, then by writing order, and keep
+to a catalog: ``latest`` to the one asked for, the batch view to its run's model's, though
+it keeps an attempt that names no catalog and reads them all when the model is not on
+record (ticket 19). The
+batch view takes an attempt by the run it names, and one that names none (recorded before
+ticket 17) by time, from the run's acceptance to the next run's. Kept as they are, and so
+documented here: ``latest`` may return the same target day's attempt from an earlier batch
+(it shows the latest acquisition honestly, with its recorded time); warrant symbols are
+grouped without their day, and several failing symbols of one metric collapse to one
+reason; a rejection a later delivery of the batch resolved is still listed.
 
 The target-day view reads each recorded detail as text; the batch view reads them as
 recorded, so a detail recorded as null is absent there.
@@ -315,11 +317,13 @@ class BatchAcquisition:
             ).fetchone():
                 return {}
             run = connection.execute(
-                "SELECT accepted_at, target_business_date FROM parent_run WHERE run_id=?",
+                "SELECT accepted_at, target_business_date, model_version_id FROM parent_run "
+                "WHERE run_id=?",
                 (self._run_id,),
             ).fetchone()
             if run is None:
                 return {}
+            catalog = _catalog_version(self._database, str(run[2]))
             # One Worker runs one batch at a time: an attempt that names no run (recorded
             # before ticket 17, or outside any batch) falls between its run's acceptance and
             # the next run's.
@@ -329,11 +333,11 @@ class BatchAcquisition:
             # An attempt names its run (ticket 17); one recorded before that is the batch's by
             # time. Either way the SQL only narrows what Python decides.
             rows = connection.execute(
-                "SELECT retrieval_attempt_id, metric_id, channel, outcome, fetched_at, "
+                "SELECT rowid, retrieval_attempt_id, metric_id, channel, outcome, fetched_at, "
                 "safe_metadata_json FROM retrieval_attempt "
                 "WHERE (json_extract(safe_metadata_json, '$.run_id') = ? "
                 "OR (fetched_at >= ? AND (? IS NULL OR fetched_at < ?))) "
-                "AND outcome IN (SELECT value FROM json_each(?)) ORDER BY fetched_at, rowid",
+                "AND outcome IN (SELECT value FROM json_each(?))",
                 (
                     self._run_id,
                     run[0],
@@ -343,10 +347,13 @@ class BatchAcquisition:
                 ),
             ).fetchall()
         latest: dict[tuple[str, object], AttemptView] = {}
-        for row in rows:
-            attempt = _view(row)
+        for row in sorted(rows, key=_recorded_order):
+            attempt = _view(row[1:])
             owner = attempt.metadata.get("run_id")
             if owner is not None and owner != self._run_id:
+                continue
+            # The run's own catalog only; an attempt that names none predates the field.
+            if catalog is not None and attempt.definition_version not in {None, catalog}:
                 continue
             if attempt.metadata.get("target_business_date", run[1]) == run[1]:
                 latest[(attempt.metric_id, attempt.metadata.get("symbol"))] = attempt
@@ -396,24 +403,19 @@ class AcquisitionOutcomes:
         with database_connection(self._database) as connection:
             rows = connection.execute(
                 """
-                SELECT retrieval_attempt_id, metric_id, channel, outcome, fetched_at,
+                SELECT rowid, retrieval_attempt_id, metric_id, channel, outcome, fetched_at,
                     safe_metadata_json
                 FROM retrieval_attempt
                 WHERE metric_id=? AND julianday(fetched_at) <= julianday(?)
                 """,
                 (metric_id, as_of.astimezone(UTC).isoformat()),
             ).fetchall()
-        # julianday rounds to the millisecond; the exact time decides. A candidate's details
-        # are read only once it is reached.
-        ordered = sorted(
-            rows,
-            key=lambda row: (_recorded_at(row[4]), str(row[0])),
-            reverse=True,
-        )
-        for row in ordered:
-            if _recorded_at(row[4]) > as_of:
+        # julianday rounds to the millisecond; the exact time decides, then writing order. A
+        # candidate's details are read only once it is reached.
+        for row in sorted(rows, key=_recorded_order, reverse=True):
+            if _recorded_at(row[5]) > as_of:
                 continue
-            attempt = _view(row)
+            attempt = _view(row[1:])
             if period is not None and attempt.period != period:
                 continue
             if target_business_date is not None and (
@@ -427,6 +429,23 @@ class AcquisitionOutcomes:
 
     def for_batch(self, run_id: str) -> BatchAcquisition:
         return BatchAcquisition(self._database, run_id)
+
+
+def _recorded_order(row: tuple[object, ...]) -> tuple[datetime, int]:
+    """A row (rowid first, recorded time sixth) by its exact time, then by writing order."""
+    return _recorded_at(row[5]), int(str(row[0]))
+
+
+def _catalog_version(database: Path, model_version_id: str) -> str | None:
+    """The metric catalog a run's model reads, when the model is on record."""
+    from pring_cycle.models import ModelRepository
+
+    try:
+        manifest = ModelRepository(database).manifest(model_version_id)
+    except (LookupError, ValueError):
+        return None
+    version = manifest.get("metric_catalog_version")
+    return str(version) if version is not None else None
 
 
 def _recorded_at(value: object) -> datetime:

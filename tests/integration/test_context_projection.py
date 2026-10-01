@@ -937,7 +937,8 @@ def test_lpr_gap_uses_a_recorded_source_failure_after_the_release_window(
         channel="certified_official_direct",
         outcome="source_failed",
         fetched_at=failed_at,
-        safe_metadata={"period": "2026-08"},
+        # The catalog it was acquired for, as every writer names it (tickets 17 and 19).
+        safe_metadata={"period": "2026-08", "definition_version": "metric-catalog-v0002"},
     )
 
     context = build_context_projection(
