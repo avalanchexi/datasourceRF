@@ -10,6 +10,7 @@ import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository, CandidateSkipped, own_acquisitions
 from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.batches import processing_batch
 from pring_cycle.catalog import metric_definition
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import EvidenceRepository
@@ -147,6 +148,29 @@ def test_a_batch_owns_the_attempts_between_its_acceptance_and_the_next(
 
     assert set(outcomes.for_batch(first).failures()) == {"CN_DR007"}
     assert set(outcomes.for_batch(second).failures()) == {"CN_SHIBOR_ON_1W_3M"}
+
+
+def test_an_attempt_recorded_in_a_batch_is_that_batch_s_without_a_receipt(
+    paths: RuntimePaths,
+) -> None:
+    # Ticket 17: a missing credential sends no request, so no receipt names the run.
+    first, _ = submit(paths, "first")
+    second, second_accepted = submit(paths, "second")
+    with processing_batch(first):
+        record(
+            paths,
+            "CN_GDP",
+            "missing_credentials",
+            second_accepted + timedelta(seconds=1),
+            condition="TUSHARE_TOKEN_not_configured",
+            request_sent="false",
+        )
+    outcomes = AcquisitionOutcomes(paths.database)
+
+    (attempt,) = outcomes.for_batch(first).failures().values()
+    assert (attempt.metric_id, attempt.metadata["run_id"]) == ("CN_GDP", first)
+    assert attempt.target_business_date == TARGET and attempt.acquisition_ids == ()
+    assert outcomes.for_batch(second).failures() == {}
 
 
 def test_a_later_success_clears_a_failure_of_the_same_symbol_only(paths: RuntimePaths) -> None:

@@ -11,9 +11,10 @@ that consumer.
 
 Kept as they are, and so documented here: ``latest`` orders by exact time and then
 attempt id, and may return the same target day's attempt from an earlier batch (it shows
-the latest acquisition honestly, with its recorded time); the batch view attributes an
-attempt by time (from the run's acceptance to the next run's), orders by recorded time and
-insertion, and does not filter by catalog, nor does the LPR release calendar's ``latest``;
+the latest acquisition honestly, with its recorded time); the batch view takes an attempt
+by the run it names, and one that names none by time (from the run's acceptance to the
+next run's), orders by recorded time and insertion, and does not filter by catalog, nor
+does the LPR release calendar's ``latest``;
 warrant symbols are grouped without their day, and several failing symbols of one metric
 collapse to one reason; a rejection a later delivery of the batch resolved is still listed.
 
@@ -176,21 +177,34 @@ class BatchAcquisition:
             ).fetchone()
             if run is None:
                 return {}
-            # One Worker runs one batch at a time: this run's attempts fall between its
-            # acceptance and the next run's.
+            # One Worker runs one batch at a time: an attempt that names no run (recorded
+            # before ticket 17, or outside any batch) falls between its run's acceptance and
+            # the next run's.
             following = connection.execute(
                 "SELECT min(accepted_at) FROM parent_run WHERE accepted_at > ?", (run[0],)
             ).fetchone()[0]
+            # An attempt names its run (ticket 17); one recorded before that is the batch's by
+            # time. Either way the SQL only narrows what Python decides.
             rows = connection.execute(
                 "SELECT retrieval_attempt_id, metric_id, channel, outcome, fetched_at, "
                 "safe_metadata_json FROM retrieval_attempt "
-                "WHERE fetched_at >= ? AND (? IS NULL OR fetched_at < ?) "
+                "WHERE (json_extract(safe_metadata_json, '$.run_id') = ? "
+                "OR (fetched_at >= ? AND (? IS NULL OR fetched_at < ?))) "
                 "AND outcome IN (SELECT value FROM json_each(?)) ORDER BY fetched_at, rowid",
-                (run[0], following, following, json.dumps(sorted(_ACQUISITION_OUTCOMES))),
+                (
+                    self._run_id,
+                    run[0],
+                    following,
+                    following,
+                    json.dumps(sorted(_ACQUISITION_OUTCOMES)),
+                ),
             ).fetchall()
         latest: dict[tuple[str, object], AttemptView] = {}
         for row in rows:
             attempt = _view(row)
+            owner = attempt.metadata.get("run_id")
+            if owner is not None and owner != self._run_id:
+                continue
             if attempt.metadata.get("target_business_date", run[1]) == run[1]:
                 latest[(attempt.metric_id, attempt.metadata.get("symbol"))] = attempt
         return {

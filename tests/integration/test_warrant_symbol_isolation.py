@@ -22,6 +22,8 @@ from typing import Any
 import pytest
 
 from pring_cycle.acquisition import own_acquisitions
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.batches import processing_batch
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.freshness import gap_list, record_run_freshness
@@ -274,6 +276,33 @@ def test_a_gap_day_refetch_asks_only_for_the_symbols_still_missing(
                WHERE a.phase='gap_retrieval' AND r.api_name='fut_wsr'"""
         ).fetchall()
     assert [(json.loads(p)["symbol"], state) for p, state in refetched] == [("CU", "validated")]
+
+
+def test_a_gap_day_refetch_clears_the_symbol_the_direct_refresh_failed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> None:
+    """Ticket 17: the refetch's success names its symbol, as the refresh's failure did."""
+    paths, run = prepared(monkeypatch, request, tmp_path, CopperUnavailable)
+    outcomes = AcquisitionOutcomes(paths.database).for_batch(run.run_id)
+    with processing_batch(run.run_id):
+        refresh(paths, run)
+        assert outcomes.failures()["CN_FUTURES_WARRANTS"].symbol == "CU"
+        monkeypatch.setattr(
+            "pring_cycle.tushare_context.build_opener", lambda *handlers: EverySymbolAvailable()
+        )
+        monkeypatch.setattr("pring_cycle.targeted_context.RetrievalLedger", PassThroughLedger)
+        day = TARGET.isoformat()
+        scope_run = replace(
+            run,
+            retrieval_scope=RetrievalScope(
+                f"warrants:{day}", ("CN_FUTURES_WARRANTS",), day, "P2", None
+            ),
+        )
+        with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+            retrieve_tushare_context(paths, run.run_id, "fixture-secret", scope_run=scope_run)
+
+    # CZCE's own symbols stay failed, unreachable here; copper no longer is.
+    assert outcomes.failures()["CN_FUTURES_WARRANTS"].symbol in {"CF", "TA"}
 
 
 def test_a_gap_day_missing_only_czce_symbols_asks_tushare_for_nothing(

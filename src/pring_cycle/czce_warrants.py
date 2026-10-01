@@ -402,6 +402,7 @@ def _take(
         "business_date": day.isoformat(),
         "period": day.isoformat(),
         "symbol": symbol,
+        "definition_version": definition.definition_version,
     }
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     identities: list[str] = []

@@ -20,6 +20,7 @@ from pring_cycle.acquisition import (
     AcquisitionRepository,
     acquisition_analysis_context,
     add_ingest_result_columns,
+    batch_analysis_context,
     receipt_from_row,
 )
 from pring_cycle.batches import add_batch_columns, current_batch_id
@@ -1276,10 +1277,20 @@ class EvidenceRepository:
         safe_metadata: dict[str, str],
         acquisition_ids: tuple[str, ...] = (),
     ) -> str:
+        """Record how an acquisition turned out, owned by the run it was made for.
+
+        The processing batch it is recorded in names the run, receipt or none (ticket 17);
+        outside one, the run its receipts were all acquired in, if a single one.
+        """
         if fetched_at.tzinfo is None:
             raise ValueError("retrieval_attempt_time_must_be_timezone_aware")
         metadata = dict(safe_metadata)
-        context = acquisition_analysis_context(self._database_path, acquisition_ids)
+        batch = current_batch_id()
+        context = (
+            batch_analysis_context(self._database_path, batch)
+            if batch is not None
+            else acquisition_analysis_context(self._database_path, acquisition_ids)
+        )
         if any(key in metadata and metadata[key] != value for key, value in context.items()):
             raise ValueError("retrieval_attempt_acquisition_context_mismatch")
         metadata.update(context)

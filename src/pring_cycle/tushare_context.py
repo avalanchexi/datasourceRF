@@ -349,6 +349,7 @@ class TushareContextAdapter:
                     tuple(linked),
                     fetched_at=utc_now(),
                     definition_version=definition_version,
+                    rejected_field_count=len(self._field_rejections),
                 )
             except ContextObservationsMissingError:
                 raise
@@ -984,7 +985,13 @@ def ingest_context_scalars(
     *,
     fetched_at: datetime,
     definition_version: str = METRIC_CATALOG_VERSION,
+    rejected_field_count: int = 0,
 ) -> ContextIngestionResult:
+    """Store the delivered scalars and record each metric's (and warrant symbol's) outcome.
+
+    ``rejected_field_count`` is how many of the response's fields its checks refused: a
+    delivery with any is a partial validation of every metric it carried.
+    """
     if fetched_at.tzinfo is None:
         raise ValueError("tushare_context_fetched_at_must_be_timezone_aware")
     if not scalars:
@@ -1182,12 +1189,22 @@ def ingest_context_scalars(
     )
     stored = tuple(item if item is not None else next(newly_stored) for item in stored_by_input)
     metric_ids = tuple(sorted({scalar.metric_id for scalar in scalars}))
-    for metric_id in metric_ids:
-        metric_scalars = [item for item in scalars if item.metric_id == metric_id]
+    # A warrant symbol is acquired on its own, so its outcome names it, as its failure does
+    # (ticket 17).
+    members = sorted(
+        {(item.metric_id, item.dimensions.get("symbol")) for item in scalars},
+        key=lambda member: (member[0], member[1] or ""),
+    )
+    for metric_id, symbol in members:
+        metric_scalars = [
+            item
+            for item in scalars
+            if item.metric_id == metric_id and item.dimensions.get("symbol") == symbol
+        ]
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="tushare",
-            outcome="verified_candidate",
+            outcome="partial_validation" if rejected_field_count else "verified_candidate",
             fetched_at=utc_now()
             if any(item.acquisition_ids for item in metric_scalars)
             else fetched_at,
@@ -1197,8 +1214,11 @@ def ingest_context_scalars(
             safe_metadata={
                 "api_names": ",".join(sorted({item.api_name for item in metric_scalars})),
                 "observations": str(len(metric_scalars)),
+                "period_start": min(item.period_start for item in metric_scalars),
                 "period_end": max(item.period_end for item in metric_scalars),
                 "definition_version": definition_version,
+                "rejected_fields": str(rejected_field_count),
+                **({"symbol": symbol} if symbol is not None else {}),
             },
         )
     return ContextIngestionResult(

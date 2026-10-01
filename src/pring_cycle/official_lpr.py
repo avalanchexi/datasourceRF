@@ -388,6 +388,13 @@ def refresh_lpr_release(
     """Fetch and store one announcement; ``admit`` may reject the parsed release first."""
     _validate_official_url(source_url)
     fetch = fetcher or fetch_official_document
+    acquisition_ids: list[str] = []
+
+    def started(acquisition_id: str) -> None:
+        acquisition_ids.append(acquisition_id)
+        if on_acquisition_started is not None:
+            on_acquisition_started(acquisition_id)
+
     try:
         responses: list[FetchedOfficialDocument] = []
 
@@ -424,7 +431,7 @@ def refresh_lpr_release(
             fetch=fetch_bytes,
             parse=parse,
             normalize=asdict,
-            on_started=on_acquisition_started,
+            on_started=started,
         )
         return _ingest_lpr_acquisition(paths, acquired, definition_version=definition_version)
     except (OSError, ValueError) as error:
@@ -433,7 +440,12 @@ def refresh_lpr_release(
             channel="certified_official_direct",
             outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
             fetched_at=fetched_at,
-            safe_metadata={"period": expected_period, "provider": CHINAMONEY_PROVIDER},
+            acquisition_ids=tuple(acquisition_ids),
+            safe_metadata={
+                "period": expected_period,
+                "provider": CHINAMONEY_PROVIDER,
+                "definition_version": definition_version,
+            },
         )
         raise
 

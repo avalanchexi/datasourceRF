@@ -1350,14 +1350,16 @@ def refresh_eia_context(
                 family="spot_prices",
             )
         else:
-            record(
-                EIA_METRICS, "eia_official_candidate", "verified_candidate", family="spot_prices"
-            )
+            # The adapter recorded each metric's outcome where it stored the prices.
             return "verified_candidate"
 
-    try:
-        with acquisition_metrics(EIA_METRICS):
-            for metric_id, series_id in EIA_HISTORY_SERIES.items():
+    # Each page is its own acquisition of its own metric, and the adapter records how its
+    # request turned out; one failing neither stops the other nor rewrites its outcome
+    # (ticket 17).
+    outcome = "verified_candidate"
+    for metric_id, series_id in EIA_HISTORY_SERIES.items():
+        try:
+            with acquisition_metrics((metric_id,)):
                 refresh_eia_history(
                     paths,
                     series_id=series_id,
@@ -1366,28 +1368,9 @@ def refresh_eia_context(
                     definition_version=definition_version,
                     fetcher=fetch_eia_history,
                 )
-                del metric_id
-    except (OSError, TypeError, ValueError) as error:
-        record(
-            EIA_METRICS,
-            "eia_html_candidate",
-            "source_failed"
-            if isinstance(error, OSError)
-            else "adapter_failed"
-            if isinstance(error, TypeError)
-            else "validation_failed",
-            error_type=type(error).__name__,
-            family="history_page",
-        )
-        return "source_failed"
-    record(
-        EIA_METRICS,
-        "eia_html_candidate",
-        "verified_candidate",
-        family="history_page",
-        publication_precision="release_date_only",
-    )
-    return "verified_candidate"
+        except (OSError, TypeError, ValueError):
+            outcome = "source_failed"
+    return outcome
 
 
 def refresh_context_sources(
@@ -1679,7 +1662,11 @@ def refresh_context_sources(
         # another symbol is fetched after it.
         details = {"family": family}
         if family.startswith("futures_warrants:"):
-            details["symbol"] = family.partition(":")[2]
+            details.update(
+                symbol=family.partition(":")[2],
+                start_date=daily_start.isoformat(),
+                end_date=target.isoformat(),
+            )
         try:
             with acquisition_metrics(metric_ids):
                 result = adapter.acquire_scalars(
@@ -1718,13 +1705,8 @@ def refresh_context_sources(
                 reason=str(error)[:300],
             )
         else:
-            record(
-                result.metric_ids,
-                "tushare",
-                "partial_validation" if result.rejected_field_count else "verified_candidate",
-                **details,
-                rejected_fields=str(result.rejected_field_count),
-            )
+            # Each delivered metric's outcome was recorded where it was stored (ticket 17);
+            # what the family asked for and did not get is the Worker's to say.
             missing_metrics = tuple(
                 metric_id for metric_id in metric_ids if metric_id not in result.metric_ids
             )

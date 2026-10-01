@@ -69,12 +69,11 @@ def test_a_missing_key_falls_back_to_the_official_history_page(
 
     assert outcome == "verified_candidate"
     assert len(requested) == 2
-    # The API channel is recorded as unusable, and the page channel carries the values.
+    # The API channel is recorded as unusable, and the page channel carries the values, a
+    # publication known only to the day.
     recorded = {item["channel"]: item for item in attempts}
     assert recorded["eia_official_candidate"]["outcome"] == "missing_credentials"
-    page = recorded["eia_html_candidate"]
-    assert page["outcome"] == "verified_candidate"
-    assert page["publication_precision"] == "release_date_only"
+    assert page_attempts(paths) == {"verified_candidate"}
     series = EvidenceRepository(paths.database).metric_series(
         "EIA_BRENT_RBRTE",
         mode=AsOfMode.SYSTEM,
@@ -124,7 +123,108 @@ def test_a_rejected_key_records_the_failure_before_falling_back(
     recorded = {item["channel"]: item for item in attempts}
     assert recorded["eia_official_candidate"]["outcome"] == "source_failed"
     assert recorded["eia_official_candidate"]["error_type"] == "OSError"
-    assert recorded["eia_html_candidate"]["outcome"] == "verified_candidate"
+    assert page_attempts(paths) == {"verified_candidate"}
+
+
+def page_attempts(paths: RuntimePaths) -> set[str]:
+    """How each metric's page turned out, as the page recorded it (ticket 17)."""
+    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+
+    outcomes = set()
+    for metric_id in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
+        attempt = AcquisitionOutcomes(paths.database).latest(metric_id, as_of=datetime.now(UTC))
+        assert attempt is not None and attempt.channel == "eia_html_candidate"
+        assert attempt.release_date is not None
+        outcomes.add(attempt.outcome)
+    return outcomes
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("unavailable", ["RBRTE", "RWTC"])
+def test_each_history_page_keeps_its_own_outcome(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unavailable: str
+) -> None:
+    """Ticket 17: one page failing neither stops the other nor rewrites how it turned out."""
+    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+    from pring_cycle.eia_html import FetchedEiaHistory
+    from pring_cycle.worker import refresh_eia_context
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedEiaHistory:
+        requested.append(url)
+        series = "RWTC" if "RWTC" in url.upper() else "RBRTE"
+        if series == unavailable:
+            raise OSError("fixture_page_unavailable")
+        return FetchedEiaHistory(original(series), url, 200, "text/html; charset=utf-8")
+
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", fetch, raising=False)
+    attempts: list[str] = []
+
+    refresh_eia_context(
+        paths,
+        secrets={},
+        target=date(2026, 9, 4),
+        definition_version="metric-catalog-v0002",
+        record=lambda metrics, channel, result, **details: attempts.append(channel),
+    )
+
+    assert len(requested) == 2
+    assert attempts == ["eia_official_candidate"]  # the pages record themselves
+    outcomes = {
+        metric_id: AcquisitionOutcomes(paths.database).latest(metric_id, as_of=datetime.now(UTC))
+        for metric_id in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC")
+    }
+    failed = "EIA_BRENT_RBRTE" if unavailable == "RBRTE" else "EIA_WTI_RWTC"
+    for metric_id, attempt in outcomes.items():
+        assert attempt is not None and attempt.channel == "eia_html_candidate"
+        if metric_id == failed:
+            assert (attempt.outcome, attempt.error_type) == ("source_failed", "OSError")
+        else:
+            assert attempt.outcome == "verified_candidate" and attempt.release_date
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_page_refused_by_its_structure_check_names_its_metric_alone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ticket 17: each page's receipt is its own metric's, so the other is not listed."""
+    from pring_cycle.acquisition import own_acquisitions
+    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+    from pring_cycle.batches import processing_batch
+    from pring_cycle.eia_html import FetchedEiaHistory
+    from pring_cycle.runs import RunRepository
+    from pring_cycle.worker import refresh_eia_context
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+
+    def fetch(url: str) -> FetchedEiaHistory:
+        series = "RWTC" if "RWTC" in url.upper() else "RBRTE"
+        media_type = "application/json" if series == "RWTC" else "text/html; charset=utf-8"
+        return FetchedEiaHistory(original(series), url, 200, media_type)
+
+    monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", fetch, raising=False)
+    run = RunRepository(paths.database).submit(
+        command_type="report_generation",
+        target_business_date="2026-09-04",
+        client_request_id="eia-pages",
+        model_version_id="model-v0001",
+        system_as_of=datetime.now(UTC),
+    )
+    with processing_batch(run.run_id), own_acquisitions(paths.database, run.run_id, "fixture"):
+        refresh_eia_context(
+            paths,
+            secrets={},
+            target=date(2026, 9, 4),
+            definition_version="metric-catalog-v0002",
+            record=lambda *args, **kwargs: None,
+        )
+
+    rejected = AcquisitionOutcomes(paths.database).for_batch(run.run_id).structure_rejections()
+    assert [item.metric_ids for item in rejected] == [("EIA_WTI_RWTC",)]
 
 
 def test_full_run_without_a_key_takes_both_real_history_tables(

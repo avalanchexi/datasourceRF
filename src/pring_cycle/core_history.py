@@ -188,12 +188,22 @@ def refresh_core_history(
             channel="tushare-history",
             outcome="verified",
             fetched_at=fetched_at,
+            acquisition_ids=tuple(
+                sorted(
+                    {
+                        receipt.acquisition_id
+                        for (m, _), receipt in receipts.items()
+                        if m == metric_id
+                    }
+                )
+            ),
             safe_metadata={
                 "first_business_date": expected[0].isoformat(),
                 "last_business_date": expected[-1].isoformat(),
                 "normalized_hash": artifact.content_hash,
                 "observations": str(len(bars)),
                 "source_code": CORE_API_IDENTITIES[metric_id][1],
+                "definition_version": definition_version,
             },
         )
     return CoreHistoryRefreshResult(

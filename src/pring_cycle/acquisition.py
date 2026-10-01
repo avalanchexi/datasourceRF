@@ -108,6 +108,21 @@ def receipt_key(receipt: AcquisitionReceipt) -> tuple[object, ...]:
     )
 
 
+def batch_analysis_context(database: Path, run_id: str) -> dict[str, str]:
+    """The run a processing batch is, and its target day when the run is on record."""
+    with database_connection(database) as connection:
+        row = (
+            connection.execute(
+                "SELECT target_business_date FROM parent_run WHERE run_id=?", (run_id,)
+            ).fetchone()
+            if connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='parent_run'"
+            ).fetchone()
+            else None
+        )
+    return {"run_id": run_id, **({"target_business_date": str(row[0])} if row else {})}
+
+
 def acquisition_analysis_context(
     database: Path, acquisition_ids: tuple[str, ...]
 ) -> dict[str, str]:
