@@ -18,9 +18,11 @@ Each parent is read from usable points only, directly or differenced from year-t
 figures as the version allows; when both readings hold, the one ending later is taken,
 the direct one on the same end (ticket 26).
 
-Kept as they are, and so documented here (each has its own ticket): stale inputs still
-compute (the caller labels them), and the gap list then counts ``stale_inputs`` as a
-failed derivation; several failures are reported as ``missing_inputs``.
+Stale inputs still compute: the caller labels them, and the gap list leaves timeliness to
+say so (ticket 27).
+
+Kept as it is, and so documented here (it has its own ticket): several failures are
+reported as ``missing_inputs``.
 """
 
 from __future__ import annotations

@@ -895,7 +895,9 @@ def add_projection_gaps(
     A derived metric follows its parents' timeliness, so a formula that never computes stays
     ``current``, and a conflict is a selection, not a period. A formula metric whose parents
     are other metrics and that has no usable row gets ``formula_status`` and
-    ``missing_inputs``, the parent periods the run plan could not complete; a metric whose
+    ``missing_inputs``, the parent periods the run plan could not complete (one computed
+    from stale inputs is no failure: its listed timeliness entry only notes
+    ``formula_status``); a metric whose
     selected claims are not adoptable (their original, matched quote, members or registered
     contract failed the family's recheck) gets ``source_failures``; a metric with
     observations whose sources disagree gets ``conflicts``, each with the reason the
@@ -952,6 +954,12 @@ def add_projection_gaps(
             continue  # A change of the metric's own series, shown with its own rows.
         statuses = [str(row["status"]) for row in rows if row["metric_id"] == metric_id]
         status = formula_status.get(metric_id)
+        if status == "stale_inputs":
+            # Computed from stale inputs: timeliness says so, the formula did not fail
+            # (ticket 27). A timeliness entry already listed notes it.
+            if metric_id in listed:
+                listed[metric_id]["formula_status"] = status
+            continue
         if status in _USABLE_DERIVED_STATUSES or (
             status is None and any(item in _USABLE_DERIVED_STATUSES for item in statuses)
         ):

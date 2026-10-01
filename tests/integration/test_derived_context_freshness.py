@@ -422,3 +422,37 @@ def test_a_computed_formula_leaves_no_gap() -> None:
         )
         == []
     )
+
+
+def test_stale_inputs_computed_the_formula_and_only_annotate_its_timeliness() -> None:
+    """Stale inputs still compute; timeliness says they are stale, not a failure (#27)."""
+    assert (
+        add_projection_gaps(
+            (),
+            _credit_documents("stale_inputs"),
+            derived_requirements=(_CREDIT_REQUIREMENT,),
+            plan_gaps=(),
+            definitions=metric_catalog_v0003(),
+        )
+        == []
+    )
+    listed = {
+        "metric_id": "CN_CREDIT_IMPULSE",
+        "priority": "P1",
+        "category": "freshness_gap",
+        "reason": "one_period_behind_carried",
+        "due_period": "2026-08-31",
+        "held_period": "2026-07-31",
+        "periods_behind": 1,
+        "no_web_fallback": True,
+    }
+
+    (gap,) = add_projection_gaps(
+        (listed,),
+        _credit_documents("stale_inputs"),
+        derived_requirements=(_CREDIT_REQUIREMENT,),
+        plan_gaps=(),
+        definitions=metric_catalog_v0003(),
+    )
+
+    assert gap == {**listed, "formula_status": "stale_inputs"}

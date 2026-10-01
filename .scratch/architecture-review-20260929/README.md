@@ -177,7 +177,7 @@
 | [24](issues/24-credit-lookback-one-answer.md) | 信用脉冲回看由模块给出同一个答案（按生效模型、覆盖窗口首日） | 23 | done |
 | [25](issues/25-model-v0014-twelve-month-horizon.md) | 新模型 v0014：12 个月信用脉冲、停用 12 月代理（用户注册与激活） | 23、24 | ready-for-agent |
 | [26](issues/26-credit-input-path-by-usable-points.md) | 信用脉冲按可用点选直接或累计口径 | 23 | done |
-| [27](issues/27-stale-credit-impulse-is-computed.md) | 输入陈旧的信用脉冲不列为派生失败 | 23 | ready-for-agent |
+| [27](issues/27-stale-credit-impulse-is-computed.md) | 输入陈旧的信用脉冲不列为派生失败 | 23 | done |
 | [28](issues/28-credit-failure-names-what-is-missing.md) | 信用脉冲失败说清缺了什么 | 23、27 | ready-for-agent |
 | [29](issues/29-retain-derived-parents.md) | 留存保留派生观测引用的父声明（低优先级） | 无 | ready-for-agent |
 | [30](issues/30-shrink-fetch-ranges.md) | 取数范围按窗口与尺度收缩，窗口首日附带上一期（低优先级） | 25、02 | ready-for-agent |
