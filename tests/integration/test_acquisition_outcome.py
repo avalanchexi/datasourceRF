@@ -376,6 +376,54 @@ def test_a_skipped_candidate_is_not_a_structure_rejection(paths: RuntimePaths) -
     ]
 
 
+@pytest.mark.parametrize("held", [True, False])
+def test_a_refused_response_shows_in_the_gap_list_only_through_a_missing_metric(
+    paths: RuntimePaths, held: bool
+) -> None:
+    """Ticket 21: a refusal a later delivery resolved stays with the batch, not the list;
+    one still missing shows why through its own category. A skipped one never shows."""
+    run, accepted = submit(paths, "resolved")
+    capture(paths, run, ValueError("fields_missing"))
+    capture(paths, run, CandidateSkipped("another_candidate_chosen"))
+    at = accepted + timedelta(seconds=1)
+    with processing_batch(run):
+        record(paths, "CN_DR007", "structure_rejected", at, rule_reason="fields_missing")
+        if held:
+            record(paths, "CN_DR007", "succeeded", at + timedelta(seconds=1))
+    with database_connection(paths.database) as connection:
+        record_batch_freshness(
+            connection, run, (assess("CN_DR007", "current" if held else "missing"),), at
+        )
+    definition = metric_definition(
+        "CN_DR007", definition_version=VERSION, database_path=paths.database
+    )
+
+    gaps = gap_list(paths.database, run, (definition,))
+
+    if held:
+        assert gaps == []
+    else:
+        ((gap),) = gaps
+        assert (gap["category"], gap["reason"]) == ("ingest_rejected", "fields_missing")
+    # The batch keeps the refused response for whoever looks into it.
+    assert [
+        item.reason
+        for item in AcquisitionOutcomes(paths.database).for_batch(run).structure_rejections()
+    ] == ["fields_missing"]
+
+
+def test_a_skipped_candidate_never_shows_in_the_gap_list(paths: RuntimePaths) -> None:
+    run, accepted = submit(paths, "skipped-only")
+    capture(paths, run, CandidateSkipped("another_candidate_chosen"))
+    with database_connection(paths.database) as connection:
+        record_batch_freshness(connection, run, (assess("CN_DR007", "current"),), accepted)
+    definition = metric_definition(
+        "CN_DR007", definition_version=VERSION, database_path=paths.database
+    )
+
+    assert gap_list(paths.database, run, (definition,)) == []
+
+
 def assess(metric_id: str, status: str) -> FreshnessAssessment:
     return FreshnessAssessment(
         metric_id=metric_id,

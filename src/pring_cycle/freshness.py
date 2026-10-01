@@ -753,7 +753,7 @@ _GAP_ORDER = (
     "license_missing",
     "freshness_gap",
     "unconfigured",
-    "rejected",
+    "rejected",  # lists published before ticket 21 only; kept so they still sort
     "derived_failed",
     "source_failed",
     "source_conflict",
@@ -809,8 +809,7 @@ def gap_list(
     a restricted source that is never taken or searched; ``missing``, nothing held for
     another reason. Timing keeps its own categories:
     ``freshness_gap``, one period behind and carried forward; ``unconfigured``, no freshness
-    registry row. ``rejected`` lists a response that failed its structure check (gate ③)
-    for a metric not otherwise listed. ``no_web_fallback`` says whether a web page could
+    registry row. ``no_web_fallback`` says whether a web page could
     carry the metric at all: it belongs to no registered retrieval family.
     """
     from pring_cycle.retrieval_registry import is_searchable_gap
@@ -861,29 +860,9 @@ def gap_list(
                 gap["category"] = "retrieval_failed"
             gap["candidates"] = failed_candidates[metric_id]
         gaps.append(gap)
-    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
-
-    rejected = AcquisitionOutcomes(database).for_batch(run_id).structure_rejections()
-    # A rejected search candidate is already shown with its URL under retrieval_failed, and a
-    # metric already listed says why it is missing there.
-    seen = set(failed_candidates) | {str(gap["metric_id"]) for gap in gaps}
-    for rejection in rejected:
-        for metric_id in rejection.metric_ids:
-            if metric_id in seen or metric_id not in priorities or metric_id in NOT_ASSESSED:
-                continue
-            seen.add(metric_id)
-            gaps.append(
-                {
-                    "metric_id": metric_id,
-                    "priority": priorities.get(metric_id),
-                    "category": "rejected",
-                    "reason": f"{rejection.api_name}:{rejection.reason}",
-                    "due_period": None,
-                    "held_period": None,
-                    "periods_behind": None,
-                    "no_web_fallback": not is_searchable_gap(metric_id),
-                }
-            )
+    # A response refused and then resolved by a later delivery of the batch is left with
+    # the batch's receipts; a metric still missing says why through its own category
+    # (ticket 21).
     return sort_gaps(gaps)
 
 

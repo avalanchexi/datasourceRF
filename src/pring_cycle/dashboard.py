@@ -271,6 +271,8 @@ GAP_CATEGORY_LABELS = {
     "license_missing": "授权缺失",
     "freshness_gap": "时效缺口",
     "unconfigured": "未配置时效",
+    # Lists published before ticket 21 still carry a refused response of a metric not
+    # otherwise listed.
     "rejected": "拒收",
     "derived_failed": "派生失败",
     "source_failed": "来源失败",

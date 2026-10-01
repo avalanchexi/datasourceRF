@@ -171,7 +171,7 @@
 | [18](issues/18-attempt-classification-contract.md) | 获取尝试的分类契约 | 17 | done |
 | [19](issues/19-batch-view-by-run-id.md) | 批次视图按运行 id 归属，统一排序与目录过滤 | 17 | done |
 | [20](issues/20-member-date-outcomes.md) | 获取结果按品种与日期归并，缺口清单列出各失败品种 | 17 | done |
-| [21](issues/21-gap-list-only-unresolved-rejections.md) | 缺口清单只列尚未解决的获取结果 | 16、18 | ready-for-agent |
+| [21](issues/21-gap-list-only-unresolved-rejections.md) | 缺口清单只列尚未解决的获取结果 | 16、18 | done |
 | [22](issues/22-ledger-recognizes-tushare-rate-limit.md) | 检索账本认出 TuShare 限频 | 18 | ready-for-agent |
 | [23](issues/23-credit-impulse-module.md) | 信用脉冲模块（纯重构） | 05、10 | done |
 | [24](issues/24-credit-lookback-one-answer.md) | 信用脉冲回看由模块给出同一个答案（按生效模型、覆盖窗口首日） | 23 | ready-for-agent |

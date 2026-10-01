@@ -162,11 +162,15 @@ def _omo_gaps(
 ) -> tuple[RuntimePaths, list[dict[str, object]]]:
     """Refresh the OMO notices of 9/23 inside a run, then read that run's gap list."""
     from pring_cycle.acquisition import own_acquisitions
-    from pring_cycle.catalog import METRIC_CATALOG_VERSION
     from pring_cycle.context_projection import ContextProjectionRules
-    from pring_cycle.freshness import gap_list
-    from pring_cycle.models import ModelRepository, effective_model_manifest
+    from pring_cycle.freshness import gap_list, record_run_freshness
+    from pring_cycle.models import (
+        EFFECTIVE_CATALOG_VERSION,
+        ModelRepository,
+        effective_model_manifest,
+    )
     from pring_cycle.official_context import refresh_official_context_document
+    from pring_cycle.trading_calendar import TradingCalendar
 
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
@@ -196,11 +200,16 @@ def _omo_gaps(
             expected_period="2026-09-23",
             fetched_at=datetime.now(UTC),
             fetcher=fetch,
-            definition_version=METRIC_CATALOG_VERSION,
+            # The run's own catalog: its batch reads only that catalog's attempts (ticket 19).
+            definition_version=EFFECTIVE_CATALOG_VERSION,
         )
     definitions = ContextProjectionRules.from_manifest(
         models.manifest("model-v0013")
     ).metric_definitions
+    # What the batch holds decides what is missing (ticket 21).
+    record_run_freshness(
+        paths.database, run.run_id, definitions, datetime.now(UTC), TradingCalendar()
+    )
     return paths, gap_list(paths.database, run.run_id, definitions)
 
 
@@ -251,9 +260,12 @@ def test_a_day_with_only_a_bills_notice_is_still_rejected(tmp_path: Path) -> Non
             (receipt.acquisition_id,),
         ).fetchone()[0]
     assert check == "rejected"
-    assert [(gap["metric_id"], gap["reason"]) for gap in gaps if gap["category"] == "rejected"] == [
-        ("CN_OMO_7D_AMOUNT", "official_http_get:official_context_table_schema_mismatch")
-    ]
+    # Still missing, it shows the refusal through its own category (ticket 21).
+    (omo,) = (gap for gap in gaps if gap["metric_id"] == "CN_OMO_7D_AMOUNT")
+    assert (omo["category"], omo["reason"]) == (
+        "ingest_rejected",
+        "official_context_table_schema_mismatch",
+    )
 
 
 def test_a_passed_over_notice_does_not_stop_the_next_under_the_retrieval_ledger(

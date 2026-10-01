@@ -16,8 +16,8 @@ record (ticket 19). The batch view takes an attempt by the run it names, and one
 names none (recorded before ticket 17) by time, from the run's acceptance to the next
 run's; it reads each warrant symbol and day apart (ticket 20). Kept as they are, and so
 documented here: ``latest`` may return the same target day's attempt from an earlier batch
-(it shows the latest acquisition honestly, with its recorded time); a rejection a later
-delivery of the batch resolved is still listed.
+(it shows the latest acquisition honestly, with its recorded time); the batch's
+``structure_rejections`` still name a rejection a later delivery resolved.
 
 The target-day view reads each recorded detail as text; the batch view reads them as
 recorded, so a detail recorded as null is absent there.
@@ -384,7 +384,11 @@ class BatchAcquisition:
         return {metric_id: tuple(members) for metric_id, members in failed.items()}
 
     def structure_rejections(self) -> tuple[StructureRejection, ...]:
-        """The batch's responses refused by their structure check; a skipped one is not."""
+        """The batch's responses refused by their structure check; a skipped one is not.
+
+        Kept with the batch for whoever looks into it: the gap list no longer reads them,
+        a metric still missing saying why through its own category (ticket 21).
+        """
         with database_connection(self._database) as connection:
             rows = connection.execute(
                 """
