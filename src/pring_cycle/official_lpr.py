@@ -11,7 +11,14 @@ from urllib.parse import urlsplit
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    Acquired,
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+    utc_now,
+)
+from pring_cycle.acquisition_outcome import capture_failure, ingest_failure
 from pring_cycle.catalog import METRIC_CATALOG_VERSION
 from pring_cycle.evidence import EvidenceRepository, MetricSeriesPoint, publication_times
 from pring_cycle.http_transport import open_no_redirects as urlopen
@@ -395,6 +402,7 @@ def refresh_lpr_release(
         if on_acquisition_started is not None:
             on_acquisition_started(acquisition_id)
 
+    stage = "acquire"
     try:
         responses: list[FetchedOfficialDocument] = []
 
@@ -405,11 +413,14 @@ def refresh_lpr_release(
 
         def parse(raw: bytes) -> ParsedLprRelease:
             response = responses[0]
+            if response.http_status != 200:
+                # An answer that is itself a failure, not a response to check (ticket 18).
+                raise SourceFailed(
+                    "lpr_source_http_status_invalid", external_code=response.http_status
+                )
             _validate_official_url(response.final_url)
             if response.final_url != source_url:
                 raise ValueError("lpr_source_redirect_identity_changed")
-            if response.http_status != 200:
-                raise ValueError("lpr_source_http_status_invalid")
             if response.media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
                 raise ValueError("lpr_response_media_type_invalid")
             parsed = parse_lpr_announcement(
@@ -433,18 +444,22 @@ def refresh_lpr_release(
             normalize=asdict,
             on_started=started,
         )
+        stage = "ingest"
         return _ingest_lpr_acquisition(paths, acquired, definition_version=definition_version)
-    except (OSError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        # Where it ended says how, and why: the source's code, the refusing rule (ticket 18).
+        outcome, recorded = ingest_failure(error) if stage == "ingest" else capture_failure(error)
         EvidenceRepository(paths.database).record_retrieval_attempt(
             metric_id=CHINAMONEY_METRIC_ID,
             channel="certified_official_direct",
-            outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+            outcome=outcome,
             fetched_at=fetched_at,
             acquisition_ids=tuple(acquisition_ids),
             safe_metadata={
                 "period": expected_period,
                 "provider": CHINAMONEY_PROVIDER,
                 "definition_version": definition_version,
+                **recorded,
             },
         )
         raise

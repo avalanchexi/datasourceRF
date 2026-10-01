@@ -7,13 +7,20 @@ their value comes from the official history page, whose publication time is know
 from __future__ import annotations
 
 import hashlib
+import json
+import sqlite3
 from datetime import UTC, date, datetime
+from email.message import Message
+from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError
 
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.eia_context import EiaPetroleumAdapter
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 
@@ -72,8 +79,9 @@ def test_a_missing_key_falls_back_to_the_official_history_page(
     # The API channel is recorded as unusable, and the page channel carries the values, a
     # publication known only to the day.
     recorded = {item["channel"]: item for item in attempts}
-    assert recorded["eia_official_candidate"]["outcome"] == "missing_credentials"
-    assert page_attempts(paths) == {"verified_candidate"}
+    assert recorded["eia_official_candidate"]["outcome"] == "not_attempted"
+    assert recorded["eia_official_candidate"]["request_sent"] == "false"
+    assert page_attempts(paths) == {"complete"}
     series = EvidenceRepository(paths.database).metric_series(
         "EIA_BRENT_RBRTE",
         mode=AsOfMode.SYSTEM,
@@ -103,10 +111,19 @@ def test_a_rejected_key_records_the_failure_before_falling_back(
     requested: list[str] = []
     serve_history_pages(monkeypatch, requested)
 
-    def rejected(*_args: Any, **_kwargs: Any) -> None:
-        raise OSError("HTTP Error 403: Forbidden")
+    def rejected(_parameters: dict[str, object]) -> bytes:
+        raise HTTPError(
+            "https://api.eia.gov/v2/petroleum/pri/spt/data/",
+            403,
+            "Forbidden",
+            Message(),
+            BytesIO(b"forbidden"),
+        )
 
-    monkeypatch.setattr("pring_cycle.worker.acquire_eia_spot_prices", rejected, raising=False)
+    monkeypatch.setattr(
+        "pring_cycle.worker._eia_context_adapter",
+        lambda api_key: EiaPetroleumAdapter(api_key, transport=rejected),
+    )
     attempts: list[dict[str, Any]] = []
 
     outcome = refresh_eia_context(
@@ -120,22 +137,37 @@ def test_a_rejected_key_records_the_failure_before_falling_back(
     )
 
     assert outcome == "verified_candidate"
-    recorded = {item["channel"]: item for item in attempts}
-    assert recorded["eia_official_candidate"]["outcome"] == "source_failed"
-    assert recorded["eia_official_candidate"]["error_type"] == "OSError"
-    assert page_attempts(paths) == {"verified_candidate"}
+    # The adapter records the API's refusal with its code; the Worker adds nothing (ticket 18).
+    assert attempts == []
+    refused = channel_attempts(paths, "eia_official_candidate")
+    assert {(item["metric_id"], item["outcome"], item["external_code"]) for item in refused} == {
+        ("EIA_BRENT_RBRTE", "source_failed", "403"),
+        ("EIA_WTI_RWTC", "source_failed", "403"),
+    }
+    assert page_attempts(paths) == {"complete"}
+
+
+def channel_attempts(paths: RuntimePaths, channel: str) -> list[dict[str, Any]]:
+    with sqlite3.connect(paths.database) as connection:
+        rows = connection.execute(
+            "SELECT metric_id, outcome, safe_metadata_json FROM retrieval_attempt WHERE channel=?",
+            (channel,),
+        ).fetchall()
+    return [
+        {"metric_id": metric_id, "outcome": outcome, **json.loads(metadata)}
+        for metric_id, outcome, metadata in rows
+    ]
 
 
 def page_attempts(paths: RuntimePaths) -> set[str]:
     """How each metric's page turned out, as the page recorded it (ticket 17)."""
-    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 
     outcomes = set()
     for metric_id in ("EIA_BRENT_RBRTE", "EIA_WTI_RWTC"):
         attempt = AcquisitionOutcomes(paths.database).latest(metric_id, as_of=datetime.now(UTC))
         assert attempt is not None and attempt.channel == "eia_html_candidate"
-        assert attempt.release_date is not None
-        outcomes.add(attempt.outcome)
+        assert attempt.release_date is not None and attempt.outcome == "succeeded"
+        outcomes.add(str(attempt.completeness))
     return outcomes
 
 
@@ -145,7 +177,6 @@ def test_each_history_page_keeps_its_own_outcome(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unavailable: str
 ) -> None:
     """Ticket 17: one page failing neither stops the other nor rewrites how it turned out."""
-    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
     from pring_cycle.eia_html import FetchedEiaHistory
     from pring_cycle.worker import refresh_eia_context
 
@@ -183,7 +214,7 @@ def test_each_history_page_keeps_its_own_outcome(
         if metric_id == failed:
             assert (attempt.outcome, attempt.error_type) == ("source_failed", "OSError")
         else:
-            assert attempt.outcome == "verified_candidate" and attempt.release_date
+            assert attempt.outcome == "succeeded" and attempt.release_date
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -192,7 +223,6 @@ def test_a_page_refused_by_its_structure_check_names_its_metric_alone(
 ) -> None:
     """Ticket 17: each page's receipt is its own metric's, so the other is not listed."""
     from pring_cycle.acquisition import own_acquisitions
-    from pring_cycle.acquisition_outcome import AcquisitionOutcomes
     from pring_cycle.batches import processing_batch
     from pring_cycle.eia_html import FetchedEiaHistory
     from pring_cycle.runs import RunRepository
@@ -225,6 +255,53 @@ def test_a_page_refused_by_its_structure_check_names_its_metric_alone(
 
     rejected = AcquisitionOutcomes(paths.database).for_batch(run.run_id).structure_rejections()
     assert [item.metric_ids for item in rejected] == [("EIA_WTI_RWTC",)]
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_series_the_api_left_out_is_taken_from_its_page_alone(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ticket 18: the API's partial delivery stands; only the missing series' page is read."""
+    from pring_cycle.worker import refresh_eia_context
+
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    requested: list[str] = []
+    serve_history_pages(monkeypatch, requested)
+    brent_only = {
+        "response": {
+            "frequency": "daily",
+            "data": [
+                {
+                    "period": "2026-09-01",
+                    "series": "RBRTE",
+                    "series-description": "Europe Brent Spot Price FOB",
+                    "value": "71.25",
+                    "units": "Dollars per Barrel",
+                }
+            ],
+        }
+    }
+    monkeypatch.setattr(
+        "pring_cycle.worker._eia_context_adapter",
+        lambda api_key: EiaPetroleumAdapter(
+            api_key, transport=lambda _parameters: json.dumps(brent_only).encode()
+        ),
+    )
+
+    refresh_eia_context(
+        paths,
+        secrets={"EIA_API_KEY": "fixture-key"},
+        target=date(2026, 9, 4),
+        definition_version="metric-catalog-v0002",
+        record=lambda *args, **kwargs: None,
+    )
+
+    assert len(requested) == 1 and "RWTC" in requested[0].upper()
+    brent = AcquisitionOutcomes(paths.database).latest("EIA_BRENT_RBRTE", as_of=datetime.now(UTC))
+    wti = AcquisitionOutcomes(paths.database).latest("EIA_WTI_RWTC", as_of=datetime.now(UTC))
+    assert brent is not None and brent.channel == "eia_official_candidate"
+    assert wti is not None and wti.channel == "eia_html_candidate"
 
 
 def test_full_run_without_a_key_takes_both_real_history_tables(

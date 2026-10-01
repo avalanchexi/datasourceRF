@@ -192,6 +192,11 @@ def basket_scalars(
         for day in set().union(*calendars.values())
         if BASE_DATE < day <= end_date and any(c.get(day) for c in calendars.values())
     )
+    if not chain:
+        from pring_cycle.tushare_context import ContextObservationsMissingError
+
+        # The calendars delivered no trading day: nothing to hold, which is not all held.
+        raise ContextObservationsMissingError("source_empty")
     wanted = [day for day in chain[-window:] if day not in held_levels]
     if not wanted:
         return ()

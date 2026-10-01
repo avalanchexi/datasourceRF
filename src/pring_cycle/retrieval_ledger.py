@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import response_retention_deadline
+from pring_cycle.acquisition import SourceFailed, response_retention_deadline
 from pring_cycle.batches import code_version
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
@@ -447,6 +447,17 @@ class RetrievalLedger:
             result = RetrievalAdapterResponse(
                 "failed", classification=http_failure_classification(error.code)
             )
+        except SourceFailed as error:
+            # The source answered with a failure (ticket 18): an HTTP status says how, and
+            # is kept for its backoff as an HTTP error's is; any other code (TuShare's) is
+            # no transport fault to retry at once.
+            code = error.external_code
+            if code is not None and code.isdigit() and 100 <= int(code) < 600:
+                http_status = int(code)
+                classification = http_failure_classification(http_status)
+            else:
+                classification = "semantic_validation_failed"
+            result = RetrievalAdapterResponse("failed", classification=classification)
         except OSError:
             result = RetrievalAdapterResponse("failed", classification="transient_transport_error")
         except (TypeError, ValueError):

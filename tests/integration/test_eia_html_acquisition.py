@@ -93,6 +93,8 @@ def test_official_html_acquisition_keeps_dates_signed_values_and_unknown_public_
     receipts = AcquisitionRepository(paths.database, paths.artifacts)
     receipt = receipts.get(result.acquisition_id)
     assert receipts.read_content(receipt.acquisition_id, "raw") == raw
+    # Its receipt says the values entered the evidence store (ticket 18).
+    assert receipts.ingest_result(receipt.acquisition_id) == ("accepted", None)
     normalized = json.loads(receipts.read_content(receipt.acquisition_id, "normalized"))
     assert normalized["release_date"] == "2026-09-02"
     assert normalized["next_release_date"] == "2026-09-10"
@@ -267,7 +269,9 @@ def test_bad_official_history_is_retained_and_rejected_before_claims(
         as_of=datetime.now(UTC),
         definition_version="metric-catalog-v0002",
     )
-    assert attempt.outcome == "validation_failed"
+    # Its structure check refused it, with the rule's reason (ticket 18).
+    assert (attempt.outcome, attempt.safe_metadata["step"]) == ("structure_rejected", "structure")
+    assert attempt.safe_metadata["rule_reason"]
     assert attempt.safe_metadata["acquisition_ids"] == receipt.acquisition_id
     assert attempt.safe_metadata["response_final_url"] == (
         "https://example.com/"

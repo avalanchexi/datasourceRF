@@ -229,7 +229,7 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
             "CN_SF_TOTAL", period="2026-07", as_of=datetime.now(UTC), definition_version=version
         )
         assert attempt is not None
-        assert attempt.outcome == ("source_failed" if transport_failed else "validation_failed")
+        assert attempt.outcome == ("source_failed" if transport_failed else "structure_rejected")
         assert attempt.safe_metadata["error_type"] == (
             "OSError" if transport_failed else "ValueError"
         )

@@ -86,7 +86,12 @@ def attempts(paths: RuntimePaths) -> list[tuple[str, str, str, str | None]]:
             "WHERE channel='czce_official' ORDER BY fetched_at, rowid"
         ).fetchall()
     return [
-        (outcome, meta["business_date"], meta["symbol"], meta.get("reason"))
+        (
+            outcome,
+            meta["business_date"],
+            meta["symbol"],
+            meta.get("rule_reason") or meta.get("reason"),
+        )
         for outcome, meta in ((row[0], json.loads(row[1])) for row in rows)
     ]
 
@@ -125,7 +130,7 @@ def test_a_changed_pta_block_refuses_only_that_symbol_day(paths: RuntimePaths) -
 
     assert ("TA", "2026-05-19") not in held(paths)
     assert (
-        "validation_failed",
+        "structure_rejected",
         "2026-05-19",
         "TA",
         "czce_warrant_header_mismatch",
@@ -264,7 +269,7 @@ def test_a_gap_day_refetch_notes_a_change_that_disagrees_with_the_held_session_b
                 json.loads(row[0])
                 for row in connection.execute(
                     "SELECT safe_metadata_json FROM retrieval_attempt "
-                    "WHERE channel='czce_official' AND outcome='verified_candidate'"
+                    "WHERE channel='czce_official' AND outcome='succeeded'"
                 )
             )
             if meta["business_date"] == "2026-09-22"

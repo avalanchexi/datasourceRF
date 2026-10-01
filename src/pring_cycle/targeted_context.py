@@ -18,6 +18,7 @@ from pring_cycle.search_evidence import select_retrieval_input
 from pring_cycle.tushare_context import (
     TUSHARE_WARRANT_SYMBOLS,
     WARRANT_SYMBOLS,
+    ContextRequestFailed,
     ContextRequestOperation,
     ContextRows,
     ContextScalar,
@@ -25,7 +26,7 @@ from pring_cycle.tushare_context import (
 )
 
 
-class _RequestFailed(Exception):
+class _RequestFailed(ContextRequestFailed):
     def __init__(self, response: RetrievalAdapterResponse) -> None:
         self.response = response
 
@@ -159,12 +160,24 @@ def retrieve_tushare_context(
     failure: RetrievalAdapterResponse | TypeError | ValueError | None = None
     for retrieve_one in retrievals:
         pending_requests.clear()
+        # What it asks for, so the adapter records how each ended, a symbol's included
+        # (ticket 18).
+        asked = retrieve_one.keywords if isinstance(retrieve_one, partial) else {}
         try:
             adapter.acquire_scalars(
                 paths,
                 partial(_scoped, retrieve_one, metrics),
                 definition_version=version,
                 request_wrapper=trace,
+                metric_ids=tuple(sorted(metrics)),
+                details={
+                    "period": scope.period,
+                    **{
+                        key: str(asked[key])
+                        for key in ("symbol", "start_date", "end_date")
+                        if key in asked
+                    },
+                },
             )
         except _RequestFailed as error:
             finish("failed", error.response.classification or "context_batch_incomplete")

@@ -9,7 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse
-from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.acquisition_outcome import SUCCEEDED, AcquisitionOutcomes
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.claim_adoption import ClaimAdoption
@@ -323,6 +323,12 @@ def build_context_projection(
                 "release_date": attempt.release_date,
                 "next_release_date": attempt.next_release_date,
                 "release_timezone": attempt.release_timezone,
+                "step": attempt.step,
+                "completeness": attempt.completeness,
+                "external_code": attempt.external_code,
+                "rule_reason": attempt.rule_reason,
+                "error_type": attempt.error_type,
+                "missing_members": list(attempt.missing_members),
             }
             if attempt is not None
             else None
@@ -330,7 +336,14 @@ def build_context_projection(
         rows_by_metric[definition.metric_id] = tuple(
             {
                 **row,
-                "acquisition_status": attempt.outcome if attempt else "no_attempt_for_target",
+                # A success says what it delivered (ticket 18); a failure, how it failed.
+                "acquisition_status": (
+                    attempt.completeness or attempt.outcome
+                    if attempt is not None and attempt.outcome == SUCCEEDED
+                    else attempt.outcome
+                    if attempt is not None
+                    else "no_attempt_for_target"
+                ),
                 "latest_acquisition": latest,
             }
             for row in rows_by_metric[definition.metric_id]

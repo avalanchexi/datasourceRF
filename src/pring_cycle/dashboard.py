@@ -725,9 +725,14 @@ def _evidence_row(
                 ("latest_source_period", "来源已见最新期"),
                 ("release_date", "当前批次发布日"),
                 ("next_release_date", "下次计划发布日"),
+                ("external_code", "来源返回码"),
+                ("rule_reason", "拒收原因"),
+                ("error_type", "异常类"),
             ):
                 if acquisition.get(key) is not None:
                     details.append(f"{label} {_display_value(acquisition[key])}")
+            if acquisition.get("missing_members"):
+                details.append(f"缺失成员 {len(acquisition['missing_members'])} 项")
             timezone = acquisition.get("release_timezone") or acquisition.get("source_timezone")
             if timezone is not None:
                 details.append(f"来源时区 {_display_value(timezone)}")
@@ -1487,6 +1492,15 @@ def _state_label(value: object) -> str:
         "partial_validation": "部分字段未通过校验",
         "missing_fields": "请求已完成，缺少所需字段",
         "missing_values": "请求已完成，目标窗口无数值",
+        "succeeded": "已取得",
+        "complete": "已完整取得",
+        "partial_members_missing": "已取得，部分成员缺失",
+        "nothing_new": "已全部持有，无需新增",
+        "source_empty": "来源空交付",
+        "structure_rejected": "结构校验拒收",
+        "ingest_rejected": "入库契约拒收",
+        "local_failed": "本地处理失败",
+        "not_attempted": "未发出请求",
         "period_mismatch": "输入报告期不一致",
         "no_attempt_for_target": "未记录此目标日与定义的获取结果",
         "derived_from_inputs": "由输入证据计算",

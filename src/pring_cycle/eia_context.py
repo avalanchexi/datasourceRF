@@ -9,7 +9,13 @@ from math import isfinite
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, build_opener
 
-from pring_cycle.acquisition import AcquisitionRepository, utc_now
+from pring_cycle.acquisition import AcquisitionRepository, SourceFailed, utc_now
+from pring_cycle.acquisition_outcome import (
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import (
     EvidenceRepository,
@@ -72,6 +78,7 @@ class EiaPetroleumAdapter:
         self._api_key = api_key
         self._transport = transport or self._get
         self._acquisitions: AcquisitionRepository | None = None
+        self._started: list[str] = []
         self._http_metadata: tuple[str, int, str] | None = None
 
     def acquire_spot_prices(
@@ -82,19 +89,88 @@ class EiaPetroleumAdapter:
         end_date: date,
         definition_version: str = METRIC_CATALOG_VERSION,
     ) -> EiaIngestionResult:
+        """Acquire and store both spot prices, recording how it ended for each (ticket 18)."""
         if self._acquisitions is not None:
             raise ValueError("eia_acquisition_already_running")
-        self._acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+        self._acquisitions = acquisitions
+        self._started = []
+        stage = "acquire"
         try:
             prices = self.spot_prices(start_date=start_date, end_date=end_date)
-            return ingest_eia_spot_prices(
+            if not prices:
+                stage = "empty"
+                self._record(
+                    paths,
+                    SUCCEEDED,
+                    attempt_details(step="structure", completeness="source_empty"),
+                    definition_version=definition_version,
+                )
+                raise ValueError("eia_observations_missing")
+            stage = "ingest"
+            result = ingest_eia_spot_prices(
                 paths,
                 prices,
                 fetched_at=utc_now(),
                 definition_version=definition_version,
             )
+        except Exception as error:
+            if stage == "empty":
+                raise  # recorded as an empty delivery above
+            if stage == "ingest":
+                outcome, recorded = ingest_failure(error)
+                if isinstance(error, ValueError):
+                    for acquisition_id in self._started:
+                        acquisitions.record_ingest_result(acquisition_id, error)
+            else:
+                outcome, recorded = capture_failure(error)
+            self._record(paths, outcome, recorded, definition_version=definition_version)
+            raise
         finally:
             self._acquisitions = None
+        for acquisition_id in self._started:
+            acquisitions.record_ingest_result(acquisition_id, None)
+        # A series the answer left out: delivered empty, while the other stands.
+        self._record(
+            paths,
+            SUCCEEDED,
+            attempt_details(step="structure", completeness="source_empty"),
+            definition_version=definition_version,
+            metric_ids=tuple(
+                metric_id
+                for metric_id in _SERIES_METRICS.values()
+                if metric_id not in result.metric_ids
+            ),
+        )
+        return result
+
+    def _record(
+        self,
+        paths: RuntimePaths,
+        outcome: str,
+        recorded: Mapping[str, str],
+        *,
+        definition_version: str,
+        metric_ids: tuple[str, ...] = tuple(_SERIES_METRICS.values()),
+    ) -> None:
+        repository = EvidenceRepository(paths.database)
+        recorded_at = utc_now()
+        for series_id, metric_id in _SERIES_METRICS.items():
+            if metric_id not in metric_ids:
+                continue
+            repository.record_retrieval_attempt(
+                metric_id=metric_id,
+                channel="eia_official_candidate",
+                outcome=outcome,
+                fetched_at=recorded_at,
+                acquisition_ids=tuple(self._started),
+                safe_metadata={
+                    "endpoint": EIA_SPOT_PRICE_ENDPOINT,
+                    "series_id": series_id,
+                    "definition_version": definition_version,
+                    **recorded,
+                },
+            )
 
     def spot_prices(
         self,
@@ -143,6 +219,7 @@ class EiaPetroleumAdapter:
             fetch=fetch,
             parse=parse,
             normalize=lambda prices: [asdict(p) for p in prices],
+            on_started=self._started.append,
         )
         return tuple(
             replace(price, acquisition_id=acquired.receipt.acquisition_id)
@@ -201,10 +278,15 @@ class EiaPetroleumAdapter:
     def _decode_response(self, content: bytes | dict[str, object]) -> dict[str, object]:
         if isinstance(content, dict):
             return content
+        if self._http_metadata is not None and self._http_metadata[1] != 200:
+            # An answer that is itself a failure, not a response to check (ticket 18).
+            raise SourceFailed(
+                "eia_response_http_status_invalid", external_code=self._http_metadata[1]
+            )
         if len(content) > MAX_EIA_RESPONSE_BYTES:
             raise ValueError("eia_response_size_invalid")
         if self._http_metadata is not None:
-            final_url, status, media_type = self._http_metadata
+            final_url, _status, media_type = self._http_metadata
             parsed_url = urlsplit(final_url)
             if (
                 parsed_url.scheme != "https"
@@ -212,8 +294,6 @@ class EiaPetroleumAdapter:
                 or parsed_url.path != "/v2/petroleum/pri/spt/data/"
             ):
                 raise ValueError("eia_response_source_identity_invalid")
-            if status != 200:
-                raise ValueError("eia_response_http_status_invalid")
             if media_type.split(";", maxsplit=1)[0].strip().lower() != "application/json":
                 raise ValueError("eia_response_media_type_invalid")
         try:
@@ -327,7 +407,7 @@ def ingest_eia_spot_prices(
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="eia_official_candidate",
-            outcome="verified_candidate",
+            outcome=SUCCEEDED,
             fetched_at=utc_now()
             if any(price.acquisition_id for price in metric_prices)
             else fetched_at,
@@ -340,12 +420,14 @@ def ingest_eia_spot_prices(
                     }
                 )
             ),
-            safe_metadata={
-                "endpoint": EIA_SPOT_PRICE_ENDPOINT,
-                "observations": str(len(metric_prices)),
-                "series_id": metric_prices[0].series_id,
-                "definition_version": definition_version,
-            },
+            safe_metadata=attempt_details(
+                step="ingest",
+                completeness="complete",
+                endpoint=EIA_SPOT_PRICE_ENDPOINT,
+                observations=str(len(metric_prices)),
+                series_id=metric_prices[0].series_id,
+                definition_version=definition_version,
+            ),
         )
     return EiaIngestionResult(
         observation_count=len(stored),
@@ -372,8 +454,10 @@ def _parse_spot_prices(
     if response.get("frequency") != "daily":
         raise ValueError("eia_frequency_identity_mismatch")
     raw_rows = response.get("data")
-    if not isinstance(raw_rows, list) or not raw_rows:
+    if not isinstance(raw_rows, list):
         raise ValueError("eia_observations_missing")
+    if not raw_rows:
+        return ()  # a well-formed answer that delivered nothing (ticket 18)
     prices: list[EiaSpotPrice] = []
     identities: set[tuple[str, date]] = set()
     for raw_row in raw_rows:
@@ -416,6 +500,5 @@ def _parse_spot_prices(
                 unit="usd_per_barrel",
             )
         )
-    if {price.series_id for price in prices} != set(_SERIES_METRICS):
-        raise ValueError("eia_series_identity_incomplete")
+    # A series the answer left out is a delivery missing it, no refused response (ticket 18).
     return tuple(sorted(prices, key=lambda item: (item.business_date, item.series_id)))

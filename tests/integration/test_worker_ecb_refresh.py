@@ -127,7 +127,7 @@ def test_direct_refresh_owns_ecb_original_and_selects_actual_system_without_tush
     attempt = evidence.latest_retrieval_attempt(
         ECB_METRIC, period=None, as_of=datetime.now(UTC), definition_version=version
     )
-    assert attempt is not None and attempt.outcome == "verified_candidate"
+    assert attempt is not None and attempt.outcome == "succeeded"
     assert attempt.safe_metadata["run_id"] == run.run_id
     assert attempt.safe_metadata["target_business_date"] == run.target_business_date
 
@@ -152,7 +152,7 @@ def test_invalid_optional_ecb_response_retains_failure_and_continues_other_sourc
     attempt = evidence.latest_retrieval_attempt(
         ECB_METRIC, period=None, as_of=datetime.now(UTC), definition_version=version
     )
-    expected = "validation_failed" if failure == "invalid_zip" else "source_failed"
+    expected = "structure_rejected" if failure == "invalid_zip" else "source_failed"
     assert attempt is not None and attempt.outcome == expected
     if failure == "invalid_zip":
         assert attempt.safe_metadata["response_http_status"] == "200"
@@ -180,7 +180,7 @@ def test_invalid_optional_ecb_response_retains_failure_and_continues_other_sourc
     following = evidence.latest_retrieval_attempt(
         "CN_GDP", period=None, as_of=datetime.now(UTC), definition_version=version
     )
-    assert following is not None and following.outcome == "missing_credentials"
+    assert following is not None and following.outcome == "not_attempted"
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -234,7 +234,7 @@ def test_fresh_valid_original_recovers_damaged_prior_proof_with_a_new_vintage(
     attempt = evidence.latest_retrieval_attempt(
         ECB_METRIC, period=None, as_of=datetime.now(UTC), definition_version=version
     )
-    assert attempt is not None and attempt.outcome == "verified_candidate"
+    assert attempt is not None and attempt.outcome == "succeeded"
     receipts = [
         receipt
         for receipt in AcquisitionRepository(paths.database, paths.artifacts).history()

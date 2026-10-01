@@ -159,7 +159,7 @@ def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
         definition_version="metric-catalog-v0001",
     )
     assert attempt is not None
-    assert attempt.outcome == "verified_candidate"
+    assert (attempt.outcome, attempt.safe_metadata["completeness"]) == ("succeeded", "complete")
     assert attempt.safe_metadata["period"] == "2026-Q2"
     assert attempt.safe_metadata["target_business_date"] == "2026-08-28"
     assert attempt.safe_metadata["run_id"] == run.run_id
@@ -170,7 +170,7 @@ def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
         target_business_date="2026-08-28",
     )
     rows = [row for row in context.macro["international_context"] if row["metric_id"] == "CN_GDP"]
-    assert {row["acquisition_status"] for row in rows} == {"verified_candidate"}
+    assert {row["acquisition_status"] for row in rows} == {"complete"}
     if later_failure is None:
         return
 
@@ -206,7 +206,7 @@ def test_official_gdp_quarter_yoy_keeps_its_distinct_verified_table_columns(
         definition_version="metric-catalog-v0001",
     )
     assert latest is not None
-    outcome = "source_failed" if later_failure == "http" else "validation_failed"
+    outcome = "source_failed" if later_failure == "http" else "structure_rejected"
     assert latest.outcome == outcome
     assert latest.fetched_at >= before_failure
     assert len(started) == 1

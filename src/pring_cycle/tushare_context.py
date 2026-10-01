@@ -11,7 +11,19 @@ from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
 
-from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+    utc_now,
+)
+from pring_cycle.acquisition_outcome import (
+    LOCAL_FAILED,
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import MARGIN_FINANCING_V0002, METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
@@ -137,14 +149,33 @@ ContextRequestWrapper = Callable[
 
 
 class ContextObservationsMissingError(ValueError):
-    """A structurally parsed delivery contains no scalar observations."""
+    """A structurally parsed delivery contains no scalar observations.
 
-    def __init__(self) -> None:
+    ``completeness`` says why (ticket 18): ``nothing_new`` when its producer found every
+    wanted day held already, ``source_empty`` when the source delivered none.
+    """
+
+    def __init__(self, completeness: str = "source_empty") -> None:
         super().__init__("tushare_context_observations_missing")
+        self.completeness = completeness
 
 
-class TushareSourceError(ValueError):
-    """TuShare answered without data: a non-zero code such as a permission or rate limit."""
+class TushareSourceError(SourceFailed, ValueError):
+    """TuShare answered without data: a non-zero code such as a permission or rate limit.
+
+    A source failure carrying TuShare's code (ticket 18); still a ValueError to the callers
+    that caught it as one.
+    """
+
+
+class ContextRequestFailed(Exception):
+    """A request wrapper's own report that a request failed, raised in place of what the
+    source or the response said; the adapter records that instead (ticket 18)."""
+
+
+class OriginalUnreadable(RuntimeError):
+    """This system could not read back an original it stored: its own failure, never the
+    response's (ticket 18)."""
 
 
 class ContextIngestRejectedError(ValueError):
@@ -160,6 +191,8 @@ class TushareContextAdapter:
         self._network_requests = 0
         self._acquisitions: AcquisitionRepository | None = None
         self._receipts: list[AcquisitionReceipt] = []
+        self._started: list[str] = []
+        self._failure: Exception | None = None
         self._request_wrapper: ContextRequestWrapper | None = None
         self._field_rejections: list[dict[str, str]] = []
 
@@ -170,17 +203,35 @@ class TushareContextAdapter:
         *,
         definition_version: str = METRIC_CATALOG_VERSION,
         request_wrapper: ContextRequestWrapper | None = None,
+        metric_ids: tuple[str, ...] = (),
+        details: Mapping[str, str] | None = None,
     ) -> ContextIngestionResult:
+        """Acquire, check and store one family's delivery.
+
+        Given the ``metric_ids`` it was asked for, it also records how the acquisition ended
+        for each where it ended (ticket 18): a failure at its step with the source's code or
+        the refusing rule, an empty delivery, a metric the delivery left out. ``details`` go
+        on each record (the family, a warrant symbol, the request's dates).
+        """
         if self._acquisitions is not None:
             raise ValueError("context_acquisition_already_running")
         self._acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
         self._receipts = []
+        self._started = []
+        self._failure = None
         self._request_wrapper = request_wrapper
         self._field_rejections = []
+        stage = "acquire"
         try:
             scalars = retrieve()
             if not self._receipts:
                 raise ValueError("context_acquisition_receipts_missing")
+            if not scalars and self._field_rejections:
+                # Nothing delivered because the rules refused every field: a refused
+                # response, not an empty delivery (ticket 18).
+                raise ValueError(
+                    ",".join(sorted({item["reason"] for item in self._field_rejections}))
+                )
             if definition_version not in BUILTIN_CATALOG_VERSIONS:
                 family_contracts = (
                     ("margin", {"CN_MARGIN_BALANCE"}, {"margin"}, parse_margin_acquisition),
@@ -203,7 +254,7 @@ class TushareContextAdapter:
                         parse_valuation_acquisition,
                     ),
                 )
-                for family, metric_ids, api_names, parse_scalars in family_contracts:
+                for family, family_metrics, api_names, parse_scalars in family_contracts:
                     outputs = tuple(
                         replace(
                             scalar,
@@ -213,7 +264,7 @@ class TushareContextAdapter:
                             acquisition_ids=(),
                         )
                         for scalar in scalars
-                        if scalar.metric_id in metric_ids
+                        if scalar.metric_id in family_metrics
                     )
                     if not outputs:
                         continue
@@ -223,7 +274,7 @@ class TushareContextAdapter:
                         if receipt.api_name in api_names
                         for scalar in parse_scalars(
                             receipt,
-                            self._acquisitions.read_content(receipt.acquisition_id, "raw"),
+                            self._original(receipt),
                         )
                     )
                     if sorted(_canonical_json(asdict(s)) for s in parsed_inputs) != sorted(
@@ -233,9 +284,7 @@ class TushareContextAdapter:
             warrant_inputs = self._warrant_receipt_inputs()
             gdp_deliveries = {
                 receipt.acquisition_id: _gdp_delivery(
-                    _gdp_acquisition_rows(
-                        receipt, self._acquisitions.read_content(receipt.acquisition_id, "raw")
-                    )
+                    _gdp_acquisition_rows(receipt, self._original(receipt))
                 )
                 for receipt in self._receipts
                 if receipt.api_name == "cn_gdp"
@@ -304,6 +353,7 @@ class TushareContextAdapter:
                 linked.append(
                     replace(scalar, acquisition_ids=tuple(r.acquisition_id for r in inputs))
                 )
+            stage = "store"  # what the checks passed is stored: a failure here is local
             normalized: object = [asdict(s) for s in linked]
             if self._field_rejections:
                 normalized = {
@@ -336,39 +386,129 @@ class TushareContextAdapter:
                         "accepted_scalars": receipt_document,
                         "warrant_reconciliation": _warrant_receipt_reconciliation(
                             receipt,
-                            self._acquisitions.read_content(receipt.acquisition_id, "raw"),
+                            self._original(receipt),
                         ),
                     }
                 self._acquisitions.complete_validation(
                     receipt.acquisition_id,
                     receipt_document,
                 )
+            stage = "ingest"
             try:
                 result = ingest_context_scalars(
                     paths,
                     tuple(linked),
                     fetched_at=utc_now(),
                     definition_version=definition_version,
-                    rejected_field_count=len(self._field_rejections),
+                    rejected_fields=tuple(self._field_rejections),
+                    details=details,
                 )
             except ContextObservationsMissingError:
                 raise
-            except (KeyError, TypeError, ValueError) as error:
+            except ValueError as error:
+                # Only the registered contract refusing the values; a failure of this system
+                # while storing them is no refusal (ticket 18).
                 for receipt in self._receipts:
                     self._acquisitions.record_ingest_result(receipt.acquisition_id, error)
                 raise ContextIngestRejectedError(str(error)) from error
             for receipt in self._receipts:
                 self._acquisitions.record_ingest_result(receipt.acquisition_id, None)
+            self._record(
+                paths,
+                tuple(item for item in metric_ids if item not in result.metric_ids),
+                SUCCEEDED,
+                attempt_details(step="structure", completeness="source_empty"),
+                definition_version=definition_version,
+                details=details,
+            )
             return replace(result, rejected_field_count=len(self._field_rejections))
         except Exception as error:
+            # A response its rules refused was checked; an empty delivery, or a failure of
+            # the source or of this system (storing what passed included), was not.
+            checked = (
+                stage == "acquire"
+                and isinstance(error, ValueError)
+                and not isinstance(error, ContextObservationsMissingError | SourceFailed)
+            )
             for receipt in self._receipts:
-                self._acquisitions.fail_validation(receipt.acquisition_id, error)
+                self._acquisitions.fail_validation(receipt.acquisition_id, error, checked=checked)
+            if isinstance(error, ContextObservationsMissingError):
+                outcome, recorded = (
+                    SUCCEEDED,
+                    attempt_details(step="structure", completeness=error.completeness),
+                )
+            elif stage == "store" or isinstance(error, OriginalUnreadable):
+                outcome, recorded = (
+                    LOCAL_FAILED,
+                    attempt_details(
+                        step="local", error_type=type(error).__name__, reason=str(error)[:300]
+                    ),
+                )
+            elif stage == "ingest":
+                outcome, recorded = ingest_failure(
+                    error.__cause__
+                    if isinstance(error, ContextIngestRejectedError)
+                    and isinstance(error.__cause__, Exception)
+                    else error
+                )
+            else:
+                # What the source or the response said, before a request wrapper translated
+                # it into an exception of its own; any other error is read as it is.
+                translated = self._failure is not None and (
+                    error is self._failure or isinstance(error, ContextRequestFailed)
+                )
+                outcome, recorded = capture_failure(
+                    self._failure if translated and self._failure is not None else error
+                )
+            self._record(
+                paths,
+                metric_ids,
+                outcome,
+                recorded,
+                definition_version=definition_version,
+                details=details,
+            )
             raise
         finally:
             self._acquisitions = None
             self._receipts = []
+            self._started = []
+            self._failure = None
             self._request_wrapper = None
             self._field_rejections = []
+
+    def _original(self, receipt: AcquisitionReceipt) -> bytes:
+        assert self._acquisitions is not None
+        try:
+            return self._acquisitions.read_content(receipt.acquisition_id, "raw")
+        except (LookupError, OSError, ValueError) as error:
+            raise OriginalUnreadable(str(error)) from error
+
+    def _record(
+        self,
+        paths: RuntimePaths,
+        metric_ids: tuple[str, ...],
+        outcome: str,
+        recorded: Mapping[str, str],
+        *,
+        definition_version: str,
+        details: Mapping[str, str] | None,
+    ) -> None:
+        repository = EvidenceRepository(paths.database)
+        recorded_at = utc_now()
+        for metric_id in metric_ids:
+            repository.record_retrieval_attempt(
+                metric_id=metric_id,
+                channel="tushare",
+                outcome=outcome,
+                fetched_at=recorded_at,
+                acquisition_ids=tuple(self._started),
+                safe_metadata={
+                    **(details or {}),
+                    "definition_version": definition_version,
+                    **recorded,
+                },
+            )
 
     @property
     def network_requests(self) -> int:
@@ -383,7 +523,7 @@ class TushareContextAdapter:
         for receipt in self._receipts:
             if receipt.api_name != "fut_wsr":
                 continue
-            document = json.loads(self._acquisitions.read_content(receipt.acquisition_id, "raw"))
+            document = json.loads(self._original(receipt))
             rows = _response_rows(document, required_fields=tuple(receipt.fields.split(",")))
             if len(rows) >= _FUTURES_WARRANT_RESPONSE_LIMIT:
                 continue
@@ -895,8 +1035,8 @@ class TushareContextAdapter:
             calendar_ids=calendar_ids,
         )
         if not scalars:
-            # Every day of the window is held already: nothing new, as for any delivery.
-            raise ContextObservationsMissingError()
+            # Every day of the window is held already: nothing new.
+            raise ContextObservationsMissingError("nothing_new")
         return scalars
 
     def ex_hog_basket(
@@ -905,7 +1045,11 @@ class TushareContextAdapter:
         """The basket and its sleeves on the window's days not yet held (ADR-0030)."""
         from pring_cycle.basket import basket_scalars
 
-        return basket_scalars(self._call, end_date=end_date, held_levels=held_levels)
+        scalars = basket_scalars(self._call, end_date=end_date, held_levels=held_levels)
+        if not scalars:
+            # Every day of the window is held already: nothing new.
+            raise ContextObservationsMissingError("nothing_new")
+        return scalars
 
     def _call(
         self,
@@ -927,7 +1071,8 @@ class TushareContextAdapter:
             if code != 0:
                 # The code tells a rate limit from a permission refusal on the receipt.
                 raise TushareSourceError(
-                    "tushare_rate_limited" if code == 40203 else f"tushare_source_failed:{code}"
+                    "tushare_rate_limited" if code == 40203 else f"tushare_source_failed:{code}",
+                    external_code=code,
                 )
             rows = _response_rows(document, required_fields=fields)
             _validate_response_periods(rows, params)
@@ -945,22 +1090,34 @@ class TushareContextAdapter:
         acquisitions = self._acquisitions
 
         def acquire(on_started: Callable[[str], None] | None) -> ContextRows:
-            acquired = acquisitions.capture(
-                provider="tushare",
-                api_name=api_name,
-                parameters=params,
-                fields=",".join(fields),
-                parser_version=(
-                    "tushare-gdp-parser-v0003"
-                    if api_name == "cn_gdp"
-                    else "tushare-context-parser-v0002"
-                ),
-                fetch=fetch,
-                parse=parse,
-                normalize=lambda rows: rows,
-                defer_validation=True,
-                on_started=on_started,
-            )
+            def started(acquisition_id: str) -> None:
+                self._started.append(acquisition_id)
+                if on_started is not None:
+                    on_started(acquisition_id)
+
+            self._failure = None
+            try:
+                acquired = acquisitions.capture(
+                    provider="tushare",
+                    api_name=api_name,
+                    parameters=params,
+                    fields=",".join(fields),
+                    parser_version=(
+                        "tushare-gdp-parser-v0003"
+                        if api_name == "cn_gdp"
+                        else "tushare-context-parser-v0002"
+                    ),
+                    fetch=fetch,
+                    parse=parse,
+                    normalize=lambda rows: rows,
+                    defer_validation=True,
+                    on_started=started,
+                )
+            except Exception as error:
+                # Kept as the source or the response said it, for the attempt this call ends
+                # (a request wrapper may translate the exception it passes on).
+                self._failure = error
+                raise
             self._receipts.append(acquired.receipt)
             return acquired.value
 
@@ -985,12 +1142,13 @@ def ingest_context_scalars(
     *,
     fetched_at: datetime,
     definition_version: str = METRIC_CATALOG_VERSION,
-    rejected_field_count: int = 0,
+    rejected_fields: tuple[Mapping[str, str], ...] = (),
+    details: Mapping[str, str] | None = None,
 ) -> ContextIngestionResult:
     """Store the delivered scalars and record each metric's (and warrant symbol's) outcome.
 
-    ``rejected_field_count`` is how many of the response's fields its checks refused: a
-    delivery with any is a partial validation of every metric it carried.
+    ``rejected_fields`` are the response's fields its checks refused: a metric with any is
+    delivered with those members missing (ticket 18). ``details`` go on each record.
     """
     if fetched_at.tzinfo is None:
         raise ValueError("tushare_context_fetched_at_must_be_timezone_aware")
@@ -1201,10 +1359,15 @@ def ingest_context_scalars(
             for item in scalars
             if item.metric_id == metric_id and item.dimensions.get("symbol") == symbol
         ]
+        refused = tuple(
+            f"{item['api_name']}:{item['source_field']}:{item['period_end']}"
+            for item in rejected_fields
+            if item.get("metric_id") == metric_id
+        )
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="tushare",
-            outcome="partial_validation" if rejected_field_count else "verified_candidate",
+            outcome=SUCCEEDED,
             fetched_at=utc_now()
             if any(item.acquisition_ids for item in metric_scalars)
             else fetched_at,
@@ -1212,13 +1375,21 @@ def ingest_context_scalars(
                 sorted({identity for item in metric_scalars for identity in item.acquisition_ids})
             ),
             safe_metadata={
-                "api_names": ",".join(sorted({item.api_name for item in metric_scalars})),
-                "observations": str(len(metric_scalars)),
-                "period_start": min(item.period_start for item in metric_scalars),
-                "period_end": max(item.period_end for item in metric_scalars),
-                "definition_version": definition_version,
-                "rejected_fields": str(rejected_field_count),
-                **({"symbol": symbol} if symbol is not None else {}),
+                **(details or {}),
+                # TuShare's answers do not say which members they owe: only a field its
+                # rules refused is known missing, so completeness is claimed no further.
+                **attempt_details(
+                    step="ingest",
+                    completeness="partial_members_missing" if refused else None,
+                    missing_members=refused,
+                    api_names=",".join(sorted({item.api_name for item in metric_scalars})),
+                    observations=str(len(metric_scalars)),
+                    period_start=min(item.period_start for item in metric_scalars),
+                    period_end=max(item.period_end for item in metric_scalars),
+                    definition_version=definition_version,
+                    rejected_fields=str(len(refused)),
+                    **({"symbol": symbol} if symbol is not None else {}),
+                ),
             },
         )
     return ContextIngestionResult(

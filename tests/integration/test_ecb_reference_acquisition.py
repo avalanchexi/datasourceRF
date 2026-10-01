@@ -93,6 +93,8 @@ def test_imported_ecb_cross_keeps_both_legs_formula_original_and_actual_system_t
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     receipt = acquisitions.get(imported.acquisition_id)
     assert receipt.api_name == "document_import" and receipt.raw_hash == ZIP_SHA
+    # Its receipt says the values entered the evidence store (ticket 18).
+    assert acquisitions.ingest_result(receipt.acquisition_id) == ("accepted", None)
     assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
     normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
     assert normalized["source_url"] == SOURCE_URL
@@ -209,7 +211,10 @@ def test_ecb_missing_or_invalid_leg_retains_original_and_an_explained_gap(
         METRIC, period="2026-09-17", as_of=datetime.now(UTC), definition_version=version
     )
     assert attempt is not None
-    assert attempt.outcome == ("validation_failed" if usd == "0" else "missing_values")
+    # A blank leg leaves an empty delivery, no failure; a zero is refused (ticket 18).
+    assert attempt.outcome == ("structure_rejected" if usd == "0" else "succeeded")
+    if usd != "0":
+        assert attempt.safe_metadata["completeness"] == "source_empty"
     if usd == "N/A":
         assert attempt.safe_metadata["condition"] == "reference_legs_missing"
         normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
@@ -413,7 +418,7 @@ def test_corrupted_ecb_zip_retains_the_failed_body_and_validation_attempt(
     attempt = evidence.latest_retrieval_attempt(
         METRIC, period="2026-09-17", as_of=datetime.now(UTC), definition_version=version
     )
-    assert attempt is not None and attempt.outcome == "validation_failed"
+    assert attempt is not None and attempt.outcome == "structure_rejected"
     assert not evidence.source_claim_vintages(METRIC, definition_version=version)
 
 
@@ -537,7 +542,7 @@ def test_ecb_http_failure_is_audited_without_creating_a_claim(
         METRIC, period="2026-09-17", as_of=datetime.now(UTC), definition_version=version
     )
     assert attempt is not None and attempt.outcome == (
-        "source_failed" if defect in {"transport", "status"} else "validation_failed"
+        "source_failed" if defect in {"transport", "status"} else "structure_rejected"
     )
     assert not evidence.source_claim_vintages(METRIC, definition_version=version)
 

@@ -419,7 +419,9 @@ def test_missing_rows_reach_official_fallback_instead_of_stopping_the_refresh(
     attempt = evidence.latest_retrieval_attempt(
         metric, period=None, as_of=datetime.now(UTC), definition_version=version
     )
-    assert attempt is not None and attempt.outcome == "missing_values"
+    # The source delivered none: an empty delivery, no failure (ticket 18).
+    assert attempt is not None and attempt.outcome == "succeeded"
+    assert attempt.safe_metadata["completeness"] == "source_empty"
 
     FullRunRetrieval(paths).retrieve(run)
 
@@ -522,7 +524,7 @@ def test_reviewed_delivery_does_not_treat_invalid_month_as_missing_rows(
     attempt = EvidenceRepository(paths.database).latest_retrieval_attempt(
         "CN_M1_M2", period=None, as_of=datetime.now(UTC), definition_version=version
     )
-    assert attempt is not None and attempt.outcome == "validation_failed"
+    assert attempt is not None and attempt.outcome == "structure_rejected"
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -565,7 +567,8 @@ def test_other_reviewed_families_keep_empty_delivery_as_an_acquisition_gap(
         attempt = evidence.latest_retrieval_attempt(
             metric, period=None, as_of=datetime.now(UTC), definition_version=version
         )
-        assert attempt is not None and attempt.outcome == "missing_values"
+        assert attempt is not None and attempt.outcome == "succeeded"
+        assert attempt.safe_metadata["completeness"] == "source_empty"
         assert not evidence.metric_series(
             metric, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
         )

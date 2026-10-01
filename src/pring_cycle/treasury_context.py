@@ -13,7 +13,18 @@ from math import isfinite
 from urllib.error import HTTPError
 from urllib.request import Request
 
-from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+    utc_now,
+)
+from pring_cycle.acquisition_outcome import (
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import (
     EvidenceRepository,
@@ -360,18 +371,23 @@ def refresh_treasury_yields(
 
     def parse(raw: bytes) -> TreasuryYieldBatch:
         response = responses[0]
+        if response.http_status != 200:
+            # An answer that is itself a failure, not a response to check (ticket 18).
+            raise SourceFailed(
+                "treasury_csv_response_http_status_invalid", external_code=response.http_status
+            )
         if response.final_url != endpoint:
             raise ValueError("treasury_csv_response_identity_invalid")
-        if response.http_status != 200:
-            raise OSError("treasury_csv_response_http_status_invalid")
         if response.media_type.split(";", maxsplit=1)[0].strip().lower() != "text/csv":
             raise ValueError("treasury_csv_response_media_type_invalid")
         return parse_treasury_yield_csv(
             raw, start_date=start_date, end_date=end_date, media_type=response.media_type
         )
 
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    stage = "acquire"
     try:
-        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        acquired = acquisitions.capture(
             provider=_PROVIDER,
             api_name="treasury_nominal_yields_csv",
             parameters=metadata,
@@ -383,6 +399,7 @@ def refresh_treasury_yields(
             on_started=started,
         )
         receipt, batch = acquired.receipt, acquired.value
+        stage = "ingest"
         if receipt.received_at is None or receipt.validated_at is None:
             raise ValueError("treasury_csv_acquisition_incomplete")
         claims = tuple(
@@ -413,6 +430,8 @@ def refresh_treasury_yields(
         stored = (
             repository.append_source_claims(claims, availability_clock=utc_now) if claims else ()
         )
+        if stored:
+            acquisitions.record_ingest_result(receipt.acquisition_id, None)
         missing = sum(cell.value is None for cell in batch.cells)
         condition = (
             None
@@ -426,17 +445,30 @@ def refresh_treasury_yields(
         for metric in _FIELDS.values():
             cells = [cell for cell in batch.cells if cell.metric_id == metric]
             count = sum(cell.value is not None for cell in cells)
+            blank = tuple(str(cell.business_date) for cell in cells if cell.value is None)
             repository.record_retrieval_attempt(
                 metric_id=metric,
                 channel="treasury_csv_candidate",
-                outcome="verified_candidate" if count else "missing_values",
+                outcome=SUCCEEDED,
                 fetched_at=utc_now(),
                 acquisition_ids=tuple(ids),
                 safe_metadata={
                     **metadata,
                     **response_metadata(),
+                    # A date the source listed without a value is a member it did not deliver.
+                    **attempt_details(
+                        step="ingest" if count else "structure",
+                        completeness=(
+                            "source_empty"
+                            if not count
+                            else "partial_members_missing"
+                            if blank
+                            else "complete"
+                        ),
+                        missing_members=blank if count else (),
+                    ),
                     "observations": str(count),
-                    "missing_cells": str(sum(cell.value is None for cell in cells)),
+                    "missing_cells": str(len(blank)),
                     "source_timezone": batch.source_timezone,
                     **(
                         {"latest_source_period": str(batch.latest_reported_periods[metric])}
@@ -463,18 +495,22 @@ def refresh_treasury_yields(
             tuple(item.claim_id for item in stored),
             condition,
         )
-    except (OSError, TypeError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        # Where it ended says how: at the call (the source, or its response's check), or
+        # storing the checked values (the contract, or this system).
+        if stage == "ingest":
+            outcome, recorded = ingest_failure(error)
+            if isinstance(error, ValueError) and ids:
+                acquisitions.record_ingest_result(ids[-1], error)
+        else:
+            outcome, recorded = capture_failure(error)
         for metric in _FIELDS.values():
             repository.record_retrieval_attempt(
                 metric_id=metric,
                 channel="treasury_csv_candidate",
                 fetched_at=utc_now(),
-                outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+                outcome=outcome,
                 acquisition_ids=tuple(ids),
-                safe_metadata={
-                    **metadata,
-                    **response_metadata(),
-                    "error_type": type(error).__name__,
-                },
+                safe_metadata={**metadata, **response_metadata(), **recorded},
             )
         raise

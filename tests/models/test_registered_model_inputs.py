@@ -2552,7 +2552,10 @@ def test_registered_catalog_eia_html_cli_failure_keeps_classified_attempt(
         as_of=datetime.now(UTC),
         definition_version=version,
     )
-    assert attempt is not None and attempt.outcome == outcome
+    # A refused response is a structure rejection (ticket 18).
+    assert attempt is not None and attempt.outcome == (
+        outcome if outcome == "source_failed" else "structure_rejected"
+    )
     assert attempt.safe_metadata["acquisition_ids"] == receipt.acquisition_id
     assert attempt.safe_metadata["error_type"] == receipt.error_type
 

@@ -47,6 +47,8 @@ def test_official_csv_creates_two_traceable_candidates_with_unknown_public_time(
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     receipt = acquisitions.get(result.acquisition_id)
     assert acquisitions.read_content(receipt.acquisition_id, "raw") == raw
+    # Its receipt says the values entered the evidence store (ticket 18).
+    assert acquisitions.ingest_result(receipt.acquisition_id) == ("accepted", None)
     normalized = json.loads(acquisitions.read_content(receipt.acquisition_id, "normalized"))
     assert normalized["source_timezone"] == "America/New_York"
     evidence = EvidenceRepository(paths.database)
@@ -224,7 +226,9 @@ def test_columns_and_missing_values_keep_each_tenors_own_evidence(
             as_of=datetime.now(UTC),
             definition_version="metric-catalog-v0002",
         )
-        assert attempt.outcome == ("missing_values" if missing else "verified_candidate")
+        # An empty delivery is no failure; it says so (ticket 18).
+        assert attempt.outcome == "succeeded"
+        assert attempt.safe_metadata["completeness"] == ("source_empty" if missing else "complete")
     normalized = json.loads(
         AcquisitionRepository(paths.database, paths.artifacts).read_content(
             result.acquisition_id, "normalized"
@@ -340,7 +344,10 @@ def test_invalid_source_response_is_retained_but_never_creates_a_claim(
             as_of=datetime.now(UTC),
             definition_version="metric-catalog-v0002",
         )
-        assert attempt.outcome == ("source_failed" if case == "http_403" else "validation_failed")
+        # An HTTP error is the source's, with its code; anything else the structure check's.
+        assert attempt.outcome == ("source_failed" if case == "http_403" else "structure_rejected")
+        if case == "http_403":
+            assert attempt.safe_metadata["external_code"] == "403"
         assert attempt.fetched_at >= before
         assert attempt.safe_metadata["acquisition_ids"] == receipt.acquisition_id
         assert attempt.safe_metadata["response_http_status"] == str(status)
@@ -419,7 +426,7 @@ def test_later_snapshot_and_failed_request_preserve_prior_treasury_values(
             as_of=before_failure,
             definition_version="metric-catalog-v0002",
         )
-        assert previous.outcome == "verified_candidate"
+        assert previous.outcome == "succeeded"
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -496,7 +503,7 @@ def test_later_missing_cell_retains_the_old_value_identity_and_new_missing_recei
         as_of=datetime.now(UTC),
         definition_version="metric-catalog-v0002",
     )
-    assert attempt.outcome == "missing_values"
+    assert (attempt.outcome, attempt.safe_metadata["completeness"]) == ("succeeded", "source_empty")
     assert attempt.safe_metadata["acquisition_ids"] == second.acquisition_id
     assert attempt.safe_metadata["observations"] == "0"
 

@@ -10,7 +10,13 @@ from html.parser import HTMLParser
 from math import isfinite
 from urllib.error import HTTPError
 
-from pring_cycle.acquisition import AcquisitionRepository, utc_now
+from pring_cycle.acquisition import AcquisitionRepository, SourceFailed, utc_now
+from pring_cycle.acquisition_outcome import (
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
 from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.http_transport import open_no_redirects
@@ -379,10 +385,13 @@ def refresh_eia_history(
 
     def parse(raw: bytes) -> EiaHistoryBatch:
         response = responses[0]
+        if response.http_status != 200:
+            # An answer that is itself a failure, not a response to check (ticket 18).
+            raise SourceFailed(
+                "eia_history_response_http_status_invalid", external_code=response.http_status
+            )
         if response.final_url != endpoint:
             raise ValueError("eia_history_response_source_identity_invalid")
-        if response.http_status != 200:
-            raise OSError("eia_history_response_http_status_invalid")
         if response.media_type.split(";", maxsplit=1)[0].strip().lower() != "text/html":
             raise ValueError("eia_history_response_media_type_invalid")
         return parse_eia_history_document(
@@ -400,8 +409,10 @@ def refresh_eia_history(
         "period": str(end_date),
         "definition_version": definition_version,
     }
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    stage = "acquire"
     try:
-        acquired = AcquisitionRepository(paths.database, paths.artifacts).capture(
+        acquired = acquisitions.capture(
             provider=_PROVIDER,
             api_name="eia_history_html",
             parameters=metadata,
@@ -413,6 +424,7 @@ def refresh_eia_history(
             on_started=started,
         )
         receipt, batch = acquired.receipt, acquired.value
+        stage = "ingest"
         if receipt.received_at is None or receipt.validated_at is None:
             raise ValueError("eia_history_acquisition_incomplete")
         claims = tuple(
@@ -445,6 +457,8 @@ def refresh_eia_history(
         stored = (
             repository.append_source_claims(claims, availability_clock=utc_now) if claims else ()
         )
+        if stored:
+            acquisitions.record_ingest_result(receipt.acquisition_id, None)
         missing = sum(cell.value is None for cell in batch.cells)
         condition = (
             None
@@ -458,12 +472,18 @@ def refresh_eia_history(
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="eia_html_candidate",
-            outcome="verified_candidate" if stored else "missing_values",
+            outcome=SUCCEEDED,
             fetched_at=utc_now(),
             acquisition_ids=tuple(ids),
             safe_metadata={
                 **metadata,
                 **response_metadata(),
+                # The page lays out every weekday, U.S. holidays blank: a blank cell is no
+                # missing member, and stays counted in ``missing_cells``.
+                **attempt_details(
+                    step="ingest" if stored else "structure",
+                    completeness="complete" if stored else "source_empty",
+                ),
                 **({"condition": condition} if condition is not None else {}),
                 "observations": str(len(stored)),
                 "missing_cells": str(missing),
@@ -482,13 +502,21 @@ def refresh_eia_history(
             tuple(s.claim_id for s in stored),
             condition,
         )
-    except (OSError, TypeError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        # Where it ended says how: at the call (the source, or its response's check), or
+        # storing the checked values (the contract, or this system).
+        if stage == "ingest":
+            outcome, recorded = ingest_failure(error)
+            if isinstance(error, ValueError) and ids:
+                acquisitions.record_ingest_result(ids[-1], error)
+        else:
+            outcome, recorded = capture_failure(error)
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="eia_html_candidate",
             fetched_at=utc_now(),
-            outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+            outcome=outcome,
             acquisition_ids=tuple(ids),
-            safe_metadata={**metadata, **response_metadata(), "error_type": type(error).__name__},
+            safe_metadata={**metadata, **response_metadata(), **recorded},
         )
         raise

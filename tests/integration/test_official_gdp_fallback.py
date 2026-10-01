@@ -277,7 +277,7 @@ def test_gdp_fallback_respects_delivered_period_without_loosening_required_membe
             "CN_GDP", period="2026-Q2", as_of=datetime.now(UTC), definition_version=version
         )
         assert attempt is not None
-        assert attempt.outcome == ("source_failed" if transport_failed else "validation_failed")
+        assert attempt.outcome == ("source_failed" if transport_failed else "structure_rejected")
         acquired = {
             r.acquisition_id
             for r in AcquisitionRepository(paths.database, paths.artifacts).history()
@@ -657,7 +657,7 @@ def test_invalid_gdp_quarter_retains_a_classified_failure_and_original(
     attempt = evidence.latest_retrieval_attempt(
         "CN_GDP", period=period, as_of=datetime.now(UTC), definition_version=version
     )
-    assert attempt is not None and attempt.outcome == "validation_failed"
+    assert attempt is not None and attempt.outcome == "structure_rejected"
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     (receipt,) = acquisitions.history()
     assert receipt.state == "failed" and receipt.error_type == "ValueError"

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository, effective_model_manifest
@@ -85,12 +86,14 @@ def test_p2_projection_separates_acquisition_condition_from_certification(
     # the API channel keeps its own recorded outcome. How the row shows the latest of them
     # is asked of the projection directly (test_acquisition_outcome).
     assert pages
+    # No key sends no request; no answer is the source's; anything else raised asking is
+    # this system's own (ticket 18).
     expected = (
-        "missing_credentials"
+        "not_attempted"
         if failure is None
         else "source_failed"
         if isinstance(failure, OSError)
-        else "validation_failed"
+        else "local_failed"
     )
     with database_connection(paths.database) as connection:
         outcomes = dict(
@@ -193,13 +196,23 @@ def test_p2_tushare_failure_or_missing_field_does_not_veto_core_projection(
     )
     metric_id = "CN_GDP" if case == "gdp_no_levels" else "UST2Y_NOMINAL_YIELD"
     row = next(row for row in rows if row["metric_id"] == metric_id)
-    assert row["acquisition_status"] == (
-        "missing_fields" if case == "treasury_partial" else "validation_failed"
-    )
+    # A schema refused, or only refused fields, is a structure rejection (ticket 18). A
+    # tenor the refresh's answer left out is delivered empty; the gap day's refetch that
+    # followed, recorded since, was refused and is the latest the row shows.
+    assert row["acquisition_status"] == "structure_rejected"
     if case == "treasury_partial":
-        # The spread showing its inputs' acquisitions is asked of the projection directly.
-        ten_year = next(row for row in rows if row["metric_id"] == "UST10Y_NOMINAL_YIELD")
-        assert ten_year["acquisition_status"] == "verified_candidate"
+        refresh = AcquisitionOutcomes(paths.database).latest(
+            metric_id, as_of=datetime.now(UTC), period="2026-08-28"
+        )
+        assert refresh is not None
+        assert (refresh.outcome, refresh.completeness) == ("succeeded", "source_empty")
+        # The other tenor the same answer delivered (the spread showing its inputs'
+        # acquisitions is asked of the projection directly).
+        ten_year = AcquisitionOutcomes(paths.database).latest(
+            "UST10Y_NOMINAL_YIELD", as_of=datetime.now(UTC), period="2026-08-28"
+        )
+        assert ten_year is not None and ten_year.outcome == "succeeded"
+        assert ten_year.completeness is None  # TuShare says no more than what it delivered
 
 
 @pytest.mark.usefixtures("unavailable_optional_eia")

@@ -32,23 +32,144 @@ from pathlib import Path
 
 from pring_cycle.storage import database_connection
 
-# A registered source that did not answer, and one whose answer was refused.
-SOURCE_FAILED_OUTCOMES = frozenset({"source_failed", "adapter_failed", "missing_credentials"})
-VALIDATION_FAILED_OUTCOMES = frozenset({"validation_failed"})
+# How an acquisition turned out, as its adapter records it where each step ends (ticket 18).
+# The outcome is the result; the details say at which step, why, and how much was delivered.
+SUCCEEDED = "succeeded"
+SOURCE_FAILED = "source_failed"  # the source did not answer, or answered with a failure
+STRUCTURE_REJECTED = "structure_rejected"  # the response failed its structure check
+INGEST_REJECTED = "ingest_rejected"  # the registered contract refused the checked values
+LOCAL_FAILED = "local_failed"  # this system failed handling it
+NOT_ATTEMPTED = "not_attempted"  # no request went out (a credential not configured)
+STEPS = frozenset({"request", "response", "structure", "ingest", "local"})
+# What a successful delivery held of what was asked: all of it, some members missing (named
+# in ``missing_members``), nothing new to add since all was held, or nothing at all.
+COMPLETENESS = frozenset({"complete", "partial_members_missing", "nothing_new", "source_empty"})
+
+# A registered source that did not answer, and one whose answer was refused. The outcomes
+# written before ticket 18 are still read as they were. A request not attempted is a
+# failure only for want of a credential (``failed_to_acquire``); one a budget held back,
+# or a release not yet due, is not.
+SOURCE_FAILED_OUTCOMES = frozenset(
+    {SOURCE_FAILED, LOCAL_FAILED, "adapter_failed", "missing_credentials"}
+)
+VALIDATION_FAILED_OUTCOMES = frozenset({STRUCTURE_REJECTED, INGEST_REJECTED, "validation_failed"})
 # The outcomes a registered source's acquisition records: the last one a batch recorded for
 # a metric says whether that source failed it (gap sources #04).
 _ACQUISITION_OUTCOMES = (
     SOURCE_FAILED_OUTCOMES
     | VALIDATION_FAILED_OUTCOMES
-    | {"verified_candidate", "partial_validation", "missing_fields", "missing_values"}
+    | {
+        SUCCEEDED,
+        NOT_ATTEMPTED,
+        "verified_candidate",
+        "partial_validation",
+        "missing_fields",
+        "missing_values",
+    }
 )
+
+
+def failed_to_acquire(attempt: AttemptView) -> bool:
+    """Whether the attempt is a registered source failing to deliver: no answer, a refused
+    one, this system's failure, or no request for want of a credential."""
+    if attempt.outcome == NOT_ATTEMPTED:
+        return (attempt.condition or "").endswith("_not_configured")
+    return attempt.outcome in SOURCE_FAILED_OUTCOMES | VALIDATION_FAILED_OUTCOMES
+
+
+def attempt_details(
+    *,
+    step: str,
+    completeness: str | None = None,
+    external_code: str | None = None,
+    rule_reason: str | None = None,
+    error_type: str | None = None,
+    missing_members: tuple[str, ...] = (),
+    **details: str,
+) -> dict[str, str]:
+    """The details an attempt records of how it turned out, in this module's words.
+
+    ``external_code`` is the source's own (an HTTP status, a TuShare code); ``rule_reason``
+    the local rule that refused it; ``error_type`` the exception that ended it.
+    """
+    if step not in STEPS:
+        raise ValueError("acquisition_step_unknown")
+    if completeness is not None and completeness not in COMPLETENESS:
+        raise ValueError("acquisition_completeness_unknown")
+    recorded = {
+        "step": step,
+        "completeness": completeness,
+        "external_code": external_code,
+        "rule_reason": rule_reason,
+        "error_type": error_type,
+        "missing_members": (
+            json.dumps(sorted(set(missing_members)), ensure_ascii=False)
+            if missing_members
+            else None
+        ),
+    }
+    return {**details, **{key: value for key, value in recorded.items() if value is not None}}
+
+
+def capture_failure(error: Exception) -> tuple[str, dict[str, str]]:
+    """How a call through the receipt store ended, from where in it the error arose.
+
+    The receipt store marks the step (``acquisition.failed_step``); an adapter's rules on
+    the answered rows, after the call, have none. Before a request went out, it was not
+    attempted; an answer that was itself a failure, or no answer, is the source's; the
+    answer's check refusing it is a structure rejection; anything else, storing it included,
+    this system's own failure.
+    """
+    from urllib.error import HTTPError
+
+    from pring_cycle.acquisition import SourceFailed, failed_step, refused_by_parse
+
+    step = failed_step(error)
+    reason = str(error)[:300]
+    error_type = type(error).__name__
+    if isinstance(error, HTTPError):
+        return SOURCE_FAILED, attempt_details(
+            step="response", external_code=str(error.code), error_type=error_type, reason=reason
+        )
+    if isinstance(error, SourceFailed):
+        return SOURCE_FAILED, attempt_details(
+            step="response",
+            external_code=error.external_code,
+            error_type=error_type,
+            reason=reason,
+        )
+    if step == "start":
+        return NOT_ATTEMPTED, attempt_details(
+            step="request", condition=reason, error_type=error_type, request_sent="false"
+        )
+    if step in {"store", "normalize"}:
+        return LOCAL_FAILED, attempt_details(step="local", error_type=error_type, reason=reason)
+    if isinstance(error, OSError) and step in {None, "request"}:
+        return SOURCE_FAILED, attempt_details(step="request", error_type=error_type, reason=reason)
+    if refused_by_parse(error, step) or (step is None and isinstance(error, ValueError)):
+        return STRUCTURE_REJECTED, attempt_details(
+            step="structure", rule_reason=reason, error_type=error_type
+        )
+    return LOCAL_FAILED, attempt_details(step="local", error_type=error_type, reason=reason)
+
+
+def ingest_failure(error: Exception) -> tuple[str, dict[str, str]]:
+    """How storing checked values ended: the contract refusing them, or this system failing."""
+    if isinstance(error, ValueError):
+        return INGEST_REJECTED, attempt_details(
+            step="ingest", rule_reason=str(error)[:300], error_type=type(error).__name__
+        )
+    return LOCAL_FAILED, attempt_details(
+        step="ingest", error_type=type(error).__name__, reason=str(error)[:300]
+    )
 
 
 @dataclass(frozen=True)
 class AttemptView:
     """One recorded acquisition attempt, its recorded details typed.
 
-    ``metadata`` keeps the details as recorded; each property reads one as text.
+    ``metadata`` keeps the details as recorded; each property reads one as text, but
+    ``missing_members`` (a tuple), ``acquisition_ids`` (a tuple) and ``request_sent``.
     """
 
     attempt_id: str
@@ -80,6 +201,27 @@ class AttemptView:
     @property
     def condition(self) -> str | None:
         return self._get("condition")
+
+    @property
+    def step(self) -> str | None:
+        return self._get("step")
+
+    @property
+    def completeness(self) -> str | None:
+        return self._get("completeness")
+
+    @property
+    def external_code(self) -> str | None:
+        return self._get("external_code")
+
+    @property
+    def rule_reason(self) -> str | None:
+        return self._get("rule_reason")
+
+    @property
+    def missing_members(self) -> tuple[str, ...]:
+        value = self._get("missing_members")
+        return tuple(json.loads(value)) if value is not None else ()
 
     @property
     def reason(self) -> str | None:
@@ -137,6 +279,7 @@ class AttemptView:
         recorded = self.metadata
         return str(
             recorded.get("reason")
+            or recorded.get("rule_reason")
             or recorded.get("condition")
             or recorded.get("error_type")
             or self.outcome
@@ -210,7 +353,7 @@ class BatchAcquisition:
         return {
             metric_id: attempt
             for (metric_id, _symbol), attempt in latest.items()
-            if attempt.outcome in SOURCE_FAILED_OUTCOMES | VALIDATION_FAILED_OUTCOMES
+            if failed_to_acquire(attempt)
         }
 
     def structure_rejections(self) -> tuple[StructureRejection, ...]:

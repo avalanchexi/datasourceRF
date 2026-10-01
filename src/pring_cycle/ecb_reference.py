@@ -19,7 +19,18 @@ from urllib.request import Request
 from zipfile import ZIP_DEFLATED, ZIP_STORED, BadZipFile, ZipFile
 from zlib import error as ZlibError
 
-from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+    utc_now,
+)
+from pring_cycle.acquisition_outcome import (
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.evidence import (
     AsOfMode,
@@ -349,15 +360,20 @@ def _require_http_response(response: object, endpoint: str, *, content_size: int
             "response_content_length",
         }
         or not all(isinstance(v, str) for v in response.values())
-        or response["response_final_url"] != endpoint
     ):
         raise ValueError("ecb_reference_response_identity_invalid")
     if response["response_http_status"] != "200":
-        raise OSError("ecb_reference_response_http_status_invalid")
+        # An answer that is itself a failure, not a response to check (ticket 18).
+        raise SourceFailed(
+            "ecb_reference_response_http_status_invalid",
+            external_code=response["response_http_status"],
+        )
+    if response["response_final_url"] != endpoint:
+        raise ValueError("ecb_reference_response_identity_invalid")
     if response["response_complete"] != "true" or not _matches_content_length(
         response["response_content_length"], content_size
     ):
-        raise OSError("ecb_reference_response_incomplete")
+        raise SourceFailed("ecb_reference_response_incomplete")
     if response["response_media_type"].split(";", 1)[0].strip().lower() != "application/zip":
         raise ValueError("ecb_reference_response_media_type_invalid")
 
@@ -501,17 +517,87 @@ def _ingest(
             },
             on_started=started,
         )
-    except (OSError, TypeError, ValueError) as error:
+    except Exception as error:
+        outcome, recorded = capture_failure(error)
         repository.record_retrieval_attempt(
             metric_id=ECB_METRIC,
             channel=channel,
-            outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+            outcome=outcome,
             fetched_at=utc_now(),
             acquisition_ids=tuple(identities),
-            safe_metadata={**metadata, **response_metadata, "error_type": type(error).__name__},
+            safe_metadata={**metadata, **response_metadata, **recorded},
         )
         raise
     batch, receipt = acquired.value, acquired.receipt
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    try:
+        stored = _store_batch(repository, batch, receipt, definition, definition_version)
+    except Exception as error:
+        outcome, recorded = ingest_failure(error)
+        if isinstance(error, ValueError):
+            acquisitions.record_ingest_result(receipt.acquisition_id, error)
+        repository.record_retrieval_attempt(
+            metric_id=ECB_METRIC,
+            channel=channel,
+            outcome=outcome,
+            fetched_at=utc_now(),
+            acquisition_ids=(receipt.acquisition_id,),
+            safe_metadata={**metadata, **response_metadata, **recorded},
+        )
+        raise
+    if stored:
+        acquisitions.record_ingest_result(receipt.acquisition_id, None)
+    # A date one reference leg left blank is a member the delivery is missing (ticket 18).
+    repository.record_retrieval_attempt(
+        metric_id=ECB_METRIC,
+        channel=channel,
+        outcome=SUCCEEDED,
+        fetched_at=utc_now(),
+        acquisition_ids=(receipt.acquisition_id,),
+        safe_metadata={
+            **metadata,
+            **response_metadata,
+            **attempt_details(
+                step="ingest" if stored else "structure",
+                completeness=(
+                    "source_empty"
+                    if not stored
+                    else "partial_members_missing"
+                    if batch.missing
+                    else "complete"
+                ),
+                missing_members=tuple(f"{row['date']}:{row['reason']}" for row in batch.missing),
+                formula_version=batch.formula_version,
+                observations=str(len(stored)),
+                missing_rows=str(len(batch.missing)),
+                **(
+                    {
+                        "condition": "reference_legs_missing"
+                        if batch.missing
+                        else "source_dates_missing"
+                    }
+                    if not stored
+                    else {}
+                ),
+            ),
+        },
+    )
+    return EcbReferenceImportResult(
+        receipt.acquisition_id,
+        len(stored),
+        tuple(item.claim_id for item in stored),
+        tuple(item.observation_id for item in stored),
+    )
+
+
+def _store_batch(
+    repository: EvidenceRepository,
+    batch: EcbReferenceBatch,
+    receipt: AcquisitionReceipt,
+    definition: MetricDefinition,
+    definition_version: str,
+) -> tuple[StoredSourceClaim, ...]:
+    """Store the checked batch's rates, keeping a date's claim whose original still agrees."""
     if receipt.received_at is None or receipt.validated_at is None:
         raise ValueError("ecb_reference_acquisition_incomplete")
     wanted = {row.date for row in batch.rows}
@@ -608,29 +694,4 @@ def _ingest(
     created = iter(
         repository.append_source_claims(claims, availability_clock=utc_now) if claims else ()
     )
-    stored = tuple(reused[row.date] if row.date in reused else next(created) for row in batch.rows)
-    repository.record_retrieval_attempt(
-        metric_id=ECB_METRIC,
-        channel=channel,
-        outcome="verified_candidate" if stored else "missing_values",
-        fetched_at=utc_now(),
-        acquisition_ids=(receipt.acquisition_id,),
-        safe_metadata={
-            **metadata,
-            **response_metadata,
-            "formula_version": batch.formula_version,
-            "observations": str(len(stored)),
-            "missing_rows": str(len(batch.missing)),
-            **(
-                {"condition": "reference_legs_missing" if batch.missing else "source_dates_missing"}
-                if not stored
-                else {}
-            ),
-        },
-    )
-    return EcbReferenceImportResult(
-        receipt.acquisition_id,
-        len(stored),
-        tuple(item.claim_id for item in stored),
-        tuple(item.observation_id for item in stored),
-    )
+    return tuple(reused[row.date] if row.date in reused else next(created) for row in batch.rows)

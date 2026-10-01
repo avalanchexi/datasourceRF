@@ -18,8 +18,15 @@ from pring_cycle.acquisition import (
     AcquisitionReceipt,
     AcquisitionRepository,
     CandidateSkipped,
+    SourceFailed,
     receipt_key,
     utc_now,
+)
+from pring_cycle.acquisition_outcome import (
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
 )
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import METRIC_CATALOG_VERSION, metric_definition
@@ -534,7 +541,9 @@ def ingest_acquired_official_release(
             metric_ids=metric_ids,
             held_members=held_members,
         )
-    except (KeyError, TypeError, ValueError) as error:
+    except ValueError as error:
+        # The contract refusing the values; a failure of this system storing them is no
+        # refusal, and leaves the receipt without an ingest result (ticket 18).
         acquisitions.record_ingest_result(acquired.receipt.acquisition_id, error)
         raise
     acquisitions.record_ingest_result(acquired.receipt.acquisition_id, None)
@@ -665,16 +674,18 @@ def _ingest_acquired_official_release(
         repository.record_retrieval_attempt(
             metric_id=metric_id,
             channel="official_direct_candidate",
-            outcome="verified_candidate",
+            outcome=SUCCEEDED,
             fetched_at=clock(),
             acquisition_ids=(receipt.acquisition_id,),
-            safe_metadata={
-                "artifact_hash": artifact.content_hash,
-                "family": family,
-                "period": expected_period,
-                "provider": parsed.provider,
-                "definition_version": definition_version,
-            },
+            safe_metadata=attempt_details(
+                step="ingest",
+                completeness="complete",
+                artifact_hash=artifact.content_hash,
+                family=family,
+                period=expected_period,
+                provider=parsed.provider,
+                definition_version=definition_version,
+            ),
         )
     return OfficialContextIngestionResult(
         status="stored_candidate",
@@ -799,8 +810,11 @@ def refresh_official_context_document(
         if on_acquisition_started is not None:
             on_acquisition_started(acquisition_id)
 
+    stage = ["acquire"]
+
     def ingest(source_url: str, *, last: bool = True) -> OfficialContextIngestionResult:
         response_holder: list[FetchedOfficialContextDocument] = []
+        stage[0] = "acquire"
 
         def fetch() -> bytes:
             response = (fetcher or _fetch_official_context_document)(source_url)
@@ -837,6 +851,7 @@ def refresh_official_context_document(
             normalize=asdict,
             on_started=started,
         )
+        stage[0] = "ingest"
         return ingest_acquired_official_release(
             paths,
             acquired,
@@ -858,21 +873,25 @@ def refresh_official_context_document(
             except CandidateSkipped:
                 pass
         return ingest(candidates[-1])
-    except (OSError, TypeError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        # Where it ended says how: at the call (the source, or its response's check), or
+        # storing the checked values (the contract, or this system).
+        outcome, recorded = (
+            ingest_failure(error) if stage[0] == "ingest" else capture_failure(error)
+        )
         repository = EvidenceRepository(paths.database)
         for metric_id in sorted(requested):
             repository.record_retrieval_attempt(
                 metric_id=metric_id,
                 channel="official_direct_candidate",
-                outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+                outcome=outcome,
                 fetched_at=utc_now(),
                 acquisition_ids=tuple(acquisition_ids),
                 safe_metadata={
-                    "error_type": type(error).__name__,
                     "family": family,
                     "period": expected_period,
                     "definition_version": definition_version,
-                    **({"reason": str(error)[:300]} if isinstance(error, ValueError) else {}),
+                    **recorded,
                 },
             )
         raise
@@ -2553,11 +2572,14 @@ def _validate_fetched_document(
     source_url: str,
     response: FetchedOfficialContextDocument,
 ) -> None:
+    if response.http_status != 200:
+        # An answer that is itself a failure, not a response to check (ticket 18).
+        raise SourceFailed(
+            "official_context_source_http_status_invalid", external_code=response.http_status
+        )
     _validate_source_identity(family, response.final_url)
     if response.final_url != source_url:
         raise ValueError("official_context_source_redirect_identity_changed")
-    if response.http_status != 200:
-        raise ValueError("official_context_source_http_status_invalid")
     _validate_html_media_type(response.media_type)
 
 

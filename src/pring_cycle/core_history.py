@@ -7,6 +7,7 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository
+from pring_cycle.acquisition_outcome import SUCCEEDED, attempt_details
 from pring_cycle.adapters import MarketBar
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import metric_definition
@@ -186,7 +187,7 @@ def refresh_core_history(
         evidence.record_retrieval_attempt(
             metric_id=metric_id,
             channel="tushare-history",
-            outcome="verified",
+            outcome=SUCCEEDED,
             fetched_at=fetched_at,
             acquisition_ids=tuple(
                 sorted(
@@ -198,6 +199,8 @@ def refresh_core_history(
                 )
             ),
             safe_metadata={
+                # Every session of the calendar delivered, or the refresh had failed.
+                **attempt_details(step="ingest", completeness="complete"),
                 "first_business_date": expected[0].isoformat(),
                 "last_business_date": expected[-1].isoformat(),
                 "normalized_hash": artifact.content_hash,

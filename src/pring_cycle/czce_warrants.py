@@ -22,7 +22,19 @@ from http.client import HTTPException
 from urllib.error import HTTPError
 from urllib.request import Request
 
-from pring_cycle.acquisition import AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+    utc_now,
+)
+from pring_cycle.acquisition_outcome import (
+    LOCAL_FAILED,
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.http_transport import open_no_redirects
@@ -248,7 +260,8 @@ def _fetch(url: str) -> bytes:
                 raise OSError("czce_warrant_response_invalid")
             content = bytes(response.read(_MAX_BYTES + 1))
     except HTTPError as error:
-        raise OSError(f"czce_warrant_http_{error.code}") from error
+        # The exchange answered without the file: its code tells that from no answer at all.
+        raise SourceFailed(f"czce_warrant_http_{error.code}", external_code=error.code) from error
     except HTTPException as error:
         raise OSError("czce_warrant_http_protocol_failed") from error
     if len(content) > _MAX_BYTES:
@@ -418,15 +431,18 @@ def _take(
             normalize=lambda members: [asdict(member) for member in members],
             on_started=identities.append,
         )
-    except (OSError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        outcome, recorded = capture_failure(error)
         repository.record_retrieval_attempt(
             metric_id=METRIC_ID,
             channel=CHANNEL,
-            outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+            outcome=outcome,
             fetched_at=utc_now(),
             acquisition_ids=tuple(identities),
-            safe_metadata={**metadata, "error_type": type(error).__name__, "reason": str(error)},
+            safe_metadata={**metadata, **recorded},
         )
+        if outcome == LOCAL_FAILED:
+            raise  # this system's own failure stops the refresh, as it did
         return False
     receipt = acquired.receipt
     scalars = warrant_scalars(acquired.value, business_date=day, symbol=symbol)
@@ -456,16 +472,22 @@ def _take(
     )
     try:
         repository.append_source_claims(claims, availability_clock=utc_now)
-    except ValueError as error:
-        acquisitions.record_ingest_result(receipt.acquisition_id, error)
+    except (OSError, TypeError, ValueError) as error:
+        # The contract refusing the values, or this system failing to store them, which is
+        # no refusal and stops the refresh as it did.
+        if isinstance(error, ValueError):
+            acquisitions.record_ingest_result(receipt.acquisition_id, error)
+        outcome, recorded = ingest_failure(error)
         repository.record_retrieval_attempt(
             metric_id=METRIC_ID,
             channel=CHANNEL,
-            outcome="validation_failed",
+            outcome=outcome,
             fetched_at=utc_now(),
             acquisition_ids=(receipt.acquisition_id,),
-            safe_metadata={**metadata, "stage": "ingest", "reason": str(error)[:300]},
+            safe_metadata={**metadata, **recorded},
         )
+        if not isinstance(error, ValueError):
+            raise
         return False
     acquisitions.record_ingest_result(receipt.acquisition_id, None)
     for member in acquired.value:
@@ -473,11 +495,12 @@ def _take(
     repository.record_retrieval_attempt(
         metric_id=METRIC_ID,
         channel=CHANNEL,
-        outcome="verified_candidate",
+        outcome=SUCCEEDED,
         fetched_at=utc_now(),
         acquisition_ids=(receipt.acquisition_id,),
         safe_metadata={
             **metadata,
+            **attempt_details(step="ingest", completeness="complete"),
             "warehouses": str(len(acquired.value)),
             "reconciliation": json.dumps(
                 _reconciliation(acquired.value, previous_totals), ensure_ascii=False

@@ -22,6 +22,36 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
+def failed_step(error: BaseException) -> str | None:
+    """Where in a call through the receipt store ``error`` arose, if it arose in one.
+
+    ``start`` before any request went out (a budget refusing it), ``request`` asking,
+    ``response`` an HTTP error's answer, ``store`` keeping the answer, ``parse`` reading
+    it, ``normalize`` storing what it said.
+    """
+    step = getattr(error, "acquisition_step", None)
+    return step if isinstance(step, str) else None
+
+
+def refused_by_parse(error: BaseException, step: str | None) -> bool:
+    """Whether reading the answer refused it: a rule it broke (ValueError) or a member it
+    lacked (LookupError). Any other error there is this system's own (ticket 18)."""
+    return step == "parse" and isinstance(error, ValueError | LookupError)
+
+
+class SourceFailed(OSError):
+    """The source answered with a failure, or not at all: there was no response to check.
+
+    Raised by an adapter where it reads the answer (an HTTP status, a TuShare code), so the
+    receipt keeps the answer without calling it a refused response (ticket 18).
+    ``external_code`` is the source's own code, when it gave one.
+    """
+
+    def __init__(self, reason: str, *, external_code: int | str | None = None) -> None:
+        super().__init__(reason)
+        self.external_code = None if external_code is None else str(external_code)
+
+
 @dataclass(frozen=True)
 class AcquisitionOwner:
     database: Path
@@ -216,15 +246,18 @@ class AcquisitionRepository:
                         owner.period,
                     ),
                 )
+        step = "start"
         try:
             if on_started is not None:
                 on_started(acquisition_id)
             if owner is not None:
                 with self._connect() as connection:
                     self._require_active_owner(connection, owner)
+            step = "request"
             try:
                 raw = fetch()
             except HTTPError as error:
+                step = "response"
                 raw_error = (
                     error.read()
                     if max_error_body_bytes is None
@@ -233,17 +266,23 @@ class AcquisitionRepository:
                 self._receive(acquisition_id, raw_error, clock(), started_at)
                 raise
             received_at = clock()
+            step = "store"
             self._receive(acquisition_id, raw, received_at, started_at)
+            step = "parse"
             value = parse(raw)
+            step = "normalize"
             receipt = (
                 self.get(acquisition_id)
                 if defer_validation
                 else self.complete_validation(acquisition_id, normalize(value), clock=clock)
             )
-            return Acquired(value, receipt)
         except Exception as error:
-            self.fail_validation(acquisition_id, error)
+            # Only the response's own check refuses it; a failure before the request went
+            # out, of the source, or of this system storing it is no refusal (ticket 18).
+            self.fail_validation(acquisition_id, error, checked=refused_by_parse(error, step))
+            error.acquisition_step = step  # type: ignore[attr-defined]
             raise
+        return Acquired(value, receipt)
 
     def _require_active_owner(
         self, connection: sqlite3.Connection, owner: AcquisitionOwner
@@ -297,14 +336,25 @@ class AcquisitionRepository:
             )
         return self.get(acquisition_id)
 
-    def fail_validation(self, acquisition_id: str, error: Exception) -> None:
+    def fail_validation(
+        self, acquisition_id: str, error: Exception, *, checked: bool = True
+    ) -> None:
         """Close a call as failed; one that had answered was rejected by its structure check,
         or skipped when the caller passed it over for another candidate.
 
+        An answer that was itself a failure (an HTTP error, a source's refusal code) was not
+        a response to check, and ``checked`` false says the call failed elsewhere than in
+        its response's check: either way its receipt names no structure check (ticket 18).
         Why it failed is kept either way: a call failing before its answer was recorded (a
         clock stepping back, an unreachable source) otherwise left only the exception class.
         """
-        check = "skipped" if isinstance(error, CandidateSkipped) else "rejected"
+        check = (
+            "skipped"
+            if isinstance(error, CandidateSkipped)
+            else None
+            if not checked or isinstance(error, HTTPError | SourceFailed)
+            else "rejected"
+        )
         with self._connect() as connection:
             connection.execute(
                 """UPDATE acquisition_request SET state='failed', error_type=?,

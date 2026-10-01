@@ -940,6 +940,41 @@ def test_official_rate_limit_keeps_http_status_and_retry_after(
     assert request["response_headers"]["retry-after"] == "7200"
 
 
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_status_page_the_source_answered_keeps_its_status_for_the_backoff(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ticket 18: a 429 page read as the source's failure backs off as an HTTP 429 does."""
+    from pring_cycle.official_lpr import FetchedOfficialDocument
+
+    paths, runs = prepared_runtime(tmp_path)
+    paths.secrets.write_text("")
+    cutoff = datetime.now(UTC)
+    monkeypatch.setattr("pring_cycle.retrieval_ledger.utc_now", lambda: cutoff)
+    url = "https://www.chinamoney.com.cn/chinese/rdgz/20260820/3399885.html"
+    monkeypatch.setattr(
+        "pring_cycle.official_lpr.fetch_official_document",
+        lambda source_url: FetchedOfficialDocument(b"wait", "text/html", source_url, 429),
+    )
+    submitted = runs.submit(
+        command_type="targeted_refresh",
+        target_business_date="2026-08-20",
+        client_request_id="official-status-page",
+        model_version_id="model-v0001",
+        system_as_of=cutoff,
+        release_event_id="lpr:2026-08",
+        metric_ids=("CN_LPR_1Y_5Y",),
+        period="2026-08",
+        source_url=url,
+    )
+    process_pending_run(paths, report_adapters=(), retrieval_now=cutoff)
+    request = runs.get(submitted.run_id).retrieval_ledger["requests"][0]
+    assert request["http_status"] == 429
+    assert request["classification"] == "rate_limited"
+    assert request["cache_expires_at"] is not None
+
+
 def test_existing_unexpired_negative_cache_survives_new_ledger(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -168,7 +168,7 @@
 | [15](issues/15-release-status-reads-series-once.md) | 判断是否已公布时每个指标只读一次序列 | 无 | done |
 | [16](issues/16-acquisition-outcome-module.md) | 获取结果模块（纯重构） | 无 | done |
 | [17](issues/17-attempt-attribution-contract.md) | 获取尝试的归属契约 | 16 | done |
-| [18](issues/18-attempt-classification-contract.md) | 获取尝试的分类契约 | 17 | ready-for-agent |
+| [18](issues/18-attempt-classification-contract.md) | 获取尝试的分类契约 | 17 | done |
 | [19](issues/19-batch-view-by-run-id.md) | 批次视图按运行 id 归属，统一排序与目录过滤 | 17 | ready-for-agent |
 | [20](issues/20-member-date-outcomes.md) | 获取结果按品种与日期归并，缺口清单列出各失败品种 | 17 | ready-for-agent |
 | [21](issues/21-gap-list-only-unresolved-rejections.md) | 缺口清单只列尚未解决的获取结果 | 16、18 | ready-for-agent |

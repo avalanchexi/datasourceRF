@@ -326,9 +326,11 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
 @pytest.mark.parametrize(
     ("failure", "expected_outcome"),
     (
+        # No answer is the source's; anything else raised asking is this system's own
+        # (ticket 18).
         (OSError("fixture network failure"), "source_failed"),
-        (TypeError("fixture adapter failure"), "adapter_failed"),
-        (ValueError("fixture validation failure"), "validation_failed"),
+        (TypeError("fixture adapter failure"), "local_failed"),
+        (ValueError("fixture validation failure"), "local_failed"),
     ),
 )
 @pytest.mark.usefixtures("runtime_clock")
@@ -537,7 +539,7 @@ def test_worker_fails_closed_and_classifies_context_validation_failures(
         as_of=datetime.now(UTC),
     )
     assert attempt is not None
-    assert attempt.outcome == "validation_failed"
+    assert attempt.outcome == "structure_rejected"
 
 
 def test_worker_rejects_a_formal_run_for_a_candidate_model(tmp_path: Path) -> None:

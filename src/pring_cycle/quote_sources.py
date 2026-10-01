@@ -19,7 +19,15 @@ from http.client import HTTPException
 from urllib.error import HTTPError
 from urllib.request import Request
 
-from pring_cycle.acquisition import AcquisitionRepository, utc_now
+from pring_cycle.acquisition import AcquisitionRepository, SourceFailed, utc_now
+from pring_cycle.acquisition_outcome import (
+    SOURCE_FAILED,
+    STRUCTURE_REJECTED,
+    SUCCEEDED,
+    attempt_details,
+    capture_failure,
+    ingest_failure,
+)
 from pring_cycle.catalog import metric_definition
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
 from pring_cycle.http_transport import open_no_redirects
@@ -156,10 +164,13 @@ def _fetch(source: QuoteSource) -> bytes:
     try:
         with open_no_redirects(request, timeout=20) as response:
             if int(response.status) != 200 or response.geturl() != source.url:
-                raise OSError("quote_source_response_invalid")
+                raise SourceFailed(
+                    "quote_source_response_invalid", external_code=int(response.status)
+                )
             content = bytes(response.read(_MAX_BYTES + 1))
     except HTTPError as error:
-        raise OSError(f"quote_source_http_{error.code}") from error
+        # The source's answer was a failure: its code is kept (ticket 18).
+        raise SourceFailed(f"quote_source_http_{error.code}", external_code=error.code) from error
     except HTTPException as error:
         raise OSError("quote_source_http_protocol_failed") from error
     if len(content) > _MAX_BYTES:
@@ -202,14 +213,19 @@ def refresh_quote_source(
             normalize=lambda rows: [asdict(row) for row in rows],
             on_started=identities.append,
         )
-    except (OSError, ValueError) as error:
+    except (LookupError, OSError, TypeError, ValueError) as error:
+        outcome, recorded = capture_failure(error)
+        if outcome == STRUCTURE_REJECTED:
+            # By the source's specification a file that does not parse is the source failing
+            # (ticket 18 keeps it so); the rule that refused it stays its reason.
+            outcome = SOURCE_FAILED
         repository.record_retrieval_attempt(
             metric_id=source.metric_id,
             channel=source.channel,
-            outcome="source_failed",
+            outcome=outcome,
             fetched_at=utc_now(),
             acquisition_ids=tuple(identities),
-            safe_metadata={**metadata, "error_type": type(error).__name__, "reason": str(error)},
+            safe_metadata={**metadata, **recorded, "reason": str(error)},
         )
         raise
     receipt = acquired.receipt
@@ -251,25 +267,42 @@ def refresh_quote_source(
     try:
         if claims:
             repository.append_source_claims(claims, availability_clock=utc_now)
-    except ValueError as error:
-        # The file read well; the registered contract refused its values.
-        acquisitions.record_ingest_result(receipt.acquisition_id, error)
+    except (OSError, TypeError, ValueError) as error:
+        # The file read well; the registered contract refused its values, or this system
+        # failed storing them, which is no refusal.
+        if isinstance(error, ValueError):
+            acquisitions.record_ingest_result(receipt.acquisition_id, error)
+        outcome, recorded = ingest_failure(error)
         repository.record_retrieval_attempt(
             metric_id=source.metric_id,
             channel=source.channel,
-            outcome="validation_failed",
+            outcome=outcome,
             fetched_at=utc_now(),
             acquisition_ids=(receipt.acquisition_id,),
-            safe_metadata={**metadata, "stage": "ingest", "reason": str(error)[:300]},
+            safe_metadata={**metadata, **recorded},
         )
         raise
     acquisitions.record_ingest_result(receipt.acquisition_id, None)
     repository.record_retrieval_attempt(
         metric_id=source.metric_id,
         channel=source.channel,
-        outcome="verified_candidate" if acquired.value else "missing_values",
+        outcome=SUCCEEDED,
         fetched_at=utc_now(),
         acquisition_ids=(receipt.acquisition_id,),
-        safe_metadata={**metadata, "observations": str(len(acquired.value))},
+        safe_metadata={
+            **metadata,
+            # Every day the file gave already held at that value: nothing new to add.
+            **attempt_details(
+                step="ingest" if claims else "structure",
+                completeness=(
+                    "source_empty"
+                    if not acquired.value
+                    else "nothing_new"
+                    if not claims
+                    else "complete"
+                ),
+            ),
+            "observations": str(len(acquired.value)),
+        },
     )
     return len(claims)

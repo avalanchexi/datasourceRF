@@ -13,7 +13,14 @@ from functools import partial
 from time import monotonic
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.acquisition_outcome import (
+    LOCAL_FAILED,
+    NOT_ATTEMPTED,
+    SOURCE_FAILED_OUTCOMES,
+    VALIDATION_FAILED_OUTCOMES,
+    AcquisitionOutcomes,
+    attempt_details,
+)
 from pring_cycle.ai_websearch import ai_websearch_adapter, ai_websearch_enabled
 from pring_cycle.basket import BASKET_METRICS
 from pring_cycle.batches import code_version, processing_batch
@@ -95,8 +102,6 @@ from pring_cycle.trading_calendar import (
 )
 from pring_cycle.tushare_context import (
     TUSHARE_WARRANT_SYMBOLS,
-    ContextIngestRejectedError,
-    ContextObservationsMissingError,
     ContextScalar,
     TushareContextAdapter,
     TushareSourceError,
@@ -1294,9 +1299,14 @@ EIA_HISTORY_SERIES = {"EIA_BRENT_RBRTE": "RBRTE", "EIA_WTI_RWTC": "RWTC"}
 
 def acquire_eia_spot_prices(
     paths: RuntimePaths, api_key: str, *, start_date: date, end_date: date, definition_version: str
-) -> None:
-    _eia_context_adapter(api_key).acquire_spot_prices(
-        paths, start_date=start_date, end_date=end_date, definition_version=definition_version
+) -> tuple[str, ...]:
+    """The metrics the API delivered."""
+    return (
+        _eia_context_adapter(api_key)
+        .acquire_spot_prices(
+            paths, start_date=start_date, end_date=end_date, definition_version=definition_version
+        )
+        .metric_ids
     )
 
 
@@ -1319,45 +1329,38 @@ def refresh_eia_context(
     from pring_cycle.eia_html import refresh_eia_history
 
     api_key = secrets.get("EIA_API_KEY")
+    delivered: tuple[str, ...] = ()
     if api_key is None:
         record(
             EIA_METRICS,
             "eia_official_candidate",
-            "missing_credentials",
-            condition="EIA_API_KEY_not_configured",
-            request_sent="false",
+            NOT_ATTEMPTED,
+            **attempt_details(
+                step="request", condition="EIA_API_KEY_not_configured", request_sent="false"
+            ),
         )
     else:
         try:
             with acquisition_metrics(EIA_METRICS):
-                acquire_eia_spot_prices(
+                delivered = acquire_eia_spot_prices(
                     paths,
                     api_key,
                     start_date=target - timedelta(days=220),
                     end_date=target,
                     definition_version=definition_version,
                 )
-        except (OSError, TypeError, ValueError) as error:
-            record(
-                EIA_METRICS,
-                "eia_official_candidate",
-                "source_failed"
-                if isinstance(error, OSError)
-                else "adapter_failed"
-                if isinstance(error, TypeError)
-                else "validation_failed",
-                error_type=type(error).__name__,
-                family="spot_prices",
-            )
-        else:
-            # The adapter recorded each metric's outcome where it stored the prices.
+        except (OSError, TypeError, ValueError):
+            pass  # the adapter recorded how it ended (ticket 18); the pages may still serve
+        if set(delivered) == set(EIA_METRICS):
             return "verified_candidate"
 
     # Each page is its own acquisition of its own metric, and the adapter records how its
     # request turned out; one failing neither stops the other nor rewrites its outcome
-    # (ticket 17).
+    # (ticket 17). A series the API delivered needs no page.
     outcome = "verified_candidate"
     for metric_id, series_id in EIA_HISTORY_SERIES.items():
+        if metric_id in delivered:
+            continue
         try:
             with acquisition_metrics((metric_id,)):
                 refresh_eia_history(
@@ -1428,22 +1431,23 @@ def refresh_context_sources(
                     on_acquisition_started=acquisition_ids.append,
                 )
         except (OSError, TypeError, ValueError) as error:
-            # The adapter normally records the detailed transport/validation failure. Preserve
-            # that receipt; also cover errors after capture so an older success cannot hide one.
+            # The adapter records how its call ended, at capture and at ingest (ticket 18).
+            # Only a failure it did not record, before its call, is recorded here as this
+            # system's own, so an older success cannot hide it.
             failed_at = datetime.now(UTC)
             latest = AcquisitionOutcomes(paths.database).latest(
                 ECB_METRIC, as_of=failed_at, definition_version=definition_version
             )
             if (
                 latest is None
-                or latest.outcome not in {"source_failed", "validation_failed"}
+                or latest.outcome not in SOURCE_FAILED_OUTCOMES | VALIDATION_FAILED_OUTCOMES
                 or not acquisition_ids
                 or latest.acquisition_ids != tuple(acquisition_ids)
             ):
                 repository.record_retrieval_attempt(
                     metric_id=ECB_METRIC,
                     channel="ecb_reference_http",
-                    outcome="source_failed" if isinstance(error, OSError) else "validation_failed",
+                    outcome=LOCAL_FAILED,
                     fetched_at=failed_at,
                     acquisition_ids=tuple(acquisition_ids),
                     safe_metadata={
@@ -1452,7 +1456,9 @@ def refresh_context_sources(
                         "period": target_business_date,
                         "target_business_date": target_business_date,
                         "definition_version": definition_version,
-                        "error_type": type(error).__name__,
+                        **attempt_details(
+                            step="local", error_type=type(error).__name__, reason=str(error)[:300]
+                        ),
                     },
                 )
 
@@ -1495,9 +1501,10 @@ def refresh_context_sources(
         record(
             ("CN_GDP", "UST2Y_NOMINAL_YIELD", "UST10Y_NOMINAL_YIELD"),
             "tushare",
-            "missing_credentials",
-            condition="TUSHARE_TOKEN_not_configured",
-            request_sent="false",
+            NOT_ATTEMPTED,
+            **attempt_details(
+                step="request", condition="TUSHARE_TOKEN_not_configured", request_sent="false"
+            ),
         )
         return
     start_month = date(target.year - 2, target.month, 1).strftime("%Y%m")
@@ -1660,7 +1667,7 @@ def refresh_context_sources(
             continue
         # A warrant symbol's outcome is its own: the gap list keeps one symbol's failure though
         # another symbol is fetched after it.
-        details = {"family": family}
+        details = {"family": family, "period": target_business_date}
         if family.startswith("futures_warrants:"):
             details.update(
                 symbol=family.partition(":")[2],
@@ -1669,49 +1676,18 @@ def refresh_context_sources(
             )
         try:
             with acquisition_metrics(metric_ids):
-                result = adapter.acquire_scalars(
-                    paths, retrieve, definition_version=definition_version
+                adapter.acquire_scalars(
+                    paths,
+                    retrieve,
+                    definition_version=definition_version,
+                    metric_ids=metric_ids,
+                    details=details,
                 )
-        except (OSError, TushareSourceError) as error:
-            # No data came: the source failed or refused the call (permission, rate limit).
-            record(
-                metric_ids,
-                "tushare",
-                "source_failed",
-                error_type=type(error).__name__,
-                **details,
-                reason=str(error)[:300],
-            )
-        except (KeyError, TypeError, ValueError) as error:
-            if isinstance(error, ContextObservationsMissingError) and (
-                family in INCREMENTAL_FAMILIES
-                or all(reviewed_deliveries.get(metric_id, False) for metric_id in metric_ids)
-            ):
-                # Nothing new: every day of the window is held already.
-                record(metric_ids, "tushare", "missing_values", **details)
-                continue
-            # Gate ③ rejects the response; the metrics become gaps for retrieval, whatever
-            # their priority, and the run goes on (ticket 17).
-            outcome = "adapter_failed" if isinstance(error, TypeError) else "validation_failed"
-            # The reason code says what refused it: the response's structure check, or the
-            # registered contract once the response had passed (gap sources #03).
-            record(
-                metric_ids,
-                "tushare",
-                outcome,
-                error_type=type(error).__name__,
-                **details,
-                stage="ingest" if isinstance(error, ContextIngestRejectedError) else "response",
-                reason=str(error)[:300],
-            )
-        else:
-            # Each delivered metric's outcome was recorded where it was stored (ticket 17);
-            # what the family asked for and did not get is the Worker's to say.
-            missing_metrics = tuple(
-                metric_id for metric_id in metric_ids if metric_id not in result.metric_ids
-            )
-            if missing_metrics:
-                record(missing_metrics, "tushare", "missing_fields", **details)
+        except (KeyError, OSError, TypeError, ValueError):
+            # The adapter recorded how it ended where it ended: the source's code, the rule
+            # that refused it, an empty delivery (ticket 18). Gate ③'s refusals become gaps
+            # for retrieval, whatever their priority, and the run goes on.
+            continue
 
 
 def _breadth_calendar(
@@ -1736,7 +1712,8 @@ def _breadth_calendar(
             raise TushareSourceError(
                 "tushare_rate_limited"
                 if refusal.code == 40203
-                else f"tushare_source_failed:{refusal.code}"
+                else f"tushare_source_failed:{refusal.code}",
+                external_code=refusal.code,
             ) from refusal
         calendar = SseCalendar(paths)
     sessions = calendar.sessions_between(first, target)

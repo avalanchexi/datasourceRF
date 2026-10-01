@@ -299,6 +299,46 @@ def test_the_gap_list_names_why_a_registered_source_failed(paths: RuntimePaths) 
     assert "no_searchable_source" not in {gap["category"] for gap in gaps.values()}
 
 
+def test_the_gap_list_reads_how_an_acquisition_ended_in_the_new_words(
+    paths: RuntimePaths,
+) -> None:
+    """Ticket 18: each result maps to its gap; a partial or empty delivery is no failure."""
+    run, accepted = submit(paths, "classified")
+    at = accepted + timedelta(seconds=1)
+    record(paths, "CN_DR007", "local_failed", at, step="local", error_type="TypeError")
+    record(paths, "CN_SHIBOR_ON_1W_3M", "structure_rejected", at, rule_reason="bad_date")
+    record(paths, "CN_INDEX_VALUATION", "source_failed", at, external_code="40203")
+    # A later partial delivery of the same metric clears its earlier failure.
+    record(
+        paths,
+        "CN_INDEX_VALUATION",
+        "succeeded",
+        at + timedelta(seconds=1),
+        completeness="partial_members_missing",
+    )
+    metrics = ("CN_DR007", "CN_SHIBOR_ON_1W_3M", "CN_INDEX_VALUATION")
+    with database_connection(paths.database) as connection:
+        record_batch_freshness(
+            connection, run, tuple(assess(metric, "missing") for metric in metrics), at
+        )
+    definitions = tuple(
+        metric_definition(metric_id, definition_version=VERSION, database_path=paths.database)
+        for metric_id in metrics
+    )
+
+    gaps = {str(gap["metric_id"]): gap for gap in gap_list(paths.database, run, definitions)}
+
+    assert (gaps["CN_DR007"]["category"], gaps["CN_DR007"]["reason"]) == (
+        "fetch_failed",
+        "TypeError",
+    )
+    assert (gaps["CN_SHIBOR_ON_1W_3M"]["category"], gaps["CN_SHIBOR_ON_1W_3M"]["reason"]) == (
+        "ingest_rejected",
+        "bad_date",
+    )
+    assert gaps["CN_INDEX_VALUATION"]["category"] == "missing"
+
+
 def test_a_p2_row_shows_the_target_day_s_latest_acquisition(paths: RuntimePaths) -> None:
     # Moved from test_full_run_retrieval: the page channel has the last word, and a derived
     # spread shows its inputs' acquisitions instead of its own.

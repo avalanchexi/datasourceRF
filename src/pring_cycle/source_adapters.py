@@ -9,7 +9,13 @@ from math import isfinite
 from typing import Any
 from urllib.request import Request, build_opener
 
-from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
+from pring_cycle.acquisition import (
+    Acquired,
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+    utc_now,
+)
 from pring_cycle.adapters import MarketBar, validate_core_market_bars
 from pring_cycle.evidence import EvidenceRepository, MetricSeriesPoint
 
@@ -361,11 +367,14 @@ def _core_number(value: object) -> float:
     return number
 
 
-class TushareRefused(ValueError):
-    """TuShare answered with a non-zero code (a permission refusal, a rate limit)."""
+class TushareRefused(SourceFailed, ValueError):
+    """TuShare answered with a non-zero code (a permission refusal, a rate limit).
+
+    A source failure (ticket 18); still a ValueError to the callers that caught it as one.
+    """
 
     def __init__(self, code: int) -> None:
-        super().__init__("tushare_source_failed")
+        super().__init__("tushare_source_failed", external_code=code)
         self.code = code
 
 

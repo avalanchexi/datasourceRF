@@ -762,11 +762,17 @@ _GAP_ORDER = (
 
 def _acquisition_failures(database: Path, run_id: str) -> dict[str, tuple[str, str]]:
     """Per metric, the gap category and reason of the batch's failed acquisition."""
-    from pring_cycle.acquisition_outcome import SOURCE_FAILED_OUTCOMES, AcquisitionOutcomes
+    from pring_cycle.acquisition_outcome import (
+        NOT_ATTEMPTED,
+        SOURCE_FAILED_OUTCOMES,
+        AcquisitionOutcomes,
+    )
 
     return {
         metric_id: (
-            "fetch_failed" if attempt.outcome in SOURCE_FAILED_OUTCOMES else "ingest_rejected",
+            "fetch_failed"
+            if attempt.outcome in SOURCE_FAILED_OUTCOMES | {NOT_ATTEMPTED}
+            else "ingest_rejected",
             attempt.detail,
         )
         for metric_id, attempt in AcquisitionOutcomes(database).for_batch(run_id).failures().items()
@@ -779,11 +785,14 @@ def gap_list(
     """Gate ①'s visible gap list for one batch, grouped by why each metric is missing.
 
     Why, not what to do next (gap sources #04): ``fetch_failed``, the registered source did
-    not answer; ``ingest_rejected``, it answered and the response or the registered contract
-    refused the values, with the reason code; ``retrieval_failed``, still missing after search
-    candidates were refetched and none passed, listing up to three URLs each with its reason
-    (ticket 19); ``license_missing``, a restricted source that is never taken or searched;
-    ``missing``, nothing held for another reason. Timing keeps its own categories:
+    not answer or answered with a failure, no request went out, or this system failed
+    handling it; ``ingest_rejected``, it answered and the response's structure check or the
+    registered contract refused the values, with the reason code (ticket 18: an answer that
+    was itself a failure is no refusal); a delivery that was partial or empty is no failure;
+    ``retrieval_failed``, still missing after search candidates were refetched and none
+    passed, listing up to three URLs each with its reason (ticket 19); ``license_missing``,
+    a restricted source that is never taken or searched; ``missing``, nothing held for
+    another reason. Timing keeps its own categories:
     ``freshness_gap``, one period behind and carried forward; ``unconfigured``, no freshness
     registry row. ``rejected`` lists a response that failed its structure check (gate ③)
     for a metric not otherwise listed. ``no_web_fallback`` says whether a web page could
