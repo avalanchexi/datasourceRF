@@ -448,12 +448,19 @@ class RetrievalLedger:
                 "failed", classification=http_failure_classification(error.code)
             )
         except SourceFailed as error:
-            # The source answered with a failure (ticket 18): an HTTP status says how, and
-            # is kept for its backoff as an HTTP error's is; any other code (TuShare's) is
-            # no transport fault to retry at once.
+            # The source answered with a failure (ticket 18). What the adapter read its code
+            # as decides the backoff (ticket 22: TuShare's rate limit); else an HTTP status
+            # says how, kept for its backoff as an HTTP error's is; any other code is no
+            # transport fault to retry at once.
             code = error.external_code
+            classification: str | None
             if code is not None and code.isdigit() and 100 <= int(code) < 600:
                 http_status = int(code)
+            if error.classification == "rate_limited":
+                classification = "rate_limited"
+            elif error.classification == "forbidden":
+                classification = "forbidden_unknown"
+            elif http_status is not None:
                 classification = http_failure_classification(http_status)
             else:
                 classification = "semantic_validation_failed"
@@ -821,10 +828,15 @@ def _cache_expiry(
         local = now.astimezone(ZoneInfo("Asia/Shanghai"))
         following = local.replace(day=1) + timedelta(days=32)
         return following.replace(day=1, hour=0, minute=5, second=0, microsecond=0)
-    if status in {401, 402, 403, 432, 433}:
+    if status in {401, 402, 403, 432, 433} or classification == "forbidden_unknown":
+        # A missing permission, by status or as the source's own code says, waits until
+        # 00:05 the next day in Shanghai.
         return now.astimezone(ZoneInfo("Asia/Shanghai")).replace(
             hour=0, minute=5, second=0, microsecond=0
         ) + timedelta(days=1)
+    if classification == "rate_limited":
+        # A rate limit the source said in its own code, with no Retry-After (ticket 22).
+        return now + timedelta(minutes=60)
     if classification == "transient_transport_error":
         return now + timedelta(minutes=15)
     if outcome == "not_found" or classification == "semantic_validation_failed":

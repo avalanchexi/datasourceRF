@@ -1711,9 +1711,10 @@ def _breadth_calendar(
         except TushareRefused as refusal:
             raise TushareSourceError(
                 "tushare_rate_limited"
-                if refusal.code == 40203
+                if refusal.classification == "rate_limited"
                 else f"tushare_source_failed:{refusal.code}",
                 external_code=refusal.code,
+                classification=refusal.classification,
             ) from refusal
         calendar = SseCalendar(paths)
     sessions = calendar.sessions_between(first, target)

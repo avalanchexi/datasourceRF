@@ -750,17 +750,35 @@ def test_a_refused_call_is_a_source_failure_not_a_rejected_response() -> None:
 
 
 @pytest.mark.parametrize(
-    ("code", "reason"),
-    [(2002, "tushare_source_failed:2002"), (40203, "tushare_rate_limited")],
+    ("code", "message", "reason", "classification"),
+    [
+        (2002, "拒绝", "tushare_source_failed:2002", None),
+        (40203, "拒绝", "tushare_rate_limited", "rate_limited"),
+        (
+            40203,
+            "抱歉，您访问接口(major_news)频率超限(40次/天)",
+            "tushare_rate_limited",
+            "rate_limited",
+        ),
+        # 40203 also answers a missing permission: no rate limit to wait out (ticket 22).
+        (40203, "抱歉，您没有访问该接口的权限", "tushare_source_failed:40203", "forbidden"),
+    ],
 )
-def test_a_refused_call_says_which_code_refused_it(code: int, reason: str) -> None:
-    """Run findings 2026-09-28, ticket 02: a permission refusal and a rate limit read alike."""
+def test_a_refused_call_says_which_code_refused_it(
+    code: int, message: str, reason: str, classification: str | None
+) -> None:
+    """Run findings 2026-09-28, ticket 02, and ticket 22: each refusal says its code, and
+    40203 is told a rate limit or a missing permission by its message."""
     from pring_cycle.tushare_context import TushareSourceError
 
     adapter = TushareContextAdapter(
-        "fixture-token", transport=lambda _: {"code": code, "msg": "拒绝", "data": None}
+        "fixture-token", transport=lambda _: {"code": code, "msg": message, "data": None}
     )
 
     with pytest.raises(TushareSourceError) as refused:
         adapter.treasury_yields(start_date=date(2026, 8, 28), end_date=date(2026, 8, 28))
     assert str(refused.value) == reason
+    assert (refused.value.external_code, refused.value.classification) == (
+        str(code),
+        classification,
+    )

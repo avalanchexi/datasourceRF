@@ -24,9 +24,10 @@ from typing import TYPE_CHECKING, Any
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.acquisition import AcquisitionRepository, SourceFailed
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import TushareRefused
 from pring_cycle.storage import database_connection
 
 if TYPE_CHECKING:
@@ -132,9 +133,12 @@ def pull_news(
 
         def parse(raw: bytes, params: dict[str, str] = params) -> tuple[dict[str, object], ...]:
             document = json.loads(raw)
-            if not isinstance(document, dict) or int(document.get("code", -1)) != 0:
-                limited = isinstance(document, dict) and "频率超限" in str(document.get("msg"))
-                raise ValueError("tushare_rate_limited" if limited else "tushare_source_failed")
+            if not isinstance(document, dict):
+                raise ValueError("tushare_response_invalid")
+            if (code := int(document.get("code", -1))) != 0:
+                # Its code kept on the exception and read, with its message, as the other
+                # TuShare paths read them (ticket 22).
+                raise TushareRefused(code, document.get("msg"))
             rows = _response_rows(document, required_fields=NEWS_FIELDS)
             for row in rows:
                 published = _published(str(row["pub_time"]))
@@ -158,7 +162,17 @@ def pull_news(
                 normalize=lambda rows: {"count": len(rows)},
             )
         except (OSError, TimeoutError, ValueError) as error:
-            outcome = "source_failed" if isinstance(error, OSError | TimeoutError) else str(error)
+            outcome = (
+                (
+                    "tushare_rate_limited"
+                    if error.classification == "rate_limited"
+                    else "tushare_source_failed"
+                )
+                if isinstance(error, SourceFailed)
+                else "source_failed"
+                if isinstance(error, OSError | TimeoutError)
+                else str(error)
+            )
             break
         rows = acquired.value
         fresh = [row for row in rows if _item_key(row) not in seen]

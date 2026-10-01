@@ -44,12 +44,22 @@ class SourceFailed(OSError):
 
     Raised by an adapter where it reads the answer (an HTTP status, a TuShare code), so the
     receipt keeps the answer without calling it a refused response (ticket 18).
-    ``external_code`` is the source's own code, when it gave one.
+    ``external_code`` is the source's own code, when it gave one; ``classification`` what
+    the adapter reads it as.
     """
 
-    def __init__(self, reason: str, *, external_code: int | str | None = None) -> None:
+    def __init__(
+        self,
+        reason: str,
+        *,
+        external_code: int | str | None = None,
+        classification: str | None = None,
+    ) -> None:
         super().__init__(reason)
         self.external_code = None if external_code is None else str(external_code)
+        # The adapter's reading of the code, for whoever backs off on it (ticket 22):
+        # ``rate_limited`` or ``forbidden``.
+        self.classification = classification
 
 
 @dataclass(frozen=True)

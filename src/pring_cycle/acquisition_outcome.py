@@ -133,12 +133,16 @@ def capture_failure(error: Exception) -> tuple[str, dict[str, str]]:
             step="response", external_code=str(error.code), error_type=error_type, reason=reason
         )
     if isinstance(error, SourceFailed):
-        return SOURCE_FAILED, attempt_details(
+        refused = attempt_details(
             step="response",
             external_code=error.external_code,
             error_type=error_type,
             reason=reason,
         )
+        if error.classification is not None:
+            # What the adapter read the code as (ticket 22): a rate limit, no permission.
+            refused["classification"] = error.classification
+        return SOURCE_FAILED, refused
     if step == "start":
         return NOT_ATTEMPTED, attempt_details(
             step="request", condition=reason, error_type=error_type, request_sent="false"

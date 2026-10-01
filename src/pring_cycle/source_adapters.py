@@ -367,14 +367,34 @@ def _core_number(value: object) -> float:
     return number
 
 
+def tushare_refusal(code: int, message: object = None) -> str | None:
+    """What a TuShare refusal code says: a rate limit, a missing permission, or neither.
+
+    TuShare answers 40203 both for a rate (每分钟／每天最多访问) and, as recorded, for a
+    missing permission (没有访问该接口的权限): only a message that names the permission
+    and no rate is read as one (ticket 22).
+    """
+    if code != 40203:
+        return None
+    text = "" if message is None else str(message)
+    if "权限" in text and "频率" not in text and "最多访问" not in text:
+        return "forbidden"
+    return "rate_limited"
+
+
 class TushareRefused(SourceFailed, ValueError):
     """TuShare answered with a non-zero code (a permission refusal, a rate limit).
 
-    A source failure (ticket 18); still a ValueError to the callers that caught it as one.
+    A source failure (ticket 18) carrying its code and what it says (ticket 22); still a
+    ValueError to the callers that caught it as one.
     """
 
-    def __init__(self, code: int) -> None:
-        super().__init__("tushare_source_failed", external_code=code)
+    def __init__(self, code: int, message: object = None) -> None:
+        super().__init__(
+            "tushare_source_failed",
+            external_code=code,
+            classification=tushare_refusal(code, message),
+        )
         self.code = code
 
 
@@ -383,7 +403,7 @@ def _response_document(response: bytes | dict[str, Any]) -> dict[str, Any]:
     if not isinstance(document, dict):
         raise ValueError("tushare_response_invalid")
     if (code := int(document.get("code", -1))) != 0:
-        raise TushareRefused(code)
+        raise TushareRefused(code, document.get("msg"))
     return {str(key): value for key, value in document.items()}
 
 

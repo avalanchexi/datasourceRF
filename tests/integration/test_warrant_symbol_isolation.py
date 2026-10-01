@@ -18,6 +18,7 @@ from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -29,7 +30,7 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.freshness import gap_list, record_run_freshness
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.retrieval import RetrievalAdapterResponse
-from pring_cycle.retrieval_ledger import utc_now
+from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.targeted_context import _warrant_symbols_to_refetch, retrieve_tushare_context
@@ -307,6 +308,72 @@ def test_a_gap_day_refetch_clears_the_symbol_the_direct_refresh_failed(
     # CZCE's own symbols stay failed, unreachable here; copper no longer is.
     failed = {item.symbol for item in outcomes.failures()["CN_FUTURES_WARRANTS"]}
     assert failed and "CU" not in failed and failed <= {"CF", "TA"}
+
+
+class CopperRefused(EverySymbolAvailable):
+    """TuShare answers copper's request with a business code instead of data."""
+
+    code = 40203
+    message = "抱歉，您每分钟最多访问该接口200次"
+
+    def open(self, request: Any, *, timeout: int) -> BytesIO:
+        payload = json.loads(request.data)
+        if payload["api_name"] == "fut_wsr" and payload["params"]["symbol"] == "CU":
+            return BytesIO(json.dumps({"code": self.code, "msg": self.message}).encode())
+        return super().open(request, timeout=timeout)
+
+
+@pytest.mark.parametrize(
+    ("code", "message", "classification"),
+    [
+        (40203, "抱歉，您每分钟最多访问该接口200次", "rate_limited"),
+        # The same code for a missing permission waits as a refused permission does.
+        (40203, "抱歉，您没有访问该接口的权限", "forbidden_unknown"),
+        (2002, "拒绝", "semantic_validation_failed"),
+    ],
+)
+def test_a_gap_day_refetch_backs_off_as_tushare_s_code_says(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+    code: int,
+    message: str,
+    classification: str,
+) -> None:
+    """Ticket 22: TuShare's rate limit backs off as one, not as a refused answer."""
+    paths, run = prepared(monkeypatch, request, tmp_path, CopperUnavailable)
+    refresh(paths, run)
+    refused = type("Refused", (CopperRefused,), {"code": code, "message": message})
+    monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *handlers: refused())
+    day = TARGET.isoformat()
+    scope_run = replace(
+        run,
+        retrieval_scope=RetrievalScope(
+            f"warrants:{day}", ("CN_FUTURES_WARRANTS",), day, "P2", None
+        ),
+    )
+    RetrievalLedger(paths.database).bind_run(scope_run, EFFECTIVE_CATALOG_VERSION)
+
+    with own_acquisitions(paths.database, run.run_id, "gap_retrieval"):
+        retrieve_tushare_context(paths, run.run_id, "fixture-secret", scope_run=scope_run)
+
+    with sqlite3.connect(paths.database) as connection:
+        rows = connection.execute(
+            "SELECT classification, cache_expires_at FROM retrieval_physical_request "
+            "WHERE run_id=? AND channel='tushare'",
+            (run.run_id,),
+        ).fetchall()
+    (found, expires) = rows[-1]
+    assert found == classification
+    now = utc_now()
+    until = datetime.fromisoformat(expires)
+    if classification == "rate_limited":  # an hour, with no Retry-After to say otherwise
+        assert now + timedelta(minutes=59) < until <= now + timedelta(hours=1)
+    elif classification == "forbidden_unknown":  # the next day, 00:05 in Shanghai
+        local = now.astimezone(ZoneInfo("Asia/Shanghai"))
+        assert until == local.replace(hour=0, minute=5, second=0, microsecond=0) + timedelta(days=1)
+    else:  # a refused answer of a P2 scope waits a day
+        assert now + timedelta(hours=23, minutes=59) < until <= now + timedelta(hours=24)
 
 
 def test_a_gap_day_missing_only_czce_symbols_asks_tushare_for_nothing(

@@ -37,7 +37,7 @@ from pring_cycle.evidence import (
 from pring_cycle.http_transport import NoRedirect
 from pring_cycle.metric_contracts import CZCE_WARRANT_SYMBOLS
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.source_adapters import TUSHARE_ENDPOINT
+from pring_cycle.source_adapters import TUSHARE_ENDPOINT, tushare_refusal
 from pring_cycle.source_families import (
     TUSHARE_CPI_FIELDS,
     TUSHARE_GDP_FIELDS,
@@ -1069,10 +1069,16 @@ class TushareContextAdapter:
             document = json.loads(response) if isinstance(response, bytes) else response
             code = int(document.get("code", -1)) if isinstance(document, dict) else -1
             if code != 0:
-                # The code tells a rate limit from a permission refusal on the receipt.
+                # The code (and its message) tells a rate limit from a permission refusal.
+                refusal = tushare_refusal(
+                    code, document.get("msg") if isinstance(document, dict) else None
+                )
                 raise TushareSourceError(
-                    "tushare_rate_limited" if code == 40203 else f"tushare_source_failed:{code}",
+                    "tushare_rate_limited"
+                    if refusal == "rate_limited"
+                    else f"tushare_source_failed:{code}",
                     external_code=code,
+                    classification=refusal,
                 )
             rows = _response_rows(document, required_fields=fields)
             _validate_response_periods(rows, params)
