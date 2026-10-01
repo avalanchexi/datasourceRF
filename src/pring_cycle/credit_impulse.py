@@ -6,25 +6,29 @@ policy for reading those inputs -- whether nominal GDP may come from year-to-dat
 and social financing from year-to-date increments, each differenced into its periods. A
 derivation says why it failed when it does, and which parent claims it stands on.
 
+The periods it reads are answered here as well, from one cutoff: what a day's derivation
+needs at least (``minimum_requirements``), and what a window's fetch must cover so every
+day in it can be derived (``fetch_coverage``), both ending at the newest periods the
+release rules have out by then, not at whatever happens to be held (ticket 24).
+
 Not here: fetching the inputs, whether a parent claim can be adopted (asked of claim
 adoption), the derived observation's identity and storage, and freshness labels.
 
-Kept as they are, and so documented here (each has its own ticket): the fetch lookback
-always reads one period more (``lookback_start``) while planning adds a base period only
-when differencing needs it (``requirements``); the direct inputs are counted by held
-claims rather than usable ones, and a direct and a differenced reading are not compared
-by their end; stale inputs still compute (the caller labels them), and the gap list then
-counts ``stale_inputs`` as a failed derivation; several failures are reported as
-``missing_inputs``.
+Kept as they are, and so documented here (each has its own ticket): the direct inputs
+are counted by held claims rather than usable ones, and a direct and a differenced
+reading are not compared by their end; stale inputs still compute (the caller labels
+them), and the gap list then counts ``stale_inputs`` as a failed derivation; several
+failures are reported as ``missing_inputs``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from dataclasses import dataclass
-from datetime import date, datetime
+from collections.abc import Callable, Collection, Mapping
+from dataclasses import dataclass, field
+from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from zoneinfo import ZoneInfo
 
 from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.evidence import (
@@ -36,6 +40,9 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.official_context import official_gdp_quarters_matching_baselines
 from pring_cycle.retrieval import preceding_periods
+
+if TYPE_CHECKING:
+    from pring_cycle.trading_calendar import Sessions
 
 FORMULA = (
     "100 * (rolling_12m_social_financing / rolling_4q_nominal_gdp "
@@ -70,43 +77,130 @@ _DIRECT_ONLY = VERSIONS["credit-impulse-v0001"]
 Differenced = list[tuple[MetricSeriesPoint, float, tuple[MetricSeriesPoint, ...]]]
 
 
-def lookback_start(metric_id: str, latest_period: str) -> str:
-    """The first period to fetch for the impulse when its newest is ``latest_period``.
+METRIC_ID = "CN_CREDIT_IMPULSE"
+_SHANGHAI = ZoneInfo("Asia/Shanghai")
 
-    Flows are differenced from year-to-date figures, so the window needs the period before
-    it as well (run findings 2026-09-28, ticket 09).
+
+def metrics_off(formula_versions: Mapping[str, str]) -> frozenset[str]:
+    """The impulse's metric when the model configures no formula for it, else nothing.
+
+    A model that turns the formula off neither fetches its long lookback nor lists it in
+    freshness or the run plan (ticket 24).
     """
-    return preceding_periods(latest_period, INPUT_PERIODS[metric_id] + 1)[0]
+    return frozenset() if "credit_impulse" in formula_versions else frozenset({METRIC_ID})
 
 
-def requirements(
-    formula_version: str, selector: Any, periods: Mapping[str, str | None]
-) -> dict[str, int]:
-    """How many periods of each input a full run's plan asks for.
+@dataclass(frozen=True)
+class InputPeriods:
+    """The periods of each parent the impulse reads, oldest first, any base period included.
 
-    A differenced input needs the period before its window unless that window opens a
-    year, or enough direct periods are already held.
+    Months read ``YYYY-MM`` and quarters ``YYYY-Qn``; a formula turned off reads none.
     """
-    version = VERSIONS.get(formula_version, _DIRECT_ONLY)
-    needs = dict(INPUT_PERIODS)
-    gdp_end = periods.get("CN_GDP")
-    if (
-        version.gdp_from_ytd
-        and _reported_count(selector, "CN_GDP", _GDP) < INPUT_PERIODS["CN_GDP"]
-        and gdp_end is not None
-        and not preceding_periods(gdp_end, INPUT_PERIODS["CN_GDP"])[0].endswith("Q1")
-    ):
-        needs["CN_GDP"] += 1
-    sf_end = periods.get("CN_SF_TOTAL")
-    if (
-        version.social_financing_from_ytd
-        and _reported_count(selector, "CN_SF_TOTAL", _SOCIAL_FINANCING)
-        < INPUT_PERIODS["CN_SF_TOTAL"]
-        and sf_end is not None
-        and not preceding_periods(sf_end, INPUT_PERIODS["CN_SF_TOTAL"])[0].endswith("-01")
-    ):
-        needs["CN_SF_TOTAL"] += 1
-    return needs
+
+    periods: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+
+    def start(self, metric_id: str) -> str | None:
+        periods = self.periods.get(metric_id, ())
+        return periods[0] if periods else None
+
+    def counts(self) -> dict[str, int]:
+        return {metric_id: len(periods) for metric_id, periods in self.periods.items()}
+
+
+def latest_released(public_cutoff: datetime, calendar: Sessions) -> dict[str, str]:
+    """The newest social financing month and GDP quarter out at ``public_cutoff``."""
+    from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
+
+    month = latest_released_period(FRESHNESS_REGISTRY["CN_SF_TOTAL"], public_cutoff, calendar)
+    quarter = latest_released_period(FRESHNESS_REGISTRY["CN_GDP"], public_cutoff, calendar)
+    return {
+        "CN_SF_TOTAL": f"{month:%Y-%m}",
+        "CN_GDP": f"{quarter.year}-Q{(quarter.month - 1) // 3 + 1}",
+    }
+
+
+def minimum_requirements(
+    formula_version: str | None,
+    *,
+    public_cutoff: datetime,
+    calendar: Sessions,
+    direct_held: Mapping[str, Collection[str]] | None = None,
+) -> InputPeriods:
+    """The periods a derivation at ``public_cutoff`` reads at least.
+
+    Each window ends at the newest period released by then. An input the version may
+    difference from year-to-date figures also needs the period before its window, unless
+    the window opens a year or every period of it is held directly (``direct_held``).
+    """
+    if formula_version is None:
+        return InputPeriods()
+    if formula_version not in VERSIONS:
+        raise ValueError(f"credit_impulse_formula_unknown:{formula_version}")
+    version = VERSIONS[formula_version]
+    held = direct_held or {}
+    differenced = {"CN_SF_TOTAL": version.social_financing_from_ytd, "CN_GDP": version.gdp_from_ytd}
+    periods: dict[str, tuple[str, ...]] = {}
+    for metric_id, latest in latest_released(public_cutoff, calendar).items():
+        window = preceding_periods(latest, INPUT_PERIODS[metric_id])
+        if (
+            differenced[metric_id]
+            and not set(window) <= set(held.get(metric_id, ()))
+            and not window[0].endswith(("-01", "-Q1"))
+        ):
+            window = (preceding_periods(window[0], 2)[0], *window)
+        periods[metric_id] = window
+    return InputPeriods(periods)
+
+
+def fetch_coverage(
+    formula_version: str | None,
+    *,
+    window: Collection[date],
+    public_cutoff: datetime,
+    calendar: Sessions,
+) -> InputPeriods:
+    """The periods to hold so each day of ``window`` can be derived as it stood that day.
+
+    A day's derivation sees what was out by its own end (and never after
+    ``public_cutoff``), so the window's first day reads back further than its last. A
+    direct period held now may not have been out on an earlier day, so every base period
+    a day may difference from is kept.
+    """
+    union: dict[str, set[str]] = {}
+    for day in window:
+        day_end = datetime.combine(day, time.max, tzinfo=_SHANGHAI)
+        needs = minimum_requirements(
+            formula_version,
+            public_cutoff=min(public_cutoff, day_end),
+            calendar=calendar,
+        )
+        for metric_id, periods in needs.periods.items():
+            union.setdefault(metric_id, set()).update(periods)
+    return InputPeriods({metric_id: tuple(sorted(periods)) for metric_id, periods in union.items()})
+
+
+def direct_periods(selector: Any) -> dict[str, frozenset[str]]:
+    """The periods held as validated direct flows and quarterly levels, by parent."""
+    held: dict[str, frozenset[str]] = {}
+    for metric_id, dimensions in (("CN_SF_TOTAL", _SOCIAL_FINANCING), ("CN_GDP", _GDP)):
+        held[metric_id] = frozenset(
+            _period_label(metric_id, point.period_end)
+            for point in selector.series(metric_id)
+            if point.dimensions == dimensions
+            and point.selection_status == "selected"
+            and point.value_state is EvidenceValueState.REPORTED_VALUE
+            and point.selected_value is not None
+            and any(
+                claim.claim_id == point.selected_claim_id and claim.quality_status == "validated"
+                for claim in point.claims
+            )
+        )
+    return held
+
+
+def _period_label(metric_id: str, period_end: str) -> str:
+    end = date.fromisoformat(period_end)
+    return f"{end.year}-Q{(end.month - 1) // 3 + 1}" if metric_id == "CN_GDP" else f"{end:%Y-%m}"
 
 
 def calculate(
@@ -292,20 +386,6 @@ def derive(
         public_available_at=(
             max(public_times) if public_times and len(public_times) == len(claims) else None
         ),
-    )
-
-
-def _reported_count(selector: Any, metric: str, dimensions: Mapping[str, str]) -> int:
-    return sum(
-        point.dimensions == dimensions
-        and point.selection_status == "selected"
-        and point.value_state is EvidenceValueState.REPORTED_VALUE
-        and point.selected_value is not None
-        and any(
-            claim.claim_id == point.selected_claim_id and claim.quality_status == "validated"
-            for claim in point.claims
-        )
-        for point in selector.series(metric)
     )
 
 

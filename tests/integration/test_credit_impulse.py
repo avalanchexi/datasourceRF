@@ -4,18 +4,21 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
-from types import SimpleNamespace
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import pytest
 
 import pring_cycle.evidence as evidence_module
 from pring_cycle import credit_impulse
 from pring_cycle.catalog import metric_definition
-from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
+from pring_cycle.evidence import AsOfMode, EvidenceRepository
+from pring_cycle.freshness import FRESHNESS_REGISTRY, release_at
+from pring_cycle.retrieval import preceding_periods
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.trading_calendar import current_calendar
 from tests.integration.test_context_projection import _certified_claim
 
 VERSION = "metric-catalog-v0002"
@@ -23,6 +26,7 @@ AS_OF = datetime(2026, 1, 31, tzinfo=UTC)
 V1 = "credit-impulse-v0001"
 SHARE = "credit-impulse-rolling-share-v0001"
 YTD_FLOW = "credit-impulse-ytd-flow-v0002"
+SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
 def test_the_impulse_is_the_change_in_rolling_flow_share_of_nominal_gdp() -> None:
@@ -49,55 +53,106 @@ def test_a_nonpositive_gdp_denominator_is_refused(denominator: float, which: str
         )
 
 
-def test_the_fetch_reads_back_to_the_differencing_baseline() -> None:
-    # On 2026-09-18 the newest released periods are 2026-08 and 2026-Q2 (ticket 09).
-    assert credit_impulse.lookback_start("CN_SF_TOTAL", "2026-08") == "2024-08"
-    assert credit_impulse.lookback_start("CN_GDP", "2026-Q2") == "2024-Q2"
+def day_end(day: date) -> datetime:
+    return datetime.combine(day, time.max, tzinfo=SHANGHAI)
 
 
-def held(metric_id: str, count: int) -> list[Any]:
-    dimensions = (
-        {"measure": "monthly_increment"}
-        if metric_id == "CN_SF_TOTAL"
-        else {"aggregate": "total", "measure": "nominal_quarterly_level"}
+def needs(version: str | None, cutoff: datetime, **held: frozenset[str]) -> dict[str, Any]:
+    result = credit_impulse.minimum_requirements(
+        version, public_cutoff=cutoff, calendar=current_calendar(), direct_held=held
     )
-    claim = SimpleNamespace(claim_id="claim", quality_status="validated")
-    return [
-        SimpleNamespace(
-            dimensions=dimensions,
-            selection_status="selected",
-            value_state=EvidenceValueState.REPORTED_VALUE,
-            selected_value=1.0,
-            selected_claim_id="claim",
-            claims=(claim,),
-        )
-    ] * count
+    return {
+        metric: (periods[0], periods[-1], len(periods))
+        for metric, periods in result.periods.items()
+    }
 
 
 @pytest.mark.parametrize(
-    ("version", "held_sf", "held_gdp", "ends", "needs"),
+    ("version", "held_sf", "held_gdp", "day", "expected"),
     [
-        (V1, 0, 0, ("2026-08", "2026-Q2"), (24, 8)),
-        (YTD_FLOW, 0, 8, ("2026-08", "2026-Q2"), (25, 8)),
-        (SHARE, 0, 0, ("2026-08", "2026-Q2"), (24, 9)),
-        (YTD_FLOW, 0, 0, ("2026-08", "2026-Q2"), (25, 9)),
-        # Enough direct periods held, or windows that open a year, need no base period.
-        (YTD_FLOW, 24, 8, ("2026-08", "2026-Q2"), (24, 8)),
-        (YTD_FLOW, 0, 0, ("2026-12", "2026-Q4"), (24, 8)),
+        # On 2026-09-18 the newest released periods are 2026-08 and 2026-Q2 (ticket 09).
+        (V1, 0, 0, date(2026, 9, 18), (("2024-09", 24), ("2024-Q3", 8))),
+        (YTD_FLOW, 0, 8, date(2026, 9, 18), (("2024-08", 25), ("2024-Q3", 8))),
+        (SHARE, 0, 0, date(2026, 9, 18), (("2024-09", 24), ("2024-Q2", 9))),
+        (YTD_FLOW, 0, 0, date(2026, 9, 18), (("2024-08", 25), ("2024-Q2", 9))),
+        # Every period held directly, or windows that open a year, need no base period.
+        (YTD_FLOW, 24, 8, date(2026, 9, 18), (("2024-09", 24), ("2024-Q3", 8))),
+        (YTD_FLOW, 0, 0, date(2027, 2, 1), (("2025-01", 24), ("2025-Q1", 8))),
     ],
 )
-def test_the_plan_asks_for_a_base_period_only_when_differencing_needs_one(
-    version: str, held_sf: int, held_gdp: int, ends: tuple[str, str], needs: tuple[int, int]
+def test_a_day_needs_a_base_period_only_when_differencing_needs_one(
+    version: str,
+    held_sf: int,
+    held_gdp: int,
+    day: date,
+    expected: tuple[tuple[str, int], tuple[str, int]],
 ) -> None:
-    selector = SimpleNamespace(
-        series=lambda metric: held(metric, held_sf if metric == "CN_SF_TOTAL" else held_gdp)
-    )
-    periods = {"CN_SF_TOTAL": ends[0], "CN_GDP": ends[1]}
-
-    assert credit_impulse.requirements(version, selector, periods) == {
-        "CN_SF_TOTAL": needs[0],
-        "CN_GDP": needs[1],
+    held = {
+        "CN_SF_TOTAL": frozenset(preceding_periods("2026-08", held_sf) if held_sf else ()),
+        "CN_GDP": frozenset(preceding_periods("2026-Q2", held_gdp) if held_gdp else ()),
     }
+    result = needs(version, day_end(day), **held)
+
+    assert {metric: (first, count) for metric, (first, _last, count) in result.items()} == {
+        "CN_SF_TOTAL": expected[0],
+        "CN_GDP": expected[1],
+    }
+
+
+def test_a_day_s_need_ends_at_the_release_rule_not_at_what_is_held() -> None:
+    # Held only to 2026-06 / 2026-Q1, the need still ends at what was out (ticket 24).
+    held = {
+        "CN_SF_TOTAL": frozenset(preceding_periods("2026-06", 24)),
+        "CN_GDP": frozenset(preceding_periods("2026-Q1", 8)),
+    }
+    result = needs(YTD_FLOW, day_end(date(2026, 9, 18)), **held)
+
+    assert result == {
+        "CN_SF_TOTAL": ("2024-08", "2026-08", 25),
+        "CN_GDP": ("2024-Q2", "2026-Q2", 9),
+    }
+
+
+def test_the_fetch_covers_what_each_day_of_the_window_needs() -> None:
+    window = tuple(
+        date(2026, 4, 6) + timedelta(days=offset)
+        for offset in range(166)
+        if (date(2026, 4, 6) + timedelta(days=offset)).weekday() < 5
+    )
+    cutoff = day_end(window[-1])
+    coverage = credit_impulse.fetch_coverage(
+        YTD_FLOW, window=window, public_cutoff=cutoff, calendar=current_calendar()
+    )
+
+    # The first day reads back to 2024-02 (its window opens 2024-03) and 2024-Q1.
+    assert coverage.start("CN_SF_TOTAL") == "2024-02"
+    assert coverage.start("CN_GDP") == "2024-Q1"
+    assert coverage.periods["CN_SF_TOTAL"][-1] == "2026-08"
+    for day in window:
+        day_needs = credit_impulse.minimum_requirements(
+            YTD_FLOW, public_cutoff=day_end(day), calendar=current_calendar()
+        )
+        for metric, periods in day_needs.periods.items():
+            assert set(periods) <= set(coverage.periods[metric]), (day, metric)
+
+
+def test_a_formula_turned_off_reads_nothing() -> None:
+    cutoff = day_end(date(2026, 9, 18))
+
+    assert (
+        credit_impulse.minimum_requirements(
+            None, public_cutoff=cutoff, calendar=current_calendar()
+        ).periods
+        == {}
+    )
+    assert (
+        credit_impulse.fetch_coverage(
+            None, window=(date(2026, 9, 18),), public_cutoff=cutoff, calendar=current_calendar()
+        ).periods
+        == {}
+    )
+    assert credit_impulse.metrics_off({}) == {"CN_CREDIT_IMPULSE"}
+    assert credit_impulse.metrics_off({"credit_impulse": YTD_FLOW}) == frozenset()
 
 
 @pytest.fixture
@@ -185,6 +240,77 @@ def derive(repository: EvidenceRepository, version: str | None) -> Any:
     return credit_impulse.derive(
         repository, version, as_of=AS_OF, as_of_mode=AsOfMode.SYSTEM, definition_version=VERSION
     )
+
+
+WINDOW = tuple(
+    day
+    for day in (date(2026, 4, 6) + timedelta(days=offset) for offset in range(166))
+    if day.weekday() < 5
+)
+
+
+def released_inputs(repository: EvidenceRepository, coverage: Any) -> None:
+    """Year-to-date inputs over ``coverage``, each public from its registered release."""
+    for metric, periods in coverage.periods.items():
+        rule = FRESHNESS_REGISTRY[metric]
+        for period in periods:
+            if metric == "CN_GDP":
+                year, quarter = (int(part) for part in period.split("-Q"))
+                end, start, value = month_end(year, quarter * 3), f"{year}-01-01", 25.0 * quarter
+                dimensions = {"aggregate": "total", "measure": "nominal_ytd_level"}
+            else:
+                year, month = (int(part) for part in period.split("-"))
+                end, start, value = month_end(year, month), f"{period}-01", 2.0 * month
+                dimensions = {"measure": "ytd_increment"}
+            known = release_at(rule, date.fromisoformat(end), current_calendar())
+            claim = _certified_claim(
+                metric_id=metric,
+                period_start=start,
+                period_end=end,
+                dimensions=dimensions,
+                value=value,
+                unit="hundred_million_cny",
+            )
+            repository.append_source_claim(
+                replace(
+                    claim,
+                    release_at=known,
+                    public_available_at=known,
+                    fetched_at=known,
+                    available_at=known,
+                )
+            )
+
+
+@pytest.mark.parametrize("held", ["window", "target_day"])
+def test_the_window_s_first_day_derives_from_what_the_fetch_covers(
+    repository: EvidenceRepository, held: str
+) -> None:
+    # Measured before ticket 24: inputs for the target day alone leave 115 of 120 backfilled
+    # days without the impulse; covering the window derives every one.
+    cutoff = day_end(WINDOW[-1])
+    coverage = (
+        credit_impulse.fetch_coverage(
+            YTD_FLOW, window=WINDOW, public_cutoff=cutoff, calendar=current_calendar()
+        )
+        if held == "window"
+        else credit_impulse.minimum_requirements(
+            YTD_FLOW, public_cutoff=cutoff, calendar=current_calendar()
+        )
+    )
+    released_inputs(repository, coverage)
+
+    def status(day: date) -> str:
+        return credit_impulse.derive(
+            repository,
+            YTD_FLOW,
+            as_of=day_end(day),
+            as_of_mode=AsOfMode.PUBLIC,
+            definition_version=VERSION,
+        ).status
+
+    assert status(WINDOW[-1]) == "available"
+    assert status(WINDOW[0]) == ("available" if held == "window" else "missing_inputs")
 
 
 EXPECTED = 100 * (36 / 130 - 24 / 100)

@@ -3,14 +3,19 @@ from __future__ import annotations
 import asyncio
 import json
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 import pytest
 
+from pring_cycle import worker
 from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.freshness import batch_freshness
 from pring_cycle.full_retrieval import FullRunRetrieval
 from pring_cycle.models import ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
@@ -888,7 +893,29 @@ def test_a_core_session_missing_inside_the_window_holds_the_core_through_the_run
     assert stock["reason"] == "window_session_missing"
 
 
-def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path) -> None:
+@pytest.mark.parametrize("formula", ["configured", "turned_off"])
+def test_credit_formula_expands_required_history_in_full_run_plan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, formula: str
+) -> None:
+    # The plan and the Worker's fetch read the credit lookback from the module, from one
+    # cutoff, over the whole window; a model without the formula asks for none (ticket 24).
+    if formula == "turned_off":
+        rules_of = ContextProjectionRules.from_manifest.__func__  # type: ignore[attr-defined]
+
+        def without_credit(cls: type, manifest: dict[str, Any]) -> ContextProjectionRules:
+            rules: ContextProjectionRules = rules_of(cls, manifest)
+            versions = {k: v for k, v in rules.formula_versions.items() if k != "credit_impulse"}
+            return replace(rules, formula_versions=versions)
+
+        monkeypatch.setattr(ContextProjectionRules, "from_manifest", classmethod(without_credit))
+    fetched: list[Any] = []
+    refresh = worker.refresh_context_sources
+
+    def recording(*args: Any, **kwargs: Any) -> None:
+        fetched.append(kwargs["credit"])
+        refresh(*args, **kwargs)
+
+    monkeypatch.setattr(worker, "refresh_context_sources", recording)
     paths, runs = prepare(tmp_path)
     seed_core_history(paths)
     run = runs.submit_manual_full(
@@ -899,15 +926,29 @@ def test_credit_formula_expands_required_history_in_full_run_plan(tmp_path: Path
     )
     process_pending_run(paths, report_adapters=())
     plan = runs.full_retrieval_plan(run.run_id)
-    sf = {r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_SF_TOTAL"}
-    gdp = {r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_GDP"}
-    assert len(sf) == 24
-    assert (min(sf), max(sf)) == ("2024-08", "2026-07")
-    assert len(gdp) == 8
-    assert (min(gdp), max(gdp)) == ("2024-Q3", "2026-Q2")
-    assert any(
-        r["metric_id"] == "CN_CREDIT_IMPULSE" for r in plan["initial"]["derived_requirements"]
+    sf = sorted(
+        r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_SF_TOTAL"
     )
+    gdp = sorted(r["period"] for r in plan["initial"]["requirements"] if r["metric_id"] == "CN_GDP")
+    credit = [
+        r for r in plan["initial"]["derived_requirements"] if r["metric_id"] == "CN_CREDIT_IMPULSE"
+    ]
+    freshness = batch_freshness(paths.database, run.run_id)
+    assert {"CN_SF_TOTAL", "CN_GDP"} <= set(freshness)
+    if formula == "turned_off":
+        assert (sf, gdp) == (["2026-07"], ["2026-Q2"])
+        assert credit == []
+        assert fetched[0].periods == {}
+        assert "CN_CREDIT_IMPULSE" not in freshness
+        return
+    # The target day reads 24 months and 8 quarters; the window's first day, 2026-03-16,
+    # saw only 2026-02 and 2025-Q4 out, so the window reads back to 2024-03 and 2024-Q1.
+    assert plan["initial"]["daily_window"]["dates"][0] == "2026-03-16"
+    assert credit[0]["required_input_periods"] == {"CN_SF_TOTAL": 24, "CN_GDP": 8}
+    assert (sf[0], sf[-1], len(sf)) == ("2024-03", "2026-07", 29)
+    assert (gdp[0], gdp[-1], len(gdp)) == ("2024-Q1", "2026-Q2", 10)
+    assert fetched[0].start("CN_SF_TOTAL") == sf[0]
+    assert fetched[0].start("CN_GDP") == gdp[0]
 
 
 @pytest.mark.parametrize("mode,complete", [(AsOfMode.PUBLIC, False), (AsOfMode.SYSTEM, True)])

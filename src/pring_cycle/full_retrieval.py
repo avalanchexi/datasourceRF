@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pring_cycle import credit_impulse
 from pring_cycle.acquisition import own_acquisitions
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
@@ -17,6 +18,7 @@ from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
 from pring_cycle.freshness import DERIVED_INPUTS, FRESHNESS_REGISTRY, latest_released_period
 from pring_cycle.full_run_requirements import (
+    credit_inputs,
     formula_requirements,
     required_calendar,
 )
@@ -47,14 +49,20 @@ class FullRunRetrieval:
     def __init__(self, paths: RuntimePaths) -> None:
         self.paths = paths
 
-    def retrieve(self, run: RunRecord) -> None:
+    def retrieve(self, run: RunRecord, *, decided_at: datetime | None = None) -> None:
+        """Plan the run's gaps, then retrieve them.
+
+        ``decided_at`` is when the Worker decided what its direct fetch covers; the first
+        plan reads the credit lookback as of then, so it asks for nothing that fetch left
+        out (ticket 24).
+        """
         from pring_cycle.worker import _production_retrieval_adapters, _retrieval_release_status
 
         plan = read_full_retrieval_plan(self.paths.database, run.run_id)
         if plan["final"] is not None:
             return
         if plan["initial"] is None:
-            initial = self._plan(run)
+            initial = self._plan(run, decided_at=decided_at)
             self._record(run.run_id, "initial", initial)
             self._pull_news(run)
         else:
@@ -309,7 +317,7 @@ class FullRunRetrieval:
             },
         )
 
-    def _plan(self, run: RunRecord) -> dict[str, Any]:
+    def _plan(self, run: RunRecord, *, decided_at: datetime | None = None) -> dict[str, Any]:
         from pring_cycle.worker import SeriesReads, _retrieval_release_status
 
         rules = ContextProjectionRules.from_manifest(
@@ -355,7 +363,17 @@ class FullRunRetrieval:
             definition.metric_id: self._period(run, definition, selector)
             for definition in rules.metric_definitions
         }
-        history_counts, derived = formula_requirements(rules, selector, period_by_metric)
+        credit = credit_inputs(
+            self.paths,
+            rules,
+            run,
+            # The window as the SSE calendar stood at the decision, as the Worker read it.
+            decided_at=decided_at or utc_now(),
+            direct_held=credit_impulse.direct_periods(selector),
+        )
+        credit_coverage = credit[1].periods
+        history_counts, derived = formula_requirements(rules, credit)
+        turned_off = credit_impulse.metrics_off(rules.formula_versions)
         derived_ids = {
             r["metric_id"] for r in derived if r["metric_id"] not in r["required_input_periods"]
         }
@@ -369,7 +387,7 @@ class FullRunRetrieval:
                     {"metric_id": definition.metric_id, "status": "operational_evidence"}
                 )
                 continue
-            if definition.metric_id in derived_ids:
+            if definition.metric_id in derived_ids or definition.metric_id in turned_off:
                 continue
             if definition.metric_id in DERIVED_INPUTS:
                 derived.append(
@@ -393,7 +411,20 @@ class FullRunRetrieval:
                     and evidence_frequency(definition.metric_id, definition.frequency) == "daily"
                     and len(daily_window) == 120
                 )
-                else preceding_periods(period, history_counts.get(definition.metric_id, 1))
+                else tuple(
+                    sorted(
+                        {
+                            *preceding_periods(period, history_counts.get(definition.metric_id, 1)),
+                            # Back as far as the fetch covers; a release not held yet
+                            # is looked for below, not required.
+                            *(
+                                covered
+                                for covered in credit_coverage.get(definition.metric_id, ())
+                                if covered <= period
+                            ),
+                        }
+                    )
+                )
             )
             for required_period in periods:
                 scope = RetrievalScope(

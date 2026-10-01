@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import UTC, datetime
+from dataclasses import replace
+from datetime import UTC, date, datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -18,8 +19,10 @@ import pytest
 import pring_cycle.tushare_context as tushare_context
 from pring_cycle import credit_impulse
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
+from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
+from pring_cycle.full_run_requirements import credit_inputs
 from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -140,7 +143,12 @@ def test_worker_money_delivery_satisfies_the_new_four_member_contract(
     )
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths,
+            run.target_business_date,
+            definition_version=version,
+            credit=credit_coverage(paths, run),
+        )
 
     scope = RetrievalScope("pbc-money:2026-08", ("CN_M1_M2",), "2026-08", "P1", None)
     selected = ModelInputSelector(paths, run).select(scope)
@@ -256,7 +264,12 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
     monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *args: Opener())
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths,
+            run.target_business_date,
+            definition_version=version,
+            credit=credit_coverage(paths, run),
+        )
     if refetched_level == "damaged_social_financing":
         (receipt,) = (
             receipt
@@ -291,16 +304,41 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
         assert context.macro["credit"]["formula"]["status"] == status  # type: ignore[index]
 
 
+def credit_coverage(
+    paths: RuntimePaths, run: RunRecord, *, turned_off: bool = False
+) -> credit_impulse.InputPeriods:
+    """What the Worker's fetch covers for the run's target day alone, as it decides it."""
+    rules = ContextProjectionRules.from_manifest(
+        ModelRepository(paths.database).manifest(run.model_version_id)
+    )
+    if turned_off:
+        rules = replace(rules, formula_versions={})
+    _minimum, coverage = credit_inputs(
+        paths,
+        rules,
+        run,
+        decided_at=datetime.now(UTC),
+        window=(date.fromisoformat(run.target_business_date),),
+    )
+    return coverage
+
+
 @pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("formula", ["configured", "turned_off"])
 def test_credit_inputs_are_fetched_back_to_the_differencing_baseline(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    formula: str,
 ) -> None:
     """The impulse differences 24 months and 8 quarters of year-to-date figures (ticket 09).
 
     On 2026-09-18 the newest released periods are 2026-08 and 2026-Q2, so the fetch must
-    start at 2024-08 and 2024-Q2, the baselines before each window.
+    start at 2024-08 and 2024-Q2, the baselines before each window. Turned off, the
+    formula adds nothing to the two series' own range (ticket 24).
     """
     paths, run, version = reviewed_run(tmp_path, capsys)
+    coverage = credit_coverage(paths, run, turned_off=formula == "turned_off")
     context_http(monkeypatch, {})
     requested: dict[str, dict[str, str]] = {}
     original_open = tushare_context.build_opener().open
@@ -314,10 +352,14 @@ def test_credit_inputs_are_fetched_back_to_the_differencing_baseline(
     monkeypatch.setattr("pring_cycle.tushare_context.build_opener", lambda *args: Recording())
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths, run.target_business_date, definition_version=version, credit=coverage
+        )
 
-    assert requested["sf_month"] == {"start_m": "202408", "end_m": "202609"}
-    assert requested["cn_gdp"] == {"start_q": "2024Q2", "end_q": "2026Q3"}
+    # Their own range runs back two years to the same month and quarter.
+    starts = ("202408", "2024Q2") if formula == "configured" else ("202409", "2024Q3")
+    assert requested["sf_month"] == {"start_m": starts[0], "end_m": "202609"}
+    assert requested["cn_gdp"] == {"start_q": starts[1], "end_q": "2026Q3"}
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -338,7 +380,12 @@ def test_worker_sf_delivery_preserves_annual_flow_and_month_end_stock(
     )
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths,
+            run.target_business_date,
+            definition_version=version,
+            credit=credit_coverage(paths, run),
+        )
 
     scope = RetrievalScope("pbc-sf:2026-08", ("CN_SF_TOTAL",), "2026-08", "P1", None)
     selected = ModelInputSelector(paths, run).select(scope)
@@ -414,7 +461,12 @@ def test_missing_rows_reach_official_fallback_instead_of_stopping_the_refresh(
     runs = RunRepository(paths.database)
     run = runs.advance(submitted.run_id, "refreshing_evidence")
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths,
+            run.target_business_date,
+            definition_version=version,
+            credit=credit_coverage(paths, run),
+        )
     evidence = EvidenceRepository(paths.database)
     attempt = evidence.latest_retrieval_attempt(
         metric, period=None, as_of=datetime.now(UTC), definition_version=version
@@ -519,7 +571,12 @@ def test_reviewed_delivery_does_not_treat_invalid_month_as_missing_rows(
 
     # Gate ③ rejects the response and records it; a P1 parse error no longer stops the run.
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths,
+            run.target_business_date,
+            definition_version=version,
+            credit=credit_coverage(paths, run),
+        )
 
     attempt = EvidenceRepository(paths.database).latest_retrieval_attempt(
         "CN_M1_M2", period=None, as_of=datetime.now(UTC), definition_version=version
@@ -560,7 +617,12 @@ def test_other_reviewed_families_keep_empty_delivery_as_an_acquisition_gap(
     context_http(monkeypatch, {api: None for api in apis})
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
-        refresh_context_sources(paths, run.target_business_date, definition_version=version)
+        refresh_context_sources(
+            paths,
+            run.target_business_date,
+            definition_version=version,
+            credit=credit_coverage(paths, run),
+        )
 
     evidence = EvidenceRepository(paths.database)
     for metric in markers:

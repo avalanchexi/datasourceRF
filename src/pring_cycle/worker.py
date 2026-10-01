@@ -13,6 +13,7 @@ from functools import partial
 from time import monotonic
 from zoneinfo import ZoneInfo
 
+from pring_cycle import credit_impulse
 from pring_cycle.acquisition_outcome import (
     LOCAL_FAILED,
     NOT_ATTEMPTED,
@@ -31,6 +32,7 @@ from pring_cycle.context_projection import (
     ContextProjection,
     ContextProjectionRules,
 )
+from pring_cycle.credit_impulse import InputPeriods
 from pring_cycle.day_summary import (
     CORE_METRICS,
     DaySummaries,
@@ -366,11 +368,19 @@ def _execute_run(
             _refresh_core_sources(
                 paths, run.target_business_date, definition_version=definition_version
             )
+        from pring_cycle.full_run_requirements import credit_inputs
+
+        # The first plan reads the credit lookback as of the same instant (ticket 24).
+        decided_at = datetime.now(UTC)
+        _minimum, credit_coverage = credit_inputs(paths, model_rules, run, decided_at=decided_at)
         with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
             refresh_context_sources(
-                paths, run.target_business_date, definition_version=definition_version
+                paths,
+                run.target_business_date,
+                definition_version=definition_version,
+                credit=credit_coverage,
             )
-        full_retrieval.retrieve(run)
+        full_retrieval.retrieve(run, decided_at=decided_at)
         if runs.get(run.run_id).status != "running":
             return
         if not run.cutoffs_frozen:
@@ -386,8 +396,14 @@ def _execute_run(
     )
     use_run_calendar(calendar)
     use_release_schedule(batch_schedule(paths.database, run.run_id))
+    # A formula the model turns off is not owed (ticket 24).
+    turned_off = credit_impulse.metrics_off(model_rules.formula_versions)
     freshness = record_run_freshness(
-        paths.database, run.run_id, model_rules.metric_definitions, run.system_as_of, calendar
+        paths.database,
+        run.run_id,
+        [item for item in model_rules.metric_definitions if item.metric_id not in turned_off],
+        run.system_as_of,
+        calendar,
     )
     priorities = {item.metric_id: item.priority for item in model_rules.metric_definitions}
     if any(
@@ -1381,8 +1397,13 @@ def refresh_context_sources(
     target_business_date: str,
     *,
     definition_version: str,
+    credit: InputPeriods | None = None,
 ) -> None:
-    """Refresh context sources for a frozen catalog, retaining each acquisition outcome."""
+    """Refresh context sources for a frozen catalog, retaining each acquisition outcome.
+
+    Social financing and GDP are read back as far as ``credit`` covers when the model's
+    credit impulse needs more than their own range (ticket 24).
+    """
     from pring_cycle.acquisition import acquisition_metrics
     from pring_cycle.catalog_registry import registered_definitions
     from pring_cycle.ecb_reference import ECB_HISTORY_URL, ECB_METRIC, refresh_ecb_reference_cross
@@ -1511,9 +1532,11 @@ def refresh_context_sources(
     end_month = target.strftime("%Y%m")
     target_quarter = f"{target.year}Q{(target.month - 1) // 3 + 1}"
     start_quarter = f"{target.year - 2}Q{(target.month - 1) // 3 + 1}"
-    financing_start, gdp_start = _credit_lookback_starts(target)
-    financing_start = min(financing_start, start_month)
-    gdp_start = min(gdp_start, start_quarter)
+    covered = credit or InputPeriods()
+    financing_start = min(
+        (covered.start("CN_SF_TOTAL") or start_month).replace("-", ""), start_month
+    )
+    gdp_start = min((covered.start("CN_GDP") or start_quarter).replace("-", ""), start_quarter)
     daily_start = target - timedelta(days=220)
     adapter = _context_adapter(token)
     reviewed_deliveries = {
@@ -1721,26 +1744,6 @@ def _breadth_calendar(
     if sessions is None:
         raise ValueError("breadth_calendar_unavailable")
     return sessions, calendar.sources(first, target)
-
-
-def _credit_lookback_starts(target: date) -> tuple[str, str]:
-    """The first social financing month and GDP quarter the credit impulse needs.
-
-    Counted back from each series' newest released period, the same registry the run plan
-    judges them by, so the fetch holds what the plan asks for, the differencing baseline
-    included (run findings 2026-09-28, ticket 09).
-    """
-    from pring_cycle.credit_impulse import lookback_start
-    from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
-    from pring_cycle.trading_calendar import current_calendar
-
-    cutoff = datetime.combine(target, time.max, tzinfo=ZoneInfo("Asia/Shanghai"))
-    calendar = current_calendar()
-    month = latest_released_period(FRESHNESS_REGISTRY["CN_SF_TOTAL"], cutoff, calendar)
-    quarter = latest_released_period(FRESHNESS_REGISTRY["CN_GDP"], cutoff, calendar)
-    first_month = lookback_start("CN_SF_TOTAL", f"{month:%Y-%m}")
-    first_quarter = lookback_start("CN_GDP", f"{quarter.year}-Q{(quarter.month - 1) // 3 + 1}")
-    return first_month.replace("-", ""), first_quarter.replace("-", "")
 
 
 # Families that compute only the window's days not yet held.
