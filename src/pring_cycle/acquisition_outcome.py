@@ -374,8 +374,13 @@ class BatchAcquisition:
             owner = attempt.metadata.get("run_id")
             if owner is not None and owner != self._run_id:
                 continue
-            # The run's own catalog only; an attempt that names none predates the field.
-            if catalog is not None and attempt.definition_version not in {None, catalog}:
+            # The run's own catalog, or one defining the metric alike (ADR-0036); an attempt
+            # that names none predates the field.
+            if (
+                catalog is not None
+                and attempt.definition_version is not None
+                and not _defined_alike(self._database, attempt, catalog)
+            ):
                 continue
             if attempt.metadata.get("target_business_date", run[1]) == run[1]:
                 member = (attempt.metadata.get("symbol"), attempt.metadata.get("business_date"))
@@ -467,13 +472,23 @@ class AcquisitionOutcomes:
                 attempt.target_business_date != target_business_date
             ):
                 continue
-            if definition_version is not None and attempt.definition_version != definition_version:
+            if definition_version is not None and not _defined_alike(
+                self._database, attempt, definition_version
+            ):
                 continue
             return attempt
         return None
 
     def for_batch(self, run_id: str) -> BatchAcquisition:
         return BatchAcquisition(self._database, run_id)
+
+
+def _defined_alike(database: Path, attempt: AttemptView, version: str) -> bool:
+    from pring_cycle.evidence import EvidenceRepository
+
+    return EvidenceRepository(database).defined_alike(
+        attempt.metric_id, attempt.definition_version, version
+    )
 
 
 def _recorded_order(row: tuple[object, ...]) -> tuple[datetime, int]:

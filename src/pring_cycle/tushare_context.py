@@ -1929,7 +1929,7 @@ def tushare_claims_matching_acquisitions(
                     for entry in normalized:
                         if (
                             not isinstance(entry, dict)
-                            or entry.get("definition_version") not in (None, definition_version)
+                            or not _entry_defined_alike(repository, entry, definition_version)
                             or not isinstance(entry.get("acquisition_ids"), list)
                             or identity not in entry["acquisition_ids"]
                         ):
@@ -2119,13 +2119,25 @@ class WarrantAcquisition:
     current_member_count: int
 
 
+def _entry_defined_alike(
+    repository: EvidenceRepository, entry: Mapping[str, Any], definition_version: str
+) -> bool:
+    """An unstamped scalar, or one stamped by a version defining its metric alike (ADR-0036)."""
+    stamped = entry.get("definition_version")
+    return stamped is None or repository.defined_alike(
+        str(entry.get("metric_id")),
+        stamped if isinstance(stamped, str) else None,
+        definition_version,
+    )
+
+
 def parse_warrant_acquisition(
     receipt: AcquisitionReceipt,
     raw: bytes,
     normalized: bytes,
     *,
     period: str,
-    definition_version: str,
+    definition_versions: frozenset[str],
 ) -> WarrantAcquisition:
     """Reparse one complete physical delivery, including its warehouse denominator."""
     if (
@@ -2178,7 +2190,7 @@ def parse_warrant_acquisition(
     for item in normalized_scalars:
         if not isinstance(item, dict):
             raise ValueError("tushare_warrant_normalized_mismatch")
-        if item.get("definition_version") not in (None, definition_version):
+        if item.get("definition_version") not in (None, *definition_versions):
             raise ValueError("tushare_warrant_normalized_mismatch")
         acquisition_ids = item.get("acquisition_ids")
         if (

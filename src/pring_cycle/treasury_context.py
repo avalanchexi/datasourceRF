@@ -281,7 +281,9 @@ def treasury_claims_matching_acquisitions(
             batch = checked[identity]
             if (
                 batch is None
-                or receipt.parameters.get("definition_version") != definition_version
+                or not repository.defined_alike(
+                    metric, receipt.parameters.get("definition_version"), definition_version
+                )
                 or claim.source_reference != f"{batch.endpoint}#date={point.period_end}"
                 or not any(
                     cell.metric_id == metric

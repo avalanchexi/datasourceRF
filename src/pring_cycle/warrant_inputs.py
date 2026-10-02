@@ -38,14 +38,14 @@ def _parsed_warrant_delivery(
     normalized: bytes,
     *,
     period: str,
-    definition_version: str,
+    definition_versions: frozenset[str],
 ) -> WarrantAcquisition:
     key = (
         receipt_key(receipt),
         hashlib.sha256(raw).hexdigest(),
         hashlib.sha256(normalized).hexdigest(),
         period,
-        definition_version,
+        tuple(sorted(definition_versions)),
     )
     if key not in _WARRANT_PARSES:
         outcome: WarrantAcquisition | Exception
@@ -54,7 +54,7 @@ def _parsed_warrant_delivery(
                 parse_czce_warrant_acquisition(receipt, raw, normalized, period=period)
                 if receipt.provider == CZCE_PROVIDER
                 else parse_warrant_acquisition(
-                    receipt, raw, normalized, period=period, definition_version=definition_version
+                    receipt, raw, normalized, period=period, definition_versions=definition_versions
                 )
             )
         except (TypeError, ValueError, KeyError) as error:
@@ -102,6 +102,10 @@ def select_warrant_inputs(
 ) -> WarrantInputSelection:
     """Select all verified fields from each symbol's latest visible physical delivery."""
     points = tuple(point for point in points if point.period_end == period)
+    # A delivery stamped by any version defining warrants alike is read (ADR-0036).
+    versions = frozenset(
+        repository.same_definition_versions("CN_FUTURES_WARRANTS", definition_version)
+    )
     parsed: dict[str, WarrantAcquisition] = {}
     deliveries: dict[str, AcquisitionReceipt] = {}
     delivery_ranks: dict[str, tuple[datetime, datetime]] = {}
@@ -131,7 +135,7 @@ def select_warrant_inputs(
                         original.raw,
                         original.normalized,
                         period=period,
-                        definition_version=definition_version,
+                        definition_versions=versions,
                     )
                 delivery = parsed[receipt.acquisition_id]
             except (TypeError, ValueError, KeyError):

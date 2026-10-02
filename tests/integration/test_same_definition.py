@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.acquisition_outcome import AcquisitionOutcomes
+from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.cli import main
+from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -24,12 +29,15 @@ from pring_cycle.models import (
     MODEL_V0012_CATALOG_VERSION,
     MODEL_V0013_CATALOG_VERSION,
     MODEL_V0014_CATALOG_VERSION,
+    ModelRepository,
     model_v0012_manifest,
     model_v0013_manifest,
     model_v0014_manifest,
 )
+from pring_cycle.official_context import ingest_official_context_document
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.same_definition import _same
+from pring_cycle.same_definition import _same, family_identity
+from pring_cycle.tushare_context import ContextScalar, ingest_context_scalars
 from tests.integration.test_worker_execution import runtime
 
 V0012, V0013, V0014 = (
@@ -330,3 +338,160 @@ def test_preloaded_series_merge_the_same_way(registered: RuntimePaths) -> None:
         ("2026-09-28", 1.38),
         ("2026-09-29", 1.40),
     ]
+
+
+def fetched_dr007(paths: RuntimePaths, version: str, value: float = 1.3859) -> str:
+    """A TuShare DR007 delivery taken under ``version``, its original stamped with it."""
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+    columns = ["ts_code", "trade_date", "repo_maturity", "weight"]
+    raw = json.dumps(
+        {
+            "code": 0,
+            "data": {"fields": columns, "items": [["DR007.IB", "20260828", "DR007", value]]},
+        }
+    ).encode()
+    acquired = acquisitions.capture(
+        provider="tushare",
+        api_name="repo_daily",
+        parameters={"start_date": "20260828", "end_date": "20260828", "ts_code": "DR007.IB"},
+        fields=",".join(columns),
+        parser_version="tushare-context-parser-v0002",
+        fetch=lambda: raw,
+        parse=json.loads,
+        normalize=lambda document: document,
+        defer_validation=True,
+    )
+    scalar = ContextScalar(
+        metric_id="CN_DR007",
+        api_name="repo_daily",
+        source_field="weight",
+        period_kind="business_day",
+        period_start="2026-08-28",
+        period_end="2026-08-28",
+        dimensions={},
+        value=value,
+        unit="percent",
+        release_at=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        public_available_at=datetime(2026, 8, 28, 8, tzinfo=UTC),
+        acquisition_ids=(acquired.receipt.acquisition_id,),
+        definition_version=version,
+    )
+    acquisitions.complete_validation(acquired.receipt.acquisition_id, [asdict(scalar)])
+    (claim_id,) = ingest_context_scalars(
+        paths, (scalar,), fetched_at=datetime.now(UTC), definition_version=version
+    ).claim_ids
+    return claim_id
+
+
+def adoption(paths: RuntimePaths, metric_id: str, version: str) -> Any:
+    evidence = EvidenceRepository(paths.database)
+    points = evidence.metric_series(
+        metric_id, mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+    )
+    return ClaimAdoption(evidence, definition_version=version).check({metric_id: points})[metric_id]
+
+
+def test_an_original_taken_under_the_old_catalog_is_adopted_by_the_new_model(
+    registered: RuntimePaths,
+) -> None:
+    claim_id = fetched_dr007(registered, V0013)
+
+    adopted = adoption(registered, "CN_DR007", V0014)
+    assert adopted.adoptable == {claim_id}
+    assert adopted.not_adoptable == frozenset()
+
+
+def test_an_original_stamped_by_a_different_definition_is_not_adopted(
+    registered: RuntimePaths,
+) -> None:
+    """Breadth's sources changed in v0013, so v0012's stamp is not v0013's definition."""
+    assert not EvidenceRepository(registered.database).defined_alike("CN_EQ_ADV_DEC", V0012, V0013)
+    assert EvidenceRepository(registered.database).defined_alike("CN_DR007", V0012, V0014)
+    assert not EvidenceRepository(registered.database).defined_alike("CN_DR007", None, V0014)
+
+
+def test_an_attempt_under_the_old_catalog_counts_for_the_new_model(
+    registered: RuntimePaths,
+) -> None:
+    evidence = EvidenceRepository(registered.database)
+    at = datetime(2026, 9, 30, tzinfo=UTC)
+    evidence.record_retrieval_attempt(
+        metric_id="CN_DR007",
+        channel="fixture_channel",
+        outcome="source_failed",
+        fetched_at=at,
+        safe_metadata={"definition_version": V0013},
+    )
+    outcomes = AcquisitionOutcomes(registered.database)
+    later = at.replace(hour=1)
+    assert outcomes.latest("CN_DR007", as_of=later, definition_version=V0014) is not None
+    evidence.record_retrieval_attempt(
+        metric_id="CN_CREDIT_IMPULSE",
+        channel="fixture_channel",
+        outcome="source_failed",
+        fetched_at=at,
+        safe_metadata={"definition_version": V0013},
+    )
+    assert outcomes.latest("CN_CREDIT_IMPULSE", as_of=later, definition_version=V0014) is None
+
+
+def test_a_negative_cache_key_survives_a_catalog_that_left_its_family_alone(
+    registered: RuntimePaths,
+) -> None:
+    database = registered.database
+    assert family_identity(database, V0013, "pbc_omo_notice") == family_identity(
+        database, V0014, "pbc_omo_notice"
+    )
+    assert family_identity(database, V0013, "cn_credit_impulse") != family_identity(
+        database, V0014, "cn_credit_impulse"
+    )
+
+
+OMO_NOTICE = "ee19f9d0ca925b95875448bda4f354558ee7c6f06c36d9a3a62eafb9d59e4a1a"
+OMO_URL = (
+    "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"
+    "2026082808585347002/index.html"
+)
+
+
+def test_the_new_model_projects_the_old_catalog_s_omo_rate_and_dr007_spread(
+    registered: RuntimePaths,
+) -> None:
+    """The run of 2026-10-02 lost the OMO baseline and the spread to the catalog switch."""
+    raw = (
+        Path(__file__).parents[2]
+        / ".scratch/pring-data-acquisition-repair/evidence-13"
+        / OMO_NOTICE
+    ).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == OMO_NOTICE
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    notice = ingest_official_context_document(
+        registered,
+        raw,
+        family="pbc_omo_notice",
+        source_url=OMO_URL,
+        expected_period="2026-08-28",
+        fetched_at=now,
+        clock=lambda: now,
+        definition_version=V0013,
+    )
+    dr007 = fetched_dr007(registered, V0013)
+    repository = EvidenceRepository(registered.database)
+    manifest = ModelRepository(registered.database).manifest("model-v0014")
+
+    context = build_context_projection(repository, as_of=datetime.now(UTC), model_manifest=manifest)
+
+    transmission = context.macro["transmission"]["evidence"]  # type: ignore[index]
+    spread = next(row for row in transmission if row["metric_id"] == "CN_DR007_POLICY_SPREAD")
+    assert spread["value"] == pytest.approx((1.3859 - 1.4) * 100)
+    (rate,) = (c for c in notice.claim_ids if c in spread["input_observation_version_ids"])
+    assert set(spread["input_observation_version_ids"]) == {dr007, rate}
+    with sqlite3.connect(registered.database) as connection:
+        stamps = {
+            row[0]
+            for row in connection.execute(
+                "SELECT definition_version FROM source_claim WHERE claim_id IN (?, ?)",
+                (dr007, rate),
+            )
+        }
+    assert stamps == {V0013}

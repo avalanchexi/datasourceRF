@@ -225,6 +225,6 @@ def test_warehouse_change_that_disagrees_with_the_totals_is_noted_not_rejected(
         receipts.read_content(receipt.acquisition_id, "raw"),
         receipts.read_content(receipt.acquisition_id, "normalized"),
         period="2026-09-24",
-        definition_version="metric-catalog-v0002",
+        definition_versions=frozenset({"metric-catalog-v0002"}),
     )
     assert delivery.current_member_count == 2

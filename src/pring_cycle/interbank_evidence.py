@@ -39,8 +39,9 @@ def _time(value: object) -> datetime | None:
     return result
 
 
-# A linked response batch is validated once per exact content and definition; every claim
-# linked to it (and every replay cutoff) then only matches its own fields against the batch.
+# A linked response batch is validated once per exact content; every claim linked to it (and
+# every replay cutoff) then only matches its own fields against the batch. Whether the versions
+# stamped on its scalars define their metrics as the reader does is asked per read (ADR-0036).
 _BATCHES: dict[
     tuple[object, ...],
     tuple[tuple[dict[str, Any], datetime | None, datetime | None], ...] | Exception,
@@ -49,23 +50,20 @@ _BATCH_LIMIT = 1024
 
 
 def _validated_batch(
-    acquisitions: tuple[SourceClaimAcquisition, ...], definition_version: str
+    acquisitions: tuple[SourceClaimAcquisition, ...],
 ) -> tuple[tuple[dict[str, Any], datetime | None, datetime | None], ...]:
-    key = (
-        tuple(
-            (
-                receipt_key(item.receipt),
-                hashlib.sha256(item.raw).hexdigest(),
-                hashlib.sha256(item.normalized).hexdigest(),
-            )
-            for item in acquisitions
-        ),
-        definition_version,
+    key = tuple(
+        (
+            receipt_key(item.receipt),
+            hashlib.sha256(item.raw).hexdigest(),
+            hashlib.sha256(item.normalized).hexdigest(),
+        )
+        for item in acquisitions
     )
     if key not in _BATCHES:
         outcome: tuple[tuple[dict[str, Any], datetime | None, datetime | None], ...] | Exception
         try:
-            outcome = _validate_batch(acquisitions, definition_version)
+            outcome = _validate_batch(acquisitions)
         except (ValueError, TypeError, KeyError, OverflowError) as error:
             outcome = error
         if len(_BATCHES) >= _BATCH_LIMIT:
@@ -78,7 +76,7 @@ def _validated_batch(
 
 
 def _validate_batch(
-    acquisitions: tuple[SourceClaimAcquisition, ...], definition_version: str
+    acquisitions: tuple[SourceClaimAcquisition, ...],
 ) -> tuple[tuple[dict[str, Any], datetime | None, datetime | None], ...]:
     scalar_fields = {field.name for field in fields(ContextScalar)}
     ids = {item.receipt.acquisition_id for item in acquisitions}
@@ -135,8 +133,6 @@ def _validate_batch(
             or set(linked) != ids
         ):
             raise ValueError("interbank_normalized_link_mismatch")
-        if scalar["definition_version"] not in {None, definition_version}:
-            raise ValueError("interbank_normalized_definition_mismatch")
         validated.append(
             (scalar, _time(scalar["release_at"]), _time(scalar["public_available_at"]))
         )
@@ -157,6 +153,18 @@ def interbank_claims_matching_acquisitions(
         if point.selected_claim_id is not None
     }
     valid_ids = set()
+    # Whether a stamped version defines its metric as the reader does, asked once per pair.
+    alike: dict[tuple[str, str], bool] = {}
+
+    def defined_alike(scalar: Mapping[str, Any]) -> bool:
+        stamped = scalar["definition_version"]
+        if stamped is None:
+            return True
+        key = (str(scalar["metric_id"]), str(stamped))
+        if key not in alike:
+            alike[key] = repository.defined_alike(*key, definition_version)
+        return alike[key]
+
     for claim_id, acquisitions in repository.source_claim_acquisitions_many(
         tuple(selected)
     ).items():
@@ -172,8 +180,10 @@ def interbank_claims_matching_acquisitions(
         if claim is None or claim.provider != "tushare" or claim.unit != "percent":
             continue
         try:
-            batch = _validated_batch(tuple(acquisitions), definition_version)
+            batch = _validated_batch(tuple(acquisitions))
         except (ValueError, TypeError, KeyError, OverflowError):
+            continue
+        if not all(defined_alike(scalar) for scalar, _, _ in batch):
             continue
         if any(
             scalar["metric_id"] == metric

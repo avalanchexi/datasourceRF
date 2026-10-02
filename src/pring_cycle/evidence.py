@@ -495,9 +495,8 @@ class EvidenceRepository:
             acquisitions.setdefault(str(link[0]), []).append(str(link[1]))
         valid = set()
         for row in rows:
-            if (
-                row["definition_version"] != definition_version
-                or row["quality_status"] != "validated"
+            if row["quality_status"] != "validated" or not self.defined_alike(
+                str(row["metric_id"]), str(row["definition_version"]), definition_version
             ):
                 continue
             try:
@@ -551,6 +550,15 @@ class EvidenceRepository:
             return same_definition_versions(connection, self._database_path, metric_id, version)
         with self._connect() as opened:
             return same_definition_versions(opened, self._database_path, metric_id, version)
+
+    def defined_alike(self, metric_id: str, stored: str | None, target: str) -> bool:
+        """Whether a value stamped ``stored`` means what ``target`` defines (ADR-0036).
+
+        ``None`` is never alike: a caller that accepts an unstamped value says so itself.
+        """
+        return stored is not None and (
+            stored == target or stored in self.same_definition_versions(metric_id, target)
+        )
 
     @classmethod
     def create(cls, database_path: Path) -> EvidenceRepository:

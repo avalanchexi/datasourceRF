@@ -284,7 +284,12 @@ def require_ecb_reference_claim(
         receipt,
         acquisitions.read_content(receipt.acquisition_id, "raw"),
         acquisitions.read_content(receipt.acquisition_id, "normalized"),
-        definition_version=definition.definition_version,
+        # Fetched under any version defining the cross alike (ADR-0036).
+        definition_versions=frozenset(
+            EvidenceRepository(database_path).same_definition_versions(
+                definition.metric_id, definition.definition_version
+            )
+        ),
     )
     if not any(row.date == period_end and row.value == value for row in batch.rows):
         raise ValueError("registered_ecb_cross_mismatch")
@@ -295,7 +300,7 @@ def _validated_batch(
     raw: bytes,
     normalized: bytes,
     *,
-    definition_version: str,
+    definition_versions: frozenset[str],
 ) -> EcbReferenceBatch:
     params = receipt.parameters
     if (
@@ -305,7 +310,7 @@ def _validated_batch(
         or receipt.parser_version != _PARSER
         or receipt.fields != "Date,CNY,USD"
         or set(params) != {"source_url", "start_date", "period", "definition_version"}
-        or params["definition_version"] != definition_version
+        or params["definition_version"] not in definition_versions
     ):
         raise ValueError("registered_ecb_acquisition_identity_mismatch")
     return _verified_document(
@@ -650,7 +655,7 @@ def _store_batch(
                     original.receipt,
                     original.raw,
                     original.normalized,
-                    definition_version=definition_version,
+                    definition_versions=frozenset({definition_version}),
                 )
             except (LookupError, OSError, TypeError, ValueError):
                 prior_batches[identity] = None

@@ -40,6 +40,7 @@ from pring_cycle.catalog import (
 )
 from pring_cycle.catalog_registry import _definition_document
 from pring_cycle.read_scope import scope_cache
+from pring_cycle.storage import database_connection
 
 IDENTITY_FIELDS = ("unit", "allowed_units", "frequency", "dimensions", "source_codes")
 
@@ -155,3 +156,29 @@ def same_definition_versions(
             if metric_id in catalog[0] and _same(metric_id, own, catalog)
         )
     )
+
+
+def family_identity(database_path: Path, version: str, family: str) -> str:
+    """What a release family's metrics mean under ``version``, without the version label.
+
+    Every metric the catalog places in the family, with its compared fields and, when derived,
+    its formula; an unknown formula keeps the version so nothing else matches it. Unchanged
+    definitions give the same identity under every catalog version (ADR-0036).
+    """
+    uri = f"{database_path.resolve().as_uri()}?mode=ro"
+    with database_connection(uri, uri=True) as connection:
+        catalogs = {
+            **_builtin_catalogs(),
+            **_registered_catalogs(connection, str(database_path.resolve())),
+        }
+    if version not in catalogs:
+        return json.dumps(["catalog", version])
+    definitions, formulas = catalogs[version]
+    members = []
+    for metric_id, definition in sorted(definitions.items()):
+        if definition.get("release_event_family") != family:
+            continue
+        key = _formula_key(metric_id)
+        formula = (formulas.get(key) or f"unknown:{version}") if key in _REQUIRED_FORMULAS else None
+        members.append([metric_id, list(_fields(definition)), formula])
+    return json.dumps(members, sort_keys=True, default=list)

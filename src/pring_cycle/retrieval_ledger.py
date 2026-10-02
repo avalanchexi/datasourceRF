@@ -21,6 +21,7 @@ from pring_cycle.catalog import MetricDefinition, metric_definition
 from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS, RetrievalAdapterResponse
+from pring_cycle.same_definition import family_identity
 from pring_cycle.storage import database_connection
 from pring_cycle.tushare_quota import TushareCallNotAttempted
 
@@ -76,7 +77,7 @@ class RetrievalLedger:
                 definition = metric_definition(
                     metric_id, definition_version=definition_version, database_path=self.database
                 )
-                event_key = _event_key(definition, scope.period)
+                event_key = _event_key(definition, scope.period, database_path=self.database)
                 identity = {
                     "model_version_id": run.model_version_id,
                     "definition_version": definition_version,
@@ -916,22 +917,24 @@ def _legacy_event_keys(
                 database_path=database_path,
             ),
             row["period"],
+            database_path=database_path,
         )
         for metric_id in json.loads(metric_ids_json or row["metric_ids_json"])
     }
 
 
-def _event_key(definition: MetricDefinition, period: str) -> str:
+def _event_key(definition: MetricDefinition, period: str, *, database_path: Path) -> str:
     """A gap's release event, under the contract it is fetched and checked against.
 
-    A negative cache holds back the same event under the same contract only: the registered
-    catalog version and the code that parses and checks the event, shared by every metric of
-    its family. A repair lets the next run try again at once (gap sources #05); older keys
-    name no contract and match none.
+    A negative cache holds back the same event under the same contract only: what the family's
+    metrics mean (not the catalog's version label, ADR-0036) and the code that parses and
+    checks the event, shared by every metric of its family. A repair lets the next run try
+    again at once (gap sources #05); older keys name no contract and match none.
     """
-    contract = hashlib.sha256(
-        json.dumps([definition.definition_version, code_version()]).encode()
-    ).hexdigest()[:16]
+    meaning = family_identity(
+        database_path, definition.definition_version, definition.release_event_family
+    )
+    contract = hashlib.sha256(json.dumps([meaning, code_version()]).encode()).hexdigest()[:16]
     return json.dumps([definition.release_event_family, period, contract])
 
 
