@@ -649,9 +649,10 @@ def test_explicit_source_schedule_does_not_reuse_conflicting_period_event(
     assert trace.claims[0].public_available_at == scheduled_publication
 
 
-def test_candidate_context_same_value_can_move_to_a_new_definition_version(
+def test_candidate_context_same_value_under_a_like_defined_version_keeps_its_claim(
     tmp_path: Path,
 ) -> None:
+    """v0001 and v0002 define the PMI alike: the value already taken is reused (ADR-0036)."""
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     scalar = ContextScalar(
@@ -668,7 +669,7 @@ def test_candidate_context_same_value_can_move_to_a_new_definition_version(
     first_fetch = datetime(2026, 8, 1, 4, tzinfo=UTC)
     second_fetch = datetime(2026, 8, 2, 4, tzinfo=UTC)
 
-    ingest_context_scalars(
+    first = ingest_context_scalars(
         paths,
         (scalar,),
         fetched_at=first_fetch,
@@ -686,7 +687,8 @@ def test_candidate_context_same_value_can_move_to_a_new_definition_version(
         as_of=second_fetch,
     )
 
-    assert trace.definition_version == "metric-catalog-v0002"
+    assert reingested.claim_ids == first.claim_ids
+    assert trace.definition_version == "metric-catalog-v0001"
     assert trace.claims[0].parsed_public_available_at is None
 
 

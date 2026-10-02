@@ -137,8 +137,6 @@ def test_eia_contract_fails_closed_on_schema_or_identity_drift(mutate, error: st
         )
 
 
-
-
 def test_eia_repeat_ingest_keeps_public_availability_unknown(
     tmp_path: Path,
 ) -> None:
@@ -165,9 +163,10 @@ def test_eia_repeat_ingest_keeps_public_availability_unknown(
     assert trace.claims[0].parsed_public_available_at is None
 
 
-def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
+def test_eia_same_value_under_a_like_defined_version_keeps_its_claim(
     tmp_path: Path,
 ) -> None:
+    """v0001 and v0002 define EIA prices alike: the value already taken is reused (ADR-0036)."""
     paths = RuntimePaths.discover(tmp_path / "runtime")
     initialize_runtime(paths)
     prices = EiaPetroleumAdapter(
@@ -180,7 +179,7 @@ def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
     first_fetch = datetime(2026, 8, 28, tzinfo=UTC)
     second_fetch = datetime(2026, 8, 29, tzinfo=UTC)
 
-    ingest_eia_spot_prices(
+    first = ingest_eia_spot_prices(
         paths,
         prices,
         fetched_at=first_fetch,
@@ -198,10 +197,9 @@ def test_eia_same_value_can_be_reingested_under_a_new_definition_version(
         as_of=second_fetch,
     )
 
-    assert trace.definition_version == "metric-catalog-v0002"
+    assert reingested.claim_ids == first.claim_ids
+    assert trace.definition_version == "metric-catalog-v0001"
     assert trace.claims[0].parsed_public_available_at is None
-
-
 
 
 def test_eia_smoke_is_sanitized_and_never_exposes_the_api_key() -> None:

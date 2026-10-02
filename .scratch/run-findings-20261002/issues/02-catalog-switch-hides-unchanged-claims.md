@@ -1,4 +1,4 @@
-Status: ready-for-agent（父票，拆为 07、08、09）
+Status: done（父票，07、08、09 均 done；真实运行验收见 README）
 Category: bug
 Type: task
 

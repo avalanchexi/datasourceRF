@@ -346,14 +346,17 @@ class EvidenceRepository:
             raise ValueError("as_of_must_be_timezone_aware")
         placeholders = ",".join("?" for _ in period_ends)
         with self._connect() as connection:
+            alike, versions = self._defined_alike_clause(
+                connection, definition_version, metric_id=metric_id, prefix="claim."
+            )
             rows = connection.execute(
                 f"""SELECT link.acquisition_id, claim.period_end, claim.value,
                            claim.dimensions_json, claim.available_at
                     FROM source_claim AS claim
                     JOIN source_claim_acquisition AS link USING(claim_id)
-                    WHERE claim.metric_id=? AND claim.provider=? AND claim.definition_version=?
+                    WHERE claim.metric_id=? AND claim.provider=? AND {alike}
                       AND claim.period_end IN ({placeholders}) AND claim.value IS NOT NULL""",
-                (metric_id, provider, definition_version, *period_ends),
+                (metric_id, provider, *versions, *period_ends),
             ).fetchall()
         delivered: dict[str, dict[str, float]] = {}
         for row in rows:
@@ -560,6 +563,47 @@ class EvidenceRepository:
             stored == target or stored in self.same_definition_versions(metric_id, target)
         )
 
+    def _defined_alike_clause(
+        self,
+        connection: sqlite3.Connection,
+        definition_version: str,
+        *,
+        metric_id: str | None = None,
+        prefix: str = "",
+    ) -> tuple[str, tuple[str, ...]]:
+        """A SQL condition keeping claims stamped by versions defining their metric as
+        ``definition_version`` does (ADR-0036), and its parameters.
+
+        For one metric, its version group; otherwise each stored (metric, version) pair that
+        defines its metric alike.
+        """
+        if metric_id is not None:
+            versions = self.same_definition_versions(
+                metric_id, definition_version, connection=connection
+            )
+            return (
+                f"{prefix}definition_version IN ({','.join('?' for _ in versions)})",
+                versions,
+            )
+        groups: dict[str, tuple[str, ...]] = {}
+        pairs = []
+        for stored_metric, stored_version in connection.execute(
+            "SELECT DISTINCT metric_id, definition_version FROM source_claim"
+        ):
+            metric = str(stored_metric)
+            if metric not in groups:
+                groups[metric] = self.same_definition_versions(
+                    metric, definition_version, connection=connection
+                )
+            if stored_version in groups[metric]:
+                pairs.append([metric, str(stored_version)])
+        return (
+            f"({prefix}metric_id, {prefix}definition_version) IN "
+            "(SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]') "
+            "FROM json_each(?))",
+            (json.dumps(pairs),),
+        )
+
     @classmethod
     def create(cls, database_path: Path) -> EvidenceRepository:
         database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -702,14 +746,25 @@ class EvidenceRepository:
     ) -> tuple[ReleaseEventView, ...]:
         clauses = []
         parameters: list[str] = []
-        if metric_id is not None:
-            clauses.append("claim.metric_id = ?")
-            parameters.append(metric_id)
-        if definition_version is not None:
-            clauses.append("claim.definition_version = ?")
-            parameters.append(definition_version)
-        clause = "WHERE " + " AND ".join(clauses) if clauses else ""
         with self._connect() as connection:
+            if metric_id is not None:
+                clauses.append("claim.metric_id = ?")
+                parameters.append(metric_id)
+            if definition_version is not None:
+                alike, alike_parameters = self._defined_alike_clause(
+                    connection, definition_version, metric_id=metric_id, prefix="claim."
+                )
+                clauses.append(alike)
+                parameters.extend(alike_parameters)
+            clause = "WHERE " + " AND ".join(clauses) if clauses else ""
+            # Read for a version, one observation is a period and dimensions across the
+            # versions defining it alike (ADR-0036); otherwise each stored observation.
+            observation = (
+                "claim.period_kind || char(31) || claim.period_start || char(31) || "
+                "claim.period_end || char(31) || claim.dimensions_json"
+                if definition_version is not None
+                else "claim.observation_id"
+            )
             rows = connection.execute(
                 f"""
                 SELECT event.release_event_id, claim.metric_id, event.provider,
@@ -717,7 +772,7 @@ class EvidenceRepository:
                        event.release_at, event.public_available_at,
                        MIN(claim.available_at) AS available_at,
                        MAX(claim.fetched_at) AS latest_fetched_at,
-                       COUNT(DISTINCT claim.observation_id) AS observation_count,
+                       COUNT(DISTINCT {observation}) AS observation_count,
                        MIN(claim.source_reference) AS source_reference
                 FROM release_event AS event
                 JOIN source_claim AS claim
@@ -814,13 +869,16 @@ class EvidenceRepository:
             json.dumps(dimensions, ensure_ascii=False, sort_keys=True),
             provider,
         ]
-        if definition_version is not None:
-            clauses.append("definition_version=?")
-            parameters.append(definition_version)
         if source_reference is not None:
             clauses.append("source_reference=?")
             parameters.append(source_reference)
         with self._connect() as connection:
+            if definition_version is not None:
+                alike, versions = self._defined_alike_clause(
+                    connection, definition_version, metric_id=metric_id
+                )
+                clauses.append(alike)
+                parameters.extend(versions)
             row = connection.execute(
                 f"""
                 SELECT claim_id, observation_id, supersedes_claim_id, value,
@@ -856,16 +914,19 @@ class EvidenceRepository:
         definition_version: str,
     ) -> tuple[SourceClaimVintage, ...]:
         with self._connect() as connection:
+            alike, versions = self._defined_alike_clause(
+                connection, definition_version, metric_id=metric_id
+            )
             rows = connection.execute(
-                """
+                f"""
                 SELECT claim_id, period_start, period_end, dimensions_json,
                        public_available_at,
                        certification_status, quality_status
                 FROM effective_source_claim
-                WHERE metric_id=? AND definition_version=?
+                WHERE metric_id=? AND {alike}
                 ORDER BY julianday(public_available_at), rowid
                 """,
-                (metric_id, definition_version),
+                (metric_id, *versions),
             ).fetchall()
         return tuple(
             SourceClaimVintage(
@@ -890,22 +951,25 @@ class EvidenceRepository:
         *,
         definition_version: str | None = None,
     ) -> tuple[StoredSourceClaim, ...]:
-        definition_clause = " AND definition_version=?" if definition_version is not None else ""
-        parameters = (
-            (release_event_id, source_reference, definition_version)
-            if definition_version is not None
-            else (release_event_id, source_reference)
-        )
         with self._connect() as connection:
             rows = connection.execute(
-                f"""
-                SELECT claim_id, observation_id, supersedes_claim_id
+                """
+                SELECT claim_id, observation_id, supersedes_claim_id, metric_id,
+                       definition_version
                 FROM source_claim
-                WHERE release_event_id=? AND source_reference=?{definition_clause}
+                WHERE release_event_id=? AND source_reference=?
                 ORDER BY rowid
                 """,
-                parameters,
+                (release_event_id, source_reference),
             ).fetchall()
+        if definition_version is not None:
+            rows = [
+                row
+                for row in rows
+                if self.defined_alike(
+                    str(row["metric_id"]), str(row["definition_version"]), definition_version
+                )
+            ]
         return tuple(
             StoredSourceClaim(
                 claim_id=str(row["claim_id"]),

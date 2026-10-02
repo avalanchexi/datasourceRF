@@ -17,6 +17,7 @@ from pring_cycle.acquisition_outcome import AcquisitionOutcomes
 from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.cli import main
 from pring_cycle.context_projection import build_context_projection
+from pring_cycle.czce_warrants import _held_totals
 from pring_cycle.evidence import (
     AsOfMode,
     EvidenceRepository,
@@ -495,3 +496,135 @@ def test_the_new_model_projects_the_old_catalog_s_omo_rate_and_dr007_spread(
             )
         }
     assert stamps == {V0013}
+
+
+def linked(repository: EvidenceRepository, item: SourceClaimInput, acquisition_id: str) -> str:
+    """A stored claim linked to a delivery, as an ingest would leave it."""
+    claim_id = stored(repository, item).claim_id
+    with repository._connect() as connection:
+        connection.execute(
+            "INSERT INTO source_claim_acquisition VALUES (?, ?)", (claim_id, acquisition_id)
+        )
+    return claim_id
+
+
+def gdp_claim(version: str, quarter_end: str, value: float) -> SourceClaimInput:
+    return replace(
+        claim(version, value, metric_id="CN_GDP", unit="hundred_million_cny"),
+        period_kind="quarter",
+        period_start=f"{quarter_end[:4]}-{int(quarter_end[5:7]) - 2:02d}-01",
+        period_end=quarter_end,
+        dimensions={"measure": "ytd_nominal_level"},
+        source_reference=f"tushare:cn_gdp:{quarter_end}",
+        release_event_id=f"tushare:cn_gdp:{quarter_end}",
+    )
+
+
+def test_one_gdp_delivery_taken_under_the_old_catalog_is_read_whole(
+    registered: RuntimePaths,
+) -> None:
+    """The impulse compares quarters from one delivery; the catalog switch must not split it."""
+    repository = EvidenceRepository(registered.database)
+    acquisitions = AcquisitionRepository(registered.database, registered.artifacts)
+    receipt = acquisitions.capture(
+        provider="tushare",
+        api_name="cn_gdp",
+        parameters={"start_q": "2026Q1", "end_q": "2026Q2"},
+        fields="quarter,gdp",
+        parser_version="tushare-context-parser-v0002",
+        fetch=lambda: b"{}",
+        parse=json.loads,
+        normalize=lambda document: document,
+        defer_validation=True,
+    ).receipt.acquisition_id
+    acquisitions.complete_validation(receipt, [])
+    linked(repository, gdp_claim(V0013, "2026-03-31", 300000.0), receipt)
+    linked(repository, gdp_claim(V0013, "2026-06-30", 650000.0), receipt)
+
+    delivered = repository.delivered_values(
+        "CN_GDP",
+        {"measure": "ytd_nominal_level"},
+        ("2026-03-31", "2026-06-30"),
+        provider="tushare",
+        definition_version=V0014,
+        as_of=AS_OF,
+    )
+    assert delivered == {receipt: {"2026-03-31": 300000.0, "2026-06-30": 650000.0}}
+
+
+def test_an_ingest_finds_the_claim_already_taken_under_the_old_catalog(
+    registered: RuntimePaths,
+) -> None:
+    repository = EvidenceRepository(registered.database)
+    old = stored(repository, claim(V0013, 1.38))
+
+    found = repository.latest_source_claim(
+        metric_id="CN_DR007",
+        definition_version=V0014,
+        period_kind="day",
+        period_start="2026-09-29",
+        period_end="2026-09-29",
+        dimensions={},
+        provider="tushare",
+        source_reference="fixture:tushare:CN_DR007:2026-09-29",
+    )
+    assert found is not None and found.claim_id == old.claim_id
+    assert [
+        v.claim_id for v in repository.source_claim_vintages("CN_DR007", definition_version=V0014)
+    ] == [old.claim_id]
+    release = claim(V0013, 1.38).release_event_id
+    assert [
+        c.claim_id
+        for c in repository.claims_for_release_source(
+            release, "fixture:tushare:CN_DR007:2026-09-29", definition_version=V0014
+        )
+    ] == [old.claim_id]
+    assert [
+        e.release_event_id
+        for e in repository.release_events_for_definition(definition_version=V0014)
+    ] == [release]
+
+
+def test_a_changed_definition_finds_no_old_claim_to_build_on(registered: RuntimePaths) -> None:
+    repository = EvidenceRepository(registered.database)
+    stored(
+        repository,
+        replace(
+            claim(V0013, 0.5, metric_id="CN_CREDIT_IMPULSE", unit="percentage_points"),
+            period_kind="month",
+            period_start="2026-08-01",
+            period_end="2026-08-31",
+        ),
+    )
+    assert repository.source_claim_vintages("CN_CREDIT_IMPULSE", definition_version=V0014) == ()
+    assert repository.release_events_for_definition(definition_version=V0014) == ()
+
+
+def test_a_warrant_day_held_under_the_old_catalog_is_not_fetched_again(
+    registered: RuntimePaths,
+) -> None:
+    repository = EvidenceRepository(registered.database)
+    stored(
+        repository,
+        replace(
+            claim(V0013, 1200.0, metric_id="CN_FUTURES_WARRANTS", unit="contracts"),
+            provider="郑州商品交易所",
+            dimensions={"symbol": "CF", "measure": "registered_receipts", "warehouse": "衡水棉麻"},
+            period_kind="day",
+            period_start="2026-09-29",
+            period_end="2026-09-29",
+        ),
+    )
+    assert _held_totals(repository, V0014) == {("CF", "2026-09-29", "衡水棉麻"): 1200.0}
+
+
+def test_a_release_counts_one_observation_across_like_defined_versions(
+    registered: RuntimePaths,
+) -> None:
+    repository = EvidenceRepository(registered.database)
+    old = claim(V0013, 1.38)
+    stored(repository, old)
+    stored(repository, replace(old, definition_version=V0014))
+
+    (event,) = repository.release_events_for_definition(definition_version=V0014)
+    assert event.observation_count == 1
