@@ -296,6 +296,30 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
         definition_version=version,
     )
     assert derived.status == status, derived
+    # A failure names the parent and periods behind it (ticket 28).
+    failures = [(f.metric_id, f.reason, f.periods, f.members) for f in derived.failures]
+    if status == "incomparable_gdp_vintages":
+        # Q2 fetched again alone changes Q2 and the Q3 differenced from it.
+        assert failures == [
+            (
+                "CN_GDP",
+                "incomparable_gdp_vintages",
+                ("2025-Q2", "2025-Q3"),
+                ('CN_GDP:{"aggregate": "total", "measure": "nominal_ytd_level"}',),
+            )
+        ]
+    elif status == "incomplete_source_artifacts":
+        # The damaged original carried every month, the base month too.
+        assert failures == [
+            (
+                "CN_SF_TOTAL",
+                "not_adoptable",
+                tuple(f"{month[:4]}-{month[4:]}" for month in months),
+                ('CN_SF_TOTAL:{"measure": "ytd_increment"}',),
+            )
+        ]
+    else:
+        assert derived.failures == ()
     if refetched_level is None:
         # The delivery reaches the analysis: the projection reads the same derivation.
         context = build_context_projection(

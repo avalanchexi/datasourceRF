@@ -895,10 +895,11 @@ def add_projection_gaps(
     A derived metric follows its parents' timeliness, so a formula that never computes stays
     ``current``, and a conflict is a selection, not a period. A formula metric whose parents
     are other metrics and that has no usable row gets ``formula_status`` and
-    ``missing_inputs``, the parent periods the run plan could not complete (one computed
-    from stale inputs is no failure: its listed timeliness entry only notes
-    ``formula_status``); a metric whose
-    selected claims are not adoptable (their original, matched quote, members or registered
+    ``missing_inputs``: what the formula said it could not read, each period with its
+    reason and the members it reads (ticket 28), else the parent periods the run plan
+    could not complete. One computed from stale inputs is no failure: its listed
+    timeliness entry only notes ``formula_status``. A metric whose selected claims are
+    not adoptable (their original, matched quote, members or registered
     contract failed the family's recheck) gets ``source_failures``; a metric with
     observations whose sources disagree gets ``conflicts``, each with the reason the
     comparison gave (ADR-0033), also when the selected claim failed too. The list keeps
@@ -910,6 +911,7 @@ def add_projection_gaps(
     priorities = {item.metric_id: item.priority for item in definitions}
     rows: list[dict[str, object]] = []
     formula_status: dict[str, str] = {}
+    formula_failures: dict[str, list[Mapping[str, object]]] = {}
 
     def walk(value: object, key: str | None) -> None:
         if isinstance(value, Mapping):
@@ -917,6 +919,10 @@ def add_projection_gaps(
             if isinstance(metric_id, str) and isinstance(value.get("status"), str):
                 if "formula_version" in value and "formula" in value:
                     formula_status[metric_id] = str(value["status"])
+                    if isinstance(failures := value.get("failures"), list):
+                        formula_failures[metric_id] = [
+                            item for item in failures if isinstance(item, Mapping)
+                        ]
                 else:
                     rows.append(dict(value, metric_id=metric_id))
             for child_key, child in value.items():
@@ -967,15 +973,24 @@ def add_projection_gaps(
         status = status or (statuses[0] if statuses else "not_computed")
         entry(metric_id, "derived_failed", status).update(
             formula_status=status,
-            missing_inputs=[
-                {
-                    "metric_id": gap["metric_id"],
-                    "period": gap.get("period"),
-                    "missing_members": _members(gap.get("missing_members")),
-                }
-                for gap in incomplete
-                if gap.get("metric_id") in parents
-            ],
+            missing_inputs=(
+                # What the formula said it could not read, by the members it reads.
+                [
+                    item
+                    for failure in formula_failures[metric_id]
+                    for item in _formula_inputs_missing(failure, incomplete)
+                ]
+                if formula_failures.get(metric_id)
+                else [
+                    {
+                        "metric_id": gap["metric_id"],
+                        "period": gap.get("period"),
+                        "missing_members": _members(gap.get("missing_members")),
+                    }
+                    for gap in incomplete
+                    if gap.get("metric_id") in parents
+                ]
+            ),
         )
     failures = _by_member(
         rows,
@@ -1025,6 +1040,36 @@ def _by_member(
         metric_id: sorted(by_member.values(), key=lambda item: str(item["period"]))
         for metric_id, by_member in found.items()
     }
+
+
+def _formula_inputs_missing(
+    failure: Mapping[str, object], incomplete: list[Mapping[str, object]]
+) -> list[dict[str, object]]:
+    """A formula's failure, period by period, with only the members it reads (ticket 28).
+
+    A parent with nothing held names no periods; the run plan's unfinished periods of
+    those members say which.
+    """
+    members = _members(failure.get("members"))
+    periods: list[tuple[object, list[object]]] = [
+        (period, members) for period in _members(failure.get("periods"))
+    ]
+    if not periods:
+        periods = [
+            (gap.get("period"), read)
+            for gap in incomplete
+            if gap.get("metric_id") == failure.get("metric_id")
+            and (read := [m for m in _members(gap.get("missing_members")) if m in members])
+        ] or [(None, members)]
+    return [
+        {
+            "metric_id": failure.get("metric_id"),
+            "period": period,
+            "missing_members": read,
+            "reason": failure.get("reason"),
+        }
+        for period, read in periods
+    ]
 
 
 def _members(value: object) -> list[object]:

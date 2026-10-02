@@ -21,8 +21,9 @@ the direct one on the same end (ticket 26).
 Stale inputs still compute: the caller labels them, and the gap list leaves timeliness to
 say so (ticket 27).
 
-Kept as it is, and so documented here (it has its own ticket): several failures are
-reported as ``missing_inputs``.
+A failure names, for both parents at once, the reasons and periods behind it and the
+members the version reads (``InputFailure``); the status stays the summary it was, several
+of those reasons sharing ``missing_inputs`` (ticket 28).
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ from pring_cycle.evidence import (
     selected_claim,
     usable_point,
 )
-from pring_cycle.official_context import official_gdp_quarters_matching_baselines
+from pring_cycle.official_context import official_gdp_quarters_matching_baselines, official_member
 from pring_cycle.retrieval import preceding_periods
 
 if TYPE_CHECKING:
@@ -222,11 +223,34 @@ def calculate(
 
 
 @dataclass(frozen=True)
+class InputFailure:
+    """Why a parent could not be read: a reason and the periods and members it names.
+
+    Members are those the formula version reads, keyed as a run plan lists them (ticket
+    28).
+    """
+
+    metric_id: str
+    reason: str
+    periods: tuple[str, ...] = ()
+    members: tuple[str, ...] = ()
+
+    def document(self) -> dict[str, object]:
+        return {
+            "metric_id": self.metric_id,
+            "reason": self.reason,
+            "periods": list(self.periods),
+            "members": list(self.members),
+        }
+
+
+@dataclass(frozen=True)
 class CreditImpulseResult:
     """A derivation of the impulse: its value when ``status`` is ``available``, else why not.
 
     ``input_claim_ids`` are the parent claims, social financing's before GDP's; the windows
-    run from the first period's start to the last period's end.
+    run from the first period's start to the last period's end. ``failures`` says, parent
+    by parent and both at once, what kept the inputs from being read (ticket 28).
     """
 
     formula_version: str | None
@@ -242,6 +266,7 @@ class CreditImpulseResult:
     input_claim_ids: tuple[str, ...] = ()
     available_at: datetime | None = None
     public_available_at: datetime | None = None
+    failures: tuple[InputFailure, ...] = ()
 
 
 def derive(
@@ -257,81 +282,124 @@ def derive(
         return CreditImpulseResult(None, "disabled_by_model")
     version = VERSIONS.get(formula_version, _DIRECT_ONLY)
 
-    def failed(status: str = "missing_inputs") -> CreditImpulseResult:
-        return CreditImpulseResult(formula_version, status)
+    def failed(
+        status: str = "missing_inputs", failures: tuple[InputFailure, ...] = ()
+    ) -> CreditImpulseResult:
+        return CreditImpulseResult(formula_version, status, failures=failures)
 
-    def held(metric_id: str, dimensions: Mapping[str, str]) -> list[MetricSeriesPoint]:
-        return _usable(
-            repository.metric_series(
+    held = {
+        metric_id: [
+            point
+            for point in repository.metric_series(
                 metric_id, mode=as_of_mode, as_of=as_of, definition_version=definition_version
-            ),
-            dimensions,
-        )
-
-    ytd_gdp = held("CN_GDP", _GDP_YTD)
-    ytd_social_financing = held("CN_SF_TOTAL", _SOCIAL_FINANCING_YTD)
+            )
+            if point.claims
+        ]
+        for metric_id in INPUT_PERIODS
+    }
+    may_difference = {
+        "CN_SF_TOTAL": version.social_financing_from_ytd,
+        "CN_GDP": version.gdp_from_ytd,
+    }
+    ytd_gdp = _usable(held["CN_GDP"], _GDP_YTD)
+    ytd_social_financing = _usable(held["CN_SF_TOTAL"], _SOCIAL_FINANCING_YTD)
     gdp_reading = _reading(
-        held("CN_GDP", _GDP),
+        _usable(held["CN_GDP"], _GDP),
         ytd_gdp if version.gdp_from_ytd else None,
         count=INPUT_PERIODS["CN_GDP"],
         periods_per_year=4,
         difference=_quarter_levels_from_ytd,
     )
     social_reading = _reading(
-        held("CN_SF_TOTAL", _SOCIAL_FINANCING),
+        _usable(held["CN_SF_TOTAL"], _SOCIAL_FINANCING),
         ytd_social_financing if version.social_financing_from_ytd else None,
         count=INPUT_PERIODS["CN_SF_TOTAL"],
         periods_per_year=12,
         difference=_monthly_flows_from_ytd,
     )
-    if isinstance(gdp_reading, str) and gdp_reading == "missing":
-        return failed()
-    if isinstance(social_reading, str):
-        return failed(
-            "nonconsecutive_social_financing_inputs"
-            if social_reading == "nonconsecutive"
-            else "missing_inputs"
+    readings = {
+        metric_id: reading
+        for metric_id, reading in (("CN_SF_TOTAL", social_reading), ("CN_GDP", gdp_reading))
+        if not isinstance(reading, str)
+    }
+    # Each parent is told what it can be, neither hiding the other (ticket 28); the status
+    # keeps the order it had: periods first, then originals, then GDP vintages.
+    failures = [
+        failure
+        for metric_id, reading in (("CN_SF_TOTAL", social_reading), ("CN_GDP", gdp_reading))
+        if isinstance(reading, str)
+        for failure in _shortfall(metric_id, held[metric_id], may_difference[metric_id])
+    ]
+    statuses = []
+    if gdp_reading == "missing" or social_reading == "missing":
+        statuses.append("missing_inputs")
+    elif social_reading == "nonconsecutive":
+        statuses.append("nonconsecutive_social_financing_inputs")
+    elif gdp_reading == "nonconsecutive":
+        statuses.append("nonconsecutive_gdp_inputs")
+    adoption = ClaimAdoption(repository, definition_version=definition_version).check(
+        {metric_id: tuple(reading.inputs) for metric_id, reading in readings.items()}
+    )
+    differenced_gdp = readings["CN_GDP"].differenced if "CN_GDP" in readings else []
+    if any(adoption[metric_id].rechecked for metric_id in readings):
+        for metric_id, reading in readings.items():
+            refused = [
+                point
+                for point in reading.inputs
+                if point.selected_claim_id not in adoption.adoptable(metric_id)
+            ]
+            if refused:
+                statuses.append("incomplete_source_artifacts")
+                failures.append(
+                    InputFailure(
+                        metric_id,
+                        "not_adoptable",
+                        tuple(_period_label(metric_id, point.period_end) for point in refused),
+                        tuple(sorted({official_member(metric_id, p.dimensions) for p in refused})),
+                    )
+                )
+        one_delivery = (
+            _quarters_from_one_delivery(
+                repository, differenced_gdp, definition_version=definition_version, as_of=as_of
+            )
+            if differenced_gdp
+            else set()
         )
-    if isinstance(gdp_reading, str):
-        return failed("nonconsecutive_gdp_inputs")
+        announced = {
+            point.selected_claim_id: value
+            for point, value, _inputs in differenced_gdp
+            if point.selected_claim_id is not None and point.selected_claim_id not in one_delivery
+        }
+        if announced and (
+            unmatched := set(announced)
+            - official_gdp_quarters_matching_baselines(repository, announced)
+        ):
+            statuses.append("incomparable_gdp_vintages")
+            failures.append(
+                InputFailure(
+                    "CN_GDP",
+                    "incomparable_gdp_vintages",
+                    tuple(
+                        _period_label("CN_GDP", point.period_end)
+                        for point, _value, _inputs in differenced_gdp
+                        if point.selected_claim_id in unmatched
+                    ),
+                    (official_member("CN_GDP", _GDP_YTD),),
+                )
+            )
+    if statuses:
+        return failed(statuses[0], tuple(failures))
+    assert isinstance(gdp_reading, _Reading) and isinstance(social_reading, _Reading)
     gdp_period_points = gdp_reading.periods
     gdp_numbers = gdp_reading.numbers
     gdp_input_points = gdp_reading.inputs
     gdp_input_measure = (
         "nominal_ytd_level" if gdp_reading.differenced else "nominal_quarterly_level"
     )
-    quarter_values = {
-        point.selected_claim_id: value
-        for point, value, _inputs in gdp_reading.differenced
-        if point.selected_claim_id is not None
-    }
-    one_delivery = (
-        _quarters_from_one_delivery(
-            repository, gdp_reading.differenced, definition_version=definition_version, as_of=as_of
-        )
-        if gdp_reading.differenced
-        else set()
-    )
     social_period_points = social_reading.periods
     social_numbers = social_reading.numbers
     social_input_points = social_reading.inputs
     parents = (*social_input_points, *gdp_input_points)
-    adoption = ClaimAdoption(repository, definition_version=definition_version).check(
-        {"CN_SF_TOTAL": tuple(social_input_points), "CN_GDP": tuple(gdp_input_points)}
-    )
-    if adoption["CN_SF_TOTAL"].rechecked or adoption["CN_GDP"].rechecked:
-        adoptable = adoption.adoptable("CN_SF_TOTAL") | adoption.adoptable("CN_GDP")
-        if {point.selected_claim_id for point in parents} - adoptable:
-            return failed("incomplete_source_artifacts")
-        announced = {
-            claim_id: value
-            for claim_id, value in quarter_values.items()
-            if claim_id not in one_delivery
-        }
-        if announced and set(announced) - official_gdp_quarters_matching_baselines(
-            repository, announced
-        ):
-            return failed("incomparable_gdp_vintages")
     try:
         value = calculate(
             current_rolling_social_financing=sum(social_numbers[-12:]),
@@ -340,7 +408,17 @@ def derive(
             previous_rolling_nominal_gdp=sum(gdp_numbers[:4]),
         )
     except ValueError:
-        return failed("invalid_gdp_denominator")
+        return failed(
+            "invalid_gdp_denominator",
+            (
+                InputFailure(
+                    "CN_GDP",
+                    "invalid_gdp_denominator",
+                    tuple(_period_label("CN_GDP", p.period_end) for p in gdp_period_points),
+                    (official_member("CN_GDP", _GDP_YTD if gdp_reading.differenced else _GDP),),
+                ),
+            ),
+        )
     claims = [claim for point in parents if (claim := selected_claim(point)) is not None]
     public_times = [
         claim.public_available_at for claim in claims if claim.public_available_at is not None
@@ -438,6 +516,84 @@ def _direct_wins(direct_end: str | None, differenced_end: str | None) -> bool:
     one parent, as period ends or as period labels.
     """
     return direct_end is not None and (differenced_end is None or direct_end >= differenced_end)
+
+
+_MEASURES = {
+    "CN_SF_TOTAL": (_SOCIAL_FINANCING, _SOCIAL_FINANCING_YTD),
+    "CN_GDP": (_GDP, _GDP_YTD),
+}
+
+
+def _shortfall(
+    metric_id: str, points: list[MetricSeriesPoint], may_difference: bool
+) -> tuple[InputFailure, ...]:
+    """What keeps a parent's window from being read, reason by reason (ticket 28).
+
+    The window is the parent's periods back from the newest one held in a measure the
+    version reads (in the other, when it reads nothing held). A parent with nothing held
+    names no periods: the run plan's gaps say which. A period read neither directly nor
+    differenced is ``value_missing`` (held without a value), ``parent_unusable`` (held,
+    not selected or not validated), ``invalid_difference`` (both year-to-date figures
+    held, their difference refused), ``latest_not_aligned`` (the newest year-to-date
+    figure has no figure before it to difference from), ``base_period_missing`` (naming
+    the period missing before it), ``differencing_not_allowed`` (only a year-to-date
+    figure the version may not read), or ``missing_periods``. Periods each read but not
+    by one measure throughout are ``measures_do_not_join``.
+    """
+    direct, ytd = _MEASURES[metric_id]
+    read = [direct, ytd] if may_difference else [direct]
+    members = tuple(official_member(metric_id, dimensions) for dimensions in read)
+    relevant = [point for point in points if point.dimensions in read]
+    # Only a figure the version may not read, when nothing it reads is held at all.
+    basis = relevant or [point for point in points if point.dimensions == ytd]
+    if not basis:
+        return (InputFailure(metric_id, "missing_periods", (), members),)
+    newest = max(_period_label(metric_id, point.period_end) for point in basis)
+    window = preceding_periods(newest, INPUT_PERIODS[metric_id])
+    directly = {_period_label(metric_id, p.period_end) for p in _usable(points, direct)}
+    ytd_points = _usable(points, ytd)
+    ytd_held = {_period_label(metric_id, p.period_end) for p in ytd_points}
+    difference = _quarter_levels_from_ytd if metric_id == "CN_GDP" else _monthly_flows_from_ytd
+    differenced = (
+        {_period_label(metric_id, point.period_end) for point, _v, _i in difference(ytd_points)}
+        if may_difference
+        else set()
+    )
+    reasons: dict[str, list[str]] = {}
+    for period in window:
+        if period in directly or period in differenced:
+            continue
+        at = [p for p in relevant if _period_label(metric_id, p.period_end) == period]
+        if any(point.selected_value is None for point in at):
+            reason = "value_missing"
+        elif at and not (may_difference and period in ytd_held):
+            reason = "parent_unusable"
+        elif may_difference and period in ytd_held:
+            base = preceding_periods(period, 2)[0]
+            if base in ytd_held:
+                # Both figures held, the difference refused (GDP's must be positive).
+                reason = "invalid_difference"
+            elif period == window[-1]:
+                reason = "latest_not_aligned"
+            else:
+                reason = "base_period_missing"
+            if reason == "base_period_missing":
+                period = preceding_periods(period, 2)[0]
+                if period in window and period not in directly | differenced:
+                    continue  # The missing base is a window period, told for itself.
+        elif not may_difference and period in ytd_held:
+            reason = "differencing_not_allowed"
+        else:
+            reason = "missing_periods"
+        reasons.setdefault(reason, [])
+        if period not in reasons[reason]:
+            reasons[reason].append(period)
+    if not reasons:
+        return (InputFailure(metric_id, "measures_do_not_join", window, members),)
+    return tuple(
+        InputFailure(metric_id, reason, tuple(periods), members)
+        for reason, periods in reasons.items()
+    )
 
 
 def _inputs_of(derived: Differenced, held: list[MetricSeriesPoint]) -> list[MetricSeriesPoint]:

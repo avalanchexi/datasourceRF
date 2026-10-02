@@ -456,3 +456,91 @@ def test_stale_inputs_computed_the_formula_and_only_annotate_its_timeliness() ->
     )
 
     assert gap == {**listed, "formula_status": "stale_inputs"}
+
+
+def test_a_failed_credit_impulse_lists_only_what_the_formula_could_not_read() -> None:
+    """The formula's own failures, not every unfinished member of its parents (#28)."""
+    macro, inventory = _credit_documents("incomparable_gdp_vintages")
+    formula = cast(dict[str, object], cast(dict[str, object], macro)["credit"])["formula"]
+    gdp_ytd = 'CN_GDP:{"aggregate": "total", "measure": "nominal_ytd_level"}'
+    cast(dict[str, object], formula)["failures"] = [
+        {
+            "metric_id": "CN_GDP",
+            "reason": "incomparable_gdp_vintages",
+            "periods": ["2025-Q2", "2025-Q3"],
+            "members": [gdp_ytd],
+        }
+    ]
+
+    (gap,) = add_projection_gaps(
+        (),
+        (macro, inventory),
+        derived_requirements=(_CREDIT_REQUIREMENT,),
+        # GDP's year-on-year growth is a member the formula does not read.
+        plan_gaps=(
+            {
+                "complete": False,
+                "metric_id": "CN_GDP",
+                "period": "2026-Q2",
+                "missing_members": ['CN_GDP:{"measure": "yoy"}'],
+            },
+        ),
+        definitions=metric_catalog_v0003(),
+    )
+
+    assert gap["category"] == "derived_failed"
+    assert gap["missing_inputs"] == [
+        {
+            "metric_id": "CN_GDP",
+            "period": period,
+            "missing_members": [gdp_ytd],
+            "reason": "incomparable_gdp_vintages",
+        }
+        for period in ("2025-Q2", "2025-Q3")
+    ]
+
+
+def test_a_parent_held_not_at_all_takes_its_periods_from_the_plan() -> None:
+    """Nothing held names no period; the plan's do, with the members the formula reads."""
+    macro, inventory = _credit_documents("missing_inputs")
+    formula = cast(dict[str, object], cast(dict[str, object], macro)["credit"])["formula"]
+    sf_ytd = 'CN_SF_TOTAL:{"measure": "ytd_increment"}'
+    cast(dict[str, object], formula)["failures"] = [
+        {
+            "metric_id": "CN_SF_TOTAL",
+            "reason": "missing_periods",
+            "periods": [],
+            "members": [sf_ytd],
+        }
+    ]
+
+    (gap,) = add_projection_gaps(
+        (),
+        (macro, inventory),
+        derived_requirements=(_CREDIT_REQUIREMENT,),
+        plan_gaps=(
+            {
+                "complete": False,
+                "metric_id": "CN_SF_TOTAL",
+                "period": "2024-08",
+                "missing_members": [sf_ytd, 'CN_SF_TOTAL:{"measure": "month_end_stock"}'],
+            },
+            # Only a member the formula does not read.
+            {
+                "complete": False,
+                "metric_id": "CN_SF_TOTAL",
+                "period": "2024-09",
+                "missing_members": ['CN_SF_TOTAL:{"measure": "month_end_stock"}'],
+            },
+        ),
+        definitions=metric_catalog_v0003(),
+    )
+
+    assert gap["missing_inputs"] == [
+        {
+            "metric_id": "CN_SF_TOTAL",
+            "period": "2024-08",
+            "missing_members": [sf_ytd],
+            "reason": "missing_periods",
+        }
+    ]

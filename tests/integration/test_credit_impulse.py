@@ -15,7 +15,7 @@ import pytest
 import pring_cycle.evidence as evidence_module
 from pring_cycle import credit_impulse
 from pring_cycle.catalog import metric_definition
-from pring_cycle.evidence import AsOfMode, EvidenceRepository
+from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
 from pring_cycle.freshness import FRESHNESS_REGISTRY, release_at
 from pring_cycle.retrieval import preceding_periods
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -439,6 +439,221 @@ def test_the_plan_asks_for_a_base_period_by_the_rule_the_derivation_reads_by(
     assert result["CN_GDP"][:2] == (("2024-Q1", "2026-Q1") if unusable else ("2024-Q2", "2026-Q1"))
 
 
+SF_MONTHLY = 'CN_SF_TOTAL:{"measure": "monthly_increment"}'
+SF_YTD = 'CN_SF_TOTAL:{"measure": "ytd_increment"}'
+GDP_QUARTERLY = 'CN_GDP:{"aggregate": "total", "measure": "nominal_quarterly_level"}'
+GDP_YTD_MEMBER = 'CN_GDP:{"aggregate": "total", "measure": "nominal_ytd_level"}'
+
+
+def reasons(result: Any) -> list[tuple[str, str, tuple[str, ...], tuple[str, ...]]]:
+    return [(f.metric_id, f.reason, f.periods, f.members) for f in result.failures]
+
+
+def ytd_months(repository: EvidenceRepository, months: list[tuple[int, int]]) -> None:
+    for year, month in months:
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_SF_TOTAL",
+                period_start=f"{year:04d}-{month:02d}-01",
+                period_end=month_end(year, month),
+                dimensions={"measure": "ytd_increment"},
+                value=2.0 * month,
+                unit="hundred_million_cny",
+            )
+        )
+
+
+def test_both_parents_short_are_told_at_once(repository: EvidenceRepository) -> None:
+    # GDP used to be asked first and hid social financing's gap (ticket 28).
+    social_financing(repository, "monthly_increment", skip=(2025, 3))
+    gdp(repository, "nominal_quarterly_level", skip=(2024, 2))
+
+    result = derive(repository, V1)
+
+    assert result.status == "missing_inputs"
+    assert reasons(result) == [
+        ("CN_SF_TOTAL", "missing_periods", ("2025-03",), (SF_MONTHLY,)),
+        ("CN_GDP", "missing_periods", ("2024-Q2",), (GDP_QUARTERLY,)),
+    ]
+
+
+def test_a_window_without_its_base_names_the_base_period(
+    repository: EvidenceRepository,
+) -> None:
+    # 2024-02 to 2026-01 differenced needs 2024-01 to subtract from.
+    ytd_months(repository, [(2024 + (m - 1) // 12, (m - 1) % 12 + 1) for m in range(2, 26)])
+    gdp(repository, "nominal_ytd_level")
+
+    result = derive(repository, YTD_FLOW)
+
+    assert result.status == "missing_inputs"
+    assert reasons(result) == [
+        ("CN_SF_TOTAL", "base_period_missing", ("2024-01",), (SF_MONTHLY, SF_YTD))
+    ]
+
+
+def test_a_newest_figure_that_cannot_be_differenced_is_not_aligned(
+    repository: EvidenceRepository,
+) -> None:
+    ytd_months(
+        repository,
+        [
+            (year, month)
+            for year in (2023, 2024, 2025)
+            for month in range(1, 13)
+            if (year, month) != (2025, 11)
+        ],
+    )
+    gdp(repository, "nominal_ytd_level")
+
+    result = derive(repository, YTD_FLOW)
+
+    assert reasons(result) == [
+        ("CN_SF_TOTAL", "missing_periods", ("2025-11",), (SF_MONTHLY, SF_YTD)),
+        ("CN_SF_TOTAL", "latest_not_aligned", ("2025-12",), (SF_MONTHLY, SF_YTD)),
+    ]
+
+
+def test_a_period_held_without_a_value_or_not_usable_is_named(
+    repository: EvidenceRepository,
+) -> None:
+    social_financing(repository, "monthly_increment", skip=(2025, 5))
+    repository.append_source_claim(
+        replace(
+            _certified_claim(
+                metric_id="CN_SF_TOTAL",
+                period_start="2025-05-01",
+                period_end=month_end(2025, 5),
+                dimensions={"measure": "monthly_increment"},
+                value=3.0,
+                unit="hundred_million_cny",
+            ),
+            value=None,
+            value_state=EvidenceValueState.NOT_DISCLOSED,
+        )
+    )
+    gdp(repository, "nominal_quarterly_level", skip=(2025, 2))
+    repository.append_source_claim(
+        replace(
+            _certified_claim(
+                metric_id="CN_GDP",
+                period_start="2025-04-01",
+                period_end=month_end(2025, 6),
+                dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"},
+                value=30.0,
+                unit="hundred_million_cny",
+            ),
+            quality_status="unverified",
+        )
+    )
+
+    result = derive(repository, V1)
+
+    assert reasons(result) == [
+        ("CN_SF_TOTAL", "value_missing", ("2025-05",), (SF_MONTHLY,)),
+        ("CN_GDP", "parent_unusable", ("2025-Q2",), (GDP_QUARTERLY,)),
+    ]
+
+
+def test_figures_the_version_may_not_difference_are_named(
+    repository: EvidenceRepository,
+) -> None:
+    social_financing(repository, "monthly_increment")
+    gdp(repository, "nominal_ytd_level")
+
+    result = derive(repository, V1)
+
+    ((metric, reason, periods, members),) = reasons(result)
+    assert (metric, reason, members) == ("CN_GDP", "differencing_not_allowed", (GDP_QUARTERLY,))
+    assert periods == preceding_periods("2025-Q4", 8)
+
+
+def test_a_difference_refused_with_both_figures_held_is_no_missing_base(
+    repository: EvidenceRepository,
+) -> None:
+    # 2025's second year-to-date level falls below its first: Q2 is held, its base too.
+    social_financing(repository, "monthly_increment")
+    for year, cumulative in {2024: GDP_YTD[2024], 2025: (25.0, 20.0, 90.0, 130.0)}.items():
+        for quarter, level in enumerate(cumulative, start=1):
+            repository.append_source_claim(
+                _certified_claim(
+                    metric_id="CN_GDP",
+                    period_start=f"{year:04d}-01-01",
+                    period_end=month_end(year, quarter * 3),
+                    dimensions={"aggregate": "total", "measure": "nominal_ytd_level"},
+                    value=level,
+                    unit="hundred_million_cny",
+                )
+            )
+
+    result = derive(repository, SHARE)
+
+    assert reasons(result) == [
+        ("CN_GDP", "invalid_difference", ("2025-Q2",), (GDP_QUARTERLY, GDP_YTD_MEMBER))
+    ]
+
+
+def test_periods_read_by_different_measures_do_not_join(repository: EvidenceRepository) -> None:
+    # 2024 only as year-to-date levels, 2025 only as quarterly ones: four quarters each.
+    social_financing(repository, "monthly_increment")
+    for quarter, level in enumerate(GDP_YTD[2024], start=1):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_GDP",
+                period_start="2024-01-01",
+                period_end=month_end(2024, quarter * 3),
+                dimensions={"aggregate": "total", "measure": "nominal_ytd_level"},
+                value=level,
+                unit="hundred_million_cny",
+            )
+        )
+    for quarter in range(1, 5):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_GDP",
+                period_start=f"2025-{quarter * 3 - 2:02d}-01",
+                period_end=month_end(2025, quarter * 3),
+                dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"},
+                value=30.0,
+                unit="hundred_million_cny",
+            )
+        )
+
+    result = derive(repository, SHARE)
+
+    assert result.status == "missing_inputs"
+    assert reasons(result) == [
+        (
+            "CN_GDP",
+            "measures_do_not_join",
+            preceding_periods("2025-Q4", 8),
+            (GDP_QUARTERLY, GDP_YTD_MEMBER),
+        )
+    ]
+
+
+def test_a_figure_the_version_may_not_read_does_not_move_the_window(
+    repository: EvidenceRepository,
+) -> None:
+    # Direct quarters to 2025-Q4 lacking 2024-Q2; a 2026-Q2 year-to-date level V1 never reads.
+    social_financing(repository, "monthly_increment")
+    gdp(repository, "nominal_quarterly_level", skip=(2024, 2))
+    repository.append_source_claim(
+        _certified_claim(
+            metric_id="CN_GDP",
+            period_start="2026-01-01",
+            period_end="2026-06-30",
+            dimensions={"aggregate": "total", "measure": "nominal_ytd_level"},
+            value=60.0,
+            unit="hundred_million_cny",
+        )
+    )
+
+    result = derive(repository, V1)
+
+    assert reasons(result) == [("CN_GDP", "missing_periods", ("2024-Q2",), (GDP_QUARTERLY,))]
+
+
 def test_a_version_that_may_not_difference_does_not(repository: EvidenceRepository) -> None:
     social_financing(repository, "ytd_increment")
     gdp(repository, "nominal_ytd_level")
@@ -453,7 +668,13 @@ def test_a_break_in_the_social_financing_months_stops_the_impulse(
     social_financing(repository, "ytd_increment", skip=(2025, 2))
     gdp(repository, "nominal_ytd_level")
 
-    assert derive(repository, YTD_FLOW).status == "nonconsecutive_social_financing_inputs"
+    result = derive(repository, YTD_FLOW)
+
+    assert result.status == "nonconsecutive_social_financing_inputs"
+    # March cannot be differenced without February, which is told for itself.
+    assert reasons(result) == [
+        ("CN_SF_TOTAL", "missing_periods", ("2025-02",), (SF_MONTHLY, SF_YTD))
+    ]
 
 
 def test_a_break_in_the_gdp_quarters_stops_the_impulse(repository: EvidenceRepository) -> None:
@@ -471,7 +692,10 @@ def test_a_break_in_the_gdp_quarters_stops_the_impulse(repository: EvidenceRepos
         )
     )
 
-    assert derive(repository, V1).status == "nonconsecutive_gdp_inputs"
+    result = derive(repository, V1)
+
+    assert result.status == "nonconsecutive_gdp_inputs"
+    assert reasons(result) == [("CN_GDP", "missing_periods", ("2024-Q3",), (GDP_QUARTERLY,))]
 
 
 def test_a_gdp_denominator_that_is_not_positive_is_named(repository: EvidenceRepository) -> None:
@@ -489,7 +713,12 @@ def test_a_gdp_denominator_that_is_not_positive_is_named(repository: EvidenceRep
                 )
             )
 
-    assert derive(repository, V1).status == "invalid_gdp_denominator"
+    result = derive(repository, V1)
+
+    assert result.status == "invalid_gdp_denominator"
+    assert reasons(result) == [
+        ("CN_GDP", "invalid_gdp_denominator", preceding_periods("2025-Q4", 8), (GDP_QUARTERLY,))
+    ]
 
 
 def test_an_unconfigured_formula_is_disabled(repository: EvidenceRepository) -> None:

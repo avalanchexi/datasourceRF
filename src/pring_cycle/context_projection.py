@@ -2081,6 +2081,8 @@ def _credit_impulse_proxy(
         "formula": credit_impulse.FORMULA,
         "status": result.status,
     }
+    if result.failures:
+        formula["failures"] = [failure.document() for failure in result.failures]
     if (
         formula_version is None
         or result.status != "available"
