@@ -101,8 +101,8 @@ from pring_cycle.storage import database_health, keep_database_open, record_work
 from pring_cycle.trading_calendar import (
     Sessions,
     SseCalendar,
-    TradingCalendar,
     current_calendar,
+    judging_calendar,
     run_calendar_scope,
     use_run_calendar,
 )
@@ -396,8 +396,11 @@ def _execute_run(
             full_retrieval.recover_legacy_plan(run)
     full_retrieval.evaluate(run)
     plan = runs.full_retrieval_plan(run.run_id)
-    calendar = TradingCalendar(
-        date.fromisoformat(day) for day in plan["final"]["daily_window"].get("dates", ())
+    # Freshness is judged at the cutoff, past the window: a holiday in between is closed.
+    calendar = judging_calendar(
+        paths,
+        (date.fromisoformat(day) for day in plan["final"]["daily_window"].get("dates", ())),
+        run.system_as_of,
     )
     use_run_calendar(calendar)
     use_release_schedule(batch_schedule(paths.database, run.run_id))

@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from functools import cache
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository, utc_now
 from pring_cycle.runtime import RuntimePaths
@@ -357,6 +358,29 @@ class CalendarAdapter(Protocol):
     def acquire_calendar(
         self, repository: AcquisitionRepository, start: date, end: date
     ) -> Acquired[tuple[date, ...]]: ...
+
+
+_SHANGHAI = ZoneInfo("Asia/Shanghai")
+
+
+def judging_calendar(
+    paths: RuntimePaths, window_sessions: Iterable[date], judged_at: datetime
+) -> TradingCalendar:
+    """A run's SSE sessions, reaching on to the day its freshness is judged.
+
+    The window ends at the target day, but freshness is judged at the cutoff, often days later.
+    Between the two the stored calendar answers, so a holiday is closed rather than a weekday
+    owed (run-findings 01): a domestic metric carries its last session through it. Days the
+    stored calendar does not cover still fall back to weekdays; a foreign metric keeps its own
+    market's calendar (``market_calendar``).
+    """
+    sessions = set(window_sessions)
+    judged_on = judged_at.astimezone(_SHANGHAI).date()
+    if sessions and judged_on > max(sessions):
+        later = SseCalendar(paths, as_of=judged_at).sessions_between(max(sessions), judged_on)
+        if later is not None:
+            return TradingCalendar(sessions | set(later), through=judged_on)
+    return TradingCalendar(sessions)
 
 
 def acquire_sse_calendar(

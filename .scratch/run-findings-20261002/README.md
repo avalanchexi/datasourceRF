@@ -19,7 +19,7 @@
 
 | 票 | 问题 | 是否重构回归 | 状态 |
 |---|---|---|---|
-| [01](issues/01-holiday-due-period-calendar-coverage.md) | 节假日被当成应有期：运行内日历只覆盖到目标日（同 20260928 票 03，当时 wontfix） | 否，既有 | ready-for-agent |
+| [01](issues/01-holiday-due-period-calendar-coverage.md) | 节假日被当成应有期：运行内日历只覆盖到目标日（同 20260928 票 03，当时 wontfix） | 否，既有 | done |
 | [02](issues/02-catalog-switch-hides-unchanged-claims.md) | 目录版本切换使语义未变的声明全部不可见 | 是，由票 25 触发 | done（07、08、09） |
 | [03](issues/03-czce-warrant-ssl-failures.md) | 郑商所仓单 14 天 SSL 失败 | 未见证据 | needs-triage |
 | [04](issues/04-czce-acquisition-time-invalid.md) | 郑商所 5/18 `acquisition_time_invalid`（同 20260928 票 01） | 否，既有 | needs-triage |

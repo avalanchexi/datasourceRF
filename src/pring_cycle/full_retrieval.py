@@ -40,7 +40,11 @@ from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
 from pring_cycle.storage import database_connection
-from pring_cycle.trading_calendar import TradingCalendar, current_calendar, use_run_calendar
+from pring_cycle.trading_calendar import (
+    current_calendar,
+    judging_calendar,
+    use_run_calendar,
+)
 
 
 class FullRunRetrieval:
@@ -71,8 +75,13 @@ class FullRunRetrieval:
             self._backtrack_events(run)
         version = str(initial["definition_version"])
         if dates := initial.get("daily_window", {}).get("dates"):
-            # Judge release times against the run's SSE calendar, not weekdays.
-            use_run_calendar(TradingCalendar(date.fromisoformat(day) for day in dates))
+            # Judge release times against the run's SSE calendar, not weekdays, on to its
+            # cutoff (a holiday after the target is closed).
+            use_run_calendar(
+                judging_calendar(
+                    self.paths, (date.fromisoformat(day) for day in dates), run.system_as_of
+                )
+            )
         runs = RunRepository(self.paths.database)
         for document in initial["scopes"]:
             scope = _scope(document)
