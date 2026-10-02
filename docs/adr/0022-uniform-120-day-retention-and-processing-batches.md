@@ -1,5 +1,5 @@
 ---
-status: accepted（2026-09-25 修订：报告正文同为 120 交易日；2026-10-02 修订：公式回看入库，派生观测的父声明随其保留，措辞待确认）
+status: accepted（2026-09-25 修订：报告正文同为 120 交易日；2026-10-02 修订：公式回看入库，派生观测的父声明随其保留）
 ---
 
 # 明细、汇总与加工批次统一只留 120 个交易日
@@ -12,4 +12,4 @@ status: accepted（2026-09-25 修订：报告正文同为 120 交易日；2026-1
 
 **2026-09-25 修订（用户选择，验收发现 [06](../../.scratch/acceptance-findings-20260925/issues/06-report-body-30-day-clear.md)）**：报告正文与其他汇总一样保留 120 个交易日，删除维护清理中“30 天后清空报告正文”的规则。事件指标现行基准的窗口外保留例外仍见 [ADR-0028](0028-event-metrics-current-baseline-and-discovery.md)。
 
-**2026-10-02 修订（[架构评审](../../.scratch/architecture-review-20260929/README.md)票 [29](../../.scratch/architecture-review-20260929/issues/29-retain-derived-parents.md)，措辞待确认）**：公式回看入库并在成功运行末尾清理，正文已按实际订正。留存清理新增第二个窗口外例外：仍在留存期内的派生观测，保留它计算所用的父来源声明及其原件关联，使派生血缘可以回读；派生观测过期删除后，它的父声明照常随窗口清理。第一个例外仍是事件指标的现行基准（[ADR-0028](0028-event-metrics-current-baseline-and-discovery.md)）。
+**2026-10-02 修订（[架构评审](../../.scratch/architecture-review-20260929/README.md)票 [29](../../.scratch/architecture-review-20260929/issues/29-retain-derived-parents.md)，2026-10-02 用户确认措辞）**：公式回看入库并在成功运行末尾清理，正文已按实际订正。留存清理新增第二个窗口外例外：仍在留存期内的派生观测，保留它计算所用的父来源声明及其原件关联，使派生血缘可以回读；派生观测过期删除后，它的父声明照常随窗口清理。第一个例外仍是事件指标的现行基准（[ADR-0028](0028-event-metrics-current-baseline-and-discovery.md)）。
