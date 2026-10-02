@@ -19,11 +19,11 @@
 
 | 票 | 问题 | 是否重构回归 | 状态 |
 |---|---|---|---|
-| [01](issues/01-holiday-due-period-calendar-coverage.md) | 节假日被当成应有期：运行内日历只覆盖到目标日（同 20260928 票 03，当时 wontfix） | 否，既有 | needs-triage |
-| [02](issues/02-catalog-switch-hides-unchanged-claims.md) | 目录版本切换使语义未变的声明全部不可见 | 是，由票 25 触发 | needs-triage |
+| [01](issues/01-holiday-due-period-calendar-coverage.md) | 节假日被当成应有期：运行内日历只覆盖到目标日（同 20260928 票 03，当时 wontfix） | 否，既有 | ready-for-agent |
+| [02](issues/02-catalog-switch-hides-unchanged-claims.md) | 目录版本切换使语义未变的声明全部不可见 | 是，由票 25 触发 | ready-for-agent |
 | [03](issues/03-czce-warrant-ssl-failures.md) | 郑商所仓单 14 天 SSL 失败 | 未见证据 | needs-triage |
 | [04](issues/04-czce-acquisition-time-invalid.md) | 郑商所 5/18 `acquisition_time_invalid`（同 20260928 票 01） | 否，既有 | needs-triage |
 | [05](issues/05-rejected-candidate-overrides-held-target.md) | 已取得目标期被旧候选改判"检索未通过" | 否，既有 | needs-triage |
 | [06](issues/06-tushare-price-delivery-january-ppi.md) | TuShare CPI/PPI 含一月累计值整次被拒 | 否，既有（票 30 核对项） | needs-triage |
 
-**下一步**：用户分流（`/triage`）。
+**分流（2026-10-02）**：01 节假日沿用上一期、国内国外分开（ready-for-agent）；02 按 [ADR-0036](../../docs/adr/0036-observation-identity-by-same-definition.md) 实施（ready-for-agent）。顺序 02 → 01，两张完成后跑一次真实完整运行一起验收。03–06 待分流。
