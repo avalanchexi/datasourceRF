@@ -6,7 +6,7 @@
 
 **勿并行：** 24、25、30（同改 Worker 取数）
 
-**Status:** ready-for-agent
+**Status:** done
 
 来源：用户访谈（2026-10-01，/grill-with-docs），排在 M7 真实运行之前。事实调查见 `scratchpad/ratelimit-survey.md` 与 TuShare 官网（[积分与频次权限对应表](https://tushare.pro/document/1?doc_id=290)）。
 
@@ -30,9 +30,34 @@
 
 ## 验收
 
-- [ ] 限额登记表（按积分档与接口），未登记接口取每分钟 50 次；积分档待用户提供。
-- [ ] 每分钟节流在 TuShare 请求入口（核心、上下文、资讯共用），测试可注入时钟、不真实等待。
-- [ ] 每日额度：本库计数到 90% 主动停，记未尝试；被以每日额度拒绝则本轮停用该接口、下次运行至多试探一次。
-- [ ] 按 TDD：每分钟超额前等待；每日额度用尽主动停（未尝试、不算失败）；被拒后本轮不再请求、下轮只试探一次；无权限不按限频退避。
-- [ ] 受影响测试经 `check.py quick` 通过；切片收尾冒烟通过；涉及 Worker 取数，另加跑完整目录正例。
-- [ ] 代码审查无阻断。
+- [x] 限额登记表（按积分档与接口），未登记接口取每分钟 50 次；积分档待用户提供。
+- [x] 每分钟节流在 TuShare 请求入口（核心、上下文、资讯共用），测试可注入时钟、不真实等待。
+- [x] 每日额度：本库计数到 90% 主动停，记未尝试；被以每日额度拒绝则本轮停用该接口、下次运行至多试探一次。
+- [x] 按 TDD：每分钟超额前等待；每日额度用尽主动停（未尝试、不算失败）；被拒后本轮不再请求、下轮只试探一次；无权限不按限频退避。
+- [x] 受影响测试经 `check.py quick` 通过；切片收尾冒烟通过；涉及 Worker 取数，另加跑完整目录正例。
+- [x] 代码审查无阻断。
+
+## Comments
+
+- **2026-10-02 用户决定**：积分档先按保守默认登记，即每分钟 50 次、每日 8000 次（120 积分档）；用户以后补上实际档位时，只改登记表一处。
+
+**2026-10-02 实施记录**
+
+- **登记表** `tushare_quota.py`：积分档 `TIERS`（120：每分钟 50、账户每日 8000；200：每分钟 100、每接口每日 10 万；500：每分钟 500），`ACCOUNT_TIER = TIERS[120]` 一处切换；接口授权 `INTERFACE_GRANTS`：`major_news` 每日 40、`stock_basic` 每分钟 50、`daily` 每分钟 500（低档仍取档位 50）；未登记接口每分钟 50。准入：每分钟 80%（40），每日 90%（账户 7200、`major_news` 36）。
+- **入口**：门控放在 `AcquisitionRepository.capture()` 写回执之前（`provider == "tushare"`），核心、上下文（含广度、篮子、仓单）、资讯、发布预告共用；主动停下不写回执，因此 TuShare 回执数即已发请求数（写回执后、发请求前的失败保守计入）。未经回执的纯 transport 调用（适配器单测、冒烟）不受门控，也不计数。
+- **每分钟**：同接口最近 60 秒回执滑动窗口，满 40 等最老一条移出；时钟为回执时钟 `acquisition.utc_now`，等待经 `PACING.sleep`。测试 `conftest` 自动把等待换成推进所有被替换时钟的同一偏移，不真实等待。
+- **每日**：北京时间自然日内的 TuShare 回执计数，账户总量与接口限额同时检查；到额抛 `TushareCallNotAttempted`（`OSError`，`acquisition_step="start"`），按既有分支记为 `not_attempted`、`condition=tushare_daily_quota_exhausted`、`request_sent=false`，不算获取失败；缺数照常为 `missing`。
+- **每日拒收**：40203 且消息含"次/天""每天""每日"判为 `quota="daily"`（分类仍为 `rate_limited`，票 22 账本退避不变）。被拒回执的 `rejection_reason` 记 `tushare_daily_quota_refused: <原文>`；获取尝试记业务码、分类、`quota` 与 `source_message` 原文。此后直到该接口收到正常响应（`received`／`validated` 或经结构检查；HTTP 错误、再次拒收都不算），每次运行至多发一次：本轮（`full_run_acquisition` 或 `retrieval_physical_request` 归属当前批次）已有该接口回执即停，`condition=tushare_daily_quota_refused`；超时的试探也算这一次，补缺的传输重试不再发出。无权限、每分钟拒收不停接口。不预设恢复时间，无新表、无迁移。
+- **调用点**：Worker 家族循环、上下文 `acquire_scalars`、补缺账本（显式返回 `not_attempted`，不重试）、核心历史（记未尝试；真实拒收补记 `source_failed` 获取尝试）、发布预告（`cn_schedule` 非零业务码改抛 `TushareRefused`；主动停下在 `full_run_gap_plan` 记 `release_schedule_held_back`）。上下文重试被每日额度拦下时保留此前真实请求的失败。
+- **资讯**：主动停下的结果为 `tushare_daily_quota_exhausted`；`pull_news` 开始记 `news_pull_started`、结束记 `news_pull`（`full_run_gap_plan`），`news_window` 跳过有开始而无完整结束的运行，主动停下或中断的拉取由下一轮补读。
+- **汇总**：配额未尝试不覆盖同成员已有的任何结果、不计为成功。
+- **留存**：最近两天的 TuShare 回执不随无引用清理删除，免得当日计数被"返还"。
+- **页面**：`tushare_daily_quota_exhausted`「当日配额用尽」、`tushare_daily_quota_refused`「当日配额被来源拒绝，本轮停用该接口」。
+- **测试**：`test_tushare_call_quota.py`（新，16 例：登记表；超分钟等待、接口隔离；每日主动停不算失败、次日恢复；账户总量；本轮停用、下轮一次试探、试探超时、HTTP 503 不算答复、排队运行仍可试探、定向运行按检索请求归属；拒收原文；分钟／无权限不停；未尝试不掩盖失败与成功；重试被拦保留超时）；`test_tushare_news.py` 新增主动停下与中断后下轮补读两例；`test_retention.py` 新增当日 TuShare 回执保留一例。
+- **行为差异（只记录，未改）**：
+  - 核心交易日历（`trade_cal`）在账户当日总量用尽或本轮被每日拒收时取不到，运行如现行规则失败。
+  - 每日计数只见本库回执；测试或手工探测的外部消耗不可见。补缺账本对每日拒收仍按限频退避一小时。
+  - 门控检查与写回执之间不加锁，按票面"调用串行、不做并发控制"。
+- **验证**（`PYTHONPATH=src` 直跑 pytest，范围同 `check.py quick`）：凡涉及 TuShare、获取结果、补缺账本、资讯、页面或 Worker 编排的 69 个文件，933 例中 932 过；唯一失败 `test_retention.py::test_unreferenced_originals_are_removed_from_disk` 因本票保留当日 TuShare 回执而起，测试改为越过计数期再清理后通过。另有一次 `test_local_runtime_cli.py` 失败系源码树中 10-01 遗留的 `__pycache__`（与本票无关，删除后通过）。最终代码重跑留存、限额、资讯三文件 45 例过；完整目录正例与三核心反例 4 例过（5.1 分钟），请求量与票 30 相同，`fut_wsr` 42／48 次触发分钟节流（测试中不真实等待）。ruff、mypy 通过（测试文件原有报错不变）。
+- **审查**（Codex 只读，四轮）：首轮 8 项阻断（本轮判定误用受理时间、试探超时可再发、核心主动停下无记录、拒收原文未存、`cn_schedule` 未分类、资讯中断窗口、未尝试覆盖成功、测试时钟脱节）；次轮 4 项（定向运行归属、预告无记录、核心真实拒收无获取尝试、重试掩盖超时）；三轮 1 项（HTTP 503 被当作答复）；均已修，四轮无阻断。勘察建议的 `sent_at` 列、配额状态表与迁移未采用，审查认可以回执计数与回执标记替代。
+

@@ -78,6 +78,13 @@ def failed_to_acquire(attempt: AttemptView) -> bool:
     return attempt.outcome in SOURCE_FAILED_OUTCOMES | VALIDATION_FAILED_OUTCOMES
 
 
+def held_for_quota(attempt: AttemptView) -> bool:
+    """Whether no request went out for a TuShare quota spent or refused for the day."""
+    return attempt.outcome == NOT_ATTEMPTED and (attempt.condition or "").startswith(
+        "tushare_daily_quota_"
+    )
+
+
 def attempt_details(
     *,
     step: str,
@@ -142,6 +149,11 @@ def capture_failure(error: Exception) -> tuple[str, dict[str, str]]:
         if error.classification is not None:
             # What the adapter read the code as (ticket 22): a rate limit, no permission.
             refused["classification"] = error.classification
+        if (quota := getattr(error, "quota", None)) is not None:
+            refused["quota"] = quota
+        if (message := getattr(error, "source_message", None)) is not None:
+            # The source's own words, kept past its original (ticket 31).
+            refused["source_message"] = message
         return SOURCE_FAILED, refused
     if step == "start":
         return NOT_ATTEMPTED, attempt_details(
@@ -367,10 +379,15 @@ class BatchAcquisition:
                 continue
             if attempt.metadata.get("target_business_date", run[1]) == run[1]:
                 member = (attempt.metadata.get("symbol"), attempt.metadata.get("business_date"))
-                latest[(attempt.metric_id, *member)] = attempt
+                key = (attempt.metric_id, *member)
+                # A call held back for the day's quota sent nothing: what was tried before it
+                # stands, a failure or a success (ticket 31).
+                if held_for_quota(attempt) and key in latest:
+                    continue
+                latest[key] = attempt
         last_success: dict[tuple[str, object], datetime] = {}
         for (metric_id, symbol, _day), attempt in latest.items():
-            if not failed_to_acquire(attempt):
+            if not failed_to_acquire(attempt) and not held_for_quota(attempt):
                 symbol_key = (metric_id, symbol)
                 last_success[symbol_key] = max(
                     attempt.recorded_at, last_success.get(symbol_key, attempt.recorded_at)

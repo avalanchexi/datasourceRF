@@ -37,7 +37,11 @@ from pring_cycle.evidence import (
 from pring_cycle.http_transport import NoRedirect
 from pring_cycle.metric_contracts import CZCE_WARRANT_SYMBOLS
 from pring_cycle.runtime import RuntimePaths
-from pring_cycle.source_adapters import TUSHARE_ENDPOINT, tushare_refusal
+from pring_cycle.source_adapters import (
+    TUSHARE_ENDPOINT,
+    tushare_quota_refused,
+    tushare_refusal,
+)
 from pring_cycle.source_families import (
     TUSHARE_CPI_FIELDS,
     TUSHARE_GDP_FIELDS,
@@ -46,6 +50,7 @@ from pring_cycle.source_families import (
     TUSHARE_PPI_FIELDS,
     TUSHARE_SF_TOTAL_FIELDS,
 )
+from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 Transport = Callable[[dict[str, Any]], dict[str, Any] | bytes]
 
@@ -1069,16 +1074,18 @@ class TushareContextAdapter:
             document = json.loads(response) if isinstance(response, bytes) else response
             code = int(document.get("code", -1)) if isinstance(document, dict) else -1
             if code != 0:
-                # The code (and its message) tells a rate limit from a permission refusal.
-                refusal = tushare_refusal(
-                    code, document.get("msg") if isinstance(document, dict) else None
-                )
+                # The code (and its message) tells a rate limit from a permission refusal,
+                # and a day's quota from a minute's.
+                message = document.get("msg") if isinstance(document, dict) else None
+                refusal = tushare_refusal(code, message)
                 raise TushareSourceError(
                     "tushare_rate_limited"
                     if refusal == "rate_limited"
                     else f"tushare_source_failed:{code}",
                     external_code=code,
                     classification=refusal,
+                    quota=tushare_quota_refused(code, message),
+                    source_message=message,
                 )
             rows = _response_rows(document, required_fields=fields)
             _validate_response_periods(rows, params)
@@ -1101,7 +1108,7 @@ class TushareContextAdapter:
                 if on_started is not None:
                     on_started(acquisition_id)
 
-            self._failure = None
+            earlier, self._failure = self._failure, None
             try:
                 acquired = acquisitions.capture(
                     provider="tushare",
@@ -1121,8 +1128,10 @@ class TushareContextAdapter:
                 )
             except Exception as error:
                 # Kept as the source or the response said it, for the attempt this call ends
-                # (a request wrapper may translate the exception it passes on).
-                self._failure = error
+                # (a request wrapper may translate the exception it passes on). A retry held
+                # back for TuShare's day leaves the request that failed before it (ticket 31).
+                held = isinstance(error, TushareCallNotAttempted) and earlier is not None
+                self._failure = earlier if held else error
                 raise
             self._receipts.append(acquired.receipt)
             return acquired.value

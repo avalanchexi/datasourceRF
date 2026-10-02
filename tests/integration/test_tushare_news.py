@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from pring_cycle import tushare_quota
 from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
@@ -24,6 +25,7 @@ from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.storage import database_connection
 from pring_cycle.tushare_news import pull_news, run_news
+from pring_cycle.tushare_quota import InterfaceGrant
 from tests.conftest import install_runtime_clock
 from tests.fixtures.model_registration import prepared_request, save, submit
 from tests.integration.test_claim_adoption import adoption_of
@@ -523,6 +525,74 @@ def test_a_pull_cut_short_by_the_daily_quota_is_read_again_by_the_next_run(
     assert hole not in news_times(paths, short)
 
     feed.quota = 40
+    after, outcome = pulled_run(
+        paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
+    )
+
+    assert outcome == "verified_candidate"
+    assert hole in news_times(paths, after)
+
+
+def test_a_pull_stopped_for_the_day_s_quota_is_read_again_by_the_next_run(
+    registered_late: tuple[RuntimePaths, str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Ticket 31: stopped before the source refused, no page failed; it is still cut short."""
+    paths, model_id, _version = registered_late
+    feed = NewsFeed(every=timedelta(minutes=2))
+    monkeypatch.setitem(tushare_quota.INTERFACE_GRANTS, "major_news", InterfaceGrant(daily=5))
+    short, outcome = pulled_run(
+        paths,
+        model_id,
+        feed,
+        target="2026-09-23",
+        at=datetime(2026, 9, 24, 15, 11, tzinfo=SHANGHAI),
+    )
+    assert outcome == "tushare_daily_quota_exhausted"
+    assert len(feed.requests) == 4
+    hole = datetime(2026, 9, 21, 12, tzinfo=SHANGHAI)
+    assert hole not in news_times(paths, short)
+
+    # The next day, the quota whole again, and as it is granted.
+    tushare_quota.PACING.skip(timedelta(days=1).total_seconds())
+    monkeypatch.setitem(tushare_quota.INTERFACE_GRANTS, "major_news", InterfaceGrant(daily=40))
+    after, outcome = pulled_run(
+        paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
+    )
+
+    assert outcome == "verified_candidate"
+    assert hole in news_times(paths, after)
+
+
+def test_a_pull_cut_off_before_it_ended_is_read_again_by_the_next_run(
+    registered_late: tuple[RuntimePaths, str, str],
+) -> None:
+    """Ticket 31: pages read and then the process stopped; no page failed, no end said."""
+    paths, model_id, _version = registered_late
+    feed = NewsFeed(every=timedelta(minutes=2))
+
+    def cut_off(payload: dict[str, Any]) -> bytes:
+        if len(feed.requests) == 3:
+            raise KeyboardInterrupt
+        return feed(payload)
+
+    runs = RunRepository(paths.database)
+    run = runs.submit_manual_full(
+        target_business_date="2026-09-23",
+        client_request_id="news-cut-off",
+        model_version_id=model_id,
+        system_as_of=datetime(2026, 9, 24, 15, 11, tzinfo=SHANGHAI),
+        cutoff_mode="explicit",
+    )
+    end = datetime(2026, 9, 23, 23, 59, 59, tzinfo=SHANGHAI)
+    with (
+        own_acquisitions(paths.database, run.run_id, "tushare_news"),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        pull_news(paths, run, "fixture-token", end=end, transport=cut_off)
+    runs.advance(run.run_id, "completed")
+    hole = datetime(2026, 9, 21, 12, tzinfo=SHANGHAI)
+    assert hole not in news_times(paths, run.run_id)
+
     after, outcome = pulled_run(
         paths, model_id, feed, target="2026-09-24", at=datetime(2026, 9, 25, 15, tzinfo=SHANGHAI)
     )

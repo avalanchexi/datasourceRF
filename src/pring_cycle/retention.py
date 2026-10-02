@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
@@ -29,6 +29,8 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.storage import database_connection
 
 RETENTION_SESSIONS = 120
+# How long a TuShare call is kept for its day's quota to count it, whatever refers to it.
+QUOTA_COUNTED = timedelta(days=2)
 
 # Run-owned ledgers, deleted with their run.
 _RUN_TABLES = (
@@ -191,13 +193,16 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         delete("batch_freshness", "batch_id IN (SELECT run_id FROM retired_run)")
         delete("release_schedule", "batch_id IN (SELECT run_id FROM retired_run)")
         delete("parent_run", retired)
-        # Calls nothing still refers to: no remaining claim, batch or retrieval request.
+        # Calls nothing still refers to: no remaining claim, batch or retrieval request. A
+        # TuShare call of the last two days stays: it is what the day's quota counts (ticket 31).
         delete(
             "acquisition_request",
             "acquisition_id NOT IN (SELECT acquisition_id FROM source_claim_acquisition) "
             "AND acquisition_id NOT IN (SELECT acquisition_id FROM full_run_acquisition) "
             "AND acquisition_id NOT IN (SELECT acquisition_id FROM retrieval_physical_request "
-            "WHERE acquisition_id IS NOT NULL)",
+            "WHERE acquisition_id IS NOT NULL) "
+            "AND NOT (provider='tushare' AND julianday(started_at) >= julianday(?))",
+            ((now or datetime.now(UTC)) - QUOTA_COUNTED).isoformat(),
         )
         orphans = _orphan_artifacts(connection)
         for content_hash in orphans:

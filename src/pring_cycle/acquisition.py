@@ -17,6 +17,9 @@ from pring_cycle.artifacts import store_artifact
 from pring_cycle.batches import row_count
 from pring_cycle.storage import database_connection
 
+# A TuShare call refused for the day: the mark its receipt keeps (ticket 31).
+DAILY_QUOTA_REFUSED = "tushare_daily_quota_refused"
+
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
@@ -54,12 +57,18 @@ class SourceFailed(OSError):
         *,
         external_code: int | str | None = None,
         classification: str | None = None,
+        quota: str | None = None,
+        source_message: object = None,
     ) -> None:
         super().__init__(reason)
         self.external_code = None if external_code is None else str(external_code)
         # The adapter's reading of the code, for whoever backs off on it (ticket 22):
         # ``rate_limited`` or ``forbidden``.
         self.classification = classification
+        # Which of a rate limit's quotas it names, when it names one (ticket 31): ``daily``.
+        self.quota = quota
+        # What the source said, as it said it, for the attempt to keep (ticket 31).
+        self.source_message = None if source_message is None else str(source_message)[:300]
 
 
 @dataclass(frozen=True)
@@ -223,6 +232,11 @@ class AcquisitionRepository:
     ) -> Acquired[T]:
         if max_error_body_bytes is not None and max_error_body_bytes <= 0:
             raise ValueError("acquisition_error_body_limit_must_be_positive")
+        if provider == "tushare":
+            from pring_cycle.tushare_quota import admit
+
+            # Its quotas first: a call held back writes no receipt and sends nothing.
+            admit(self.database, api_name)
         acquisition_id = "acquisition-" + uuid4().hex
         started_at = clock()
         _check_time(started_at)
@@ -289,7 +303,16 @@ class AcquisitionRepository:
         except Exception as error:
             # Only the response's own check refuses it; a failure before the request went
             # out, of the source, or of this system storing it is no refusal (ticket 18).
-            self.fail_validation(acquisition_id, error, checked=refused_by_parse(error, step))
+            self.fail_validation(
+                acquisition_id,
+                error,
+                checked=refused_by_parse(error, step),
+                reason=(
+                    f"{DAILY_QUOTA_REFUSED}: {getattr(error, 'source_message', None) or ''}"[:300]
+                    if provider == "tushare" and getattr(error, "quota", None) == "daily"
+                    else None
+                ),
+            )
             error.acquisition_step = step  # type: ignore[attr-defined]
             raise
         return Acquired(value, receipt)
@@ -347,7 +370,12 @@ class AcquisitionRepository:
         return self.get(acquisition_id)
 
     def fail_validation(
-        self, acquisition_id: str, error: Exception, *, checked: bool = True
+        self,
+        acquisition_id: str,
+        error: Exception,
+        *,
+        checked: bool = True,
+        reason: str | None = None,
     ) -> None:
         """Close a call as failed; one that had answered was rejected by its structure check,
         or skipped when the caller passed it over for another candidate.
@@ -371,7 +399,7 @@ class AcquisitionRepository:
                    structure_check=CASE WHEN state='received' THEN ? END,
                    rejection_reason=?
                    WHERE acquisition_id=? AND state IN ('started', 'received')""",
-                (type(error).__name__, check, str(error)[:300], acquisition_id),
+                (type(error).__name__, check, reason or str(error)[:300], acquisition_id),
             )
 
     def record_ingest_result(self, acquisition_id: str, error: Exception | None) -> None:

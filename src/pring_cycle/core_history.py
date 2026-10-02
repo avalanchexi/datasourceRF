@@ -6,8 +6,13 @@ from datetime import UTC, date, datetime
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
-from pring_cycle.acquisition import Acquired, AcquisitionReceipt, AcquisitionRepository
-from pring_cycle.acquisition_outcome import SUCCEEDED, attempt_details
+from pring_cycle.acquisition import (
+    Acquired,
+    AcquisitionReceipt,
+    AcquisitionRepository,
+    SourceFailed,
+)
+from pring_cycle.acquisition_outcome import SUCCEEDED, attempt_details, capture_failure
 from pring_cycle.adapters import MarketBar
 from pring_cycle.artifacts import store_artifact
 from pring_cycle.catalog import metric_definition
@@ -20,6 +25,7 @@ from pring_cycle.evidence import (
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.trading_calendar import CalendarAdapter, acquire_sse_calendar
+from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 CORE_HISTORY_SCHEMA_VERSION = "tushare-core-history-v0001"
 
@@ -104,7 +110,31 @@ def refresh_core_history(
                     end=calendar[-1],
                     expected_business_dates=calendar,
                 )
+            except TushareCallNotAttempted as error:
+                # Held back for TuShare's day (ticket 31): nothing sent, said so for the core.
+                outcome, details = capture_failure(error)
+                EvidenceRepository(paths.database).record_retrieval_attempt(
+                    metric_id=metric_id,
+                    channel="tushare-history",
+                    outcome=outcome,
+                    fetched_at=datetime.now(UTC),
+                    safe_metadata=details,
+                )
+                first_rejection = first_rejection or error
+                rejected.append(metric_id)
+                collected.pop(metric_id, None)
+                continue
             except (KeyError, TypeError, ValueError, OSError) as error:
+                if isinstance(error, SourceFailed):
+                    # TuShare's refusal, its code and words, for the core (ticket 31).
+                    outcome, details = capture_failure(error)
+                    EvidenceRepository(paths.database).record_retrieval_attempt(
+                        metric_id=metric_id,
+                        channel="tushare-history",
+                        outcome=outcome,
+                        fetched_at=datetime.now(UTC),
+                        safe_metadata=details,
+                    )
                 first_rejection = first_rejection or error
                 # Gate ③: this core's response failed its structure check (or never came)
                 # and was recorded on its call; the other cores are still kept.

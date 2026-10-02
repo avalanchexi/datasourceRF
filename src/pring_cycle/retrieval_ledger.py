@@ -22,6 +22,7 @@ from pring_cycle.catalog_registry import require_registered_manifest
 from pring_cycle.models import ModelRepository
 from pring_cycle.retrieval import RUN_SEARCH_LIMITS, RetrievalAdapterResponse
 from pring_cycle.storage import database_connection
+from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 if TYPE_CHECKING:
     from pring_cycle.runs import RunRecord
@@ -441,6 +442,9 @@ class RetrievalLedger:
             return RetrievalAdapterResponse(
                 "not_attempted", classification=str(error), cache_hit=error.cache_hit
             )
+        except TushareCallNotAttempted as error:
+            # Held back for TuShare's day (ticket 31): nothing sent, nothing to retry.
+            return RetrievalAdapterResponse("not_attempted", classification=error.condition)
         except HTTPError as error:
             http_status = error.code
             response_headers = dict(error.headers)

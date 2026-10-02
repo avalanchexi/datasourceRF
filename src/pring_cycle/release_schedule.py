@@ -11,10 +11,11 @@ for the rest of the run.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import UTC, date, datetime, time
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -23,7 +24,9 @@ from zoneinfo import ZoneInfo
 
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.runtime import RuntimePaths
+from pring_cycle.source_adapters import TushareRefused
 from pring_cycle.storage import database_connection
+from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 CN_SCHEDULE = "tushare:cn_schedule"
@@ -76,6 +79,9 @@ def parse_cn_schedule(raw: bytes) -> tuple[ScheduleEntry, ...]:
     document = json.loads(raw)
     if not isinstance(document, dict):
         raise ValueError("cn_schedule_response_not_object")
+    if (code := document.get("code")) != 0 and isinstance(code, int):
+        # TuShare's refusal, read as its other interfaces' are (tickets 22, 31).
+        raise TushareRefused(code, document.get("msg"))
     data = document.get("data")
     if document.get("code") != 0 or not isinstance(data, dict):
         raise ValueError("cn_schedule_source_failed")
@@ -181,6 +187,28 @@ def _post_tushare(token: str, payload: dict[str, object]) -> bytes:
     return TushareContextAdapter(token)._post({**payload, "token": token})
 
 
+def _record_held_back(paths: RuntimePaths, batch_id: str, error: TushareCallNotAttempted) -> None:
+    """The batch's note that ``cn_schedule`` was not asked, why and when (ticket 31)."""
+    document = json.dumps(
+        {"api_name": error.api_name, "at": datetime.now(UTC).isoformat(), "condition": str(error)},
+        sort_keys=True,
+    )
+    with database_connection(paths.database) as connection:
+        if (
+            connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
+            ).fetchone()
+            and connection.execute(
+                "SELECT 1 FROM parent_run WHERE run_id=?", (batch_id,)
+            ).fetchone()
+        ):
+            connection.execute(
+                "INSERT OR IGNORE INTO full_run_gap_plan "
+                "VALUES (?, 'release_schedule_held_back', ?, ?)",
+                (batch_id, document, hashlib.sha256(document.encode()).hexdigest()),
+            )
+
+
 def refresh_release_schedule(paths: RuntimePaths, batch_id: str, target: date) -> int:
     """Record this batch's pre-announcements from ``cn_schedule`` and the NBS schedule page."""
     from pring_cycle.secrets import parse_data_source_secrets
@@ -204,6 +232,9 @@ def refresh_release_schedule(paths: RuntimePaths, batch_id: str, target: date) -
                 normalize=lambda entries: [_document(entry) for entry in entries],
             )
             received.extend((entry, acquired.receipt.acquisition_id) for entry in acquired.value)
+        except TushareCallNotAttempted as error:
+            # Held back for TuShare's day: no call to record it on (ticket 31).
+            _record_held_back(paths, batch_id, error)
         except (OSError, ValueError, KeyError, TypeError):
             pass  # Recorded on the call; the NBS page is next.
     # The NBS page is always read: some sources (industrial output and profits, capacity

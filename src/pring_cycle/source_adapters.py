@@ -382,6 +382,18 @@ def tushare_refusal(code: int, message: object = None) -> str | None:
     return "rate_limited"
 
 
+def tushare_quota_refused(code: int, message: object = None) -> str | None:
+    """Which quota a TuShare rate limit names: ``daily`` for a day's (``40次/天``), else none.
+
+    A minute's rate (每分钟最多访问) and a refusal naming no quota are left to the backoff
+    (ticket 22); a day's stops the interface for the run (ticket 31).
+    """
+    if tushare_refusal(code, message) != "rate_limited":
+        return None
+    text = "" if message is None else str(message)
+    return "daily" if any(mark in text for mark in ("次/天", "每天", "每日")) else None
+
+
 class TushareRefused(SourceFailed, ValueError):
     """TuShare answered with a non-zero code (a permission refusal, a rate limit).
 
@@ -394,6 +406,8 @@ class TushareRefused(SourceFailed, ValueError):
             "tushare_source_failed",
             external_code=code,
             classification=tushare_refusal(code, message),
+            quota=tushare_quota_refused(code, message),
+            source_message=message,
         )
         self.code = code
 

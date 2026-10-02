@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterator
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -22,6 +22,7 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
+from pring_cycle.retention import QUOTA_COUNTED, prune_to_window
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
@@ -135,6 +136,8 @@ def test_details_summaries_and_batches_before_the_window_are_deleted(
 
 def test_unreferenced_originals_are_removed_from_disk(pruned: dict[str, Any]) -> None:
     paths = pruned["paths"]
+    # Once the day's TuShare quota no longer counts them (ticket 31).
+    prune_to_window(paths, now=datetime.now(UTC) + QUOTA_COUNTED + timedelta(days=1))
     kept = {row[0] for row in query(paths, "SELECT raw_hash FROM acquisition_request")}
 
     gone = pruned["old_raw"] - kept
@@ -406,6 +409,34 @@ def test_a_derived_value_in_the_window_keeps_the_claims_it_was_computed_from(
     assert not {expired, unread} & claims
     assert not {expired_call, unread_call} & calls
     assert not any((paths.artifacts / h[:2] / h).exists() for h in (expired_raw, unread_raw))
+
+
+def test_today_s_tushare_calls_stay_for_the_day_s_quota(
+    pruned: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Ticket 31: a call nothing refers to still counts against the day's quota."""
+    paths = pruned["paths"]
+    receipt = (
+        AcquisitionRepository(paths.database, paths.artifacts)
+        .capture(
+            provider="tushare",
+            api_name="major_news",
+            parameters={"page": "orphan"},
+            fields="title",
+            parser_version="fixture-parser",
+            fetch=lambda: b"{}",
+            parse=lambda raw: raw,
+            normalize=lambda raw: raw.decode(),
+        )
+        .receipt
+    )
+
+    main(["retention-prune", "--runtime-root", str(paths.override_root), "--json"])
+    capsys.readouterr()
+
+    assert query(
+        paths, "SELECT 1 FROM acquisition_request WHERE acquisition_id=?", receipt.acquisition_id
+    ) == [(1,)]
 
 
 def test_retention_command_is_a_no_op_without_a_successful_run(

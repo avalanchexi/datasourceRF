@@ -29,6 +29,7 @@ from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import TushareRefused
 from pring_cycle.storage import database_connection
+from pring_cycle.tushare_quota import TushareCallNotAttempted
 
 if TYPE_CHECKING:
     from pring_cycle.news_rules import NewsValue, TakenValue
@@ -71,8 +72,9 @@ def news_window(paths: RuntimePaths, run: RunRecord, end: datetime) -> tuple[dat
     """From where the last complete pull before ``end`` ended, a week back at most, to ``end``.
 
     Runs chain by what their pulls read, not by their cutoffs: a run cut off on Monday for
-    Friday read nothing after Friday. A pull with a failed page read only part of its window,
-    so it is passed over; a rerun for the same day passes over its predecessor's pull.
+    Friday read nothing after Friday. A pull with a failed page, or held back for the day's
+    quota, read only part of its window, so it is passed over; a rerun for the same day
+    passes over its predecessor's pull.
     """
     # The interface takes whole seconds: a target day's end (23:59:59.999999) is 23:59:59.
     end = _published(_stamp(end))
@@ -82,6 +84,11 @@ def news_window(paths: RuntimePaths, run: RunRecord, end: datetime) -> tuple[dat
             "FROM full_run_acquisition o JOIN acquisition_request a USING(acquisition_id) "
             "JOIN parent_run r ON r.run_id=o.run_id WHERE a.api_name=? AND o.run_id<>? "
             "AND r.status='completed' AND r.command_type IN ('manual_full', 'scheduled_full') "
+            "AND o.run_id NOT IN (SELECT started.run_id FROM full_run_gap_plan AS started "
+            "LEFT JOIN full_run_gap_plan AS ended ON ended.run_id=started.run_id "
+            "AND ended.phase='news_pull' WHERE started.phase='news_pull_started' "
+            "AND coalesce(json_extract(ended.document_json, '$.outcome'), '') "
+            "<> 'verified_candidate') "
             "GROUP BY o.run_id HAVING sum(a.state<>'validated')=0",
             (NEWS_API, run.run_id),
         ).fetchall()
@@ -118,6 +125,8 @@ def pull_news(
     from pring_cycle.tushare_context import _response_rows
 
     start, stop = news_window(paths, run, end)
+    # Started, so a pull cut off before it ends is not taken for a whole one (ticket 31).
+    _record_pull(paths, run.run_id, "news_pull_started", "started")
     acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
     send = transport or _post
     seen: set[str] = set()
@@ -163,7 +172,9 @@ def pull_news(
             )
         except (OSError, TimeoutError, ValueError) as error:
             outcome = (
-                (
+                error.condition
+                if isinstance(error, TushareCallNotAttempted)
+                else (
                     "tushare_rate_limited"
                     if error.classification == "rate_limited"
                     else "tushare_source_failed"
@@ -183,7 +194,23 @@ def pull_news(
         if oldest <= start or oldest >= stop:
             break
         stop = oldest
+    _record_pull(paths, run.run_id, "news_pull", outcome)
     return outcome
+
+
+def _record_pull(paths: RuntimePaths, run_id: str, phase: str, outcome: str) -> None:
+    """That the run's pull started, or how it first ended: one held back for the quota, or
+    cut off, left no failed page to say it read only part of its window (ticket 31)."""
+    document = json.dumps({"outcome": outcome}, sort_keys=True)
+    with database_connection(paths.database) as connection:
+        if not connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE name='full_run_gap_plan'"
+        ).fetchone():
+            return
+        connection.execute(
+            "INSERT OR IGNORE INTO full_run_gap_plan VALUES (?, ?, ?, ?)",
+            (run_id, phase, document, hashlib.sha256(document.encode()).hexdigest()),
+        )
 
 
 def _item_key(row: dict[str, object]) -> str:

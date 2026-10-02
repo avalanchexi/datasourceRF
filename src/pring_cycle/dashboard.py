@@ -1522,6 +1522,8 @@ def _state_label(value: object) -> str:
         "ingest_rejected": "入库契约拒收",
         "local_failed": "本地处理失败",
         "not_attempted": "未发出请求",
+        "tushare_daily_quota_exhausted": "当日配额用尽",
+        "tushare_daily_quota_refused": "当日配额被来源拒绝，本轮停用该接口",
         "period_mismatch": "输入报告期不一致",
         "no_attempt_for_target": "未记录此目标日与定义的获取结果",
         "derived_from_inputs": "由输入证据计算",

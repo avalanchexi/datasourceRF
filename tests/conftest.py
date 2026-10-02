@@ -15,10 +15,27 @@ def _clock_datetime(now: Callable[[], datetime]) -> type[datetime]:
     class ClockDateTime(datetime, metaclass=ClockMeta):
         @classmethod
         def now(cls, tz=None):
-            value = now()
+            from pring_cycle import tushare_quota
+
+            # A TuShare quota's wait, skipped, moves every patched clock on alike (ticket 31).
+            value = now() + tushare_quota.PACING.skipped
             return value.astimezone(tz) if tz is not None else value.replace(tzinfo=None)
 
     return ClockDateTime
+
+
+@pytest.fixture(autouse=True)
+def quota_pacing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """TuShare's minute rate kept without waiting: the quota's clock moves on (ticket 31)."""
+    from pring_cycle import tushare_quota
+
+    pacing = tushare_quota.Pacing()
+    monkeypatch.setattr(pacing, "sleep", pacing.skip)
+    monkeypatch.setattr(tushare_quota, "PACING", pacing)
+    # The receipts' clock, unless a test sets its own: both add what was skipped.
+    monkeypatch.setattr(
+        "pring_cycle.acquisition.datetime", _clock_datetime(lambda: datetime.now(UTC))
+    )
 
 
 @pytest.fixture
