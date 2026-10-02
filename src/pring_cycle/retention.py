@@ -11,6 +11,9 @@ The tables were append-only by trigger. Their delete guards are lifted inside th
 transaction and put back before it commits, so every other writer still cannot delete.
 Formula lookback older than the window is fetched by each run, used, and removed here at
 the run's end; the run's own acquisition rows keep the call parameters and response hashes.
+Two kinds of older claims stay: a metric in force until changed keeps its current baseline
+(ADR-0028), and a derived observation still kept keeps the claims it was computed from, with
+their acquisition links and originals, so its lineage can be read back (ticket 29).
 """
 
 from __future__ import annotations
@@ -148,13 +151,17 @@ def prune_to_window(paths: RuntimePaths, *, now: datetime | None = None) -> Rete
         delete("evidence_snapshot", "date(as_of_cutoff) < ?", start)
         # Details.
         # A metric in force until changed keeps each member's latest period: it is the
-        # current baseline, however old (ADR-0028).
+        # current baseline, however old (ADR-0028). A derived observation still kept keeps
+        # the claims it was computed from; the expired ones are already gone (ticket 29).
         baselines = sorted(EFFECTIVE_UNTIL_CHANGED_METRICS)
         connection.execute(
             "CREATE TEMP TABLE retired_claim AS SELECT claim_id FROM source_claim AS c "
             "WHERE period_end < ? AND NOT (metric_id IN (SELECT value FROM json_each(?)) "
             "AND period_end = (SELECT max(period_end) FROM source_claim AS latest "
-            "WHERE latest.metric_id=c.metric_id AND latest.dimensions_json=c.dimensions_json))",
+            "WHERE latest.metric_id=c.metric_id AND latest.dimensions_json=c.dimensions_json)) "
+            "AND claim_id NOT IN (SELECT parent.value FROM derived_observation AS d, "
+            "json_each(d.input_observation_version_ids_json) AS parent "
+            "WHERE parent.value IS NOT NULL)",
             (start, json.dumps(baselines)),
         )
         delete("claim_matched_quote", "claim_id IN (SELECT claim_id FROM retired_claim)")

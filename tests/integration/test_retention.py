@@ -12,8 +12,14 @@ from typing import Any
 
 import pytest
 
+from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.cli import main
-from pring_cycle.evidence import EvidenceRepository, EvidenceValueState, SourceClaimInput
+from pring_cycle.evidence import (
+    AsOfMode,
+    EvidenceRepository,
+    EvidenceValueState,
+    SourceClaimInput,
+)
 from pring_cycle.models import ModelRepository
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runs import RunRepository
@@ -312,6 +318,94 @@ def test_the_latest_event_before_the_window_stays_as_the_current_baseline(
     assert latest in kept
     assert earlier not in kept
     assert (latest,) in query(paths, "SELECT claim_id FROM claim_matched_quote")
+
+
+def test_a_derived_value_in_the_window_keeps_the_claims_it_was_computed_from(
+    pruned: dict[str, Any], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Ticket 29: a kept derived value's parents stay with their originals, however old."""
+    paths = pruned["paths"]
+    evidence = EvidenceRepository(paths.database)
+    acquisitions = AcquisitionRepository(paths.database, paths.artifacts)
+
+    def old_claim(name: str, value: float) -> tuple[str, str, str]:
+        receipt = acquisitions.capture(
+            provider="fixture",
+            api_name=f"lookback_{name}",
+            parameters={"month": "202512"},
+            fields="value",
+            parser_version="fixture-parser",
+            fetch=lambda: f"lookback {name}".encode(),
+            parse=lambda raw: raw,
+            normalize=lambda raw: raw.decode(),
+        ).receipt
+        assert receipt.received_at and receipt.validated_at
+        [claim] = evidence.append_source_claims(
+            (
+                SourceClaimInput(
+                    metric_id="CN_DR007",
+                    definition_version="metric-catalog-v0001",
+                    period_kind="business_day",
+                    period_start=OLD,
+                    period_end=OLD,
+                    dimensions={},
+                    value=value,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="scalar",
+                    provider="fixture",
+                    source_reference=f"fixture:lookback:{name}",
+                    release_event_id=f"fixture:lookback:{name}",
+                    release_at=None,
+                    public_available_at=None,
+                    fetched_at=receipt.received_at,
+                    available_at=receipt.validated_at,
+                    quality_status="validated",
+                    acquisition_id=receipt.acquisition_id,
+                ),
+            )
+        )
+        return claim.claim_id, receipt.acquisition_id, str(receipt.raw_hash)
+
+    def derived(inputs: tuple[str, ...], cutoff: datetime) -> str:
+        return evidence.append_derived_observation(
+            metric_id="CN_CREDIT_IMPULSE",
+            formula_version="fixture-formula",
+            input_observation_version_ids=inputs,
+            as_of_mode=AsOfMode.SYSTEM,
+            as_of_cutoff=cutoff,
+            computed_at=datetime.now(UTC),
+            value=1.0,
+            unit="percent",
+        ).derived_observation_id
+
+    read, read_call, read_raw = old_claim("read", 1.71)
+    expired, expired_call, expired_raw = old_claim("expired", 1.72)
+    unread, unread_call, unread_raw = old_claim("unread", 1.73)
+    kept = derived((read,), datetime(2026, 8, 3, 7, tzinfo=UTC))
+    gone = derived((expired,), datetime(2026, 1, 5, 7, tzinfo=UTC))
+
+    main(["retention-prune", "--runtime-root", str(paths.override_root), "--json"])
+    capsys.readouterr()
+
+    claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+    derived_ids = {
+        row[0] for row in query(paths, "SELECT derived_observation_id FROM derived_observation")
+    }
+    calls = {row[0] for row in query(paths, "SELECT acquisition_id FROM acquisition_request")}
+    assert kept in derived_ids and gone not in derived_ids
+    # Every derived value kept can be read back to the claims it was computed from.
+    for (inputs,) in query(
+        paths, "SELECT input_observation_version_ids_json FROM derived_observation"
+    ):
+        assert set(json.loads(inputs)) <= claims
+    assert (read, read_call) in query(
+        paths, "SELECT claim_id, acquisition_id FROM source_claim_acquisition"
+    )
+    assert read_call in calls and (paths.artifacts / read_raw[:2] / read_raw).exists()
+    # Older claims nothing kept reads go as before, the expired value's parents with it.
+    assert not {expired, unread} & claims
+    assert not {expired_call, unread_call} & calls
+    assert not any((paths.artifacts / h[:2] / h).exists() for h in (expired_raw, unread_raw))
 
 
 def test_retention_command_is_a_no_op_without_a_successful_run(
