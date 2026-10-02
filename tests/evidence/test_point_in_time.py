@@ -111,9 +111,7 @@ def test_provider_identity_lookup_has_a_covering_index(tmp_path: Path) -> None:
         "source_reference",
         "available_at",
     )
-    assert any(
-        "ix_source_claim_provider_identity" in str(row[3]) for row in query_plan
-    )
+    assert any("ix_source_claim_provider_identity" in str(row[3]) for row in query_plan)
 
 
 def test_preloaded_metric_series_only_reselects_changed_observations(
@@ -396,9 +394,7 @@ def test_preloaded_metric_series_preserves_point_in_time_revision_selection(
         for cutoff in cutoffs
     )
 
-    evidence.preload_metric_series(
-        {("CN_CPI_HEADLINE", "metric-catalog-v0001")}
-    )
+    evidence.preload_metric_series({("CN_CPI_HEADLINE", "metric-catalog-v0001")})
     cached = tuple(
         evidence.metric_series(
             "CN_CPI_HEADLINE",
@@ -548,7 +544,13 @@ def test_metric_series_preserves_period_order_and_conflict_status(
     assert series[1].selection_status == "conflicted"
 
 
-def test_metric_series_isolated_by_frozen_definition_version(tmp_path: Path) -> None:
+def test_metric_series_merges_an_unchanged_definition_across_frozen_versions(
+    tmp_path: Path,
+) -> None:
+    """CPI is defined alike in v0001 and v0002: one observation, newest revision (ADR-0036).
+
+    A changed definition stays apart; ``tests/integration/test_same_definition.py`` covers it.
+    """
     evidence = repository(tmp_path)
     v1 = claim(
         value=1.2,
@@ -561,27 +563,18 @@ def test_metric_series_isolated_by_frozen_definition_version(tmp_path: Path) -> 
         value=2.4,
         source_reference="fixture:v2",
         release_event_id="release:v2",
+        available_at=datetime(2026, 7, 15, 3, tzinfo=UTC),
     )
     evidence.append_source_claim(v1)
-    evidence.append_source_claim(v2)
+    stored_v2 = evidence.append_source_claim(v2)
     cutoff = datetime(2026, 7, 16, tzinfo=UTC)
 
-    v1_series = evidence.metric_series(
-        v1.metric_id,
-        mode=AsOfMode.SYSTEM,
-        as_of=cutoff,
-        definition_version="metric-catalog-v0001",
-    )
-    v2_series = evidence.metric_series(
-        v2.metric_id,
-        mode=AsOfMode.SYSTEM,
-        as_of=cutoff,
-        definition_version="metric-catalog-v0002",
-    )
-
-    assert [point.selected_value for point in v1_series] == [1.2]
-    assert [point.selected_value for point in v2_series] == [2.4]
-    assert v1_series[0].observation_id != v2_series[0].observation_id
+    for version in ("metric-catalog-v0001", "metric-catalog-v0002"):
+        series = evidence.metric_series(
+            v1.metric_id, mode=AsOfMode.SYSTEM, as_of=cutoff, definition_version=version
+        )
+        assert [point.selected_value for point in series] == [2.4]
+        assert series[0].selected_claim_id == stored_v2.claim_id
 
 
 def test_trace_derived_lineage_attempts_and_snapshots_are_immutable_ledger_entries(

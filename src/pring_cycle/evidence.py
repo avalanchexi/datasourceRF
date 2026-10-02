@@ -27,6 +27,7 @@ from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.catalog import metric_definition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, require_registered_manifest
 from pring_cycle.metric_contracts import CZCE_PROVIDER, CZCE_WARRANT_SYMBOLS, warrant_provider
+from pring_cycle.same_definition import same_definition_versions
 from pring_cycle.source_contract_review import (
     require_registered_source_contract,
     require_source_contract,
@@ -542,6 +543,15 @@ class EvidenceRepository:
     def database_path(self) -> Path:
         return self._database_path
 
+    def same_definition_versions(
+        self, metric_id: str, version: str, connection: sqlite3.Connection | None = None
+    ) -> tuple[str, ...]:
+        """The versions sharing ``version``'s definition of the metric (ADR-0036)."""
+        if connection is not None:
+            return same_definition_versions(connection, self._database_path, metric_id, version)
+        with self._connect() as opened:
+            return same_definition_versions(opened, self._database_path, metric_id, version)
+
     @classmethod
     def create(cls, database_path: Path) -> EvidenceRepository:
         database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -618,16 +628,35 @@ class EvidenceRepository:
         if not metric_versions:
             return
         ordered = sorted(metric_versions)
-        clauses = " OR ".join("(metric_id=? AND definition_version=?)" for _ in ordered)
-        parameters = tuple(value for pair in ordered for value in pair)
         with self._connect() as connection:
+            groups = {
+                pair: self.same_definition_versions(*pair, connection=connection)
+                for pair in ordered
+            }
+            stored_pairs = sorted(
+                {
+                    (metric_id, version)
+                    for (metric_id, _), versions in groups.items()
+                    for version in versions
+                }
+            )
+            clauses = " OR ".join("(metric_id=? AND definition_version=?)" for _ in stored_pairs)
+            parameters = tuple(value for pair in stored_pairs for value in pair)
             rows = connection.execute(
                 f"SELECT * FROM effective_source_claim WHERE {clauses}",
                 parameters,
             ).fetchall()
-        grouped: dict[tuple[str, str], list[sqlite3.Row]] = {pair: [] for pair in ordered}
+        by_stored_pair: dict[tuple[str, str], list[sqlite3.Row]] = {}
         for row in rows:
-            grouped[(str(row["metric_id"]), str(row["definition_version"]))].append(row)
+            by_stored_pair.setdefault(
+                (str(row["metric_id"]), str(row["definition_version"])), []
+            ).append(row)
+        grouped: dict[tuple[str, str], list[sqlite3.Row]] = {
+            pair: [
+                row for version in versions for row in by_stored_pair.get((pair[0], version), [])
+            ]
+            for pair, versions in groups.items()
+        }
         for pair, pair_rows in grouped.items():
             for mode, time_column in (
                 (AsOfMode.PUBLIC, "public_available_at"),
@@ -926,16 +955,55 @@ class EvidenceRepository:
             AsOfMode.SYSTEM: "available_at",
         }[mode]
         with self._connect() as connection:
-            rows = connection.execute(
-                f"""
-                SELECT * FROM effective_source_claim
-                WHERE observation_id = ?
-                  AND {time_column} IS NOT NULL
-                  AND julianday({time_column}) <= julianday(?)
-                ORDER BY julianday({time_column}), julianday(available_at), claim_id
-                """,
-                (observation_id, _iso(as_of)),
-            ).fetchall()
+            identity = connection.execute(
+                """SELECT metric_id, definition_version, period_kind, period_start, period_end,
+                          dimensions_json
+                FROM source_claim WHERE observation_id=? LIMIT 1""",
+                (observation_id,),
+            ).fetchone()
+            versions = (
+                self.same_definition_versions(
+                    str(identity["metric_id"]),
+                    str(identity["definition_version"]),
+                    connection=connection,
+                )
+                if identity is not None
+                else ()
+            )
+            if identity is None or len(versions) == 1:
+                rows = connection.execute(
+                    f"""
+                    SELECT * FROM effective_source_claim
+                    WHERE observation_id = ?
+                      AND {time_column} IS NOT NULL
+                      AND julianday({time_column}) <= julianday(?)
+                    ORDER BY julianday({time_column}), julianday(available_at), claim_id
+                    """,
+                    (observation_id, _iso(as_of)),
+                ).fetchall()
+            else:
+                # One observation across the versions sharing its definition (ADR-0036).
+                rows = connection.execute(
+                    f"""
+                    SELECT * FROM effective_source_claim
+                    WHERE metric_id = ?
+                      AND definition_version IN ({",".join("?" for _ in versions)})
+                      AND period_kind = ? AND period_start = ? AND period_end = ?
+                      AND dimensions_json = ?
+                      AND {time_column} IS NOT NULL
+                      AND julianday({time_column}) <= julianday(?)
+                    ORDER BY julianday({time_column}), julianday(available_at), claim_id
+                    """,
+                    (
+                        identity["metric_id"],
+                        *versions,
+                        identity["period_kind"],
+                        identity["period_start"],
+                        identity["period_end"],
+                        identity["dimensions_json"],
+                        _iso(as_of),
+                    ),
+                ).fetchall()
         return _select_claim_rows(
             observation_id,
             rows,
@@ -969,7 +1037,6 @@ class EvidenceRepository:
             raise ValueError("public_as_of_must_be_timezone_aware")
         if allow_system_at_public_cutoff and (public_as_of is None or mode is not AsOfMode.SYSTEM):
             raise ValueError("system_target_cutoff_requires_system_and_public_boundary")
-        definition_clause = " AND definition_version=?" if definition_version is not None else ""
         time_column = {
             AsOfMode.PUBLIC: "public_available_at",
             AsOfMode.SYSTEM: "available_at",
@@ -985,15 +1052,14 @@ class EvidenceRepository:
                 " AND (julianday(public_available_at) <= julianday(?)"
                 " OR julianday(available_at) <= julianday(?))"
             )
-        parameters: tuple[object, ...] = (
-            (metric_id, definition_version, _iso(as_of))
-            if definition_version is not None
-            else (metric_id, _iso(as_of))
-        )
+        cutoff_parameters: tuple[object, ...] = (_iso(as_of),)
         if public_as_of is not None:
-            parameters += (_iso(public_as_of),)
+            cutoff_parameters += (_iso(public_as_of),)
             if allow_system_at_public_cutoff:
-                parameters += (_iso(public_as_of),)
+                cutoff_parameters += (_iso(public_as_of),)
+        # Without a version every stored observation stands alone; with one, the versions
+        # sharing its definition are one observation per period and dimensions (ADR-0036).
+        merged = definition_version is not None
         cache_key = (
             (metric_id, definition_version, mode)
             if definition_version is not None and public_as_of is None
@@ -1014,13 +1080,12 @@ class EvidenceRepository:
                 set(state.rows_by_observation) if state.tolerance != tolerance else set()
             )
             for row in cached_rows[state.visible_count : visible_count]:
-                observation_id = str(row["observation_id"])
+                observation_id = _observation_key(row, merged=merged)
                 state.rows_by_observation.setdefault(observation_id, []).append(row)
                 changed_observations.add(observation_id)
             for observation_id in changed_observations:
                 observation_rows = state.rows_by_observation[observation_id]
-                result = _select_claim_rows(
-                    observation_id,
+                result = _select_merged_rows(
                     observation_rows,
                     mode=mode,
                     as_of=as_of,
@@ -1047,6 +1112,18 @@ class EvidenceRepository:
             points = list(state.points_by_observation.values())
         else:
             with self._connect() as connection:
+                versions = (
+                    self.same_definition_versions(
+                        metric_id, definition_version, connection=connection
+                    )
+                    if definition_version is not None
+                    else ()
+                )
+                definition_clause = (
+                    f" AND definition_version IN ({','.join('?' for _ in versions)})"
+                    if versions
+                    else ""
+                )
                 rows = connection.execute(
                     f"""
                     SELECT * FROM effective_source_claim
@@ -1057,7 +1134,7 @@ class EvidenceRepository:
                     ORDER BY period_end, observation_id, julianday({time_column}),
                              julianday(available_at), claim_id
                     """,
-                    parameters,
+                    (metric_id, *versions, *cutoff_parameters),
                 ).fetchall()
             rows_by_observation: dict[str, list[sqlite3.Row]] = {}
             for row in rows:
@@ -1073,11 +1150,10 @@ class EvidenceRepository:
                     )
                 ):
                     continue
-                rows_by_observation.setdefault(str(row["observation_id"]), []).append(row)
+                rows_by_observation.setdefault(_observation_key(row, merged=merged), []).append(row)
             points = []
-            for observation_id, observation_rows in rows_by_observation.items():
-                result = _select_claim_rows(
-                    observation_id,
+            for observation_rows in rows_by_observation.values():
+                result = _select_merged_rows(
                     observation_rows,
                     mode=mode,
                     as_of=as_of,
@@ -1376,6 +1452,47 @@ def _retired_source(row: sqlite3.Row) -> bool:
         return False
     symbol = str(json.loads(row["dimensions_json"]).get("symbol", ""))
     return symbol in CZCE_WARRANT_SYMBOLS and row["provider"] != warrant_provider(symbol)
+
+
+def _observation_key(row: sqlite3.Row, *, merged: bool) -> str:
+    """An observation's identity without the catalog version label (ADR-0036).
+
+    Merged rows reach here already limited to one metric and the versions sharing its
+    definition, so the period and the canonical dimensions are what is left of the identity.
+    Unmerged rows (no version asked for) keep their stored observation.
+    """
+    if not merged:
+        return str(row["observation_id"])
+    return "\x1f".join(
+        (
+            str(row["period_kind"]),
+            str(row["period_start"]),
+            str(row["period_end"]),
+            str(row["dimensions_json"]),
+        )
+    )
+
+
+def _select_merged_rows(
+    rows: list[sqlite3.Row],
+    *,
+    mode: AsOfMode,
+    as_of: datetime,
+    tolerance: float | None,
+) -> EvidenceQueryResult:
+    """Select among one observation's claims, whichever catalog version stored them.
+
+    The point keeps a stored id: the selected claim's, else the first claim's. It is a storage
+    key; ``query`` on it reaches every version's claims.
+    """
+    result = _select_claim_rows(
+        str(rows[0]["observation_id"]), rows, mode=mode, as_of=as_of, tolerance=tolerance
+    )
+    if result.selected_claim_id is not None:
+        for row in rows:
+            if str(row["claim_id"]) == result.selected_claim_id:
+                return replace(result, observation_id=str(row["observation_id"]))
+    return result
 
 
 def _select_claim_rows(
