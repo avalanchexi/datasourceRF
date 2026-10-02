@@ -192,6 +192,22 @@ def test_published_core_states_render_as_domain_ui_instead_of_raw_json() -> None
     assert '"asset": "bond"' not in detail
 
 
+def test_the_12_month_proxy_shows_only_for_a_model_that_keeps_it() -> None:
+    # A model without the proxy publishes no field; an older one shows it, even unavailable.
+    from pring_cycle.dashboard import _asset_card
+
+    asset: dict[str, object] = {
+        "asset": "bond",
+        "metric_id": "CN_BOND_CORE_000012",
+        "state": "bull",
+        "reason": "validated",
+        "latest_business_date": "2026-08-28",
+    }
+
+    assert "12 个月公开代理" not in _text(_asset_card(asset))
+    assert "12 个月公开代理" in _text(_asset_card({**asset, "proxy_12m": None}))
+
+
 def test_home_summarizes_macro_states_without_dumping_nested_evidence_json() -> None:
     projection = ProjectionSet(
         ProjectionEnvelope(

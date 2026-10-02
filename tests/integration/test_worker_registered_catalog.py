@@ -26,6 +26,9 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
 from tests.fixtures.czce_report import czce_exchange
 
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
+
 SCRATCH = Path(__file__).parents[2] / ".scratch/pring-data-acquisition-repair"
 CORE_TRANSPORT = SCRATCH / "core-transport-196"
 TARGET_BUSINESS_DATE = "2026-09-11"
@@ -303,7 +306,7 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-only\n")
     paths.secrets.chmod(0o600)
     requested = serve_august_ppi(monkeypatch)
@@ -323,7 +326,7 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     submitted = runs.submit_manual_full(
         target_business_date=TARGET_BUSINESS_DATE,
         client_request_id="full-automatic-ppi-fallback",
-        model_version_id="model-v0013",
+        model_version_id=CURRENT_MODEL,
         system_as_of=datetime.now(UTC),
     )
 

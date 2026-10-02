@@ -36,7 +36,7 @@ from pring_cycle.context_projection import (
     build_context_projection,
 )
 from pring_cycle.domain import FormalStage
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
+from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.freshness import add_projection_gaps, release_schedule_scope, use_release_schedule
 from pring_cycle.models import ModelRepository
@@ -138,6 +138,7 @@ def _trend_rules(manifest: Mapping[str, object]) -> TrendRules:
             candidate_duration_rule_version=str(
                 document.get("candidate_duration_rule_version", "candidate-duration-v0001")
             ),
+            proxy_12m_enabled=proxy_12m_enabled(document),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("model_trend_rules_invalid") from error
@@ -435,6 +436,7 @@ class DaySummaries:
                     candidate_days=candidate_days,
                     candidate_30d=candidate_30d,
                     proxy_12m=proxy_12m,
+                    proxy_12m_enabled=rules.proxy_12m_enabled,
                     distance_pct=distance_pct,
                     slope_pct=slope_pct,
                     noise_band_pct=noise_band_pct,

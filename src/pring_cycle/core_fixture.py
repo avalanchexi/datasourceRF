@@ -9,7 +9,7 @@ from typing import Any
 
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.domain import FormalStage
-from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend
+from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
 from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
@@ -213,6 +213,7 @@ def _readiness(
         candidate_days=rules.candidate_days_for_output(trend),
         candidate_30d=trend.candidate_30d,
         proxy_12m=trend.proxy_12m,
+        proxy_12m_enabled=rules.proxy_12m_enabled,
         distance_pct=trend.distance_pct,
         slope_pct=trend.slope_pct,
         noise_band_pct=trend.noise_band_pct,
@@ -235,6 +236,7 @@ def _trend_rules(manifest: dict[str, object]) -> TrendRules:
             candidate_duration_rule_version=str(
                 document.get("candidate_duration_rule_version", "candidate-duration-v0001")
             ),
+            proxy_12m_enabled=proxy_12m_enabled(document),
         )
     except (KeyError, TypeError, ValueError) as error:
         raise ValueError("model_trend_rules_invalid") from error

@@ -1,10 +1,13 @@
 """The credit impulse: how much it reads back, how it reads its inputs, and what it computes.
 
-The impulse is the change in social financing's share of nominal GDP over rolling twelve
-months (four quarters): 24 monthly and 8 quarterly periods. Each formula version is a
-policy for reading those inputs -- whether nominal GDP may come from year-to-date levels
-and social financing from year-to-date increments, each differenced into its periods. A
-derivation says why it failed when it does, and which parent claims it stands on.
+The two-year versions take the change in social financing's share of nominal GDP over
+rolling twelve months (four quarters): 24 monthly and 8 quarterly periods. The
+twelve-month version takes the share itself, its direction from the month's flow against
+the same month's a year before: 13 months and 4 quarters (ticket 25). Each formula
+version is a policy for reading those inputs -- whether nominal GDP may come from
+year-to-date levels and social financing from year-to-date increments, each differenced
+into its periods -- and for what it computes, in which unit. A derivation says why it
+failed when it does, and which parent claims it stands on.
 
 The periods it reads are answered here as well, from one cutoff: what a day's derivation
 needs at least (``minimum_requirements``), and what a window's fetch must cover so every
@@ -60,12 +63,26 @@ _GDP = {"aggregate": "total", "measure": "nominal_quarterly_level"}
 _GDP_YTD = {"aggregate": "total", "measure": "nominal_ytd_level"}
 
 
+TWELVE_MONTH_FORMULA = "100 * rolling_12m_social_financing / rolling_4q_nominal_gdp"
+
+
 @dataclass(frozen=True)
 class _Version:
-    """How a formula version may read its inputs besides the direct periods."""
+    """A formula version: what it reads besides the direct periods, and what it computes.
+
+    The two-year versions take the change of the share over 24 months and 8 quarters, in
+    percentage points. The twelve-month one takes the share itself over 13 months (the
+    year and the month a year before it) and 4 quarters, in percent; its direction is the
+    month's flow against that month's a year before, both over the same GDP, so a new GDP
+    quarter moves the value, never the direction (ticket 25, ADR-0035).
+    """
 
     gdp_from_ytd: bool
     social_financing_from_ytd: bool
+    periods: Mapping[str, int] = field(default_factory=lambda: dict(INPUT_PERIODS))
+    twelve_month_share: bool = False
+    unit: str = "percentage_points"
+    formula: str = FORMULA
 
 
 VERSIONS = {
@@ -74,6 +91,14 @@ VERSIONS = {
         gdp_from_ytd=True, social_financing_from_ytd=False
     ),
     "credit-impulse-ytd-flow-v0002": _Version(gdp_from_ytd=True, social_financing_from_ytd=True),
+    "credit-impulse-12m-flow-share-v0003": _Version(
+        gdp_from_ytd=True,
+        social_financing_from_ytd=True,
+        periods={"CN_SF_TOTAL": 13, "CN_GDP": 4},
+        twelve_month_share=True,
+        unit="percent",
+        formula=TWELVE_MONTH_FORMULA,
+    ),
 }
 # A version outside the model's supported set is refused before it gets here.
 _DIRECT_ONLY = VERSIONS["credit-impulse-v0001"]
@@ -145,7 +170,7 @@ def minimum_requirements(
     differenced = {"CN_SF_TOTAL": version.social_financing_from_ytd, "CN_GDP": version.gdp_from_ytd}
     periods: dict[str, tuple[str, ...]] = {}
     for metric_id, latest in latest_released(public_cutoff, calendar).items():
-        window = preceding_periods(latest, INPUT_PERIODS[metric_id])
+        window = preceding_periods(latest, version.periods[metric_id])
         # Read directly when every period is held so, else differenced from year to date.
         direct_end = window[-1] if set(window) <= set(held.get(metric_id, ())) else None
         if (
@@ -267,6 +292,8 @@ class CreditImpulseResult:
     available_at: datetime | None = None
     public_available_at: datetime | None = None
     failures: tuple[InputFailure, ...] = ()
+    direction: str | None = None
+    formula: str = FORMULA
 
 
 def derive(
@@ -285,7 +312,13 @@ def derive(
     def failed(
         status: str = "missing_inputs", failures: tuple[InputFailure, ...] = ()
     ) -> CreditImpulseResult:
-        return CreditImpulseResult(formula_version, status, failures=failures)
+        return CreditImpulseResult(
+            formula_version,
+            status,
+            unit=version.unit,
+            failures=failures,
+            formula=version.formula,
+        )
 
     held = {
         metric_id: [
@@ -295,7 +328,7 @@ def derive(
             )
             if point.claims
         ]
-        for metric_id in INPUT_PERIODS
+        for metric_id in version.periods
     }
     may_difference = {
         "CN_SF_TOTAL": version.social_financing_from_ytd,
@@ -306,16 +339,20 @@ def derive(
     gdp_reading = _reading(
         _usable(held["CN_GDP"], _GDP),
         ytd_gdp if version.gdp_from_ytd else None,
-        count=INPUT_PERIODS["CN_GDP"],
+        count=version.periods["CN_GDP"],
         periods_per_year=4,
         difference=_quarter_levels_from_ytd,
     )
     social_reading = _reading(
         _usable(held["CN_SF_TOTAL"], _SOCIAL_FINANCING),
         ytd_social_financing if version.social_financing_from_ytd else None,
-        count=INPUT_PERIODS["CN_SF_TOTAL"],
+        count=version.periods["CN_SF_TOTAL"],
         periods_per_year=12,
-        difference=_monthly_flows_from_ytd,
+        # The month's flow decides the twelve-month direction against the same month's a
+        # year before, so a binary subtraction tail must not tip a tie.
+        difference=(
+            _exact_monthly_flows_from_ytd if version.twelve_month_share else _monthly_flows_from_ytd
+        ),
     )
     readings = {
         metric_id: reading
@@ -328,7 +365,9 @@ def derive(
         failure
         for metric_id, reading in (("CN_SF_TOTAL", social_reading), ("CN_GDP", gdp_reading))
         if isinstance(reading, str)
-        for failure in _shortfall(metric_id, held[metric_id], may_difference[metric_id])
+        for failure in _shortfall(
+            metric_id, held[metric_id], may_difference[metric_id], version.periods[metric_id]
+        )
     ]
     statuses = []
     if gdp_reading == "missing" or social_reading == "missing":
@@ -400,14 +439,8 @@ def derive(
     social_numbers = social_reading.numbers
     social_input_points = social_reading.inputs
     parents = (*social_input_points, *gdp_input_points)
-    try:
-        value = calculate(
-            current_rolling_social_financing=sum(social_numbers[-12:]),
-            previous_rolling_social_financing=sum(social_numbers[:12]),
-            current_rolling_nominal_gdp=sum(gdp_numbers[-4:]),
-            previous_rolling_nominal_gdp=sum(gdp_numbers[:4]),
-        )
-    except ValueError:
+
+    def invalid_denominator() -> CreditImpulseResult:
         return failed(
             "invalid_gdp_denominator",
             (
@@ -419,6 +452,24 @@ def derive(
                 ),
             ),
         )
+
+    if version.twelve_month_share:
+        rolling_gdp = sum(gdp_numbers)
+        if rolling_gdp <= 0:
+            return invalid_denominator()
+        value = 100 * sum(social_numbers[-12:]) / rolling_gdp
+        direction = _sign(social_numbers[-1] - social_numbers[0])
+    else:
+        try:
+            value = calculate(
+                current_rolling_social_financing=sum(social_numbers[-12:]),
+                previous_rolling_social_financing=sum(social_numbers[:12]),
+                current_rolling_nominal_gdp=sum(gdp_numbers[-4:]),
+                previous_rolling_nominal_gdp=sum(gdp_numbers[:4]),
+            )
+        except ValueError:
+            return invalid_denominator()
+        direction = _sign(value)
     claims = [claim for point in parents if (claim := selected_claim(point)) is not None]
     public_times = [
         claim.public_available_at for claim in claims if claim.public_available_at is not None
@@ -427,6 +478,9 @@ def derive(
         formula_version,
         "available",
         value=value,
+        unit=version.unit,
+        direction=direction,
+        formula=version.formula,
         period_start=social_period_points[-1].period_start,
         period=social_period_points[-1].period_end,
         gdp_input_measure=gdp_input_measure,
@@ -444,6 +498,10 @@ def derive(
             max(public_times) if public_times and len(public_times) == len(claims) else None
         ),
     )
+
+
+def _sign(amount: float) -> str:
+    return "up" if amount > 0 else "down" if amount < 0 else "flat"
 
 
 def _usable(
@@ -525,7 +583,7 @@ _MEASURES = {
 
 
 def _shortfall(
-    metric_id: str, points: list[MetricSeriesPoint], may_difference: bool
+    metric_id: str, points: list[MetricSeriesPoint], may_difference: bool, count: int
 ) -> tuple[InputFailure, ...]:
     """What keeps a parent's window from being read, reason by reason (ticket 28).
 
@@ -549,7 +607,7 @@ def _shortfall(
     if not basis:
         return (InputFailure(metric_id, "missing_periods", (), members),)
     newest = max(_period_label(metric_id, point.period_end) for point in basis)
-    window = preceding_periods(newest, INPUT_PERIODS[metric_id])
+    window = preceding_periods(newest, count)
     directly = {_period_label(metric_id, p.period_end) for p in _usable(points, direct)}
     ytd_points = _usable(points, ytd)
     ytd_held = {_period_label(metric_id, p.period_end) for p in ytd_points}
@@ -706,5 +764,15 @@ def _monthly_flows_from_ytd(points: list[MetricSeriesPoint]) -> Differenced:
         opens_year=lambda day: day.month == 1,
         follows=lambda previous, day: previous.month == day.month - 1,
         difference=lambda value, previous: value - previous,
+        positive_only=False,
+    )
+
+
+def _exact_monthly_flows_from_ytd(points: list[MetricSeriesPoint]) -> Differenced:
+    return _differenced(
+        points,
+        opens_year=lambda day: day.month == 1,
+        follows=lambda previous, day: previous.month == day.month - 1,
+        difference=lambda value, previous: float(Decimal(str(value)) - Decimal(str(previous))),
         positive_only=False,
     )

@@ -295,3 +295,39 @@ def test_macro_and_inventory_documents_change_context_but_never_formal_stage(
     assert current.datasets["cycle_overview"]["current_stage"] == "stage_ii"
     assert current.datasets["macro"]["policy_direction"] == "tightening"
     assert current.datasets["inventory"]["quadrant"] == "active_destocking"
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_a_model_without_the_12_month_proxy_publishes_no_proxy_field(enabled: bool) -> None:
+    # Off, neither the core asset nor its candidate event carries the field; on with too
+    # short a history, both say it is unavailable (ticket 25).
+    from pring_cycle.p0 import _assessment_document, _asset_document
+
+    asset = _asset_document(
+        CoreAssetReadiness(
+            "bond",
+            "CN_BOND_CORE_000012",
+            CoreAssetState.BULL,
+            "validated",
+            120,
+            "2026-08-28",
+            proxy_12m_enabled=enabled,
+        )
+    )
+    assessment = _assessment_document(
+        target_business_date="2026-08-28",
+        system_as_of=datetime(2026, 8, 28, 13, tzinfo=UTC),
+        evidence_snapshot_id="snapshot",
+        model_version_id="model-v0014",
+        assets=[asset],
+        current_stage=None,
+        last_confirmed_stage=None,
+        stage_reason="gap",
+        gaps=(),
+        projection_set_id=None,
+    )
+
+    event = assessment["candidate_events"][0]  # type: ignore[index]
+    assert ("proxy_12m" in asset, "proxy_12m" in event) == (enabled, enabled)
+    if enabled:
+        assert asset["proxy_12m"] is None and event["proxy_12m"] is None

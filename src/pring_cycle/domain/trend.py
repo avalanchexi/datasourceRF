@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import statistics
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 
@@ -23,6 +24,8 @@ class TrendRules:
     candidate_window_days: int = 30
     rule_version: str = "trend-v0001"
     candidate_duration_rule_version: str = "candidate-duration-v0001"
+    # The public Pring 12-month proxy, off from model v0014 on (ADR-0035, ticket 25).
+    proxy_12m_enabled: bool = True
 
     def candidate_days_for_output(self, result: TrendResult | TrendHistoryPoint) -> int:
         # Historical manifests retain their published duration semantics.
@@ -31,6 +34,14 @@ class TrendRules:
         if self.candidate_duration_rule_version == "candidate-duration-v0002":
             return result.candidate_days
         raise ValueError("candidate_duration_rule_version_unsupported")
+
+
+def proxy_12m_enabled(document: Mapping[str, object]) -> bool:
+    """Whether a model's trend rules keep the 12-month proxy; rules before the switch do."""
+    enabled = document.get("proxy_12m_enabled", True)
+    if not isinstance(enabled, bool):
+        raise ValueError("model_trend_rules_invalid")
+    return enabled
 
 
 @dataclass(frozen=True)
@@ -121,7 +132,7 @@ def evaluate_trend(points: list[PricePoint], rules: TrendRules) -> TrendResult:
         stable_state=stable_state,
         candidate_state=candidate_state,
         candidate_30d=_simple_track(values, rules.candidate_window_days),
-        proxy_12m=_monthly_proxy(ordered),
+        proxy_12m=_monthly_proxy(ordered) if rules.proxy_12m_enabled else None,
         reason="stable" if stable_state is not None else "transition_pending",
         persistence_days=rules.persistence_days if stable_state is not None else candidate_days,
         distance_pct=distance_pct,

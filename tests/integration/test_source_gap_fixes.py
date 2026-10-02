@@ -19,6 +19,9 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_core_history_refresh import historical_response
 
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
+
 TARGET = date(2026, 8, 3)
 EXCHANGES = {"SSE": (1.0e12, 5.0e10), "SZSE": (0.9e12, 4.0e10), "BSE": (7.0e9, 3.0e8)}
 
@@ -48,7 +51,7 @@ def completed(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Runtim
         paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
         models = ModelRepository(paths.database)
         models.register(effective_model_manifest())
-        models.activate("model-v0013", explicitly_approved=True)
+        models.activate(CURRENT_MODEL, explicitly_approved=True)
 
         class FixtureOpener:
             def open(self, request: Any, *, timeout: int) -> BytesIO:
@@ -71,7 +74,7 @@ def completed(tmp_path_factory: pytest.TempPathFactory) -> Iterator[tuple[Runtim
         run = RunRepository(paths.database).submit_manual_full(
             target_business_date=TARGET.isoformat(),
             client_request_id="margin-sse-szse",
-            model_version_id="model-v0013",
+            model_version_id=CURRENT_MODEL,
             system_as_of=datetime.now(UTC),
         )
         process_pending_run(paths, report_adapters=())

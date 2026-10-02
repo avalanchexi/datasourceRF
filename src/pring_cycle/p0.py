@@ -34,6 +34,8 @@ class CoreAssetReadiness:
     candidate_days: int = 0
     candidate_30d: CoreAssetState | None = None
     proxy_12m: CoreAssetState | None = None
+    # Off, the proxy is not shown at all; on with too short a history, it is unavailable.
+    proxy_12m_enabled: bool = True
     distance_pct: float | None = None
     slope_pct: float | None = None
     noise_band_pct: float | None = None
@@ -290,7 +292,7 @@ def _default_inventory_document() -> dict[str, object]:
 
 
 def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:
-    return {
+    document: dict[str, object] = {
         "asset": item.asset,
         "carried_forward": item.carried_forward,
         "candidate_30d": (item.candidate_30d.value if item.candidate_30d is not None else None),
@@ -305,11 +307,13 @@ def _asset_document(item: CoreAssetReadiness) -> dict[str, object]:
         "noise_band_pct": item.noise_band_pct,
         "observation_count": item.observation_count,
         "observation_version_ids": list(item.observation_version_ids),
-        "proxy_12m": item.proxy_12m.value if item.proxy_12m is not None else None,
         "reason": item.reason,
         "slope_pct": item.slope_pct,
         "state": item.state.value if item.state else None,
     }
+    if item.proxy_12m_enabled:
+        document["proxy_12m"] = item.proxy_12m.value if item.proxy_12m is not None else None
+    return document
 
 
 def _assessment_document(
@@ -333,7 +337,7 @@ def _assessment_document(
                 "candidate_30d": item["candidate_30d"],
                 "candidate_days": item["candidate_days"],
                 "candidate_state": item["candidate_state"],
-                "proxy_12m": item["proxy_12m"],
+                **({"proxy_12m": item["proxy_12m"]} if "proxy_12m" in item else {}),
             }
             for item in assets
         ],

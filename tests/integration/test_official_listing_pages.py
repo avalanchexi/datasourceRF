@@ -15,6 +15,7 @@ import pytest
 from pring_cycle.acquisition import AcquisitionRepository
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
+from pring_cycle.models import effective_model_manifest
 from pring_cycle.official_context import FetchedOfficialContextDocument
 from pring_cycle.runs import RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -25,6 +26,9 @@ from tests.fixtures.model_registration import (
     save,
     submit,
 )
+
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 LISTING = "https://www.stats.gov.cn/sj/zxfb/"
@@ -176,11 +180,11 @@ def _omo_gaps(
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     run = RunRepository(paths.database).submit_manual_full(
         target_business_date="2026-09-23",
         client_request_id="omo-sibling-notice",
-        model_version_id="model-v0013",
+        model_version_id=CURRENT_MODEL,
         system_as_of=datetime.now(UTC),
     )
 
@@ -204,7 +208,7 @@ def _omo_gaps(
             definition_version=EFFECTIVE_CATALOG_VERSION,
         )
     definitions = ContextProjectionRules.from_manifest(
-        models.manifest("model-v0013")
+        models.manifest(CURRENT_MODEL)
     ).metric_definitions
     # What the batch holds decides what is missing (ticket 21).
     record_run_freshness(
@@ -287,12 +291,12 @@ def test_a_passed_over_notice_does_not_stop_the_next_under_the_retrieval_ledger(
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     run = RunRepository(paths.database).submit(
         command_type="targeted_refresh",
         target_business_date="2026-09-23",
         client_request_id="omo-sibling-ledger",
-        model_version_id="model-v0013",
+        model_version_id=CURRENT_MODEL,
         system_as_of=datetime.now(UTC),
         release_event_id="omo:2026-09-23",
         metric_ids=("CN_OMO_7D_AMOUNT",),

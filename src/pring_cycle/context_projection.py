@@ -2078,7 +2078,7 @@ def _credit_impulse_proxy(
     formula: dict[str, object] = {
         "metric_id": "CN_CREDIT_IMPULSE",
         "formula_version": formula_version,
-        "formula": credit_impulse.FORMULA,
+        "formula": result.formula,
         "status": result.status,
     }
     if result.failures:
@@ -2118,7 +2118,8 @@ def _credit_impulse_proxy(
         "available_at": result.available_at.isoformat(),
         "derived_observation_id": derived_id,
         "dimensions": {},
-        "direction": "up" if value > 0 else "down" if value < 0 else "flat",
+        # The module's direction: the twelve-month share's is not its value's sign.
+        "direction": result.direction,
         "input_observation_version_ids": list(input_claim_ids),
         "metric_id": "CN_CREDIT_IMPULSE",
         "observation_id": derived_id,

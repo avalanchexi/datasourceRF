@@ -39,6 +39,9 @@ from pring_cycle.tushare_context import WARRANT_SYMBOLS
 from pring_cycle.worker import refresh_context_sources
 from tests.conftest import install_runtime_clock
 
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
+
 TARGET = date(2026, 8, 3)
 CLOCK = datetime(2026, 8, 4, 1, tzinfo=UTC)
 EXCHANGES = {"CF": "CZCE", "PTA": "CZCE", "SC": "INE", "PP": "DCE"}
@@ -107,11 +110,11 @@ def prepared(
     paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     run = RunRepository(paths.database).submit_manual_full(
         target_business_date=TARGET.isoformat(),
         client_request_id="warrant-symbol-isolation",
-        model_version_id="model-v0013",
+        model_version_id=CURRENT_MODEL,
         system_as_of=datetime.now(UTC),
     )
     return paths, run
@@ -184,7 +187,7 @@ def test_a_symbol_missing_on_the_target_day_keeps_the_warrants_listed_as_a_gap(
     paths, run = prepared(monkeypatch, request, tmp_path, CopperUnavailable)
     refresh(paths, run)
     definitions = ContextProjectionRules.from_manifest(
-        ModelRepository(paths.database).manifest("model-v0013")
+        ModelRepository(paths.database).manifest(CURRENT_MODEL)
     ).metric_definitions
 
     record_run_freshness(paths.database, run.run_id, definitions, utc_now(), TradingCalendar())

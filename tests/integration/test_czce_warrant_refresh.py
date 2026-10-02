@@ -21,6 +21,9 @@ from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.warrant_inputs import select_warrant_inputs
 from tests.fixtures.czce_report import czce_exchange, czce_report
 
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
+
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "czce_warrants"
 MAY_19, SEP_02 = date(2026, 5, 19), date(2026, 9, 2)
 FILES = {
@@ -35,7 +38,7 @@ def paths(tmp_path: Path) -> RuntimePaths:
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     return paths
 
 

@@ -175,7 +175,7 @@
 | [22](issues/22-ledger-recognizes-tushare-rate-limit.md) | 检索账本认出 TuShare 限频 | 18 | done |
 | [23](issues/23-credit-impulse-module.md) | 信用脉冲模块（纯重构） | 05、10 | done |
 | [24](issues/24-credit-lookback-one-answer.md) | 信用脉冲回看由模块给出同一个答案（按生效模型、覆盖窗口首日） | 23 | done |
-| [25](issues/25-model-v0014-twelve-month-horizon.md) | 新模型 v0014：12 个月信用脉冲、停用 12 月代理（用户注册与激活） | 23、24 | ready-for-agent |
+| [25](issues/25-model-v0014-twelve-month-horizon.md) | 新模型 v0014：12 个月信用脉冲、停用 12 月代理（用户注册与激活） | 23、24 | done（措辞待确认） |
 | [26](issues/26-credit-input-path-by-usable-points.md) | 信用脉冲按可用点选直接或累计口径 | 23 | done |
 | [27](issues/27-stale-credit-impulse-is-computed.md) | 输入陈旧的信用脉冲不列为派生失败 | 23 | done |
 | [28](issues/28-credit-failure-names-what-is-missing.md) | 信用脉冲失败说清缺了什么 | 23、27 | done |

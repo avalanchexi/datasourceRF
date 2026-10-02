@@ -27,6 +27,7 @@ AS_OF = datetime(2026, 1, 31, tzinfo=UTC)
 V1 = "credit-impulse-v0001"
 SHARE = "credit-impulse-rolling-share-v0001"
 YTD_FLOW = "credit-impulse-ytd-flow-v0002"
+TWELVE_MONTH = "credit-impulse-12m-flow-share-v0003"
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
@@ -79,6 +80,10 @@ def needs(version: str | None, cutoff: datetime, **held: frozenset[str]) -> dict
         # Every period held directly, or windows that open a year, need no base period.
         (YTD_FLOW, 24, 8, date(2026, 9, 18), (("2024-09", 24), ("2024-Q3", 8))),
         (YTD_FLOW, 0, 0, date(2027, 2, 1), (("2025-01", 24), ("2025-Q1", 8))),
+        # Twelve months and the month before them, four quarters (ticket 25).
+        (TWELVE_MONTH, 0, 0, date(2026, 9, 18), (("2025-07", 14), ("2025-Q2", 5))),
+        (TWELVE_MONTH, 0, 0, date(2027, 2, 1), (("2025-11", 14), ("2026-Q1", 4))),
+        (TWELVE_MONTH, 13, 4, date(2026, 9, 18), (("2025-08", 13), ("2025-Q3", 4))),
     ],
 )
 def test_a_day_needs_a_base_period_only_when_differencing_needs_one(
@@ -652,6 +657,135 @@ def test_a_figure_the_version_may_not_read_does_not_move_the_window(
     result = derive(repository, V1)
 
     assert reasons(result) == [("CN_GDP", "missing_periods", ("2024-Q2",), (GDP_QUARTERLY,))]
+
+
+TWELVE_MONTH_VALUE = 100 * 36 / 130
+
+
+@pytest.mark.parametrize(
+    ("social_measure", "gdp_measure"),
+    [
+        ("monthly_increment", "nominal_quarterly_level"),
+        ("ytd_increment", "nominal_quarterly_level"),
+        ("monthly_increment", "nominal_ytd_level"),
+    ],
+)
+def test_the_twelve_month_impulse_is_the_year_s_flow_share_of_gdp(
+    repository: EvidenceRepository, social_measure: str, gdp_measure: str
+) -> None:
+    # 2025's flows of 3 a month over its four quarters of 130; December 2024 gives the
+    # month a year before, and either input may be differenced (ticket 25).
+    social_financing(repository, social_measure)
+    gdp(repository, gdp_measure)
+
+    result = derive(repository, TWELVE_MONTH)
+
+    assert result.status == "available"
+    assert result.value == pytest.approx(TWELVE_MONTH_VALUE)
+    assert (result.unit, result.direction) == ("percent", "up")
+    assert result.social_financing_window == ("2024-12-01", "2025-12-31")
+    assert result.gdp_window == ("2025-01-01", "2025-12-31")
+    assert result.formula == "100 * rolling_12m_social_financing / rolling_4q_nominal_gdp"
+
+
+def test_a_new_gdp_quarter_moves_the_value_not_the_direction(
+    repository: EvidenceRepository,
+) -> None:
+    # The month's flow against the same month a year before decides; a new quarter of
+    # GDP only changes the denominator both share (ticket 25).
+    social_financing(repository, "monthly_increment")
+    gdp(repository, "nominal_quarterly_level")
+    before = derive(repository, TWELVE_MONTH)
+    repository.append_source_claim(
+        _certified_claim(
+            metric_id="CN_GDP",
+            period_start="2026-01-01",
+            period_end="2026-03-31",
+            dimensions={"aggregate": "total", "measure": "nominal_quarterly_level"},
+            value=1000.0,
+            unit="hundred_million_cny",
+        )
+    )
+
+    after = derive(repository, TWELVE_MONTH)
+
+    assert (before.direction, after.direction) == ("up", "up")
+    assert after.value == pytest.approx(100 * 36 / (30 + 35 + 40 + 1000))
+
+
+def test_the_twelve_month_impulse_short_of_a_month_names_it(
+    repository: EvidenceRepository,
+) -> None:
+    # Without December 2024 the last thirteen months held skip from November to January.
+    social_financing(repository, "monthly_increment", skip=(2024, 12))
+    gdp(repository, "nominal_quarterly_level")
+
+    result = derive(repository, TWELVE_MONTH)
+
+    assert result.status == "nonconsecutive_social_financing_inputs"
+    assert result.unit == "percent"
+    assert reasons(result) == [
+        ("CN_SF_TOTAL", "missing_periods", ("2024-12",), (SF_MONTHLY, SF_YTD))
+    ]
+
+
+def test_a_positive_share_can_still_slow_down(repository: EvidenceRepository) -> None:
+    # December 2025's flow of 1 falls short of December 2024's 2, whatever the share.
+    for year, month, flow in [(2024, 12, 2.0)] + [
+        (2025, month, 1.0 if month == 12 else 3.0) for month in range(1, 13)
+    ]:
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id="CN_SF_TOTAL",
+                period_start=f"{year:04d}-{month:02d}-01",
+                period_end=month_end(year, month),
+                dimensions={"measure": "monthly_increment"},
+                value=flow,
+                unit="hundred_million_cny",
+            )
+        )
+    gdp(repository, "nominal_quarterly_level")
+
+    result = derive(repository, TWELVE_MONTH)
+
+    assert result.value == pytest.approx(100 * 34 / 130)
+    assert result.direction == "down"
+
+
+def test_equal_differenced_flows_hold_flat_without_a_binary_tail(
+    repository: EvidenceRepository,
+) -> None:
+    # December's flows are 0.3 - 0.2 and 0.4 - 0.3: one tenth both, in decimal.
+    for year, levels in {
+        2024: [0.01 * month for month in range(1, 11)] + [0.2, 0.3],
+        2025: [0.02 * month for month in range(1, 11)] + [0.3, 0.4],
+    }.items():
+        for month, level in enumerate(levels, start=1):
+            repository.append_source_claim(
+                _certified_claim(
+                    metric_id="CN_SF_TOTAL",
+                    period_start=f"{year:04d}-{month:02d}-01",
+                    period_end=month_end(year, month),
+                    dimensions={"measure": "ytd_increment"},
+                    value=level,
+                    unit="hundred_million_cny",
+                )
+            )
+    gdp(repository, "nominal_ytd_level")
+
+    assert derive(repository, TWELVE_MONTH).direction == "flat"
+
+
+def test_the_two_year_versions_keep_their_unit_and_direction(
+    repository: EvidenceRepository,
+) -> None:
+    social_financing(repository, "ytd_increment")
+    gdp(repository, "nominal_ytd_level")
+
+    result = derive(repository, YTD_FLOW)
+
+    assert (result.unit, result.direction) == ("percentage_points", "up")
+    assert result.formula == credit_impulse.FORMULA
 
 
 def test_a_version_that_may_not_difference_does_not(repository: EvidenceRepository) -> None:

@@ -904,7 +904,12 @@ def _asset_card(item: dict[str, object]) -> html.Article:
                         if candidate is not None
                         else "尚无候选",
                     ),
-                    _compact_fact("12 个月公开代理", _state_label(item.get("proxy_12m"))),
+                    # A model without the proxy carries no field; shown only when it does.
+                    *(
+                        [_compact_fact("12 个月公开代理", _state_label(item.get("proxy_12m")))]
+                        if "proxy_12m" in item
+                        else []
+                    ),
                     _compact_fact("最新业务日", str(item.get("latest_business_date") or "不可用")),
                 ],
                 className="asset-track-grid",

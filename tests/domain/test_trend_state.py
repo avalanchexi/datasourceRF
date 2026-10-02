@@ -10,6 +10,7 @@ from pring_cycle.domain.trend import (
     TrendRules,
     evaluate_trend,
     evaluate_trend_history,
+    proxy_12m_enabled,
 )
 
 
@@ -118,3 +119,27 @@ def test_linear_trend_history_matches_every_prefix_evaluation() -> None:
         assert historical.business_date == points[index].business_date
         assert historical.stable_state is prefix.stable_state
         assert historical.distance_pct == prefix.distance_pct
+
+
+def test_a_model_without_the_12_month_proxy_does_not_compute_it() -> None:
+    # Fourteen months of a rising price: the proxy reads bull unless the model turns it off
+    # (ADR-0035, ticket 25).
+    history = price_series(increasing=True, count=420)
+
+    assert evaluate_trend(history, TrendRules()).proxy_12m is CoreAssetState.BULL
+    assert evaluate_trend(history, TrendRules(proxy_12m_enabled=False)).proxy_12m is None
+
+
+@pytest.mark.parametrize(
+    ("document", "enabled"),
+    [({}, True), ({"proxy_12m_enabled": True}, True), ({"proxy_12m_enabled": False}, False)],
+)
+def test_trend_rules_written_before_the_switch_keep_the_proxy(
+    document: dict[str, object], enabled: bool
+) -> None:
+    assert proxy_12m_enabled(document) is enabled
+
+
+def test_a_switch_that_is_not_a_boolean_is_refused() -> None:
+    with pytest.raises(ValueError, match="model_trend_rules_invalid"):
+        proxy_12m_enabled({"proxy_12m_enabled": "false"})

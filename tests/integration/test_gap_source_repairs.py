@@ -1,6 +1,6 @@
 """Gap sources 2026-09-25: repairs behind the remaining gaps of the effective catalog.
 
-One manual full run on model-v0013 with offline TuShare and official doubles; each test
+One manual full run on the effective model with offline TuShare and official doubles; each test
 reads what that run holds, and how its gap list explains what it could not hold.
 """
 
@@ -26,6 +26,9 @@ from pring_cycle.worker import process_pending_run
 from tests.conftest import install_runtime_clock
 from tests.fixtures.czce_report import czce_exchange
 from tests.integration.test_core_history_refresh import historical_response
+
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
 
 TARGET = date(2026, 8, 3)
 # Tuesday 09:00 in Shanghai: the Monday closes, US closes included, are all due.
@@ -235,7 +238,7 @@ def completed(
         paths.secrets.write_text("TUSHARE_TOKEN=fixture-secret\n", encoding="utf-8")
         models = ModelRepository(paths.database)
         models.register(effective_model_manifest())
-        models.activate("model-v0013", explicitly_approved=True)
+        models.activate(CURRENT_MODEL, explicitly_approved=True)
         monkeypatch.setattr("pring_cycle.source_adapters.build_opener", FixtureOpener)
         monkeypatch.setattr(
             "pring_cycle.tushare_context.build_opener", lambda *handlers: FixtureOpener()
@@ -243,7 +246,7 @@ def completed(
         run = RunRepository(paths.database).submit_manual_full(
             target_business_date=TARGET.isoformat(),
             client_request_id="gap-source-repairs",
-            model_version_id="model-v0013",
+            model_version_id=CURRENT_MODEL,
             system_as_of=datetime.now(UTC),
         )
         process_pending_run(paths, report_adapters=())

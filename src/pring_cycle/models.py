@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import sqlite3
@@ -444,8 +445,11 @@ BEFORE DELETE ON model_version BEGIN SELECT RAISE(ABORT, 'model_version_is_immut
 """
 
 
-EFFECTIVE_CATALOG_VERSION = "metric-catalog-v0005"
+MODEL_V0014_CATALOG_VERSION = "metric-catalog-v0006"
+EFFECTIVE_CATALOG_VERSION = MODEL_V0014_CATALOG_VERSION
+MODEL_V0013_CATALOG_VERSION = "metric-catalog-v0005"
 MODEL_V0012_CATALOG_VERSION = "metric-catalog-v0004"
+TWELVE_MONTH_CREDIT_IMPULSE = "credit-impulse-12m-flow-share-v0003"
 # Registered TuShare-derived deliveries whose contracts replace the builtin placeholders.
 _REGISTERED_DELIVERIES = {
     "CN_EQ_ADV_DEC": "tushare:daily:breadth-v0002",
@@ -472,6 +476,38 @@ _OFFICIAL_SAMPLED = {
 
 
 def effective_model_manifest() -> dict[str, Any]:
+    """The newest model, ready to register: model-v0014."""
+    return model_v0014_manifest()
+
+
+def model_v0014_manifest() -> dict[str, Any]:
+    """model-v0014: the twelve-month credit impulse, without the 12-month proxy (ADR-0035).
+
+    v0013's rules, with the credit impulse read as twelve months' social financing over
+    four quarters' nominal GDP, in percent, and the public Pring 12-month proxy turned off.
+    The impulse's unit changes, so the catalog is v0006, every definition with it.
+    Registering and activating it is an explicit step (ADR-0022, ticket 25).
+    """
+    manifest = copy.deepcopy(model_v0013_manifest())
+    definitions = []
+    for definition in manifest["metric_definitions"]:
+        definition = {**definition, "definition_version": MODEL_V0014_CATALOG_VERSION}
+        if definition["metric_id"] == "CN_CREDIT_IMPULSE":
+            definition.update(unit="percent", allowed_units=("percent",))
+        definitions.append(definition)
+    manifest["derived_formula_versions"]["credit_impulse"] = TWELVE_MONTH_CREDIT_IMPULSE
+    manifest["trend_rules"]["proxy_12m_enabled"] = False
+    manifest.update(
+        {
+            "model_version_id": "model-v0014",
+            "metric_catalog_version": MODEL_V0014_CATALOG_VERSION,
+            "metric_definitions": definitions,
+        }
+    )
+    return manifest
+
+
+def model_v0013_manifest() -> dict[str, Any]:
     """model-v0013: breadth and the basket from TuShare's own deliveries (ADR-0030).
 
     v0004's definitions, with the two 120-day breadth windows replaced by 90- and 250-day
@@ -504,9 +540,9 @@ def effective_model_manifest() -> dict[str, Any]:
     manifest.update(
         {
             "model_version_id": "model-v0013",
-            "metric_catalog_version": EFFECTIVE_CATALOG_VERSION,
+            "metric_catalog_version": MODEL_V0013_CATALOG_VERSION,
             "metric_definitions": [
-                {**definition, "definition_version": EFFECTIVE_CATALOG_VERSION}
+                {**definition, "definition_version": MODEL_V0013_CATALOG_VERSION}
                 for definition in definitions.values()
             ],
         }

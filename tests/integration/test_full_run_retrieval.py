@@ -26,6 +26,9 @@ from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_trading_calendar import record_sse_calendar
 
+# The newest model, whatever it is numbered.
+CURRENT_MODEL = str(effective_model_manifest()["model_version_id"])
+
 
 def prepare(tmp_path: Path) -> tuple[RuntimePaths, RunRepository]:
     paths = RuntimePaths.discover(tmp_path / "runtime")
@@ -1020,11 +1023,11 @@ def test_full_run_plans_the_latest_released_period_of_a_metric_not_held(
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     run = runs.submit_manual_full(
         target_business_date="2026-09-23",
         client_request_id="latest-released-period",
-        model_version_id="model-v0013",
+        model_version_id=CURRENT_MODEL,
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
@@ -1052,11 +1055,11 @@ def test_full_run_before_the_fixing_day_plans_the_lpr_in_force(tmp_path: Path) -
     paths, runs = prepare(tmp_path)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
-    models.activate("model-v0013", explicitly_approved=True)
+    models.activate(CURRENT_MODEL, explicitly_approved=True)
     run = runs.submit_manual_full(
         target_business_date="2026-09-10",
         client_request_id="lpr-before-fixing",
-        model_version_id="model-v0013",
+        model_version_id=CURRENT_MODEL,
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
