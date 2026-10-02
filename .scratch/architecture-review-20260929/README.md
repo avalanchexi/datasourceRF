@@ -153,8 +153,8 @@
 |---|---|---|---|
 | [01](issues/01-test-speed-existing-seams.md) | 慢测试改走已有接口、夹具改批量写入 | 无 | done |
 | [02](issues/02-trading-calendar-module.md) | 交易日历模块（纯重构） | 01 | done |
-| [03](issues/03-breadth-uses-trading-calendar.md) | 市场广度改用交易日历模块 | 02 | done（真实运行核对留到终点） |
-| [04](issues/04-foreign-metrics-local-calendars.md) | 外盘指标按当地交易日历判断应有期（美股、美债） | 02 | done（真实运行核对留到终点） |
+| [03](issues/03-breadth-uses-trading-calendar.md) | 市场广度改用交易日历模块 | 02 | done |
+| [04](issues/04-foreign-metrics-local-calendars.md) | 外盘指标按当地交易日历判断应有期（美股、美债） | 02 | done |
 | [05](issues/05-claim-adoption-module.md) | 可采用声明模块（纯重构） | 无 | done |
 | [06](issues/06-projection-rechecks-margin-index-valuation.md) | 投影也复核融资余额、指数行情、估值的原件 | 05 | done |
 | [07](issues/07-warrant-missing-members-per-variety.md) | 仓单缺成员只让该品种不完整 | 05 | done |
@@ -223,3 +223,16 @@
 7. 终点：`check.py full` 一次，然后真实完整运行（同时核对票 03、04）
 
 **下一步（2026-09-29）**：规格与票面核对完成，从 01 开始按上述顺序实施。
+
+## 终点（2026-10-02）
+
+> *本段由 AI 在验收时生成。*
+
+- **措辞确认**：票 25、29 的草稿措辞用户全部确认，按草稿保留；票 29 的留存例外记在 ADR-0022 修订段，不另起 ADR（`da340d2`）。
+- **全套**：`check.py full`（`b490b90`）1433 例全过，48.3 分钟。
+- **真实完整运行** `run-b7ccf5dbbe8e21b2a6fc`（`da340d2`，模型 v0014，不指定目标日，系统定为 2026-09-30）：`completed`／`changed`，57 分钟，取数请求约 840 次，Tavily 14、AI 联网搜索 3、Exa 0。完成后已用 SIGTERM 停止 Worker。信用脉冲在 v0014 下 `current`，过热卡 `cooling`；正式阶段同基线（`noncanonical_combination`），无核心沿用。
+- **票 03**：七个广度指标 `local_complete`，血缘全部指向核心口径 SSE 日历回执，通过。**票 04**：外盘按美国日历推进，无新增误报，通过。
+- **缺口清单 28 项**（基线只有 SOX），均非本轮票面改动直接引起：21 项节假日应有期（既有日历覆盖问题）、OMO 利率基准与政策利差（票 25 目录切换使旧声明不可见）、郑商所 SSL 与一次时钟错误、DR007 与融资余额的上游未交付。分析与待分流票见 [run-findings-20261002](../run-findings-20261002/README.md)。
+
+结论：本轮 31 张票全部 done，终点核对完成；真实运行暴露的问题已开票，等待用户分流。
+

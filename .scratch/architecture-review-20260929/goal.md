@@ -58,3 +58,4 @@
 - 2026-10-02：24、26、27、28、25 完成（`8a33932`、`41c67b0`、`7466098`、`4206597`、`e364324`）；用户注册并激活 v0014；本文件改为收尾 goal。
 - 2026-10-02：票 30、29、31 完成（`52d60ed`、`5735fab`、`b490b90`）。`check.py full`（`b490b90`，`PYTHONPATH=src`）1433 例全过，48.3 分钟（进程计时；期间机器休眠，墙钟 3.6 小时）；对比基线 `403cba4` 1254 例 56 分钟、`174d282` 43.7 分钟。最慢：`test_gap_source_repairs.py::test_treasury_yields_are_held_from_tushare_us_tycr` 夹具 248 秒、`test_worker_registered_catalog.py` 宽窄对比 199 秒与官方 PPI 回退 89 秒、`test_retention.py` 夹具 85 秒、`test_backfill.py` 首次运行 69 秒。停在真实完整运行前，交接待用户确认。
 
+- 2026-10-02 晚：用户确认票 25、29 措辞（`da340d2`）。真实完整运行 `run-b7ccf5dbbe8e21b2a6fc`（v0014，目标日 9/30）`completed`，57 分钟；票 03、04 核对通过；缺口清单 28 项均非本轮票面改动直接引起，开为 [run-findings-20261002](../run-findings-20261002/README.md) 票 01–06，等待用户分流。本轮收口。
