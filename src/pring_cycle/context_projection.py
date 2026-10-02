@@ -33,7 +33,7 @@ from pring_cycle.evidence import (
 from pring_cycle.evidence import selected_claim as _selected_claim
 from pring_cycle.evidence import usable_point as _usable_point
 from pring_cycle.freshness import period_status
-from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
+from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS, evidence_frequency
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.treasury_context import TREASURY_METRICS
@@ -649,6 +649,27 @@ class TargetBoundEvidenceRepository:
             if date.fromisoformat(point.period_end) >= self._visible_start
             or point in baselines.values()
         )
+
+    def latest_before_window(self, *args: Any, **kwargs: Any) -> dict[str, MetricSeriesPoint]:
+        """Each member's latest point before the visible window, to compare the first with.
+
+        A comparison, never a row: the window shown stays where it is (ticket 30).
+        """
+        if self._visible_start is None:
+            return {}
+        query_kwargs = self._query_at_target(kwargs)
+        use_system = query_kwargs["allow_system_at_public_cutoff"]
+        before: dict[str, MetricSeriesPoint] = {}
+        for point in self._repository.metric_series(*args, **query_kwargs):
+            bounded = _point_at_target(
+                point,
+                self._target_date,
+                tolerance=kwargs.get("tolerance"),
+                allow_system_at_target=use_system,
+            )
+            if bounded is not None and date.fromisoformat(bounded.period_end) < self._visible_start:
+                before[json.dumps(bounded.dimensions, sort_keys=True)] = bounded
+        return before
 
     @property
     def target_date(self) -> date:
@@ -1518,11 +1539,20 @@ def _metric_rows(
         ):
             release_status = "no_event_in_visible_window"
         return _MetricRows((_gap_row(definition, release_status=release_status),), warrant_history)
+    # The window's first month (quarter) is compared with the one before the window.
+    earlier = _periods_before_window(
+        repository, definition, grouped, as_of=as_of, as_of_mode=as_of_mode
+    )
+    if earlier and definition.metric_id not in _NOT_RECHECKED_IN_PROJECTION:
+        adoption = ClaimAdoption(
+            repository, definition_version=definition.definition_version, mode=as_of_mode
+        ).check({definition.metric_id: tuple(earlier.values())})[definition.metric_id]
+        incomplete_source_claims.update(adoption.not_adoptable)
     rows: list[dict[str, object]] = []
     for dimensions_key in sorted(grouped):
         points = grouped[dimensions_key]
         current = points[-1]
-        previous = points[-2] if len(points) > 1 else None
+        previous = points[-2] if len(points) > 1 else earlier.get(dimensions_key)
         selected = next(
             (claim for claim in current.claims if claim.claim_id == current.selected_claim_id),
             None,
@@ -1707,6 +1737,50 @@ def _release_status(
         definition_version=definition.definition_version,
     )[0]
     return event.status
+
+
+def _periods_before_window(
+    repository: Any,
+    definition: MetricDefinition,
+    grouped: Mapping[str, list[MetricSeriesPoint]],
+    *,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+) -> dict[str, MetricSeriesPoint]:
+    """The period right before a monthly (quarterly) member's only point in the window.
+
+    The window trims what is shown, not what its first period is compared with (ticket
+    30); only the adjacent period stands in, an older one is no previous period. A metric
+    in force until changed keeps its baseline instead.
+    """
+    frequency = evidence_frequency(definition.metric_id, definition.frequency)
+    lookup = getattr(repository, "latest_before_window", None)
+    if (
+        frequency not in {"monthly", "quarterly"}
+        or definition.metric_id in EFFECTIVE_UNTIL_CHANGED_METRICS
+        or not callable(lookup)
+        or not any(len(points) == 1 for points in grouped.values())
+    ):
+        return {}
+    before = lookup(
+        definition.metric_id,
+        mode=as_of_mode,
+        as_of=as_of,
+        definition_version=definition.definition_version,
+    )
+    step = 1 if frequency == "monthly" else 3
+    adjacent = {}
+    for key, points in grouped.items():
+        point = before.get(key)
+        if len(points) != 1 or point is None:
+            continue
+        first, prior = (
+            date.fromisoformat(points[0].period_end),
+            date.fromisoformat(point.period_end),
+        )
+        if (first.year * 12 + first.month) - (prior.year * 12 + prior.month) == step:
+            adjacent[key] = point
+    return adjacent
 
 
 def _raw_direction(

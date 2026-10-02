@@ -8,6 +8,7 @@ import sqlite3
 import threading
 from collections import Counter
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from functools import partial
 from time import monotonic
@@ -87,6 +88,7 @@ from pring_cycle.retrieval import (
     RetrievalBudget,
     RetrievalRequest,
     matches_retrieval_period,
+    preceding_periods,
     run_retrieval_cascade,
 )
 from pring_cycle.retrieval_registry import parser_for_scope
@@ -97,8 +99,10 @@ from pring_cycle.source_adapters import TushareCoreAdapter
 from pring_cycle.source_contract_review import require_model_source_contract
 from pring_cycle.storage import database_health, keep_database_open, record_worker_heartbeat
 from pring_cycle.trading_calendar import (
+    Sessions,
     SseCalendar,
     TradingCalendar,
+    current_calendar,
     run_calendar_scope,
     use_run_calendar,
 )
@@ -379,6 +383,7 @@ def _execute_run(
                 run.target_business_date,
                 definition_version=definition_version,
                 credit=credit_coverage,
+                decided_at=decided_at,
             )
         full_retrieval.retrieve(run, decided_at=decided_at)
         if runs.get(run.run_id).status != "running":
@@ -1326,6 +1331,70 @@ def acquire_eia_spot_prices(
     )
 
 
+_SHANGHAI = ZoneInfo("Asia/Shanghai")
+# A conservative fixed margin before the window's first day (ticket 30): room for the newest
+# daily value out on that day and the one before it across a week-long holiday and a
+# foreign market's own sessions. It is not checked against any calendar.
+_DAILY_LEAD = timedelta(days=14)
+
+
+@dataclass(frozen=True)
+class ContextFetchStarts:
+    """Where the context families' requests start, from the window's first day (ticket 30).
+
+    A monthly or quarterly metric starts at the period before the newest one its release
+    rule has out on that day, so the window's first day has its value and the one to
+    compare it with; one without a rule, two periods before the day's own. Daily families
+    start ``_DAILY_LEAD`` before the day. The credit impulse's longer lookback is its
+    module's answer, joined in by the caller (ticket 24).
+    """
+
+    first_day: date
+    calendar: Sessions
+
+    @property
+    def daily(self) -> date:
+        return self.first_day - _DAILY_LEAD
+
+    def period(self, *metric_ids: str) -> str:
+        """The earliest start of ``metric_ids``, as TuShare asks it: ``YYYYMM`` or ``YYYYQn``."""
+        return min(self._start(metric_id) for metric_id in metric_ids).replace("-", "")
+
+    def _start(self, metric_id: str) -> str:
+        from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
+
+        quarterly = metric_id == "CN_GDP"
+        rule = FRESHNESS_REGISTRY.get(metric_id)
+        if rule is not None and rule.frequency in {"monthly", "quarterly"}:
+            day_end = datetime.combine(self.first_day, time.max, tzinfo=_SHANGHAI)
+            newest = latest_released_period(rule, day_end, self.calendar)
+            return preceding_periods(_period_label(newest, quarterly), 2)[0]
+        return preceding_periods(_period_label(self.first_day, quarterly), 3)[0]
+
+
+def _period_label(day: date, quarterly: bool) -> str:
+    return f"{day.year}-Q{(day.month - 1) // 3 + 1}" if quarterly else f"{day:%Y-%m}"
+
+
+def context_fetch_starts(first_day: date, calendar: Sessions) -> ContextFetchStarts:
+    return ContextFetchStarts(first_day, calendar)
+
+
+def _window_fetch_starts(
+    paths: RuntimePaths, target: date, as_of: datetime | None = None
+) -> ContextFetchStarts:
+    """The starts for the 120 SSE sessions to ``target``, from the target alone without them.
+
+    ``as_of`` is when the run decided what to fetch, so a calendar revised meanwhile does
+    not move the window under it (ticket 24).
+    """
+    sessions = SseCalendar(paths, as_of=as_of)
+    window = sessions.window(target, 120)
+    return context_fetch_starts(
+        window[0] if window else target, sessions.around(target) or current_calendar()
+    )
+
+
 def refresh_eia_context(
     paths: RuntimePaths,
     *,
@@ -1333,6 +1402,7 @@ def refresh_eia_context(
     target: date,
     definition_version: str,
     record: Callable[..., None],
+    start_date: date | None = None,
 ) -> str:
     """Read the optional Brent and WTI spot prices, by API key when usable and by page otherwise.
 
@@ -1345,6 +1415,7 @@ def refresh_eia_context(
     from pring_cycle.eia_html import refresh_eia_history
 
     api_key = secrets.get("EIA_API_KEY")
+    start_date = start_date or _window_fetch_starts(paths, target).daily
     delivered: tuple[str, ...] = ()
     if api_key is None:
         record(
@@ -1361,7 +1432,7 @@ def refresh_eia_context(
                 delivered = acquire_eia_spot_prices(
                     paths,
                     api_key,
-                    start_date=target - timedelta(days=220),
+                    start_date=start_date,
                     end_date=target,
                     definition_version=definition_version,
                 )
@@ -1382,7 +1453,7 @@ def refresh_eia_context(
                 refresh_eia_history(
                     paths,
                     series_id=series_id,
-                    start_date=target - timedelta(days=220),
+                    start_date=start_date,
                     end_date=target,
                     definition_version=definition_version,
                     fetcher=fetch_eia_history,
@@ -1398,11 +1469,13 @@ def refresh_context_sources(
     *,
     definition_version: str,
     credit: InputPeriods | None = None,
+    decided_at: datetime | None = None,
 ) -> None:
     """Refresh context sources for a frozen catalog, retaining each acquisition outcome.
 
-    Social financing and GDP are read back as far as ``credit`` covers when the model's
-    credit impulse needs more than their own range (ticket 24).
+    Each family starts before the 120-session window as the SSE calendar stood at
+    ``decided_at`` (ticket 30); social financing and GDP are read back as far as ``credit``
+    covers when the model's credit impulse needs more than their own range (ticket 24).
     """
     from pring_cycle.acquisition import acquisition_metrics
     from pring_cycle.catalog_registry import registered_definitions
@@ -1412,6 +1485,9 @@ def refresh_context_sources(
     secrets = parse_data_source_secrets(paths.secrets)
     target = date.fromisoformat(target_business_date)
     repository = EvidenceRepository(paths.database)
+    # From before the window's first day, not two years back (ticket 30).
+    starts = _window_fetch_starts(paths, target, decided_at)
+    daily_start = starts.daily
 
     def record(metric_ids: tuple[str, ...], channel: str, outcome: str, **details: str) -> None:
         recorded_at = datetime.now(UTC)
@@ -1435,6 +1511,7 @@ def refresh_context_sources(
         target=target,
         definition_version=definition_version,
         record=record,
+        start_date=daily_start,
     )
 
     if definition_version not in BUILTIN_CATALOG_VERSIONS and any(
@@ -1446,7 +1523,7 @@ def refresh_context_sources(
             with acquisition_metrics((ECB_METRIC,)):
                 refresh_ecb_reference_cross(
                     paths,
-                    start_date=target - timedelta(days=220),
+                    start_date=daily_start,
                     end_date=target,
                     definition_version=definition_version,
                     on_acquisition_started=acquisition_ids.append,
@@ -1473,7 +1550,7 @@ def refresh_context_sources(
                     acquisition_ids=tuple(acquisition_ids),
                     safe_metadata={
                         "source_url": ECB_HISTORY_URL,
-                        "start_date": str(target - timedelta(days=220)),
+                        "start_date": str(daily_start),
                         "period": target_business_date,
                         "target_business_date": target_business_date,
                         "definition_version": definition_version,
@@ -1495,7 +1572,7 @@ def refresh_context_sources(
                 refresh_quote_source(
                     paths,
                     source,
-                    start_date=target - timedelta(days=220),
+                    start_date=daily_start,
                     end_date=target,
                     definition_version=definition_version,
                 )
@@ -1528,16 +1605,14 @@ def refresh_context_sources(
             ),
         )
         return
-    start_month = date(target.year - 2, target.month, 1).strftime("%Y%m")
     end_month = target.strftime("%Y%m")
     target_quarter = f"{target.year}Q{(target.month - 1) // 3 + 1}"
-    start_quarter = f"{target.year - 2}Q{(target.month - 1) // 3 + 1}"
     covered = credit or InputPeriods()
+    own_financing, own_gdp = starts.period("CN_SF_TOTAL"), starts.period("CN_GDP")
     financing_start = min(
-        (covered.start("CN_SF_TOTAL") or start_month).replace("-", ""), start_month
+        (covered.start("CN_SF_TOTAL") or own_financing).replace("-", ""), own_financing
     )
-    gdp_start = min((covered.start("CN_GDP") or start_quarter).replace("-", ""), start_quarter)
-    daily_start = target - timedelta(days=220)
+    gdp_start = min((covered.start("CN_GDP") or own_gdp).replace("-", ""), own_gdp)
     adapter = _context_adapter(token)
     reviewed_deliveries = {
         metric_id: source_code
@@ -1612,18 +1687,23 @@ def refresh_context_sources(
         (
             "pmi",
             ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
-            lambda: adapter.pmi(start_month=start_month, end_month=end_month),
+            lambda: adapter.pmi(
+                start_month=starts.period("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
+                end_month=end_month,
+            ),
         ),
         (
             "prices",
             ("CN_CPI_HEADLINE", "CN_PPI"),
-            lambda: adapter.prices(start_month=start_month, end_month=end_month),
+            lambda: adapter.prices(
+                start_month=starts.period("CN_CPI_HEADLINE", "CN_PPI"), end_month=end_month
+            ),
         ),
         (
             "money",
             ("CN_M1_M2",),
             lambda: adapter.money(
-                start_month=start_month,
+                start_month=starts.period("CN_M1_M2"),
                 end_month=end_month,
                 include_month_on_month=not reviewed_deliveries["CN_M1_M2"],
             ),

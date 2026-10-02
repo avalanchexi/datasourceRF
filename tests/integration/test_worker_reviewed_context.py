@@ -380,8 +380,9 @@ def test_credit_inputs_are_fetched_back_to_the_differencing_baseline(
             paths, run.target_business_date, definition_version=version, credit=coverage
         )
 
-    # Their own range runs back two years to the same month and quarter.
-    starts = ("202408", "2024Q2") if formula == "configured" else ("202409", "2024Q3")
+    # Their own range starts at the period before the newest out on the window's first
+    # day, here the target's own (no calendar holds a window): 2026-07, 2026-Q1 (ticket 30).
+    starts = ("202408", "2024Q2") if formula == "configured" else ("202607", "2026Q1")
     assert requested["sf_month"] == {"start_m": starts[0], "end_m": "202609"}
     assert requested["cn_gdp"] == {"start_q": starts[1], "end_q": "2026Q3"}
 

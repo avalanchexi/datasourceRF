@@ -165,9 +165,10 @@ def test_a_bad_symbol_leaves_the_other_symbols_held(refreshed: RuntimePaths) -> 
     # Crude refused; TA and CF are CZCE's, unreachable in this run.
     assert held_days["SC"] == held_days["TA"] == held_days["CF"] == set()
     others = {s: days for s, days in held_days.items() if s not in {"SC", "TA", "CF"}}
-    # Every weekday of the 220-day window, for each of the five clean TuShare symbols.
+    # Every weekday from two weeks before the window's first day, here the target itself
+    # (no calendar holds a window), for each of the five clean TuShare symbols (ticket 30).
     assert {len(days) for days in others.values()} == {
-        sum((TARGET - timedelta(days=n)).weekday() < 5 for n in range(221))
+        sum((TARGET - timedelta(days=n)).weekday() < 5 for n in range(15))
     }
 
 

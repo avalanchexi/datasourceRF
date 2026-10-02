@@ -9,7 +9,8 @@ synthetic rows, PPI is only available from the NBS page, and EIA from its archiv
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from collections import Counter
+from datetime import UTC, date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -21,8 +22,9 @@ from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.models import EFFECTIVE_CATALOG_VERSION, ModelRepository, effective_model_manifest
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.reports import ReportRepository
-from pring_cycle.runs import RunRepository
+from pring_cycle.runs import RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
+from pring_cycle.storage import database_connection
 from pring_cycle.worker import process_pending_run
 from tests.fixtures.czce_report import czce_exchange
 
@@ -195,11 +197,44 @@ def extended_core_opener() -> Any:
     return Opener()
 
 
-def extended_context_opener(requested: list[str], invalid_api: str | None = None) -> Any:
+# Monthly and quarterly families served only when a test asks for them (ticket 30).
+MACRO_APIS = frozenset({"cn_pmi", "cn_cpi", "cn_ppi", "cn_m", "sf_month", "cn_gdp"})
+
+
+def macro_rows(api: str, params: dict[str, Any], fields: list[str]) -> list[list[Any]]:
+    """Every requested field of each month (quarter) from 2024 to the requested end, rising.
+
+    Only the requested range is answered, so a narrower request holds fewer periods. PPI has
+    no cumulative average for January, which has no such official member.
+    """
+    if api == "cn_gdp":
+        periods = [f"{year}Q{quarter}" for year in (2024, 2025, 2026) for quarter in (1, 2, 3, 4)]
+        start, end = params["start_q"], params["end_q"]
+    else:
+        periods = [f"{year}{month:02d}" for year in (2024, 2025, 2026) for month in range(1, 13)]
+        start, end = params["start_m"], params["end_m"]
+    return [
+        [
+            period
+            if field in {"month", "quarter"}
+            else None
+            if api == "cn_ppi" and period.endswith("01") and field.endswith("_accu")
+            else round(50.0 + index * 0.3, 2)
+            for field in fields
+        ]
+        for index, period in enumerate(periods)
+        if start <= period <= end
+    ]
+
+
+def extended_context_opener(
+    requested: list[str], invalid_api: str | None = None, *, macro: bool = False
+) -> Any:
     """TuShare context rows continuing the lifecycle material's synthetic series to the target.
 
     Each series repeats the material importers' values on their own days, so a refresh over the
-    material window restates identical facts; other families are unavailable.
+    material window restates identical facts; other families are unavailable, the monthly and
+    quarterly ones unless ``macro`` serves them.
     """
     sessions = (*trading_days(), *EXTENSION_SESSIONS)
 
@@ -269,7 +304,11 @@ def extended_context_opener(requested: list[str], invalid_api: str | None = None
             requested.append(api)
             if api == invalid_api:
                 return BytesIO(INVALID_TUSHARE_RESPONSE)
-            fields, items = rows(api, payload["params"])
+            if macro and api in MACRO_APIS:
+                fields = payload["fields"].split(",")
+                items = macro_rows(api, payload["params"], fields)
+            else:
+                fields, items = rows(api, payload["params"])
             return BytesIO(
                 json.dumps({"code": 0, "data": {"fields": fields, "items": items}}).encode()
             )
@@ -298,11 +337,15 @@ def block_history_page(monkeypatch: pytest.MonkeyPatch, requested: list[str]) ->
     monkeypatch.setattr("pring_cycle.worker.fetch_eia_history", fetch)
 
 
-@pytest.mark.usefixtures("runtime_clock")
-def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    paths = RuntimePaths.discover(tmp_path / "runtime")
+def run_full_catalog(
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    context_requests: list[str],
+    *,
+    macro: bool = False,
+) -> tuple[RuntimePaths, RunRecord, list[str]]:
+    """One manual full run of the current model over the extended fixture sources."""
+    paths = RuntimePaths.discover(root)
     initialize_runtime(paths)
     models = ModelRepository(paths.database)
     models.register(effective_model_manifest())
@@ -314,10 +357,9 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     monkeypatch.setattr(
         "pring_cycle.source_adapters.build_opener", lambda *h: extended_core_opener()
     )
-    context_requests: list[str] = []
     monkeypatch.setattr(
         "pring_cycle.tushare_context.build_opener",
-        lambda *h: extended_context_opener(context_requests),
+        lambda *h: extended_context_opener(context_requests, macro=macro),
     )
     # TA and CF from CZCE's own report (ADR-0032), over the same sessions as the others.
     sessions = {d for d in (*trading_days(), *EXTENSION_SESSIONS) if d >= date(2026, 3, 2)}
@@ -332,7 +374,16 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
 
     process_pending_run(paths, report_adapters=())
 
-    stored = runs.get(submitted.run_id)
+    return paths, runs.get(submitted.run_id), requested
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context_requests: list[str] = []
+    paths, stored, requested = run_full_catalog(tmp_path / "runtime", monkeypatch, context_requests)
+    runs = RunRepository(paths.database)
     assert stored.status == "completed", stored.error_classification
     assert AUGUST_PPI_URL in requested
     assert "cn_cpi" in context_requests
@@ -363,3 +414,169 @@ def test_full_worker_falls_back_to_official_ppi_and_exposes_delivery_in_report(
     # The report names the source of its price conclusion, not the evidence rows (ADR-0027).
     assert "国家统计局" in report.body["verified_results"]["price_pressure"]["source"]
     assert projection.datasets["cycle_overview"]["gap_list"]
+
+
+class _TwoYearStarts:
+    """The ranges before ticket 30: two years back for periods, 220 days for days."""
+
+    def __init__(self, target: date) -> None:
+        self.target = target
+        self.daily = target - timedelta(days=220)
+
+    def period(self, *metric_ids: str) -> str:
+        quarter = (self.target.month - 1) // 3 + 1
+        if "CN_GDP" in metric_ids:
+            return f"{self.target.year - 2}Q{quarter}"
+        return date(self.target.year - 2, self.target.month, 1).strftime("%Y%m")
+
+
+def _analysis(projection: Any) -> dict[str, object]:
+    """What a run concluded, without identities, request parameters or fetch times."""
+
+    def rows(value: object) -> list[tuple[object, ...]]:
+        if isinstance(value, dict):
+            own = (
+                [
+                    (
+                        value.get("metric_id") or value.get("name") or value.get("formula"),
+                        json.dumps(value.get("dimensions"), sort_keys=True),
+                        value.get("period"),
+                        value.get("value"),
+                        value.get("direction"),
+                        value.get("status"),
+                        value.get("state"),
+                    )
+                ]
+                # A formula's document and a card's state count as much as a row.
+                if "status" in value and ({"value", "state", "direction"} & value.keys())
+                else []
+            )
+            return own + [row for child in value.values() for row in rows(child)]
+        if isinstance(value, list):
+            return [row for child in value for row in rows(child)]
+        return []
+
+    datasets = projection.datasets
+    return {
+        "stage": datasets["cycle_overview"]["current_stage"],
+        "assets": [
+            (item["asset"], item["state"], item["reason"])
+            for item in datasets["core_assets"]["assets"]
+        ],
+        "macro": sorted(rows(datasets["macro"]), key=repr),
+        "inventory": sorted(rows(datasets["inventory"]), key=repr),
+    }
+
+
+def _days(root: Path) -> dict[str, dict[str, object]]:
+    """Each summarized day's conclusions, by business date."""
+    paths = RuntimePaths.discover(root)
+    with database_connection(paths.database) as connection:
+        published = connection.execute(
+            "SELECT projection_set_id, json_extract(envelope_json, '$.target_business_date') "
+            "FROM projection_set"
+        ).fetchall()
+    repository = ProjectionSetRepository(paths.database)
+    return {day: _analysis(repository.get(projection_id)) for projection_id, day in published}
+
+
+def _february_cumulative_ppi(
+    day: str, conclusions: dict[str, object], direction: str
+) -> tuple[str, str, bool]:
+    """A day's conclusions, February's cumulative PPI checked to go ``direction``, then dropped."""
+    kept: dict[str, object] = {}
+    february = False
+    for key, value in conclusions.items():
+        if key not in {"macro", "inventory"}:
+            kept[key] = value
+            continue
+        rows = []
+        for row in value:  # type: ignore[attr-defined]
+            if (
+                row[0] == "CN_PPI"
+                and '"cumulative_average_yoy"' in row[1]
+                and row[2] == "2026-02-28"
+            ):
+                assert row[4] == direction, (day, row)
+                february = True
+                row = (*row[:4], None, *row[5:])
+            rows.append(row)
+        kept[key] = rows
+    return day, repr(kept), february
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_a_fetch_from_before_the_window_concludes_what_two_years_did(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Starting each family before the window's first day changes no conclusion (#30)."""
+    narrow_requests: list[str] = []
+    paths, narrow, _ = run_full_catalog(
+        tmp_path / "narrow", monkeypatch, narrow_requests, macro=True
+    )
+    narrow_projection = ProjectionSetRepository(paths.database).get(narrow.projection_set_id or "")
+    wide_requests: list[str] = []
+    with monkeypatch.context() as wide_patch:
+        wide_patch.setattr(
+            "pring_cycle.worker._window_fetch_starts",
+            lambda paths, target, as_of=None: _TwoYearStarts(target),
+        )
+        paths, wide, _ = run_full_catalog(tmp_path / "wide", wide_patch, wide_requests, macro=True)
+    wide_projection = ProjectionSetRepository(paths.database).get(wide.projection_set_id or "")
+
+    assert narrow.status == wide.status == "completed"
+    assert _analysis(narrow_projection) == _analysis(wide_projection)
+    # Every summarized day concludes the same, the window's first day included.
+    narrow_days, wide_days = _days(tmp_path / "narrow"), _days(tmp_path / "wide")
+    assert len(narrow_days) > 100
+    # Save one: February's cumulative PPI. January has none, so the narrow range has no
+    # previous period; the wide one compares it with December's, across the year.
+    narrow_kept = {
+        _february_cumulative_ppi(day, conclusions, "unknown")
+        for day, conclusions in narrow_days.items()
+    }
+    assert narrow_kept == {
+        _february_cumulative_ppi(day, conclusions, "up") for day, conclusions in wide_days.items()
+    }
+    # The days February was the newest PPI out: from the window's first to April's release.
+    assert sorted(day for day, _kept, february in narrow_kept if february) == [
+        "2026-03-23",
+        "2026-03-24",
+        "2026-03-25",
+        "2026-03-26",
+        "2026-03-27",
+        "2026-03-30",
+        "2026-03-31",
+        "2026-04-01",
+        "2026-04-02",
+        "2026-04-03",
+        "2026-04-07",
+        "2026-04-08",
+        "2026-04-09",
+    ]
+    # The monthly and quarterly families were answered, the window's first day compared.
+    first_day = narrow_days[min(narrow_days)]
+    compared = {
+        row[0]
+        for row in first_day["macro"]  # type: ignore[attr-defined]
+        if row[4] in {"up", "down"}
+    }
+    assert {"CN_CPI_HEADLINE", "CN_PPI", "CN_M1_M2", "CN_SF_TOTAL"} <= compared, compared
+    # The TuShare context requests each range took, by interface (recorded in ticket 30).
+    with capsys.disabled():
+        print(
+            "\nTUSHARE_CONTEXT_REQUESTS",
+            json.dumps(
+                {
+                    "narrow": dict(sorted(Counter(narrow_requests).items())),
+                    "wide": dict(sorted(Counter(wide_requests).items())),
+                },
+                ensure_ascii=False,
+            ),
+        )
+    narrow_count, wide_count = Counter(narrow_requests), Counter(wide_requests)
+    # Each range is one call per family; the warrants' daily chunks are what shrink.
+    assert narrow_count["fut_wsr"] < wide_count["fut_wsr"]
+    assert {api: n for api, n in narrow_count.items() if api != "fut_wsr"} == {
+        api: n for api, n in wide_count.items() if api != "fut_wsr"
+    }

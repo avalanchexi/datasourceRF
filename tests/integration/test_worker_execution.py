@@ -273,7 +273,8 @@ def test_context_refresh_ingests_eia_independently_of_tushare(
     class Opener:
         def open(self, request: Any, *, timeout: int) -> EiaResponse:
             parameters = parse_qs(urlsplit(request.full_url).query)
-            assert parameters["start"] == ["2026-01-20"]
+            # Two weeks before the window's first day, here the target (ticket 30).
+            assert parameters["start"] == ["2026-08-14"]
             assert parameters["end"] == ["2026-08-28"]
             return EiaResponse(
                 json.dumps(

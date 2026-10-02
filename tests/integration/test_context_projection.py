@@ -1737,3 +1737,130 @@ def test_the_target_day_selects_as_the_repository_does(
         if row["metric_id"] == "CN_DR007"
     ]
     assert (row["value"], row["status"]) == (selected, status)
+
+
+def _rows_of(value: object, metric_id: str) -> list[dict[str, object]]:
+    if isinstance(value, dict):
+        own = (
+            [value]
+            if value.get("metric_id") == metric_id
+            and "direction_input_observation_version_ids" in value
+            else []
+        )
+        return own + [row for child in value.values() for row in _rows_of(child, metric_id)]
+    if isinstance(value, list):
+        return [row for child in value for row in _rows_of(child, metric_id)]
+    return []
+
+
+@pytest.mark.parametrize(
+    ("earlier", "direction"),
+    [
+        ("2026-02", "up"),
+        # Two months back is no previous period: an older value stands in for none.
+        ("2026-01", "unknown"),
+    ],
+)
+def test_the_window_s_first_month_compares_with_the_month_before_the_window(
+    tmp_path: Path, earlier: str, direction: str
+) -> None:
+    # The window opens 2026-03-09; March is the first month shown, February only its
+    # comparison, never a row of its own (ticket 30).
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    metric_id = "CN_PPI"
+    dimensions = {"measure": "yoy", "category": "headline"}
+    claims = {}
+    for period, value in ((earlier, 1.0), ("2026-03", 2.0)):
+        year, month = (int(part) for part in period.split("-"))
+        claims[period] = repository.append_source_claim(
+            _certified_claim(
+                metric_id=metric_id,
+                period_start=f"{period}-01",
+                period_end=f"{period}-{calendar.monthrange(year, month)[1]:02d}",
+                dimensions=dimensions,
+                value=value,
+                unit="percent",
+            )
+        ).claim_id
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 31, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        visible_evidence_start="2026-03-09",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    rows = _rows_of(context.macro, metric_id) + _rows_of(context.inventory, metric_id)
+
+    assert rows
+    assert {row["period"] for row in rows} == {"2026-03-31"}
+    assert {row["direction"] for row in rows} == {direction}
+    assert {tuple(row["direction_input_observation_version_ids"]) for row in rows} == {  # type: ignore[arg-type]
+        (claims[earlier],) if direction != "unknown" else ()
+    }
+
+
+@pytest.mark.parametrize(
+    ("case", "direction"),
+    [
+        # 2025-Q4 before the window compares with 2026-Q1, across the year.
+        ("quarter_across_the_year", "up"),
+        # Published after the target day: not known then, so not compared with.
+        ("published_after_the_target", "unknown"),
+        # Another member's period is no previous period of this one.
+        ("another_member", "unknown"),
+    ],
+)
+def test_the_period_before_the_window_is_compared_only_when_known_and_alike(
+    tmp_path: Path, case: str, direction: str
+) -> None:
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    metric_id = "CN_GDP" if case == "quarter_across_the_year" else "CN_PPI"
+    dimensions = (
+        {"aggregate": "total", "measure": "nominal_quarterly_level"}
+        if metric_id == "CN_GDP"
+        else {"measure": "yoy", "category": "headline"}
+    )
+    earlier_end, current_end = (
+        ("2025-12-31", "2026-03-31") if metric_id == "CN_GDP" else ("2026-02-28", "2026-03-31")
+    )
+    earlier = _certified_claim(
+        metric_id=metric_id,
+        period_start=earlier_end[:8] + "01",
+        period_end=earlier_end,
+        dimensions=(
+            {"measure": "mom", "category": "headline"} if case == "another_member" else dimensions
+        ),
+        value=1.0,
+        unit="percent",
+    )
+    if case == "published_after_the_target":
+        late = datetime(2026, 9, 15, tzinfo=UTC)
+        earlier = replace(earlier, public_available_at=late, release_at=late)
+    repository.append_source_claim(earlier)
+    repository.append_source_claim(
+        _certified_claim(
+            metric_id=metric_id,
+            period_start=current_end[:8] + "01",
+            period_end=current_end,
+            dimensions=dimensions,
+            value=2.0,
+            unit="percent",
+        )
+    )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 9, 30, tzinfo=UTC),
+        target_business_date="2026-08-28",
+        visible_evidence_start="2026-03-09",
+        model_manifest=_v2_manifest(metric_id),
+    )
+    rows = [
+        row
+        for row in _rows_of(context.macro, metric_id) + _rows_of(context.inventory, metric_id)
+        if row["dimensions"] == dimensions
+    ]
+
+    assert rows and {row["period"] for row in rows} == {current_end}
+    assert {row["direction"] for row in rows} == {direction}
