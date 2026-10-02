@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: ready-for-agent（父票，拆为 07、08、09）
 Category: bug
 Type: task
 
@@ -44,4 +44,6 @@ Type: task
 6. **顺序与验收**：先做本票，再做票 01；两张完成后跑一次真实完整运行一起验收——OMO 利率沿用 1.4% 基准、DR007 政策利差算出；广度／篮子／仓单不再整窗重取；国庆期间国内指标不判落后、外盘照常推进。
 
 勘察全文（Codex 只读）：观测编号含定义版本（`evidence.py:1555`）；v0013→v0014 61 个指标中 60 个定义相同，仅信用脉冲 `unit`／`allowed_units` 变化；v0012→v0013 广度与篮子 5 个同名指标的来源代码变化，另删 2 增 4。
+
+**2026-10-02 拆票**：按 goal 拆为三片竖切——[07（02a）读取与选值归并](07-same-definition-read-and-selection.md)、[08（02b）已持有日与入库查重](08-same-definition-held-days-and-ingest.md)、[09（02c）原件复核与缓存键](09-same-definition-original-checks-and-cache-keys.md)；08、09 依赖 07。三片 done 后本票 done。
 
