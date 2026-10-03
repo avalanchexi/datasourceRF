@@ -17,3 +17,7 @@ Type: task
 
 - 是否重开票 01：先查 Windows/WSL 时钟是否又漂移；是否需要代码层防护（单次跳变不让整个品种日失败）。
 - CF 失败连带 TA 不入库是否合理（ADR-0032 是按品种逐日拒收）。
+
+## Comments
+
+**2026-10-03 补充**：全套 `check.py full`（`e439ae4`）中 `test_tushare_call_quota.py::test_a_call_over_the_minute_waits_for_the_oldest_to_age_out` 报 `acquisition_time_invalid` 一次（测试时间线取系统墙钟加偏移），单独重跑 3 次通过——WSL 时钟回跳再现。
