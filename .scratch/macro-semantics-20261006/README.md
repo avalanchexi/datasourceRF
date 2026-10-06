@@ -6,7 +6,7 @@
 |---|---|---|
 | [01](issues/01-bond-930916-read-as-a-price.md) | 930916 债券价格指数被当作收益率解读（N05） | done |
 | [02](issues/02-lookback-declaration-prefactor.md) | 预备重构：按"成员＋读法＋发布期"声明回看 | done |
-| [03](issues/03-tracer-new-model-with-pmi.md) | 打通全链路：新模型版本与 PMI 一项确认度 | ready-for-agent（阻塞于 02） |
+| [03](issues/03-tracer-new-model-with-pmi.md) | 打通全链路：新模型版本与 PMI 一项确认度 | done |
 | [04](issues/04-monthly-official-key-indicators.md) | 月度官方值类关键指标 | ready-for-agent（阻塞于 03） |
 | [05](issues/05-timing-grace-and-maturity.md) | 指标时序、宽限与信号成熟度 | ready-for-agent（阻塞于 04） |
 | [06](issues/06-policy-dimension.md) | 政策维度：政策动作、DR007 与净投放 | ready-for-agent（阻塞于 03） |
@@ -21,4 +21,4 @@
 - 关键指标与读法：[key-indicators.md](key-indicators.md)；六阶段预期表、通用规则、债券归因、供需规则与扩充准入：[expectation-table.md](expectation-table.md)；决定汇总：[ADR-0037](../../docs/adr/0037-confirmation-counts-key-indicators-against-stage-narrative.md)；术语见 `CONTEXT.md`。
 - 用户方向：**先集中把普林格模型设计准确**，首页原型与页面改造暂缓。
 
-**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：按阻塞关系逐票 `/implement`，每票之间清空上下文；01、02 已完成（2026-10-07），当前可开工的是 03。
+**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：按阻塞关系逐票 `/implement`，每票之间清空上下文；01、02、03 已完成（2026-10-07），下一张是 04；05、06、08、09 待 04 完成后解锁。

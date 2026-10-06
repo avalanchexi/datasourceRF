@@ -8,6 +8,8 @@ where it started.
 
 from __future__ import annotations
 
+import json
+from collections.abc import Callable
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
@@ -15,9 +17,9 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from pring_cycle import worker
+from pring_cycle import full_retrieval, worker
 from pring_cycle.lookback import Lookback, Periods, Reading, own_reading, resolve
-from pring_cycle.models import ModelRepository, model_v0014_manifest
+from pring_cycle.models import ModelRepository, model_v0014_manifest, model_v0015_manifest
 from pring_cycle.runs import RetrievalScope, RunRepository, member_keys
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
 from pring_cycle.search_evidence import ModelInputSelector
@@ -256,6 +258,24 @@ class _RecordedFetch:
 
 def _run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, model_id: str) -> tuple[Any, Any]:
     """The run's first plan and the direct fetch's requests, for 2026-08-28."""
+    manifest = {"model-v0014": model_v0014_manifest, "model-v0015": model_v0015_manifest}
+    plan, requests = _full_run(
+        tmp_path, monkeypatch, manifest[model_id]() if model_id in manifest else None
+    )
+    return plan["initial"], requests
+
+
+def _full_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    manifest: dict[str, Any] | None,
+    hold: Callable[[RuntimePaths], None] | None = None,
+) -> tuple[Any, Any]:
+    """A full run for 2026-08-28 under ``manifest`` (v0001 without one), after ``hold``.
+
+    Its whole plan, and the direct fetch's requests.
+    """
+    model_id = str(manifest["model_version_id"]) if manifest is not None else "model-v0001"
     fetch = _RecordedFetch()
     refresh = worker.refresh_context_sources
 
@@ -268,10 +288,12 @@ def _run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, model_id: str) -> tupl
     monkeypatch.setattr(worker, "refresh_context_sources", recorded)
     paths, runs = prepare(tmp_path)
     seed_core_history(paths)
-    if model_id != "model-v0001":
+    if manifest is not None:
         models = ModelRepository(paths.database)
-        models.register(model_v0014_manifest())
+        models.register(manifest)
         models.activate(model_id, explicitly_approved=True)
+    if hold is not None:
+        hold(paths)
     run = runs.submit_manual_full(
         target_business_date="2026-08-28",
         client_request_id=f"lookback-{model_id}",
@@ -279,7 +301,7 @@ def _run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, model_id: str) -> tupl
         system_as_of=datetime.now(UTC),
     )
     process_pending_run(paths, report_adapters=())
-    return runs.full_retrieval_plan(run.run_id)["initial"], fetch.requests
+    return runs.full_retrieval_plan(run.run_id), fetch.requests
 
 
 def _periods(plan: dict[str, Any]) -> dict[str, list[str]]:
@@ -382,6 +404,115 @@ def test_an_existing_model_plans_and_fetches_the_periods_it_did(
     assert requests["prices"]["end_month"] == "202608"
     if model_id == "model-v0014":
         _assert_the_fetch_covers_the_plan(periods, requests)
+
+
+def test_a_confirmation_model_plans_the_pmi_months_its_reading_needs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The PMI's slope change reads three months of each member (ADR-0037, ticket 03); the
+    # other series still read their newest period alone, and the fetch covers them all.
+    plan, requests = _run(tmp_path, monkeypatch, "model-v0015")
+    periods = _periods(plan)
+
+    assert periods["CN_PMI_ACTIVITY"] == ["2026-05", "2026-06", "2026-07"]
+    assert periods["CN_PMI_INVENTORY"] == ["2026-07"]
+    assert periods["CN_CPI_HEADLINE"] == ["2026-07"]
+    members = {
+        requirement["period"]: requirement.get("members")
+        for requirement in plan["requirements"]
+        if requirement["metric_id"] == "CN_PMI_ACTIVITY"
+    }
+    pmi = member_keys(
+        "CN_PMI_ACTIVITY",
+        tuple(
+            {"measure": "level", "series": series}
+            for series in ("manufacturing", "new_orders", "production", "purchase_volume")
+        ),
+    )
+    # The newest month is read whole by the series' own reading; the two before, for the
+    # members the confirmation names.
+    assert members["2026-07"] is None
+    assert sorted(members["2026-05"]) == sorted(members["2026-06"]) == sorted(pmi)
+    assert requests["pmi"]["start_month"] <= "202605"
+    _assert_the_fetch_covers_the_plan(periods, requests)
+
+
+def _manufacturing_pmi(payload: dict[str, Any]) -> bytes:
+    """TuShare's PMI for May and July with the manufacturing index alone."""
+    fields = str(payload["fields"]).split(",")
+    values = {"202605": 49.5, "202607": 49.3}
+    return json.dumps(
+        {
+            "code": 0,
+            "data": {
+                "fields": fields,
+                "items": [
+                    [
+                        month if field == "month" else value if field == "pmi010000" else None
+                        for field in fields
+                    ]
+                    for month, value in values.items()
+                ],
+            },
+        }
+    ).encode()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_the_members_a_reading_names_carry_from_the_plan_to_the_final_evaluation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A confirmation naming the main PMI member alone (ticket 02's members, ticket 03's
+    # reading). May, holding that member only, is complete; June is planned for it alone,
+    # its scope stored and restored with the member, and the final evaluation finds that
+    # member missing, not the others. July, read whole by the series' own reading, still
+    # lacks the members it does not hold.
+    manifest = model_v0015_manifest()
+    manifest["model_version_id"] = "model-v0015-main-member"
+    manifest["confirmation_rules"]["key_indicators"][0]["auxiliary"] = []
+
+    def hold(paths: RuntimePaths) -> None:
+        adapter = TushareContextAdapter("fixture-only", transport=_manufacturing_pmi)
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.pmi(start_month="202605", end_month="202607"),
+            definition_version=str(manifest["metric_catalog_version"]),
+        )
+
+    plan, _requests = _full_run(tmp_path, monkeypatch, manifest, hold)
+
+    named = list(member_keys("CN_PMI_ACTIVITY", ({"measure": "level", "series": "manufacturing"},)))
+    june = next(
+        document
+        for document in plan["initial"]["scopes"]
+        if document["metric_ids"] == ["CN_PMI_ACTIVITY"] and document["period"] == "2026-06"
+    )
+    assert not any(
+        document["period"] == "2026-05" and "CN_PMI_ACTIVITY" in document["metric_ids"]
+        for document in plan["initial"]["scopes"]
+    )
+    restored = full_retrieval._scope(june)
+    assert restored.members == tuple(named)
+    # As stored again, the document it was restored from.
+    assert json.loads(json.dumps(restored.document())) == {
+        key: value for key, value in june.items() if key != "release_status"
+    }
+    gaps = {
+        gap["period"]: gap for gap in plan["final"]["gaps"] if gap["metric_id"] == "CN_PMI_ACTIVITY"
+    }
+    assert gaps["2026-05"]["complete"] is True
+    assert gaps["2026-05"]["missing_members"] == []
+    assert len(gaps["2026-05"]["selected_claim_ids"]) == 1
+    assert gaps["2026-06"]["complete"] is False
+    assert gaps["2026-06"]["missing_members"] == named
+    assert gaps["2026-07"]["complete"] is False
+    assert len(gaps["2026-07"]["missing_members"]) == 3
+    final = {
+        requirement["period"]: requirement.get("members")
+        for requirement in plan["final"]["requirements"]
+        if requirement["metric_id"] == "CN_PMI_ACTIVITY"
+    }
+    assert final == {"2026-05": named, "2026-06": named, "2026-07": None}
 
 
 def _assert_the_fetch_covers_the_plan(

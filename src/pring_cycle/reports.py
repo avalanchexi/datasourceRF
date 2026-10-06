@@ -5,7 +5,7 @@ import json
 import re
 import sqlite3
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
@@ -14,11 +14,16 @@ from typing import Any, Protocol
 
 from pring_cycle.batches import add_batch_columns, current_batch_id
 from pring_cycle.cli_process import run_structured_cli
+from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.storage import database_connection, ensure_wal
 
 REPORT_SCHEMA_VERSION = "report-schema-v0004"
 PROMPT_CONTRACT_VERSION = "report-prompt-v0004"
+# A projection's dimension summary (ADR-0037) is reported under its own contract: its
+# relations and counts are conclusions the AI must echo, as the labels before them were.
+CONFIRMATION_REPORT_SCHEMA_VERSION = "report-schema-v0005"
+CONFIRMATION_PROMPT_CONTRACT_VERSION = "report-prompt-v0005"
 
 
 @dataclass(frozen=True)
@@ -66,6 +71,7 @@ class ReportInput:
         results: dict[str, Any] | None = None,
         gap_list: list[Any] | None = None,
     ) -> ReportInput:
+        schema_version, prompt_version = _contract(conclusions or {})
         identity = {
             "projection_set_id": projection_set_id,
             "target_business_date": target_business_date,
@@ -79,8 +85,8 @@ class ReportInput:
             "conclusions": conclusions or {},
             "results": results or {},
             "gap_list": gap_list or [],
-            "schema_version": REPORT_SCHEMA_VERSION,
-            "prompt_version": PROMPT_CONTRACT_VERSION,
+            "schema_version": schema_version,
+            "prompt_version": prompt_version,
         }
         return cls(
             bundle_id="bundle-" + _hash_document(identity)[:20],
@@ -96,6 +102,8 @@ class ReportInput:
             conclusions=conclusions or {},
             results=results or {},
             gap_list=gap_list or [],
+            schema_version=schema_version,
+            prompt_version=prompt_version,
         )
 
     def document(self) -> dict[str, Any]:
@@ -207,10 +215,30 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
     )
     carried = [str(asset) for asset in _list(overview.get("core_carry_forward"))]
     gap_list = [item for item in _list(overview.get("gap_list")) if isinstance(item, dict)]
-    conclusions: dict[str, Any] = {
-        name: _text_or_none(macro.get(name)) for name in _MACRO_CONCLUSIONS
-    }
-    conclusions["inventory_quadrant"] = _text_or_none(inventory.get("quadrant"))
+    confirmation = macro.get("confirmation")
+    if macro.get("output_structure") == CONFIRMATION_STRUCTURE and isinstance(confirmation, dict):
+        conclusions, outputs = _confirmation_conclusions(confirmation, macro)
+    else:
+        conclusions = {name: _text_or_none(macro.get(name)) for name in _MACRO_CONCLUSIONS}
+        conclusions["inventory_quadrant"] = _text_or_none(inventory.get("quadrant"))
+        outputs = {
+            **{
+                name: _conclusion_result(
+                    conclusions[name],
+                    [row for section in sections for row in _section_rows(macro.get(section))],
+                )
+                for name, sections in _MACRO_CONCLUSIONS.items()
+            },
+            "inventory_quadrant": _conclusion_result(
+                conclusions["inventory_quadrant"],
+                [
+                    row
+                    for card in _list(inventory.get("cards"))
+                    if isinstance(card, dict)
+                    for row in _section_rows(card)
+                ],
+            ),
+        }
     results: dict[str, Any] = {
         "formal_stage": {
             "value": current_stage,
@@ -221,22 +249,7 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
             "anomaly": [f"carried_forward:{asset}" for asset in carried],
         },
         "core_assets": [_core_result(item, carried) for item in assets_value],
-        **{
-            name: _conclusion_result(
-                conclusions[name],
-                [row for section in sections for row in _section_rows(macro.get(section))],
-            )
-            for name, sections in _MACRO_CONCLUSIONS.items()
-        },
-        "inventory_quadrant": _conclusion_result(
-            conclusions["inventory_quadrant"],
-            [
-                row
-                for card in _list(inventory.get("cards"))
-                if isinstance(card, dict)
-                for row in _section_rows(card)
-            ],
-        ),
+        **outputs,
         "core_carry_forward": carried,
         "gap_summary": _gap_summary(gap_list),
     }
@@ -254,6 +267,80 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
         results=results,
         gap_list=gap_list,
     )
+
+
+_CONFIRMATION_SECTIONS = ("policy_action", "transmission", "credit", "overheat", "price_chain")
+_READING_FIELDS = ("period", "value", "level", "momentum", "slope", "crossed", "consistency")
+
+
+def _confirmation_conclusions(
+    confirmation: dict[str, Any], macro: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The dimension summary as conclusions to echo, and each key indicator's reading.
+
+    Conclusions are flat, one per dimension and key indicator: whether confirmation
+    applies, each dimension's counts (or that it is not connected), each indicator's
+    relation. The readings say what each relation rests on, with no evidence identifiers.
+    """
+    rows = [row for section in _CONFIRMATION_SECTIONS for row in _section_rows(macro.get(section))]
+    conclusions: dict[str, Any] = {"confirmation_applicable": confirmation.get("applicable")}
+    readings: dict[str, Any] = {}
+    for dimension in _list(confirmation.get("dimensions")):
+        name = str(dimension.get("dimension"))
+        counts = dimension.get("counts")
+        conclusions[f"dimension:{name}"] = (
+            dict(counts) if isinstance(counts, dict) else str(dimension.get("status"))
+        )
+        for indicator in _list(dimension.get("key_indicators")):
+            key = str(indicator.get("key"))
+            conclusions[f"key_indicator:{key}"] = indicator.get("relation")
+            sourced = _conclusion_result(
+                indicator.get("relation"),
+                [row for row in rows if row.get("metric_id") == indicator.get("metric_id")],
+            )
+            readings[key] = {
+                **{
+                    field: indicator.get(field)
+                    for field in (
+                        "name",
+                        "dimension",
+                        "relation",
+                        "proposition",
+                        "consistency",
+                        "notes",
+                        "turn_hint",
+                        "grace",
+                        "divergence_capped",
+                        "missing",
+                    )
+                },
+                "members": [
+                    {
+                        "role": member.get("role"),
+                        "member": member.get("member"),
+                        **{field: member.get(field) for field in _READING_FIELDS},
+                    }
+                    for member in _list(indicator.get("members"))
+                    if isinstance(member, dict)
+                ],
+                "source": sourced["source"],
+                "anomaly": sourced["anomaly"],
+            }
+    return conclusions, {
+        "confirmation": {
+            "applicable": confirmation.get("applicable"),
+            "stage": confirmation.get("stage"),
+            "stage_reason": confirmation.get("stage_reason"),
+            "key_indicators": readings,
+        }
+    }
+
+
+def _contract(conclusions: dict[str, Any]) -> tuple[str, str]:
+    """The schema and prompt contract a report's conclusions are written under."""
+    if "confirmation_applicable" in conclusions:
+        return CONFIRMATION_REPORT_SCHEMA_VERSION, CONFIRMATION_PROMPT_CONTRACT_VERSION
+    return REPORT_SCHEMA_VERSION, PROMPT_CONTRACT_VERSION
 
 
 def _list(value: object) -> list[Any]:
@@ -557,8 +644,7 @@ class ReportRepository:
                     bundle.bundle_id,
                     bundle_hash,
                     bundle.model_version_id,
-                    REPORT_SCHEMA_VERSION,
-                    PROMPT_CONTRACT_VERSION,
+                    *_contract(bundle.conclusions),
                     body_json,
                     datetime.now(UTC).isoformat(),
                     current_batch_id(),
@@ -796,20 +882,29 @@ class CliReportAdapter:
         self._cancel_requested = cancel_requested
 
     def generate(self, bundle: ReportInput) -> AdapterResponse:
+        schema_version, prompt_version = _contract(bundle.conclusions)
+        confirmation = (
+            "确认度的各维度计数与各关键指标的确认关系同样只能解释、不得改写；"
+            "正文提及时须与 conclusions 一致（如“PMI 记为支持”“过热维度支持 1、反证 0”），"
+            "未确认须说明缺什么，不得把仅观察或未确认说成支持。"
+            if schema_version == CONFIRMATION_REPORT_SCHEMA_VERSION
+            else ""
+        )
         prompt = _canonical_json(
             {
                 "instruction": (
                     "仅解释报告输入中的已验证结果，输出共同报告 JSON；不得调用工具或给出交易建议。"
                     "正式阶段、三核心状态与宏观、库存结论只能解释、不得改写，"
                     "conclusions 须与报告输入的 conclusions 完全一致。"
-                    "涉及具体数值时写明数据来源；有异常（核心沿用、缺口、落后、冲突）时如实说明。"
+                    + confirmation
+                    + "涉及具体数值时写明数据来源；有异常（核心沿用、缺口、落后、冲突）时如实说明。"
                     "每个section的explanation必须是非空的单段文字，不含换行或段落分隔符；"
                     "多段解释须拆为多个section。"
                 ),
                 "report_input": bundle.prompt_document(),
                 "execution_contract": {
-                    "schema_version": REPORT_SCHEMA_VERSION,
-                    "prompt_version": PROMPT_CONTRACT_VERSION,
+                    "schema_version": schema_version,
+                    "prompt_version": prompt_version,
                     "input_bundle_versions_are_historical": True,
                 },
             }
@@ -822,8 +917,8 @@ class CliReportAdapter:
             timeout_seconds=self._timeout_seconds,
             cancel_requested=self._cancel_requested,
             audit={
-                "schema_version": REPORT_SCHEMA_VERSION,
-                "prompt_version": PROMPT_CONTRACT_VERSION,
+                "schema_version": schema_version,
+                "prompt_version": prompt_version,
                 "input_schema_version": bundle.schema_version,
                 "input_prompt_version": bundle.prompt_version,
                 "bundle_id": bundle.bundle_id,
@@ -856,7 +951,11 @@ def _report_output_schema(bundle: ReportInput) -> dict[str, Any]:
         "type": "object",
         "additionalProperties": False,
         "properties": {
-            name: {"type": ["string", "null"], "const": value}
+            name: (
+                _const_schema(value)
+                if _contract(bundle.conclusions)[0] == CONFIRMATION_REPORT_SCHEMA_VERSION
+                else {"type": ["string", "null"], "const": value}
+            )
             for name, value in bundle.conclusions.items()
         },
         "required": list(bundle.conclusions),
@@ -889,6 +988,40 @@ def _report_output_schema(bundle: ReportInput) -> dict[str, Any]:
         },
         "required": list(_OUTPUT_FIELDS),
     }
+
+
+def _const_schema(value: Any) -> dict[str, Any]:
+    """A schema only ``value`` meets: counts are integers, not numbers or booleans."""
+    if isinstance(value, dict):
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {key: _const_schema(item) for key, item in value.items()},
+            "required": list(value),
+        }
+    if value is None:
+        return {"type": "null"}
+    kind = (
+        "boolean"
+        if isinstance(value, bool)
+        else "integer"
+        if isinstance(value, int)
+        else "number"
+        if isinstance(value, float)
+        else "string"
+    )
+    return {"type": kind, "const": value}
+
+
+def _same(left: Any, right: Any) -> bool:
+    """Equal, and of the same kinds all the way down: a count of 1 is not True."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return left.keys() == right.keys() and all(_same(left[k], right[k]) for k in left)
+    if isinstance(left, list):
+        return len(left) == len(right) and all(map(_same, left, right))
+    return bool(left == right)
 
 
 _OUTPUT_FIELDS = (
@@ -948,6 +1081,104 @@ def _stated_stages(section: dict[str, Any]) -> set[str]:
     return {_ROMAN_STAGES[match] for match in _STATED_STAGE.findall(text)}
 
 
+_RELATION_WORDS = {
+    "仅观察": "observation_only",
+    "未确认": "unconfirmed",
+    "不适用": "not_applicable",
+    "反证": "counterevidence",
+    "支持": "support",
+}
+_DIMENSION_WORDS = {"政策": "policy", "信用": "credit", "过热": "overheat", "物价": "price"}
+_DIMENSION_WORDS |= {"库存": "inventory"}
+_RELATION = "(" + "|".join(_RELATION_WORDS) + ")"
+# "不", "没有被", "并非": a negation, taken in the match so what it negates is not read
+# again without it.
+_NEGATION = r"(?:没有|并非|不是|[不非未没])\s*被?\s*"
+# "PMI 记为反证", "PMI 是支持", "PMI：反证", "PMI 没有被判为支持", "PMI 并非支持": a key
+# indicator's relation said in so many words.
+_VERB = r"(?:记为|判为|计为|构成|属于|为|是|[:：])"
+# A negation itself negated ("并非不支持") is no denial of what follows it.
+_STATED_RELATION = re.compile(
+    "(?:(?<![不非未没])(" + _NEGATION + ")" + _VERB + "?|" + _VERB + r")\s*" + _RELATION
+)
+# "过热维度支持 1、反证 0", "支持：1", "并非支持 1", "支持不是 1": a dimension's counts.
+_STATED_COUNT = re.compile(
+    "("
+    + _NEGATION
+    + ")?"
+    + _RELATION
+    + r"\s*[:：]?\s*(不是|并非|不为|非)?\s*(?:为|是|共|计)?\s*(\d+)"
+)
+
+
+def _restates_confirmation(bundle: ReportInput, section: dict[str, Any]) -> bool:
+    """Whether a paragraph says a relation or a count other than the report input's.
+
+    Read sentence by sentence, the title first: what follows a key indicator's name is
+    said of it, and what follows a dimension's name is counted for it, up to the next
+    indicator or dimension named, and on into sentences naming none. A relation denied is
+    said too: denying the input's own is saying another.
+    """
+    if "confirmation_applicable" not in bundle.conclusions:
+        return False
+    confirmation = bundle.results.get("confirmation")
+    readings = confirmation.get("key_indicators") if isinstance(confirmation, dict) else None
+    names = {
+        str(reading["name"]): f"key_indicator:{key}"
+        for key, reading in (readings or {}).items()
+        if isinstance(reading, dict) and reading.get("name")
+    }
+    dimensions = {label: f"dimension:{name}" for label, name in _DIMENSION_WORDS.items()}
+    # The title runs into its paragraph: "PMI：" over "反证。" says PMI is counterevidence.
+    text = f"{section['title']} {section['explanation']}"
+    sentences = re.split(r"[。；;！!？?]", text)
+    subjects = {**dict.fromkeys(names), **dict.fromkeys(dimensions)}
+    for conclusion, segment in _attributed(sentences, {**subjects, **names}):
+        for negated, word in _STATED_RELATION.findall(segment):
+            if (_RELATION_WORDS[word] == bundle.conclusions.get(conclusion)) == bool(negated):
+                return True
+    for conclusion, segment in _attributed(sentences, {**subjects, **dimensions}):
+        counts = bundle.conclusions.get(conclusion)
+        for before, word, after, number in _STATED_COUNT.findall(segment):
+            negated = bool(before or after)
+            if not isinstance(counts, dict):
+                if not negated:
+                    return True
+            elif (counts.get(_RELATION_WORDS[word]) == int(number)) == negated:
+                return True
+    return False
+
+
+def _attributed(sentences: list[str], labels: Mapping[str, str | None]) -> list[tuple[str, str]]:
+    """Each stretch of ``sentences`` with the conclusion it is said of.
+
+    A stretch runs from a label to the next; one before any label in its sentence is of
+    the last label named before it. A label of no conclusion (another kind of subject)
+    ends what the one before it is said of when it leads its sentence ("政策维度尚未接入"),
+    not where it qualifies a subject already named ("PMI 在过热维度中").
+    """
+    pattern = re.compile("|".join(re.escape(label) for label in labels)) if labels else None
+    stretches: list[tuple[str, str]] = []
+    current: str | None = None
+    for sentence in sentences:
+        found = list(pattern.finditer(sentence)) if pattern is not None else []
+        mentions = [
+            mention
+            for index, mention in enumerate(found)
+            if labels[mention.group()] is not None
+            or not any(labels[earlier.group()] is not None for earlier in found[:index])
+        ]
+        lead = sentence[: mentions[0].start()] if mentions else sentence
+        if current is not None and lead:
+            stretches.append((current, lead))
+        for index, mention in enumerate(mentions):
+            end = mentions[index + 1].start() if index + 1 < len(mentions) else len(sentence)
+            current = labels[mention.group()]
+            if current is not None:
+                stretches.append((current, sentence[mention.end() : end]))
+    return stretches
+
+
 def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str:
     """The two post-checks (ADR-0027): the structure, and conclusions left as given."""
     if response.tool_events:
@@ -961,8 +1192,8 @@ def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str
         return "schema_validation_failed"
     if document["current_stage"] != bundle.current_stage:
         return "stage_mutation_rejected"
-    if document["core_states"] != bundle.core_states or document["conclusions"] != (
-        bundle.conclusions
+    if document["core_states"] != bundle.core_states or not _same(
+        document["conclusions"], bundle.conclusions
     ):
         return "conclusion_mutation_rejected"
     if document["report_cutoff"] != bundle.report_cutoff.isoformat():
@@ -982,6 +1213,8 @@ def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str
             return "forbidden_content_rejected"
         if any(stage != bundle.current_stage for stage in _stated_stages(section)):
             return "stage_mutation_rejected"
+        if _restates_confirmation(bundle, section):
+            return "conclusion_mutation_rejected"
         if not section["explanation"].strip() or any(
             separator in section["explanation"] for separator in "\r\n\u2028\u2029"
         ):

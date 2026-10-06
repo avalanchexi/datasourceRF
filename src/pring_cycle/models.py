@@ -480,6 +480,29 @@ def effective_model_manifest() -> dict[str, Any]:
     return model_v0014_manifest()
 
 
+def model_v0015_manifest() -> dict[str, Any]:
+    """model-v0015: the stage narrative confirmed by key indicators (ADR-0037).
+
+    v0014's rules and catalog, with the confirmation rules frozen in: the macro rules
+    version and projection output structure say the context is read as a dimension summary
+    of key indicators against the formal stage, not as the four single-dimension labels.
+    Built up ticket by ticket (macro semantics 03-10), it is registered and activated
+    only when complete (ticket 11), as an explicit step (ADR-0022).
+    """
+    from pring_cycle.confirmation import MACRO_RULES_VERSION, OUTPUT_STRUCTURE, rules_v0001
+
+    manifest = copy.deepcopy(model_v0014_manifest())
+    manifest.update(
+        {
+            "model_version_id": "model-v0015",
+            "macro_rules_version": MACRO_RULES_VERSION,
+            "projection_output_structure": OUTPUT_STRUCTURE,
+            "confirmation_rules": rules_v0001(),
+        }
+    )
+    return manifest
+
+
 def model_v0014_manifest() -> dict[str, Any]:
     """model-v0014: the twelve-month credit impulse, without the 12-month proxy (ADR-0035).
 

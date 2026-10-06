@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.batches import add_batch_columns, current_batch_id
+from pring_cycle.confirmation import DIMENSIONS as CONFIRMATION_DIMENSIONS
+from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
+from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS
 from pring_cycle.source_contract_review import require_stored_model_source_contract
 from pring_cycle.storage import database_connection, ensure_wal
@@ -457,17 +460,82 @@ def validate_analytical_projection(
         window_start=envelope.evidence_window_start,
         window_end=envelope.evidence_window_end,
     )
-    cards = inventory.get("cards")
-    if (
-        not isinstance(cards, list)
-        or tuple(str(card.get("name")) for card in cards if isinstance(card, dict))
-        != INVENTORY_CARD_NAMES
-    ):
-        raise ValueError("projection_inventory_card_manifest_invalid")
+    structure = macro.get("output_structure")
+    if inventory.get("output_structure") != structure:
+        raise ValueError("projection_output_structure_mismatch")
+    if structure == CONFIRMATION_STRUCTURE:
+        _validate_confirmation(macro, inventory, overview)
+    elif structure is not None:
+        raise ValueError("projection_output_structure_unknown")
+    else:
+        cards = inventory.get("cards")
+        if (
+            not isinstance(cards, list)
+            or tuple(str(card.get("name")) for card in cards if isinstance(card, dict))
+            != INVENTORY_CARD_NAMES
+        ):
+            raise ValueError("projection_inventory_card_manifest_invalid")
     release_events = datasets["release_calendar"].get("events")
     stage_events = datasets["stage_history"].get("events")
     if not isinstance(release_events, list) or not isinstance(stage_events, list):
         raise ValueError("projection_event_dataset_invalid")
+
+
+_RETIRED_MACRO_LABELS = ("policy_direction", "credit_response", "overheat_state", "price_pressure")
+
+
+def _validate_confirmation(
+    macro: dict[str, object], inventory: dict[str, object], overview: dict[str, object]
+) -> None:
+    """A dimension summary of the published stage, with no label standing in (ADR-0037).
+
+    It confirms the stage the set states, or none; each dimension's counts are its key
+    indicators' relations, and a dimension not read yet has neither.
+    """
+    if any(label in macro for label in _RETIRED_MACRO_LABELS) or "cards" in inventory:
+        raise ValueError("projection_confirmation_retired_label_present")
+    confirmation = macro.get("confirmation")
+    if not isinstance(confirmation, dict):
+        raise ValueError("projection_confirmation_invalid")
+    stage = overview.get("current_stage")
+    if (
+        confirmation.get("stage") != stage
+        or confirmation.get("stage_reason") != overview.get("stage_reason")
+        or confirmation.get("applicable") is not (stage is not None)
+    ):
+        raise ValueError("projection_confirmation_stage_mismatch")
+    dimensions = confirmation.get("dimensions")
+    if (
+        not isinstance(dimensions, list)
+        or not all(isinstance(item, dict) for item in dimensions)
+        or [item.get("dimension") for item in dimensions] != list(CONFIRMATION_DIMENSIONS)
+    ):
+        raise ValueError("projection_confirmation_invalid")
+    for dimension in dimensions:
+        indicators = dimension.get("key_indicators")
+        counts = dimension.get("counts")
+        if not isinstance(indicators, list) or not all(
+            isinstance(item, dict) for item in indicators
+        ):
+            raise ValueError("projection_confirmation_invalid")
+        relations = [item.get("relation") for item in indicators]
+        if dimension.get("status") == "not_connected":
+            if indicators or counts is not None:
+                raise ValueError("projection_confirmation_invalid")
+            continue
+        if (
+            dimension.get("status") != "connected"
+            or not indicators
+            or any(relation not in CONFIRMATION_RELATIONS for relation in relations)
+            or any((relation == "not_applicable") is (stage is not None) for relation in relations)
+            or not isinstance(counts, dict)
+            or set(counts) != set(CONFIRMATION_RELATIONS)
+            or any(
+                type(counts[relation]) is not int or counts[relation] != relations.count(relation)
+                for relation in CONFIRMATION_RELATIONS
+            )
+        ):
+            raise ValueError("projection_confirmation_invalid")
 
 
 def _validate_visible_context_window(

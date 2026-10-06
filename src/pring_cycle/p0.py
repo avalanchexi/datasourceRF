@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 from pring_cycle.batches import current_batch_id
 from pring_cycle.domain import CoreAssetState, FormalStage
-from pring_cycle.domain.stage import derive_formal_stage
+from pring_cycle.domain.stage import StageResult, derive_formal_stage
 from pring_cycle.projections import (
     ANALYTICAL_DATASETS,
     INVENTORY_CARD_NAMES,
@@ -73,20 +73,18 @@ class P0ProjectionService:
         release_calendar_events: tuple[dict[str, object], ...] = (),
         gap_list: tuple[dict[str, object], ...] = (),
         as_current: bool = True,
+        decided: StageResult | None = None,
     ) -> P0PublishResult:
-        by_asset = {item.asset: item for item in assets}
-        if set(by_asset) != {"bond", "stock", "commodity"}:
-            raise ValueError("p0_asset_manifest_invalid")
-        gaps = tuple(
-            f"{item.asset}:{item.reason}"
-            for item in assets
-            if item.state is None or item.reason not in {"validated", CARRIED_FORWARD}
-        )
-        stage = derive_formal_stage(
-            bond=by_asset["bond"].state,
-            stock=by_asset["stock"].state,
-            commodity=by_asset["commodity"].state,
-            last_confirmed_stage=last_confirmed_stage,
+        """Publish the day's set; ``decided`` is its formal stage when already decided.
+
+        The confirmation built before read that same stage (``formal_stage``); without
+        one, it is decided here.
+        """
+        gaps = _core_gaps(assets)
+        decided = decided or formal_stage(assets)
+        # The cores' stage is the last confirmed one; without one, the one before stands.
+        stage = replace(
+            decided, last_confirmed_stage=decided.last_confirmed_stage or last_confirmed_stage
         )
         resolved_macro_document = macro_document or _default_macro_document()
         resolved_inventory_document = inventory_document or _default_inventory_document()
@@ -107,9 +105,6 @@ class P0ProjectionService:
             + hashlib.sha256(json.dumps(asset_documents, sort_keys=True).encode()).hexdigest()[:20]
         )
         if gaps:
-            # Core data pending: no formal stage, but everything else is still published
-            # and reported (ticket 07, item 3).
-            stage = replace(stage, current_stage=None, reason="core_data_pending")
             warnings = (*warnings, "core_data_pending")
         carried = [item.asset for item in assets if item.carried_forward]
         if carried:
@@ -235,6 +230,39 @@ class P0ProjectionService:
             (),
             str(assessment["assessment_id"]),
         )
+
+
+def formal_stage(
+    assets: tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness],
+) -> StageResult:
+    """The day's formal stage, from its three cores alone, decided once for the day.
+
+    The confirmation of the stage's narrative reads it, and publishing states it. Its
+    last confirmed stage is the cores' own canonical one, held or not, else none: the
+    history before the day is publishing's to add.
+    """
+    by_asset = {item.asset: item for item in assets}
+    if set(by_asset) != {"bond", "stock", "commodity"}:
+        raise ValueError("p0_asset_manifest_invalid")
+    stage = derive_formal_stage(
+        bond=by_asset["bond"].state,
+        stock=by_asset["stock"].state,
+        commodity=by_asset["commodity"].state,
+        last_confirmed_stage=None,
+    )
+    if _core_gaps(assets):
+        # Core data pending: no formal stage, but everything else is still published
+        # and reported (ticket 07, item 3).
+        stage = replace(stage, current_stage=None, reason="core_data_pending")
+    return stage
+
+
+def _core_gaps(assets: tuple[CoreAssetReadiness, ...]) -> tuple[str, ...]:
+    return tuple(
+        f"{item.asset}:{item.reason}"
+        for item in assets
+        if item.state is None or item.reason not in {"validated", CARRIED_FORWARD}
+    )
 
 
 def _macro_confirmation(document: dict[str, object] | None) -> list[dict[str, str]]:

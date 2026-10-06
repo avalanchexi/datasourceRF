@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from dash import dcc, html
 
+from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.navigation import DASHBOARD_NAVIGATION
 from pring_cycle.projections import ProjectionSet
 from pring_cycle.reports import ReportSnapshot
@@ -393,6 +394,8 @@ def _core_assets_page(projection: ProjectionSet | None) -> html.Div:
 def _macro_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "macro")
     as_of = projection.envelope.system_as_of.isoformat() if projection is not None else None
+    if document.get("output_structure") == CONFIRMATION_STRUCTURE:
+        return _confirmation_macro_page(document, as_of=as_of)
     policy_action = _object_document(document.get("policy_action"))
     transmission = _object_document(document.get("transmission"))
     credit = _object_document(document.get("credit"))
@@ -498,6 +501,8 @@ def _macro_page(projection: ProjectionSet | None) -> html.Div:
 def _inventory_page(projection: ProjectionSet | None) -> html.Div:
     document = _dataset(projection, "inventory")
     as_of = projection.envelope.system_as_of.isoformat() if projection is not None else None
+    if document.get("output_structure") == CONFIRMATION_STRUCTURE:
+        return _confirmation_inventory_page(document)
     cards = document.get("cards")
     card_documents = (
         [item for item in cards if isinstance(item, dict)] if isinstance(cards, list) else []
@@ -673,6 +678,32 @@ def _macro_summary(document: dict[str, object]) -> html.Div:
             "宏观证据尚未发布",
             "P1/P2 缺口不影响三核心资产和正式阶段的读取。",
         )
+    if document.get("output_structure") == CONFIRMATION_STRUCTURE:
+        confirmation = _object_document(document.get("confirmation"))
+        return html.Div(
+            [
+                html.P(_confirmation_scope(confirmation), className="body-copy"),
+                html.Div(
+                    [
+                        _domain_panel(
+                            _DIMENSION_LABELS.get(str(item.get("dimension")), "维度"),
+                            str(item.get("dimension", "")).upper(),
+                            _dimension_counts(item),
+                        )
+                        for item in _document_list(confirmation.get("dimensions"))
+                    ],
+                    className="evidence-card-grid macro-summary-grid",
+                ),
+                html.Ul(
+                    [
+                        html.Li(_indicator_line(indicator), className="record-row")
+                        for item in _document_list(confirmation.get("dimensions"))
+                        for indicator in _document_list(item.get("key_indicators"))
+                    ],
+                    className="record-list",
+                ),
+            ]
+        )
     summaries = (
         ("政策方向", "POLICY", document.get("policy_direction")),
         ("信用响应", "CREDIT", document.get("credit_response")),
@@ -683,6 +714,209 @@ def _macro_summary(document: dict[str, object]) -> html.Div:
         [_domain_panel(title, kicker, _state_label(value)) for title, kicker, value in summaries],
         className="evidence-card-grid macro-summary-grid",
     )
+
+
+_DIMENSION_LABELS = {
+    "policy": "政策",
+    "credit": "信用",
+    "overheat": "过热",
+    "price": "物价",
+    "inventory": "库存",
+}
+_RELATION_LABELS = {
+    "support": "支持",
+    "counterevidence": "反证",
+    "observation_only": "仅观察",
+    "unconfirmed": "未确认",
+    "not_applicable": "不适用",
+}
+_MEMBER_LABELS = {
+    "manufacturing": "制造业 PMI",
+    "new_orders": "新订单",
+    "production": "生产",
+    "purchase_volume": "采购量",
+}
+_READING_LABELS = {
+    "momentum": {"up": "较上期上升", "down": "较上期下降", "flat": "较上期持平"},
+    "slope": {"steeper": "斜率变陡", "slower": "斜率放缓", "turn": "斜率转向", "flat": "斜率持平"},
+    "consistency": {
+        "main": "主要成员",
+        "agrees": "与主要成员一致",
+        "opposes": "与主要成员相反",
+        "flat": "持平",
+        "unknown": "方向未知",
+    },
+}
+
+
+def _confirmation_scope(confirmation: dict[str, object]) -> str:
+    if confirmation.get("applicable") is True:
+        return f"对照{_stage_label(confirmation.get('stage'))}的预期计数；确认度不改变正式阶段。"
+    return "当前没有正式阶段，确认度不适用；各关键指标读法照常列出。"
+
+
+def _dimension_counts(dimension: dict[str, object]) -> str:
+    counts = dimension.get("counts")
+    if dimension.get("status") != "connected" or not isinstance(counts, dict):
+        return "尚未接入"
+    return " · ".join(
+        f"{label} {_integer(counts.get(relation))}"
+        for relation, label in _RELATION_LABELS.items()
+        if relation != "not_applicable" or _integer(counts.get(relation))
+    )
+
+
+def _indicator_line(indicator: dict[str, object]) -> str:
+    main = next(iter(_document_list(indicator.get("members"))), {})
+    relation = _RELATION_LABELS.get(str(indicator.get("relation")), "不可用")
+    parts = [
+        f"{indicator.get('name')}：{relation}",
+        _member_reading(main, indicator.get("level_line")),
+    ]
+    if indicator.get("proposition"):
+        parts.append(f"命题：{indicator['proposition']}")
+    return " · ".join(parts)
+
+
+def _member_reading(member: dict[str, object], line: object) -> str:
+    if member.get("value") is None:
+        return f"无可用读数（{_state_label(member.get('evidence_status'))}）"
+    level = {"above": "高于", "below": "低于", "at": "等于"}.get(str(member.get("level")), "")
+    readings = [
+        f"{member.get('period')} 值 {_display_value(member.get('value'))}",
+        f"{level} {_display_value(line)}" if level else "",
+        _READING_LABELS["momentum"].get(str(member.get("momentum")), "动量未知"),
+        _READING_LABELS["slope"].get(str(member.get("slope")), "斜率未知"),
+    ]
+    return "，".join(item for item in readings if item)
+
+
+def _confirmation_macro_page(document: dict[str, object], *, as_of: str | None) -> html.Div:
+    confirmation = _object_document(document.get("confirmation"))
+    international = _document_list(document.get("international_context"))
+    sections = []
+    for dimension in _document_list(confirmation.get("dimensions")):
+        name = _DIMENSION_LABELS.get(str(dimension.get("dimension")), "维度")
+        indicators = _document_list(dimension.get("key_indicators"))
+        sections.append(
+            html.Section(
+                [
+                    _section_heading(name, _dimension_counts(dimension)),
+                    html.Div(
+                        [_indicator_card(item) for item in indicators],
+                        className="evidence-card-grid",
+                    )
+                    if indicators
+                    else _empty_state(f"{name}维度尚未接入", "该维度的关键指标尚未纳入当前模型。"),
+                ],
+                className="content-section",
+            )
+        )
+    return html.Div(
+        [
+            _page_heading("宏观证据", "MACRO CONFIRMATION · DIMENSION SUMMARY"),
+            html.P(_confirmation_scope(confirmation), className="body-copy page-intro"),
+            *sections,
+            html.Section(
+                [
+                    _section_heading("国际环境", "P2 CONTEXT ONLY · NO SCORE"),
+                    html.Ul(
+                        [
+                            _evidence_row(item, as_of=as_of, international=True)
+                            for item in international
+                        ],
+                        className="record-list",
+                    )
+                    if international
+                    else _empty_state(
+                        "国际背景尚无目录数据",
+                        "P2 缺失不影响中国正式阶段和页面整体可用性。",
+                    ),
+                ],
+                className="content-section",
+            ),
+        ],
+        className="page-stack",
+    )
+
+
+def _indicator_card(indicator: dict[str, object]) -> html.Article:
+    details = [
+        {"consistent": "成员一致", "divergent": "成员分化", "unknown": "方向未知"}.get(
+            str(indicator.get("consistency")), "方向未知"
+        )
+    ]
+    if indicator.get("proposition"):
+        details.append(f"命题：{indicator['proposition']}")
+    details.extend(str(note) for note in _list_of(indicator.get("notes")))
+    if indicator.get("turn_hint"):
+        details.append(f"转折提示：接近{_stage_label(indicator['turn_hint'])}")
+    if indicator.get("grace") == "not_evaluated":
+        details.append("反证条件成立，宽限待判定")
+    if indicator.get("divergence_capped"):
+        details.append("成员分化，不高于仅观察")
+    if indicator.get("missing"):
+        details.append("缺：" + "、".join(str(item) for item in _list_of(indicator["missing"])))
+    members = [
+        html.Li(
+            " · ".join(
+                (
+                    _MEMBER_LABELS.get(
+                        str(_object_document(member.get("member")).get("series")),
+                        _display_value(member.get("member")),
+                    ),
+                    _READING_LABELS["consistency"].get(str(member.get("consistency")), "方向未知"),
+                    _member_reading(member, indicator.get("level_line")),
+                )
+            ),
+            className="record-row",
+        )
+        for member in _document_list(indicator.get("members"))
+    ]
+    return html.Article(
+        [
+            html.P(str(indicator.get("metric_id", "")), className="section-kicker"),
+            html.H3(str(indicator.get("name", "")), className="card-title"),
+            html.P(
+                _RELATION_LABELS.get(str(indicator.get("relation")), "不可用"),
+                className="body-copy domain-value",
+            ),
+            *(html.P(item, className="secondary-copy") for item in details),
+            html.Ul(members, className="record-list"),
+        ],
+        className="domain-panel evidence-panel",
+    )
+
+
+def _confirmation_inventory_page(document: dict[str, object]) -> html.Div:
+    return html.Div(
+        [
+            _page_heading("库存特征", "INVENTORY CHARACTERISTICS"),
+            _empty_state(
+                "库存维度尚未接入", "当前模型的库存象限规则尚未接入，不给出象限或特征卡。"
+            ),
+            _domain_panel(
+                "价格调整后的近似实际库存",
+                "DERIVED · NOT AN OFFICIAL STATISTIC",
+                _formula_summary(document.get("real_inventory_approximation")),
+            ),
+            html.Section(
+                [
+                    _section_heading("口径边界", "SEMANTIC GUARDRAILS"),
+                    html.P(
+                        "PMI 库存是扩散指数，不是库存数量；注册仓单不代表产业总库存。",
+                        className="body-copy",
+                    ),
+                ],
+                className="content-section",
+            ),
+        ],
+        className="page-stack",
+    )
+
+
+def _list_of(value: object) -> list[object]:
+    return value if isinstance(value, list) else []
 
 
 def _evidence_panel(

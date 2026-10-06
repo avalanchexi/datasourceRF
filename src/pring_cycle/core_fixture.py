@@ -12,7 +12,7 @@ from pring_cycle.domain import FormalStage
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
 from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.models import ModelRepository
-from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService
+from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService, formal_stage
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
 
@@ -60,8 +60,10 @@ def project_core_fixture(
         normalized.encode()
     ).hexdigest()[:20]
     previous_stage = _last_confirmed_stage(paths, parsed["target_business_date"])
+    decided = formal_stage(assets)  # type: ignore[arg-type]
     context = build_context_projection(
         EvidenceRepository(paths.database),
+        formal_stage=decided,
         as_of=parsed["system_as_of"],
         model_manifest=manifest,
         target_business_date=parsed["target_business_date"],
@@ -78,6 +80,7 @@ def project_core_fixture(
         evidence_snapshot_id=evidence_snapshot_id,
         macro_document=context.macro,
         inventory_document=context.inventory,
+        decided=decided,
     )
     return CoreFixtureProjectionResult(
         acceptance_only=True,

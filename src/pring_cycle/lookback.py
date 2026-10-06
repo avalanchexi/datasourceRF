@@ -166,7 +166,8 @@ def own_reading(metric_id: str, frequency: str, *, every_session: bool = False) 
 
 
 def declare(rules: ContextProjectionRules) -> tuple[Reading, ...]:
-    """The model's readings: each series as itself, then each formula's inputs."""
+    """The model's readings: each series as itself, each formula's inputs, then each key
+    indicator's members over the months its confirmation reads (ADR-0037)."""
     frequencies = {
         item.metric_id: evidence_frequency(item.metric_id, item.frequency)
         for item in rules.metric_definitions
@@ -200,6 +201,16 @@ def declare(rules: ContextProjectionRules) -> tuple[Reading, ...]:
                 Periods.consecutive(count, _UNITS.get(frequencies.get(source, ""), "month")),
             )
             for source, count in inputs.items()
+        )
+    if rules.confirmation is not None:
+        readings.extend(
+            Reading(
+                indicator.metric_id,
+                f"confirmation:{indicator.key}",
+                Periods.consecutive(indicator.lookback_months),
+                members=indicator.members,
+            )
+            for indicator in rules.confirmation.indicators
         )
     return tuple(readings)
 

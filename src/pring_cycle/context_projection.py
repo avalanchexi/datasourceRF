@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import hashlib
 import json
 from collections.abc import Mapping
@@ -13,6 +14,14 @@ from pring_cycle.acquisition_outcome import SUCCEEDED, AcquisitionOutcomes
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.claim_adoption import ClaimAdoption
+from pring_cycle.confirmation import (
+    OUTPUT_STRUCTURE,
+    ConfirmationRules,
+    KeyIndicator,
+    MemberReading,
+    confirmation_document,
+)
+from pring_cycle.domain import StageResult
 from pring_cycle.domain.macro import (
     EvidenceSignal,
     SignatureCard,
@@ -132,9 +141,12 @@ _SUPPORTED_FORMULA_VERSIONS = {
 
 @dataclass(frozen=True)
 class ContextProjectionRules:
+    """A model's context rules; ``confirmation`` None reads the four labels (ADR-0037)."""
+
     metric_catalog_version: str
     metric_definitions: tuple[MetricDefinition, ...]
     formula_versions: Mapping[str, str]
+    confirmation: ConfirmationRules | None = None
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> ContextProjectionRules:
@@ -162,7 +174,12 @@ class ContextProjectionRules:
             if supported is None or raw_version not in supported:
                 raise ValueError("context_model_formula_version_unsupported")
             formulas[raw_key] = raw_version
-        return cls(catalog_version, definitions, formulas)
+        confirmation = ConfirmationRules.from_manifest(manifest)
+        if confirmation is not None and any(
+            item.metric_id not in metric_ids for item in confirmation.indicators
+        ):
+            raise ValueError("confirmation_key_indicator_metric_missing")
+        return cls(catalog_version, definitions, formulas, confirmation)
 
 
 # The cores' rows skip the family recheck here: core readiness rechecks them.
@@ -245,7 +262,13 @@ def build_context_projection(
     visible_evidence_start: str | None = None,
     as_of_mode: AsOfMode = AsOfMode.SYSTEM,
     persist_derived: bool = True,
+    formal_stage: StageResult | None = None,
 ) -> ContextProjection:
+    """The day's context; a model with confirmation rules reads it against ``formal_stage``.
+
+    The formal stage is decided from the three cores before, and only shared here: a
+    model reading the four labels needs none.
+    """
     if as_of.tzinfo is None:
         raise ValueError("context_projection_as_of_must_be_timezone_aware")
     rules = ContextProjectionRules.from_manifest(model_manifest)
@@ -441,25 +464,6 @@ def build_context_projection(
     )
     if credit_impulse_row is not None:
         rows_by_metric["CN_CREDIT_IMPULSE"] = (credit_impulse_row,)
-    policy_actions = _signals(rows_by_metric, _POLICY_ACTION, transform="policy")
-    transmission = _signals(rows_by_metric, _POLICY_TRANSMISSION, transform="policy")
-    credit_signals = _signals(rows_by_metric, _CREDIT, transform="credit")
-    overheat_signals = _signals(rows_by_metric, _OVERHEAT)
-    price_signals = _signals(rows_by_metric, _PRICE)
-    inventory_signals = _signals(rows_by_metric, _INVENTORY)
-    policy = derive_policy_direction(actions=policy_actions, transmission=transmission)
-    credit = derive_credit_response(credit_signals)
-    overheat = derive_overheat_state(overheat_signals)
-    price = derive_price_pressure(price_signals)
-    demand = _role_direction(overheat_signals, "demand")
-    production = _role_direction(overheat_signals, "production")
-    inventory_direction = _inventory_direction(inventory_signals)
-    inventory = derive_inventory_cycle(
-        demand=demand,
-        production=production,
-        inventory=inventory_direction,
-        observations=inventory_signals,
-    )
     real_inventory, derived_ids = _real_inventory_proxy(
         repository,
         rows_by_metric,
@@ -471,59 +475,154 @@ def build_context_projection(
         ppi_definition=definitions.get("CN_PPI"),
     )
     international_context = _international_context(rows_by_metric, rules.metric_definitions)
-    macro_document: dict[str, object] = {
-        "policy_direction": policy.state,
-        "policy_action": {
-            "direction": _policy_component_direction(policy_actions),
-            "evidence": _row_documents(rows_by_metric, _POLICY_ACTION),
-        },
-        "transmission": {
-            "direction": _policy_component_direction(transmission),
-            "evidence": _row_documents(rows_by_metric, _POLICY_TRANSMISSION),
-        },
-        "credit_response": credit.state,
-        "credit": {
-            "state": credit.state,
-            "evidence": _row_documents(rows_by_metric, _CREDIT),
-            "formula": credit_formula,
-        },
-        "overheat_state": overheat.state,
-        "overheat": {
-            "state": overheat.state,
-            "evidence": _row_documents(rows_by_metric, _OVERHEAT),
-            "support": [asdict(item) for item in overheat.support],
-            "counterevidence": [asdict(item) for item in overheat.counterevidence],
-            "gaps": [asdict(item) for item in overheat.gaps],
-        },
-        "price_pressure": price.state,
-        "price_chain": {
-            "state": price.state,
-            "evidence": _row_documents(rows_by_metric, _PRICE),
-            "support": [asdict(item) for item in price.support],
-            "counterevidence": [asdict(item) for item in price.counterevidence],
-            "gaps": [asdict(item) for item in price.gaps],
-            "energy_boundary": "headline_cpi_ppi_input_not_core_cpi_component",
-        },
-        "international_context": international_context,
-        "score": None,
-    }
-    inventory_document: dict[str, object] = {
-        "quadrant": inventory.quadrant,
-        "directions": {
-            "demand": demand,
-            "production": production,
-            "inventory": inventory_direction,
-        },
-        "cards": [_inventory_card_document(card, rows_by_metric) for card in inventory.cards],
-        "real_inventory_approximation": real_inventory,
-        "semantics": {
-            "pmi_inventory": "diffusion_index_not_inventory_quantity",
-            "futures_warrants": "registered_receipts_not_total_industrial_inventory",
-        },
-        "score": None,
-    }
+    confirmation_inputs: set[str] = set()
+    if rules.confirmation is None:
+        policy_actions = _signals(rows_by_metric, _POLICY_ACTION, transform="policy")
+        transmission = _signals(rows_by_metric, _POLICY_TRANSMISSION, transform="policy")
+        credit_signals = _signals(rows_by_metric, _CREDIT, transform="credit")
+        overheat_signals = _signals(rows_by_metric, _OVERHEAT)
+        price_signals = _signals(rows_by_metric, _PRICE)
+        inventory_signals = _signals(rows_by_metric, _INVENTORY)
+        policy = derive_policy_direction(actions=policy_actions, transmission=transmission)
+        credit = derive_credit_response(credit_signals)
+        overheat = derive_overheat_state(overheat_signals)
+        price = derive_price_pressure(price_signals)
+        demand = _role_direction(overheat_signals, "demand")
+        production = _role_direction(overheat_signals, "production")
+        inventory_direction = _inventory_direction(inventory_signals)
+        inventory = derive_inventory_cycle(
+            demand=demand,
+            production=production,
+            inventory=inventory_direction,
+            observations=inventory_signals,
+        )
+        macro_document: dict[str, object] = {
+            "policy_direction": policy.state,
+            "policy_action": {
+                "direction": _policy_component_direction(policy_actions),
+                "evidence": _row_documents(rows_by_metric, _POLICY_ACTION),
+            },
+            "transmission": {
+                "direction": _policy_component_direction(transmission),
+                "evidence": _row_documents(rows_by_metric, _POLICY_TRANSMISSION),
+            },
+            "credit_response": credit.state,
+            "credit": {
+                "state": credit.state,
+                "evidence": _row_documents(rows_by_metric, _CREDIT),
+                "formula": credit_formula,
+            },
+            "overheat_state": overheat.state,
+            "overheat": {
+                "state": overheat.state,
+                "evidence": _row_documents(rows_by_metric, _OVERHEAT),
+                "support": [asdict(item) for item in overheat.support],
+                "counterevidence": [asdict(item) for item in overheat.counterevidence],
+                "gaps": [asdict(item) for item in overheat.gaps],
+            },
+            "price_pressure": price.state,
+            "price_chain": {
+                "state": price.state,
+                "evidence": _row_documents(rows_by_metric, _PRICE),
+                "support": [asdict(item) for item in price.support],
+                "counterevidence": [asdict(item) for item in price.counterevidence],
+                "gaps": [asdict(item) for item in price.gaps],
+                "energy_boundary": "headline_cpi_ppi_input_not_core_cpi_component",
+            },
+            "international_context": international_context,
+            "score": None,
+        }
+        inventory_document: dict[str, object] = {
+            "quadrant": inventory.quadrant,
+            "directions": {
+                "demand": demand,
+                "production": production,
+                "inventory": inventory_direction,
+            },
+            "cards": [_inventory_card_document(card, rows_by_metric) for card in inventory.cards],
+            "real_inventory_approximation": real_inventory,
+            "semantics": {
+                "pmi_inventory": "diffusion_index_not_inventory_quantity",
+                "futures_warrants": "registered_receipts_not_total_industrial_inventory",
+            },
+            "score": None,
+        }
+        inventory_context_state = inventory.quadrant or (
+            "conflict"
+            if "conflict" in {demand, production, inventory_direction}
+            else "insufficient_data"
+        )
+        warning_groups = {
+            "policy": policy.state,
+            "credit": credit.state,
+            "overheat": overheat.state,
+            "price": price.state,
+            "inventory": inventory_context_state,
+        }
+        warnings = tuple(
+            f"{name}_context_degraded:{state}"
+            for name, state in warning_groups.items()
+            if state in {"conflict", "insufficient_data", "transmission_conflict"}
+        )
+    else:
+        if formal_stage is None:
+            raise ValueError("confirmation_formal_stage_required")
+        readings = {
+            indicator.key: _member_readings(
+                repository,
+                indicator,
+                rows_by_metric[indicator.metric_id],
+                definitions[indicator.metric_id],
+                as_of=as_of,
+                as_of_mode=as_of_mode,
+            )
+            for indicator in rules.confirmation.indicators
+        }
+        confirmation_inputs = {
+            version
+            for members in readings.values()
+            for member in members
+            if member.evidence_status == "current"
+            for _period, _value, version in member.points
+        }
+        # The four labels are not given, nor stood in for: the dimension summary is.
+        macro_document = {
+            "output_structure": OUTPUT_STRUCTURE,
+            "confirmation": confirmation_document(
+                rules.confirmation.indicators,
+                readings,
+                current_stage=formal_stage.current_stage,
+                stage_reason=formal_stage.reason,
+            ),
+            "policy_action": {"evidence": _row_documents(rows_by_metric, _POLICY_ACTION)},
+            "transmission": {"evidence": _row_documents(rows_by_metric, _POLICY_TRANSMISSION)},
+            "credit": {
+                "evidence": _row_documents(rows_by_metric, _CREDIT),
+                "formula": credit_formula,
+            },
+            "overheat": {"evidence": _row_documents(rows_by_metric, _OVERHEAT)},
+            "price_chain": {
+                "evidence": _row_documents(rows_by_metric, _PRICE),
+                "energy_boundary": "headline_cpi_ppi_input_not_core_cpi_component",
+            },
+            "international_context": international_context,
+            "score": None,
+        }
+        # The inventory dimension is not read yet: its evidence is kept, with no quadrant.
+        inventory_document = {
+            "output_structure": OUTPUT_STRUCTURE,
+            "status": "not_connected",
+            "evidence": _row_documents(rows_by_metric, _INVENTORY),
+            "real_inventory_approximation": real_inventory,
+            "semantics": {
+                "pmi_inventory": "diffusion_index_not_inventory_quantity",
+                "futures_warrants": "registered_receipts_not_total_industrial_inventory",
+            },
+            "score": None,
+        }
+        warnings = ()
     all_rows = [row for rows in rows_by_metric.values() for row in rows]
-    model_inputs = set(derived_ids)
+    model_inputs = set(derived_ids) | confirmation_inputs
     for row in [*all_rows, real_inventory]:
         if row.get("status") not in {"current", "available"} or row.get("value") is None:
             continue
@@ -553,23 +652,6 @@ def build_context_projection(
             | model_inputs
         )
     )
-    inventory_context_state = inventory.quadrant or (
-        "conflict"
-        if "conflict" in {demand, production, inventory_direction}
-        else "insufficient_data"
-    )
-    warning_groups = {
-        "policy": policy.state,
-        "credit": credit.state,
-        "overheat": overheat.state,
-        "price": price.state,
-        "inventory": inventory_context_state,
-    }
-    warnings = tuple(
-        f"{name}_context_degraded:{state}"
-        for name, state in warning_groups.items()
-        if state in {"conflict", "insufficient_data", "transmission_conflict"}
-    )
     if any(item["status"] != "current" for item in international_context):
         warnings += ("p2_context_degraded",)
     return ContextProjection(
@@ -579,6 +661,66 @@ def build_context_projection(
         warnings,
         warrant_history=metric_results["CN_FUTURES_WARRANTS"].warrant_history,
     )
+
+
+def _member_readings(
+    repository: Any,
+    indicator: KeyIndicator,
+    rows: tuple[dict[str, object], ...],
+    definition: MetricDefinition,
+    *,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+) -> tuple[MemberReading, ...]:
+    """Each member's newest consecutive months, the main member first.
+
+    The newest is the member's evidence row as shown; the months before it are read
+    whether or not the visible window shows them, as a comparison is (ticket 30). A month
+    not held is missing and ends the run: an older one held never stands in for it.
+    """
+    gap = next((row for row in rows if str(row["observation_id"]).startswith("gap:")), None)
+    readings = []
+    for role, member in (
+        ("main", indicator.main),
+        *(("auxiliary", item) for item in indicator.auxiliary),
+    ):
+        row = next((row for row in rows if row.get("dimensions") == dict(member)), None)
+        if row is None or row.get("value") is None or not isinstance(row.get("period"), str):
+            status = str(row["status"]) if row is not None else str((gap or {}).get("status"))
+            readings.append(MemberReading(member, role, status, (), (), indicator.level_line))
+            continue
+        usable = _usable_points_by_period(
+            repository,
+            indicator.metric_id,
+            as_of=as_of,
+            dimensions=dict(member),
+            as_of_mode=as_of_mode,
+            definition_version=definition.definition_version,
+        )
+        newest = date.fromisoformat(str(row["period"]))
+        held: list[tuple[str, float, str]] = []
+        missing: list[str] = []
+        for offset in range(indicator.lookback_months):
+            ordinal = newest.year * 12 + newest.month - 1 - offset
+            year, month = divmod(ordinal, 12)
+            period_end = date(year, month + 1, calendar.monthrange(year, month + 1)[1])
+            point = usable.get(period_end.isoformat())
+            value = _numeric_value(point.selected_value) if point is not None else None
+            if point is None or value is None or point.selected_claim_id is None:
+                missing.append(f"{period_end:%Y-%m}")
+            elif not missing:
+                held.insert(0, (period_end.isoformat(), value, point.selected_claim_id))
+        readings.append(
+            MemberReading(
+                member,
+                role,
+                str(row["status"]),
+                tuple(held),
+                tuple(reversed(missing)),
+                indicator.level_line,
+            )
+        )
+    return tuple(readings)
 
 
 def _adoptable_claims(

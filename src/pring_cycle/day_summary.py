@@ -35,12 +35,18 @@ from pring_cycle.context_projection import (
     ContextProjectionRules,
     build_context_projection,
 )
-from pring_cycle.domain import FormalStage
+from pring_cycle.domain import FormalStage, StageResult
 from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, proxy_12m_enabled
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState, MetricSeriesPoint
 from pring_cycle.freshness import add_projection_gaps, release_schedule_scope, use_release_schedule
 from pring_cycle.models import ModelRepository
-from pring_cycle.p0 import CARRIED_FORWARD, CoreAssetReadiness, P0ProjectionService, P0PublishResult
+from pring_cycle.p0 import (
+    CARRIED_FORWARD,
+    CoreAssetReadiness,
+    P0ProjectionService,
+    P0PublishResult,
+    formal_stage,
+)
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
 
@@ -195,7 +201,9 @@ class DaySummaries:
         with self._scope():
             readiness = self._core_readiness(day, system_as_of=system_as_of)
             run_materials.step_done("core_readiness")
-            context = self._context(day, readiness, system_as_of=system_as_of)
+            # Decided once: the context's confirmation reads it, and the set publishes it.
+            decided = formal_stage(readiness)
+            context = self._context(day, readiness, decided, system_as_of=system_as_of)
             run_materials.step_done("context")
             failed = self._backfill(
                 backfill_window,
@@ -220,6 +228,7 @@ class DaySummaries:
                 evidence_snapshot_id=snapshot_id,
                 macro_document=context.macro,
                 inventory_document=context.inventory,
+                decided=decided,
                 release_calendar_events=run_materials.release_calendar_events,
                 gap_list=tuple(
                     add_projection_gaps(
@@ -267,7 +276,10 @@ class DaySummaries:
         """Publish one earlier day's summary from what was public by that day's end."""
         public_end = datetime.combine(date.fromisoformat(day), time.max, tzinfo=SHANGHAI)
         readiness = self._core_readiness(day, system_as_of=system_as_of, public_as_of=public_end)
-        context = self._context(day, readiness, system_as_of=system_as_of, persist_derived=False)
+        decided = formal_stage(readiness)
+        context = self._context(
+            day, readiness, decided, system_as_of=system_as_of, persist_derived=False
+        )
         P0ProjectionService(self._projections).publish(
             target_business_date=day,
             system_as_of=system_as_of,
@@ -279,6 +291,7 @@ class DaySummaries:
             as_current=False,
             macro_document=context.macro,
             inventory_document=context.inventory,
+            decided=decided,
         )
 
     def _freeze(
@@ -308,12 +321,14 @@ class DaySummaries:
         self,
         day: str,
         readiness: CoreReadiness,
+        decided: StageResult,
         *,
         system_as_of: datetime,
         persist_derived: bool = True,
     ) -> ContextProjection:
         return build_context_projection(
             self._evidence,
+            formal_stage=decided,
             as_of=system_as_of,
             model_manifest=self._model.manifest,
             target_business_date=day,
