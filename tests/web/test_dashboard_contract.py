@@ -309,7 +309,28 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
             "macro": {
                 "policy_direction": "easing",
                 "policy_action": {"direction": "easing", "evidence": [evidence]},
-                "transmission": {"direction": "easing", "evidence": []},
+                "transmission": {
+                    "direction": "easing",
+                    "evidence": [
+                        {
+                            "metric_id": "CN_BOND_10Y_930916",
+                            "observation_id": "observation-930916",
+                            "direction": "up",
+                            "value": 241.0,
+                            "unit": "index_points",
+                        },
+                        {
+                            "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+                            "observation_id": "observation-cny030",
+                            "direction": "down",
+                        },
+                        {
+                            "metric_id": "CN_DR007",
+                            "observation_id": "observation-dr007",
+                            "direction": "up",
+                        },
+                    ],
+                },
                 "credit_response": "insufficient_data",
                 "credit": {"state": "insufficient_data", "evidence": [evidence]},
                 "overheat_state": "insufficient_data",
@@ -386,6 +407,8 @@ def test_macro_and_inventory_pages_render_evidence_fields_and_semantic_boundarie
     assert "统计期 2026-08-31" in macro
     assert "认证 certified" in macro
     assert "收益率方向，不是债券价格" in macro
+    assert "债券价格走强" in macro and "债券价格走弱" in macro
+    assert macro.count("债券价格走") == 2  # Only the two bond price indices, not DR007.
     assert "值 39.00 basis_points" in macro
     assert "39.00000000000006" not in macro
     assert "最近获取 由输入证据计算" in macro

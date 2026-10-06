@@ -9,7 +9,13 @@ import pytest
 
 import pring_cycle.evidence as evidence_module
 from pring_cycle.catalog import metric_definition
-from pring_cycle.context_projection import _role_direction, build_context_projection
+from pring_cycle.context_projection import (
+    _POLICY_TRANSMISSION,
+    _TRANSMISSION_RISE_MEANS,
+    _policy_direction,
+    _role_direction,
+    build_context_projection,
+)
 from pring_cycle.domain.macro import EvidenceSignal
 from pring_cycle.evidence import (
     AsOfMode,
@@ -471,6 +477,75 @@ def test_empty_context_is_structured_local_degradation_not_empty_placeholders(
         "pmi_inventory": "diffusion_index_not_inventory_quantity",
         "futures_warrants": "registered_receipts_not_total_industrial_inventory",
     }
+
+
+def test_every_transmission_member_declares_what_its_rise_means() -> None:
+    assert _TRANSMISSION_RISE_MEANS == {
+        "CN_DR007": "tightening",
+        "CN_DR007_POLICY_SPREAD": "tightening",
+        "CN_SHIBOR_ON_1W_3M": "tightening",
+        "CN_BOND_10Y_930916": "easing",
+        "CN_BOND_FULL_PRICE_CNY030": "easing",
+    }
+    assert set(_POLICY_TRANSMISSION) == set(_TRANSMISSION_RISE_MEANS)
+
+
+@pytest.mark.parametrize("metric_id", ["CN_BOND_10Y_930916", "CN_BOND_FULL_PRICE_CNY030"])
+def test_bond_price_indices_read_a_rise_as_easing(metric_id: str) -> None:
+    assert _policy_direction(metric_id, "up", {}) == "easing"
+    assert _policy_direction(metric_id, "down", {}) == "tightening"
+    assert _policy_direction(metric_id, "flat", {}) == "neutral"
+
+
+def test_a_rising_930916_is_easing_transmission_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    repository = EvidenceRepository(paths.database)
+    metric_id = "CN_BOND_10Y_930916"
+
+    def certified_definition(  # type: ignore[no-untyped-def]
+        requested_metric_id: str,
+        *,
+        definition_version: str = "metric-catalog-v0002",
+        database_path: Path | None = None,
+    ):
+        definition = metric_definition(
+            requested_metric_id,
+            definition_version=definition_version,
+            database_path=database_path,
+        )
+        return (
+            replace(definition, certification_status="certified")
+            if requested_metric_id == metric_id
+            else definition
+        )
+
+    monkeypatch.setattr(evidence_module, "metric_definition", certified_definition)
+    for period_end, value in (("2026-08-27", 240.0), ("2026-08-28", 241.0)):
+        repository.append_source_claim(
+            _certified_claim(
+                metric_id=metric_id,
+                period_start=period_end,
+                period_end=period_end,
+                dimensions={},
+                value=value,
+                unit="scalar",
+            )
+        )
+
+    context = build_context_projection(
+        repository,
+        as_of=datetime(2026, 8, 28, 12, tzinfo=UTC),
+        model_manifest=_v2_manifest(metric_id),
+    )
+    rows = context.macro["transmission"]["evidence"]  # type: ignore[index]
+    selected = next(row for row in rows if row["metric_id"] == metric_id)
+
+    assert selected["direction"] == "up"
+    assert context.macro["transmission"]["direction"] == "easing"  # type: ignore[index]
 
 
 def test_historical_context_excludes_observations_after_target_date(

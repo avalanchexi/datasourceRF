@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 Category: bug
 Type: task
 
@@ -23,8 +23,16 @@ Type: task
 
 ## 验收
 
-- [ ] 回归：930916 上涨 → 传导证据 `easing`，下跌 → `tightening`；CNY030 行为不变。
-- [ ] 回归：传导组新增未声明方向的成员时报错（或测试列出全部成员与其声明）。
-- [ ] 受影响测试（上下文投影、宏观状态、Worker 复核上下文）与两例冒烟通过；Codex 两轴审查无阻断。
+- [x] 回归：930916 上涨 → 传导证据 `easing`，下跌 → `tightening`；CNY030 行为不变。
+- [x] 回归：传导组新增未声明方向的成员时报错（或测试列出全部成员与其声明）。
+- [x] 受影响测试（上下文投影、宏观状态、Worker 复核上下文）与两例冒烟通过；Codex 两轴审查无阻断。
 
 ## Comments
+
+### 2026-10-07 实施
+
+- `context_projection.py`：新增 `_TRANSMISSION_RISE_MEANS`，传导组五个成员逐一声明"上涨对应 easing／tightening"（930916、CNY030 为 easing，DR007、DR007 政策利差、SHIBOR 期限为 tightening）；`_POLICY_TRANSMISSION` 由该表派生，成员不可能不声明；`_policy_direction` 对传导成员只看声明，政策行动组规则不变。
+- `dashboard.py`：两只债券价格指数的证据行加注"债券价格走强／走弱"，不写政策宽松。报告只收汇总结论、来源与异常，不含逐条涨跌，无需改。
+- 测试：`tests/integration/test_context_projection.py` 新增声明表全量断言、两指数上涨/下跌/持平读法、930916 上涨经投影得到传导 `easing`；`tests/web/test_dashboard_contract.py` 断言走强/走弱文案只出现在两只债券价格指数上。
+- 验证：上下文投影 45、页面契约 14、宏观状态、Worker 复核上下文与两例冒烟全过（受影响合计约 90 秒）；ruff、mypy 通过。
+- Codex 两轴审查：均"阻断：无"。标准轴提到 ADR-0034 要求新增汇总规则测试放单日汇总接缝——本票是传导证据读法，不属该 ADR 所列汇总规则（门①、沿用与阻断、补算），沿用现有投影测试文件；页面测试边界不足一条已补。

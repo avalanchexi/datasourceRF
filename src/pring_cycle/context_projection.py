@@ -45,13 +45,16 @@ _POLICY_ACTION = {
     "CN_RRR_EVENT": "policy_action",
     "CN_TOOL_LIQUIDITY_MONTHLY": "policy_action",
 }
-_POLICY_TRANSMISSION = {
-    "CN_DR007": "transmission",
-    "CN_DR007_POLICY_SPREAD": "transmission",
-    "CN_SHIBOR_ON_1W_3M": "transmission",
-    "CN_BOND_10Y_930916": "transmission",
-    "CN_BOND_FULL_PRICE_CNY030": "transmission",
+# What a rise of each transmission member means. Every member declares it, so a new one
+# cannot fall back to being read as a rate: the bond indices are prices and rise as yields fall.
+_TRANSMISSION_RISE_MEANS = {
+    "CN_DR007": "tightening",
+    "CN_DR007_POLICY_SPREAD": "tightening",
+    "CN_SHIBOR_ON_1W_3M": "tightening",
+    "CN_BOND_10Y_930916": "easing",
+    "CN_BOND_FULL_PRICE_CNY030": "easing",
 }
+_POLICY_TRANSMISSION = {metric_id: "transmission" for metric_id in _TRANSMISSION_RISE_MEANS}
 _CREDIT = {
     "CN_LPR_1Y_5Y": "credit_price",
     "CN_M1_M2": "money",
@@ -1882,11 +1885,12 @@ def _policy_direction(
         return "unknown"
     if raw == "flat":
         return "neutral"
-    easing_when_up = metric_id in {
-        "CN_OMO_7D_AMOUNT",
-        "CN_TOOL_LIQUIDITY_MONTHLY",
-        "CN_BOND_FULL_PRICE_CNY030",
-    } or (metric_id == "CN_RRR_EVENT" and measure == "released_funds")
+    if metric_id in _POLICY_TRANSMISSION:
+        easing_when_up = _TRANSMISSION_RISE_MEANS[metric_id] == "easing"
+    else:
+        easing_when_up = metric_id in {"CN_OMO_7D_AMOUNT", "CN_TOOL_LIQUIDITY_MONTHLY"} or (
+            metric_id == "CN_RRR_EVENT" and measure == "released_funds"
+        )
     easing = raw == "up" if easing_when_up else raw == "down"
     return "easing" if easing else "tightening"
 

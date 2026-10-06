@@ -732,6 +732,9 @@ def _evidence_row(
         f"认证 {_display_value(item.get('certification_status'))}",
         f"来源 {_source_label(source)}",
     ]
+    bond_price = _bond_price_reading(metric_id, item.get("direction"))
+    if bond_price:
+        details.append(bond_price)
     if international:
         if item.get("acquisition_status") is not None:
             details.append(f"最近获取 {_state_label(item['acquisition_status'])}")
@@ -864,6 +867,14 @@ def _claim_summary(document: dict[str, object]) -> str:
         f"{_display_value(document.get('value'))} "
         f"{_display_value(document.get('unit'))}{selected}"
     )
+
+
+# The bond indices are prices: say only which way the price moved. Whether policy eased
+# is for the transmission group as a whole to tell.
+def _bond_price_reading(metric_id: str, direction: object) -> str:
+    if metric_id not in {"CN_BOND_10Y_930916", "CN_BOND_FULL_PRICE_CNY030"}:
+        return ""
+    return {"up": "债券价格走强", "down": "债券价格走弱"}.get(str(direction), "")
 
 
 def _international_boundary(metric_id: str) -> str:
