@@ -26,7 +26,7 @@
 | 库存 | 产成品存货 | `CN_FINISHED_GOODS_INVENTORY` 名义同比 | 水平；动量 | 实际库存近似（派生） |
 | 库存 | PMI 库存 | `CN_PMI_INVENTORY` finished_goods | 水平：50 线；动量 | raw_materials |
 | 库存 | 库存周转 | `CN_INVENTORY_TURNOVER` 同比变化 | 动量 | 天数 |
-| 库存 | 仓单 | `CN_FUTURES_WARRANTS` 8 品种合计 | 动量 | 各品种 |
+| 库存 | 仓单 | `CN_FUTURES_WARRANTS` 各品种变化率中位数与方向广度（O2） | 动量 | 七品种折算吨数合计；SC 桶数单列 |
 
 - 派生不单独计数：PMI 订单库存差与生产订单差、信用脉冲、M1−M2、DR007 政策利差、实际库存近似。
 - 库存象限：需求取 PMI 新订单、生产取工业增加值、库存取产成品存货三者的主要读法联合推出；三者不一致为"未分类"。
