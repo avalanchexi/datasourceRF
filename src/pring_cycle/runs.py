@@ -4,9 +4,9 @@ import hashlib
 import json
 import os
 import sqlite3
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -60,11 +60,43 @@ class RunRecord:
 
 @dataclass(frozen=True)
 class RetrievalScope:
+    """A period of metrics to retrieve, and of them the members a lookback named.
+
+    ``members`` holds ``member_key``s; a metric none of them names is checked for every
+    member its catalog requires (macro semantics ticket 02).
+    """
+
     release_event_id: str
     metric_ids: tuple[str, ...]
     period: str
     priority: str
     source_url: str | None
+    members: tuple[str, ...] = ()
+
+    def named_members(self, metric_id: str) -> tuple[dict[str, str], ...] | None:
+        """The members of ``metric_id`` this scope checks, or None for every required one."""
+        prefix = f"{metric_id}:"
+        named = tuple(
+            json.loads(key.removeprefix(prefix)) for key in self.members if key.startswith(prefix)
+        )
+        return named or None
+
+    def document(self) -> dict[str, Any]:
+        """As a plan stores it; a scope naming no members keeps the shape it always had."""
+        document = asdict(self)
+        if not self.members:
+            del document["members"]
+        return document
+
+
+def member_key(metric_id: str, dimensions: Mapping[str, str]) -> str:
+    """A metric's member as selection names it, held or missing."""
+    return f"{metric_id}:{json.dumps(dimensions, sort_keys=True)}"
+
+
+def member_keys(metric_id: str, members: Iterable[Mapping[str, str]] | None) -> tuple[str, ...]:
+    """``members`` of ``metric_id`` as a scope names them; none named for None."""
+    return tuple(member_key(metric_id, member) for member in members or ())
 
 
 @dataclass(frozen=True)
@@ -738,6 +770,7 @@ class RunRepository:
                     planned["period"],
                     planned["priority"],
                     planned["source_url"],
+                    tuple(planned.get("members", ())),
                 )
             if scope.release_event_id != release_event_id:
                 raise ValueError("retrieval_attempt_release_event_mismatch")

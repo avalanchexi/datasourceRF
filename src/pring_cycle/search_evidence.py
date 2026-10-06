@@ -38,7 +38,7 @@ from pring_cycle.retrieval_registry import (
     parser_for_scope,
     registered_host,
 )
-from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
+from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository, member_key
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.source_adapters import (
     CORE_API_IDENTITIES,
@@ -190,6 +190,10 @@ class ModelInputSelector:
                 metric_id, definition_version=self.version, database_path=self.database_path
             )
             members = adoption[metric_id]
+            if members.decides_members and scope.named_members(metric_id) is not None:
+                # Its family decides what is whole (each symbol, each announcement); a
+                # lookback cannot narrow that to members.
+                raise ValueError(f"retrieval_scope_members_decided_by_family:{metric_id}")
             if metric_id == "CN_FUTURES_WARRANTS" and members.decides_members:
                 material_checks.append(
                     MetricMaterialCheck(
@@ -228,7 +232,8 @@ class ModelInputSelector:
                 selected_ids.extend(members.selected_members)
                 missing.extend(members.missing_members)
                 continue
-            expected = required_dimension_members(
+            # Members a lookback named are all it reads; the others do not hold it up.
+            expected = scope.named_members(metric_id) or required_dimension_members(
                 metric_id, definition_version=self.version, period=scope.period
             )
             if expected is None:
@@ -268,9 +273,9 @@ class ModelInputSelector:
                         accepted.append(claim.claim_id)
                 if len(accepted) == 1:
                     selected_ids.extend(accepted)
-                    held.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
+                    held.append(member_key(metric_id, member))
                 else:
-                    missing.append(f"{metric_id}:{json.dumps(member, sort_keys=True)}")
+                    missing.append(member_key(metric_id, member))
         for metric_id in dict.fromkeys(scope.metric_ids):
             # Cores and financing are recorded elsewhere or not at all; the dedicated
             # event/warrant paths recorded their execution above.

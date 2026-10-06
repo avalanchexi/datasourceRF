@@ -4,7 +4,7 @@ import hashlib
 import json
 import sqlite3
 from collections import defaultdict
-from dataclasses import asdict, replace
+from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
@@ -18,9 +18,9 @@ from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
 from pring_cycle.freshness import DERIVED_INPUTS, FRESHNESS_REGISTRY, latest_released_period
 from pring_cycle.full_run_requirements import (
-    credit_inputs,
     formula_requirements,
     required_calendar,
+    run_lookback,
 )
 from pring_cycle.metric_contracts import evidence_frequency
 from pring_cycle.models import ModelRepository
@@ -31,12 +31,11 @@ from pring_cycle.retrieval import (
     RetrievalBudget,
     RetrievalRequest,
     matches_retrieval_period,
-    preceding_periods,
     run_retrieval_cascade,
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.retrieval_registry import is_searchable_gap
-from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
+from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository, member_keys
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
 from pring_cycle.storage import database_connection
@@ -333,6 +332,21 @@ class FullRunRetrieval:
             ModelRepository(self.paths.database).manifest(run.model_version_id)
         )
         groups: dict[tuple[str, str, str, str | None], list[str]] = defaultdict(list)
+        # Of each group's metrics, the members a lookback named; None checks every one.
+        named: dict[tuple[str, str, str, str | None], dict[str, set[str] | None]] = defaultdict(
+            dict
+        )
+
+        def group(
+            key: tuple[str, str, str, str | None], metric_id: str, members: tuple[str, ...] = ()
+        ) -> None:
+            groups[key].append(metric_id)
+            known = named[key]
+            if not members or (metric_id in known and known[metric_id] is None):
+                known[metric_id] = None
+            else:
+                known[metric_id] = {*(known.get(metric_id) or ()), *members}
+
         requirements: list[dict[str, Any]] = []
         selector = ModelInputSelector(self.paths, run)
         delivered_periods: dict[str, set[str]] = {}
@@ -372,7 +386,7 @@ class FullRunRetrieval:
             definition.metric_id: self._period(run, definition, selector)
             for definition in rules.metric_definitions
         }
-        credit = credit_inputs(
+        read = run_lookback(
             self.paths,
             rules,
             run,
@@ -380,8 +394,7 @@ class FullRunRetrieval:
             decided_at=decided_at or utc_now(),
             direct_held=credit_impulse.direct_periods(selector),
         )
-        credit_coverage = credit[1].periods
-        history_counts, derived = formula_requirements(rules, credit)
+        derived = formula_requirements(rules, read)
         turned_off = credit_impulse.metrics_off(rules.formula_versions)
         derived_ids = {
             r["metric_id"] for r in derived if r["metric_id"] not in r["required_input_periods"]
@@ -413,35 +426,22 @@ class FullRunRetrieval:
                     {"metric_id": definition.metric_id, "status": "event_presence_unknown"}
                 )
                 continue
-            periods = (
-                daily_window
-                if (
-                    definition.priority in {"P0", "P1"}
-                    and evidence_frequency(definition.metric_id, definition.frequency) == "daily"
-                    and len(daily_window) == 120
-                )
-                else tuple(
-                    sorted(
-                        {
-                            *preceding_periods(period, history_counts.get(definition.metric_id, 1)),
-                            # Back as far as the fetch covers; a release not held yet
-                            # is looked for below, not required.
-                            *(
-                                covered
-                                for covered in credit_coverage.get(definition.metric_id, ())
-                                if covered <= period
-                            ),
-                        }
-                    )
-                )
+            daily = (
+                definition.priority in {"P0", "P1"}
+                and evidence_frequency(definition.metric_id, definition.frequency) == "daily"
+                and len(daily_window) == 120
             )
-            for required_period in periods:
+            required = read.required(
+                definition.metric_id, period, sessions=daily_window, whole_window=daily
+            )
+            for required_period, members in required.items():
                 scope = RetrievalScope(
                     f"full:{definition.release_event_family}:{required_period}",
                     (definition.metric_id,),
                     required_period,
                     definition.priority,
                     None,
+                    members=member_keys(definition.metric_id, members),
                 )
                 selection = selector.select(scope)
                 requirements.append(
@@ -451,17 +451,20 @@ class FullRunRetrieval:
                         "status": "local_complete" if selection.complete else "model_input_missing",
                         "selected_claim_ids": list(selection.selected_claim_ids),
                         "missing_members": list(selection.missing_members),
+                        **({"members": list(scope.members)} if scope.members else {}),
                     }
                 )
                 if not selection.complete:
-                    groups[
+                    group(
                         (
                             definition.release_event_family,
                             required_period,
                             definition.priority,
                             official_candidate(definition, required_period),
-                        )
-                    ].append(definition.metric_id)
+                        ),
+                        definition.metric_id,
+                        scope.members,
+                    )
         # Looking for a new release does not make it a required input. If the official
         # page has not published it, the existing latest period retains its old semantics.
         target = date.fromisoformat(run.target_business_date)
@@ -480,14 +483,15 @@ class FullRunRetrieval:
                 and (latest := self._latest_released(run, definition, selector)) is not None
                 and latest.isoformat() > period
             ):
-                groups[
+                group(
                     (
                         definition.release_event_family,
                         latest.isoformat(),
                         definition.priority,
                         official_candidate(definition, latest.isoformat()),
-                    )
-                ].append(definition.metric_id)
+                    ),
+                    definition.metric_id,
+                )
             preceding = preceding_period.get(definition.frequency)
             if (
                 preceding is not None
@@ -498,19 +502,26 @@ class FullRunRetrieval:
                     official_family_for_metrics((definition.metric_id,)), candidate
                 )
             ):
-                groups[
-                    (definition.release_event_family, preceding, definition.priority, candidate)
-                ].append(definition.metric_id)
-        scopes = [
-            asdict(
-                RetrievalScope(
-                    f"full:{family}:{period}", tuple(sorted(metrics)), period, priority, source_url
+                group(
+                    (definition.release_event_family, preceding, definition.priority, candidate),
+                    definition.metric_id,
                 )
+        scopes = []
+        for key, metrics in sorted(
+            groups.items(), key=lambda item: (item[0][2], item[0][:3], item[0][3] or "")
+        ):
+            family, period, priority, source_url = key
+            keys = sorted(item for known in named[key].values() for item in known or ())
+            scopes.append(
+                RetrievalScope(
+                    f"full:{family}:{period}",
+                    tuple(sorted(metrics)),
+                    period,
+                    priority,
+                    source_url,
+                    tuple(keys),
+                ).document()
             )
-            for (family, period, priority, source_url), metrics in sorted(
-                groups.items(), key=lambda item: (item[0][2], item[0][:3], item[0][3] or "")
-            )
-        ]
         # Nothing is stored while the plan is judged, so each series is read once.
         reads = SeriesReads(EvidenceRepository(self.paths.database))
         for document in scopes:
@@ -632,7 +643,16 @@ class FullRunRetrieval:
             if "period" not in requirement:
                 continue
             metric, period = requirement["metric_id"], requirement["period"]
-            selection = selector.select(RetrievalScope("evaluation", (metric,), period, "P1", None))
+            selection = selector.select(
+                RetrievalScope(
+                    "evaluation",
+                    (metric,),
+                    period,
+                    "P1",
+                    None,
+                    tuple(requirement.get("members", ())),
+                )
+            )
             gaps.append(
                 {
                     "metric_id": metric,
@@ -854,6 +874,7 @@ def _scope(document: dict[str, Any]) -> RetrievalScope:
         document["period"],
         document["priority"],
         document["source_url"],
+        tuple(document.get("members", ())),
     )
 
 

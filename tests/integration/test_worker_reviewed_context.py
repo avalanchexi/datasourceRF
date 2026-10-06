@@ -22,7 +22,7 @@ from pring_cycle.acquisition import AcquisitionRepository, own_acquisitions
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
-from pring_cycle.full_run_requirements import credit_inputs
+from pring_cycle.full_run_requirements import run_lookback
 from pring_cycle.models import ModelRepository
 from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository
 from pring_cycle.runtime import RuntimePaths, initialize_runtime
@@ -147,7 +147,7 @@ def test_worker_money_delivery_satisfies_the_new_four_member_contract(
             paths,
             run.target_business_date,
             definition_version=version,
-            credit=credit_coverage(paths, run),
+            covered=credit_coverage(paths, run),
         )
 
     scope = RetrievalScope("pbc-money:2026-08", ("CN_M1_M2",), "2026-08", "P1", None)
@@ -268,7 +268,7 @@ def test_credit_impulse_computes_from_levels_tushare_delivered_together(
             paths,
             run.target_business_date,
             definition_version=version,
-            credit=credit_coverage(paths, run),
+            covered=credit_coverage(paths, run),
         )
     if refetched_level == "damaged_social_financing":
         (receipt,) = (
@@ -337,14 +337,13 @@ def credit_coverage(
     )
     if turned_off:
         rules = replace(rules, formula_versions={})
-    _minimum, coverage = credit_inputs(
+    return run_lookback(
         paths,
         rules,
         run,
         decided_at=datetime.now(UTC),
         window=(date.fromisoformat(run.target_business_date),),
-    )
-    return coverage
+    ).coverage
 
 
 @pytest.mark.usefixtures("runtime_clock")
@@ -377,7 +376,7 @@ def test_credit_inputs_are_fetched_back_to_the_differencing_baseline(
 
     with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
         refresh_context_sources(
-            paths, run.target_business_date, definition_version=version, credit=coverage
+            paths, run.target_business_date, definition_version=version, covered=coverage
         )
 
     # Their own range starts at the period before the newest out on the window's first
@@ -409,7 +408,7 @@ def test_worker_sf_delivery_preserves_annual_flow_and_month_end_stock(
             paths,
             run.target_business_date,
             definition_version=version,
-            credit=credit_coverage(paths, run),
+            covered=credit_coverage(paths, run),
         )
 
     scope = RetrievalScope("pbc-sf:2026-08", ("CN_SF_TOTAL",), "2026-08", "P1", None)
@@ -490,7 +489,7 @@ def test_missing_rows_reach_official_fallback_instead_of_stopping_the_refresh(
             paths,
             run.target_business_date,
             definition_version=version,
-            credit=credit_coverage(paths, run),
+            covered=credit_coverage(paths, run),
         )
     evidence = EvidenceRepository(paths.database)
     attempt = evidence.latest_retrieval_attempt(
@@ -600,7 +599,7 @@ def test_reviewed_delivery_does_not_treat_invalid_month_as_missing_rows(
             paths,
             run.target_business_date,
             definition_version=version,
-            credit=credit_coverage(paths, run),
+            covered=credit_coverage(paths, run),
         )
 
     attempt = EvidenceRepository(paths.database).latest_retrieval_attempt(
@@ -646,7 +645,7 @@ def test_other_reviewed_families_keep_empty_delivery_as_an_acquisition_gap(
             paths,
             run.target_business_date,
             definition_version=version,
-            credit=credit_coverage(paths, run),
+            covered=credit_coverage(paths, run),
         )
 
     evidence = EvidenceRepository(paths.database)

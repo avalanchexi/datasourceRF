@@ -5,7 +5,7 @@ from datetime import date, datetime, time
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from pring_cycle import credit_impulse
+from pring_cycle import lookback
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.runs import RunRecord
 from pring_cycle.runtime import RuntimePaths
@@ -73,7 +73,7 @@ def public_cutoff(run: RunRecord, decided_at: datetime) -> datetime:
     return min(_decision_as_of(run, decided_at), decided_at, target_end)
 
 
-def credit_inputs(
+def run_lookback(
     paths: RuntimePaths,
     rules: ContextProjectionRules,
     run: RunRecord,
@@ -81,74 +81,51 @@ def credit_inputs(
     decided_at: datetime,
     window: Collection[date] = (),
     direct_held: Mapping[str, Collection[str]] | None = None,
-) -> tuple[credit_impulse.InputPeriods, credit_impulse.InputPeriods]:
-    """The target day's minimum credit inputs and what the window's fetch must cover.
+) -> lookback.Lookback:
+    """The model's lookback declaration, resolved for the run's target day and window.
 
-    Both come from the model's formula version, one cutoff and the SSE sessions known at
-    ``decided_at``: the Worker's fetch and the run's first plan pass the same instant
-    (ticket 24). ``window`` defaults to the 120 sessions to the target day, or the target
-    day alone while the calendar does not cover them. A formula turned off asks for
-    neither.
+    From one cutoff and the SSE sessions known at ``decided_at``: the Worker's fetch and the
+    run's first plan pass the same instant (ticket 24). ``window`` defaults to the 120
+    sessions to the target day, or the target day alone while the calendar does not cover
+    them. A formula turned off reads nothing.
     """
     target = date.fromisoformat(run.target_business_date)
     sessions = SseCalendar(paths, as_of=_decision_as_of(run, decided_at))
-    calendar = sessions.around(target) or current_calendar()
-    version = rules.formula_versions.get("credit_impulse")
-    cutoff = public_cutoff(run, decided_at)
-    minimum = credit_impulse.minimum_requirements(
-        version, public_cutoff=cutoff, calendar=calendar, direct_held=direct_held
-    )
-    coverage = credit_impulse.fetch_coverage(
-        version,
+    return lookback.resolve(
+        lookback.declare(rules),
+        formula_versions=rules.formula_versions,
         window=window or sessions.window(target, 120) or (target,),
-        public_cutoff=cutoff,
-        calendar=calendar,
+        public_cutoff=public_cutoff(run, decided_at),
+        calendar=sessions.around(target) or current_calendar(),
+        direct_held=direct_held,
     )
-    return minimum, coverage
 
 
 def formula_requirements(
-    rules: ContextProjectionRules,
-    credit: tuple[credit_impulse.InputPeriods, credit_impulse.InputPeriods],
-) -> tuple[dict[str, int], list[dict[str, Any]]]:
-    """How many periods each formula's inputs need, and each derived metric's entry.
+    rules: ContextProjectionRules, read: lookback.Lookback
+) -> list[dict[str, Any]]:
+    """Each derived metric's entry: its formula version and how many periods each input needs.
 
-    The credit impulse's inputs are listed by period instead (``credit``: the target day's
-    minimum and the window's coverage), so they add no counts here.
+    A formula read on every day of the window, the credit impulse's, lists its inputs by
+    period instead: the target day's minimum, and the first and last periods the window's
+    fetch covers.
     """
-    counts: dict[str, int] = {}
     derived = []
-    mappings = {
-        "credit_impulse": ("CN_CREDIT_IMPULSE", {}),
-        "dr007_policy_spread": ("CN_DR007_POLICY_SPREAD", {"CN_DR007": 1, "CN_OMO_7D_RATE": 1}),
-        "loan_monthly_change": ("CN_LOAN_STRUCTURE", {"CN_LOAN_STRUCTURE": 2}),
-        "omo_net_injection": ("CN_OMO_7D_AMOUNT", {"CN_OMO_7D_AMOUNT": 1}),
-        "order_inventory_spread": (
-            "CN_ORDER_INVENTORY_SPREAD",
-            {"CN_PMI_ACTIVITY": 1, "CN_PMI_INVENTORY": 1},
-        ),
-        "production_order_spread": ("CN_PRODUCTION_ORDER_SPREAD", {"CN_PMI_ACTIVITY": 1}),
-        "real_inventory_approximation": (
-            "CN_REAL_FINISHED_GOODS_INVENTORY_PROXY",
-            {"CN_FINISHED_GOODS_INVENTORY": 1, "CN_PPI": 1},
-        ),
-        "ust_2s10s_spread": (
-            "UST_2S10S_SPREAD",
-            {"UST2Y_NOMINAL_YIELD": 1, "UST10Y_NOMINAL_YIELD": 1},
-        ),
-    }
     for name, version in rules.formula_versions.items():
-        metric, needs = mappings[name]
+        metric, _inputs = lookback.FORMULA_INPUTS[name]
         entry: dict[str, Any] = {"metric_id": metric, "formula_version": version}
-        if name == "credit_impulse":
-            minimum, coverage = credit
-            entry["required_input_periods"] = minimum.counts()
+        if any(item.every_day for item in read.readings if item.reading == name):
+            resolved = read.resolved.get(name, lookback.Resolved())
+            entry["required_input_periods"] = resolved.minimum.counts()
             entry["covered_input_periods"] = {
-                source: [periods[0], periods[-1]] for source, periods in coverage.periods.items()
+                source: [periods[0], periods[-1]]
+                for source, periods in resolved.covered.periods.items()
             }
         else:
-            for source, count in needs.items():
-                counts[source] = max(counts.get(source, 1), count)
-            entry["required_input_periods"] = dict(needs)
+            entry["required_input_periods"] = {
+                item.metric_id: len(item.periods.offsets)
+                for item in read.readings
+                if item.reading == name
+            }
         derived.append(entry)
-    return counts, derived
+    return derived

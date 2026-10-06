@@ -915,7 +915,7 @@ def test_credit_formula_expands_required_history_in_full_run_plan(
     refresh = worker.refresh_context_sources
 
     def recording(*args: Any, **kwargs: Any) -> None:
-        fetched.append(kwargs["credit"])
+        fetched.append(kwargs["covered"])
         refresh(*args, **kwargs)
 
     monkeypatch.setattr(worker, "refresh_context_sources", recording)
@@ -941,7 +941,12 @@ def test_credit_formula_expands_required_history_in_full_run_plan(
     if formula == "turned_off":
         assert (sf, gdp) == (["2026-07"], ["2026-Q2"])
         assert credit == []
-        assert fetched[0].periods == {}
+        # The series' own range alone: the month and quarter before the window's first
+        # day's newest (2026-02, 2025-Q4).
+        assert (fetched[0].start("CN_SF_TOTAL"), fetched[0].start("CN_GDP")) == (
+            "2026-01",
+            "2025-Q3",
+        )
         assert "CN_CREDIT_IMPULSE" not in freshness
         return
     # The target day reads 24 months and 8 quarters; the window's first day, 2026-03-16,

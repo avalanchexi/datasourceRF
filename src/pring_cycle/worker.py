@@ -14,7 +14,7 @@ from functools import partial
 from time import monotonic
 from zoneinfo import ZoneInfo
 
-from pring_cycle import credit_impulse
+from pring_cycle import credit_impulse, lookback
 from pring_cycle.acquisition_outcome import (
     LOCAL_FAILED,
     NOT_ATTEMPTED,
@@ -88,7 +88,6 @@ from pring_cycle.retrieval import (
     RetrievalBudget,
     RetrievalRequest,
     matches_retrieval_period,
-    preceding_periods,
     run_retrieval_cascade,
 )
 from pring_cycle.retrieval_registry import parser_for_scope
@@ -372,17 +371,17 @@ def _execute_run(
             _refresh_core_sources(
                 paths, run.target_business_date, definition_version=definition_version
             )
-        from pring_cycle.full_run_requirements import credit_inputs
+        from pring_cycle.full_run_requirements import run_lookback
 
-        # The first plan reads the credit lookback as of the same instant (ticket 24).
+        # The first plan reads the lookback as of the same instant (ticket 24).
         decided_at = datetime.now(UTC)
-        _minimum, credit_coverage = credit_inputs(paths, model_rules, run, decided_at=decided_at)
+        read = run_lookback(paths, model_rules, run, decided_at=decided_at)
         with own_acquisitions(paths.database, run.run_id, "direct_context_refresh"):
             refresh_context_sources(
                 paths,
                 run.target_business_date,
                 definition_version=definition_version,
-                credit=credit_coverage,
+                covered=read.coverage,
                 decided_at=decided_at,
             )
         full_retrieval.retrieve(run, decided_at=decided_at)
@@ -1345,11 +1344,12 @@ _DAILY_LEAD = timedelta(days=14)
 class ContextFetchStarts:
     """Where the context families' requests start, from the window's first day (ticket 30).
 
-    A monthly or quarterly metric starts at the period before the newest one its release
-    rule has out on that day, so the window's first day has its value and the one to
-    compare it with; one without a rule, two periods before the day's own. Daily families
-    start ``_DAILY_LEAD`` before the day. The credit impulse's longer lookback is its
-    module's answer, joined in by the caller (ticket 24).
+    Each series is read as itself (``lookback.own_reading``): a monthly or quarterly one
+    starts at the oldest period it reads on that day, the one before the newest its release
+    rule has out then; one without a rule, as if the period before the day's own were.
+    Daily families start ``_DAILY_LEAD`` before the day, which holds the two sessions a day
+    reads. What a model reads on every day of the window beyond that is joined in by the
+    caller (ticket 24).
     """
 
     first_day: date
@@ -1364,19 +1364,14 @@ class ContextFetchStarts:
         return min(self._start(metric_id) for metric_id in metric_ids).replace("-", "")
 
     def _start(self, metric_id: str) -> str:
-        from pring_cycle.freshness import FRESHNESS_REGISTRY, latest_released_period
+        from pring_cycle.freshness import FRESHNESS_REGISTRY
 
-        quarterly = metric_id == "CN_GDP"
         rule = FRESHNESS_REGISTRY.get(metric_id)
-        if rule is not None and rule.frequency in {"monthly", "quarterly"}:
-            day_end = datetime.combine(self.first_day, time.max, tzinfo=_SHANGHAI)
-            newest = latest_released_period(rule, day_end, self.calendar)
-            return preceding_periods(_period_label(newest, quarterly), 2)[0]
-        return preceding_periods(_period_label(self.first_day, quarterly), 3)[0]
-
-
-def _period_label(day: date, quarterly: bool) -> str:
-    return f"{day.year}-Q{(day.month - 1) // 3 + 1}" if quarterly else f"{day:%Y-%m}"
+        frequency = "quarterly" if rule is not None and rule.frequency == "quarterly" else "monthly"
+        day_end = datetime.combine(self.first_day, time.max, tzinfo=_SHANGHAI)
+        newest = lookback.newest_released(metric_id, day_end, self.calendar, frequency)
+        assert newest is not None  # the frequency is the rule's own
+        return lookback.own_reading(metric_id, frequency).periods.back_from(newest)[0]
 
 
 def context_fetch_starts(first_day: date, calendar: Sessions) -> ContextFetchStarts:
@@ -1471,14 +1466,15 @@ def refresh_context_sources(
     target_business_date: str,
     *,
     definition_version: str,
-    credit: InputPeriods | None = None,
+    covered: InputPeriods | None = None,
     decided_at: datetime | None = None,
 ) -> None:
     """Refresh context sources for a frozen catalog, retaining each acquisition outcome.
 
     Each family starts before the 120-session window as the SSE calendar stood at
-    ``decided_at`` (ticket 30); social financing and GDP are read back as far as ``credit``
-    covers when the model's credit impulse needs more than their own range (ticket 24).
+    ``decided_at`` (ticket 30), and back as far as ``covered`` when what the model reads on
+    every day of the window needs more than the series' own range: the credit impulse's
+    social financing and GDP (ticket 24; ``lookback.Lookback.coverage``).
     """
     from pring_cycle.acquisition import acquisition_metrics
     from pring_cycle.catalog_registry import registered_definitions
@@ -1610,12 +1606,13 @@ def refresh_context_sources(
         return
     end_month = target.strftime("%Y%m")
     target_quarter = f"{target.year}Q{(target.month - 1) // 3 + 1}"
-    covered = credit or InputPeriods()
-    own_financing, own_gdp = starts.period("CN_SF_TOTAL"), starts.period("CN_GDP")
-    financing_start = min(
-        (covered.start("CN_SF_TOTAL") or own_financing).replace("-", ""), own_financing
-    )
-    gdp_start = min((covered.start("CN_GDP") or own_gdp).replace("-", ""), own_gdp)
+    read_back = covered or InputPeriods()
+
+    def start(*metric_ids: str) -> str:
+        own = starts.period(*metric_ids)
+        further = [read_back.start(metric_id) for metric_id in metric_ids]
+        return min([own, *(item.replace("-", "") for item in further if item is not None)])
+
     adapter = _context_adapter(token)
     reviewed_deliveries = {
         metric_id: source_code
@@ -1691,7 +1688,7 @@ def refresh_context_sources(
             "pmi",
             ("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
             lambda: adapter.pmi(
-                start_month=starts.period("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
+                start_month=start("CN_PMI_ACTIVITY", "CN_PMI_INVENTORY", "CN_PMI_PRICES"),
                 end_month=end_month,
             ),
         ),
@@ -1699,14 +1696,14 @@ def refresh_context_sources(
             "prices",
             ("CN_CPI_HEADLINE", "CN_PPI"),
             lambda: adapter.prices(
-                start_month=starts.period("CN_CPI_HEADLINE", "CN_PPI"), end_month=end_month
+                start_month=start("CN_CPI_HEADLINE", "CN_PPI"), end_month=end_month
             ),
         ),
         (
             "money",
             ("CN_M1_M2",),
             lambda: adapter.money(
-                start_month=starts.period("CN_M1_M2"),
+                start_month=start("CN_M1_M2"),
                 end_month=end_month,
                 include_month_on_month=not reviewed_deliveries["CN_M1_M2"],
             ),
@@ -1715,7 +1712,7 @@ def refresh_context_sources(
             "social_financing",
             ("CN_SF_TOTAL",),
             lambda: financing(
-                start_month=financing_start,
+                start_month=start("CN_SF_TOTAL"),
                 end_month=end_month,
             ),
         ),
@@ -1738,7 +1735,7 @@ def refresh_context_sources(
             "gdp",
             ("CN_GDP",),
             lambda: adapter.gdp(
-                start_quarter=gdp_start,
+                start_quarter=start("CN_GDP"),
                 end_quarter=target_quarter,
             ),
         ),
