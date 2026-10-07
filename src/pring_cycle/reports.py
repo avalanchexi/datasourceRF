@@ -218,6 +218,7 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
     confirmation = macro.get("confirmation")
     if macro.get("output_structure") == CONFIRMATION_STRUCTURE and isinstance(confirmation, dict):
         conclusions, outputs = _confirmation_conclusions(confirmation, macro)
+        outputs["confirmation"]["inventory"] = _inventory_notes(inventory)
     else:
         conclusions = {name: _text_or_none(macro.get(name)) for name in _MACRO_CONCLUSIONS}
         conclusions["inventory_quadrant"] = _text_or_none(inventory.get("quadrant"))
@@ -296,6 +297,10 @@ _READING_FIELDS = (
     "period_sessions",
     "aggregate",
     "lines",
+    # The inventory quadrant, and the line each of its members reads (ticket 08).
+    "quadrant",
+    "unclassified_by",
+    "line",
 )
 
 
@@ -374,6 +379,41 @@ def _confirmation_conclusions(
             "stage_reason": confirmation.get("stage_reason"),
             "key_indicators": readings,
         }
+    }
+
+
+def _inventory_notes(inventory: dict[str, Any]) -> dict[str, Any]:
+    """What the inventory dimension tells beside its quadrant, never counted: each card's
+    data apart from the quadrant's relation, the registered warrants' change and the real
+    inventory approximation as the rough proxy it is; no evidence identifiers."""
+    warrants = inventory.get("registered_warrants")
+    proxy = inventory.get("real_inventory_approximation")
+    return {
+        "cards": [
+            {
+                field: card.get(field)
+                for field in ("label", "line", "availability", "evidence_status", "relation")
+            }
+            for card in _list(inventory.get("cards"))
+            if isinstance(card, dict)
+        ],
+        "registered_warrants": (
+            {
+                key: value
+                for key, value in warrants.items()
+                if key not in {"observation_version_ids"}
+            }
+            if isinstance(warrants, dict)
+            else None
+        ),
+        "real_inventory_approximation": (
+            {
+                field: proxy.get(field)
+                for field in ("semantics", "counted", "quadrant_input", "status", "period", "value")
+            }
+            if isinstance(proxy, dict)
+            else None
+        ),
     }
 
 

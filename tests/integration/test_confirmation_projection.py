@@ -185,7 +185,7 @@ def test_each_stage_reads_the_pmi_against_its_own_cells(
         assert actual == expected
 
 
-def test_the_dimensions_count_and_the_others_are_not_connected(tmp_path: Path) -> None:
+def test_the_dimensions_count_each_of_their_key_indicators(tmp_path: Path) -> None:
     repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
     seed(repository, (49.5, 49.2, 48.8))
 
@@ -209,17 +209,33 @@ def test_the_dimensions_count_and_the_others_are_not_connected(tmp_path: Path) -
         assert by_dimension[name]["counts"]["unconfirmed"] == len(
             by_dimension[name]["key_indicators"]
         )
-    assert by_dimension["inventory"] == {
-        "dimension": "inventory",
-        "status": "not_connected",
-        "counts": None,
-        "key_indicators": [],
-    }
-    # No label stands in for the dimension summary, nor the seven cards for inventory.
+    # The inventory quadrant, its lines held nowhere, is unconfirmed: one count.
+    assert by_dimension["inventory"]["status"] == "connected"
+    assert by_dimension["inventory"]["counts"]["unconfirmed"] == 1
+    assert [item["key"] for item in by_dimension["inventory"]["key_indicators"]] == [
+        "inventory_quadrant"
+    ]
+    # No label stands in for the dimension summary, nor the seven cards for inventory: its
+    # cards tell no data there apart from the quadrant's relation.
     for label in ("policy_direction", "credit_response", "overheat_state", "price_pressure"):
         assert label not in context.macro
-    assert "cards" not in context.inventory and "quadrant" not in context.inventory
-    assert context.inventory["status"] == "not_connected"
+    assert context.inventory["status"] == "connected"
+    assert context.inventory["quadrant"] == "unclassified"
+    assert context.inventory["unclassified_by"] == "insufficient"
+    cards: Any = context.inventory["cards"]
+    # The PMI's new orders and production are held: their cards say so, whatever the
+    # other lines hold.
+    assert {card["name"]: card["availability"] for card in cards} == {
+        "new_orders": "available",
+        "revenue": "unavailable",
+        "industrial_va": "unavailable",
+        "pmi_production": "available",
+        "finished_goods": "unavailable",
+        "pmi_finished_goods": "unavailable",
+        "turnover": "unavailable",
+    }
+    assert {card["relation"] for card in cards} == {"unconfirmed"}
+    assert not any("status" in card for card in cards)
 
 
 def test_an_unknown_month_leaves_the_pmi_unconfirmed_and_says_which(tmp_path: Path) -> None:
@@ -423,14 +439,30 @@ def test_the_rules_are_frozen_in_the_new_manifest_alone(tmp_path: Path) -> None:
         "rrr",
         "liquidity",
         "dr007",
+        "inventory_quadrant",
     ]
-    # The rules are part of the manifest's hash: the same model with other cells is refused.
+    assert rules.warrants is not None and rules.warrants.symbols == (
+        "CF",
+        "TA",
+        "PP",
+        "CU",
+        "RB",
+        "RU",
+        "SP",
+        "SC",
+    )
+    # The rules are part of the manifest's hash: the same model with other cells, or another
+    # warrant conversion, is refused.
     models = ModelRepository.create(tmp_path / "models.sqlite3")
     models.create_candidate(new)
     edited = copy.deepcopy(new)
     edited["confirmation_rules"]["key_indicators"][0]["expectations"]["stage_i"]["cells"].pop()
     with pytest.raises(ValueError, match="model_version_is_immutable"):
         models.create_candidate(edited)
+    converted = copy.deepcopy(new)
+    converted["confirmation_rules"]["warrant_conversions"][0]["factor"] = 50
+    with pytest.raises(ValueError, match="model_version_is_immutable"):
+        models.create_candidate(converted)
     # Each manifest holds its own rules: changing one changes no other built after it.
     built = model_v0015_manifest()
     built["confirmation_rules"]["key_indicators"][0]["expectations"]["stage_i"]["cells"].clear()

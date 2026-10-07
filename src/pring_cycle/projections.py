@@ -491,9 +491,11 @@ def _validate_confirmation(
 
     It confirms the stage the set states, or none; each dimension's counts are its key
     indicators' relations, and a dimension not read yet has neither. A counterevidence
-    waiting on grace counts only past it.
+    waiting on grace counts only past it. An inventory card tells its data's availability
+    apart from the relation, which is its quadrant's: never the seven cards' support for
+    data held (N07).
     """
-    if any(label in macro for label in _RETIRED_MACRO_LABELS) or "cards" in inventory:
+    if any(label in macro for label in _RETIRED_MACRO_LABELS):
         raise ValueError("projection_confirmation_retired_label_present")
     confirmation = macro.get("confirmation")
     if not isinstance(confirmation, dict):
@@ -544,6 +546,25 @@ def _validate_confirmation(
             )
         ):
             raise ValueError("projection_confirmation_invalid")
+    inventory_dimension = dimensions[CONFIRMATION_DIMENSIONS.index("inventory")]
+    quadrant = next(iter(inventory_dimension.get("key_indicators") or []), None)
+    cards = inventory.get("cards")
+    if cards is None and quadrant is None:
+        return
+    if (
+        quadrant is None
+        or not isinstance(cards, list)
+        or not cards
+        or any(
+            not isinstance(card, dict)
+            or "status" in card
+            or card.get("availability") not in ("available", "unavailable")
+            or card.get("relation") != quadrant.get("relation")
+            or card.get("counted") is not False
+            for card in cards
+        )
+    ):
+        raise ValueError("projection_confirmation_inventory_card_invalid")
 
 
 def _validate_visible_context_window(

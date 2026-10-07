@@ -414,7 +414,7 @@ def test_the_counts_cover_overheat_price_and_credit_and_no_derived_value(tmp_pat
         "credit": ["social_financing", "loans", "money"],
         "overheat": ["pmi", "industrial_va", "gdp", "capacity_utilization", "industrial_profit"],
         "price": ["ppi", "cpi", "pmi_prices"],
-        "inventory": [],
+        "inventory": ["inventory_quadrant"],
     }
     assert dimensions["credit"]["counts"]["support"] == 1
     assert dimensions["credit"]["counts"]["unconfirmed"] == 2

@@ -239,11 +239,16 @@ def _confirmation_readings(
     indicator's member reads its periods' sessions, a formula's input the lead before them
     too. A policy action reads the window and the value in force before it: an LPR its
     months, a rate the one in force on the session before the window and each session's
-    notice from there; an RRR's events are traced back on their own (ADR-0028).
+    notice from there; an RRR's events are traced back on their own (ADR-0028). An
+    inventory quadrant's line reads the quadrant's months, and those it may wait on the
+    other lines, back from its own newest (macro semantics ticket 08).
     """
     readings: list[Reading] = []
     every_month = frozenset(range(1, 13))
     for member in indicator.members:
+        if indicator.quadrant is not None and member is indicator.main:
+            # The quadrant is read of its lines' members, each back from its own newest.
+            continue
         name = (
             f"confirmation:{indicator.key}"
             if member is indicator.main

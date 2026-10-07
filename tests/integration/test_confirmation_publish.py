@@ -119,8 +119,12 @@ def test_the_stage_decided_first_is_the_one_confirmed_and_published(tmp_path: Pa
     assert pmi["relation"] == "support"
     assert pmi["proposition"] == "经济自底部恢复，需求与生产扩张"
     assert overheat(projection)["counts"]["support"] == 1
-    assert projection.datasets["inventory"]["status"] == "not_connected"
-    assert "cards" not in projection.datasets["inventory"]
+    # Nothing of inventory held: its quadrant unconfirmed, no card's data there.
+    inventory = projection.datasets["inventory"]
+    assert inventory["status"] == "connected" and inventory["relation"] == "unconfirmed"
+    cards = {card["name"]: card for card in inventory["cards"]}
+    assert cards["new_orders"]["availability"] == "available"
+    assert cards["finished_goods"]["availability"] == "unavailable"
 
 
 def test_a_confirmation_gap_neither_holds_the_stage_nor_rewrites_its_history(
@@ -177,14 +181,18 @@ def test_the_pages_list_the_dimension_summary_and_the_pmi_reading(tmp_path: Path
     macro = _text(dashboard_page("/macro", projection, (), ()))
     inventory = _text(dashboard_page("/inventory", projection, (), ()))
 
-    assert "过热" in home and "支持 1" in home and "尚未接入" in home
+    # Every dimension is read now, inventory by its quadrant.
+    assert "过热" in home and "支持 1" in home and "尚未接入" not in home
+    assert "库存象限：未确认" in home
     assert "PMI：支持" in home and "高于 50" in home and "较上期上升" in home
     assert "政策方向" not in home and "数据不足" not in home
     assert "制造业 PMI" in macro and "新订单" in macro and "斜率变陡" in macro
     assert "命题：经济自底部恢复，需求与生产扩张" in macro
     # The policy dimension reads its five indicators, none held here.
     assert "政策利率" in macro and "DR007" in macro and "未确认 5" in macro
-    assert "库存维度尚未接入" in inventory and "七张阶段特征卡" not in inventory
+    assert "库存象限" in inventory and "七张阶段特征卡" not in inventory
+    assert "数据不可用" in inventory and "确认关系（随库存象限）：未确认" in inventory
+    assert "实际库存近似（粗略价格调整代理）" in inventory and "不参与库存象限" in inventory
 
 
 def test_the_pages_and_the_report_tell_the_turn_its_maturity_and_grace(tmp_path: Path) -> None:
@@ -239,7 +247,7 @@ def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Pa
         "dimension:credit": {**_NONE, "unconfirmed": 3},
         "dimension:overheat": {**_NONE, "support": 1, "unconfirmed": 4},
         "dimension:price": {**_NONE, "unconfirmed": 3},
-        "dimension:inventory": "not_connected",
+        "dimension:inventory": {**_NONE, "unconfirmed": 1},
         "key_indicator:pmi": "support",
         "key_indicator:industrial_va": "unconfirmed",
         "key_indicator:gdp": "unconfirmed",
@@ -256,6 +264,7 @@ def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Pa
         "key_indicator:rrr": "unconfirmed",
         "key_indicator:liquidity": "unconfirmed",
         "key_indicator:dr007": "unconfirmed",
+        "key_indicator:inventory_quadrant": "unconfirmed",
     }
     pmi = bundle.results["confirmation"]["key_indicators"]["pmi"]
     assert pmi["relation"] == "support" and pmi["members"][0]["momentum"] == "up"
@@ -460,6 +469,10 @@ _KEPT = "PMI 高于 50 且回升，记为支持；过热维度支持 1、反证 
         ("PMI 价格记为支持。", {}, "conclusion_mutation_rejected"),
         ("社融：未确认。M1/M2 未确认。", {}, "succeeded"),
         ("M1/M2 记为支持。", {}, "conclusion_mutation_rejected"),
+        # The inventory quadrant is its own indicator; inventory, its dimension (ticket 08).
+        ("库存象限：未确认。库存维度未确认：1。", {}, "succeeded"),
+        ("库存象限记为支持。", {}, "conclusion_mutation_rejected"),
+        ("库存维度支持 1。", {}, "conclusion_mutation_rejected"),
     ],
 )
 def test_a_report_rewriting_the_relations_or_counts_is_rejected(

@@ -30,6 +30,7 @@ from pring_cycle.confirmation import (
     Member,
     MemberReading,
     ObservedReading,
+    QuadrantReading,
     confirmation_document,
     derived_points,
     month_back,
@@ -58,6 +59,7 @@ from pring_cycle.evidence import usable_point as _usable_point
 from pring_cycle.freshness import assess as freshness_assess
 from pring_cycle.freshness import backtracked, period_status
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS, evidence_frequency
+from pring_cycle.registered_warrants import WarrantRules, registered_warrant_change
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
 from pring_cycle.trading_calendar import TradingCalendar, current_calendar
@@ -132,6 +134,8 @@ class ContextProjection:
 class _MetricRows:
     rows: tuple[dict[str, object], ...]
     warrant_history: WarrantHistoryCoverage | None = None
+    # The warrants' claims the family adopts, whole symbol-days; None when it decides none.
+    adoptable: frozenset[str] | None = None
 
 
 _SUPPORTED_FORMULA_VERSIONS = {
@@ -637,18 +641,50 @@ def build_context_projection(
             "international_context": international_context,
             "score": None,
         }
-        # The inventory dimension is not read yet: its evidence is kept, with no quadrant.
+        quadrant = next(
+            (
+                item
+                for dimension in macro_document["confirmation"]["dimensions"]  # type: ignore[index]
+                if dimension["dimension"] == "inventory"
+                for item in dimension["key_indicators"]
+            ),
+            None,
+        )
+        # The inventory dimension's conclusion is its quadrant; its evidence is kept, the
+        # real inventory approximation a rough proxy beside it, neither counted nor in the
+        # quadrant (N12).
         inventory_document = {
             "output_structure": OUTPUT_STRUCTURE,
-            "status": "not_connected",
+            "status": "not_connected" if quadrant is None else "connected",
             "evidence": _row_documents(rows_by_metric, _INVENTORY),
-            "real_inventory_approximation": real_inventory,
+            "real_inventory_approximation": {
+                **real_inventory,
+                "semantics": "rough_price_adjusted_proxy",
+                "counted": False,
+                "quadrant_input": False,
+            },
             "semantics": {
                 "pmi_inventory": "diffusion_index_not_inventory_quantity",
                 "futures_warrants": "registered_receipts_not_total_industrial_inventory",
+                "real_inventory_approximation": "rough_price_adjusted_proxy_not_counted",
             },
             "score": None,
         }
+        if quadrant is not None:
+            rule = next(item for item in rules.confirmation.indicators if item.quadrant)
+            inventory_document.update(_quadrant_document(quadrant, rule.auxiliary, rows_by_metric))
+        if rules.confirmation.warrants is not None:
+            warrants = _registered_warrants(
+                visible_repository,
+                definitions["CN_FUTURES_WARRANTS"],
+                rules.confirmation.warrants,
+                metric_results["CN_FUTURES_WARRANTS"].adoptable,
+                as_of=as_of,
+                as_of_mode=as_of_mode,
+                window=(visible_evidence_start, day.isoformat()),
+            )
+            inventory_document["registered_warrants"] = warrants
+            confirmation_inputs.update(warrants["observation_version_ids"])  # type: ignore[arg-type]
         warnings = ()
     all_rows = [row for rows in rows_by_metric.values() for row in rows]
     model_inputs = set(derived_ids) | confirmation_inputs
@@ -753,6 +789,8 @@ def _member_readings(
             key=lambda point: (point.period_end, json.dumps(point.dimensions, sort_keys=True)),
         )
 
+    if indicator.quadrant is not None:
+        return _quadrant_readings(indicator, rows_by_metric, points)
     if indicator.actions is not None:
         return tuple(
             _action_reading(
@@ -809,39 +847,17 @@ def _member_readings(
                 )
             )
             continue
-        rows = rows_by_metric[member.metric_id]
-        gap = next((row for row in rows if str(row["observation_id"]).startswith("gap:")), None)
-        shown = [
-            row
-            for row in rows
-            if row.get("value") is not None
-            and isinstance(row.get("period"), str)
-            and (
-                row.get("dimensions") == dict(member.dimensions)
-                or any(
-                    row.get("dimensions") == dict(dimensions)
-                    and int(str(row["period"])[5:7]) == month
-                    for month, dimensions in member.stand_ins.items()
-                )
-            )
-        ]
-        row = max(shown, key=lambda item: str(item["period"]), default=None)
+        shown, status = _shown(rows_by_metric[member.metric_id], member)
         # A daily indicator's member read by month steps a month at a time.
         level_line = indicator.level_line if member.frequency is None else None
-        if row is None:
-            own = next(
-                (item for item in rows if item.get("dimensions") == dict(member.dimensions)),
-                None,
-            )
-            status = str((own or gap or {}).get("status") or "missing")
+        if shown is None:
             readings.append(MemberReading(member, role, status, (), (), level_line, months))
             continue
-        newest = str(row["period"])[:7]
+        newest = shown[:7]
         step = indicator.step if member.frequency is None else 1
         # The farthest month the lookback declares: grace reads no further back.
         history = indicator.history(member)
         oldest = month_back(newest, (indicator.reach(member) - 1) * step)
-        status = str(row["status"])
 
         span = (months, step, oldest)
         earlier: list[MemberReading] = []
@@ -856,6 +872,184 @@ def _member_readings(
         reading = _period_reading(indicator, member, role, status, points, newest, span, level_line)
         readings.append(replace(reading, earlier=tuple(earlier)))
     return tuple(readings)
+
+
+def _quadrant_document(
+    indicator: Mapping[str, Any],
+    members: Sequence[Member],
+    rows_by_metric: Mapping[str, tuple[dict[str, object], ...]],
+) -> dict[str, object]:
+    """The inventory quadrant as the inventory dimension's conclusion, and a card of each
+    of its lines' ``members``: whether the member's own evidence is there, as its rows
+    show it whatever the other lines hold, apart from the relation the quadrant -- the one
+    count -- bears (N07). Its reading is the quadrant month's."""
+    readings = {item["name"]: item for item in indicator["members"][1:]}
+    cards = []
+    for member in members:
+        shown, status = _shown(rows_by_metric[member.metric_id], member)
+        reading = readings[member.name]
+        cards.append(
+            {
+                "name": member.name,
+                "label": member.label,
+                "metric_id": member.metric_id,
+                "line": member.line,
+                "role": reading["role"],
+                "availability": (
+                    "available" if shown is not None and status == "current" else "unavailable"
+                ),
+                "evidence_status": status,
+                "period": shown,
+                "reading_period": reading["period"],
+                "momentum": reading["momentum"],
+                "consistency": reading["consistency"],
+                "relation": indicator["relation"],
+                "counted": False,
+            }
+        )
+    main = indicator["members"][0]
+    return {
+        "quadrant": main["quadrant"],
+        "unclassified_by": main["unclassified_by"],
+        "relation": indicator["relation"],
+        "statistical_period": indicator["statistical_period"],
+        "cards": cards,
+    }
+
+
+def _registered_warrants(
+    repository: Any,
+    definition: MetricDefinition,
+    rules: WarrantRules,
+    adoptable: frozenset[str] | None,
+    *,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+    window: tuple[str | None, str],
+) -> dict[str, object]:
+    """The registered warrants in the evidence window, each symbol's warehouses summed by
+    day: a symbol-day the family leaves out whole is not held, and one delivered in more
+    than one unit is held in neither."""
+    held: dict[str, dict[str, tuple[float, str, tuple[str, ...]]]] = {}
+    for point in repository.metric_series(
+        definition.metric_id,
+        mode=as_of_mode,
+        as_of=as_of,
+        definition_version=definition.definition_version,
+    ):
+        value = _numeric_value(point.selected_value)
+        claim = next((c for c in point.claims if c.claim_id == point.selected_claim_id), None)
+        if (
+            point.dimensions.get("measure") != "registered_receipts"
+            or not _usable_point(point)
+            or value is None
+            or claim is None
+            or (adoptable is not None and claim.claim_id not in adoptable)
+            or (window[0] is not None and point.period_end < window[0])
+        ):
+            continue
+        symbol = point.dimensions["symbol"]
+        total, unit, versions = held.setdefault(symbol, {}).get(
+            point.period_end, (0.0, claim.unit, ())
+        )
+        held[symbol][point.period_end] = (
+            total + value,
+            unit if unit == claim.unit else "mixed",
+            (*versions, claim.claim_id),
+        )
+    return registered_warrant_change(rules, held, window=window)
+
+
+def _shown(rows: Sequence[dict[str, object]], member: Member) -> tuple[str | None, str]:
+    """The newest period of the member's evidence rows as shown, its own or its stand-in's
+    (a February of cumulative growth), and its status; with none, None and why."""
+    shown = [
+        row
+        for row in rows
+        if row.get("value") is not None
+        and isinstance(row.get("period"), str)
+        and (
+            row.get("dimensions") == dict(member.dimensions)
+            or any(
+                row.get("dimensions") == dict(dimensions) and int(str(row["period"])[5:7]) == month
+                for month, dimensions in member.stand_ins.items()
+            )
+        )
+    ]
+    row = max(shown, key=lambda item: str(item["period"]), default=None)
+    if row is None:
+        gap = next((row for row in rows if str(row["observation_id"]).startswith("gap:")), None)
+        own = next(
+            (item for item in rows if item.get("dimensions") == dict(member.dimensions)), None
+        )
+        return None, str((own or gap or {}).get("status") or "missing")
+    return str(row["period"]), str(row["status"])
+
+
+def _quadrant_readings(
+    indicator: KeyIndicator,
+    rows_by_metric: Mapping[str, tuple[dict[str, object], ...]],
+    points: Callable[[str, Mapping[str, str]], Mapping[str, MetricSeriesPoint]],
+) -> tuple[MemberReading, ...]:
+    """The inventory quadrant at the newest month its three lines' main members all hold,
+    then each line's members there (macro semantics ticket 08).
+
+    That month is the earliest of the main members' newest shown: a line out sooner waits
+    on the others, and one not holding it misses it -- never read at an older month in
+    its place. Each member is read there and at the quadrant's month before, passing over
+    a month a main member is never released for; each month grace reaches back is read as
+    the lines stood then. Nothing before a member's declared months is read.
+    """
+    rule = indicator.quadrant
+    assert rule is not None
+    shown = {
+        member.name: _shown(rows_by_metric[member.metric_id], member)
+        for member in indicator.auxiliary
+    }
+    newest = [shown[name][0] for name in rule.mains.values()]
+    month = min(item[:7] for item in newest if item is not None) if None not in newest else None
+    by_name = {member.name: member for member in indicator.auxiliary}
+
+    def read(member: Member, role: str, end: str | None) -> MemberReading:
+        own, status = shown[member.name]
+        if end is None or own is None:
+            return MemberReading(member, role, status, (), (), None, indicator.lookback)
+        oldest = month_back(own[:7], indicator.reach(member) - 1)
+        held: list[tuple[str, float, str]] = []
+        missing: list[str] = []
+        for current in (rule.before(end), end):
+            dimensions = member.stand_ins.get(int(current[5:7]), member.dimensions)
+            point = (
+                points(member.metric_id, dimensions).get(month_end(current))
+                if current >= oldest
+                else None
+            )
+            value = _numeric_value(point.selected_value) if point is not None else None
+            if point is None or value is None or point.selected_claim_id is None:
+                missing.append(current)
+            else:
+                held.append((month_end(current), value, point.selected_claim_id))
+        return MemberReading(
+            member, role, status, tuple(held), tuple(missing), None, indicator.lookback
+        )
+
+    def quadrant(end: str | None) -> QuadrantReading:
+        lines = {line: read(by_name[name], "line", end) for line, name in rule.mains.items()}
+        return QuadrantReading.of(indicator.main, end, lines, rule.quadrants)
+
+    earlier: list[QuadrantReading] = []
+    end = month
+    for _ in range(indicator.history(indicator.main)):
+        end = rule.before(end) if end is not None else None
+        earlier.append(quadrant(end))
+    lines = set(rule.mains.values())
+    return (
+        replace(quadrant(month), earlier=tuple(earlier)),
+        *(
+            read(member, "line" if member.name in lines else "auxiliary", month)
+            for member in indicator.auxiliary
+        ),
+    )
 
 
 def _period_reading(
@@ -2317,6 +2511,7 @@ def _metric_rows(
     incomplete_source_claims: set[str] = set()
     warrant_latest_period = None
     warrant_history = None
+    adoptable = None
     if definition.metric_id not in _NOT_RECHECKED_IN_PROJECTION:
         adoption = ClaimAdoption(
             repository, definition_version=definition.definition_version, mode=as_of_mode
@@ -2326,6 +2521,7 @@ def _metric_rows(
             # A symbol missing a warehouse member is left out alone (its claims are not
             # adoptable); the day's complete symbols stand, as in retrieval (ADR-0032).
             warrant_latest_period = max((point.period_end for point in series), default=None)
+            adoptable = frozenset(adoption.adoptable)
             complete_periods: dict[str, list[str]] = {}
             for period in {point.period_end for point in series}:
                 for symbol in {
@@ -2359,7 +2555,9 @@ def _metric_rows(
             )
         ):
             release_status = "no_event_in_visible_window"
-        return _MetricRows((_gap_row(definition, release_status=release_status),), warrant_history)
+        return _MetricRows(
+            (_gap_row(definition, release_status=release_status),), warrant_history, adoptable
+        )
     # The window's first month (quarter) is compared with the one before the window.
     earlier = _periods_before_window(
         repository, definition, grouped, as_of=as_of, as_of_mode=as_of_mode
@@ -2479,7 +2677,7 @@ def _metric_rows(
                 ),
             }
         )
-    return _MetricRows(tuple(rows), warrant_history)
+    return _MetricRows(tuple(rows), warrant_history, adoptable)
 
 
 def _gap_row(

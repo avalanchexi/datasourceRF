@@ -531,11 +531,27 @@ def test_a_confirmation_model_plans_the_months_each_member_reads(
     year = [f"{2025 + (5 + i) // 12}-{(5 + i) % 12 + 1:02d}" for i in range(14)]
     five = ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07"]
     three = five[2:]
+    # The inventory quadrant's lines read seven months back, January passed over: the
+    # month and the one before, two of grace, two waiting on the other lines (ticket 08).
+    quadrant = ["2026-02", *five]
 
     assert year[0] == "2025-06" and year[-1] == "2026-07"
-    assert periods["CN_PMI_ACTIVITY"] == five
+    assert periods["CN_PMI_ACTIVITY"] == quadrant
     assert periods["CN_PMI_PRICES"] == five
-    assert periods["CN_PMI_INVENTORY"] == ["2026-07"]
+    assert periods["CN_PMI_INVENTORY"] == quadrant
+    assert periods["CN_FINISHED_GOODS_INVENTORY"] == quadrant
+    assert periods["CN_INVENTORY_TURNOVER"] == quadrant
+    assert members["CN_FINISHED_GOODS_INVENTORY"]["2026-02"] == list(
+        member_keys("CN_FINISHED_GOODS_INVENTORY", ({"measure": "official_yoy"},))
+    )
+    assert sorted(members["CN_PMI_ACTIVITY"]["2026-02"]) == sorted(
+        member_keys(
+            "CN_PMI_ACTIVITY",
+            tuple(
+                {"measure": "level", "series": series} for series in ("new_orders", "production")
+            ),
+        )
+    )
     assert periods["CN_CPI_HEADLINE"] == periods["CN_PPI"] == periods["CN_M1_M2"] == year
     assert periods["CN_CORE_CPI"] == three
     # PPI's month-on-month is read back for grace: stage II's hint reads it (F4).
@@ -632,8 +648,9 @@ def test_a_confirmation_model_plans_the_months_each_member_reads(
         members["CN_GDP"][quarter] is None or real in members["CN_GDP"][quarter]
         for quarter in quarters
     )
-    # Industrial profits: July, out on the 27th, and the four months before it.
-    assert periods["CN_INDUSTRIAL_FINANCE"] == five
+    # Industrial profits: July, out on the 27th, and the four months before it; revenue,
+    # the quadrant's demand line, back to February.
+    assert periods["CN_INDUSTRIAL_FINANCE"] == quadrant
     # The fetch reads the five quarters back from the window's first day's newest, the
     # fourth of 2025: no further.
     assert requests["gdp"]["start_quarter"] == "2024Q4"
@@ -871,15 +888,24 @@ def test_the_plan_reads_back_from_the_newest_month_due_not_an_older_one_held(
     plan, _requests = _full_run(tmp_path, monkeypatch, manifest, hold)
 
     periods = _periods(plan["initial"])
-    assert periods["CN_PMI_ACTIVITY"] == ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07"]
+    # The inventory quadrant's new orders and production read back to February.
+    assert periods["CN_PMI_ACTIVITY"] == [
+        "2026-02",
+        "2026-03",
+        "2026-04",
+        "2026-05",
+        "2026-06",
+        "2026-07",
+    ]
     asked = {
         document["period"]
         for document in plan["initial"]["scopes"]
         if "CN_PMI_ACTIVITY" in document["metric_ids"]
     }
     assert {"2026-06", "2026-07"} <= asked
-    # A series read as itself alone is asked for its newest month due, too.
-    assert _periods(plan["initial"])["CN_PMI_INVENTORY"] == ["2026-07"]
+    # The PMI's inventory, held for no month, is read back from its newest month due too:
+    # the inventory quadrant's months to July (ticket 08).
+    assert _periods(plan["initial"])["CN_PMI_INVENTORY"] == periods["CN_PMI_ACTIVITY"]
 
 
 @pytest.mark.usefixtures("runtime_clock")

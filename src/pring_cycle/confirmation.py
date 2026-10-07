@@ -48,6 +48,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pring_cycle.domain import FormalStage
+from pring_cycle.registered_warrants import WarrantRules
 
 OUTPUT_STRUCTURE = "confirmation-v0001"
 MACRO_RULES_VERSION = "macro-confirmation-v0001"
@@ -84,7 +85,20 @@ _READINGS = {
     "run": frozenset({"up", "down", "none"}),
     # A policy member's latest action in the evidence window, or none there.
     "action": frozenset({"cut", "hike", "none"}),
+    # The inventory quadrant its lines' directions name, or none of them: unclassified.
+    "quadrant": frozenset(
+        {
+            "active_destocking",
+            "passive_destocking",
+            "active_restocking",
+            "passive_restocking",
+            "unclassified",
+        }
+    ),
 }
+# The inventory quadrant's lines: demand and inventory name the quadrant, production
+# verifies it (CONTEXT.md, 库存象限).
+QUADRANT_LINES = ("demand", "production", "inventory")
 
 
 @dataclass(frozen=True)
@@ -230,6 +244,8 @@ class Member:
     # Its change on the period before is read from this member of its metric instead, as
     # the source states it: capacity utilisation's on the same quarter a year before.
     change_from: Mapping[str, str] | None = None
+    # The inventory quadrant's line the member reads (demand, production or inventory).
+    line: str | None = None
 
     def matches(self, dimensions: Mapping[str, str]) -> bool:
         if self.partial:
@@ -305,6 +321,31 @@ class Expectation:
 
 
 @dataclass(frozen=True)
+class QuadrantRule:
+    """The inventory quadrant: each line's main member, and the quadrant each set of the
+    lines' directions names (``quadrants``); any other set is unclassified.
+
+    A line's direction is its main member's momentum, read at the newest month the three
+    main members all hold against the month before it; the quadrant's months pass over
+    those a main member is never released for (``skipped``: January), so the three lines
+    read the same months. A line out sooner (the PMI, at month end) is read back
+    ``align`` months more than the others: it waits on them.
+    """
+
+    mains: Mapping[str, str]
+    quadrants: Mapping[str, Mapping[str, str]]
+    align: int
+    skipped: frozenset[int]
+
+    def before(self, month: str) -> str:
+        """The quadrant's month before ``month`` (``YYYY-MM``)."""
+        earlier = month_back(month, 1)
+        while int(earlier[5:7]) in self.skipped:
+            earlier = month_back(earlier, 1)
+        return earlier
+
+
+@dataclass(frozen=True)
 class KeyIndicator:
     """A key indicator: its members, its periods (months, quarters or runs of sessions) and
     its timing.
@@ -345,6 +386,9 @@ class KeyIndicator:
     # The periods a year's range spans, and those whose changes tell a marked one.
     year: int = YEAR_MONTHS
     marked: int = YEAR_MONTHS
+    # The inventory quadrant, read of its lines' members (its auxiliary ones, each of its
+    # line); its main member stands for the quadrant and is read of no evidence.
+    quadrant: QuadrantRule | None = None
 
     @property
     def members(self) -> tuple[Member, ...]:
@@ -370,6 +414,9 @@ class KeyIndicator:
             )
             for condition in hint.when
         }
+        if self.quadrant is not None:
+            # A line's members are read at each month the quadrant is, as it stood.
+            return self.grace if member is self.main else 0
         return self.grace if member is self.main or member.name in named else 0
 
     def reach(self, member: Member) -> int:
@@ -378,7 +425,13 @@ class KeyIndicator:
 
         A derived member's period reads its inputs back to their farthest offset: only
         the periods whose inputs all lie within the horizon are read (loans: t alone).
+        A quadrant line's member reads the quadrant's months back from its own newest:
+        its lookback and grace, the months it may wait on the other lines, and those the
+        quadrant passes over.
         """
+        if self.quadrant is not None:
+            months = self.lookback + self.grace + self.quadrant.align + len(self.quadrant.skipped)
+            return min(months, self.horizon + 1)
         read = min(self.periods(member) + self.history(member), self.horizon + 1)
         if member.formula is not None:
             read = min(read, self.horizon + 1 - DERIVED_FORMULAS[member.formula].farthest)
@@ -415,6 +468,8 @@ class ConfirmationRules:
     macro_rules_version: str
     indicators: tuple[KeyIndicator, ...]
     timing: TimingRules
+    # The registered warrants' frozen conversions, read as a note on inventory.
+    warrants: WarrantRules | None = None
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> ConfirmationRules | None:
@@ -441,7 +496,9 @@ class ConfirmationRules:
         )
         if len({item.key for item in indicators}) != len(indicators):
             raise ValueError("confirmation_key_indicator_duplicate")
-        return cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing)
+        conversions = document.get("warrant_conversions")
+        warrants = WarrantRules.parse(conversions) if conversions is not None else None
+        return cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing, warrants)
 
     def metric_ids(self) -> frozenset[str]:
         """Every metric the indicators read: their members', their formulas' inputs and
@@ -770,6 +827,95 @@ class ObservedReading(MemberReading):
 
 
 @dataclass(frozen=True)
+class QuadrantReading(MemberReading):
+    """The inventory quadrant at ``month``: each line's main member read there and at the
+    quadrant's month before (``lines``), and the quadrant their directions name.
+
+    ``missing`` is what each line misses, by its line: a month not held, or its evidence
+    out of date. With any line's direction not known the quadrant is not known --
+    unclassified for want of data, and the indicator unconfirmed; known directions no
+    quadrant names are unclassified, and only observed.
+    """
+
+    month: str | None = None
+    lines: Mapping[str, MemberReading] = field(default_factory=dict)
+    table: Mapping[str, Mapping[str, str]] = field(default_factory=dict)
+
+    @classmethod
+    def of(
+        cls,
+        member: Member,
+        month: str | None,
+        lines: Mapping[str, MemberReading],
+        table: Mapping[str, Mapping[str, str]],
+    ) -> QuadrantReading:
+        missing: list[str] = []
+        for line, reading in lines.items():
+            if reading.evidence_status != "current":
+                missing.append(f"{line}:{_member_label(reading.member)}:{reading.evidence_status}")
+            missing.extend(f"{line}:{gap}" for gap in reading.gaps())
+        status = next(
+            (item.evidence_status for item in lines.values() if item.evidence_status != "current"),
+            "current",
+        )
+        return cls(
+            member,
+            "main",
+            status,
+            (),
+            tuple(dict.fromkeys(missing)),
+            None,
+            2,
+            tuple(dict.fromkeys(v for item in lines.values() for v in item.observation_versions())),
+            month=month,
+            lines=dict(lines),
+            table=table,
+        )
+
+    @property
+    def period(self) -> str | None:
+        return month_end(self.month) if self.month is not None else None
+
+    @property
+    def quadrant(self) -> str | None:
+        if self.missing or self.evidence_status != "current":
+            return None
+        directions = {line: reading.momentum for line, reading in self.lines.items()}
+        if None in directions.values():
+            return None
+        return next(
+            (name for name, named in self.table.items() if dict(named) == directions),
+            "unclassified",
+        )
+
+    def gaps(self) -> tuple[str, ...]:
+        return self.missing
+
+    def extra(self) -> dict[str, object]:
+        quadrant = self.quadrant
+        return {
+            # Unclassified for want of data, or for directions no quadrant names.
+            "quadrant": quadrant or "unclassified",
+            "unclassified_by": (
+                "insufficient"
+                if quadrant is None
+                else "inconsistent"
+                if quadrant == "unclassified"
+                else None
+            ),
+            "lines": {
+                line: {
+                    "member": reading.member.name,
+                    "label": reading.member.label,
+                    "period": reading.period,
+                    "direction": reading.momentum,
+                }
+                for line, reading in self.lines.items()
+            },
+        }
+
+
+@dataclass(frozen=True)
 class ChangeReading(MemberReading):
     """A member whose change is the one its source states: ``changes``, of the member
     ``change_from`` names, each the change of a point on the same period a year before.
@@ -971,7 +1117,18 @@ def _indicator_document(
     others: Mapping[str, MemberReading],
 ) -> dict[str, object]:
     main, auxiliary = members[0], tuple(members[1:])
-    agreement = [_agreement(main, member) for member in auxiliary]
+    if indicator.quadrant is not None:
+        # A line's member agrees or not with its line's main member, which is the line's.
+        mains = set(indicator.quadrant.mains.values())
+        lines = {item.member.line: item for item in auxiliary if item.member.name in mains}
+        agreement = [
+            "main" if member.member.name in mains else _agreement(lines[member.member.line], member)
+            for member in auxiliary
+        ]
+        known = main.reading("quadrant") is not None
+    else:
+        agreement = [_agreement(main, member) for member in auxiliary]
+        known = main.direction is not None
     divergent = "opposes" in agreement
     by_member = {**others, **{member.member.name: member for member in members}}
     document: dict[str, object] = {
@@ -983,9 +1140,7 @@ def _indicator_document(
         # What the indicator counts for: its newest period, however many days read it.
         "statistical_period": main.period,
         "level_line": indicator.level_line,
-        "consistency": (
-            "unknown" if main.direction is None else "divergent" if divergent else "consistent"
-        ),
+        "consistency": ("unknown" if not known else "divergent" if divergent else "consistent"),
         "members": [
             _member_document(main, "main"),
             *(
@@ -1008,14 +1163,16 @@ def _indicator_document(
     if stage is None:
         return document
     # An action read with nothing held is none: its events traced, none found (ADR-0028).
-    readable = bool(main.points) or isinstance(main, ActionReading)
+    # The quadrant holds no value of its own: its lines say what they miss.
+    readable = bool(main.points) or isinstance(main, (ActionReading, QuadrantReading))
     if main.evidence_status != "current" or not readable or main.missing:
         # Every reading of the main member is known, or none is said: a month short of
         # its lookback leaves a momentum, a slope or a year's range unknown, never read
         # as a direction.
         status = (
             [main.evidence_status]
-            if main.evidence_status != "current" or not (main.points or main.missing)
+            if not isinstance(main, QuadrantReading)
+            and (main.evidence_status != "current" or not (main.points or main.missing))
             else []
         )
         missing = [f"{_member_label(main.member)}:{item}" for item in status]
@@ -1342,8 +1499,10 @@ def _member_document(member: MemberReading, consistency: str) -> dict[str, objec
         "metric_id": member.member.metric_id,
         "member": dict(member.member.dimensions),
         "formula_version": member.member.formula,
+        # The quadrant's line it reads, when it reads one.
+        **({"line": member.member.line} if member.member.line is not None else {}),
         "evidence_status": member.evidence_status,
-        "period": latest[0] if latest is not None else None,
+        "period": member.period,
         "value": latest[1] if latest is not None else None,
         "periods": [period for period, _value, _version in member.points],
         "values": list(member.values),
@@ -1564,7 +1723,23 @@ def _indicator(
         # Grace reads each period as it stood as far as the horizon; the readings never
         # beyond it.
         raise ValueError("confirmation_lookback_beyond_horizon")
-    main = _member(value.get("main"), texts["metric_id"])
+    quadrant: QuadrantRule | None = None
+    if "quadrant" in value:
+        # The quadrant's lines are its members; it reads its month and the one before.
+        if (
+            "main" in value
+            or raw_auxiliary
+            or actions is not None
+            or frequency != "monthly"
+            or raw_line is not None
+            or lookback != 2
+        ):
+            raise ValueError("confirmation_quadrant_invalid")
+        quadrant, auxiliary = _quadrant(value["quadrant"], texts["metric_id"])
+        main = Member("quadrant", texts["name"], texts["metric_id"], {})
+    else:
+        main = _member(value.get("main"), texts["metric_id"])
+        auxiliary = tuple(_member(item, texts["metric_id"]) for item in raw_auxiliary)
     if main.formula is not None and (
         frequency != "monthly"
         or lookback > farthest + 1 - DERIVED_FORMULAS[main.formula].farthest
@@ -1574,7 +1749,6 @@ def _indicator(
         raise ValueError("confirmation_main_member_derived")
     if not main.compared:
         raise ValueError("confirmation_member_invalid")
-    auxiliary = tuple(_member(item, texts["metric_id"]) for item in raw_auxiliary)
     names = {member.name for member in (main, *auxiliary)}
     if len(names) != 1 + len(auxiliary):
         raise ValueError("confirmation_member_duplicate")
@@ -1628,6 +1802,11 @@ def _indicator(
     if ("action" in read) != (actions is not None):
         # A policy indicator read as its actions answers by them alone.
         raise ValueError("confirmation_action_reading_invalid")
+    if (quadrant is not None) != ("quadrant" in read) or (
+        quadrant is not None and read != {"quadrant"}
+    ):
+        # The quadrant answers by its quadrant alone, and nothing else does.
+        raise ValueError("confirmation_quadrant_reading_invalid")
     return KeyIndicator(
         **texts,
         main=main,
@@ -1647,6 +1826,67 @@ def _indicator(
         notices=notices,
         year=year,
         marked=marked,
+        quadrant=quadrant,
+    )
+
+
+def _quadrant(value: object, metric_id: str) -> tuple[QuadrantRule, tuple[Member, ...]]:
+    """The quadrant's rule, and its lines' members, each of its line: the main one first.
+
+    Every member passes over the months the quadrant does, which any line's main member
+    is never released for: the lines are read at the same months.
+    """
+    if not isinstance(value, Mapping):
+        raise ValueError("confirmation_quadrant_invalid")
+    raw_lines, raw_table = value.get("lines"), value.get("quadrants")
+    align = _count(value.get("align_months"))
+    if (
+        not isinstance(raw_lines, Mapping)
+        or set(raw_lines) != set(QUADRANT_LINES)
+        or not isinstance(raw_table, Mapping)
+        or not raw_table
+        or align is None
+    ):
+        raise ValueError("confirmation_quadrant_invalid")
+    members: list[Member] = []
+    mains: dict[str, Member] = {}
+    for line in QUADRANT_LINES:
+        raw = raw_lines[line]
+        if not isinstance(raw, Mapping) or not isinstance(raw.get("auxiliary", []), list):
+            raise ValueError("confirmation_quadrant_invalid")
+        mains[line] = _member(raw.get("main"), metric_id)
+        for member in (
+            mains[line],
+            *(_member(item, metric_id) for item in raw.get("auxiliary", [])),
+        ):
+            if (
+                member.formula
+                or member.change_from
+                or member.aggregate
+                or member.frequency
+                or member.partial
+                or not member.compared
+            ):
+                # A line reads each member's official value by month.
+                raise ValueError("confirmation_quadrant_invalid")
+            members.append(replace(member, line=line))
+    table: dict[str, dict[str, str]] = {}
+    for name, directions in raw_table.items():
+        if (
+            name not in _READINGS["quadrant"] - {"unclassified"}
+            or not isinstance(directions, Mapping)
+            or set(directions) != set(QUADRANT_LINES)
+            or not set(directions.values()) <= _READINGS["momentum"]
+        ):
+            raise ValueError("confirmation_quadrant_invalid")
+        table[str(name)] = {str(line): str(item) for line, item in directions.items()}
+    if len({tuple(sorted(item.items())) for item in table.values()}) != len(table):
+        # One set of directions names one quadrant.
+        raise ValueError("confirmation_quadrant_invalid")
+    skipped = frozenset().union(*(main.unreleased_months for main in mains.values()))
+    rule = QuadrantRule({line: main.name for line, main in mains.items()}, table, align, skipped)
+    return rule, tuple(
+        replace(member, unreleased_months=member.unreleased_months | skipped) for member in members
     )
 
 
@@ -1959,6 +2199,7 @@ def rules_v0001() -> dict[str, Any]:
         "key_indicators": copy.deepcopy(_KEY_INDICATORS),
         "timing_rules": copy.deepcopy(_TIMING_RULES),
         "maturity_rules": dict(_MATURITY_RULES),
+        "warrant_conversions": copy.deepcopy(_WARRANT_CONVERSIONS),
     }
 
 
@@ -2087,7 +2328,7 @@ _PMI_EXPECTATIONS: dict[str, Any] = {
 
 # Industrial value added: no January release, and February's is the January-February
 # cumulative growth, which the NBS itself compares March with ("比1—2月份加快").
-_INDUSTRIAL_VA_MEMBERS = {
+_INDUSTRIAL_VA_MEMBERS: dict[str, Any] = {
     "main": {
         **_member_data("current_month", "当月实际同比", measure="current_month_real_yoy"),
         "unreleased_months": [1],
@@ -2827,6 +3068,226 @@ _DR007: dict[str, Any] = {
     ),
 }
 
+_INVENTORY_PROPOSITIONS = {
+    "stage_i": "需求走弱，库存随之去化或被动积压",
+    "stage_ii": "需求回升快于生产，库存被动下降",
+    "stage_iii": "需求与生产扩张，企业主动补库",
+    "stage_iv": "经济充分扩张，企业主动补库",
+    "stage_v": "需求转弱，产成品被动积压",
+    "stage_vi": "需求恶化，企业主动去库",
+}
+# Demand (the PMI's new orders; industrial revenue), production (industrial value added;
+# the PMI's production) and inventory (finished goods' nominal growth; the PMI's finished
+# goods, finished goods' turnover days): each line's direction its main member's momentum
+# (CONTEXT.md, 库存象限). Industrial value added's February is its January-February
+# cumulative growth, as its key indicator's is; no January of it, nor of the industrial
+# finance figures.
+_QUADRANT_LINES = {
+    "demand": {
+        "main": {
+            **_member_data("new_orders", "需求：PMI 新订单", measure="level", series="new_orders"),
+            "metric_id": "CN_PMI_ACTIVITY",
+        },
+        "auxiliary": [
+            {
+                **_member_data(
+                    "revenue",
+                    "需求：工业企业营业收入累计同比（累计口径）",
+                    item="revenue",
+                    measure="official_yoy",
+                ),
+                "metric_id": "CN_INDUSTRIAL_FINANCE",
+                "unreleased_months": [1],
+                "cumulative": True,
+            }
+        ],
+    },
+    "production": {
+        "main": {
+            **_INDUSTRIAL_VA_MEMBERS["main"],
+            "name": "industrial_va",
+            "label": "生产：工业增加值当月实际同比",
+            "metric_id": "CN_INDUSTRIAL_VA",
+        },
+        "auxiliary": [
+            {
+                **_member_data(
+                    "pmi_production", "生产：PMI 生产", measure="level", series="production"
+                ),
+                "metric_id": "CN_PMI_ACTIVITY",
+            }
+        ],
+    },
+    "inventory": {
+        "main": {
+            **_member_data("finished_goods", "库存：产成品存货名义同比", measure="official_yoy"),
+            "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+            "unreleased_months": [1],
+        },
+        "auxiliary": [
+            {
+                **_member_data(
+                    "pmi_finished_goods",
+                    "库存：PMI 产成品库存",
+                    measure="level",
+                    series="finished_goods",
+                ),
+                "metric_id": "CN_PMI_INVENTORY",
+            },
+            {
+                **_member_data(
+                    "turnover",
+                    "库存：产成品周转天数同比变化（累计口径）",
+                    measure="official_yoy_change",
+                ),
+                "metric_id": "CN_INVENTORY_TURNOVER",
+                "unreleased_months": [1],
+                "cumulative": True,
+            },
+        ],
+    },
+}
+# The quadrant demand and inventory name, production moving with demand to verify it; any
+# other set of directions, a line flat among them, is unclassified (CONTEXT.md, 库存象限).
+_QUADRANTS = {
+    "active_destocking": {"demand": "down", "production": "down", "inventory": "down"},
+    "passive_destocking": {"demand": "up", "production": "up", "inventory": "down"},
+    "active_restocking": {"demand": "up", "production": "up", "inventory": "up"},
+    "passive_restocking": {"demand": "down", "production": "down", "inventory": "up"},
+}
+
+
+def _quadrant_cell(relation: str, *quadrants: str, **extra: Any) -> dict[str, Any]:
+    return _cell_data(relation, *({"quadrant": name} for name in quadrants), **extra)
+
+
+_UNCLASSIFIED = _quadrant_cell("observation_only", "unclassified")
+# Orders up while production does not follow: the repair under way (stage VI).
+_REPAIRING = {
+    "text": "修复过渡：订单回升而生产未跟",
+    "when": [
+        {"member": "new_orders", "momentum": "up"},
+        {"member": "industrial_va", "momentum": ["flat", "down"]},
+    ],
+}
+# Each stage's quadrants (expectation-table.md, E4/D5): counterevidence waits on grace, the
+# quadrant lagging; unclassified is only observed.
+_QUADRANT_CELLS = {
+    "stage_i": [
+        _quadrant_cell("counterevidence", "active_restocking", grace=True),
+        _quadrant_cell("support", "active_destocking", "passive_restocking"),
+        _quadrant_cell("observation_only", "passive_destocking"),
+        _UNCLASSIFIED,
+    ],
+    "stage_ii": [
+        _quadrant_cell("counterevidence", "passive_restocking", grace=True),
+        _quadrant_cell("support", "passive_destocking"),
+        _quadrant_cell("observation_only", "active_destocking", note={"text": "阶段Ⅱ早段"}),
+        _quadrant_cell("observation_only", "active_restocking", turn_hint=_hint("stage_iii")),
+        _UNCLASSIFIED,
+    ],
+    "stage_iii": [
+        _quadrant_cell("counterevidence", "active_destocking", "passive_restocking", grace=True),
+        _quadrant_cell("support", "active_restocking"),
+        _quadrant_cell("observation_only", "passive_destocking", note={"text": "阶段Ⅲ早段"}),
+        _UNCLASSIFIED,
+    ],
+    "stage_iv": [
+        _quadrant_cell("counterevidence", "active_destocking", "passive_destocking", grace=True),
+        _quadrant_cell("support", "active_restocking"),
+        _quadrant_cell(
+            "observation_only",
+            "passive_restocking",
+            note={"text": "后段背离"},
+            turn_hint=_hint("stage_v"),
+        ),
+        _UNCLASSIFIED,
+    ],
+    "stage_v": [
+        _quadrant_cell("counterevidence", "passive_destocking", grace=True),
+        _quadrant_cell("support", "passive_restocking"),
+        _quadrant_cell("observation_only", "active_restocking", note={"text": "自Ⅳ过渡"}),
+        _quadrant_cell("observation_only", "active_destocking", turn_hint=_hint("stage_vi")),
+        _UNCLASSIFIED,
+    ],
+    "stage_vi": [
+        _quadrant_cell("counterevidence", "active_restocking", grace=True),
+        _quadrant_cell("support", "active_destocking"),
+        _quadrant_cell("observation_only", "passive_restocking", note={"text": "自Ⅴ过渡早段"}),
+        # Toward stages I and II: stage I, as social financing's steadying is (ticket 04).
+        _quadrant_cell("observation_only", "passive_destocking", turn_hint=_hint("stage_i")),
+        _quadrant_cell("observation_only", "unclassified", note=_REPAIRING),
+    ],
+}
+_INVENTORY_QUADRANT: dict[str, Any] = {
+    "key": "inventory_quadrant",
+    "timing": "lagging",
+    "name": "库存象限",
+    "dimension": "inventory",
+    "metric_id": "CN_FINISHED_GOODS_INVENTORY",
+    "quadrant": {"lines": _QUADRANT_LINES, "quadrants": _QUADRANTS, "align_months": 2},
+    "auxiliary": [],
+    "level_line": None,
+    # The month all three lines hold and the quadrant's month before it.
+    "lookback_months": 2,
+    "expectations": _stages(_INVENTORY_PROPOSITIONS, _QUADRANT_CELLS),
+}
+
+# The registered warrants' conversion to tonnes, frozen with the model (expectation-table.md
+# O2; docs/research/futures-warrant-unit-conversion.md): no change found in 2025 to
+# 2026-10-07, so each holds open-ended until a term in fact changes. Crude oil is counted in
+# net barrels, with no fixed tonnes to a barrel, and stays in barrels.
+_WARRANT_CONVERSIONS = [
+    {
+        "symbol": symbol,
+        "input_unit": input_unit,
+        "factor": factor,
+        "unit": unit,
+        "weight_basis": weight_basis,
+        "basis": basis,
+        "effective_from": None,
+        "effective_until": None,
+    }
+    for symbol, input_unit, factor, unit, weight_basis, basis in (
+        (
+            "CF",
+            "sheet",
+            40,
+            "tonne",
+            "公定重量（名义）",
+            "郑商所《棉花期货业务细则》第三条 5 吨/手、第十二条一张八手",
+        ),
+        ("TA", "sheet", 5, "tonne", "交割单位", "郑商所《PTA 期货业务细则》第十二条交割单位 5 吨"),
+        ("PP", "lot", 5, "tonne", "交易单位", "大商所《聚丙烯期货业务细则》第八条 5 吨/手"),
+        (
+            "CU",
+            "tonne",
+            1,
+            "tonne",
+            "吨（上游按吨发布）",
+            "上期所铜期货合约附件：每一仓单 25 吨为交割批量，非输入单位",
+        ),
+        ("RB", "tonne", 1, "tonne", "理论计重", "上期所螺纹钢期货合约附件第（6）项：理论计重"),
+        (
+            "RU",
+            "tonne",
+            1,
+            "tonne",
+            "吨（上游按吨发布）",
+            "上期所天然橡胶业务细则第二十一条：每一仓单 10 吨，非输入单位",
+        ),
+        ("SP", "tonne", 1, "tonne", "风干重", "上期所纸浆期货业务细则第十八条：实测风干重"),
+        (
+            "SC",
+            "barrel",
+            1,
+            "barrel",
+            "净体积桶",
+            "上期能源《交割细则》第一百五十二条：原油净体积桶数，无固定吨桶系数",
+        ),
+    )
+]
+
 _KEY_INDICATORS: list[dict[str, Any]] = [
     {
         "key": "pmi",
@@ -2976,4 +3437,5 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     _RRR,
     _LIQUIDITY,
     _DR007,
+    _INVENTORY_QUADRANT,
 ]
