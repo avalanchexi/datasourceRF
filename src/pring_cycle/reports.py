@@ -270,7 +270,21 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
 
 
 _CONFIRMATION_SECTIONS = ("policy_action", "transmission", "credit", "overheat", "price_chain")
-_READING_FIELDS = ("period", "value", "level", "momentum", "slope", "crossed", "consistency")
+_READING_FIELDS = (
+    "period",
+    "value",
+    "level",
+    "momentum",
+    "direction",
+    "agrees_by",
+    "slope",
+    "run",
+    "crossed",
+    "position",
+    "change_size",
+    "consistency",
+    "stand_ins",
+)
 
 
 def _confirmation_conclusions(
@@ -311,17 +325,29 @@ def _confirmation_conclusions(
                         "turn_hint",
                         "grace",
                         "divergence_capped",
+                        "capped_by",
                         "missing",
                     )
                 },
                 "members": [
                     {
                         "role": member.get("role"),
+                        "label": member.get("label"),
+                        "formula_version": member.get("formula_version"),
                         "member": member.get("member"),
                         **{field: member.get(field) for field in _READING_FIELDS},
                     }
                     for member in _list(indicator.get("members"))
                     if isinstance(member, dict)
+                ],
+                # Shown beside the indicator, never counted.
+                "derived": [
+                    {
+                        field: item.get(field)
+                        for field in ("label", "formula_version", "period", "value", "momentum")
+                    }
+                    for item in _list(indicator.get("derived"))
+                    if isinstance(item, dict)
                 ],
                 "source": sourced["source"],
                 "anomaly": sourced["anomaly"],
@@ -1157,7 +1183,9 @@ def _attributed(sentences: list[str], labels: Mapping[str, str | None]) -> list[
     ends what the one before it is said of when it leads its sentence ("政策维度尚未接入"),
     not where it qualifies a subject already named ("PMI 在过热维度中").
     """
-    pattern = re.compile("|".join(re.escape(label) for label in labels)) if labels else None
+    # The longest first: "PMI 价格" is not "PMI" followed by "价格".
+    ordered = sorted(labels, key=len, reverse=True)
+    pattern = re.compile("|".join(re.escape(label) for label in ordered)) if labels else None
     stretches: list[tuple[str, str]] = []
     current: str | None = None
     for sentence in sentences:

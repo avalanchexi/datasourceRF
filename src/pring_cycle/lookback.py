@@ -21,13 +21,14 @@ periods (its module answers them; ``resolve`` asks it), and what a reading compu
 
 from __future__ import annotations
 
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse
+from pring_cycle.confirmation import DERIVED_FORMULAS, KeyIndicator
 from pring_cycle.credit_impulse import InputPeriods
 from pring_cycle.metric_contracts import evidence_frequency
 from pring_cycle.retrieval import preceding_periods
@@ -108,7 +109,9 @@ class Reading:
     """One reading of a metric: the periods each day reads, and which members.
 
     ``required`` is what a day must hold when that is fewer than it reads (a period to
-    compare with, say); ``members`` None reads every member the catalog requires.
+    compare with, say); ``members`` None reads every member the catalog requires. A month
+    in ``unreleased_months`` (1 for January) is never published for the members: it is
+    counted back over, and neither read nor required.
     """
 
     metric_id: str
@@ -117,10 +120,19 @@ class Reading:
     required: Periods | None = None
     members: tuple[Mapping[str, str], ...] | None = None
     every_day: bool = False
+    unreleased_months: frozenset[int] = frozenset()
 
     @property
     def minimum(self) -> Periods:
         return self.required or self.periods
+
+    def released(self, periods: Iterable[str]) -> tuple[str, ...]:
+        """``periods`` less the months never released for the members."""
+        return tuple(
+            period
+            for period in periods
+            if self.periods.unit != "month" or int(period[5:7]) not in self.unreleased_months
+        )
 
 
 # Each formula's derived metric and how many of each input's newest periods a day reads.
@@ -203,16 +215,58 @@ def declare(rules: ContextProjectionRules) -> tuple[Reading, ...]:
             for source, count in inputs.items()
         )
     if rules.confirmation is not None:
+        for indicator in rules.confirmation.indicators:
+            readings.extend(_confirmation_readings(indicator))
+    return tuple(readings)
+
+
+def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
+    """What a key indicator reads of each member: its months, less those never released.
+
+    The main member's months stood in for by another member are that member's alone; a
+    derived member reads each input at its months and a year before them.
+    """
+    readings: list[Reading] = []
+    every_month = frozenset(range(1, 13))
+    for member in indicator.members:
+        name = (
+            f"confirmation:{indicator.key}"
+            if member is indicator.main
+            else f"confirmation:{indicator.key}:{member.name}"
+        )
+        months = indicator.months(member)
+        if member.formula is not None:
+            for item in DERIVED_FORMULAS[member.formula].inputs:
+                offsets = {month + offset for month in range(months) for offset in item.offsets}
+                readings.append(
+                    Reading(
+                        item.metric_id,
+                        f"{name}:{item.name}",
+                        Periods.explicit(*sorted(offsets)),
+                        members=(item.dimensions,),
+                    )
+                )
+            continue
+        readings.append(
+            Reading(
+                member.metric_id,
+                name,
+                Periods.consecutive(months),
+                members=(member.dimensions,),
+                unreleased_months=member.unreleased_months | frozenset(member.stand_ins),
+            )
+        )
         readings.extend(
             Reading(
-                indicator.metric_id,
-                f"confirmation:{indicator.key}",
-                Periods.consecutive(indicator.lookback_months),
-                members=indicator.members,
+                member.metric_id,
+                f"{name}:stand_in:{month}",
+                Periods.consecutive(months),
+                members=(dimensions,),
+                unreleased_months=every_month - {month},
             )
-            for indicator in rules.confirmation.indicators
+            for month, dimensions in sorted(member.stand_ins.items())
         )
-    return tuple(readings)
+    return readings
 
 
 @dataclass(frozen=True)
@@ -255,6 +309,7 @@ class Lookback:
         *,
         sessions: Sequence[str] = (),
         whole_window: bool = False,
+        catalog_members: Callable[[str], tuple[Mapping[str, str], ...] | None] | None = None,
     ) -> dict[str, tuple[Mapping[str, str], ...] | None]:
         """The periods a full run requires of ``metric_id``, and the members of each.
 
@@ -263,21 +318,40 @@ class Lookback:
         needs up to ``anchor`` instead, the target day's least among it (a release not
         held yet is looked for, not required). A daily series read on every session of a
         complete window (``whole_window``) requires each of them, and nothing outside it.
-        A period some reading
-        requires of every member is checked for every member.
+        A period some reading requires of every member is checked for every member, and
+        for any other a reading names: those the catalog does not require of the period
+        (``catalog_members``) are named beside them, not lost (ticket 04); with no member
+        contract for the period, those named are checked.
         """
         readings = tuple(item for item in self.readings if item.metric_id == metric_id)
-        required: dict[str, tuple[Mapping[str, str], ...] | None] = {}
+        named: dict[str, tuple[Mapping[str, str], ...]] = {}
+        whole: set[str] = set()
 
         def add(periods: Iterable[str], members: tuple[Mapping[str, str], ...] | None) -> None:
             for period in periods:
-                if period not in required:
-                    required[period] = members
-                elif required[period] is None or members is None:
-                    required[period] = None
+                known = named.setdefault(period, ())
+                if members is None:
+                    whole.add(period)
                 else:
-                    known = required[period] or ()
-                    required[period] = (*known, *(m for m in members if m not in known))
+                    named[period] = (*known, *(m for m in members if m not in known))
+
+        def result() -> dict[str, tuple[Mapping[str, str], ...] | None]:
+            required: dict[str, tuple[Mapping[str, str], ...] | None] = {}
+            for period, members in sorted(named.items()):
+                if period not in whole:
+                    required[period] = members
+                    continue
+                if catalog_members is None or not members:
+                    required[period] = None
+                    continue
+                every = catalog_members(period)
+                if every is None:
+                    # No contract to read every member by: those named are what is known.
+                    required[period] = members
+                    continue
+                extra = tuple(m for m in members if m not in every)
+                required[period] = (*every, *extra) if extra else None
+            return required
 
         if whole_window and any(
             item.every_day and item.periods.unit == "session" for item in readings
@@ -290,15 +364,15 @@ class Lookback:
                 else:
                     own = item.minimum.back_from(anchor, sessions)
                     add((day for day in own if day in sessions), item.members)
-            return dict(sorted(required.items()))
+            return result()
         for item in readings:
             if item.every_day and item.periods.unit != "session":
                 resolved = self.resolved.get(item.reading, Resolved())
                 each_day = resolved.required.periods.get(metric_id, ())
                 add((period for period in each_day if period <= anchor), item.members)
             else:
-                add(item.minimum.back_from(anchor, sessions), item.members)
-        return dict(sorted(required.items()))
+                add(item.released(item.minimum.back_from(anchor, sessions)), item.members)
+        return result()
 
 
 def resolve(
@@ -358,13 +432,14 @@ def resolve(
         if target is None:
             continue  # dated otherwise by its release rule: fetched by its own range
         for day_newest in (each for each in newest if each is not None):
-            collect(item.reading, "covered", item.metric_id, item.periods.back_from(day_newest))
+            covered = item.released(item.periods.back_from(day_newest))
+            collect(item.reading, "covered", item.metric_id, covered)
             if item.every_day:
-                collect(
-                    item.reading, "required", item.metric_id, item.minimum.back_from(day_newest)
-                )
+                required = item.released(item.minimum.back_from(day_newest))
+                collect(item.reading, "required", item.metric_id, required)
         if item.every_day:
-            collect(item.reading, "minimum", item.metric_id, item.minimum.back_from(target))
+            least = item.released(item.minimum.back_from(target))
+            collect(item.reading, "minimum", item.metric_id, least)
     return Lookback(
         readings,
         {

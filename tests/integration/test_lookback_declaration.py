@@ -183,6 +183,41 @@ def test_a_daily_series_read_every_session_asks_others_members_of_the_target_day
     }
 
 
+def test_a_member_beyond_the_catalogs_is_named_beside_every_member_it_requires() -> None:
+    # The series' own reading asks every member the catalog requires of the newest month;
+    # a reading naming one the catalog does not require keeps it there (ticket 04). With
+    # no member contract for a month, the members named are what is checked.
+    growth = ({"measure": "stock_yoy"},)
+    catalog = ({"measure": "ytd_increment"}, {"measure": "stock_end"})
+    read = Lookback(
+        (
+            own_reading("CN_SF_TOTAL", "monthly"),
+            Reading("CN_SF_TOTAL", "growth", Periods.consecutive(2), members=growth),
+            Reading("CN_SF_TOTAL", "stock", Periods.consecutive(1), members=catalog[1:]),
+        )
+    )
+
+    assert read.required("CN_SF_TOTAL", "2026-07", catalog_members=lambda _: catalog) == {
+        "2026-06": growth,
+        "2026-07": (*catalog, *growth),
+    }
+    assert read.required("CN_SF_TOTAL", "2026-07", catalog_members=lambda _: None) == {
+        "2026-06": growth,
+        "2026-07": (*growth, *catalog[1:]),
+    }
+    # Members the catalog requires anyway leave the month read whole, as before.
+    plain = Lookback(
+        (
+            own_reading("CN_SF_TOTAL", "monthly"),
+            Reading("CN_SF_TOTAL", "stock", Periods.consecutive(1), members=catalog[1:]),
+        )
+    )
+    assert plain.required("CN_SF_TOTAL", "2026-07", catalog_members=lambda _: catalog) == {
+        "2026-07": None
+    }
+    assert plain.required("CN_SF_TOTAL", "2026-07") == {"2026-07": None}
+
+
 def test_a_reading_declared_twice_for_a_metric_is_refused() -> None:
     # Its periods would no longer be told apart by members.
     with pytest.raises(ValueError, match="lookback_reading_declared_twice"):
@@ -406,22 +441,24 @@ def test_an_existing_model_plans_and_fetches_the_periods_it_did(
         _assert_the_fetch_covers_the_plan(periods, requests)
 
 
-def test_a_confirmation_model_plans_the_pmi_months_its_reading_needs(
+def test_a_confirmation_model_plans_the_months_each_member_reads(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # The PMI's slope change reads three months of each member (ADR-0037, ticket 03); the
-    # other series still read their newest period alone, and the fetch covers them all.
+    # Each key indicator's main member reads what its readings need (ADR-0037): the PMIs'
+    # slope three months, the others' place in a year twelve; an auxiliary member three,
+    # a flow derived from year-to-date totals its month and a year before. The other
+    # series still read their newest period alone, and the fetch covers them all.
     plan, requests = _run(tmp_path, monkeypatch, "model-v0015")
     periods = _periods(plan)
+    members = _members(plan)
+    year = [f"{2025 + (7 + i) // 12}-{(7 + i) % 12 + 1:02d}" for i in range(12)]
+    three = ["2026-05", "2026-06", "2026-07"]
 
-    assert periods["CN_PMI_ACTIVITY"] == ["2026-05", "2026-06", "2026-07"]
+    assert periods["CN_PMI_ACTIVITY"] == three
+    assert periods["CN_PMI_PRICES"] == three
     assert periods["CN_PMI_INVENTORY"] == ["2026-07"]
-    assert periods["CN_CPI_HEADLINE"] == ["2026-07"]
-    members = {
-        requirement["period"]: requirement.get("members")
-        for requirement in plan["requirements"]
-        if requirement["metric_id"] == "CN_PMI_ACTIVITY"
-    }
+    assert periods["CN_CPI_HEADLINE"] == periods["CN_PPI"] == periods["CN_M1_M2"] == year
+    assert periods["CN_CORE_CPI"] == three
     pmi = member_keys(
         "CN_PMI_ACTIVITY",
         tuple(
@@ -431,10 +468,60 @@ def test_a_confirmation_model_plans_the_pmi_months_its_reading_needs(
     )
     # The newest month is read whole by the series' own reading; the two before, for the
     # members the confirmation names.
-    assert members["2026-07"] is None
-    assert sorted(members["2026-05"]) == sorted(members["2026-06"]) == sorted(pmi)
-    assert requests["pmi"]["start_month"] <= "202605"
+    assert members["CN_PMI_ACTIVITY"]["2026-07"] is None
+    assert sorted(members["CN_PMI_ACTIVITY"]["2026-05"]) == sorted(pmi)
+    m1 = member_keys("CN_M1_M2", ({"aggregate": "m1", "measure": "yoy"},))
+    m2 = member_keys("CN_M1_M2", ({"aggregate": "m2", "measure": "yoy"},))
+    assert members["CN_M1_M2"]["2025-08"] == list(m1)
+    assert sorted(members["CN_M1_M2"]["2026-06"]) == sorted(m1 + m2)
+    # Industrial value added has no January; its February is the cumulative growth.
+    assert periods["CN_INDUSTRIAL_VA"] == [month for month in year if month != "2026-01"]
+    assert members["CN_INDUSTRIAL_VA"]["2026-02"] == list(
+        member_keys("CN_INDUSTRIAL_VA", ({"measure": "ytd_real_yoy"},))
+    )
+    assert members["CN_INDUSTRIAL_VA"]["2026-03"] == list(
+        member_keys("CN_INDUSTRIAL_VA", ({"measure": "current_month_real_yoy"},))
+    )
+    # Social financing's official stock growth is required beside what the catalog
+    # requires, not lost where the series' own reading and the impulse read the month.
+    stock_yoy = member_keys("CN_SF_TOTAL", ({"measure": "stock_yoy"},))[0]
+    for month in year:
+        assert stock_yoy in members["CN_SF_TOTAL"][month], month
+    assert {
+        member_keys("CN_SF_TOTAL", ({"measure": measure},))[0]
+        for measure in ("ytd_increment", "stock_end")
+    } <= set(members["CN_SF_TOTAL"]["2026-07"])
+    # Government bonds and the seven other components, each by its official growth.
+    components = member_keys(
+        "CN_SF_COMPONENTS",
+        tuple(
+            {"component": component, "measure": "stock_yoy"}
+            for component in (
+                "government_bonds",
+                "renminbi_loans",
+                "foreign_currency_loans_rmb",
+                "entrusted_loans",
+                "trust_loans",
+                "undiscounted_bank_acceptances",
+                "corporate_bonds",
+                "nonfinancial_enterprise_equity",
+            )
+        ),
+    )
+    assert periods["CN_SF_COMPONENTS"] == three
+    assert sorted(members["CN_SF_COMPONENTS"]["2026-05"]) == sorted(components)
     _assert_the_fetch_covers_the_plan(periods, requests)
+
+
+def _members(plan: dict[str, Any]) -> dict[str, dict[str, list[str] | None]]:
+    """The members each requirement names, by metric and period: None for every one."""
+    members: dict[str, dict[str, list[str] | None]] = {}
+    for requirement in plan["requirements"]:
+        if "period" in requirement:
+            members.setdefault(requirement["metric_id"], {})[requirement["period"]] = (
+                requirement.get("members")
+            )
+    return members
 
 
 def _manufacturing_pmi(payload: dict[str, Any]) -> bytes:
@@ -462,14 +549,19 @@ def _manufacturing_pmi(payload: dict[str, Any]) -> bytes:
 def test_the_members_a_reading_names_carry_from_the_plan_to_the_final_evaluation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # A confirmation naming the main PMI member alone (ticket 02's members, ticket 03's
-    # reading). May, holding that member only, is complete; June is planned for it alone,
-    # its scope stored and restored with the member, and the final evaluation finds that
-    # member missing, not the others. July, read whole by the series' own reading, still
-    # lacks the members it does not hold.
+    # A confirmation of the PMI alone naming its main member alone (ticket 02's members,
+    # ticket 03's reading). May, holding that member only, is complete; June is planned
+    # for it alone, its scope stored and restored with the member, and the final
+    # evaluation finds that member missing, not the others. July, read whole by the
+    # series' own reading, still lacks the members it does not hold.
     manifest = model_v0015_manifest()
     manifest["model_version_id"] = "model-v0015-main-member"
-    manifest["confirmation_rules"]["key_indicators"][0]["auxiliary"] = []
+    pmi = manifest["confirmation_rules"]["key_indicators"][0]
+    manifest["confirmation_rules"]["key_indicators"] = [pmi]
+    pmi["auxiliary"] = []
+    # Nor any note told of the members left out.
+    pmi["expectations"]["stage_ii"]["cells"][1].pop("note")
+    pmi["expectations"]["stage_vi"].pop("notes")
 
     def hold(paths: RuntimePaths) -> None:
         adapter = TushareContextAdapter("fixture-only", transport=_manufacturing_pmi)

@@ -10,12 +10,12 @@
 | 政策 | 流动性投放 | `CN_OMO_7D_AMOUNT` 净投放 | 动量：净投放增减 | `CN_TOOL_LIQUIDITY_MONTHLY` |
 | 政策 | 短端资金价格 | `CN_DR007` | 水平：相对政策利率（`CN_DR007_POLICY_SPREAD`，派生）；动量：升降 | `CN_SHIBOR_ON_1W_3M` |
 | 政策 | 长端债价 | `CN_BOND_10Y_930916`（按价格读） | 动量：债价走强／走弱 | `CN_BOND_FULL_PRICE_CNY030` |
-| 信用 | 社融 | `CN_SF_TOTAL` 存量同比 | 水平；动量 | 当月增量（累计差分）；`CN_SF_COMPONENTS` 政府债／非政府 |
+| 信用 | 社融 | `CN_SF_TOTAL` 存量同比 | 水平；动量 | 当月增量（累计差分）；`CN_SF_COMPONENTS` 政府债／非政府（2026-10-07 用户确认：政府债与 7 个非政府分项各读官方分项存量同比，逐个列为辅成员，不做"剔除政府债"派生；"只靠政府债撑"＝政府债回升而 7 个非政府分项无一回升） |
 | 信用 | 贷款 | `CN_LOAN_STRUCTURE` 企业中长期当月增量 | 动量：同比多增／少增 | 其他期限与借款人 |
 | 信用 | M1/M2 | `CN_M1_M2` m1 yoy | 水平；动量 | m2 yoy；M1−M2（派生） |
 | 信用 | 信用脉冲 | `CN_CREDIT_IMPULSE`（派生，不单独计数） | 展示 | — |
 | 过热 | PMI | `CN_PMI_ACTIVITY` manufacturing | 水平：50 线；动量：较上月 | new_orders、production、purchase_volume |
-| 过热 | 工业增加值 | `CN_INDUSTRIAL_VA` 当月实际同比 | 水平；动量 | 累计同比、季调环比 |
+| 过热 | 工业增加值 | `CN_INDUSTRIAL_VA` 当月实际同比（2026-10-07 用户确认：2 月以"1—2 月累计同比"作主序列的 2 月点并标明累计口径，1 月为不发布期跳过，高低位取近 12 个月内实际有值的 11 期） | 水平；动量 | 累计同比、季调环比 |
 | 过热 | GDP | `CN_GDP` 实际季度同比 | 水平；动量 | 名义累计 |
 | 过热 | 产能利用率 | `CN_CAPACITY_UTILIZATION` 全工业季度 | 水平：高低；动量：同比变化 | — |
 | 过热 | 工业企业盈利 | `CN_INDUSTRIAL_FINANCE` 利润官方同比 | 动量 | 营收、成本 |

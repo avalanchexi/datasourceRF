@@ -103,8 +103,7 @@ def pmi(context: ContextProjection) -> dict[str, Any]:
         for item in confirmation["dimensions"]  # type: ignore[index]
         if item["dimension"] == "overheat"
     )
-    [indicator] = overheat["key_indicators"]
-    return indicator  # type: ignore[no-any-return]
+    return next(item for item in overheat["key_indicators"] if item["key"] == "pmi")  # type: ignore[no-any-return]
 
 
 def seed(repository: EvidenceRepository, main: tuple[float | None, ...], **auxiliary: Any) -> None:
@@ -178,7 +177,7 @@ def test_each_stage_reads_the_pmi_against_its_own_cells(
         assert actual == expected
 
 
-def test_the_overheat_dimension_counts_and_the_others_are_not_connected(tmp_path: Path) -> None:
+def test_the_dimensions_count_and_the_others_are_not_connected(tmp_path: Path) -> None:
     repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
     seed(repository, (49.5, 49.2, 48.8))
 
@@ -188,14 +187,20 @@ def test_the_overheat_dimension_counts_and_the_others_are_not_connected(tmp_path
     assert confirmation["stage"] == "stage_i" and confirmation["applicable"] is True  # type: ignore[index]
     by_dimension = {item["dimension"]: item for item in confirmation["dimensions"]}  # type: ignore[index]
     assert list(by_dimension) == ["policy", "credit", "overheat", "price", "inventory"]
+    # The PMI supports; industrial value added, with nothing held, is unconfirmed.
     assert by_dimension["overheat"]["counts"] == {
         "support": 1,
         "counterevidence": 0,
         "observation_only": 0,
-        "unconfirmed": 0,
+        "unconfirmed": 1,
         "not_applicable": 0,
     }
-    for name in ("policy", "credit", "price", "inventory"):
+    for name in ("credit", "price"):
+        assert by_dimension[name]["status"] == "connected"
+        assert by_dimension[name]["counts"]["unconfirmed"] == len(
+            by_dimension[name]["key_indicators"]
+        )
+    for name in ("policy", "inventory"):
         assert by_dimension[name] == {
             "dimension": name,
             "status": "not_connected",
@@ -337,7 +342,7 @@ def test_without_a_formal_stage_confirmation_is_not_applicable_and_still_reads(
     assert indicator["members"][0]["momentum"] == "down"
     assert indicator["members"][0]["level"] == "below"
     overheat = confirmation["dimensions"][2]  # type: ignore[index]
-    assert overheat["counts"]["not_applicable"] == 1
+    assert overheat["counts"]["not_applicable"] == 2
 
 
 def test_the_months_read_are_model_inputs(tmp_path: Path) -> None:
@@ -393,7 +398,15 @@ def test_the_rules_are_frozen_in_the_new_manifest_alone(tmp_path: Path) -> None:
     assert not set(MANIFEST_FIELDS) & set(old)
     assert ContextProjectionRules.from_manifest(old).confirmation is None
     rules = ContextProjectionRules.from_manifest(new).confirmation
-    assert rules is not None and [item.key for item in rules.indicators] == ["pmi"]
+    assert rules is not None and [item.key for item in rules.indicators] == [
+        "pmi",
+        "industrial_va",
+        "ppi",
+        "cpi",
+        "pmi_prices",
+        "social_financing",
+        "money",
+    ]
     # The rules are part of the manifest's hash: the same model with other cells is refused.
     models = ModelRepository.create(tmp_path / "models.sqlite3")
     models.create_candidate(new)

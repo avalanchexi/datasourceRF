@@ -34,6 +34,7 @@ from pring_cycle.models import (
     model_v0012_manifest,
     model_v0013_manifest,
     model_v0014_manifest,
+    model_v0015_manifest,
 )
 from pring_cycle.official_context import ingest_official_context_document
 from pring_cycle.runtime import RuntimePaths
@@ -128,6 +129,20 @@ def test_unchanged_metrics_share_their_definition_and_changed_ones_do_not(
     assert V0014 not in versions("CN_CREDIT_IMPULSE", V0013)
     assert set(versions("CN_EQ_ADV_DEC", V0014)) == {V0013, V0014}
     assert V0013 not in versions("CN_EQ_ADV_DEC", V0012)
+
+
+def test_requiring_social_financing_growth_leaves_its_definition_alone(
+    registered: RuntimePaths,
+) -> None:
+    """model-v0015 reads social financing's official stock growth as a required member
+    (ticket 04) without a new catalog: what a model requires is no part of a definition, so
+    the growth taken under any catalog of the same definition is the same observation."""
+    old, new = model_v0014_manifest(), model_v0015_manifest()
+    assert new["metric_catalog_version"] == old["metric_catalog_version"] == V0014
+    assert new["metric_definitions"] == old["metric_definitions"]
+    versions = EvidenceRepository(registered.database).same_definition_versions
+    assert {V0012, V0013, V0014} <= set(versions("CN_SF_TOTAL", V0014))
+    assert {V0012, V0013, V0014} <= set(versions("CN_SF_COMPONENTS", V0014))
 
 
 def test_a_builtin_catalog_shares_an_unchanged_definition_both_ways(

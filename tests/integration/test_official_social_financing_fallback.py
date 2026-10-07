@@ -11,10 +11,11 @@ from pathlib import Path
 import pytest
 
 from pring_cycle.acquisition import AcquisitionRepository
+from pring_cycle.confirmation import MANIFEST_FIELDS
 from pring_cycle.context_projection import build_context_projection
 from pring_cycle.evidence import AsOfMode, EvidenceRepository
 from pring_cycle.full_retrieval import FullRunRetrieval
-from pring_cycle.models import ModelRepository
+from pring_cycle.models import ModelRepository, model_v0015_manifest
 from pring_cycle.official_context import (
     FetchedOfficialContextDocument,
     official_claims_matching_acquisitions,
@@ -36,8 +37,15 @@ LISTING = "https://www.pbc.gov.cn/diaochatongjisi/116219/index.html"
 ARTICLE = "https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026081416320925645/index.html"
 
 
-def admit_sf_candidate(paths: RuntimePaths, capsys: pytest.CaptureFixture[str]) -> tuple[str, str]:
+def admit_sf_candidate(
+    paths: RuntimePaths, capsys: pytest.CaptureFixture[str], *, confirmation: bool = False
+) -> tuple[str, str]:
+    """A candidate whose social financing falls back to the PBC's page; with
+    ``confirmation``, one reading the stage narrative's key indicators (model-v0015)."""
     request, _ = prepared_request(paths)
+    if confirmation:
+        new = model_v0015_manifest()
+        request["manifest"].update({field: new[field] for field in MANIFEST_FIELDS})
     digest = request["package_hashes"][0]
     package = json.loads((paths.artifacts / digest[:2] / digest).read_bytes())
     for definition in request["manifest"]["metric_definitions"]:
@@ -260,6 +268,88 @@ def test_sf_total_fallback_preserves_delivered_values_and_component_scope(
     assert len(rows) == len(expected)
     assert_delivered_points(points, provider)
     assert_delivered_rows(rows, provider)
+
+
+@pytest.mark.usefixtures("runtime_clock")
+@pytest.mark.parametrize("official_state", ["available", "transport_failed"])
+def test_a_confirmation_model_takes_the_official_stock_growth_tushare_does_not_deliver(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    official_state: str,
+) -> None:
+    # TuShare delivers July's stock and flow; the official stock growth, a required member
+    # of the stage narrative's social financing (ticket 04), is the PBC's alone: its page
+    # is fetched for it, the delivered values kept, or the growth is a named gap.
+    paths = RuntimePaths.discover(tmp_path / "runtime")
+    initialize_runtime(paths)
+    candidate, version = admit_sf_candidate(paths, capsys, confirmation=True)
+
+    def transport(payload: dict) -> bytes:
+        return json.dumps(
+            {
+                "code": 0,
+                "data": {
+                    "fields": ["month", "inc_cumval", "stk_endval"],
+                    "items": [["202607", 220000.0, 460.0]],
+                },
+            }
+        ).encode()
+
+    adapter = TushareContextAdapter("fixture-only", transport=transport)
+    adapter.acquire_scalars(
+        paths,
+        lambda: adapter.social_financing_total(start_month="2026-07", end_month="2026-07"),
+        definition_version=version,
+    )
+    requested: list[str] = []
+
+    def fetch(url: str) -> FetchedOfficialContextDocument:
+        requested.append(url)
+        if url == LISTING:
+            content = f'<a href="{ARTICLE}">2026年7月金融统计数据报告</a>'.encode()
+        elif url == ARTICLE and official_state == "available":
+            content = (
+                Path(__file__).parents[1] / "fixtures/official_period_fallback/pbc_money.html"
+            ).read_bytes()
+        else:
+            raise OSError("unrelated fixture unavailable")
+        return FetchedOfficialContextDocument(content, "text/html", url, 200)
+
+    monkeypatch.setattr("pring_cycle.official_context._fetch_official_context_document", fetch)
+    runs = RunRepository(paths.database)
+    submitted = runs.submit_manual_full(
+        target_business_date="2026-08-28",
+        client_request_id="sf-stock-growth",
+        model_version_id=candidate,
+        system_as_of=datetime.now(UTC),
+    )
+    run = runs.advance(submitted.run_id, "refreshing_evidence")
+    FullRunRetrieval(paths).retrieve(run)
+
+    assert ARTICLE in requested
+    july = {
+        p.dimensions["measure"]: (p.selected_value, {c.provider for c in p.claims})
+        for p in EvidenceRepository(paths.database).metric_series(
+            "CN_SF_TOTAL", mode=AsOfMode.SYSTEM, as_of=datetime.now(UTC), definition_version=version
+        )
+        if p.period_end == "2026-07-31"
+    }
+    # What TuShare delivered stands; only the growth it does not deliver is taken.
+    assert july["stock_end"] == (4600000.0, {"tushare"})
+    assert july["ytd_increment"] == (220000.0, {"tushare"})
+    plan = runs.full_retrieval_plan(run.run_id)
+    initial = next(
+        item
+        for item in plan["initial"]["requirements"]
+        if item["metric_id"] == "CN_SF_TOTAL" and item.get("period") == "2026-07"
+    )
+    stock_yoy = 'CN_SF_TOTAL:{"measure": "stock_yoy"}'
+    assert stock_yoy in initial["missing_members"]
+    if official_state == "available":
+        assert july["stock_yoy"] == (7.4, {"中国人民银行"})
+    else:
+        assert "stock_yoy" not in july
 
 
 @pytest.mark.usefixtures("runtime_clock")

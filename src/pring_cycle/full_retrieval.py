@@ -6,6 +6,7 @@ import sqlite3
 from collections import defaultdict
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -22,7 +23,7 @@ from pring_cycle.full_run_requirements import (
     required_calendar,
     run_lookback,
 )
-from pring_cycle.metric_contracts import evidence_frequency
+from pring_cycle.metric_contracts import evidence_frequency, required_dimension_members
 from pring_cycle.models import ModelRepository
 from pring_cycle.official_context import official_family_for_metrics
 from pring_cycle.official_listing import is_release_listing
@@ -35,7 +36,7 @@ from pring_cycle.retrieval import (
 )
 from pring_cycle.retrieval_ledger import RetrievalLedger, utc_now
 from pring_cycle.retrieval_registry import is_searchable_gap
-from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository, member_keys
+from pring_cycle.runs import RetrievalScope, RunRecord, RunRepository, member_key, member_keys
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
 from pring_cycle.storage import database_connection
@@ -349,34 +350,45 @@ class FullRunRetrieval:
 
         requirements: list[dict[str, Any]] = []
         selector = ModelInputSelector(self.paths, run)
-        delivered_periods: dict[str, set[str]] = {}
+        delivered_periods: dict[str, dict[str, set[str]]] = {}
 
-        def official_candidate(definition: MetricDefinition, period: str) -> str | None:
+        def official_candidate(
+            definition: MetricDefinition, period: str, missing: tuple[str, ...] = ()
+        ) -> str | None:
+            """The official page, unless TuShare delivered the period.
+
+            A scope naming its members (``missing`` of them) is still sent to the page for
+            one TuShare does not deliver: social financing's official stock growth.
+            """
             url = _official_candidate((definition,))
             if url is None:
                 return None
             if definition.metric_id not in delivered_periods:
                 # Freshness is whether TuShare delivered the period, independently of
                 # PUBLIC eligibility. Missing publication proof is not a missing row.
-                delivered_periods[definition.metric_id] = {
-                    point.period_end
-                    for point in EvidenceRepository(self.paths.database).metric_series(
-                        definition.metric_id,
-                        mode=AsOfMode.SYSTEM,
-                        as_of=selector.as_of,
-                        definition_version=rules.metric_catalog_version,
-                    )
+                delivered_periods[definition.metric_id] = {}
+                for point in EvidenceRepository(self.paths.database).metric_series(
+                    definition.metric_id,
+                    mode=AsOfMode.SYSTEM,
+                    as_of=selector.as_of,
+                    definition_version=rules.metric_catalog_version,
+                ):
                     if any(
                         claim.provider == "tushare"
                         and claim.quality_status == "validated"
                         and claim.value_state is EvidenceValueState.REPORTED_VALUE
                         for claim in point.claims
-                    )
-                }
-            if any(
-                matches_retrieval_period(end, period)
-                for end in delivered_periods[definition.metric_id]
-            ):
+                    ):
+                        delivered_periods[definition.metric_id].setdefault(
+                            point.period_end, set()
+                        ).add(member_key(definition.metric_id, point.dimensions))
+            delivered = {
+                member
+                for end, members in delivered_periods[definition.metric_id].items()
+                if matches_retrieval_period(end, period)
+                for member in members
+            }
+            if delivered and all(member in delivered for member in missing):
                 return None
             return url
 
@@ -432,7 +444,13 @@ class FullRunRetrieval:
                 and len(daily_window) == 120
             )
             required = read.required(
-                definition.metric_id, period, sessions=daily_window, whole_window=daily
+                definition.metric_id,
+                period,
+                sessions=daily_window,
+                whole_window=daily,
+                catalog_members=partial(
+                    _catalog_members, definition.metric_id, rules.metric_catalog_version
+                ),
             )
             for required_period, members in required.items():
                 scope = RetrievalScope(
@@ -460,7 +478,11 @@ class FullRunRetrieval:
                             definition.release_event_family,
                             required_period,
                             definition.priority,
-                            official_candidate(definition, required_period),
+                            official_candidate(
+                                definition,
+                                required_period,
+                                selection.missing_members if scope.members else (),
+                            ),
                         ),
                         definition.metric_id,
                         scope.members,
@@ -876,6 +898,13 @@ def _scope(document: dict[str, Any]) -> RetrievalScope:
         document["source_url"],
         tuple(document.get("members", ())),
     )
+
+
+def _catalog_members(
+    metric_id: str, version: str, period: str
+) -> tuple[dict[str, str], ...] | None:
+    """The members the catalog requires of ``metric_id`` for ``period``."""
+    return required_dimension_members(metric_id, definition_version=version, period=period)
 
 
 def _official_candidate(definitions: tuple[MetricDefinition, ...]) -> str | None:

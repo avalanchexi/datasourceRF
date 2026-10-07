@@ -739,6 +739,8 @@ _MEMBER_LABELS = {
 _READING_LABELS = {
     "momentum": {"up": "较上期上升", "down": "较上期下降", "flat": "较上期持平"},
     "slope": {"steeper": "斜率变陡", "slower": "斜率放缓", "turn": "斜率转向", "flat": "斜率持平"},
+    "position": {"high": "一年区间高位", "middle": "一年区间中段", "low": "一年区间低位"},
+    "change_size": {"marked": "变化明显", "ordinary": "变化不明显"},
     "consistency": {
         "main": "主要成员",
         "agrees": "与主要成员一致",
@@ -785,8 +787,23 @@ def _member_reading(member: dict[str, object], line: object) -> str:
     readings = [
         f"{member.get('period')} 值 {_display_value(member.get('value'))}",
         f"{level} {_display_value(line)}" if level else "",
-        _READING_LABELS["momentum"].get(str(member.get("momentum")), "动量未知"),
+        # A flow read against a year before agrees by its sign: more or less.
+        {"up": "较去年同月多增", "down": "较去年同月少增", "flat": "与去年同月持平"}.get(
+            str(member.get("direction")), "方向未知"
+        )
+        if member.get("agrees_by") == "sign"
+        else _READING_LABELS["momentum"].get(str(member.get("momentum")), "动量未知"),
         _READING_LABELS["slope"].get(str(member.get("slope")), "斜率未知"),
+        # A year's range and change size, for a member read over a year.
+        *(
+            _READING_LABELS[name].get(str(member.get(name)), "")
+            for name in ("position", "change_size")
+        ),
+        # A period read from the member standing in says so: a cumulative February.
+        *(
+            f"{item.get('period')} 为{item.get('label')}"
+            for item in _document_list(member.get("stand_ins"))
+        ),
     ]
     return "，".join(item for item in readings if item)
 
@@ -848,20 +865,36 @@ def _indicator_card(indicator: dict[str, object]) -> html.Article:
     ]
     if indicator.get("proposition"):
         details.append(f"命题：{indicator['proposition']}")
-    details.extend(str(note) for note in _list_of(indicator.get("notes")))
+    capped = [str(cap) for cap in _list_of(indicator.get("capped_by"))]
+    # A cap's note is said once, with what it does to the relation.
+    details.extend(
+        str(note) for note in _list_of(indicator.get("notes")) if str(note) not in capped
+    )
     if indicator.get("turn_hint"):
         details.append(f"转折提示：接近{_stage_label(indicator['turn_hint'])}")
     if indicator.get("grace") == "not_evaluated":
         details.append("反证条件成立，宽限待判定")
     if indicator.get("divergence_capped"):
         details.append("成员分化，不高于仅观察")
+    details.extend(f"{cap}，不高于仅观察" for cap in capped)
+    for derived in _document_list(indicator.get("derived")):
+        reading = (
+            f"{derived.get('period')} 值 {_display_value(derived.get('value'))}"
+            if derived.get("value") is not None
+            else "无可用读数"
+        )
+        details.append(
+            f"{derived.get('label')}（派生，不计数，{derived.get('formula_version')}）：{reading}"
+        )
     if indicator.get("missing"):
         details.append("缺：" + "、".join(str(item) for item in _list_of(indicator["missing"])))
     members = [
         html.Li(
             " · ".join(
                 (
-                    _MEMBER_LABELS.get(
+                    str(member.get("label"))
+                    if member.get("label")
+                    else _MEMBER_LABELS.get(
                         str(_object_document(member.get("member")).get("series")),
                         _display_value(member.get("member")),
                     ),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -13,6 +14,7 @@ import pytest
 import pring_cycle.reports as reports_module
 from pring_cycle.dashboard import dashboard_page
 from pring_cycle.day_summary import DaySummaries, ModelRules, RunMaterials
+from pring_cycle.domain import FormalStage
 from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.models import ModelRepository, certified_model_v0001_manifest
 from pring_cycle.projections import (
@@ -30,6 +32,15 @@ from pring_cycle.reports import (
 from pring_cycle.runtime import RuntimePaths
 from pring_cycle.trading_calendar import TradingCalendar
 from tests.integration.test_backfill import summary
+from tests.integration.test_confirmation_monthly_indicators import (
+    BEFORE,
+    YEAR,
+    append,
+    indicator,
+    project,
+    seed,
+    year,
+)
 from tests.integration.test_confirmation_projection import append_pmi, confirmation_manifest
 from tests.integration.test_core_carry_forward import CUTOFF, TARGET, seed_cores, sessions
 from tests.integration.test_worker_execution import runtime
@@ -38,14 +49,16 @@ from tests.web.test_dashboard_contract import _text
 
 MODEL = "model-confirmation-fixture"
 MONTHS = ("2026-05", "2026-06", "2026-07")
+# The year to July, the newest month out on the target day.
+TO_JULY = (BEFORE[-1], *YEAR[:-1])
 
 
-def register_confirmation_model(paths: RuntimePaths) -> None:
+def register_confirmation_model(
+    paths: RuntimePaths, certified: tuple[str, ...] = ("CN_PMI_ACTIVITY",)
+) -> None:
     base = certified_model_v0001_manifest()
     base["metric_definitions"] = [
-        {**item, "certification_status": "certified"}
-        if item["metric_id"] == "CN_PMI_ACTIVITY"
-        else item
+        {**item, "certification_status": "certified"} if item["metric_id"] in certified else item
         for item in base["metric_definitions"]
     ]
     ModelRepository(paths.database).register(confirmation_manifest(base))
@@ -92,13 +105,17 @@ def overheat(projection: ProjectionSet) -> dict[str, Any]:
     return next(item for item in dimensions if item["dimension"] == "overheat")  # type: ignore[no-any-return]
 
 
+def pmi_of(projection: ProjectionSet) -> dict[str, Any]:
+    return next(item for item in overheat(projection)["key_indicators"] if item["key"] == "pmi")  # type: ignore[no-any-return]
+
+
 def test_the_stage_decided_first_is_the_one_confirmed_and_published(tmp_path: Path) -> None:
     projection = confirmed(tmp_path)
 
     overview = projection.datasets["cycle_overview"]
     confirmation = projection.datasets["macro"]["confirmation"]
     assert overview["current_stage"] == confirmation["stage"] == "stage_iii"
-    [pmi] = overheat(projection)["key_indicators"]
+    pmi = pmi_of(projection)
     assert pmi["relation"] == "support"
     assert pmi["proposition"] == "经济自底部恢复，需求与生产扩张"
     assert overheat(projection)["counts"]["support"] == 1
@@ -119,7 +136,7 @@ def test_a_confirmation_gap_neither_holds_the_stage_nor_rewrites_its_history(
 
     new = publish(new_paths, MODEL, window)
 
-    [pmi] = overheat(new)["key_indicators"]
+    pmi = pmi_of(new)
     assert pmi["relation"] == "unconfirmed" and pmi["missing"]
     assert new.datasets["cycle_overview"]["current_stage"] == "stage_iii"
 
@@ -173,24 +190,105 @@ def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Pa
     bundle = report_input_from_projection(confirmed(tmp_path))
 
     assert bundle.schema_version == "report-schema-v0005"
+    # The PMI supports; the monthly indicators with nothing held are unconfirmed.
     assert bundle.conclusions == {
         "confirmation_applicable": True,
         "dimension:policy": "not_connected",
-        "dimension:credit": "not_connected",
-        "dimension:overheat": {
-            "support": 1,
-            "counterevidence": 0,
-            "observation_only": 0,
-            "unconfirmed": 0,
-            "not_applicable": 0,
-        },
-        "dimension:price": "not_connected",
+        "dimension:credit": {**_NONE, "unconfirmed": 2},
+        "dimension:overheat": {**_NONE, "support": 1, "unconfirmed": 1},
+        "dimension:price": {**_NONE, "unconfirmed": 3},
         "dimension:inventory": "not_connected",
         "key_indicator:pmi": "support",
+        "key_indicator:industrial_va": "unconfirmed",
+        "key_indicator:ppi": "unconfirmed",
+        "key_indicator:cpi": "unconfirmed",
+        "key_indicator:pmi_prices": "unconfirmed",
+        "key_indicator:social_financing": "unconfirmed",
+        "key_indicator:money": "unconfirmed",
     }
     pmi = bundle.results["confirmation"]["key_indicators"]["pmi"]
     assert pmi["relation"] == "support" and pmi["members"][0]["momentum"] == "up"
+    assert pmi["members"][0]["label"] == "制造业 PMI"
+    money = bundle.results["confirmation"]["key_indicators"]["money"]
+    assert money["derived"][0]["label"] == "M1−M2"
     assert "observation_version_ids" not in json.dumps(bundle.prompt_document())
+
+
+def test_the_price_and_credit_counts_reach_the_pages_and_the_report(tmp_path: Path) -> None:
+    paths = runtime(tmp_path)
+    seed_cores(paths)
+    register_confirmation_model(paths, certified=("CN_PMI_ACTIVITY", "CN_PPI", "CN_SF_TOTAL"))
+    seed_pmi(paths, (50.2, 50.5, 51.0))
+    repository = EvidenceRepository(paths.database)
+    # Stage III: the PPI rising, social financing's stock growth quickening on both sides.
+    append(
+        repository,
+        "CN_PPI",
+        {"category": "headline", "measure": "yoy"},
+        year(-1.0, -0.4, 0.3, fill=-1.5),
+        months=TO_JULY,
+        definition_version="metric-catalog-v0001",
+    )
+    append(
+        repository,
+        "CN_SF_TOTAL",
+        {"measure": "stock_yoy"},
+        year(8.0, 8.2, 8.5, fill=8.0),
+        months=TO_JULY,
+        definition_version="metric-catalog-v0001",
+    )
+
+    projection = publish(paths, MODEL)
+
+    bundle = report_input_from_projection(projection)
+    assert bundle.conclusions["key_indicator:ppi"] == "support"
+    assert bundle.conclusions["dimension:price"] == {**_NONE, "support": 1, "unconfirmed": 2}
+    assert bundle.conclusions["key_indicator:social_financing"] == "support"
+    assert bundle.conclusions["dimension:credit"] == {**_NONE, "support": 1, "unconfirmed": 1}
+    home = _text(dashboard_page("/", projection, (), ()))
+    macro = _text(dashboard_page("/macro", projection, (), ()))
+    assert "PPI：支持" in home and "社融：支持" in home and "M1/M2：未确认" in home
+    assert "物价" in home and "信用" in home
+    assert "PPI 同比" in macro and "高于 0" in macro and "一年区间高位" in macro
+    assert "存量同比" in macro and "命题：融资条件仍支持扩张" in macro
+    # A member with nothing held says so.
+    assert "PPI 环比 · 方向未知 · 无可用读数（missing）" in macro
+
+
+def test_a_cumulative_february_is_said_on_the_page_and_in_the_report(tmp_path: Path) -> None:
+    # Industrial value added read through a February: its point is the January-February
+    # cumulative growth, and both consumers say so (user, 2026-10-07).
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    seed(repository, "industrial_va", year(5.0, 5.2, 5.5, fill=5.0))
+    read = indicator(project(repository, FormalStage.STAGE_III), "industrial_va")
+    projection = confirmed(tmp_path / "published")
+    datasets = copy.deepcopy(projection.datasets)
+    overheat_document = next(
+        item
+        for item in datasets["macro"]["confirmation"]["dimensions"]
+        if item["dimension"] == "overheat"
+    )
+    overheat_document["key_indicators"] = [
+        read if item["key"] == "industrial_va" else item
+        for item in overheat_document["key_indicators"]
+    ]
+    shown = replace(projection, datasets=datasets)
+
+    macro = _text(dashboard_page("/macro", shown, (), ()))
+    bundle = report_input_from_projection(shown)
+
+    assert "2026-02-28 为1—2 月累计同比（累计口径）" in macro
+    main = bundle.results["confirmation"]["key_indicators"]["industrial_va"]["members"][0]
+    assert main["stand_ins"] == [{"period": "2026-02-28", "label": "1—2 月累计同比（累计口径）"}]
+
+
+_NONE = {
+    "support": 0,
+    "counterevidence": 0,
+    "observation_only": 0,
+    "unconfirmed": 0,
+    "not_applicable": 0,
+}
 
 
 def test_the_cli_is_held_to_the_counts_as_integers(
@@ -306,6 +404,11 @@ _KEPT = "PMI 高于 50 且回升，记为支持；过热维度支持 1、反证 
         ("过热维度并非支持 1。", {}, "conclusion_mutation_rejected"),
         ("过热维度不是支持 0，而是支持 1。", {}, "succeeded"),
         ("政策维度支持 2。", {}, "conclusion_mutation_rejected"),
+        # The PMI's prices are their own indicator, not the PMI's.
+        ("PMI 价格：未确认。PMI：支持。", {}, "succeeded"),
+        ("PMI 价格记为支持。", {}, "conclusion_mutation_rejected"),
+        ("社融：未确认。M1/M2 未确认。", {}, "succeeded"),
+        ("M1/M2 记为支持。", {}, "conclusion_mutation_rejected"),
     ],
 )
 def test_a_report_rewriting_the_relations_or_counts_is_rejected(
@@ -359,7 +462,7 @@ def test_a_day_without_a_formal_stage_publishes_and_reports_confirmation_not_app
     assert held.datasets["cycle_overview"]["current_stage"] is None
     confirmation = held.datasets["macro"]["confirmation"]
     assert confirmation["stage_reason"] == "core_data_pending"
-    [pmi] = overheat(held)["key_indicators"]
+    pmi = pmi_of(held)
     assert pmi["relation"] == "not_applicable" and pmi["members"][0]["momentum"] == "up"
     bundle = report_input_from_projection(held)
     assert bundle.conclusions["confirmation_applicable"] is False
