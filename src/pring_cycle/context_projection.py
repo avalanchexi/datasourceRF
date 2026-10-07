@@ -16,16 +16,20 @@ from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.confirmation import (
+    DERIVED_FORMULAS,
+    OBSERVED_METRICS,
     OUTPUT_STRUCTURE,
     SESSION_FORMULAS,
     Action,
     ActionReading,
     BlockReading,
+    ChangeReading,
     ConfirmationRules,
     DerivedInput,
     KeyIndicator,
     Member,
     MemberReading,
+    ObservedReading,
     confirmation_document,
     derived_points,
     month_back,
@@ -614,6 +618,10 @@ def build_context_projection(
                 readings,
                 current_stage=formal_stage.current_stage,
                 stage_reason=formal_stage.reason,
+                observed={
+                    metric_id: _observed_reading(metric_id, rows_by_metric.get(metric_id, ()))
+                    for metric_id in OBSERVED_METRICS
+                },
             ),
             "policy_action": {"evidence": _row_documents(rows_by_metric, _POLICY_ACTION)},
             "transmission": {"evidence": _row_documents(rows_by_metric, _POLICY_TRANSMISSION)},
@@ -788,24 +796,17 @@ def _member_readings(
             )
             continue
         if member.formula is not None:
-            main = readings[0]
-            newest = main.points[-1][0][:7] if main.points else None
-            if newest is None:
-                readings.append(MemberReading(member, role, "missing", (), (), None, months))
-                continue
-
-            def input_value(item: DerivedInput, month: str) -> tuple[float, str] | None:
-                point = points(item.metric_id, item.dimensions).get(month_end(month))
-                number = _numeric_value(point.selected_value) if point is not None else None
-                if point is None or number is None or point.selected_claim_id is None:
-                    return None
-                return number, point.selected_claim_id
-
-            span = [month_back(newest, offset) for offset in reversed(range(months))]
-            derived, gaps, inputs = derived_points(member.formula, span, input_value)
-            status = "current" if derived and derived[-1][0][:7] == newest else "missing"
             readings.append(
-                MemberReading(member, role, status, derived, gaps, None, months, inputs)
+                _derived_reading(
+                    indicator,
+                    member,
+                    role,
+                    readings[0] if readings else None,
+                    rows_by_metric,
+                    points,
+                    day=day,
+                    calendar=calendar,
+                )
             )
             continue
         rows = rows_by_metric[member.metric_id]
@@ -841,28 +842,174 @@ def _member_readings(
         history = indicator.history(member)
         oldest = month_back(newest, (indicator.reach(member) - 1) * step)
         status = str(row["status"])
+
+        span = (months, step, oldest)
         earlier: list[MemberReading] = []
         end = newest
         for _ in range(history):
             end = month_back(end, step)
             while int(end[5:7]) in member.unreleased_months:
                 end = month_back(end, step)
-            held, missing = _member_window(points, member, end, months, step, oldest)
-            earlier.append(MemberReading(member, role, status, held, missing, level_line, months))
-        held, missing = _member_window(points, member, newest, months, step, oldest)
-        readings.append(
-            MemberReading(
-                member,
-                role,
-                status,
-                held,
-                missing,
-                level_line,
-                months,
-                earlier=tuple(earlier),
+            earlier.append(
+                _period_reading(indicator, member, role, status, points, end, span, level_line)
             )
-        )
+        reading = _period_reading(indicator, member, role, status, points, newest, span, level_line)
+        readings.append(replace(reading, earlier=tuple(earlier)))
     return tuple(readings)
+
+
+def _period_reading(
+    indicator: KeyIndicator,
+    member: Member,
+    role: str,
+    status: str,
+    points: Callable[[str, Mapping[str, str]], Mapping[str, MetricSeriesPoint]],
+    end: str,
+    span: tuple[int, int, str],
+    level_line: float | None,
+) -> MemberReading:
+    """``member``'s ``span`` -- its periods, the months a period spans and the oldest month
+    read -- to ``end``; with the change its source states of each period held beside it.
+
+    That change is read newest back to the first period it is not stated for, which is
+    missing (ticket 07).
+    """
+    months, step, oldest = span
+    held, missing = _member_window(points, member, end, months, step, oldest)
+    if member.change_from is None:
+        return MemberReading(
+            member,
+            role,
+            status,
+            held,
+            missing,
+            level_line,
+            months,
+            year=indicator.year,
+            marked=indicator.marked,
+        )
+    stated = points(member.metric_id, member.change_from)
+    by_period = {
+        period: (value, str(point.selected_claim_id))
+        for period, _value, _version in held
+        if (point := stated.get(period)) is not None
+        and point.selected_claim_id is not None
+        and (value := _numeric_value(point.selected_value)) is not None
+    }
+    gaps = tuple(period[:7] for period, _value, _version in held if period not in by_period)
+    changes: list[tuple[float, str]] = []
+    for period, _value, _version in reversed(held):
+        if period not in by_period:
+            break
+        changes.insert(0, by_period[period])
+    return ChangeReading(
+        member,
+        role,
+        status,
+        held,
+        tuple(sorted({*missing, *gaps})),
+        level_line,
+        months,
+        tuple(dict.fromkeys([*(version for _p, _v, version in held), *(v for _c, v in changes)])),
+        year=indicator.year,
+        marked=indicator.marked,
+        changes=tuple(change for change, _version in changes),
+        change_gaps=gaps,
+    )
+
+
+def _observed_reading(metric_id: str, rows: Sequence[dict[str, object]]) -> ObservedReading:
+    """A derived observation's newest row as shown, with the direction its formula states."""
+    member = Member(metric_id.lower(), metric_id, metric_id, {})
+    row = next((item for item in rows if item.get("value") is not None), None)
+    value = _numeric_value(row.get("value")) if row is not None else None
+    if row is None or value is None:
+        status = str((next(iter(rows), {})).get("status") or "missing")
+        return ObservedReading(member, "observed", status, (), (), None, 1)
+    direction = row.get("direction")
+    return ObservedReading(
+        member,
+        "observed",
+        str(row.get("status")),
+        ((str(row.get("period")), value, str(row.get("selected_claim_id"))),),
+        (),
+        None,
+        1,
+        stated=str(direction) if direction in {"up", "down", "flat"} else None,
+    )
+
+
+def _derived_reading(
+    indicator: KeyIndicator,
+    member: Member,
+    role: str,
+    main: MemberReading | None,
+    rows_by_metric: Mapping[str, tuple[dict[str, object], ...]],
+    points: Callable[[str, Mapping[str, str]], Mapping[str, MetricSeriesPoint]],
+    *,
+    day: date,
+    calendar: TradingCalendar,
+) -> MemberReading:
+    """A derived member at the main member's newest month, or, as the main member, at its
+    first input's newest month shown or the newest due by ``day``, whichever is later: a
+    month due and not held is missing, never passed over for the one before. Each month
+    grace reads back is read as it stood.
+
+    No input before the horizon is read: a month needing one is missing that one.
+    """
+    definition = DERIVED_FORMULAS[str(member.formula)]
+    months = indicator.periods(member)
+    first = definition.inputs[0]
+    own = first.dimensions if first.dimensions is not None else member.dimensions
+    if main is not None:
+        newest = main.points[-1][0][:7] if main.points else None
+        status = "current" if newest is not None else "missing"
+    else:
+        rows = [
+            row
+            for row in rows_by_metric[first.metric_id]
+            if row.get("dimensions") == dict(own) and isinstance(row.get("period"), str)
+        ]
+        shown = [row for row in rows if row.get("value") is not None]
+        row = max(shown, key=lambda item: str(item["period"]), default=None)
+        status = str((row or next(iter(rows), {})).get("status") or "missing")
+        due = freshness_assess(
+            first.metric_id,
+            None,
+            datetime.combine(day, time.max, tzinfo=ZoneInfo("Asia/Shanghai")),
+            calendar,
+        ).due_period
+        held = [str(row["period"])[:7]] if row is not None else []
+        newest = max([*held, *([due[:7]] if due else [])], default=None)
+    level_line = indicator.level_line
+    if newest is None:
+        return MemberReading(member, role, status, (), (), level_line, months)
+    oldest = month_back(newest, indicator.horizon)
+
+    def input_value(item: DerivedInput, month: str) -> tuple[float, str] | None:
+        dimensions = item.dimensions if item.dimensions is not None else member.dimensions
+        point = points(item.metric_id, dimensions).get(month_end(month))
+        number = _numeric_value(point.selected_value) if point is not None else None
+        if point is None or number is None or point.selected_claim_id is None:
+            return None
+        return number, point.selected_claim_id
+
+    def window(end: str, *, aligned: bool) -> MemberReading:
+        span = [month_back(end, offset) for offset in reversed(range(months))]
+        derived, gaps, inputs = derived_points(
+            str(member.formula), span, input_value, oldest=oldest
+        )
+        held = status if not aligned or (derived and derived[-1][0][:7] == end) else "missing"
+        return MemberReading(member, role, held, derived, gaps, level_line, months, inputs)
+
+    if main is not None:
+        # An auxiliary derived member's month is the main member's, held or missing.
+        return window(newest, aligned=True)
+    earlier = tuple(
+        window(month_back(newest, back), aligned=False)
+        for back in range(1, indicator.history(member) + 1)
+    )
+    return replace(window(newest, aligned=False), earlier=earlier)
 
 
 def _roles(indicator: KeyIndicator) -> tuple[tuple[str, Member], ...]:
@@ -1083,6 +1230,7 @@ def _block_reading(
             indicator.level_line,
             taken,
             year=indicator.year,
+            marked=indicator.marked,
             sessions=size,
         )
     days = [session.isoformat() for session in sessions]
@@ -1141,6 +1289,7 @@ def _block_reading(
             taken,
             tuple(dict.fromkeys(inputs)),
             year=indicator.year,
+            marked=indicator.marked,
             sessions=size,
             lines=lines if indicator.line is not None else (),
             starts=tuple(starts),

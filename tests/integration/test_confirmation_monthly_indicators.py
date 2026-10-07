@@ -411,16 +411,16 @@ def test_the_counts_cover_overheat_price_and_credit_and_no_derived_value(tmp_pat
     keys = {name: [i["key"] for i in item["key_indicators"]] for name, item in dimensions.items()}
     assert keys == {
         "policy": ["policy_rate", "lpr", "rrr", "liquidity", "dr007"],
-        "credit": ["social_financing", "money"],
-        "overheat": ["pmi", "industrial_va"],
+        "credit": ["social_financing", "loans", "money"],
+        "overheat": ["pmi", "industrial_va", "gdp", "capacity_utilization", "industrial_profit"],
         "price": ["ppi", "cpi", "pmi_prices"],
         "inventory": [],
     }
     assert dimensions["credit"]["counts"]["support"] == 1
-    assert dimensions["credit"]["counts"]["unconfirmed"] == 1
+    assert dimensions["credit"]["counts"]["unconfirmed"] == 2
     assert dimensions["price"]["counts"]["support"] == 1
     assert dimensions["price"]["counts"]["unconfirmed"] == 2
-    assert sum(dimensions["overheat"]["counts"].values()) == 2
+    assert sum(dimensions["overheat"]["counts"].values()) == 5
     # M1-M2 is shown under M1/M2 with its formula; it is no member and counts nothing.
     money = indicator(context, "money")
     [spread] = money["derived"]
@@ -710,9 +710,10 @@ def test_januarys_flow_is_its_own_total_and_needs_no_december() -> None:
 
     assert points == (("2026-01-31", -50.0, "sf-monthly-increment-yoy-change-v0001"),)
     assert missing == () and set(inputs) == {"claim:2026-01", "claim:2025-01"}
-    # A month after January takes the month before it: March's is held, February's not.
+    # A month after January takes the month before it: March's is held, February's not,
+    # nor February's a year before; the totals missing are named.
     held.update({"2026-03": 300.0, "2025-03": 320.0})
     _points, missing, _inputs = derived_points(
         "sf-monthly-increment-yoy-change-v0001", ["2026-03"], value
     )
-    assert missing == ("2026-03",)
+    assert missing == ("2025-02", "2026-02")

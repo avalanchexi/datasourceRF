@@ -747,8 +747,11 @@ _READING_LABELS = {
         "opposes": "与主要成员相反",
         "flat": "持平",
         "unknown": "方向未知",
+        "not_compared": "仅展示，不比较方向",
     },
 }
+# A change the source states on the same period a year before: capacity utilisation's.
+_STATED_CHANGE_LABELS = {"up": "较上年同期上升", "down": "较上年同期下降", "flat": "与上年同期持平"}
 
 
 def _confirmation_scope(confirmation: dict[str, object]) -> str:
@@ -832,6 +835,8 @@ def _member_reading(member: dict[str, object], line: object) -> str:
         if member.get("period_sessions")
         else ""
     )
+    # A member shown alone has no direction said: a year-to-date level rises regardless.
+    shown_alone = member.get("consistency") == "not_compared"
     readings = [
         f"{member.get('period')} 值 {_display_value(member.get('value'))}",
         sessions,
@@ -841,8 +846,12 @@ def _member_reading(member: dict[str, object], line: object) -> str:
             str(member.get("direction")), "方向未知"
         )
         if member.get("agrees_by") == "sign"
+        else ""
+        if shown_alone
+        else _STATED_CHANGE_LABELS.get(str(member.get("momentum")), "动量未知")
+        if member.get("change_from")
         else _READING_LABELS["momentum"].get(str(member.get("momentum")), "动量未知"),
-        _READING_LABELS["slope"].get(str(member.get("slope")), "斜率未知"),
+        "" if shown_alone else _READING_LABELS["slope"].get(str(member.get("slope")), "斜率未知"),
         # A year's range and change size, for a member read over a year.
         *(
             _READING_LABELS[name].get(str(member.get(name)), "")
@@ -853,6 +862,8 @@ def _member_reading(member: dict[str, object], line: object) -> str:
             f"{item.get('period')} 为{item.get('label')}"
             for item in _document_list(member.get("stand_ins"))
         ),
+        # Year-to-date figures throughout: industrial profits, nominal GDP.
+        "累计口径（年初至今）" if member.get("cumulative") is True else "",
     ]
     return "，".join(item for item in readings if item)
 

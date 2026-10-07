@@ -234,7 +234,8 @@ def _confirmation_readings(
     released.
 
     The main member's months stood in for by another member are that member's alone; a
-    derived member reads each input at its months and a year before them. A daily
+    derived member reads each input at its months and a year before them, none beyond the
+    horizon; a member whose change its source states reads that change at its periods. A daily
     indicator's member reads its periods' sessions, a formula's input the lead before them
     too. A policy action reads the window and the value in force before it: an LPR its
     months, a rate the one in force on the session before the window and each session's
@@ -249,7 +250,6 @@ def _confirmation_readings(
             else f"confirmation:{indicator.key}:{member.name}"
         )
         members = (member.dimensions,) if member.dimensions else None
-        months = indicator.periods(member)
         if indicator.actions is not None:
             if frequencies.get(member.metric_id) == "monthly":
                 readings.append(
@@ -297,14 +297,22 @@ def _confirmation_readings(
             )
             continue
         if member.formula is not None:
+            # Each month it is read for, its inputs within the horizon: loans' t, t-1, t-12
+            # and t-13 alone.
             for item in DERIVED_FORMULAS[member.formula].inputs:
-                offsets = {month + offset for month in range(months) for offset in item.offsets}
+                offsets = {
+                    month + offset
+                    for month in range(indicator.reach(member))
+                    for offset in item.offsets
+                }
                 readings.append(
                     Reading(
                         item.metric_id,
                         f"{name}:{item.name}",
                         Periods.explicit(*sorted(offsets)),
-                        members=(item.dimensions,),
+                        members=(
+                            item.dimensions if item.dimensions is not None else member.dimensions,
+                        ),
                     )
                 )
             continue
@@ -331,6 +339,11 @@ def _confirmation_readings(
             )
             for month, dimensions in sorted(member.stand_ins.items())
         )
+        if member.change_from is not None:
+            # The change its source states, of each period it reads.
+            readings.append(
+                Reading(member.metric_id, f"{name}:change", periods, members=(member.change_from,))
+            )
     return readings
 
 

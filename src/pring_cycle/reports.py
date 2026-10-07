@@ -284,6 +284,10 @@ _READING_FIELDS = (
     "change_size",
     "consistency",
     "stand_ins",
+    # Year-to-date figures; a change read as its source states it (ticket 07).
+    "cumulative",
+    "change_from",
+    "changes",
     # A policy member's actions in the evidence window; a daily member's periods.
     "action",
     "actions",

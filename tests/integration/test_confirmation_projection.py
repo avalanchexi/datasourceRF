@@ -195,12 +195,13 @@ def test_the_dimensions_count_and_the_others_are_not_connected(tmp_path: Path) -
     assert confirmation["stage"] == "stage_i" and confirmation["applicable"] is True  # type: ignore[index]
     by_dimension = {item["dimension"]: item for item in confirmation["dimensions"]}  # type: ignore[index]
     assert list(by_dimension) == ["policy", "credit", "overheat", "price", "inventory"]
-    # The PMI supports; industrial value added, with nothing held, is unconfirmed.
+    # The PMI supports; industrial value added, GDP, capacity utilisation and industrial
+    # profits, with nothing held, are unconfirmed.
     assert by_dimension["overheat"]["counts"] == {
         "support": 1,
         "counterevidence": 0,
         "observation_only": 0,
-        "unconfirmed": 1,
+        "unconfirmed": 4,
         "not_applicable": 0,
     }
     for name in ("policy", "credit", "price"):
@@ -349,7 +350,7 @@ def test_without_a_formal_stage_confirmation_is_not_applicable_and_still_reads(
     assert indicator["members"][0]["momentum"] == "down"
     assert indicator["members"][0]["level"] == "below"
     overheat = confirmation["dimensions"][2]  # type: ignore[index]
-    assert overheat["counts"]["not_applicable"] == 2
+    assert overheat["counts"]["not_applicable"] == 5
 
 
 def test_the_months_read_are_model_inputs(tmp_path: Path) -> None:
@@ -408,10 +409,14 @@ def test_the_rules_are_frozen_in_the_new_manifest_alone(tmp_path: Path) -> None:
     assert rules is not None and [item.key for item in rules.indicators] == [
         "pmi",
         "industrial_va",
+        "gdp",
+        "capacity_utilization",
+        "industrial_profit",
         "ppi",
         "cpi",
         "pmi_prices",
         "social_financing",
+        "loans",
         "money",
         "policy_rate",
         "lpr",

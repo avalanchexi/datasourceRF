@@ -236,16 +236,20 @@ def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Pa
     assert bundle.conclusions == {
         "confirmation_applicable": True,
         "dimension:policy": {**_NONE, "unconfirmed": 5},
-        "dimension:credit": {**_NONE, "unconfirmed": 2},
-        "dimension:overheat": {**_NONE, "support": 1, "unconfirmed": 1},
+        "dimension:credit": {**_NONE, "unconfirmed": 3},
+        "dimension:overheat": {**_NONE, "support": 1, "unconfirmed": 4},
         "dimension:price": {**_NONE, "unconfirmed": 3},
         "dimension:inventory": "not_connected",
         "key_indicator:pmi": "support",
         "key_indicator:industrial_va": "unconfirmed",
+        "key_indicator:gdp": "unconfirmed",
+        "key_indicator:capacity_utilization": "unconfirmed",
+        "key_indicator:industrial_profit": "unconfirmed",
         "key_indicator:ppi": "unconfirmed",
         "key_indicator:cpi": "unconfirmed",
         "key_indicator:pmi_prices": "unconfirmed",
         "key_indicator:social_financing": "unconfirmed",
+        "key_indicator:loans": "unconfirmed",
         "key_indicator:money": "unconfirmed",
         "key_indicator:policy_rate": "unconfirmed",
         "key_indicator:lpr": "unconfirmed",
@@ -291,7 +295,7 @@ def test_the_price_and_credit_counts_reach_the_pages_and_the_report(tmp_path: Pa
     assert bundle.conclusions["key_indicator:ppi"] == "support"
     assert bundle.conclusions["dimension:price"] == {**_NONE, "support": 1, "unconfirmed": 2}
     assert bundle.conclusions["key_indicator:social_financing"] == "support"
-    assert bundle.conclusions["dimension:credit"] == {**_NONE, "support": 1, "unconfirmed": 1}
+    assert bundle.conclusions["dimension:credit"] == {**_NONE, "support": 1, "unconfirmed": 2}
     home = _text(dashboard_page("/", projection, (), ()))
     macro = _text(dashboard_page("/macro", projection, (), ()))
     assert "PPI：支持" in home and "社融：支持" in home and "M1/M2：未确认" in home

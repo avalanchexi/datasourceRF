@@ -28,6 +28,14 @@ never by how many runs saw it. A turn signal is told with its maturity: a sprout
 first shows, forming once it holds two periods or leading indicators turn toward the same
 stage together, confirmed past grace. Only confirmed counts. An indicator counts once for
 its newest period, however many days read it.
+
+Cumulative and quarterly indicators (ticket 07): a main member may be derived -- loans'
+month's flow from year-to-date totals against the same month a year before, read from t,
+t-1, t-12 and t-13 and nothing further back -- and a member may be cumulative (industrial
+profits' official year-to-date growth, said so), shown without being compared (GDP's
+nominal year-to-date level), or have its change read as its source states it (capacity
+utilisation's on the same quarter a year before). A quarterly indicator's year is its four
+quarters.
 """
 
 from __future__ import annotations
@@ -36,7 +44,7 @@ import calendar
 import copy
 import statistics
 from collections.abc import Callable, Collection, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pring_cycle.domain import FormalStage
@@ -57,8 +65,8 @@ _MONTHS = {"monthly": 1, "quarterly": 3}
 _UNITS = {"monthly": "month", "quarterly": "quarter", "daily": "sessions"}
 _ADJACENT = {"next": 1, "previous": -1}
 # A year of a monthly series: where a value stands in its range, and how large a change is,
-# are read within it and nowhere further back (ADR-0035). A change is marked against the
-# twelve newest periods of any frequency; a daily range spans 250 sessions.
+# are read within it and nowhere further back (ADR-0035); a daily range spans 250 sessions.
+# The rules state each frequency's year (``year_periods``, ``marked_periods``).
 YEAR_MONTHS = 12
 YEAR_SESSIONS = 250
 # An auxiliary member shows agreement by its momentum, and its slope: never more months.
@@ -81,11 +89,12 @@ _READINGS = {
 
 @dataclass(frozen=True)
 class DerivedInput:
-    """One input of a derived member: a metric's member, ``offsets`` months back."""
+    """One input of a derived member: a metric's member, ``offsets`` months back; the
+    derived member's own dimensions when ``dimensions`` is None (each loan pair's totals)."""
 
     name: str
     metric_id: str
-    dimensions: Mapping[str, str]
+    dimensions: Mapping[str, str] | None
     offsets: tuple[int, ...]
 
 
@@ -106,6 +115,12 @@ def _monthly_increment_yoy_change(
     return flow(0) - flow(12)
 
 
+def _monthly_increment_needs(month: str) -> tuple[tuple[str, int], ...]:
+    """The totals a month's flow against a year before needs: January's, its own alone."""
+    offsets = (0, 12) if month.endswith("-01") else (0, 1, 12, 13)
+    return tuple(("ytd", offset) for offset in offsets)
+
+
 @dataclass(frozen=True)
 class DerivedFormula:
     """A derived member's frozen formula: its inputs, read at offsets from each month.
@@ -120,7 +135,14 @@ class DerivedFormula:
     inputs: tuple[DerivedInput, ...]
     compute: Callable[[str, Mapping[tuple[str, int], float]], float | None]
     months: int
+    # The inputs (name, offset) a month needs, of those declared.
+    needs: Callable[[str], tuple[tuple[str, int], ...]]
     agrees_by: str = "momentum"
+
+    @property
+    def farthest(self) -> int:
+        """How many months back the farthest input lies: 13 for t-13."""
+        return max(offset for item in self.inputs for offset in item.offsets)
 
 
 _SF_YTD = {"measure": "ytd_increment"}
@@ -131,6 +153,16 @@ DERIVED_FORMULAS: dict[str, DerivedFormula] = {
         (DerivedInput("ytd", "CN_SF_TOTAL", _SF_YTD, (0, 1, 12, 13)),),
         _monthly_increment_yoy_change,
         months=1,
+        needs=_monthly_increment_needs,
+        agrees_by="sign",
+    ),
+    # A loan pair's month's flow, from its own year-to-date totals, more or less than the
+    # same month a year before (ticket 07).
+    "loan-monthly-increment-yoy-change-v0001": DerivedFormula(
+        (DerivedInput("ytd", "CN_LOAN_STRUCTURE", None, (0, 1, 12, 13)),),
+        _monthly_increment_yoy_change,
+        months=1,
+        needs=_monthly_increment_needs,
         agrees_by="sign",
     ),
 }
@@ -189,6 +221,15 @@ class Member:
     frequency: str | None = None
     # Its dimensions are some of a point's: an RRR change of any scope.
     partial: bool = False
+    # Each value is a year-to-date figure, said so wherever it is read (industrial profits'
+    # cumulative growth: ticket 07).
+    cumulative: bool = False
+    # Shown beside the main member, its direction never compared with it: a nominal
+    # year-to-date level rises each quarter of a year whatever growth does.
+    compared: bool = True
+    # Its change on the period before is read from this member of its metric instead, as
+    # the source states it: capacity utilisation's on the same quarter a year before.
+    change_from: Mapping[str, str] | None = None
 
     def matches(self, dimensions: Mapping[str, str]) -> bool:
         if self.partial:
@@ -301,6 +342,9 @@ class KeyIndicator:
     line: Member | None = None
     # A rate announced in a notice each session: the notices that show a day was read.
     notices: Member | None = None
+    # The periods a year's range spans, and those whose changes tell a marked one.
+    year: int = YEAR_MONTHS
+    marked: int = YEAR_MONTHS
 
     @property
     def members(self) -> tuple[Member, ...]:
@@ -314,14 +358,6 @@ class KeyIndicator:
     @property
     def unit(self) -> str:
         return _UNITS[self.frequency]
-
-    @property
-    def year(self) -> int:
-        """The periods a year's range spans: twelve months, four quarters, 250 sessions."""
-        if self.frequency == "daily":
-            assert self.period_sessions is not None
-            return YEAR_SESSIONS // self.period_sessions
-        return YEAR_MONTHS // _MONTHS[self.frequency]
 
     def history(self, member: Member) -> int:
         """How many periods before the newest ``member`` is read as it stood then."""
@@ -338,8 +374,15 @@ class KeyIndicator:
 
     def reach(self, member: Member) -> int:
         """How many periods back ``member`` is read in all: its own and its grace's, up to
-        the horizon. A period grace reads that needs one beyond reads that one unknown."""
-        return min(self.periods(member) + self.history(member), self.horizon + 1)
+        the horizon. A period grace reads that needs one beyond reads that one unknown.
+
+        A derived member's period reads its inputs back to their farthest offset: only
+        the periods whose inputs all lie within the horizon are read (loans: t alone).
+        """
+        read = min(self.periods(member) + self.history(member), self.horizon + 1)
+        if member.formula is not None:
+            read = min(read, self.horizon + 1 - DERIVED_FORMULAS[member.formula].farthest)
+        return read
 
     def periods(self, member: Member) -> int:
         """How many periods back ``member`` is read: the indicator's, or an auxiliary's."""
@@ -389,12 +432,12 @@ class ConfirmationRules:
         raw = document.get("key_indicators")
         if not isinstance(raw, list) or not raw:
             raise ValueError("confirmation_rules_invalid")
-        grace, horizon, timing = _timing_rules(
+        grace, horizon, scale, timing = _timing_rules(
             document.get("timing_rules"), document.get("maturity_rules")
         )
         keys = [item.get("key") for item in raw if isinstance(item, Mapping)]
         indicators = tuple(
-            _indicator(item, grace, horizon, [str(key) for key in keys]) for item in raw
+            _indicator(item, grace, horizon, scale, [str(key) for key in keys]) for item in raw
         )
         if len({item.key for item in indicators}) != len(indicators):
             raise ValueError("confirmation_key_indicator_duplicate")
@@ -442,8 +485,9 @@ class MemberReading:
     months: int = AUXILIARY_MONTHS
     inputs: tuple[str, ...] = ()
     earlier: tuple[MemberReading, ...] = ()
-    # The periods a year's range spans.
+    # The periods a year's range spans, and those whose changes tell a marked one.
     year: int = YEAR_MONTHS
+    marked: int = YEAR_MONTHS
 
     def observation_versions(self) -> tuple[str, ...]:
         """Every observation the reading rests on, as it stands and as it stood before."""
@@ -564,9 +608,9 @@ class MemberReading:
 
     @property
     def change_size(self) -> str | None:
-        """Marked when the newest change is wider than the median change of the twelve
-        newest periods."""
-        values = self._year(YEAR_MONTHS)
+        """Marked when the newest change is wider than the median change of the year's
+        newest periods: twelve months or runs of sessions, four quarters."""
+        values = self._year(self.marked)
         if values is None or len(values) < 3:
             return None
         sizes = [abs(after - before) for before, after in zip(values, values[1:], strict=False)]
@@ -581,6 +625,10 @@ class MemberReading:
 
     def reading(self, name: str) -> str | None:
         return getattr(self, name)  # type: ignore[no-any-return]
+
+    def gaps(self) -> tuple[str, ...]:
+        """What the reading misses, each named by the member it is missing of."""
+        return tuple(f"{_member_label(self.member)}:{item}" for item in self.missing)
 
 
 @dataclass(frozen=True)
@@ -704,16 +752,97 @@ class BlockReading(MemberReading):
         }
 
 
+# Derived observations a note may read, outside any key indicator and never counted: the
+# credit impulse, whose direction is its own (ADR-0035: the month against the month before).
+OBSERVED_METRICS = frozenset({"CN_CREDIT_IMPULSE"})
+
+
+@dataclass(frozen=True)
+class ObservedReading(MemberReading):
+    """A derived observation as the projection shows it: its newest value and the
+    direction its formula states, which is its momentum."""
+
+    stated: str | None = None
+
+    @property
+    def momentum(self) -> str | None:
+        return self.stated if self.points else None
+
+
+@dataclass(frozen=True)
+class ChangeReading(MemberReading):
+    """A member whose change is the one its source states: ``changes``, of the member
+    ``change_from`` names, each the change of a point on the same period a year before.
+
+    Its momentum is that change's sign, its run and slope those of the newest two, and a
+    marked change is wider than the median of the year's. Its level and range read its own
+    values. ``change_gaps`` are the months of ``missing`` the change is missing in.
+    """
+
+    changes: tuple[float, ...] = ()
+    change_gaps: tuple[str, ...] = ()
+
+    @property
+    def change(self) -> float | None:
+        return self.changes[-1] if self.changes else None
+
+    @property
+    def momentum(self) -> str | None:
+        return _direction(self.changes[-1], 0.0) if self.changes else None
+
+    @property
+    def run(self) -> str | None:
+        if len(self.changes) < 2:
+            return None
+        moves = {_direction(change, 0.0) for change in self.changes[-2:]}
+        return moves.pop() if len(moves) == 1 and "flat" not in moves else "none"
+
+    @property
+    def slope(self) -> str | None:
+        """Alike in sign and wider than the change before is steeper, narrower slower;
+        opposite is a turn; with either no change, flat."""
+        if len(self.changes) < 2:
+            return None
+        earlier, later = (_direction(change, 0.0) for change in self.changes[-2:])
+        if "flat" in {earlier, later}:
+            return "flat"
+        if earlier != later:
+            return "turn"
+        widened = _direction(abs(self.changes[-1]), abs(self.changes[-2]))
+        return {"up": "steeper", "down": "slower", "flat": "flat"}[widened]
+
+    @property
+    def change_size(self) -> str | None:
+        if self._year(self.marked) is None or len(self.changes) < self.marked:
+            return None
+        sizes = [abs(change) for change in self.changes[-self.marked :]]
+        return "marked" if _direction(sizes[-1], statistics.median(sizes)) == "up" else "ordinary"
+
+    def extra(self) -> dict[str, object]:
+        assert self.member.change_from is not None
+        return {"change_from": dict(self.member.change_from), "changes": list(self.changes)}
+
+    def gaps(self) -> tuple[str, ...]:
+        assert self.member.change_from is not None
+        changed = replace(self.member, dimensions=self.member.change_from)
+        return tuple(
+            f"{_member_label(changed if item in self.change_gaps else self.member)}:{item}"
+            for item in self.missing
+        )
+
+
 def confirmation_document(
     rules: ConfirmationRules,
     readings: Mapping[str, Sequence[MemberReading]],
     *,
     current_stage: FormalStage | None,
     stage_reason: str,
+    observed: Mapping[str, MemberReading] | None = None,
 ) -> dict[str, object]:
     """The dimension summary of the rules' indicators read as ``readings`` under the stage.
 
-    ``readings`` holds each indicator's members by its key, the main one first.
+    ``readings`` holds each indicator's members by its key, the main one first;
+    ``observed`` each derived observation a note may read, by its metric.
     """
     stage = current_stage.value if current_stage is not None else None
     # Another indicator a condition names is read by its main member, when its every
@@ -724,7 +853,7 @@ def confirmation_document(
         if (main := readings[item.key][0]).evidence_status == "current"
         and (main.points or isinstance(main, ActionReading))
         and not main.missing
-    }
+    } | {_observed(metric_id): reading for metric_id, reading in (observed or {}).items()}
     documents = [
         _indicator_document(
             item, readings[item.key], stage=stage, timing=rules.timing, others=others
@@ -763,12 +892,16 @@ def derived_points(
     formula: str,
     months: Sequence[str],
     value: Callable[[DerivedInput, str], tuple[float, str] | None],
+    *,
+    oldest: str | None = None,
 ) -> tuple[tuple[tuple[str, float, str], ...], tuple[str, ...], tuple[str, ...]]:
     """``formula`` for each of ``months`` (``YYYY-MM``, oldest first), from its inputs.
 
     ``value`` gives an input's (value, observation version) of a month, or None. The
-    points run from the newest back while every input is held; the months short of one
-    are missing, and the observations the points rest on are their inputs.
+    points run from the newest back while every input a month needs is held. Missing are
+    the input months (``YYYY-MM``) a month needs and are not held -- those before
+    ``oldest`` alone when it needs any, as they are never read -- and the observations the
+    points rest on are their inputs.
     """
     definition = DERIVED_FORMULAS[formula]
     points: list[tuple[str, float, str]] = []
@@ -777,24 +910,33 @@ def derived_points(
     for month in reversed(months):
         held: dict[tuple[str, int], float] = {}
         versions: list[str] = []
+        needs = set(definition.needs(month))
+        beyond = sorted(
+            {
+                month_back(month, offset)
+                for _name, offset in needs
+                if oldest is not None and month_back(month, offset) < oldest
+            }
+        )
+        short: list[str] = []
         for item in definition.inputs:
             for offset in item.offsets:
-                found = value(item, month_back(month, offset))
+                period = month_back(month, offset)
+                found = value(item, period) if oldest is None or period >= oldest else None
                 if found is not None:
                     held[(item.name, offset)] = found[0]
                     versions.append(found[1])
-        try:
-            # The formula takes what the month needs of its inputs: January's flow is its
-            # own year-to-date total, with no month before it.
-            result = definition.compute(month, held)
-        except KeyError:
-            result = None
+                elif (item.name, offset) in needs:
+                    short.append(period)
+        # The formula takes what the month needs of its inputs: January's flow is its own
+        # year-to-date total, with no month before it.
+        result = definition.compute(month, held) if not short else None
         if result is None:
-            missing.append(month)
+            missing.extend(beyond or short or [month])
         elif not missing:
             points.insert(0, (month_end(month), result, formula))
             inputs.extend(versions)
-    return tuple(points), tuple(reversed(missing)), tuple(dict.fromkeys(inputs))
+    return tuple(points), tuple(sorted(set(missing))), tuple(dict.fromkeys(inputs))
 
 
 def month_back(month: str, offset: int) -> str:
@@ -808,6 +950,11 @@ def month_end(month: str) -> str:
     """The last day (ISO) of ``month`` (``YYYY-MM``)."""
     year, number = (int(part) for part in month.split("-"))
     return f"{month}-{calendar.monthrange(year, number)[1]:02d}"
+
+
+def _observed(metric_id: str) -> str:
+    """How a condition names a derived observation: the credit impulse."""
+    return f"#{metric_id}"
 
 
 def _other(key: str) -> str:
@@ -837,7 +984,7 @@ def _indicator_document(
         "statistical_period": main.period,
         "level_line": indicator.level_line,
         "consistency": (
-            "unknown" if main.momentum is None else "divergent" if divergent else "consistent"
+            "unknown" if main.direction is None else "divergent" if divergent else "consistent"
         ),
         "members": [
             _member_document(main, "main"),
@@ -871,8 +1018,8 @@ def _indicator_document(
             if main.evidence_status != "current" or not (main.points or main.missing)
             else []
         )
-        missing = [f"{_member_label(main.member)}:{item}" for item in (*status, *main.missing)]
-        return {**document, "relation": "unconfirmed", "missing": missing}
+        missing = [f"{_member_label(main.member)}:{item}" for item in status]
+        return {**document, "relation": "unconfirmed", "missing": [*missing, *main.gaps()]}
     expectation = indicator.expectations[stage]
     cell, condition, known = _answer(expectation, main, by_member)
     if not known and cell is not None:
@@ -1078,8 +1225,11 @@ def _run_missing(members: Sequence[MemberReading], back: int) -> tuple[str, ...]
         if member is not members[0] and not member.earlier:
             continue
         shifted = member.before(back)
-        gaps = (shifted.missing or (shifted.evidence_status,)) if shifted else ("not_read",)
-        missing.extend(f"{_member_label(member.member)}:{gap}" for gap in gaps)
+        if shifted is not None and shifted.missing:
+            missing.extend(shifted.gaps())
+            continue
+        gap = shifted.evidence_status if shifted is not None else "not_read"
+        missing.append(f"{_member_label(member.member)}:{gap}")
     return tuple(dict.fromkeys(missing))
 
 
@@ -1168,14 +1318,16 @@ def _annotation_state(
 
 
 def _agreement(main: MemberReading, member: MemberReading) -> str:
-    """How a member's direction stands to the main one's momentum: agrees, opposes, flat,
-    unknown."""
+    """How a member's direction stands to the main one's: agrees, opposes, flat, unknown;
+    or not compared, for a member shown alone."""
+    if not member.member.compared:
+        return "not_compared"
     direction = member.direction
-    if member.evidence_status != "current" or direction is None or main.momentum is None:
+    if member.evidence_status != "current" or direction is None or main.direction is None:
         return "unknown"
-    if direction == main.momentum:
+    if direction == main.direction:
         return "agrees"
-    if "flat" in {direction, main.momentum}:
+    if "flat" in {direction, main.direction}:
         return "flat"
     return "opposes"
 
@@ -1214,6 +1366,7 @@ def _member_document(member: MemberReading, consistency: str) -> dict[str, objec
         "position": member.position,
         "change_size": member.change_size,
         "consistency": consistency,
+        "cumulative": member.member.cumulative,
         "missing": list(member.missing),
         # The periods read from the member standing in, as its label says (cumulative).
         "stand_ins": [
@@ -1289,16 +1442,18 @@ def _direction(value: float, previous: float) -> str:
 
 def _timing_rules(
     timing: object, maturity: object
-) -> tuple[dict[str, int], dict[str, int], TimingRules]:
-    """Grace and the farthest period back by frequency, the stage each timing points to,
-    and when a signal forms."""
+) -> tuple[dict[str, int], dict[str, int], dict[str, tuple[int, int]], TimingRules]:
+    """Grace and the farthest period back by frequency; the periods a year's range spans
+    and those a marked change is told against (a daily range in sessions); the stage each
+    timing points to, and when a signal forms."""
     if not isinstance(timing, Mapping) or not isinstance(maturity, Mapping):
         raise ValueError("confirmation_timing_rules_invalid")
     grace, adjacent = timing.get("grace_periods"), timing.get("adjacent_stage")
     horizon = timing.get("horizon_periods")
+    year, marked = timing.get("year_periods"), timing.get("marked_periods")
     counts = [
         item.get(name)
-        for item in (grace, horizon)
+        for item in (grace, horizon, year, marked)
         if isinstance(item, Mapping)
         for name in FREQUENCIES
     ]
@@ -1306,8 +1461,9 @@ def _timing_rules(
     if (
         not isinstance(grace, Mapping)
         or not isinstance(horizon, Mapping)
-        or set(grace) != set(FREQUENCIES)
-        or set(horizon) != set(FREQUENCIES)
+        or not isinstance(year, Mapping)
+        or not isinstance(marked, Mapping)
+        or any(set(item) != set(FREQUENCIES) for item in (grace, horizon, year, marked))
         or not all(
             isinstance(item, int) and not isinstance(item, bool) and item >= 1 for item in counts
         )
@@ -1319,6 +1475,7 @@ def _timing_rules(
     return (
         {str(name): int(grace[name]) for name in FREQUENCIES},
         {str(name): int(horizon[name]) for name in FREQUENCIES},
+        {str(name): (int(year[name]), int(marked[name])) for name in FREQUENCIES},
         TimingRules(
             {str(name): str(item) for name, item in adjacent.items()},
             int(maturity["forming_periods"]),
@@ -1331,6 +1488,7 @@ def _indicator(
     value: object,
     grace: Mapping[str, int],
     horizon: Mapping[str, int],
+    scale: Mapping[str, tuple[int, int]],
     keys: Collection[str],
 ) -> KeyIndicator:
     """A key indicator; a condition of its own may name another of ``keys``."""
@@ -1377,7 +1535,10 @@ def _indicator(
         "quarterly": "lookback_quarters",
         "daily": "lookback_periods",
     }[frequency]
-    year = YEAR_SESSIONS // sessions if sessions is not None else YEAR_MONTHS // _MONTHS[frequency]
+    year, marked = scale[frequency]
+    if sessions is not None:
+        # A daily range is a year of sessions, read in the indicator's periods.
+        year //= sessions
     raw_line, lookback = value.get("level_line"), _count(value.get(own))
     raw_auxiliary = value.get("auxiliary")
     raw_derived = value.get("derived", [])
@@ -1404,8 +1565,15 @@ def _indicator(
         # beyond it.
         raise ValueError("confirmation_lookback_beyond_horizon")
     main = _member(value.get("main"), texts["metric_id"])
-    if main.formula is not None:
+    if main.formula is not None and (
+        frequency != "monthly"
+        or lookback > farthest + 1 - DERIVED_FORMULAS[main.formula].farthest
+        or not main.compared
+    ):
+        # A derived main member reads its months, each with its inputs, within the horizon.
         raise ValueError("confirmation_main_member_derived")
+    if not main.compared:
+        raise ValueError("confirmation_member_invalid")
     auxiliary = tuple(_member(item, texts["metric_id"]) for item in raw_auxiliary)
     names = {member.name for member in (main, *auxiliary)}
     if len(names) != 1 + len(auxiliary):
@@ -1415,6 +1583,13 @@ def _indicator(
         for member in (main, *auxiliary)
     ):
         raise ValueError("confirmation_member_months_need_monthly")
+    if any(
+        # A change the source states is read beside a member's own values, by period.
+        member.change_from is not None
+        and (frequency == "daily" or member.formula is not None or member.stand_ins)
+        for member in (main, *auxiliary)
+    ):
+        raise ValueError("confirmation_member_invalid")
     if (
         any(
             # A member read by sessions, or a session formula's, belongs to a daily indicator,
@@ -1436,7 +1611,9 @@ def _indicator(
     derived = tuple(_spread(item, names) for item in raw_derived)
     if any(len(item.of) == 1 and line is None for item in derived):
         raise ValueError("confirmation_derived_invalid")
-    others = {_other(key) for key in keys if key != texts["key"]}
+    others = {_other(key) for key in keys if key != texts["key"]} | {
+        _observed(metric_id) for metric_id in OBSERVED_METRICS
+    }
     stages = {stage: _expectation(expectations[stage], names, others) for stage in _STAGES}
     read = {
         name
@@ -1445,9 +1622,7 @@ def _indicator(
         for condition in cell.when
         for name in condition.readings
     }
-    if ("position" in read and (frequency == "quarterly" or lookback < year)) or (
-        "change_size" in read and lookback < YEAR_MONTHS
-    ):
+    if ("position" in read and lookback < year) or ("change_size" in read and lookback < marked):
         # A range or a change size read short of a year would read another scale.
         raise ValueError("confirmation_year_reading_needs_a_year")
     if ("action" in read) != (actions is not None):
@@ -1470,6 +1645,8 @@ def _indicator(
         period_sessions=sessions,
         line=line,
         notices=notices,
+        year=year,
+        marked=marked,
     )
 
 
@@ -1573,13 +1750,21 @@ def _condition(value: object, names: set[str], others: Collection[str] = ()) -> 
         raise ValueError("confirmation_condition_invalid")
     readings: dict[str, str | tuple[str, ...]] = {}
     for name, expected in value.items():
-        if name in {"member", "outpaces", "indicator", "after_action"}:
+        if name in {"member", "outpaces", "indicator", "after_action", "observed"}:
             continue
         values = expected if isinstance(expected, list) else [expected]
         if name not in _READINGS or not values or not set(values) <= _READINGS[name]:
             raise ValueError(f"confirmation_condition_unknown:{name}")
         readings[name] = str(expected) if not isinstance(expected, list) else tuple(values)
     member, outpaces = value.get("member"), value.get("outpaces")
+    if "observed" in value:
+        # A derived observation's own reading, named as no member can be; never with
+        # another indicator.
+        if member is not None or outpaces is not None or "indicator" in value:
+            raise ValueError("confirmation_condition_invalid")
+        member = _observed(str(value["observed"]))
+        if member not in others:
+            raise ValueError(f"confirmation_observed_unknown:{value['observed']}")
     if "indicator" in value:
         # Another key indicator's main member, named as no member of its own can be.
         if member is not None or outpaces is not None:
@@ -1609,12 +1794,20 @@ def _member(value: object, metric_id: str) -> Member:
     name, label = value.get("name"), value.get("label")
     own = value.get("metric_id", metric_id)
     formula, session_formula = value.get("formula"), value.get("session_formula")
-    # A metric with no dimensions has its one member read with none.
+    # A metric with no dimensions has its one member read with none; a derived member has
+    # those its formula's inputs take as its own, or none.
     dimensions = (
-        _dimensions(value.get("dimensions"), empty=True)
-        if formula is None and session_formula is None
+        _dimensions(value.get("dimensions", {}) if formula else value.get("dimensions"), empty=True)
+        if session_formula is None
         else {}
     )
+    own_inputs = formula in DERIVED_FORMULAS and any(
+        item.dimensions is None for item in DERIVED_FORMULAS[str(formula)].inputs
+    )
+    flags = [
+        value.get(name, default) for name, default in (("cumulative", False), ("compared", True))
+    ]
+    raw_change = value.get("change_from")
     raw_months = value.get("unreleased_months", [])
     raw_stand_ins = value.get("stand_ins", {})
     stand_in_label = value.get("stand_in_label")
@@ -1623,6 +1816,8 @@ def _member(value: object, metric_id: str) -> Member:
     if (
         not isinstance(name, str)
         or not name
+        # How a condition names another indicator or a derived observation, not a member.
+        or name[0] in {"@", "#"}
         or not isinstance(label, str)
         or not label
         or not isinstance(own, str)
@@ -1637,6 +1832,8 @@ def _member(value: object, metric_id: str) -> Member:
         or (frequency is not None and aggregate is not None)
         or not isinstance(partial, bool)
         or (partial and not dimensions)
+        or (formula is not None and own_inputs != bool(dimensions))
+        or not all(isinstance(flag, bool) for flag in flags)
     ):
         raise ValueError("confirmation_member_invalid")
     stand_ins: dict[int, Mapping[str, str]] = {}
@@ -1657,6 +1854,9 @@ def _member(value: object, metric_id: str) -> Member:
         session_formula=str(session_formula) if session_formula is not None else None,
         frequency=str(frequency) if frequency is not None else None,
         partial=partial,
+        cumulative=bool(flags[0]),
+        compared=bool(flags[1]),
+        change_from=_dimensions(raw_change) if raw_change is not None else None,
     )
 
 
@@ -1763,14 +1963,21 @@ def rules_v0001() -> dict[str, Any]:
 
 
 # Grace in independent periods; the farthest period back a reading or its grace reaches,
-# thirteen months and four quarters (ADR-0035); the stage a lag still shows, the stage a
-# lead already shows (expectation-table.md E3/D4, N4).
+# thirteen months (ADR-0035); the stage a lag still shows, the stage a lead already shows
+# (expectation-table.md E3/D4, N4).
 _TIMING_RULES = {
     # A daily indicator's period is a run of its sessions (five, a week's): two of them,
     # as two months for a monthly one (macro semantics ticket 06).
     "grace_periods": {"monthly": 2, "quarterly": 1, "daily": 2},
-    # Fifty-two periods of five sessions: a year's 250 and the two grace reads before.
-    "horizon_periods": {"monthly": 13, "quarterly": 3, "daily": 51},
+    # Fifty-two periods of five sessions: a year's 250 and the two grace reads before. A
+    # quarterly indicator's four quarters and the one before them, twelve months back: the
+    # quarter grace reads back reads its own year (ticket 07).
+    "horizon_periods": {"monthly": 13, "quarterly": 4, "daily": 51},
+    # The one-year scale (O4): a range of twelve months, four quarters or 250 sessions; a
+    # change marked against those of twelve months, four quarters or twelve periods of
+    # sessions (ticket 07: a quarterly indicator's year is its four quarters).
+    "year_periods": {"monthly": YEAR_MONTHS, "quarterly": 4, "daily": YEAR_SESSIONS},
+    "marked_periods": {"monthly": YEAR_MONTHS, "quarterly": 4, "daily": YEAR_MONTHS},
     "adjacent_stage": {"leading": "next", "lagging": "previous"},
 }
 # Forming: held two periods, or two leading indicators turning toward one stage (ADR-0037).
@@ -2168,6 +2375,201 @@ _SOCIAL_FINANCING_CELLS = {
     ],
 }
 
+# Loans: the month's flow of each pair, from its year-to-date totals, more (above zero)
+# or less (below) than the same month a year before; the t, t-1, t-12 and t-13 totals and
+# nothing further back (ADR-0035), so whether an earlier month was more is not read.
+_LOAN_FORMULA = "loan-monthly-increment-yoy-change-v0001"
+
+
+def _loan_member(borrower: str, tenor: str, label: str) -> dict[str, Any]:
+    return {
+        **_member_data(
+            f"{borrower}_{tenor}", label, borrower=borrower, tenor=tenor, measure="ytd_increment"
+        ),
+        "formula": _LOAN_FORMULA,
+    }
+
+
+_LOAN_MEMBERS = {
+    "main": _loan_member("enterprise", "long_term", "企业中长期贷款当月增量（较去年同月）"),
+    # Every other tenor and borrower, each its month's flow against a year before.
+    "auxiliary": [
+        _loan_member(borrower, tenor, f"{label}当月增量（较去年同月）")
+        for borrower, tenor, label in (
+            ("household", "total", "住户贷款"),
+            ("household", "short_term", "住户短期贷款"),
+            ("household", "long_term", "住户中长期贷款"),
+            ("enterprise", "total", "企（事）业单位贷款"),
+            ("enterprise", "short_term", "企业短期贷款"),
+            ("enterprise", "bill_financing", "票据融资"),
+            ("nonbank_financial", "total", "非银行业金融机构贷款"),
+            ("all_rmb_loans", "total", "人民币贷款"),
+        )
+    ],
+}
+_MORE, _LESS, _AS_MUCH = {"level": "above"}, {"level": "below"}, {"level": "at"}
+_LOAN_CELLS = {
+    "stage_i": [
+        _cell_data("counterevidence", _MORE, grace=True),
+        _cell_data("support", _LESS),
+        _cell_data("observation_only", _AS_MUCH),
+    ],
+    "stage_ii": [
+        # Less, and less again than the month before: widening.
+        _cell_data("counterevidence", {**_LESS, **_DOWN}, grace=True),
+        # Turned more, or less by less: narrowing.
+        _cell_data("support", _MORE, {**_LESS, **_UP}),
+    ],
+    "stage_iii": [
+        _cell_data("counterevidence", _LESS, grace=True),
+        _cell_data("support", _MORE),
+    ],
+    "stage_iv": [
+        _cell_data("support", _MORE, _AS_MUCH),
+        _cell_data("observation_only", _LESS, turn_hint=_hint("stage_v")),
+    ],
+    "stage_v": [
+        _cell_data("counterevidence", _MORE, grace=True),
+        # Bills more while long-term loans are less: the structure worsens.
+        _cell_data(
+            "support",
+            _LESS,
+            note={"text": "结构恶化", "when": {"member": "enterprise_bill_financing", **_MORE}},
+        ),
+        _cell_data("observation_only", _AS_MUCH),
+    ],
+    "stage_vi": [
+        _cell_data("support", _LESS),
+        _cell_data("observation_only", _MORE),
+    ],
+}
+# The credit impulse up on the month before while long-term loans are less: a lead
+# observed, a note alone, the relation as its cell says (user, 2026-10-07).
+_IMPULSE_AHEAD_OF_LOANS = [
+    {
+        "text": "信用脉冲转强而贷款结构未改善（领先观察）",
+        "when": [{"observed": "CN_CREDIT_IMPULSE", "momentum": "up"}, _LESS],
+    }
+]
+
+# Industrial profits: the official cumulative growth (January to the month) quickening or
+# slowing on the month before, said to be cumulative, never a month's growth computed
+# from cumulative profits (N3). No January release: February's January-February is read
+# against December's whole year, as industrial value added's is.
+_PROFIT_MEMBERS = {
+    "main": {
+        **_member_data("profit", "利润累计同比（累计口径）", item="profit", measure="official_yoy"),
+        "unreleased_months": [1],
+        "cumulative": True,
+    },
+    "auxiliary": [
+        {
+            **_member_data(item, f"{label}累计同比（累计口径）", item=item, measure="official_yoy"),
+            "unreleased_months": [1],
+            "cumulative": True,
+        }
+        for item, label in (("revenue", "营业收入"), ("cost", "营业成本"))
+    ],
+}
+_PROFIT_CELLS = {
+    "stage_i": [
+        # Still growing faster lags, within grace.
+        _cell_data("counterevidence", _UP, grace=True),
+        _cell_data("support", _DOWN),
+        _cell_data("observation_only", _FLAT),
+    ],
+    "stage_ii": [_cell_data("support", _UP), _cell_data("observation_only", _DOWN)],
+    "stage_iii": [_cell_data("support", _UP), _cell_data("observation_only", _DOWN)],
+    "stage_iv": [_cell_data("support", _UP), _cell_data("observation_only", _DOWN)],
+    # Falling, or peaking (no longer rising); still strong lags (J2).
+    "stage_v": [_cell_data("support", _DOWN, _FLAT), _cell_data("observation_only", _UP)],
+    "stage_vi": [_cell_data("support", _DOWN), _cell_data("observation_only", _UP)],
+}
+
+# GDP: the real growth of each quarter on the same quarter a year before, read over four
+# quarters; its year's range is theirs (ticket 07). The nominal year-to-date level is
+# shown, never compared: it rises through each year whatever growth does.
+_GDP_MEMBERS = {
+    "main": _member_data(
+        "real_quarter_yoy", "实际季度同比", aggregate="total", measure="real_quarter_yoy"
+    ),
+    "auxiliary": [
+        {
+            **_member_data(
+                "nominal_ytd_level",
+                "名义累计值（累计口径）",
+                aggregate="total",
+                measure="nominal_ytd_level",
+            ),
+            "cumulative": True,
+            "compared": False,
+        }
+    ],
+}
+_GDP_CELLS = {
+    "stage_i": [
+        _cell_data("counterevidence", _UP),
+        _cell_data("support", _DOWN),
+        _cell_data("observation_only", _FLAT),
+    ],
+    "stage_ii": [
+        # Falling faster.
+        _cell_data("counterevidence", {**_DOWN, "slope": "steeper"}),
+        _cell_data("support", _LOW, turn_hint=_hint("stage_iii", momentum="up")),
+        _cell_data("observation_only", _UP, turn_hint=_hint("stage_iii")),
+    ],
+    "stage_iii": [
+        _cell_data("counterevidence", _DOWN),
+        _cell_data("support", _UP),
+        _cell_data("observation_only", _FLAT),
+    ],
+    "stage_iv": [
+        # Strong: high in its year. Slowing markedly waits on grace.
+        _cell_data("support", _HIGH),
+        _cell_data("counterevidence", {**_DOWN, "change_size": "marked"}, grace=True),
+        _cell_data("observation_only", _FLAT),
+    ],
+    "stage_v": [
+        _cell_data("counterevidence", _UP),
+        _cell_data("support", _DOWN),
+        _cell_data("observation_only", _FLAT),
+    ],
+    "stage_vi": [
+        _cell_data("counterevidence", _UP),
+        _cell_data("support", _DOWN),
+        _cell_data("observation_only", _FLAT),
+    ],
+}
+
+# Capacity utilisation, the whole industry's rate of each quarter: high or low in its four
+# quarters; its momentum the official change on the same quarter a year before, which the
+# seasons of a year do not move.
+_CAPACITY_MEMBERS = {
+    "main": {
+        **_member_data(
+            "quarter_rate", "全工业产能利用率", industry="all_industry", measure="quarter_rate"
+        ),
+        "change_from": {"industry": "all_industry", "measure": "yoy_change"},
+    },
+    "auxiliary": [],
+}
+_CAPACITY_CELLS = {
+    "stage_i": [
+        _cell_data("counterevidence", {**_UP, **_HIGH}, grace=True),
+        _cell_data("support", _DOWN, _LOW),
+        # Still high: the previous stage's, lagging.
+        _cell_data("observation_only", _HIGH),
+    ],
+    "stage_ii": [_cell_data("support", _LOW), _cell_data("observation_only", _UP)],
+    "stage_iii": [_cell_data("support", _UP), _cell_data("observation_only", _LOW)],
+    "stage_iv": [
+        _cell_data("counterevidence", _LOW, grace=True),
+        _cell_data("support", _HIGH, _UP),
+    ],
+    "stage_v": [_cell_data("support", _DOWN), _cell_data("observation_only", _HIGH)],
+    "stage_vi": [_cell_data("support", _DOWN), _cell_data("observation_only", _HIGH)],
+}
+
 _POLICY_PROPOSITIONS = {
     "stage_i": "政策和资金价格转松",
     "stage_ii": "宽松延续并开始传导",
@@ -2450,6 +2852,43 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
         "expectations": _stages(_OVERHEAT_PROPOSITIONS, _INDUSTRIAL_VA_CELLS),
     },
     {
+        "key": "gdp",
+        "timing": "coincident",
+        "name": "GDP",
+        "dimension": "overheat",
+        "metric_id": "CN_GDP",
+        **_GDP_MEMBERS,
+        "level_line": None,
+        "frequency": "quarterly",
+        # Level in the year, momentum and slope: four quarters (ADR-0035).
+        "lookback_quarters": 4,
+        "expectations": _stages(_OVERHEAT_PROPOSITIONS, _GDP_CELLS),
+    },
+    {
+        "key": "capacity_utilization",
+        "timing": "lagging",
+        "name": "产能利用率",
+        "dimension": "overheat",
+        "metric_id": "CN_CAPACITY_UTILIZATION",
+        **_CAPACITY_MEMBERS,
+        "level_line": None,
+        "frequency": "quarterly",
+        "lookback_quarters": 4,
+        "expectations": _stages(_OVERHEAT_PROPOSITIONS, _CAPACITY_CELLS),
+    },
+    {
+        "key": "industrial_profit",
+        "timing": "lagging",
+        "name": "工业企业盈利",
+        "dimension": "overheat",
+        "metric_id": "CN_INDUSTRIAL_FINANCE",
+        **_PROFIT_MEMBERS,
+        "level_line": None,
+        # The month and the one before; a January passed over, three back.
+        "lookback_months": 3,
+        "expectations": _stages(_OVERHEAT_PROPOSITIONS, _PROFIT_CELLS),
+    },
+    {
         "key": "ppi",
         "timing": "coincident",
         "name": "PPI",
@@ -2505,6 +2944,20 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
             _CREDIT_PROPOSITIONS,
             _SOCIAL_FINANCING_CELLS,
             caps={"stage_ii": _GOVERNMENT_ONLY, "stage_iii": _GOVERNMENT_ONLY},
+        ),
+    },
+    {
+        "key": "loans",
+        "timing": "leading",
+        "name": "贷款",
+        "dimension": "credit",
+        "metric_id": "CN_LOAN_STRUCTURE",
+        **_LOAN_MEMBERS,
+        # More or less than a year before: above or below zero.
+        "level_line": 0,
+        "lookback_months": 1,
+        "expectations": _stages(
+            _CREDIT_PROPOSITIONS, _LOAN_CELLS, notes={"stage_vi": _IMPULSE_AHEAD_OF_LOANS}
         ),
     },
     {

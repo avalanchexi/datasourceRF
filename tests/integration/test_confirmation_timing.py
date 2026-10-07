@@ -43,9 +43,13 @@ CAPACITY = {"industry": "all_industry", "measure": "quarter_rate"}
 
 
 def manifest(*extra: dict[str, Any]) -> dict[str, Any]:
-    """The new model's rules, with any key indicator declared in the manifest alone."""
+    """The new model's rules, with any key indicator declared in the manifest alone: in
+    place of the model's own of that key."""
     built = confirmation_manifest(_v2_manifest(*METRICS, "CN_CAPACITY_UTILIZATION"))
-    built["confirmation_rules"]["key_indicators"].extend(copy.deepcopy(item) for item in extra)
+    keys = {item["key"] for item in extra}
+    indicators = built["confirmation_rules"]["key_indicators"]
+    indicators[:] = [item for item in indicators if item["key"] not in keys]
+    indicators.extend(copy.deepcopy(item) for item in extra)
     return built
 
 
@@ -267,7 +271,8 @@ def test_a_flat_lagging_reading_not_in_the_previous_form_is_counterevidence_at_o
 
 def test_four_quarters_are_read_and_grace_reads_within_them(tmp_path: Path) -> None:
     # Four quarters to the newest; the quarter before, read for grace, reads its
-    # momentum within them, and nothing before the third quarter of 2025.
+    # momentum from those held (the quarter before them, which its own year would need,
+    # is not held here).
     repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
     seed_capacity(repository, (75.0, 75.5, 74.5, 74.0))
     four = capacity("lagging") | {"lookback_quarters": 4}

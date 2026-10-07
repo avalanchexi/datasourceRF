@@ -512,6 +512,8 @@ def test_an_existing_model_plans_and_fetches_the_periods_it_did(
     assert requests["prices"]["end_month"] == "202608"
     if model_id == "model-v0014":
         _assert_the_fetch_covers_the_plan(periods, requests)
+        # The impulse's quarters are the farthest any reading takes.
+        assert periods["CN_GDP"][0].replace("-", "") == requests["gdp"]["start_quarter"]
 
 
 def test_a_confirmation_model_plans_the_months_each_member_reads(
@@ -590,6 +592,51 @@ def test_a_confirmation_model_plans_the_months_each_member_reads(
     )
     assert periods["CN_SF_COMPONENTS"] == three
     assert sorted(members["CN_SF_COMPONENTS"]["2026-05"]) == sorted(components)
+    # Loans: July's flow and July's a year before, from their totals and the months
+    # before them, t-13 the farthest (ticket 07); the v0014 loan change reads two months.
+    assert periods["CN_LOAN_STRUCTURE"] == ["2025-06", "2025-07", "2026-06", "2026-07"]
+    pairs = (
+        ("enterprise", "long_term"),
+        ("household", "total"),
+        ("household", "short_term"),
+        ("household", "long_term"),
+        ("enterprise", "total"),
+        ("enterprise", "short_term"),
+        ("enterprise", "bill_financing"),
+        ("nonbank_financial", "total"),
+        ("all_rmb_loans", "total"),
+    )
+    loans = member_keys(
+        "CN_LOAN_STRUCTURE",
+        tuple(
+            {"borrower": borrower, "tenor": tenor, "measure": "ytd_increment"}
+            for borrower, tenor in pairs
+        ),
+    )
+    assert sorted(members["CN_LOAN_STRUCTURE"]["2025-06"]) == sorted(loans)
+    # GDP and capacity utilisation: four quarters to the second of 2026 and the one before.
+    quarters = ["2025-Q2", "2025-Q3", "2025-Q4", "2026-Q1", "2026-Q2"]
+    assert periods["CN_CAPACITY_UTILIZATION"] == quarters
+    assert sorted(members["CN_CAPACITY_UTILIZATION"]["2025-Q2"]) == sorted(
+        member_keys(
+            "CN_CAPACITY_UTILIZATION",
+            tuple(
+                {"industry": "all_industry", "measure": measure}
+                for measure in ("quarter_rate", "yoy_change")
+            ),
+        )
+    )
+    assert set(quarters) <= set(periods["CN_GDP"])
+    real = member_keys("CN_GDP", ({"aggregate": "total", "measure": "real_quarter_yoy"},))[0]
+    assert all(
+        members["CN_GDP"][quarter] is None or real in members["CN_GDP"][quarter]
+        for quarter in quarters
+    )
+    # Industrial profits: July, out on the 27th, and the four months before it.
+    assert periods["CN_INDUSTRIAL_FINANCE"] == five
+    # The fetch reads the five quarters back from the window's first day's newest, the
+    # fourth of 2025: no further.
+    assert requests["gdp"]["start_quarter"] == "2024Q4"
     _assert_the_fetch_covers_the_plan(periods, requests)
 
 
@@ -645,6 +692,84 @@ def test_the_policy_readings_declare_their_windows_baselines_and_lead() -> None:
             ({"tenor": "1w"},),
         ),
     }
+
+
+def test_loans_declare_t_13_and_the_quarterly_indicators_their_quarters() -> None:
+    # Loans: each pair's totals at t, t-1, t-12 and t-13, nothing further (ADR-0035). GDP
+    # and capacity utilisation: four quarters and the one before them, the quarter grace
+    # reads back reading its own year; capacity's official change on a year before at the
+    # same quarters. Industrial profits: three months and two for grace (ticket 07).
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.lookback import declare
+
+    readings = {
+        item.reading: item
+        for item in declare(ContextProjectionRules.from_manifest(model_v0015_manifest()))
+        if item.reading.split(":")[0] == "confirmation"
+        and item.reading.split(":")[1]
+        in {"loans", "gdp", "capacity_utilization", "industrial_profit"}
+    }
+
+    def loan(borrower: str, tenor: str) -> dict[str, str]:
+        return {"borrower": borrower, "tenor": tenor, "measure": "ytd_increment"}
+
+    endpoints = Periods.explicit(0, 1, 12, 13)
+    assert (
+        readings["confirmation:loans:ytd"].periods,
+        readings["confirmation:loans:ytd"].members,
+    ) == (
+        endpoints,
+        (loan("enterprise", "long_term"),),
+    )
+    household = readings["confirmation:loans:household_total:ytd"]
+    assert (household.metric_id, household.periods, household.members) == (
+        "CN_LOAN_STRUCTURE",
+        endpoints,
+        (loan("household", "total"),),
+    )
+    assert sum(1 for name in readings if name.startswith("confirmation:loans")) == 9
+    assert {
+        name: (item.metric_id, item.periods, item.members)
+        for name, item in readings.items()
+        if not name.startswith("confirmation:loans")
+    } == {
+        "confirmation:gdp": (
+            "CN_GDP",
+            Periods.quarters(5),
+            ({"aggregate": "total", "measure": "real_quarter_yoy"},),
+        ),
+        "confirmation:gdp:nominal_ytd_level": (
+            "CN_GDP",
+            Periods.quarters(3),
+            ({"aggregate": "total", "measure": "nominal_ytd_level"},),
+        ),
+        "confirmation:capacity_utilization": (
+            "CN_CAPACITY_UTILIZATION",
+            Periods.quarters(5),
+            ({"industry": "all_industry", "measure": "quarter_rate"},),
+        ),
+        "confirmation:capacity_utilization:change": (
+            "CN_CAPACITY_UTILIZATION",
+            Periods.quarters(5),
+            ({"industry": "all_industry", "measure": "yoy_change"},),
+        ),
+        "confirmation:industrial_profit": (
+            "CN_INDUSTRIAL_FINANCE",
+            Periods.consecutive(5),
+            ({"item": "profit", "measure": "official_yoy"},),
+        ),
+        "confirmation:industrial_profit:revenue": (
+            "CN_INDUSTRIAL_FINANCE",
+            Periods.consecutive(3),
+            ({"item": "revenue", "measure": "official_yoy"},),
+        ),
+        "confirmation:industrial_profit:cost": (
+            "CN_INDUSTRIAL_FINANCE",
+            Periods.consecutive(3),
+            ({"item": "cost", "measure": "official_yoy"},),
+        ),
+    }
+    assert readings["confirmation:industrial_profit"].unreleased_months == frozenset({1})
 
 
 def test_a_policy_model_counts_its_sessions_and_months_past_the_window(
@@ -830,7 +955,8 @@ def _assert_the_fetch_covers_the_plan(
     periods: dict[str, list[str]], requests: dict[str, dict[str, str]]
 ) -> None:
     """Both read one declaration: every period the plan requires of a fetched series lies in
-    the fetch's range, and the impulse's inputs start where the fetch starts.
+    the fetch's range, the impulse's months start where the fetch starts, and its quarters
+    start no earlier.
 
     Not of v0001, whose catalog declares the monthly series daily.
     """
@@ -852,7 +978,9 @@ def _assert_the_fetch_covers_the_plan(
         periods["CN_SF_TOTAL"][0].replace("-", "")
         == requests["social_financing_total"]["start_month"]
     )
-    assert periods["CN_GDP"][0].replace("-", "") == requests["gdp"]["start_quarter"]
+    # A key indicator's quarters may reach before the impulse's: the fetch covers the five
+    # quarters each day of the window reads, the plan the target day's (ticket 07).
+    assert requests["gdp"]["start_quarter"] <= periods["CN_GDP"][0].replace("-", "")
 
 
 @pytest.mark.usefixtures("runtime_clock")

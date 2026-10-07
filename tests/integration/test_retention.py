@@ -411,6 +411,74 @@ def test_a_derived_value_in_the_window_keeps_the_claims_it_was_computed_from(
     assert not any((paths.artifacts / h[:2] / h).exists() for h in (expired_raw, unread_raw))
 
 
+def test_quarters_and_months_read_back_past_the_window_are_cleared_by_a_successful_run(
+    pruned: dict[str, Any],
+) -> None:
+    """Macro semantics ticket 07: GDP's earlier quarters and loans' t-13, fetched again by
+    each run, go at its end; one a kept derived value was computed from stays."""
+    paths = pruned["paths"]
+    evidence = EvidenceRepository(paths.database)
+
+    def old_claim(
+        metric_id: str, kind: str, start: str, end: str, dimensions: dict[str, str]
+    ) -> str:
+        [claim] = evidence.append_source_claims(
+            (
+                SourceClaimInput(
+                    metric_id=metric_id,
+                    definition_version="metric-catalog-v0001",
+                    period_kind=kind,
+                    period_start=start,
+                    period_end=end,
+                    dimensions=dimensions,
+                    value=100.0,
+                    value_state=EvidenceValueState.REPORTED_VALUE,
+                    unit="hundred_million_cny",
+                    provider="fixture",
+                    source_reference=f"fixture:lookback:{metric_id}:{end}",
+                    release_event_id=f"fixture:lookback:{metric_id}:{end}",
+                    release_at=None,
+                    public_available_at=None,
+                    fetched_at=datetime.now(UTC),
+                    available_at=datetime.now(UTC),
+                    quality_status="validated",
+                ),
+            )
+        )
+        return claim.claim_id
+
+    nominal = {"aggregate": "total", "measure": "nominal_ytd_level"}
+    quarter = old_claim("CN_GDP", "quarter", "2025-07-01", "2025-09-30", nominal)
+    parent = old_claim("CN_GDP", "quarter", "2025-04-01", "2025-06-30", nominal)
+    t_13 = old_claim(
+        "CN_LOAN_STRUCTURE",
+        "month",
+        "2025-07-01",
+        "2025-07-31",
+        {"borrower": "enterprise", "tenor": "long_term", "measure": "ytd_increment"},
+    )
+    kept = evidence.append_derived_observation(
+        metric_id="CN_CREDIT_IMPULSE",
+        formula_version="fixture-formula",
+        input_observation_version_ids=(parent,),
+        as_of_mode=AsOfMode.SYSTEM,
+        as_of_cutoff=datetime(2026, 8, 3, 7, tzinfo=UTC),
+        computed_at=datetime.now(UTC),
+        value=1.0,
+        unit="percent",
+    ).derived_observation_id
+
+    run = pruned["runner"].run(TARGET, "target-day-lookback-cleared")
+
+    assert RunRepository(paths.database).get(run).status == "completed"
+    claims = {row[0] for row in query(paths, "SELECT claim_id FROM source_claim")}
+    assert not {quarter, t_13} & claims
+    assert parent in claims
+    assert query(
+        paths, "SELECT 1 FROM derived_observation WHERE derived_observation_id=?", kept
+    ) == [(1,)]
+
+
 def test_today_s_tushare_calls_stay_for_the_day_s_quota(
     pruned: dict[str, Any], capsys: pytest.CaptureFixture[str]
 ) -> None:
