@@ -922,6 +922,7 @@ def _confirmation_macro_page(document: dict[str, object], *, as_of: str | None) 
             _page_heading("宏观证据", "MACRO CONFIRMATION · DIMENSION SUMMARY"),
             html.P(_confirmation_scope(confirmation), className="body-copy page-intro"),
             *sections,
+            *_price_sections(document),
             html.Section(
                 [
                     _section_heading("国际环境", "P2 CONTEXT ONLY · NO SCORE"),
@@ -943,6 +944,155 @@ def _confirmation_macro_page(document: dict[str, object], *, as_of: str | None) 
         ],
         className="page-stack",
     )
+
+
+def _price_sections(document: dict[str, object]) -> list[html.Section]:
+    """What is shown beside the dimension summary, never counted: the cores' price internal
+    consistency, their observation interfaces and the supply-demand note (ticket 09)."""
+    sections = []
+    consistency = _object_document(document.get("price_consistency"))
+    if consistency:
+        sections.append(
+            html.Section(
+                [
+                    _section_heading("价格内部一致性（不计数）", "PRICE CONSISTENCY · NOT COUNTED"),
+                    html.Ul(
+                        [
+                            html.Li(line, className="record-row")
+                            for line in _consistency_lines(consistency)
+                        ],
+                        className="record-list",
+                    ),
+                ],
+                className="content-section",
+            )
+        )
+    interfaces = _object_document(document.get("observation_interfaces"))
+    if interfaces:
+        sections.append(
+            html.Section(
+                [
+                    _section_heading("观察接口（只展示，不计数）", "OBSERVATION INTERFACES"),
+                    *(
+                        html.Div(
+                            [
+                                html.P(
+                                    f"{core.get('label')} {core.get('core_metric_id')}",
+                                    className="secondary-copy",
+                                ),
+                                html.Ul(
+                                    [
+                                        html.Li(_interface_line(member), className="record-row")
+                                        for member in _document_list(core.get("members"))
+                                    ],
+                                    className="record-list",
+                                ),
+                            ]
+                        )
+                        for core in _document_list(interfaces.get("cores"))
+                    ),
+                ],
+                className="content-section",
+            )
+        )
+    note = _object_document(document.get("supply_demand"))
+    if note:
+        lines = [
+            str(note.get("headline")),
+            str(note.get("text")),
+            *(
+                str(note[key])
+                for key in ("supply_suspicion", "registered_warrants")
+                if note.get(key)
+            ),
+            str(note.get("boundary")),
+        ]
+        if note.get("missing"):
+            lines.append("缺：" + "、".join(str(item) for item in _list_of(note["missing"])))
+        sections.append(
+            html.Section(
+                [
+                    _section_heading("商品供需附注（不计数）", "SUPPLY AND DEMAND · NOTE ONLY"),
+                    *(html.P(line, className="body-copy") for line in lines),
+                ],
+                className="content-section",
+            )
+        )
+    return sections
+
+
+_MOVES = {"up": "向上", "down": "向下", "flat": "持平"}
+
+
+def _consistency_lines(document: dict[str, object]) -> list[str]:
+    """Each pair's 120-session return difference, the breadth and the sleeves, and where
+    the stage expects the cores to stand."""
+    span = (
+        f"{document.get('first_session')}～{document.get('last_session')}"
+        if document.get("first_session")
+        else "交易日历未覆盖"
+    )
+    lines = [f"相对动量：{document.get('sessions')} 个交易日收益差，需对齐的实际价格点（{span}）"]
+    for pair in _document_list(document.get("relative_momentum")):
+        value = pair.get("value_pp")
+        lines.append(
+            f"{pair.get('label')}：{value:+.2f} 个百分点，"
+            + _MOVES.get(str(pair.get("direction")), "")
+            if isinstance(value, (int, float))
+            else f"{pair.get('label')}：未确认，缺："
+            + "、".join(str(item) for item in _list_of(pair.get("missing")))
+        )
+    for key in ("stock_breadth", "basket_breadth"):
+        item = _object_document(document.get(key))
+        if not item:
+            continue
+        reading = (
+            str(item.get("text"))
+            if item.get("text")
+            else "未确认，缺：" + "、".join(str(gap) for gap in _list_of(item.get("missing")))
+        )
+        detail = (
+            f"（占比 {_display_value(item.get('share'))}%，"
+            f"以 {_display_value(item.get('line'))}% 为多数线）"
+            if key == "stock_breadth" and item.get("share") is not None
+            else f"（{item.get('along')}/{item.get('of')} 个分项同向）"
+            if key == "basket_breadth" and item.get("along") is not None
+            else ""
+        )
+        lines.append(f"{item.get('label')}：{reading}{detail}")
+    position = _object_document(document.get("position"))
+    if position.get("applicable"):
+        agrees = position.get("agrees")
+        held = "符合" if agrees is True else "不符" if agrees is False else "未定"
+        lines.append(f"阶段位置：{position.get('text')}（{held}）")
+        lines.extend(
+            f"转折提示：{hint.get('text')}" for hint in _document_list(position.get("turn_hints"))
+        )
+        lines.extend(str(note) for note in _list_of(position.get("notes")))
+    else:
+        lines.append("阶段位置：非典型组合，不给出阶段位置")
+    return lines
+
+
+def _interface_line(member: dict[str, object]) -> str:
+    """A member's rows as shown: a bond price says only which way the price moved."""
+    if member.get("in_catalog") is False:
+        return f"{member.get('label')}：当前目录未收录"
+    rows = [
+        " ".join(
+            part
+            for part in (
+                str(row.get("period") or "无可用读数"),
+                _display_value(row.get("value")),
+                _bond_price_reading(str(member.get("metric_id")), row.get("direction"))
+                if member.get("reads_as") == "bond_price"
+                else "",
+            )
+            if part
+        )
+        for row in _document_list(member.get("evidence"))
+    ]
+    return f"{member.get('label')}：" + ("；".join(rows) if rows else "无可用读数")
 
 
 def _indicator_card(indicator: dict[str, object]) -> html.Article:

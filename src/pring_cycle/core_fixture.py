@@ -13,6 +13,7 @@ from pring_cycle.domain.trend import PricePoint, TrendRules, evaluate_trend, pro
 from pring_cycle.evidence import EvidenceRepository
 from pring_cycle.models import ModelRepository
 from pring_cycle.p0 import CoreAssetReadiness, P0ProjectionService, formal_stage
+from pring_cycle.price_consistency import CorePrices
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.runtime import RuntimePaths
 
@@ -56,9 +57,9 @@ def project_core_fixture(
         for asset in ("bond", "stock", "commodity")
     )
     normalized = _canonical_json(parsed["normalized_document"])
-    evidence_snapshot_id = "fixture-snapshot-" + hashlib.sha256(
-        normalized.encode()
-    ).hexdigest()[:20]
+    evidence_snapshot_id = (
+        "fixture-snapshot-" + hashlib.sha256(normalized.encode()).hexdigest()[:20]
+    )
     previous_stage = _last_confirmed_stage(paths, parsed["target_business_date"])
     decided = formal_stage(assets)  # type: ignore[arg-type]
     context = build_context_projection(
@@ -68,6 +69,10 @@ def project_core_fixture(
         model_manifest=manifest,
         target_business_date=parsed["target_business_date"],
         visible_evidence_start=(calendar[-120] if len(calendar) >= 120 else calendar[0]),
+        core_prices={
+            item.asset: CorePrices(item.asset, item.metric_id, item.reason, item.closes)
+            for item in assets
+        },
     )
     service = P0ProjectionService(ProjectionSetRepository(paths.database))
     result = service.publish(
@@ -125,9 +130,7 @@ def _parse_fixture(document: object) -> dict[str, Any]:
     if calendar[-1] != target:
         raise ValueError("core_fixture_target_must_end_calendar")
     assets_value = document["assets"]
-    if not isinstance(assets_value, dict) or set(assets_value) != set(
-        CORE_FIXTURE_METRICS
-    ):
+    if not isinstance(assets_value, dict) or set(assets_value) != set(CORE_FIXTURE_METRICS):
         raise ValueError("core_fixture_asset_manifest_invalid")
     prices: dict[str, tuple[PricePoint, ...]] = {}
     normalized_assets: dict[str, object] = {}
@@ -172,9 +175,7 @@ def _price_points(
     for row in value:
         if not isinstance(row, dict) or set(row) != {"business_date", "value"}:
             raise ValueError("core_fixture_price_schema_invalid")
-        business_date = _date_text(
-            row["business_date"], "core_fixture_price_date_invalid"
-        )
+        business_date = _date_text(row["business_date"], "core_fixture_price_date_invalid")
         raw_value = row["value"]
         if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
             raise ValueError("core_fixture_price_value_invalid")
@@ -220,6 +221,7 @@ def _readiness(
         distance_pct=trend.distance_pct,
         slope_pct=trend.slope_pct,
         noise_band_pct=trend.noise_band_pct,
+        closes=tuple((point.business_date.isoformat(), point.value) for point in points),
     )
 
 

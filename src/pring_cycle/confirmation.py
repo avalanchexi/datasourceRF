@@ -48,6 +48,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from pring_cycle.domain import FormalStage
+from pring_cycle.price_consistency import PriceRules
 from pring_cycle.registered_warrants import WarrantRules
 
 OUTPUT_STRUCTURE = "confirmation-v0001"
@@ -470,6 +471,9 @@ class ConfirmationRules:
     timing: TimingRules
     # The registered warrants' frozen conversions, read as a note on inventory.
     warrants: WarrantRules | None = None
+    # What is shown beside the dimension summary, never counted: the observation
+    # interfaces, the price internal consistency and the supply-demand note (ticket 09).
+    prices: PriceRules | None = None
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> ConfirmationRules | None:
@@ -498,7 +502,23 @@ class ConfirmationRules:
             raise ValueError("confirmation_key_indicator_duplicate")
         conversions = document.get("warrant_conversions")
         warrants = WarrantRules.parse(conversions) if conversions is not None else None
-        return cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing, warrants)
+        prices = (
+            PriceRules.parse(
+                document,
+                stages=_STAGES,
+                members={item.key: {member.name for member in item.members} for item in indicators},
+            )
+            # The three come together: none of them alone escapes the checks below.
+            if any(name in document for name in _PRICE_BLOCKS)
+            else None
+        )
+        rules = cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing, warrants, prices)
+        if prices is not None and rules.metric_ids() & (
+            prices.interface_metrics | set(prices.cores.values())
+        ):
+            # The cores' own kinds are shown under them, never counted (ADR-0037).
+            raise ValueError("confirmation_observation_interface_counted")
+        return rules
 
     def metric_ids(self) -> frozenset[str]:
         """Every metric the indicators read: their members', their formulas' inputs and
@@ -2200,6 +2220,9 @@ def rules_v0001() -> dict[str, Any]:
         "timing_rules": copy.deepcopy(_TIMING_RULES),
         "maturity_rules": dict(_MATURITY_RULES),
         "warrant_conversions": copy.deepcopy(_WARRANT_CONVERSIONS),
+        "observation_interfaces": copy.deepcopy(_OBSERVATION_INTERFACES),
+        "price_consistency": copy.deepcopy(_PRICE_CONSISTENCY),
+        "supply_demand": copy.deepcopy(_SUPPLY_DEMAND),
     }
 
 
@@ -3439,3 +3462,197 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     _DR007,
     _INVENTORY_QUADRANT,
 ]
+
+
+_PRICE_BLOCKS = ("observation_interfaces", "price_consistency", "supply_demand")
+# Prices of each core's own kind, shown under it and never counted (CONTEXT.md 观察接口;
+# expectation-table.md E1/D2): NHII is the commodity core, no evidence of prices (N06).
+_OBSERVATION_INTERFACES = [
+    {
+        "core": "bond",
+        "core_metric_id": "CN_BOND_CORE_000012",
+        "label": "债券核心（上证国债指数）",
+        "members": [
+            # Price indices: a rise is a stronger bond price (ticket 01).
+            {
+                "metric_id": "CN_BOND_10Y_930916",
+                "label": "10 年国债价格指数",
+                "reads_as": "bond_price",
+            },
+            {
+                "metric_id": "CN_BOND_FULL_PRICE_CNY030",
+                "label": "中债 030 全价",
+                "reads_as": "bond_price",
+            },
+        ],
+    },
+    {
+        "core": "stock",
+        "core_metric_id": "CN_EQUITY_CORE_000985",
+        "label": "股票核心（中证全指）",
+        "members": [
+            {"metric_id": "CN_EQ_CSI300", "label": "中证 300"},
+            {"metric_id": "CN_EQ_CSI500", "label": "中证 500"},
+            {"metric_id": "CN_EQ_CSI1000", "label": "中证 1000"},
+            {"metric_id": "CN_EQ_ADV_DEC", "label": "市场广度：涨跌家数"},
+            {"metric_id": "CN_EQ_AD_RATIO", "label": "市场广度：涨跌家数比"},
+            {"metric_id": "CN_EQ_ADV_AMOUNT_SHARE", "label": "市场广度：上涨成交额占比"},
+            {"metric_id": "CN_EQ_NEW_HIGH_LOW_90", "label": "市场广度：90 日新高新低"},
+            {"metric_id": "CN_EQ_NEW_HIGH_LOW_250", "label": "市场广度：250 日新高新低"},
+            {"metric_id": "CN_EQ_ABOVE_MA90", "label": "市场广度：站上 90 日均线占比"},
+            {"metric_id": "CN_EQ_ABOVE_MA250", "label": "市场广度：站上 250 日均线占比"},
+            {"metric_id": "CN_INDEX_VALUATION", "label": "估值"},
+            {"metric_id": "CN_MARGIN_BALANCE_SSE_SZSE", "label": "融资余额"},
+        ],
+    },
+    {
+        "core": "commodity",
+        "core_metric_id": "CN_COMMODITY_CORE_NHII",
+        "label": "商品核心（南华工业品指数）",
+        "members": [
+            {"metric_id": "CN_COMMODITY_BROAD_NHCI", "label": "南华综合指数"},
+            {"metric_id": "CN_COMMODITY_EX_HOG_BASKET", "label": "商品篮子"},
+            {"metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION", "label": "商品篮子分项贡献"},
+            {"metric_id": "EIA_WTI_RWTC", "label": "WTI 原油"},
+            {"metric_id": "EIA_BRENT_RBRTE", "label": "Brent 原油"},
+        ],
+    },
+]
+_RISE_ON_FEWER = "上涨集中于较少个股"
+# The three cores' relative momentum over 120 sessions (O3), breadth (O1) and the basket's
+# sleeves, and where each stage expects them (expectation-table.md, 价格内部一致性). A pair
+# rising is its first core stronger over the sessions; turning is read from that alone, no
+# shorter horizon (O3).
+_PRICE_CONSISTENCY = {
+    "relative_momentum": {
+        "formula": "return-difference-v0001",
+        "sessions": 120,
+        "cores": {
+            "bond": "CN_BOND_CORE_000012",
+            "stock": "CN_EQUITY_CORE_000985",
+            "commodity": "CN_COMMODITY_CORE_NHII",
+        },
+        "pairs": [
+            {"key": "commodity_vs_bond", "label": "商品对债", "of": "commodity", "against": "bond"},
+            {"key": "stock_vs_bond", "label": "股票对债", "of": "stock", "against": "bond"},
+            {
+                "key": "stock_vs_commodity",
+                "label": "股票对商品",
+                "of": "stock",
+                "against": "commodity",
+            },
+        ],
+    },
+    # All A shares above their 90-session average against a majority: the window nearest
+    # the momentum's 120 sessions. Fewer shares, never a sector or a weight (O1).
+    "stock_breadth": {
+        "metric_id": "CN_EQ_ABOVE_MA90",
+        "dimensions": {"measure": "above_ma_share"},
+        "line": 50,
+        "label": "股市广度（站上 90 日均线个股占比）",
+        "texts": {
+            "broad_rise": "上涨普遍",
+            "narrow_rise": _RISE_ON_FEWER,
+            "broad_fall": "下跌普遍",
+            "narrow_fall": "下跌集中于较少个股",
+            "even": "涨跌个股各半",
+            "index_flat": "指数持平",
+        },
+    },
+    "basket_breadth": {
+        "metric_id": "CN_COMMODITY_SLEEVE_CONTRIBUTION",
+        "dimensions": {"formula_version": "ex-hog-calendar-settlement-v0003"},
+        "sleeves": ["copper", "rebar", "polypropylene", "textiles", "rubber", "pulp", "crude_oil"],
+        "label": "商品篮子分项广度",
+        "texts": {
+            "broad_rise": "上涨普遍",
+            "single_sleeve_rise": "上涨集中于单一分项",
+            "few_sleeves_rise": "上涨集中于少数分项",
+            "broad_fall": "下跌普遍",
+            "single_sleeve_fall": "下跌集中于单一分项",
+            "few_sleeves_fall": "下跌集中于少数分项",
+            "flat": "篮子持平",
+            "unaligned": "分项累计方向与篮子不一致（逐日涨跌相互抵消）",
+        },
+    },
+    "stages": {
+        "stage_i": {
+            "text": "预期债最强：商品对债、股票对债相对动量向下",
+            "expect": {"commodity_vs_bond": "down", "stock_vs_bond": "down"},
+            "turn_hints": [
+                {
+                    "text": "商品对债已回升，可能接近Ⅱ／Ⅲ",
+                    "toward": ["stage_ii", "stage_iii"],
+                    "when": {"commodity_vs_bond": "up"},
+                }
+            ],
+        },
+        "stage_ii": {
+            "text": "预期股票对商品向上、股票对债回升、商品对债仍弱",
+            "expect": {
+                "stock_vs_commodity": "up",
+                "stock_vs_bond": "up",
+                "commodity_vs_bond": "down",
+            },
+            # F1, narrowed by O1.
+            "breadth_notes": {
+                "broad_rise": "上涨普遍",
+                "narrow_rise": f"{_RISE_ON_FEWER}，阶段稳固度存疑",
+            },
+        },
+        "stage_iii": {
+            "text": "预期商品对债相对动量转强",
+            "expect": {"commodity_vs_bond": "up"},
+            "breadth_notes": {"broad_rise": "股市广度普遍改善"},
+        },
+        "stage_iv": {
+            "text": "预期债最弱：股票对债、商品对债相对动量向上",
+            "expect": {"stock_vs_bond": "up", "commodity_vs_bond": "up"},
+            "breadth_notes": {"narrow_rise": _RISE_ON_FEWER},
+        },
+        "stage_v": {
+            "text": "预期商品最强：商品对债向上、股票对商品向下",
+            "expect": {"commodity_vs_bond": "up", "stock_vs_commodity": "down"},
+            "breadth_notes": {"narrow_fall": "下跌集中于较少个股"},
+        },
+        "stage_vi": {
+            "text": "预期三资产皆弱",
+            "expect": {"bond": "down", "stock": "down", "commodity": "down"},
+            "turn_hints": [
+                {
+                    "text": "债对商品相对动量转升，可能接近Ⅰ",
+                    "toward": ["stage_i"],
+                    "when": {"commodity_vs_bond": "down"},
+                }
+            ],
+        },
+    },
+}
+# The commodity rise's demand, tested in stages III to V (G2/K1; supply-demand
+# separability): orders, purchases and production rising on with output following bear it
+# out; orders and purchases falling leave it short, a supply suspicion beside it. The data
+# cannot tell what drives prices.
+_SUPPLY_DEMAND = {
+    "stages": ["stage_iii", "stage_iv", "stage_v"],
+    "improving": [
+        {"indicator": "pmi", "member": "new_orders", "run": "up"},
+        {"indicator": "pmi", "member": "purchase_volume", "run": "up"},
+        {"indicator": "pmi", "member": "production", "run": "up"},
+        {"indicator": "industrial_va", "member": "current_month", "momentum": "up"},
+    ],
+    "weakening": [
+        {"indicator": "pmi", "member": "new_orders", "momentum": "down"},
+        {"indicator": "pmi", "member": "purchase_volume", "momentum": "down"},
+    ],
+    "texts": {
+        "label": "商品供需附注",
+        "headline": "商品价格上涨，推动力未确认",
+        "boundary": "现有数据只能做需求一致性检验与供给嫌疑提示，不能确认推动力",
+        "demand_supported": "国内需求恢复获得支持（各关键指标各自计数，组合不另计）",
+        "demand_insufficient": "需求恢复解释不足；供给、预期或晚周期因素待查",
+        "mixed": "混合：需求读数不一致，不强行二选一",
+        "unconfirmed": "未确认：需求读数不全，缺失不等于无供给冲击",
+        "supply_suspicion": "供给嫌疑（只作附注）",
+        "warrants_with_prices": "注册库存变化，来源未识别",
+    },
+}

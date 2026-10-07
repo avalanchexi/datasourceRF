@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
+from itertools import takewhile
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -219,6 +220,7 @@ def report_input_from_projection(projection: ProjectionSet) -> ReportInput:
     if macro.get("output_structure") == CONFIRMATION_STRUCTURE and isinstance(confirmation, dict):
         conclusions, outputs = _confirmation_conclusions(confirmation, macro)
         outputs["confirmation"]["inventory"] = _inventory_notes(inventory)
+        outputs["confirmation"].update(_price_notes(macro))
     else:
         conclusions = {name: _text_or_none(macro.get(name)) for name in _MACRO_CONCLUSIONS}
         conclusions["inventory_quadrant"] = _text_or_none(inventory.get("quadrant"))
@@ -414,6 +416,56 @@ def _inventory_notes(inventory: dict[str, Any]) -> dict[str, Any]:
             if isinstance(proxy, dict)
             else None
         ),
+    }
+
+
+def _price_notes(macro: dict[str, Any]) -> dict[str, Any]:
+    """What is shown beside the dimension summary, never counted: the price internal
+    consistency, the observation interfaces as read and the supply-demand note; no
+    evidence identifiers (ticket 09)."""
+    interfaces = macro.get("observation_interfaces")
+    return {
+        "price_consistency": macro.get("price_consistency"),
+        "observation_interfaces": (
+            {
+                "counted": interfaces.get("counted"),
+                "cores": [
+                    {
+                        "core": core.get("core"),
+                        "label": core.get("label"),
+                        "members": [
+                            {
+                                "label": member.get("label"),
+                                "reads_as": member.get("reads_as"),
+                                "in_catalog": member.get("in_catalog"),
+                                "readings": [
+                                    {
+                                        field: row.get(field)
+                                        for field in (
+                                            "dimensions",
+                                            "period",
+                                            "value",
+                                            "unit",
+                                            "direction",
+                                            "status",
+                                        )
+                                    }
+                                    for row in _list(member.get("evidence"))
+                                    if isinstance(row, dict)
+                                ],
+                            }
+                            for member in _list(core.get("members"))
+                            if isinstance(member, dict)
+                        ],
+                    }
+                    for core in _list(interfaces.get("cores"))
+                    if isinstance(core, dict)
+                ],
+            }
+            if isinstance(interfaces, dict)
+            else None
+        ),
+        "supply_demand": macro.get("supply_demand"),
     }
 
 
@@ -1230,6 +1282,75 @@ def _restates_confirmation(bundle: ReportInput, section: dict[str, Any]) -> bool
     return False
 
 
+# "商品对债向上", "股票对债相对动量：走弱", "商品对债并非向下": a pair's move said.
+_MOVE_WORDS = {
+    **dict.fromkeys(("向上", "上升", "走强", "回升", "转强", "转升"), "up"),
+    **dict.fromkeys(("向下", "下降", "走弱", "回落", "转弱"), "down"),
+    "持平": "flat",
+}
+_STATED_MOVE = re.compile("(" + _NEGATION + ")?(" + "|".join(_MOVE_WORDS) + ")")
+# What drives commodity prices, said as known: the data never tells it (ticket 09).
+_STATED_DRIVER = re.compile(r"(?:需求|供给)(?:型|推动|驱动|主导)|推动力(?:已经?)?(?:确认|明确)")
+_DENIAL = re.compile(r"不|未|无法|并非|没有")
+
+
+def _restates_prices(bundle: ReportInput, section: dict[str, Any]) -> bool:
+    """Whether a paragraph says a relative momentum's move other than the report input's,
+    or a move of one unconfirmed, or names what drives commodity prices.
+
+    A pair's move is read in the sentence naming it, the title running into the paragraph,
+    up to the clause naming a key indicator or a dimension, and on into a sentence naming no
+    pair that speaks of relative momentum. A driver named
+    in a sentence denying nothing is said as known.
+    """
+    if "confirmation_applicable" not in bundle.conclusions:
+        return False
+    confirmation = bundle.results.get("confirmation")
+    consistency = confirmation.get("price_consistency") if isinstance(confirmation, dict) else None
+    pairs = {
+        str(item["label"]): item.get("direction")
+        for item in (consistency or {}).get("relative_momentum") or []
+        if isinstance(item, dict) and item.get("label")
+    }
+    readings = confirmation.get("key_indicators") if isinstance(confirmation, dict) else None
+    others = [
+        *(str(item["name"]) for item in (readings or {}).values() if isinstance(item, dict)),
+        *_DIMENSION_WORDS,
+    ]
+    text = f"{section['title']} {section['explanation']}"
+    sentences = re.split(r"[。；;！!？?]", text)
+    if any(_STATED_DRIVER.search(item) and not _DENIAL.search(item) for item in sentences):
+        return True
+    if not pairs:
+        return False
+    pattern = re.compile("|".join(re.escape(label) for label in sorted(pairs, key=len)[::-1]))
+    current: str | None = None
+    for sentence in sentences:
+        found = list(pattern.finditer(sentence))
+        ends = [*(item.start() for item in found[1:]), len(sentence)]
+        stretches = [
+            (mention.group(), sentence[mention.end() : end])
+            for mention, end in zip(found, ends, strict=False)
+        ]
+        if not found and current is not None and "相对动量" in sentence:
+            stretches = [(current, sentence)]
+        for label, stretch in stretches:
+            current = label
+            # From a clause naming a key indicator or a dimension on, what is said is of it.
+            first, *rest = re.split(r"[，,]", stretch)
+            said_of = "".join(
+                [first, *takewhile(lambda item: not any(name in item for name in others), rest)]
+            )
+            for negated, word in _STATED_MOVE.findall(said_of):
+                said = _MOVE_WORDS[word]
+                if pairs[label] is None:
+                    if not negated:
+                        return True
+                elif (said == pairs[label]) == bool(negated):
+                    return True
+    return False
+
+
 def _attributed(sentences: list[str], labels: Mapping[str, str | None]) -> list[tuple[str, str]]:
     """Each stretch of ``sentences`` with the conclusion it is said of.
 
@@ -1296,7 +1417,7 @@ def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str
             return "forbidden_content_rejected"
         if any(stage != bundle.current_stage for stage in _stated_stages(section)):
             return "stage_mutation_rejected"
-        if _restates_confirmation(bundle, section):
+        if _restates_confirmation(bundle, section) or _restates_prices(bundle, section):
             return "conclusion_mutation_rejected"
         if not section["explanation"].strip() or any(
             separator in section["explanation"] for separator in "\r\n\u2028\u2029"

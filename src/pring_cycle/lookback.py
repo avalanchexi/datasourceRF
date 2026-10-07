@@ -223,6 +223,17 @@ def declare(rules: ContextProjectionRules) -> tuple[Reading, ...]:
     if rules.confirmation is not None:
         for indicator in rules.confirmation.indicators:
             readings.extend(_confirmation_readings(indicator, frequencies))
+        prices = rules.confirmation.prices
+        if prices is not None:
+            # The cores' relative momentum: a return over 120 sessions reads 121 actual
+            # closes, one before the window (macro semantics ticket 09). The cores' fetch
+            # holds more than the target day's; a day early in the window reads what it holds.
+            readings.extend(
+                Reading(
+                    metric_id, "confirmation:price_consistency", Periods.sessions(prices.points)
+                )
+                for metric_id in prices.cores.values()
+            )
     return tuple(readings)
 
 

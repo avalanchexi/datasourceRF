@@ -497,6 +497,15 @@ def _validate_confirmation(
     """
     if any(label in macro for label in _RETIRED_MACRO_LABELS):
         raise ValueError("projection_confirmation_retired_label_present")
+    # Shown beside the summary, never counted; the supply-demand note never names what
+    # drives prices (macro semantics ticket 09).
+    for name in ("observation_interfaces", "price_consistency", "supply_demand"):
+        shown = macro.get(name)
+        if shown is not None and (not isinstance(shown, dict) or shown.get("counted") is not False):
+            raise ValueError("projection_confirmation_price_notes_invalid")
+    note = macro.get("supply_demand")
+    if isinstance(note, dict) and note.get("driver") != "unconfirmed":
+        raise ValueError("projection_confirmation_price_notes_invalid")
     confirmation = macro.get("confirmation")
     if not isinstance(confirmation, dict):
         raise ValueError("projection_confirmation_invalid")

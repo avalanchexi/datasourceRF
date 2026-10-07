@@ -789,6 +789,53 @@ def test_loans_declare_t_13_and_the_quarterly_indicators_their_quarters() -> Non
     assert readings["confirmation:industrial_profit"].unreleased_months == frozenset({1})
 
 
+def test_the_cores_declare_121_sessions_for_their_relative_momentum() -> None:
+    # A return over 120 sessions reads 121 actual closes: one before the 120-session window,
+    # retained no longer than it, fetched again each run (macro semantics ticket 09).
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.lookback import declare
+
+    readings = [
+        item
+        for item in declare(ContextProjectionRules.from_manifest(model_v0015_manifest()))
+        if item.reading == "confirmation:price_consistency"
+    ]
+
+    assert {item.metric_id: item.periods for item in readings} == {
+        metric_id: Periods.sessions(121)
+        for metric_id in (
+            "CN_BOND_CORE_000012",
+            "CN_EQUITY_CORE_000985",
+            "CN_COMMODITY_CORE_NHII",
+        )
+    }
+    assert not any(item.every_day for item in readings)
+    # v0014 reads no price internal consistency.
+    assert not [
+        item
+        for item in declare(ContextProjectionRules.from_manifest(model_v0014_manifest()))
+        if item.reading == "confirmation:price_consistency"
+    ]
+
+
+def test_a_core_s_plan_requires_the_session_before_the_window_on_the_target_day() -> None:
+    window = tuple(f"2026-08-{day:02d}" for day in (24, 25, 26, 27, 28))
+    history = ("2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", *window)
+    read = Lookback(
+        (
+            own_reading("CN_BOND_CORE_000012", "daily", every_session=True),
+            Reading("CN_BOND_CORE_000012", "confirmation:price_consistency", Periods.sessions(6)),
+        )
+    )
+
+    required = read.required(
+        "CN_BOND_CORE_000012", "2026-08-28", sessions=history, window=window, whole_window=True
+    )
+
+    # The window's sessions, each read every day, and the one before it for the return.
+    assert list(required) == ["2026-08-21", *window]
+
+
 def test_a_policy_model_counts_its_sessions_and_months_past_the_window(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -825,6 +872,9 @@ def test_a_policy_model_counts_its_sessions_and_months_past_the_window(
     # injection's periods and the lead before them lie in the window.
     assert periods["CN_OMO_7D_AMOUNT"] == sessions[-121:]
     assert requests["transmission"]["start_date"] == sessions[-120 - 259]
+    # Each core's relative momentum: the window and the session before it (ticket 09).
+    for core in ("CN_BOND_CORE_000012", "CN_EQUITY_CORE_000985", "CN_COMMODITY_CORE_NHII"):
+        assert periods[core] == sessions[-121:]
 
 
 def _members(plan: dict[str, Any]) -> dict[str, dict[str, list[str] | None]]:
@@ -925,6 +975,9 @@ def test_the_members_a_reading_names_carry_from_the_plan_to_the_final_evaluation
     # Nor any note told of the members left out.
     pmi["expectations"]["stage_ii"]["cells"][1].pop("note")
     pmi["expectations"]["stage_vi"].pop("notes")
+    # Nor the supply-demand note, which reads other indicators (ticket 09).
+    for name in ("observation_interfaces", "price_consistency", "supply_demand"):
+        manifest["confirmation_rules"].pop(name)
 
     def hold(paths: RuntimePaths) -> None:
         adapter = TushareContextAdapter("fixture-only", transport=_manufacturing_pmi)

@@ -41,6 +41,9 @@ class CoreAssetReadiness:
     noise_band_pct: float | None = None
     model_input_observation_version_ids: tuple[str, ...] | None = None
     carried_forward: bool = False
+    # The actual closes (ISO day, value) the gate passed, oldest first: none when it failed,
+    # and never the close carried forward. Read beside the stage, never published here.
+    closes: tuple[tuple[str, float], ...] = ()
 
 
 @dataclass(frozen=True)

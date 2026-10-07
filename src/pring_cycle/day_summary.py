@@ -47,6 +47,7 @@ from pring_cycle.p0 import (
     P0PublishResult,
     formal_stage,
 )
+from pring_cycle.price_consistency import CorePrices
 from pring_cycle.projections import ProjectionSetRepository
 from pring_cycle.trading_calendar import TradingCalendar, run_calendar_scope, use_run_calendar
 
@@ -58,6 +59,11 @@ CORE_METRICS = {
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 CoreReadiness = tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness]
+
+
+def _core_prices(item: CoreAssetReadiness) -> CorePrices:
+    """A core's actual closes as its gate read them, for the price internal consistency."""
+    return CorePrices(item.asset, item.metric_id, item.reason, item.closes)
 
 
 def _no_warnings(_context: ContextProjection) -> tuple[str, ...]:
@@ -343,6 +349,7 @@ class DaySummaries:
             persist_derived=persist_derived,
             # A daily key indicator counts its sessions back past the run's window.
             calendar=self._window_calendar,
+            core_prices={item.asset: _core_prices(item) for item in readiness},
         )
 
     def _last_confirmed_stage(self, day: str) -> FormalStage | None:
@@ -389,6 +396,7 @@ class DaySummaries:
             slope_pct = None
             noise_band_pct = None
             model_inputs: tuple[str, ...] = ()
+            closes: tuple[tuple[str, float], ...] = ()
             # One session behind is carried: the previous close stands in for the target in
             # the calculation only and is never stored as a claim. Two or more is a real gap.
             carried = bool(series) and series[-1].period_end == previous_session.isoformat()
@@ -416,6 +424,7 @@ class DaySummaries:
                     for item in series
                     if item.selected_value is not None
                 ]
+                closes = tuple((point.business_date.isoformat(), point.value) for point in points)
                 if carried:
                     points.append(PricePoint(target, points[-1].value))
                     reason = CARRIED_FORWARD
@@ -459,6 +468,7 @@ class DaySummaries:
                     noise_band_pct=noise_band_pct,
                     model_input_observation_version_ids=model_inputs,
                     carried_forward=carried and state is not None,
+                    closes=closes,
                 )
             )
         return tuple(results)  # type: ignore[return-value]

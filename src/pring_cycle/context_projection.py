@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -59,6 +59,12 @@ from pring_cycle.evidence import usable_point as _usable_point
 from pring_cycle.freshness import assess as freshness_assess
 from pring_cycle.freshness import backtracked, period_status
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS, evidence_frequency
+from pring_cycle.price_consistency import (
+    CorePrices,
+    PriceRules,
+    price_consistency_document,
+    supply_demand_document,
+)
 from pring_cycle.registered_warrants import WarrantRules, registered_warrant_change
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
@@ -282,13 +288,17 @@ def build_context_projection(
     persist_derived: bool = True,
     formal_stage: StageResult | None = None,
     calendar: TradingCalendar | None = None,
+    core_prices: Mapping[str, CorePrices] | None = None,
 ) -> ContextProjection:
     """The day's context; a model with confirmation rules reads it against ``formal_stage``.
 
     The formal stage is decided from the three cores before, and only shared here: a
     model reading the four labels needs none. Its daily key indicators count sessions on
     ``calendar``, the SSE's as known (the run's by default), and its policy actions are
-    read in the window from ``visible_evidence_start``.
+    read in the window from ``visible_evidence_start``. Beside the dimension summary, never
+    counted, it shows the cores' observation interfaces and their price internal
+    consistency, read from the actual closes their gates passed (``core_prices``), and in
+    the stages it is given for, the commodity supply-demand note (macro semantics 09).
     """
     if as_of.tzinfo is None:
         raise ValueError("context_projection_as_of_must_be_timezone_aware")
@@ -332,6 +342,10 @@ def build_context_projection(
     missing = sorted(relevant - definitions.keys())
     if missing:
         raise ValueError(f"context_model_metric_missing:{','.join(missing)}")
+    prices = rules.confirmation.prices if rules.confirmation is not None else None
+    if prices is not None:
+        # The observation interfaces the catalog holds; one it does not is shown as such.
+        relevant = relevant | (prices.interface_metrics & definitions.keys())
     metric_results = {
         metric_id: _metric_rows(
             visible_repository,
@@ -593,6 +607,13 @@ def build_context_projection(
             if target_business_date is not None
             else as_of.astimezone(ZoneInfo("Asia/Shanghai")).date()
         )
+        # The cores and their own kinds are shown under the cores, no evidence of prices
+        # or of transmission (N06).
+        shown = (
+            prices.interface_metrics | set(prices.cores.values())
+            if prices is not None
+            else frozenset()
+        )
         readings = {
             indicator.key: _member_readings(
                 repository,
@@ -628,14 +649,16 @@ def build_context_projection(
                 },
             ),
             "policy_action": {"evidence": _row_documents(rows_by_metric, _POLICY_ACTION)},
-            "transmission": {"evidence": _row_documents(rows_by_metric, _POLICY_TRANSMISSION)},
+            "transmission": {
+                "evidence": _row_documents(rows_by_metric, _apart(_POLICY_TRANSMISSION, shown))
+            },
             "credit": {
                 "evidence": _row_documents(rows_by_metric, _CREDIT),
                 "formula": credit_formula,
             },
             "overheat": {"evidence": _row_documents(rows_by_metric, _OVERHEAT)},
             "price_chain": {
-                "evidence": _row_documents(rows_by_metric, _PRICE),
+                "evidence": _row_documents(rows_by_metric, _apart(_PRICE, shown)),
                 "energy_boundary": "headline_cpi_ppi_input_not_core_cpi_component",
             },
             "international_context": international_context,
@@ -685,6 +708,30 @@ def build_context_projection(
             )
             inventory_document["registered_warrants"] = warrants
             confirmation_inputs.update(warrants["observation_version_ids"])  # type: ignore[arg-type]
+        if prices is not None:
+            stage = formal_stage.current_stage.value if formal_stage.current_stage else None
+            macro_document["observation_interfaces"] = _interface_documents(prices, rows_by_metric)
+            consistency, used = _price_consistency(
+                visible_repository,
+                prices,
+                definitions,
+                as_of=as_of,
+                as_of_mode=as_of_mode,
+                stage=stage,
+                cores=core_prices,
+                span=_span(calendar or current_calendar(), day, prices.points),
+            )
+            macro_document["price_consistency"] = consistency
+            confirmation_inputs.update(used)
+            macro_document["supply_demand"] = supply_demand_document(
+                prices.supply_demand,
+                stage=stage,
+                readings={
+                    item.name: _demand_reading(readings[item.indicator], item.member)
+                    for item in prices.supply_demand.readings
+                },
+                warrants=inventory_document.get("registered_warrants"),  # type: ignore[arg-type]
+            )
         warnings = ()
     all_rows = [row for rows in rows_by_metric.values() for row in rows]
     model_inputs = set(derived_ids) | confirmation_inputs
@@ -872,6 +919,114 @@ def _member_readings(
         reading = _period_reading(indicator, member, role, status, points, newest, span, level_line)
         readings.append(replace(reading, earlier=tuple(earlier)))
     return tuple(readings)
+
+
+def _apart(roles: dict[str, str], shown: Collection[str]) -> dict[str, str]:
+    """``roles`` less the metrics shown under a core."""
+    return {metric_id: role for metric_id, role in roles.items() if metric_id not in shown}
+
+
+def _interface_documents(
+    rules: PriceRules, rows_by_metric: Mapping[str, tuple[dict[str, object], ...]]
+) -> dict[str, object]:
+    """Each core's observation interfaces with their rows as shown, never counted; one the
+    catalog does not hold is said to be absent."""
+    return {
+        "label": "观察接口",
+        "counted": False,
+        "cores": [
+            {
+                "core": item.core,
+                "core_metric_id": item.core_metric_id,
+                "label": item.label,
+                "members": [
+                    {
+                        "metric_id": member.metric_id,
+                        "label": member.label,
+                        "reads_as": member.reads_as,
+                        "counted": False,
+                        "in_catalog": member.metric_id in rows_by_metric,
+                        "evidence": list(rows_by_metric.get(member.metric_id, ())),
+                    }
+                    for member in item.members
+                ],
+            }
+            for item in rules.interfaces
+        ],
+    }
+
+
+def _span(calendar: TradingCalendar, day: date, count: int) -> tuple[str, ...] | None:
+    """The ``count`` SSE sessions to ``day``, as the calendar states them; None when it does
+    not reach back so far."""
+    try:
+        sessions = calendar.sessions_back(calendar.latest_on_or_before(day), count)
+    except LookupError:
+        return None
+    return tuple(item.isoformat() for item in sessions)
+
+
+def _price_consistency(
+    repository: Any,
+    rules: PriceRules,
+    definitions: Mapping[str, MetricDefinition],
+    *,
+    as_of: datetime,
+    as_of_mode: AsOfMode,
+    stage: str | None,
+    cores: Mapping[str, CorePrices] | None,
+    span: tuple[str, ...] | None,
+) -> tuple[dict[str, object], set[str]]:
+    """The cores' price internal consistency over ``span``, with the breadth and the sleeves
+    read in it; and the observations it read beside the cores' own."""
+    used: set[str] = set()
+
+    def held(metric_id: str, dimensions: Mapping[str, str]) -> list[MetricSeriesPoint]:
+        """The usable points in ``span`` whose dimensions include ``dimensions``."""
+        if metric_id not in definitions or span is None:
+            return []
+        return [
+            point
+            for point in repository.metric_series(
+                metric_id,
+                mode=as_of_mode,
+                as_of=as_of,
+                definition_version=definitions[metric_id].definition_version,
+            )
+            if _usable_point(point)
+            and point.period_end in span
+            and all(point.dimensions.get(key) == value for key, value in dimensions.items())
+            and _numeric_value(point.selected_value) is not None
+        ]
+
+    breadth: dict[str, float] = {}
+    for point in held(rules.breadth.metric_id, rules.breadth.dimensions):
+        if span is not None and point.period_end == span[-1]:
+            breadth[point.period_end] = float(point.selected_value)  # type: ignore[arg-type]
+            used.add(str(point.selected_claim_id))
+    sleeves: dict[str, dict[str, float]] = {}
+    for point in held(rules.basket.metric_id, rules.basket.dimensions):
+        sleeve = point.dimensions.get("sleeve")
+        if sleeve in rules.basket.sleeves and span is not None and point.period_end != span[0]:
+            sleeves.setdefault(sleeve, {})[point.period_end] = float(point.selected_value)  # type: ignore[arg-type]
+            used.add(str(point.selected_claim_id))
+    document = price_consistency_document(
+        rules, stage=stage, cores=cores, span=span, breadth=breadth, sleeves=sleeves
+    )
+    return document, used
+
+
+def _demand_reading(members: Sequence[MemberReading], name: str) -> dict[str, str | None] | None:
+    """A member's momentum and run, when its every reading is known."""
+    reading = next((item for item in members if item.member.name == name), None)
+    if (
+        reading is None
+        or reading.evidence_status != "current"
+        or not reading.points
+        or reading.missing
+    ):
+        return None
+    return {"momentum": reading.momentum, "run": reading.run}
 
 
 def _quadrant_document(
