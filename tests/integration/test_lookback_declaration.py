@@ -975,8 +975,14 @@ def test_the_members_a_reading_names_carry_from_the_plan_to_the_final_evaluation
     # Nor any note told of the members left out.
     pmi["expectations"]["stage_ii"]["cells"][1].pop("note")
     pmi["expectations"]["stage_vi"].pop("notes")
-    # Nor the supply-demand note, which reads other indicators (ticket 09).
-    for name in ("observation_interfaces", "price_consistency", "supply_demand"):
+    # Nor the supply-demand note or the bond's attribution, which read other indicators
+    # (tickets 09 and 10).
+    for name in (
+        "observation_interfaces",
+        "price_consistency",
+        "supply_demand",
+        "bond_attribution",
+    ):
         manifest["confirmation_rules"].pop(name)
 
     def hold(paths: RuntimePaths) -> None:

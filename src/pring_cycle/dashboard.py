@@ -205,6 +205,10 @@ def _home_page(projection: ProjectionSet | None) -> html.Div:
                         className="section-heading",
                     ),
                     _asset_table(asset_rows),
+                    *(
+                        html.P(f"债券归因（附注，不计数）：{line}", className="secondary-copy")
+                        for line in _attribution_lines(macro, brief=True)
+                    ),
                 ],
                 className="content-section",
             ),
@@ -923,6 +927,7 @@ def _confirmation_macro_page(document: dict[str, object], *, as_of: str | None) 
             html.P(_confirmation_scope(confirmation), className="body-copy page-intro"),
             *sections,
             *_price_sections(document),
+            *_attribution_sections(document),
             html.Section(
                 [
                     _section_heading("国际环境", "P2 CONTEXT ONLY · NO SCORE"),
@@ -1021,7 +1026,65 @@ def _price_sections(document: dict[str, object]) -> list[html.Section]:
     return sections
 
 
+def _attribution_sections(document: dict[str, object]) -> list[html.Section]:
+    """What drives the bond's trend, beside its state, never counted (ticket 10)."""
+    lines = _attribution_lines(document)
+    if not lines:
+        return []
+    return [
+        html.Section(
+            [
+                _section_heading("债券归因（不计数）", "BOND TREND ATTRIBUTION · NOTE ONLY"),
+                *(html.P(line, className="body-copy") for line in lines),
+            ],
+            className="content-section",
+        )
+    ]
+
+
+def _attribution_lines(document: dict[str, object], *, brief: bool = False) -> list[str]:
+    """The driver with the bond's price and each axis first, then why it is unclear, the
+    signals read and the notes; ``brief``, the driver and the notes alone. The bond core
+    is a price index: said as its price."""
+    note = _object_document(document.get("bond_attribution"))
+    if not note:
+        return []
+    axes = _document_list(note.get("axes"))
+    detail = "".join(f"（{note[key]}）" for key in ("typical", "suspicion") if note.get(key))
+    lines = [
+        "；".join(
+            [
+                str(note.get("bond_text")),
+                *(f"{axis.get('label')}{axis.get('text')}" for axis in axes),
+            ]
+        )
+        + f" → {note.get('text')}{detail}"
+    ]
+    if brief:
+        return [lines[0] + "；" + "；".join(str(item) for item in _list_of(note.get("notes")))]
+    lines.extend(str(item.get("text")) for item in _document_list(note.get("reasons")))
+    for axis in axes:
+        lines.append(
+            f"{axis.get('label')}："
+            + "、".join(
+                f"{signal.get('label')} " + _SIGNAL_WORDS.get(str(signal.get("value")), "未知")
+                for signal in _document_list(axis.get("signals"))
+            )
+        )
+    lines.extend(str(item) for item in _list_of(note.get("notes")))
+    lines.append(str(note.get("boundary")))
+    return lines
+
+
 _MOVES = {"up": "向上", "down": "向下", "flat": "持平"}
+_SIGNAL_WORDS = {
+    "cut": "下调",
+    "hike": "上调",
+    "none": "无动作",
+    "up": "上升",
+    "down": "下降",
+    "flat": "持平",
+}
 
 
 def _consistency_lines(document: dict[str, object]) -> list[str]:

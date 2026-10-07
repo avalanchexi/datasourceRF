@@ -422,7 +422,7 @@ def _inventory_notes(inventory: dict[str, Any]) -> dict[str, Any]:
 def _price_notes(macro: dict[str, Any]) -> dict[str, Any]:
     """What is shown beside the dimension summary, never counted: the price internal
     consistency, the observation interfaces as read and the supply-demand note; no
-    evidence identifiers (ticket 09)."""
+    evidence identifiers (ticket 09). And what drives the bond's trend (ticket 10)."""
     interfaces = macro.get("observation_interfaces")
     return {
         "price_consistency": macro.get("price_consistency"),
@@ -466,6 +466,7 @@ def _price_notes(macro: dict[str, Any]) -> dict[str, Any]:
             else None
         ),
         "supply_demand": macro.get("supply_demand"),
+        "bond_attribution": macro.get("bond_attribution"),
     }
 
 
@@ -1351,6 +1352,65 @@ def _restates_prices(bundle: ReportInput, section: dict[str, Any]) -> bool:
     return False
 
 
+# "债券由基本面推动", "债券推动力并非不明": what drives the bond's trend, said of it. A
+# negation before a driver, or in "推动力……不明", is taken in the match (ticket 10).
+_BOND_DRIVERS = {
+    "fundamentals_and_easing": r"基本面(?:加|与|和|及)宽松(?:共同)?(?:推动|驱动)",
+    "fundamentals": r"基本面(?:推动|驱动)",
+    "policy_liquidity": r"(?:政策或流动性|政策|流动性)(?:推动|驱动)",
+    "unclear": r"推动力(?P<within>" + _NEGATION + ")?不明",
+}
+_STATED_BOND_DRIVER = re.compile(
+    "("
+    + _NEGATION
+    + ")?(?:由于?|是|属于|为)?(?:"
+    + "|".join(f"(?P<{k}>{v})" for k, v in _BOND_DRIVERS.items())
+    + ")"
+)
+_BOND = re.compile(r"债券|债牛|债熊|债市|国债")
+_OTHER_ASSETS = ("股票", "股市", "A 股", "A股", "商品")
+
+
+def _restates_bond_attribution(bundle: ReportInput, section: dict[str, Any]) -> bool:
+    """Whether a paragraph says the bond's trend has a driver other than the report
+    input's, or denies its own.
+
+    A driver is said of the subject named last before it -- the bond, another asset or a
+    key indicator -- the title running into the paragraph; with none before it in its
+    sentence, of the one its sentence before ended on.
+    """
+    if "confirmation_applicable" not in bundle.conclusions:
+        return False
+    confirmation = bundle.results.get("confirmation")
+    note = confirmation.get("bond_attribution") if isinstance(confirmation, dict) else None
+    if not isinstance(note, dict):
+        return False
+    readings = confirmation.get("key_indicators") if isinstance(confirmation, dict) else None
+    others = [
+        *(str(item["name"]) for item in (readings or {}).values() if isinstance(item, dict)),
+        *_OTHER_ASSETS,
+    ]
+    other = re.compile("|".join(re.escape(name) for name in others))
+    of_bond = False
+    for sentence in re.split(r"[。；;！!？?]", f"{section['title']} {section['explanation']}"):
+        # Where each subject is named: True for the bond.
+        subjects = sorted(
+            [(item.start(), True) for item in _BOND.finditer(sentence)]
+            + [(item.start(), False) for item in other.finditer(sentence)]
+        )
+        for match in _STATED_BOND_DRIVER.finditer(sentence):
+            before = [bond for start, bond in subjects if start < match.start()]
+            if not (before[-1] if before else of_bond):
+                continue
+            driver = next(name for name in _BOND_DRIVERS if match.group(name))
+            negated = bool(match.group(1) or match.group("within"))
+            if (driver == note.get("driver")) == negated:
+                return True
+        if subjects:
+            of_bond = subjects[-1][1]
+    return False
+
+
 def _attributed(sentences: list[str], labels: Mapping[str, str | None]) -> list[tuple[str, str]]:
     """Each stretch of ``sentences`` with the conclusion it is said of.
 
@@ -1417,7 +1477,11 @@ def _validate_ai_document(bundle: ReportInput, response: AdapterResponse) -> str
             return "forbidden_content_rejected"
         if any(stage != bundle.current_stage for stage in _stated_stages(section)):
             return "stage_mutation_rejected"
-        if _restates_confirmation(bundle, section) or _restates_prices(bundle, section):
+        if (
+            _restates_confirmation(bundle, section)
+            or _restates_prices(bundle, section)
+            or _restates_bond_attribution(bundle, section)
+        ):
             return "conclusion_mutation_rejected"
         if not section["explanation"].strip() or any(
             separator in section["explanation"] for separator in "\r\n\u2028\u2029"

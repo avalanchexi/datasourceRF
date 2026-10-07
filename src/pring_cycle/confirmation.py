@@ -47,6 +47,7 @@ from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from pring_cycle.bond_attribution import AttributionRules
 from pring_cycle.domain import FormalStage
 from pring_cycle.price_consistency import PriceRules
 from pring_cycle.registered_warrants import WarrantRules
@@ -474,6 +475,8 @@ class ConfirmationRules:
     # What is shown beside the dimension summary, never counted: the observation
     # interfaces, the price internal consistency and the supply-demand note (ticket 09).
     prices: PriceRules | None = None
+    # What drives the bond's trend, told beside its state, never counted (ticket 10).
+    attribution: AttributionRules | None = None
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> ConfirmationRules | None:
@@ -512,7 +515,18 @@ class ConfirmationRules:
             if any(name in document for name in _PRICE_BLOCKS)
             else None
         )
-        rules = cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing, warrants, prices)
+        attribution = (
+            AttributionRules.parse(
+                document["bond_attribution"],
+                indicators={item.key: (item.name, item.dimension) for item in indicators},
+                acting={item.key for item in indicators if item.actions is not None},
+            )
+            if "bond_attribution" in document
+            else None
+        )
+        rules = cls(
+            OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing, warrants, prices, attribution
+        )
         if prices is not None and rules.metric_ids() & (
             prices.interface_metrics | set(prices.cores.values())
         ):
@@ -2223,6 +2237,7 @@ def rules_v0001() -> dict[str, Any]:
         "observation_interfaces": copy.deepcopy(_OBSERVATION_INTERFACES),
         "price_consistency": copy.deepcopy(_PRICE_CONSISTENCY),
         "supply_demand": copy.deepcopy(_SUPPLY_DEMAND),
+        "bond_attribution": copy.deepcopy(_BOND_ATTRIBUTION),
     }
 
 
@@ -3654,5 +3669,106 @@ _SUPPLY_DEMAND = {
         "unconfirmed": "未确认：需求读数不全，缺失不等于无供给冲击",
         "supply_suspicion": "供给嫌疑（只作附注）",
         "warrants_with_prices": "注册库存变化，来源未识别",
+    },
+}
+
+# What drives the bond core's trend, by two axes (expectation-table.md, 债券归因; every
+# stage, never counted). The policy axis: the window's actions and DR007, the funding
+# price, agreeing -- none and flat silent, every one silent neutral; funding rates falling
+# against a hike split it, so a bear market with them falling is never put down to policy
+# (stage VI's note). Growth and inflation: the overheat and price dimensions' coincident
+# key indicators, by the majority of all five; the lagging ones still tell the stage
+# before.
+_EASING_ACTION = {"cut": "easing", "hike": "tightening"}
+_STRONGER = {"up": "stronger", "down": "weaker"}
+_BOND_ATTRIBUTION = {
+    "core": "bond",
+    # The bond core is a price index: said as its price (ticket 01).
+    "bond": {"bull": "债券价格走强", "bear": "债券价格走弱"},
+    "axes": [
+        {
+            "key": "policy",
+            "label": "政策维度",
+            "combine": "agree",
+            "signals": [
+                {"indicator": "policy_rate", "reading": "action", "means": _EASING_ACTION},
+                {"indicator": "lpr", "reading": "action", "means": _EASING_ACTION},
+                {"indicator": "rrr", "reading": "action", "means": _EASING_ACTION},
+                {
+                    "indicator": "dr007",
+                    "reading": "momentum",
+                    "means": {"down": "easing", "up": "tightening"},
+                },
+            ],
+            "otherwise": "neutral",
+            "texts": {
+                "easing": "宽松",
+                "tightening": "收紧",
+                "neutral": "中性",
+                "mixed": "信号分化",
+                "unconfirmed": "未确认",
+            },
+        },
+        {
+            "key": "growth_inflation",
+            "label": "增长通胀（过热、物价）",
+            "combine": "majority",
+            "signals": [
+                {"indicator": key, "reading": "momentum", "means": _STRONGER}
+                for key in ("pmi", "industrial_va", "gdp", "ppi", "pmi_prices")
+            ],
+            "texts": {
+                "stronger": "走强",
+                "weaker": "走弱",
+                "mixed": "无多数方向",
+                "unconfirmed": "未确认",
+            },
+        },
+    ],
+    # The first row that holds names the driver; none holding, it is unclear.
+    "table": [
+        {
+            "bond": "bear",
+            "policy": ["tightening", "neutral"],
+            "growth_inflation": ["stronger"],
+            "driver": "fundamentals",
+            "typical": "典型Ⅳ",
+        },
+        {
+            "bond": "bear",
+            "policy": ["tightening"],
+            "growth_inflation": ["weaker"],
+            "driver": "policy_liquidity",
+        },
+        {
+            "bond": "bear",
+            "policy": ["easing"],
+            "growth_inflation": ["weaker"],
+            "driver": "unclear",
+            "suspicion": "财政供给、信用风险或期限溢价嫌疑",
+        },
+        {
+            "bond": "bull",
+            "policy": ["easing"],
+            "growth_inflation": ["weaker"],
+            "driver": "fundamentals_and_easing",
+            "typical": "典型Ⅰ、Ⅵ→Ⅰ",
+        },
+        # Whatever growth and inflation do.
+        {"bond": "bull", "policy": ["tightening"], "driver": "unclear", "suspicion": "避险嫌疑"},
+    ],
+    "drivers": {
+        "fundamentals": "基本面推动",
+        "policy_liquidity": "政策或流动性推动",
+        "fundamentals_and_easing": "基本面加宽松推动",
+        "unclear": "推动力不明",
+    },
+    "texts": {
+        "label": "债券归因",
+        "boundary": "债券状态旁的解释附注：不计入确认度，不由宽松程度推算或改写债券牛熊与正式阶段",
+        "term_premium": "期限溢价归因未确认",
+        "unclear_refinement": "收益率曲线与信用利差未接入，推动力不明暂不细分",
+        "bond_unknown": "债券核心状态未定",
+        "not_in_table": "两轴组合不在归因表中",
     },
 }

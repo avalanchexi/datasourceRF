@@ -71,13 +71,15 @@ class CorePrices:
     """A core's actual closes (ISO day, value), oldest first, as its gate read them.
 
     None when the gate failed, ``reason`` saying why; a close carried forward to the target
-    day is not among them.
+    day is not among them. ``state`` is the bull or bear its gate let stand, None when none
+    does: the bond's is what its trend attribution explains (ticket 10).
     """
 
     asset: str
     metric_id: str
     reason: str
     closes: tuple[tuple[str, float], ...] = ()
+    state: str | None = None
 
 
 @dataclass(frozen=True)

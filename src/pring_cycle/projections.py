@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from pring_cycle.batches import add_batch_columns, current_batch_id
+from pring_cycle.bond_attribution import DRIVERS as ATTRIBUTION_DRIVERS
 from pring_cycle.confirmation import DIMENSIONS as CONFIRMATION_DIMENSIONS
 from pring_cycle.confirmation import OUTPUT_STRUCTURE as CONFIRMATION_STRUCTURE
 from pring_cycle.confirmation import RELATIONS as CONFIRMATION_RELATIONS
@@ -464,7 +465,7 @@ def validate_analytical_projection(
     if inventory.get("output_structure") != structure:
         raise ValueError("projection_output_structure_mismatch")
     if structure == CONFIRMATION_STRUCTURE:
-        _validate_confirmation(macro, inventory, overview)
+        _validate_confirmation(macro, inventory, overview, bond_state=by_asset["bond"].get("state"))
     elif structure is not None:
         raise ValueError("projection_output_structure_unknown")
     else:
@@ -485,7 +486,11 @@ _RETIRED_MACRO_LABELS = ("policy_direction", "credit_response", "overheat_state"
 
 
 def _validate_confirmation(
-    macro: dict[str, object], inventory: dict[str, object], overview: dict[str, object]
+    macro: dict[str, object],
+    inventory: dict[str, object],
+    overview: dict[str, object],
+    *,
+    bond_state: object,
 ) -> None:
     """A dimension summary of the published stage, with no label standing in (ADR-0037).
 
@@ -493,19 +498,33 @@ def _validate_confirmation(
     indicators' relations, and a dimension not read yet has neither. A counterevidence
     waiting on grace counts only past it. An inventory card tells its data's availability
     apart from the relation, which is its quadrant's: never the seven cards' support for
-    data held (N07).
+    data held (N07). The bond's trend attribution explains the bond core's state as
+    published, never another.
     """
     if any(label in macro for label in _RETIRED_MACRO_LABELS):
         raise ValueError("projection_confirmation_retired_label_present")
     # Shown beside the summary, never counted; the supply-demand note never names what
-    # drives prices (macro semantics ticket 09).
-    for name in ("observation_interfaces", "price_consistency", "supply_demand"):
+    # drives prices (macro semantics ticket 09); nor is the bond's trend attribution (10).
+    for name in (
+        "observation_interfaces",
+        "price_consistency",
+        "supply_demand",
+        "bond_attribution",
+    ):
         shown = macro.get(name)
         if shown is not None and (not isinstance(shown, dict) or shown.get("counted") is not False):
             raise ValueError("projection_confirmation_price_notes_invalid")
     note = macro.get("supply_demand")
     if isinstance(note, dict) and note.get("driver") != "unconfirmed":
         raise ValueError("projection_confirmation_price_notes_invalid")
+    attribution = macro.get("bond_attribution")
+    if isinstance(attribution, dict) and (
+        attribution.get("driver") not in ATTRIBUTION_DRIVERS
+        # No bond state standing names no driver.
+        or (attribution.get("bond_trend") is None and attribution.get("driver") != "unclear")
+        or attribution.get("bond_trend") != (bond_state if bond_state in {"bull", "bear"} else None)
+    ):
+        raise ValueError("projection_bond_attribution_invalid")
     confirmation = macro.get("confirmation")
     if not isinstance(confirmation, dict):
         raise ValueError("projection_confirmation_invalid")

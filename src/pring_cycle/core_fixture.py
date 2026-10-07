@@ -70,7 +70,13 @@ def project_core_fixture(
         target_business_date=parsed["target_business_date"],
         visible_evidence_start=(calendar[-120] if len(calendar) >= 120 else calendar[0]),
         core_prices={
-            item.asset: CorePrices(item.asset, item.metric_id, item.reason, item.closes)
+            item.asset: CorePrices(
+                item.asset,
+                item.metric_id,
+                item.reason,
+                item.closes,
+                item.state.value if item.state is not None else None,
+            )
             for item in assets
         },
     )

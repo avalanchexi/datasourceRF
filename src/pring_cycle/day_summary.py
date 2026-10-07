@@ -62,8 +62,15 @@ CoreReadiness = tuple[CoreAssetReadiness, CoreAssetReadiness, CoreAssetReadiness
 
 
 def _core_prices(item: CoreAssetReadiness) -> CorePrices:
-    """A core's actual closes as its gate read them, for the price internal consistency."""
-    return CorePrices(item.asset, item.metric_id, item.reason, item.closes)
+    """A core's actual closes and state as its gate read them, for the price internal
+    consistency and the bond's trend attribution."""
+    return CorePrices(
+        item.asset,
+        item.metric_id,
+        item.reason,
+        item.closes,
+        item.state.value if item.state is not None else None,
+    )
 
 
 def _no_warnings(_context: ContextProjection) -> tuple[str, ...]:

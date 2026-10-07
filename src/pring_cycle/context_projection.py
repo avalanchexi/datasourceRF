@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from pring_cycle import credit_impulse
 from pring_cycle.acquisition_outcome import SUCCEEDED, AcquisitionOutcomes
 from pring_cycle.batches import current_batch_id
+from pring_cycle.bond_attribution import SignalReading, bond_attribution_document
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.claim_adoption import ClaimAdoption
@@ -298,7 +299,8 @@ def build_context_projection(
     read in the window from ``visible_evidence_start``. Beside the dimension summary, never
     counted, it shows the cores' observation interfaces and their price internal
     consistency, read from the actual closes their gates passed (``core_prices``), and in
-    the stages it is given for, the commodity supply-demand note (macro semantics 09).
+    the stages it is given for, the commodity supply-demand note (macro semantics 09); and
+    beside the bond's state as its gate let it stand, what drives its trend (ticket 10).
     """
     if as_of.tzinfo is None:
         raise ValueError("context_projection_as_of_must_be_timezone_aware")
@@ -732,6 +734,17 @@ def build_context_projection(
                 },
                 warrants=inventory_document.get("registered_warrants"),  # type: ignore[arg-type]
             )
+        attribution = rules.confirmation.attribution
+        if attribution is not None:
+            bond = (core_prices or {}).get(attribution.core)
+            macro_document["bond_attribution"] = bond_attribution_document(
+                attribution,
+                bond=bond.state if bond is not None else None,
+                readings={
+                    signal.name: _signal_reading(readings[signal.indicator][0], signal.reading)
+                    for signal in attribution.signals
+                },
+            )
         warnings = ()
     all_rows = [row for rows in rows_by_metric.values() for row in rows]
     model_inputs = set(derived_ids) | confirmation_inputs
@@ -1027,6 +1040,16 @@ def _demand_reading(members: Sequence[MemberReading], name: str) -> dict[str, st
     ):
         return None
     return {"momentum": reading.momentum, "run": reading.run}
+
+
+def _signal_reading(main: MemberReading, name: str) -> SignalReading:
+    """A key indicator's main member read as ``name``, when its every reading is known."""
+    if main.evidence_status != "current":
+        return SignalReading(None, (f"{main.member.label}:{main.evidence_status}",))
+    if main.gaps():
+        return SignalReading(None, main.gaps())
+    value = getattr(main, name)
+    return SignalReading(value, () if value is not None else (f"{main.member.label}:not_read",))
 
 
 def _quadrant_document(
