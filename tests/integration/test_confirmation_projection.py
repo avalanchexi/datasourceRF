@@ -203,18 +203,17 @@ def test_the_dimensions_count_and_the_others_are_not_connected(tmp_path: Path) -
         "unconfirmed": 1,
         "not_applicable": 0,
     }
-    for name in ("credit", "price"):
+    for name in ("policy", "credit", "price"):
         assert by_dimension[name]["status"] == "connected"
         assert by_dimension[name]["counts"]["unconfirmed"] == len(
             by_dimension[name]["key_indicators"]
         )
-    for name in ("policy", "inventory"):
-        assert by_dimension[name] == {
-            "dimension": name,
-            "status": "not_connected",
-            "counts": None,
-            "key_indicators": [],
-        }
+    assert by_dimension["inventory"] == {
+        "dimension": "inventory",
+        "status": "not_connected",
+        "counts": None,
+        "key_indicators": [],
+    }
     # No label stands in for the dimension summary, nor the seven cards for inventory.
     for label in ("policy_direction", "credit_response", "overheat_state", "price_pressure"):
         assert label not in context.macro
@@ -414,6 +413,11 @@ def test_the_rules_are_frozen_in_the_new_manifest_alone(tmp_path: Path) -> None:
         "pmi_prices",
         "social_financing",
         "money",
+        "policy_rate",
+        "lpr",
+        "rrr",
+        "liquidity",
+        "dr007",
     ]
     # The rules are part of the manifest's hash: the same model with other cells is refused.
     models = ModelRepository.create(tmp_path / "models.sqlite3")

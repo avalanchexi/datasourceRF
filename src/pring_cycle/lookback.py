@@ -15,6 +15,11 @@ farthest point is t-13 and which holds four periods, not thirteen.
 A reading reads every member the catalog requires of its metric unless it names its own;
 a period only such readings require is then checked for those members alone.
 
+A reading of more sessions than the fetch's fixed lead holds counts them on the SSE
+calendar, back from each day of the window, and the fetch starts there (macro semantics
+ticket 06); where the calendar does not state them, weekdays are counted with a margin for
+holidays.
+
 Not here: when a period is out (freshness's release rules), the credit impulse's base
 periods (its module answers them; ``resolve`` asks it), and what a reading computes.
 """
@@ -23,15 +28,16 @@ from __future__ import annotations
 
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse
-from pring_cycle.confirmation import DERIVED_FORMULAS, KeyIndicator
+from pring_cycle.confirmation import DERIVED_FORMULAS, SESSION_FORMULAS, KeyIndicator
 from pring_cycle.credit_impulse import InputPeriods
 from pring_cycle.metric_contracts import evidence_frequency
 from pring_cycle.retrieval import preceding_periods
+from pring_cycle.trading_calendar import TradingCalendar
 
 if TYPE_CHECKING:
     from pring_cycle.context_projection import ContextProjectionRules
@@ -216,17 +222,23 @@ def declare(rules: ContextProjectionRules) -> tuple[Reading, ...]:
         )
     if rules.confirmation is not None:
         for indicator in rules.confirmation.indicators:
-            readings.extend(_confirmation_readings(indicator))
+            readings.extend(_confirmation_readings(indicator, frequencies))
     return tuple(readings)
 
 
-def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
+def _confirmation_readings(
+    indicator: KeyIndicator, frequencies: Mapping[str, str]
+) -> list[Reading]:
     """What a key indicator reads of each member: its periods, and those before them its
     grace reads back of the main member or one a turn hint reads, less the months never
     released.
 
     The main member's months stood in for by another member are that member's alone; a
-    derived member reads each input at its months and a year before them.
+    derived member reads each input at its months and a year before them. A daily
+    indicator's member reads its periods' sessions, a formula's input the lead before them
+    too. A policy action reads the window and the value in force before it: an LPR its
+    months, a rate the one in force on the session before the window and each session's
+    notice from there; an RRR's events are traced back on their own (ADR-0028).
     """
     readings: list[Reading] = []
     every_month = frozenset(range(1, 13))
@@ -236,7 +248,54 @@ def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
             if member is indicator.main
             else f"confirmation:{indicator.key}:{member.name}"
         )
+        members = (member.dimensions,) if member.dimensions else None
         months = indicator.periods(member)
+        if indicator.actions is not None:
+            if frequencies.get(member.metric_id) == "monthly":
+                readings.append(
+                    Reading(
+                        member.metric_id,
+                        name,
+                        Periods.consecutive(indicator.lookback),
+                        members=members,
+                    )
+                )
+            elif indicator.actions == "level":
+                # The rate in force on the session before the window; the notices of it and
+                # of each session in the window, which state the rate.
+                readings.append(
+                    Reading(
+                        member.metric_id,
+                        name,
+                        Periods.explicit(indicator.window_sessions, unit="session"),
+                        members=members,
+                    )
+                )
+                if indicator.notices is not None and member is indicator.main:
+                    readings.append(
+                        Reading(
+                            indicator.notices.metric_id,
+                            f"{name}:notices",
+                            Periods.sessions(indicator.window_sessions + 1),
+                            members=(indicator.notices.dimensions,),
+                        )
+                    )
+            continue
+        if indicator.frequency == "daily" and member.frequency is None:
+            assert indicator.period_sessions is not None
+            formula = SESSION_FORMULAS.get(member.session_formula or "")
+            readings.append(
+                Reading(
+                    formula.metric_id if formula is not None else member.metric_id,
+                    name,
+                    Periods.sessions(
+                        indicator.reach(member) * indicator.period_sessions
+                        + (formula.lead_sessions if formula is not None else 0)
+                    ),
+                    members=(formula.dimensions,) if formula is not None else members,
+                )
+            )
+            continue
         if member.formula is not None:
             for item in DERIVED_FORMULAS[member.formula].inputs:
                 offsets = {month + offset for month in range(months) for offset in item.offsets}
@@ -250,7 +309,9 @@ def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
                 )
             continue
         # Each period grace reaches back reads as it stood: its own lookback before it.
-        periods = Periods.consecutive(indicator.reach(member), indicator.unit)
+        periods = Periods.consecutive(
+            indicator.reach(member), "month" if member.frequency == "monthly" else indicator.unit
+        )
         readings.append(
             Reading(
                 member.metric_id,
@@ -312,6 +373,7 @@ class Lookback:
         anchor: str,
         *,
         sessions: Sequence[str] = (),
+        window: Sequence[str] | None = None,
         whole_window: bool = False,
         catalog_members: Callable[[str], tuple[Mapping[str, str], ...] | None] | None = None,
     ) -> dict[str, tuple[Mapping[str, str], ...] | None]:
@@ -319,10 +381,12 @@ class Lookback:
 
         Each reading requires its least at ``anchor``: the newest period held, or the
         newest due when later, or with none held the newest out (sessions counted on
-        ``sessions``); one read every day, what each day of the window needs up to
+        ``sessions``, as far back as the SSE calendar states them: those it does not are
+        not named); one read every day, what each day of the window needs up to
         ``anchor`` instead, the target day's least among it (a release out but not yet
-        due beside one held is looked for, not required). A daily series read on every session of a
-        complete window (``whole_window``) requires each of them, and nothing outside it.
+        due beside one held is looked for, not required). A daily series read on every
+        session of a complete ``window`` (``sessions`` unless given; ``whole_window``)
+        requires each of them, and of another reading what it reads back on the target day.
         A period some reading requires of every member is checked for every member, and
         for any other a reading names: those the catalog does not require of the period
         (``catalog_members``) are named beside them, not lost (ticket 04); with no member
@@ -358,17 +422,22 @@ class Lookback:
                 required[period] = (*every, *extra) if extra else None
             return required
 
+        days = sessions if window is None else window
+
+        def back(item: Reading) -> tuple[str, ...]:
+            # Sessions counted back past the newest two count from the window's last, the
+            # target day, whatever an event held last (the policy rate in force before the
+            # window: macro semantics ticket 06).
+            counted = item.periods.unit == "session" and item.periods.farthest > 1 and days
+            return _stated(item.minimum, days[-1] if counted else anchor, sessions)
+
         if whole_window and any(
             item.every_day and item.periods.unit == "session" for item in readings
         ):
             # Each session of the window; a reading of the target day alone asks its own
-            # members of its own sessions only, within the window.
+            # members of its own sessions only.
             for item in readings:
-                if item.every_day:
-                    add(sessions, item.members)
-                else:
-                    own = item.minimum.back_from(anchor, sessions)
-                    add((day for day in own if day in sessions), item.members)
+                add(days if item.every_day else back(item), item.members)
             return result()
         for item in readings:
             if item.every_day and item.periods.unit != "session":
@@ -376,8 +445,20 @@ class Lookback:
                 each_day = resolved.required.periods.get(metric_id, ())
                 add((period for period in each_day if period <= anchor), item.members)
             else:
-                add(item.released(item.minimum.back_from(anchor, sessions)), item.members)
+                add(item.released(back(item)), item.members)
         return result()
+
+
+def _stated(periods: Periods, anchor: str, sessions: Sequence[str]) -> tuple[str, ...]:
+    """``periods`` back from ``anchor``; of sessions reaching before those ``sessions``
+    state, the ones they do."""
+    try:
+        return periods.back_from(anchor, sessions)
+    except ValueError:
+        if periods.unit != "session":
+            raise
+    held = [day for day in sessions if day <= anchor]
+    return tuple(held[-1 - offset] for offset in reversed(periods.offsets) if offset < len(held))
 
 
 def resolve(
@@ -393,9 +474,10 @@ def resolve(
 
     Each day reads back from the newest period out by its own end, never after
     ``public_cutoff``. The credit impulse's inputs are its module's answer (ticket 24).
-    A daily reading is read off the window's sessions and, before them, the fetch's fixed
-    margin, which holds two sessions: a reading needing more is refused until the fetch
-    counts sessions.
+    A daily reading of the newest session and the one before is read off the window's
+    sessions and the fetch's fixed margin; one of more is covered back from each day of
+    the window, counted on ``calendar`` (macro semantics ticket 06). A daily reading of
+    more on every day is refused: the plan does not require it day by day.
     """
     version = formula_versions.get("credit_impulse")
     minimum = credit_impulse.minimum_requirements(
@@ -422,8 +504,16 @@ def resolve(
     days = sorted(window)
     for item in readings:
         if item.periods.unit == "session":
-            if item.periods.farthest > 1 or (item.every_day and item.minimum.farthest > 0):
+            if item.every_day and item.minimum.farthest > 0:
                 raise ValueError(f"lookback_sessions_beyond_daily_lead:{item.metric_id}")
+            if item.periods.farthest > 1:
+                for day in days:
+                    collect(
+                        item.reading,
+                        "covered",
+                        item.metric_id,
+                        _sessions_back(calendar, day, item.periods),
+                    )
             continue
         if item.periods.unit == "event" or item.reading == "credit_impulse":
             continue
@@ -459,6 +549,38 @@ def resolve(
             for reading, parts in collected.items()
         },
     )
+
+
+def session_reach(readings: Iterable[Reading]) -> int:
+    """How many sessions back from a day the farthest daily reading reaches, itself one."""
+    return max(
+        (item.periods.farthest + 1 for item in readings if item.periods.unit == "session"),
+        default=1,
+    )
+
+
+def _sessions_back(calendar: Sessions, day: date, periods: Periods) -> tuple[str, ...]:
+    """The sessions ``periods`` reads back from ``day``, counted on the SSE calendar.
+
+    Where it does not state them: from ``day`` back as many weekdays and a margin for the
+    holidays among them -- what the fetch must start before, not which days are sessions.
+    """
+    if isinstance(calendar, TradingCalendar):
+        try:
+            sessions = calendar.sessions_back(
+                calendar.latest_on_or_before(day), periods.farthest + 1
+            )
+        except LookupError:
+            pass
+        else:
+            return periods.back_from(
+                sessions[-1].isoformat(), [item.isoformat() for item in sessions]
+            )
+    first, counted = day, 0
+    while counted < periods.farthest:
+        first -= timedelta(days=1)
+        counted += first.weekday() < 5
+    return ((first - timedelta(days=7 + periods.farthest // 15)).isoformat(), day.isoformat())
 
 
 def newest_released(

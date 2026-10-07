@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from pring_cycle import credit_impulse
+from pring_cycle import credit_impulse, lookback
 from pring_cycle.acquisition import own_acquisitions
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
@@ -46,6 +46,7 @@ from pring_cycle.runtime import RuntimePaths
 from pring_cycle.search_evidence import ModelInputSelector, select_retrieval_input
 from pring_cycle.storage import database_connection
 from pring_cycle.trading_calendar import (
+    SseCalendar,
     current_calendar,
     judging_calendar,
     use_run_calendar,
@@ -413,6 +414,19 @@ class FullRunRetrieval:
             decided_at=decided_at or utc_now(),
             direct_held=credit_impulse.direct_periods(selector),
         )
+        # A daily reading counts its sessions back past the window, as far as the SSE
+        # calendar states them (macro semantics ticket 06).
+        reach = lookback.session_reach(read.readings)
+        last = date.fromisoformat(run.target_business_date)
+        stretch = (
+            SseCalendar(self.paths, as_of=selector.as_of).around(last)
+            if reach > len(daily_window)
+            else None
+        )
+        stated = (
+            tuple(day.isoformat() for day in stretch.stated_to(last))[-reach:] if stretch else ()
+        )
+        sessions = stated if len(stated) > len(daily_window) else daily_window
         derived = formula_requirements(rules, read)
         turned_off = credit_impulse.metrics_off(rules.formula_versions)
         derived_ids = {
@@ -453,7 +467,8 @@ class FullRunRetrieval:
             required = read.required(
                 definition.metric_id,
                 period,
-                sessions=daily_window,
+                sessions=sessions,
+                window=daily_window,
                 whole_window=daily,
                 catalog_members=partial(
                     _catalog_members, definition.metric_id, rules.metric_catalog_version

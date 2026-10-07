@@ -341,6 +341,8 @@ class DaySummaries:
                 default=None,
             ),
             persist_derived=persist_derived,
+            # A daily key indicator counts its sessions back past the run's window.
+            calendar=self._window_calendar,
         )
 
     def _last_confirmed_stage(self, day: str) -> FormalStage | None:

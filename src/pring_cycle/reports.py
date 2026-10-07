@@ -284,6 +284,14 @@ _READING_FIELDS = (
     "change_size",
     "consistency",
     "stand_ins",
+    # A policy member's actions in the evidence window; a daily member's periods.
+    "action",
+    "actions",
+    "baseline",
+    "window_start",
+    "period_sessions",
+    "aggregate",
+    "lines",
 )
 
 

@@ -780,12 +780,61 @@ def _indicator_line(indicator: dict[str, object]) -> str:
     return " · ".join(parts)
 
 
+_ACTION_LABELS = {"cut": "下调", "hike": "上调"}
+
+
+def _action_reading(member: dict[str, object]) -> str:
+    """A policy member's actions in the evidence window, from the value in force before it."""
+    actions = _document_list(member.get("actions"))
+    latest = (
+        "窗口内最近动作："
+        + _ACTION_LABELS.get(str(actions[-1].get("action")), "未知")
+        + f"（{actions[-1].get('period')}，变动 {_display_value(actions[-1].get('change'))}"
+        + (
+            f"，释放资金 {_display_value(actions[-1].get('released'))}"
+            if actions[-1].get("released") is not None
+            else ""
+        )
+        + "）"
+        if actions
+        else "窗口内无动作"
+        if member.get("action") == "none"
+        else "动作未知"
+    )
+    baseline = _object_document(member.get("baseline"))
+    return "，".join(
+        item
+        for item in (
+            f"{member.get('period')} 值 {_display_value(member.get('value'))}",
+            latest,
+            f"窗口自 {member.get('window_start')}",
+            f"窗口前基准 {baseline.get('period')} 值 {_display_value(baseline.get('value'))}"
+            if baseline
+            else "",
+        )
+        if item
+    )
+
+
 def _member_reading(member: dict[str, object], line: object) -> str:
     if member.get("value") is None:
         return f"无可用读数（{_state_label(member.get('evidence_status'))}）"
+    if "action" in member:
+        return _action_reading(member)
     level = {"above": "高于", "below": "低于", "at": "等于"}.get(str(member.get("level")), "")
+    # A daily member reads each period's mean or sum against the line in force at its end.
+    lines = _list_of(member.get("lines"))
+    if lines:
+        line = lines[-1]
+    sessions = (
+        f"每期 {member.get('period_sessions')} 个交易日"
+        + {"mean": "均值", "sum": "合计"}.get(str(member.get("aggregate")), "")
+        if member.get("period_sessions")
+        else ""
+    )
     readings = [
         f"{member.get('period')} 值 {_display_value(member.get('value'))}",
+        sessions,
         f"{level} {_display_value(line)}" if level else "",
         # A flow read against a year before agrees by its sign: more or less.
         {"up": "较去年同月多增", "down": "较去年同月少增", "flat": "与去年同月持平"}.get(
@@ -925,7 +974,7 @@ def _indicator_card(indicator: dict[str, object]) -> html.Article:
 
 _TIMING_LABELS = {"leading": "先行", "coincident": "同步", "lagging": "滞后"}
 _MATURITY_LABELS = {"sprout": "萌芽", "forming": "成形", "confirmed": "确认"}
-_GRACE_UNITS = {"month": "个月", "quarter": "个季度"}
+_GRACE_UNITS = {"month": "个月", "quarter": "个季度", "sessions": "期（按交易日分期）"}
 
 
 def _turn_details(turn: dict[str, object]) -> list[str]:

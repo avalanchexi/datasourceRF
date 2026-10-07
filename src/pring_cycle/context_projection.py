@@ -2,19 +2,25 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, time, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from pring_cycle import credit_impulse
 from pring_cycle.acquisition_outcome import SUCCEEDED, AcquisitionOutcomes
+from pring_cycle.batches import current_batch_id
 from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS, SYSTEM_TARGET_CUTOFF_VERSION
 from pring_cycle.claim_adoption import ClaimAdoption
 from pring_cycle.confirmation import (
     OUTPUT_STRUCTURE,
+    SESSION_FORMULAS,
+    Action,
+    ActionReading,
+    BlockReading,
     ConfirmationRules,
     DerivedInput,
     KeyIndicator,
@@ -45,10 +51,12 @@ from pring_cycle.evidence import (
 )
 from pring_cycle.evidence import selected_claim as _selected_claim
 from pring_cycle.evidence import usable_point as _usable_point
-from pring_cycle.freshness import period_status
+from pring_cycle.freshness import assess as freshness_assess
+from pring_cycle.freshness import backtracked, period_status
 from pring_cycle.metric_contracts import EFFECTIVE_UNTIL_CHANGED_METRICS, evidence_frequency
 from pring_cycle.source_adapters import CORE_API_IDENTITIES
 from pring_cycle.source_families import OFFICIAL_CONTEXT_FAMILIES
+from pring_cycle.trading_calendar import TradingCalendar, current_calendar
 from pring_cycle.treasury_context import TREASURY_METRICS
 from pring_cycle.warrant_inputs import WarrantHistoryCoverage
 
@@ -265,11 +273,14 @@ def build_context_projection(
     as_of_mode: AsOfMode = AsOfMode.SYSTEM,
     persist_derived: bool = True,
     formal_stage: StageResult | None = None,
+    calendar: TradingCalendar | None = None,
 ) -> ContextProjection:
     """The day's context; a model with confirmation rules reads it against ``formal_stage``.
 
     The formal stage is decided from the three cores before, and only shared here: a
-    model reading the four labels needs none.
+    model reading the four labels needs none. Its daily key indicators count sessions on
+    ``calendar``, the SSE's as known (the run's by default), and its policy actions are
+    read in the window from ``visible_evidence_start``.
     """
     if as_of.tzinfo is None:
         raise ValueError("context_projection_as_of_must_be_timezone_aware")
@@ -569,6 +580,11 @@ def build_context_projection(
     else:
         if formal_stage is None:
             raise ValueError("confirmation_formal_stage_required")
+        day = (
+            date.fromisoformat(target_business_date)
+            if target_business_date is not None
+            else as_of.astimezone(ZoneInfo("Asia/Shanghai")).date()
+        )
         readings = {
             indicator.key: _member_readings(
                 repository,
@@ -577,6 +593,9 @@ def build_context_projection(
                 definitions,
                 as_of=as_of,
                 as_of_mode=as_of_mode,
+                day=day,
+                window_start=visible_evidence_start,
+                calendar=calendar or current_calendar(),
             )
             for indicator in rules.confirmation.indicators
         }
@@ -585,15 +604,7 @@ def build_context_projection(
             for members in readings.values()
             for member in members
             if member.evidence_status == "current"
-            for version in (
-                member.inputs
-                if member.member.formula is not None
-                else tuple(
-                    version
-                    for reading in (member, *member.earlier)
-                    for _period, _value, version in reading.points
-                )
-            )
+            for version in member.observation_versions()
         }
         # The four labels are not given, nor stood in for: the dimension summary is.
         macro_document = {
@@ -681,6 +692,9 @@ def _member_readings(
     *,
     as_of: datetime,
     as_of_mode: AsOfMode,
+    day: date,
+    window_start: str | None,
+    calendar: TradingCalendar,
 ) -> tuple[MemberReading, ...]:
     """Each member's newest periods, the main member first.
 
@@ -690,7 +704,9 @@ def _member_readings(
     held never stands in for it. A month the member is never released for is passed over.
     Each of the periods grace reaches back is read too, as the member stood then, from the
     periods the lookback declares and none before. A derived member is read for the main
-    member's newest month and the one before.
+    member's newest month and the one before. A policy indicator reads its members'
+    actions in the evidence window; a daily one, its members' sessions on ``calendar`` to
+    ``day`` (macro semantics ticket 06).
     """
     usable: dict[tuple[str, str], dict[str, MetricSeriesPoint]] = {}
 
@@ -707,12 +723,70 @@ def _member_readings(
             )
         return usable[key]
 
+    def matching(member: Member) -> list[MetricSeriesPoint]:
+        """The member's usable points out by ``day``, oldest first; any of its scopes when
+        partial."""
+        held: Iterable[MetricSeriesPoint] = (
+            points(member.metric_id, member.dimensions).values()
+            if not member.partial
+            else (
+                point
+                for point in repository.metric_series(
+                    member.metric_id,
+                    mode=as_of_mode,
+                    as_of=as_of,
+                    definition_version=definitions[member.metric_id].definition_version,
+                )
+                if _usable_point(point)
+            )
+        )
+        return sorted(
+            (point for point in held if member.matches(point.dimensions)),
+            key=lambda point: (point.period_end, json.dumps(point.dimensions, sort_keys=True)),
+        )
+
+    if indicator.actions is not None:
+        return tuple(
+            _action_reading(
+                indicator,
+                member,
+                role,
+                matching(member),
+                _action_status(rows_by_metric[member.metric_id], member, repository.database_path),
+                day=day,
+                window_start=window_start,
+                monthly=definitions[member.metric_id].frequency == "monthly",
+                calendar=calendar,
+                notices=(
+                    {point.period_end for point in matching(indicator.notices)}
+                    if indicator.notices is not None
+                    else None
+                ),
+                released=(
+                    matching(replace(member, dimensions=indicator.released, partial=True))
+                    if indicator.released is not None
+                    else []
+                ),
+            )
+            for role, member in _roles(indicator)
+        )
     readings: list[MemberReading] = []
-    for role, member in (
-        ("main", indicator.main),
-        *(("auxiliary", item) for item in indicator.auxiliary),
-    ):
+    for role, member in _roles(indicator):
         months = indicator.periods(member)
+        if indicator.frequency == "daily" and member.frequency is None:
+            readings.append(
+                _block_reading(
+                    indicator,
+                    member,
+                    role,
+                    rows_by_metric,
+                    points,
+                    matching,
+                    day=day,
+                    calendar=calendar,
+                )
+            )
+            continue
         if member.formula is not None:
             main = readings[0]
             newest = main.points[-1][0][:7] if main.points else None
@@ -751,18 +825,18 @@ def _member_readings(
             )
         ]
         row = max(shown, key=lambda item: str(item["period"]), default=None)
+        # A daily indicator's member read by month steps a month at a time.
+        level_line = indicator.level_line if member.frequency is None else None
         if row is None:
             own = next(
                 (item for item in rows if item.get("dimensions") == dict(member.dimensions)),
                 None,
             )
             status = str((own or gap or {}).get("status") or "missing")
-            readings.append(
-                MemberReading(member, role, status, (), (), indicator.level_line, months)
-            )
+            readings.append(MemberReading(member, role, status, (), (), level_line, months))
             continue
         newest = str(row["period"])[:7]
-        step = indicator.step
+        step = indicator.step if member.frequency is None else 1
         # The farthest month the lookback declares: grace reads no further back.
         history = indicator.history(member)
         oldest = month_back(newest, (indicator.reach(member) - 1) * step)
@@ -774,9 +848,7 @@ def _member_readings(
             while int(end[5:7]) in member.unreleased_months:
                 end = month_back(end, step)
             held, missing = _member_window(points, member, end, months, step, oldest)
-            earlier.append(
-                MemberReading(member, role, status, held, missing, indicator.level_line, months)
-            )
+            earlier.append(MemberReading(member, role, status, held, missing, level_line, months))
         held, missing = _member_window(points, member, newest, months, step, oldest)
         readings.append(
             MemberReading(
@@ -785,12 +857,365 @@ def _member_readings(
                 status,
                 held,
                 missing,
-                indicator.level_line,
+                level_line,
                 months,
                 earlier=tuple(earlier),
             )
         )
     return tuple(readings)
+
+
+def _roles(indicator: KeyIndicator) -> tuple[tuple[str, Member], ...]:
+    return (("main", indicator.main), *(("auxiliary", item) for item in indicator.auxiliary))
+
+
+def _member_status(rows: tuple[dict[str, object], ...], member: Member) -> str:
+    """The member's evidence status as shown: current when each of its rows is (an RRR's
+    every scope), or when the events traced show none in the window."""
+    own = [row for row in rows if member.matches(_string_dimensions(row.get("dimensions")))]
+    if own:
+        return next(
+            (str(row.get("status")) for row in own if row.get("status") != "current"), "current"
+        )
+    gap = next((row for row in rows if str(row["observation_id"]).startswith("gap:")), None)
+    if gap is not None and gap.get("status") == "no_event_in_visible_window":
+        return "current"
+    return str((gap or {}).get("status") or "missing")
+
+
+def _action_status(rows: tuple[dict[str, object], ...], member: Member, database: Path) -> str:
+    """The member's status as shown; the LPR fixed last stays in force while this month's
+    is awaited, as a rate held does until changed. An event the run traced back to the
+    source's end, none found, holds nothing and owes nothing (ADR-0028)."""
+    status = _member_status(rows, member)
+    run_id = current_batch_id()
+    if (
+        status == "missing"
+        and run_id is not None
+        and backtracked(database, run_id).get(member.metric_id) == "none_found"
+    ):
+        return "current"
+    return "current" if status == "awaiting_release" else status
+
+
+def _action_reading(
+    indicator: KeyIndicator,
+    member: Member,
+    role: str,
+    held: Sequence[MetricSeriesPoint],
+    status: str,
+    *,
+    day: date,
+    window_start: str | None,
+    released: Sequence[MetricSeriesPoint],
+    monthly: bool,
+    calendar: TradingCalendar,
+    notices: set[str] | None,
+) -> ActionReading:
+    """``member``'s actions in the evidence window from ``window_start`` to ``day``.
+
+    A rate's each change from the value in force before it, from the one in force before
+    the window on (its baseline, which a reading needs: a value read on the window's first
+    day may be a change from it); an RRR event's own change, with the funds released that
+    day. A rate's history is whole or nothing is said of it: a fixing each month from the
+    baseline's to the newest due (the LPR, dated the day it was published), or a notice
+    each session from the one before the window (the policy rate: the days of
+    ``notices``, or of its own values) -- a gap may hide a cut and a hike. Grace reads each
+    month back as it stood at its end, within the same window.
+    """
+    points = tuple(
+        sorted(
+            (_action_day(point, monthly), float(point.selected_value), point.selected_claim_id)
+            for point in held
+            if point.selected_value is not None and point.selected_claim_id is not None
+        )
+    )
+    if window_start is None:
+        return ActionReading(
+            member, role, status, points, ("evidence_window_unknown",), None, indicator.lookback
+        )
+    before = [point for point in points if point[0] < window_start]
+    baseline = before[-1] if before else None
+    inside = tuple(point for point in points if point[0] >= window_start)
+    gaps: list[str] = []
+    if indicator.actions == "level" and monthly:
+        months = {point.period_end[:7] for point in held}
+        due = freshness_assess(
+            member.metric_id,
+            None,
+            datetime.combine(day, time.max, tzinfo=ZoneInfo("Asia/Shanghai")),
+            calendar,
+        ).due_period
+        if baseline is None:
+            gaps.append(f"baseline_before:{window_start}")
+        else:
+            month = baseline[0][:7]
+            while month < max([*months, (due or "")[:7]]):
+                month = month_back(month, -1)
+                if month not in months:
+                    gaps.append(month)
+    elif indicator.actions == "level":
+        try:
+            # The window's sessions, and the one before them.
+            first = calendar.sessions_from(date.fromisoformat(window_start), day)
+            sessions = [
+                session.isoformat()
+                for session in (*calendar.sessions_back(first[0], 2)[:1], *first)
+            ]
+        except (LookupError, IndexError):
+            sessions = []
+            gaps.append("trading_calendar_incomplete")
+        if sessions:
+            noticed = notices if notices is not None else {point[0] for point in points}
+            # The rate in force on the session before the window, its notice read.
+            baseline = next((point for point in reversed(before) if point[0] <= sessions[0]), None)
+            if baseline is None:
+                gaps.append(f"baseline_before:{window_start}")
+            gaps.extend(_ranges([item for item in sessions if item not in noticed], sessions))
+    funds: dict[str, float] = {}
+    for point in released:
+        if point.selected_value is not None and point.period_end >= window_start:
+            funds[point.period_end] = funds.get(point.period_end, 0.0) + float(point.selected_value)
+
+    def read(until: str) -> ActionReading:
+        shown = [point for point in inside if point[0] <= until]
+        actions: list[Action] = []
+        if indicator.actions == "change":
+            by_day: dict[str, list[float]] = {}
+            for period, value, _version in shown:
+                by_day.setdefault(period, []).append(value)
+            for period, changes in sorted(by_day.items()):
+                # One change a day, whichever institutions' scopes state it.
+                change = max(changes, key=abs)
+                if change != 0:
+                    actions.append(
+                        Action(period, "cut" if change < 0 else "hike", change, funds.get(period))
+                    )
+        else:
+            previous = baseline[1] if baseline is not None else None
+            for period, value, _version in shown:
+                if previous is not None and value != previous:
+                    actions.append(
+                        Action(period, "cut" if value < previous else "hike", value - previous)
+                    )
+                previous = value
+        return ActionReading(
+            member,
+            role,
+            status,
+            ((baseline,) if baseline is not None else ()) + tuple(shown),
+            tuple(gaps),
+            None,
+            indicator.lookback,
+            actions=tuple(actions),
+            baseline=baseline,
+            window_start=window_start,
+        )
+
+    # Each month grace reads back, as it stood at the month's end.
+    earlier = tuple(
+        read(month_end(month_back(f"{day:%Y-%m}", back)))
+        for back in range(1, indicator.history(member) + 1)
+    )
+    return replace(read(day.isoformat()), earlier=earlier)
+
+
+def _action_day(point: MetricSeriesPoint, monthly: bool) -> str:
+    """The day an action took effect: a monthly fixing's the day it was published."""
+    claim = _selected_claim(point)
+    if not monthly or claim is None:
+        return point.period_end
+    published: datetime = claim.public_available_at or claim.available_at
+    return published.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
+
+
+def _ranges(days: Sequence[str], order: Sequence[str]) -> list[str]:
+    """``days`` with each run of neighbours in ``order`` told as its first and last."""
+    runs: list[list[str]] = []
+    places = {item: index for index, item in enumerate(order)}
+    for item in days:
+        if runs and places.get(item) == places.get(runs[-1][-1], -2) + 1:
+            runs[-1].append(item)
+        else:
+            runs.append([item])
+    return [run[0] if len(run) == 1 else f"{run[0]}..{run[-1]}" for run in runs]
+
+
+def _block_reading(
+    indicator: KeyIndicator,
+    member: Member,
+    role: str,
+    rows_by_metric: Mapping[str, tuple[dict[str, object], ...]],
+    points: Callable[[str, Mapping[str, str]], Mapping[str, MetricSeriesPoint]],
+    matching: Callable[[Member], list[MetricSeriesPoint]],
+    *,
+    day: date,
+    calendar: TradingCalendar,
+) -> BlockReading:
+    """``member`` in periods of the indicator's sessions to ``day``, oldest first.
+
+    A session's value is held or not: never a session not held read as nothing (N14). A
+    period of a session not held is missing, with the days, and ends the run; each period
+    grace reads back is read too, a period of sessions earlier each. With no calendar
+    stating the sessions, none is read.
+    """
+    size = indicator.period_sessions
+    assert size is not None
+    formula = SESSION_FORMULAS.get(member.session_formula or "")
+    count = indicator.reach(member) * size + (formula.lead_sessions if formula else 0)
+    source = (
+        Member(member.name, member.label, formula.metric_id, formula.dimensions)
+        if formula is not None
+        else member
+    )
+    status = _member_status(rows_by_metric[source.metric_id], source)
+    # The periods its readings take, before those grace reads back.
+    taken = indicator.periods(member)
+    try:
+        sessions = calendar.sessions_back(calendar.latest_on_or_before(day), count)
+    except LookupError:
+        return BlockReading(
+            member,
+            role,
+            "trading_calendar_incomplete",
+            (),
+            (),
+            indicator.level_line,
+            taken,
+            year=indicator.year,
+            sessions=size,
+        )
+    days = [session.isoformat() for session in sessions]
+    if formula is not None:
+        values = _net_injections(points, days[formula.lead_sessions :], days)
+    else:
+        held = {
+            point.period_end: point
+            for point in matching(member)
+            if point.selected_value is not None and point.selected_claim_id is not None
+        }
+        values = {
+            session: (
+                (float(held[session].selected_value), (str(held[session].selected_claim_id),))  # type: ignore[arg-type]
+                if session in held
+                else (None, (session,))
+            )
+            for session in days
+        }
+    read = days[len(days) - indicator.reach(member) * size :]
+    line = matching(indicator.line) if indicator.line is not None else []
+
+    def window(back: int) -> BlockReading:
+        """The member as it stood ``back`` periods before the newest."""
+        kept: list[tuple[str, float, str]] = []
+        starts: list[str] = []
+        missing: list[str] = []
+        inputs: list[str] = []
+        for period in range(taken):
+            end = len(read) - (back + period) * size
+            if end - size < 0:
+                break
+            block = read[end - size : end]
+            gaps = [
+                gap for session in block if values[session][0] is None for gap in values[session][1]
+            ]
+            if gaps:
+                missing.extend(gaps)
+            elif not missing:
+                numbers = [values[session][0] for session in block]
+                total = sum(number for number in numbers if number is not None)
+                kept.insert(
+                    0, (block[-1], total / size if member.aggregate == "mean" else total, "")
+                )
+                starts.insert(0, block[0])
+                inputs.extend(item for session in block for item in values[session][1])
+        lines = tuple(_in_force(line, period) for period, _value, _version in kept)
+        return BlockReading(
+            member,
+            role,
+            status,
+            tuple(kept),
+            # A run of sessions not held is told by its first and last.
+            tuple(_ranges(sorted(set(missing)), days)),
+            indicator.level_line,
+            taken,
+            tuple(dict.fromkeys(inputs)),
+            year=indicator.year,
+            sessions=size,
+            lines=lines if indicator.line is not None else (),
+            starts=tuple(starts),
+        )
+
+    earlier = tuple(window(back) for back in range(1, indicator.history(member) + 1))
+    return replace(window(0), earlier=earlier)
+
+
+def _in_force(points: Sequence[MetricSeriesPoint], day: str) -> float | None:
+    """The value in force on ``day``: the latest held on or before it."""
+    held = [
+        point for point in points if point.period_end <= day and point.selected_value is not None
+    ]
+    return float(held[-1].selected_value) if held else None  # type: ignore[arg-type]
+
+
+def _net_injections(
+    points: Callable[[str, Mapping[str, str]], Mapping[str, MetricSeriesPoint]],
+    sessions: Sequence[str],
+    days: Sequence[str],
+) -> dict[str, tuple[float | None, tuple[str, ...]]]:
+    """The seven-day reverse repo's net injection on each of ``sessions``, and what it rests
+    on; or None and the days whose injection is not held.
+
+    Put in: the injections since the session before. Matured: what the session's notice
+    reports, else each injection seven days on rolled to the next session -- every session
+    it could come from held, its value zero when the notice says nothing was done, never
+    when there is no notice (N14). ``days`` are the sessions read, the lead before
+    ``sessions`` among them. A notice is owed on each SSE session, the calendar China's
+    periods are told by; one of a make-up working day, held, counts with the next session,
+    and one not held is not told apart from none.
+    """
+    injections = points("CN_OMO_7D_AMOUNT", {"measure": "injection"})
+    reported = points("CN_OMO_7D_AMOUNT", {"measure": "maturity"})
+
+    def amount(point: MetricSeriesPoint) -> float:
+        return float(point.selected_value)  # type: ignore[arg-type]
+
+    def between(first: date, last: date) -> list[MetricSeriesPoint]:
+        """The injections put in after ``first`` up to ``last``."""
+        return [
+            point
+            for period, point in injections.items()
+            if first < date.fromisoformat(period) <= last
+            and point.selected_value is not None
+            and point.selected_claim_id is not None
+        ]
+
+    net: dict[str, tuple[float | None, tuple[str, ...]]] = {}
+    for session in sessions:
+        current = date.fromisoformat(session)
+        before = date.fromisoformat(days[days.index(session) - 1])
+        # The sessions an injection maturing here, or put in here, was put in on.
+        due = (before - timedelta(days=7), current - timedelta(days=7))
+        needed = [
+            day for day in days if due[0] < date.fromisoformat(day) <= due[1] or day == session
+        ]
+        gaps = [day for day in needed if day not in injections]
+        if due[0] < date.fromisoformat(days[0]) and session not in reported:
+            # What matures here may have been put in before the sessions read.
+            gaps.append(f"before:{days[0]}")
+        maturity_point = reported.get(session)
+        if maturity_point is not None:
+            gaps = [day for day in gaps if day == session]
+        if gaps:
+            net[session] = (None, tuple(gaps))
+            continue
+        put_in = between(before, current)
+        matured = [maturity_point] if maturity_point is not None else between(*due)
+        net[session] = (
+            sum(amount(point) for point in put_in) - sum(amount(point) for point in matured),
+            tuple(str(point.selected_claim_id) for point in (*put_in, *matured)),
+        )
+    return net
 
 
 def _member_window(

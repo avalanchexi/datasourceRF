@@ -182,7 +182,8 @@ def test_the_pages_list_the_dimension_summary_and_the_pmi_reading(tmp_path: Path
     assert "政策方向" not in home and "数据不足" not in home
     assert "制造业 PMI" in macro and "新订单" in macro and "斜率变陡" in macro
     assert "命题：经济自底部恢复，需求与生产扩张" in macro
-    assert "政策维度尚未接入" in macro
+    # The policy dimension reads its five indicators, none held here.
+    assert "政策利率" in macro and "DR007" in macro and "未确认 5" in macro
     assert "库存维度尚未接入" in inventory and "七张阶段特征卡" not in inventory
 
 
@@ -234,7 +235,7 @@ def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Pa
     # The PMI supports; the monthly indicators with nothing held are unconfirmed.
     assert bundle.conclusions == {
         "confirmation_applicable": True,
-        "dimension:policy": "not_connected",
+        "dimension:policy": {**_NONE, "unconfirmed": 5},
         "dimension:credit": {**_NONE, "unconfirmed": 2},
         "dimension:overheat": {**_NONE, "support": 1, "unconfirmed": 1},
         "dimension:price": {**_NONE, "unconfirmed": 3},
@@ -246,6 +247,11 @@ def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Pa
         "key_indicator:pmi_prices": "unconfirmed",
         "key_indicator:social_financing": "unconfirmed",
         "key_indicator:money": "unconfirmed",
+        "key_indicator:policy_rate": "unconfirmed",
+        "key_indicator:lpr": "unconfirmed",
+        "key_indicator:rrr": "unconfirmed",
+        "key_indicator:liquidity": "unconfirmed",
+        "key_indicator:dr007": "unconfirmed",
     }
     pmi = bundle.results["confirmation"]["key_indicators"]["pmi"]
     assert pmi["relation"] == "support" and pmi["members"][0]["momentum"] == "up"

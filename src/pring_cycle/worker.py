@@ -369,7 +369,11 @@ def _execute_run(
             metric_ids=("CN_EQUITY_CORE_000985", "CN_BOND_CORE_000012", "CN_COMMODITY_CORE_NHII"),
         ):
             _refresh_core_sources(
-                paths, run.target_business_date, definition_version=definition_version
+                paths,
+                run.target_business_date,
+                definition_version=definition_version,
+                # The window's sessions, and before its first those a daily reading counts.
+                calendar_sessions=120 + lookback.session_reach(lookback.declare(model_rules)),
             )
         from pring_cycle.full_run_requirements import run_lookback
 
@@ -1474,7 +1478,8 @@ def refresh_context_sources(
     Each family starts before the 120-session window as the SSE calendar stood at
     ``decided_at`` (ticket 30), and back as far as ``covered`` when what the model reads on
     every day of the window needs more than the series' own range: the credit impulse's
-    social financing and GDP (ticket 24; ``lookback.Lookback.coverage``).
+    social financing and GDP (ticket 24; ``lookback.Lookback.coverage``), DR007's year of
+    sessions (macro semantics ticket 06).
     """
     from pring_cycle.acquisition import acquisition_metrics
     from pring_cycle.catalog_registry import registered_definitions
@@ -1612,6 +1617,11 @@ def refresh_context_sources(
         own = starts.period(*metric_ids)
         further = [read_back.start(metric_id) for metric_id in metric_ids]
         return min([own, *(item.replace("-", "") for item in further if item is not None)])
+
+    def daily_from(*metric_ids: str) -> date:
+        """Two weeks before the window, or the first session a reading counts back to."""
+        further = [read_back.start(metric_id) for metric_id in metric_ids]
+        return min([daily_start, *(date.fromisoformat(item) for item in further if item)])
 
     adapter = _context_adapter(token)
     reviewed_deliveries = {
@@ -1751,7 +1761,7 @@ def refresh_context_sources(
             "transmission",
             ("CN_DR007", "CN_SHIBOR_ON_1W_3M"),
             lambda: adapter.transmission(
-                start_date=daily_start,
+                start_date=daily_from("CN_DR007", "CN_SHIBOR_ON_1W_3M"),
                 end_date=target,
             ),
         ),
@@ -1918,11 +1928,16 @@ def _refresh_core_sources(
     target_business_date: str,
     *,
     definition_version: str,
+    calendar_sessions: int = 0,
 ) -> None:
     """Fill the three cores: TuShare, one TuShare retry of the cores it missed, then the CSI
     official page for the two CSI cores (ticket 22). What is still missing is left to the
     run's gap retrieval (search, then the registered parser) and then to carry-forward or
-    blocking (ticket 21)."""
+    blocking (ticket 21).
+
+    The SSE calendar comes with them, reaching back ``calendar_sessions`` sessions with a
+    margin for holidays when that is further than the cores' range.
+    """
     from pring_cycle.core_history import refresh_core_history
     from pring_cycle.official_core import CSINDEX_CORES, refresh_csindex_core
     from pring_cycle.source_adapters import CORE_API_IDENTITIES
@@ -1930,7 +1945,7 @@ def _refresh_core_sources(
     secrets = parse_data_source_secrets(paths.secrets)
     token = secrets.get("TUSHARE_TOKEN")
     target = date.fromisoformat(target_business_date)
-    start = target - timedelta(days=280)
+    start = target - timedelta(days=max(280, calendar_sessions * 7 // 5 + 30))
     evidence = EvidenceRepository(paths.database)
     now = datetime.now(UTC)
     # Without TuShare, the cores still to fill are those holding nothing for the target day.

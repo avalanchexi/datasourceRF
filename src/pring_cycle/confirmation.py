@@ -35,7 +35,7 @@ from __future__ import annotations
 import calendar
 import copy
 import statistics
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -50,13 +50,17 @@ DIMENSIONS = ("policy", "credit", "overheat", "price", "inventory")
 RELATIONS = ("support", "counterevidence", "observation_only", "unconfirmed", "not_applicable")
 TIMINGS = ("leading", "coincident", "lagging")
 MATURITIES = ("sprout", "forming", "confirmed")
-# The months a period of each frequency spans.
-FREQUENCIES = {"monthly": 1, "quarterly": 3}
-_UNITS = {"monthly": "month", "quarterly": "quarter"}
+# A period of a monthly or quarterly indicator spans months; a daily one's, its own number
+# of sessions.
+FREQUENCIES = ("monthly", "quarterly", "daily")
+_MONTHS = {"monthly": 1, "quarterly": 3}
+_UNITS = {"monthly": "month", "quarterly": "quarter", "daily": "sessions"}
 _ADJACENT = {"next": 1, "previous": -1}
 # A year of a monthly series: where a value stands in its range, and how large a change is,
-# are read within it and nowhere further back (ADR-0035).
+# are read within it and nowhere further back (ADR-0035). A change is marked against the
+# twelve newest periods of any frequency; a daily range spans 250 sessions.
 YEAR_MONTHS = 12
+YEAR_SESSIONS = 250
 # An auxiliary member shows agreement by its momentum, and its slope: never more months.
 AUXILIARY_MONTHS = 3
 _CELL_RELATIONS = frozenset({"support", "counterevidence", "observation_only"})
@@ -70,9 +74,9 @@ _READINGS = {
     "change_size": frozenset({"marked", "ordinary"}),
     # The two newest changes alike: a run up (rising on) or down, or none.
     "run": frozenset({"up", "down", "none"}),
+    # A policy member's latest action in the evidence window, or none there.
+    "action": frozenset({"cut", "hike", "none"}),
 }
-# The readings only a year of months answers.
-_YEAR_READINGS = frozenset({"position", "change_size"})
 
 
 @dataclass(frozen=True)
@@ -132,6 +136,32 @@ DERIVED_FORMULAS: dict[str, DerivedFormula] = {
 }
 # A shown derived value of two members of the same month: the first less the second.
 SPREAD_FORMULAS = frozenset({"m1-m2-yoy-spread-v0001"})
+# A shown derived value of one member against its level line, in basis points: DR007's
+# period mean less the policy rate in force at its end.
+LINE_SPREAD_FORMULAS = frozenset({"dr007-policy-spread-sessions-v0001"})
+
+
+@dataclass(frozen=True)
+class SessionFormula:
+    """A daily member's frozen formula: a value for each session from one metric's member.
+
+    ``lead_sessions`` are read before the periods' first session: what matures in them was
+    put in earlier.
+    """
+
+    metric_id: str
+    dimensions: Mapping[str, str]
+    lead_sessions: int
+
+
+# The seven-day reverse repo's net injection on a session: what was put in since the
+# session before, less what matures -- reported for the session, or each injection seven
+# days on, rolled to the next session (spec: deterministic processing; N14).
+SESSION_FORMULAS: dict[str, SessionFormula] = {
+    "omo-7d-net-injection-v0001": SessionFormula(
+        "CN_OMO_7D_AMOUNT", {"measure": "injection"}, lead_sessions=10
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -152,16 +182,29 @@ class Member:
     stand_ins: Mapping[int, Mapping[str, str]] = field(default_factory=dict)
     formula: str | None = None
     stand_in_label: str | None = None
+    # Of a daily indicator: each period's mean (a rate) or sum (a flow) of its sessions,
+    # their values from ``session_formula`` when it names one; or read by month instead.
+    aggregate: str | None = None
+    session_formula: str | None = None
+    frequency: str | None = None
+    # Its dimensions are some of a point's: an RRR change of any scope.
+    partial: bool = False
+
+    def matches(self, dimensions: Mapping[str, str]) -> bool:
+        if self.partial:
+            return all(dimensions.get(key) == value for key, value in self.dimensions.items())
+        return dict(dimensions) == dict(self.dimensions)
 
 
 @dataclass(frozen=True)
 class Spread:
-    """A value shown beside a key indicator, never counted: one member less another."""
+    """A value shown beside a key indicator, never counted: one member less another, or one
+    less its level line."""
 
     name: str
     label: str
     formula: str
-    of: tuple[str, str]
+    of: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -169,12 +212,15 @@ class Condition:
     """Readings that must all hold, of the main member unless ``member`` names another.
 
     A reading given several values holds for any of them. ``outpaces`` names a member
-    this one must have risen more than since the period before.
+    this one must have risen more than since the period before. ``after_action`` asks the
+    member's newest period to begin after the main member's latest action: a fall that
+    came after the cut, not before it.
     """
 
     readings: Mapping[str, str | tuple[str, ...]]
     member: str | None = None
     outpaces: str | None = None
+    after_action: bool = False
 
 
 @dataclass(frozen=True)
@@ -219,11 +265,15 @@ class Expectation:
 
 @dataclass(frozen=True)
 class KeyIndicator:
-    """A key indicator: its members, its periods (months or quarters) and its timing.
+    """A key indicator: its members, its periods (months, quarters or runs of sessions) and
+    its timing.
 
     ``lookback`` periods are read for its readings and ``grace`` more before them, so
     each of the newest ``grace`` + 1 periods reads as it stood: of the main member, and of
-    any other a turn hint reads.
+    any other a turn hint reads. A policy indicator read as ``actions`` reads its members'
+    actions in the evidence window of ``window_sessions`` sessions, each month of grace as
+    it stood at that month's end; a daily one, periods of ``period_sessions`` sessions,
+    against the value ``line`` has in force at each period's end when it names one.
     """
 
     key: str
@@ -242,6 +292,15 @@ class KeyIndicator:
     frequency: str = "monthly"
     # The farthest period back anything is read: grace reads no further (ADR-0035).
     horizon: int = 13
+    # Read from the value in force before each action ("level") or each event's own
+    # change ("change"); an event's released funds, of ``released``.
+    actions: str | None = None
+    window_sessions: int = 120
+    released: Mapping[str, str] | None = None
+    period_sessions: int | None = None
+    line: Member | None = None
+    # A rate announced in a notice each session: the notices that show a day was read.
+    notices: Member | None = None
 
     @property
     def members(self) -> tuple[Member, ...]:
@@ -250,11 +309,19 @@ class KeyIndicator:
     @property
     def step(self) -> int:
         """The months one period spans."""
-        return FREQUENCIES[self.frequency]
+        return _MONTHS[self.frequency]
 
     @property
     def unit(self) -> str:
         return _UNITS[self.frequency]
+
+    @property
+    def year(self) -> int:
+        """The periods a year's range spans: twelve months, four quarters, 250 sessions."""
+        if self.frequency == "daily":
+            assert self.period_sessions is not None
+            return YEAR_SESSIONS // self.period_sessions
+        return YEAR_MONTHS // _MONTHS[self.frequency]
 
     def history(self, member: Member) -> int:
         """How many periods before the newest ``member`` is read as it stood then."""
@@ -325,20 +392,29 @@ class ConfirmationRules:
         grace, horizon, timing = _timing_rules(
             document.get("timing_rules"), document.get("maturity_rules")
         )
-        indicators = tuple(_indicator(item, grace, horizon) for item in raw)
+        keys = [item.get("key") for item in raw if isinstance(item, Mapping)]
+        indicators = tuple(
+            _indicator(item, grace, horizon, [str(key) for key in keys]) for item in raw
+        )
         if len({item.key for item in indicators}) != len(indicators):
             raise ValueError("confirmation_key_indicator_duplicate")
         return cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing)
 
     def metric_ids(self) -> frozenset[str]:
-        """Every metric the indicators read: their members' and derived members' inputs."""
+        """Every metric the indicators read: their members', their formulas' inputs and
+        their level lines'."""
         return frozenset(
             metric_id
             for indicator in self.indicators
-            for member in indicator.members
+            for member in (
+                *indicator.members,
+                *(item for item in (indicator.line, indicator.notices) if item is not None),
+            )
             for metric_id in (
                 [item.metric_id for item in DERIVED_FORMULAS[member.formula].inputs]
                 if member.formula is not None
+                else [SESSION_FORMULAS[member.session_formula].metric_id]
+                if member.session_formula is not None
                 else [member.metric_id]
             )
         )
@@ -366,6 +442,21 @@ class MemberReading:
     months: int = AUXILIARY_MONTHS
     inputs: tuple[str, ...] = ()
     earlier: tuple[MemberReading, ...] = ()
+    # The periods a year's range spans.
+    year: int = YEAR_MONTHS
+
+    def observation_versions(self) -> tuple[str, ...]:
+        """Every observation the reading rests on, as it stands and as it stood before."""
+        own = self.inputs or tuple(version for _period, _value, version in self.points)
+        return tuple(
+            dict.fromkeys(
+                (*own, *(v for item in self.earlier for v in item.observation_versions()))
+            )
+        )
+
+    def extra(self) -> dict[str, object]:
+        """What a reading of its own kind shows beside the common readings."""
+        return {}
 
     @property
     def values(self) -> tuple[float, ...]:
@@ -458,7 +549,7 @@ class MemberReading:
 
         Only over a whole year held; a range with no width has no upper or lower third.
         """
-        values = self._year()
+        values = self._year(self.year)
         if values is None:
             return None
         low, high = min(values), max(values)
@@ -473,21 +564,144 @@ class MemberReading:
 
     @property
     def change_size(self) -> str | None:
-        """Marked when the newest change is wider than the median change of the year."""
-        values = self._year()
+        """Marked when the newest change is wider than the median change of the twelve
+        newest periods."""
+        values = self._year(YEAR_MONTHS)
         if values is None or len(values) < 3:
             return None
         sizes = [abs(after - before) for before, after in zip(values, values[1:], strict=False)]
         marked = _direction(sizes[-1], statistics.median(sizes)) == "up"
         return "marked" if marked else "ordinary"
 
-    def _year(self) -> tuple[float, ...] | None:
-        if self.months < YEAR_MONTHS or self.missing or not self.points:
+    def _year(self, periods: int) -> tuple[float, ...] | None:
+        """The newest ``periods`` periods' values, when the lookback reads and holds them all."""
+        if self.months < periods or self.missing or not self.points:
             return None
-        return self.values
+        return self.values[-periods:]
 
     def reading(self, name: str) -> str | None:
         return getattr(self, name)  # type: ignore[no-any-return]
+
+
+@dataclass(frozen=True)
+class Action:
+    """A cut or a hike on ``period``: its change, and for an RRR the funds it released."""
+
+    period: str
+    kind: str
+    change: float
+    released: float | None = None
+
+
+_ACTION_DIRECTIONS = {"cut": "down", "hike": "up", "none": "flat"}
+
+
+@dataclass(frozen=True)
+class ActionReading(MemberReading):
+    """A policy member read as its actions in the evidence window from ``window_start``.
+
+    ``points`` are the values held from ``baseline``, the one in force before the window,
+    on; ``actions`` each cut or hike in the window, oldest first. No action there is none,
+    which needs the baseline (``missing`` says when it is not held): a value read on the
+    window's first day may be a change from it. Its direction, for agreement, is the
+    action's: a cut down, a hike up.
+    """
+
+    actions: tuple[Action, ...] = ()
+    baseline: tuple[str, float, str] | None = None
+    window_start: str | None = None
+
+    @property
+    def action(self) -> str | None:
+        if self.evidence_status != "current" or self.missing:
+            return None
+        return self.actions[-1].kind if self.actions else "none"
+
+    @property
+    def momentum(self) -> str | None:
+        return _ACTION_DIRECTIONS.get(self.action or "")
+
+    @property
+    def change(self) -> float | None:
+        return None
+
+    def extra(self) -> dict[str, object]:
+        return {
+            "action": self.action,
+            "actions": [
+                {
+                    "period": item.period,
+                    "action": item.kind,
+                    "change": item.change,
+                    "released": item.released,
+                }
+                for item in self.actions
+            ],
+            "baseline": (
+                {"period": self.baseline[0], "value": self.baseline[1]}
+                if self.baseline is not None
+                else None
+            ),
+            "window_start": self.window_start,
+        }
+
+    # An action has no level, slope, run, crossing or range: those read values over periods.
+    @property
+    def level(self) -> str | None:
+        return None
+
+    @property
+    def slope(self) -> str | None:
+        return None
+
+    @property
+    def run(self) -> str | None:
+        return None
+
+    @property
+    def crossed(self) -> str | None:
+        return None
+
+    @property
+    def position(self) -> str | None:
+        return None
+
+    @property
+    def change_size(self) -> str | None:
+        return None
+
+
+@dataclass(frozen=True)
+class BlockReading(MemberReading):
+    """A daily member read in periods of ``sessions`` sessions, oldest first.
+
+    Each point is a period's mean (a rate) or sum (a flow), dated by its last session;
+    ``inputs`` are the observations they rest on. ``lines`` are the level line in force at
+    each period's end -- the policy rate DR007 is read against -- None where not known.
+    """
+
+    sessions: int = 5
+    lines: tuple[float | None, ...] = ()
+    # Each period's first session.
+    starts: tuple[str, ...] = ()
+
+    @property
+    def level(self) -> str | None:
+        if not self.points:
+            return None
+        line = self.lines[-1] if self.lines else self.level_line
+        return _side(self.values[-1], line) if line is not None else None
+
+    @property
+    def crossed(self) -> str | None:
+        return None
+
+    def extra(self) -> dict[str, object]:
+        return {
+            "period_sessions": self.sessions,
+            "aggregate": self.member.aggregate,
+            "lines": list(self.lines),
+        }
 
 
 def confirmation_document(
@@ -502,8 +716,19 @@ def confirmation_document(
     ``readings`` holds each indicator's members by its key, the main one first.
     """
     stage = current_stage.value if current_stage is not None else None
+    # Another indicator a condition names is read by its main member, when its every
+    # reading is known (DR007 passing on a cut).
+    others = {
+        _other(item.key): main
+        for item in rules.indicators
+        if (main := readings[item.key][0]).evidence_status == "current"
+        and (main.points or isinstance(main, ActionReading))
+        and not main.missing
+    }
     documents = [
-        _indicator_document(item, readings[item.key], stage=stage, timing=rules.timing)
+        _indicator_document(
+            item, readings[item.key], stage=stage, timing=rules.timing, others=others
+        )
         for item in rules.indicators
     ]
     _leading_together(rules, documents)
@@ -585,17 +810,23 @@ def month_end(month: str) -> str:
     return f"{month}-{calendar.monthrange(year, number)[1]:02d}"
 
 
+def _other(key: str) -> str:
+    """How a condition names another key indicator among an indicator's own members."""
+    return f"@{key}"
+
+
 def _indicator_document(
     indicator: KeyIndicator,
     members: Sequence[MemberReading],
     *,
     stage: str | None,
     timing: TimingRules,
+    others: Mapping[str, MemberReading],
 ) -> dict[str, object]:
     main, auxiliary = members[0], tuple(members[1:])
     agreement = [_agreement(main, member) for member in auxiliary]
     divergent = "opposes" in agreement
-    by_member = {member.member.name: member for member in members}
+    by_member = {**others, **{member.member.name: member for member in members}}
     document: dict[str, object] = {
         "key": indicator.key,
         "name": indicator.name,
@@ -629,12 +860,16 @@ def _indicator_document(
     }
     if stage is None:
         return document
-    if main.evidence_status != "current" or not main.points or main.missing:
+    # An action read with nothing held is none: its events traced, none found (ADR-0028).
+    readable = bool(main.points) or isinstance(main, ActionReading)
+    if main.evidence_status != "current" or not readable or main.missing:
         # Every reading of the main member is known, or none is said: a month short of
         # its lookback leaves a momentum, a slope or a year's range unknown, never read
         # as a direction.
         status = (
-            [main.evidence_status] if main.evidence_status != "current" or not main.points else []
+            [main.evidence_status]
+            if main.evidence_status != "current" or not (main.points or main.missing)
+            else []
         )
         missing = [f"{_member_label(main.member)}:{item}" for item in (*status, *main.missing)]
         return {**document, "relation": "unconfirmed", "missing": missing}
@@ -908,6 +1143,12 @@ def _holds(
         results.append(
             None if None in changes else changes[0] > changes[1]  # type: ignore[operator]
         )
+    if condition.after_action:
+        begun = member.starts[-1] if isinstance(member, BlockReading) and member.starts else None
+        acted = (
+            main.actions[-1].period if isinstance(main, ActionReading) and main.actions else None
+        )
+        results.append(None if begun is None or acted is None else begun > acted)
     if False in results:
         return False
     return None if None in results else True
@@ -942,6 +1183,7 @@ def _agreement(main: MemberReading, member: MemberReading) -> str:
 def _member_document(member: MemberReading, consistency: str) -> dict[str, object]:
     latest = member.points[-1] if member.points else None
     return {
+        **member.extra(),
         "role": member.role,
         "name": member.member.name,
         "label": member.member.label,
@@ -955,7 +1197,7 @@ def _member_document(member: MemberReading, consistency: str) -> dict[str, objec
         "values": list(member.values),
         "observation_version_ids": (
             list(member.inputs)
-            if member.member.formula is not None
+            if member.member.formula is not None or member.inputs
             else [version for _period, _value, version in member.points]
         ),
         "level": member.level,
@@ -983,20 +1225,32 @@ def _member_document(member: MemberReading, consistency: str) -> dict[str, objec
 
 
 def _derived_document(derived: Spread, by_member: Mapping[str, MemberReading]) -> dict[str, object]:
-    """A spread of two members over the months both hold, newest last; never counted."""
-    first, second = (by_member[name] for name in derived.of)
-    others = {period: value for period, value, _version in second.points}
-    points = [
-        (period, value - others[period])
-        for period, value, _version in first.points
-        if period in others
-    ]
+    """A spread of two members over the periods both hold, newest last, or of one member
+    against its level line where that is known, in basis points; never counted."""
+    first = by_member[derived.of[0]]
+    if len(derived.of) == 1:
+        lines = first.lines if isinstance(first, BlockReading) else ()
+        points = [
+            (period, (value - line) * 100)
+            for (period, value, _version), line in zip(first.points, lines, strict=True)
+            if line is not None
+        ]
+        inputs = [first.member.name]
+    else:
+        second = by_member[derived.of[1]]
+        others = {period: value for period, value, _version in second.points}
+        points = [
+            (period, value - others[period])
+            for period, value, _version in first.points
+            if period in others
+        ]
+        inputs = [first.member.name, second.member.name]
     values = [value for _period, value in points]
     return {
         "name": derived.name,
         "label": derived.label,
         "formula_version": derived.formula,
-        "inputs": [first.member.name, second.member.name],
+        "inputs": inputs,
         "counted": False,
         "period": points[-1][0] if points else None,
         "value": values[-1] if values else None,
@@ -1015,8 +1269,9 @@ def _unknown_readings(cell: Cell, main: MemberReading) -> str:
 
 
 def _member_label(member: Member) -> str:
+    """The member's dimensions, or its name when its metric has none or it is derived."""
     dimensions = member.dimensions
-    return ",".join(f"{key}={value}" for key, value in sorted(dimensions.items()))
+    return ",".join(f"{key}={value}" for key, value in sorted(dimensions.items())) or member.name
 
 
 def _side(value: float, line: float) -> str:
@@ -1072,7 +1327,13 @@ def _timing_rules(
     )
 
 
-def _indicator(value: object, grace: Mapping[str, int], horizon: Mapping[str, int]) -> KeyIndicator:
+def _indicator(
+    value: object,
+    grace: Mapping[str, int],
+    horizon: Mapping[str, int],
+    keys: Collection[str],
+) -> KeyIndicator:
+    """A key indicator; a condition of its own may name another of ``keys``."""
     if not isinstance(value, Mapping):
         raise ValueError("confirmation_key_indicator_invalid")
     texts = {}
@@ -1088,29 +1349,56 @@ def _indicator(value: object, grace: Mapping[str, int], horizon: Mapping[str, in
     frequency = value.get("frequency", "monthly")
     if frequency not in FREQUENCIES:
         raise ValueError("confirmation_frequency_unknown")
-    # Months are read up to a year, quarters up to four.
-    own, other = (
-        ("lookback_months", "lookback_quarters")
-        if frequency == "monthly"
-        else ("lookback_quarters", "lookback_months")
+    frequency = str(frequency)
+    actions, released, raw_notices = (
+        value.get("actions"),
+        value.get("released"),
+        value.get("notices"),
     )
-    line, lookback = value.get("level_line"), value.get(own)
+    sessions = _count(value.get("period_sessions"))
+    window = _count(value.get("window_sessions", 120))
+    if (
+        actions not in {None, "level", "change"}
+        # A month of grace for an action, as it stood at the month's end.
+        or (actions is not None and frequency != "monthly")
+        or (released is not None and actions != "change")
+        or (
+            raw_notices is not None and (actions != "level" or not isinstance(raw_notices, Mapping))
+        )
+        or window is None
+        or (frequency == "daily") != (sessions is not None)
+        or ("period_sessions" in value and sessions is None)
+    ):
+        raise ValueError("confirmation_key_indicator_invalid")
+    # Months are read up to a year, quarters up to four, sessions' periods up to 250
+    # sessions.
+    own = {
+        "monthly": "lookback_months",
+        "quarterly": "lookback_quarters",
+        "daily": "lookback_periods",
+    }[frequency]
+    year = YEAR_SESSIONS // sessions if sessions is not None else YEAR_MONTHS // _MONTHS[frequency]
+    raw_line, lookback = value.get("level_line"), _count(value.get(own))
     raw_auxiliary = value.get("auxiliary")
     raw_derived = value.get("derived", [])
     expectations = value.get("expectations")
     if (
-        (line is not None and (not isinstance(line, (int, float)) or isinstance(line, bool)))
-        or not isinstance(lookback, int)
-        or isinstance(lookback, bool)
-        or not 1 <= lookback <= YEAR_MONTHS // FREQUENCIES[str(frequency)]
-        or other in value
+        (
+            raw_line is not None
+            and not isinstance(raw_line, Mapping)
+            and (not isinstance(raw_line, (int, float)) or isinstance(raw_line, bool))
+        )
+        or (isinstance(raw_line, Mapping) and frequency != "daily")
+        or lookback is None
+        or lookback > year
+        or any(name in value for name in _LOOKBACK_FIELDS - {own})
         or not isinstance(raw_auxiliary, list)
         or not isinstance(raw_derived, list)
         or not isinstance(expectations, Mapping)
         or set(expectations) != set(_STAGES)
     ):
         raise ValueError("confirmation_key_indicator_invalid")
-    periods_grace, farthest = grace[str(frequency)], horizon[str(frequency)]
+    periods_grace, farthest = grace[frequency], horizon[frequency]
     if lookback - 1 > farthest:
         # Grace reads each period as it stood as far as the horizon; the readings never
         # beyond it.
@@ -1127,31 +1415,73 @@ def _indicator(value: object, grace: Mapping[str, int], horizon: Mapping[str, in
         for member in (main, *auxiliary)
     ):
         raise ValueError("confirmation_member_months_need_monthly")
+    if (
+        any(
+            # A member read by sessions, or a session formula's, belongs to a daily indicator,
+            # and one there reads its sessions or its months.
+            (frequency == "daily") != bool(member.aggregate or member.frequency == "monthly")
+            or (member.session_formula is not None and member.aggregate is None)
+            or (member.partial and actions is None)
+            for member in (main, *auxiliary)
+        )
+        or main.frequency is not None
+    ):
+        raise ValueError("confirmation_member_invalid")
+    line, notices = (
+        _member({"name": name, "label": name, **raw}, texts["metric_id"])
+        if isinstance(raw, Mapping)
+        else None
+        for name, raw in (("level_line", raw_line), ("notices", raw_notices))
+    )
     derived = tuple(_spread(item, names) for item in raw_derived)
-    stages = {stage: _expectation(expectations[stage], names) for stage in _STAGES}
-    if lookback < YEAR_MONTHS and any(
-        _YEAR_READINGS & set(condition.readings)
+    if any(len(item.of) == 1 and line is None for item in derived):
+        raise ValueError("confirmation_derived_invalid")
+    others = {_other(key) for key in keys if key != texts["key"]}
+    stages = {stage: _expectation(expectations[stage], names, others) for stage in _STAGES}
+    read = {
+        name
         for expectation in stages.values()
         for cell in expectation.cells
         for condition in cell.when
+        for name in condition.readings
+    }
+    if ("position" in read and (frequency == "quarterly" or lookback < year)) or (
+        "change_size" in read and lookback < YEAR_MONTHS
     ):
         # A range or a change size read short of a year would read another scale.
         raise ValueError("confirmation_year_reading_needs_a_year")
+    if ("action" in read) != (actions is not None):
+        # A policy indicator read as its actions answers by them alone.
+        raise ValueError("confirmation_action_reading_invalid")
     return KeyIndicator(
         **texts,
         main=main,
         auxiliary=auxiliary,
         derived=derived,
-        level_line=float(line) if line is not None else None,
+        level_line=float(raw_line) if isinstance(raw_line, (int, float)) else None,
         lookback=lookback,
         expectations=stages,
         grace=periods_grace,
-        frequency=str(frequency),
+        frequency=frequency,
         horizon=farthest,
+        actions=str(actions) if actions is not None else None,
+        window_sessions=window,
+        released=_dimensions(released) if released is not None else None,
+        period_sessions=sessions,
+        line=line,
+        notices=notices,
     )
 
 
-def _expectation(value: object, names: set[str]) -> Expectation:
+_LOOKBACK_FIELDS = frozenset({"lookback_months", "lookback_quarters", "lookback_periods"})
+
+
+def _count(value: object) -> int | None:
+    """A positive count, or None."""
+    return value if isinstance(value, int) and not isinstance(value, bool) and value >= 1 else None
+
+
+def _expectation(value: object, names: set[str], others: set[str]) -> Expectation:
     if not isinstance(value, Mapping):
         raise ValueError("confirmation_expectation_invalid")
     proposition, raw_cells = value.get("proposition"), value.get("cells")
@@ -1163,23 +1493,28 @@ def _expectation(value: object, names: set[str]) -> Expectation:
         or not all(isinstance(item, list) for item in lists)
     ):
         raise ValueError("confirmation_expectation_invalid")
+    # A stage's hint is read back period by period, of the indicator's own members alone.
     notes, turn_hints, caps = (
-        tuple(annotation for item in items if (annotation := _annotation(item, names)) is not None)
-        for items in lists
+        tuple(
+            annotation
+            for item in items
+            if (annotation := _annotation(item, names, () if kind == 1 else others)) is not None
+        )
+        for kind, items in enumerate(lists)
     )
     if any(not hint.when or hint.text not in _STAGES for hint in turn_hints):
         # A stage's hint is a signal of its own: what it reads is how long it held.
         raise ValueError("confirmation_turn_hint_invalid")
     return Expectation(
         proposition,
-        tuple(_cell(item, names) for item in raw_cells),
+        tuple(_cell(item, names, others) for item in raw_cells),
         notes,
         turn_hints,
         caps,
     )
 
 
-def _cell(value: object, names: set[str]) -> Cell:
+def _cell(value: object, names: set[str], others: set[str]) -> Cell:
     if not isinstance(value, Mapping) or value.get("relation") not in _CELL_RELATIONS:
         raise ValueError("confirmation_cell_invalid")
     when = value.get("when")
@@ -1193,7 +1528,8 @@ def _cell(value: object, names: set[str]) -> Cell:
     turn_hint = _annotation(value.get("turn_hint"), names)
     raw_confirmed = value.get("confirmed_when")
     confirmed_when = (
-        _annotation({"text": "transmission", "when": raw_confirmed}, names)
+        # Passed on: the main member's change shows in another indicator (a cut, in DR007).
+        _annotation({"text": "transmission", "when": raw_confirmed}, names, others)
         if raw_confirmed is not None
         else None
     )
@@ -1210,45 +1546,60 @@ def _cell(value: object, names: set[str]) -> Cell:
     return Cell(
         relation=str(value["relation"]),
         when=conditions,
-        note=_annotation(value.get("note"), names),
+        note=_annotation(value.get("note"), names, others),
         turn_hint=turn_hint,
         grace=grace,
         confirmed_when=confirmed_when,
     )
 
 
-def _annotation(value: object, names: set[str]) -> Annotation | None:
-    """An annotation's text and its conditions: one mapping, or a list all must hold."""
+def _annotation(value: object, names: set[str], others: Collection[str] = ()) -> Annotation | None:
+    """An annotation's text and its conditions: one mapping, or a list all must hold.
+
+    A condition may read another key indicator (``others``) where the annotation is read
+    of the newest period alone: a note, a cap, a transmission.
+    """
     if value is None:
         return None
     if not isinstance(value, Mapping) or not isinstance(value.get("text"), str):
         raise ValueError("confirmation_annotation_invalid")
     when = value.get("when")
     items = [] if when is None else when if isinstance(when, list) else [when]
-    return Annotation(str(value["text"]), tuple(_condition(item, names) for item in items))
+    return Annotation(str(value["text"]), tuple(_condition(item, names, others) for item in items))
 
 
-def _condition(value: object, names: set[str]) -> Condition:
+def _condition(value: object, names: set[str], others: Collection[str] = ()) -> Condition:
     if not isinstance(value, Mapping):
         raise ValueError("confirmation_condition_invalid")
     readings: dict[str, str | tuple[str, ...]] = {}
     for name, expected in value.items():
-        if name in {"member", "outpaces"}:
+        if name in {"member", "outpaces", "indicator", "after_action"}:
             continue
         values = expected if isinstance(expected, list) else [expected]
         if name not in _READINGS or not values or not set(values) <= _READINGS[name]:
             raise ValueError(f"confirmation_condition_unknown:{name}")
         readings[name] = str(expected) if not isinstance(expected, list) else tuple(values)
     member, outpaces = value.get("member"), value.get("outpaces")
+    if "indicator" in value:
+        # Another key indicator's main member, named as no member of its own can be.
+        if member is not None or outpaces is not None:
+            raise ValueError("confirmation_condition_invalid")
+        member = _other(str(value["indicator"]))
+        if member not in others:
+            raise ValueError(f"confirmation_indicator_unknown:{value['indicator']}")
     if not readings and outpaces is None:
         raise ValueError("confirmation_condition_invalid")
     for reference in (member, outpaces):
-        if reference is not None and reference not in names:
+        if reference is not None and reference not in names | set(others):
             raise ValueError(f"confirmation_member_unknown:{reference}")
+    after_action = value.get("after_action", False)
+    if not isinstance(after_action, bool) or (after_action and "indicator" not in value):
+        raise ValueError("confirmation_condition_invalid")
     return Condition(
         readings,
         str(member) if member is not None else None,
         str(outpaces) if outpaces is not None else None,
+        after_action,
     )
 
 
@@ -1257,11 +1608,18 @@ def _member(value: object, metric_id: str) -> Member:
         raise ValueError("confirmation_member_invalid")
     name, label = value.get("name"), value.get("label")
     own = value.get("metric_id", metric_id)
-    formula = value.get("formula")
-    dimensions = _dimensions(value.get("dimensions")) if formula is None else {}
+    formula, session_formula = value.get("formula"), value.get("session_formula")
+    # A metric with no dimensions has its one member read with none.
+    dimensions = (
+        _dimensions(value.get("dimensions"), empty=True)
+        if formula is None and session_formula is None
+        else {}
+    )
     raw_months = value.get("unreleased_months", [])
     raw_stand_ins = value.get("stand_ins", {})
     stand_in_label = value.get("stand_in_label")
+    aggregate, frequency = value.get("aggregate"), value.get("frequency")
+    partial = value.get("partial", False)
     if (
         not isinstance(name, str)
         or not name
@@ -1273,6 +1631,12 @@ def _member(value: object, metric_id: str) -> Member:
         or not isinstance(raw_stand_ins, Mapping)
         or (bool(raw_stand_ins) != isinstance(stand_in_label, str))
         or (formula is not None and formula not in DERIVED_FORMULAS)
+        or (session_formula is not None and session_formula not in SESSION_FORMULAS)
+        or aggregate not in {None, "mean", "sum"}
+        or frequency not in {None, "monthly"}
+        or (frequency is not None and aggregate is not None)
+        or not isinstance(partial, bool)
+        or (partial and not dimensions)
     ):
         raise ValueError("confirmation_member_invalid")
     stand_ins: dict[int, Mapping[str, str]] = {}
@@ -1289,28 +1653,33 @@ def _member(value: object, metric_id: str) -> Member:
         stand_ins,
         str(formula) if formula is not None else None,
         stand_in_label if isinstance(stand_in_label, str) else None,
+        aggregate=str(aggregate) if aggregate is not None else None,
+        session_formula=str(session_formula) if session_formula is not None else None,
+        frequency=str(frequency) if frequency is not None else None,
+        partial=partial,
     )
 
 
 def _spread(value: object, names: set[str]) -> Spread:
-    """A shown spread of two members, ``of`` naming them: the first less the second."""
+    """A shown spread of two members, ``of`` naming them: the first less the second; or of
+    one member against its level line."""
     if not isinstance(value, Mapping):
         raise ValueError("confirmation_derived_invalid")
     name, label, formula, of = (value.get(key) for key in ("name", "label", "formula", "of"))
     if (
         not isinstance(name, str)
         or not isinstance(label, str)
-        or formula not in SPREAD_FORMULAS
         or not isinstance(of, list)
-        or len(of) != 2
+        or len(of) != (2 if formula in SPREAD_FORMULAS else 1)
+        or formula not in SPREAD_FORMULAS | LINE_SPREAD_FORMULAS
         or not all(item in names for item in of)
     ):
         raise ValueError("confirmation_derived_invalid")
-    return Spread(name, label, str(formula), (str(of[0]), str(of[1])))
+    return Spread(name, label, str(formula), tuple(str(item) for item in of))
 
 
-def _dimensions(value: object) -> dict[str, str]:
-    if not isinstance(value, Mapping) or not value:
+def _dimensions(value: object, *, empty: bool = False) -> dict[str, str]:
+    if not isinstance(value, Mapping) or (not value and not empty):
         raise ValueError("confirmation_member_invalid")
     if not all(isinstance(k, str) and isinstance(v, str) for k, v in value.items()):
         raise ValueError("confirmation_member_invalid")
@@ -1397,8 +1766,11 @@ def rules_v0001() -> dict[str, Any]:
 # thirteen months and four quarters (ADR-0035); the stage a lag still shows, the stage a
 # lead already shows (expectation-table.md E3/D4, N4).
 _TIMING_RULES = {
-    "grace_periods": {"monthly": 2, "quarterly": 1},
-    "horizon_periods": {"monthly": 13, "quarterly": 3},
+    # A daily indicator's period is a run of its sessions (five, a week's): two of them,
+    # as two months for a monthly one (macro semantics ticket 06).
+    "grace_periods": {"monthly": 2, "quarterly": 1, "daily": 2},
+    # Fifty-two periods of five sessions: a year's 250 and the two grace reads before.
+    "horizon_periods": {"monthly": 13, "quarterly": 3, "daily": 51},
     "adjacent_stage": {"leading": "next", "lagging": "previous"},
 }
 # Forming: held two periods, or two leading indicators turning toward one stage (ADR-0037).
@@ -1796,6 +2168,263 @@ _SOCIAL_FINANCING_CELLS = {
     ],
 }
 
+_POLICY_PROPOSITIONS = {
+    "stage_i": "政策和资金价格转松",
+    "stage_ii": "宽松延续并开始传导",
+    "stage_iii": "政策未转紧，融资条件仍支持扩张",
+    "stage_iv": "政策由宽松转向中性或收紧",
+    "stage_v": "政策中性偏紧，利率维持较高",
+    "stage_vi": "政策观望或刚开始宽松",
+}
+# The latest action in the 120-session evidence window: cut or raised there (a cut earlier
+# in it, then held, still reads cut: F2), or none -- unchanged longer than the window.
+_CUT, _HIKE, _NONE = {"action": "cut"}, {"action": "hike"}, {"action": "none"}
+_POLICY_TURNING = "政策转向，接近Ⅵ→Ⅰ"
+
+
+def _policy_action_cells(**cut_in_iv: Any) -> dict[str, list[dict[str, Any]]]:
+    """A policy action's cells by stage; ``cut_in_iv`` qualifies stage IV's cut."""
+    return {
+        "stage_i": [
+            _cell_data("counterevidence", _HIKE),
+            _cell_data("support", _CUT),
+            _cell_data("observation_only", _NONE),
+        ],
+        "stage_ii": [
+            _cell_data("counterevidence", _HIKE),
+            _cell_data("support", _CUT),
+            _cell_data("observation_only", _NONE),
+        ],
+        "stage_iii": [
+            # A hike is a sprout or forming of stage IV (G1/H1).
+            _cell_data("observation_only", _HIKE, turn_hint=_hint("stage_iv")),
+            _cell_data("support", _NONE, _CUT),
+        ],
+        "stage_iv": [
+            _cell_data("counterevidence", _CUT, **cut_in_iv),
+            _cell_data("support", _HIKE, _NONE),
+        ],
+        "stage_v": [
+            # Whatever its maturity, a cut is only observed here (J1).
+            _cell_data(
+                "observation_only",
+                _CUT,
+                turn_hint=_hint("stage_vi"),
+                note={"text": _POLICY_TURNING},
+            ),
+            _cell_data("support", _HIKE, _NONE),
+        ],
+        "stage_vi": [
+            _cell_data("observation_only", _HIKE, note={"text": "政策滞后"}),
+            # Waiting, or just easing: a cut hints at stage I (L1).
+            _cell_data("support", _NONE, _CUT, turn_hint=_hint("stage_i", action="cut")),
+        ],
+    }
+
+
+# A cut passed on: DR007, the funding price, falls after it -- the mean of a period begun
+# after the cut lower than the one before (user, 2026-10-07).
+_CUT_PASSED_ON = [{"indicator": "dr007", "momentum": "down", "after_action": True}]
+_POLICY_RATE: dict[str, Any] = {
+    "key": "policy_rate",
+    "timing": "leading",
+    "name": "政策利率",
+    "dimension": "policy",
+    "metric_id": "CN_OMO_7D_RATE",
+    "main": _member_data("omo_7d", "七天逆回购利率"),
+    "auxiliary": [],
+    "level_line": None,
+    "actions": "level",
+    "window_sessions": 120,
+    # Each session's operation notice, which states the rate: a day read, rate or not.
+    "notices": {"metric_id": "CN_OMO_7D_AMOUNT", "dimensions": {"measure": "injection"}},
+    # The rate in force before the window, then its days in it.
+    "lookback_months": 1,
+    "expectations": _stages(
+        _POLICY_PROPOSITIONS,
+        # A cut in stage IV is counterevidence confirmed: past grace, or passed on.
+        _policy_action_cells(grace=True, confirmed_when=_CUT_PASSED_ON),
+    ),
+}
+_LPR: dict[str, Any] = {
+    "key": "lpr",
+    "timing": "leading",
+    "name": "LPR",
+    "dimension": "policy",
+    "metric_id": "CN_LPR_1Y_5Y",
+    "main": _member_data("1y", "1 年期 LPR", tenor="1y"),
+    "auxiliary": [_member_data("5y_plus", "5 年期以上 LPR", tenor="5y_plus")],
+    "level_line": None,
+    "actions": "level",
+    "window_sessions": 120,
+    # The window's months and the fixing in force before them.
+    "lookback_months": 8,
+    # A cut in stage IV is confirmed as the policy rate's is: past grace, or passed on.
+    "expectations": _stages(
+        _POLICY_PROPOSITIONS, _policy_action_cells(grace=True, confirmed_when=_CUT_PASSED_ON)
+    ),
+}
+_RRR: dict[str, Any] = {
+    "key": "rrr",
+    "timing": "leading",
+    "name": "降准",
+    "dimension": "policy",
+    "metric_id": "CN_RRR_EVENT",
+    # Each event states its own change, of whichever institutions' scope.
+    "main": {
+        **_member_data("rrr_change", "存款准备金率调整", measure="rrr_change"),
+        "partial": True,
+    },
+    "auxiliary": [],
+    "level_line": None,
+    "actions": "change",
+    "window_sessions": 120,
+    "released": {"measure": "released_funds"},
+    "lookback_months": 1,
+    "expectations": _stages(_POLICY_PROPOSITIONS, _policy_action_cells()),
+}
+
+# Net injection on a period: what was put in over its sessions, less what matured. Above
+# zero a net injection, below it a net withdrawal; more or less than the period before.
+_NET_INJECTION, _NET_WITHDRAWAL = {"level": "above"}, {"level": "below"}
+_STEADY = {"change_size": "ordinary"}
+_SURGING = {"level": "above", "momentum": "up", "change_size": "marked"}
+_LIQUIDITY_CELLS = {
+    "stage_i": [
+        # Withdrawal widening on: net falling twice running, below zero.
+        _cell_data("counterevidence", {**_NET_WITHDRAWAL, "run": "down"}),
+        _cell_data("support", {**_NET_INJECTION, **_UP}),
+    ],
+    "stage_ii": [
+        _cell_data("counterevidence", {**_NET_WITHDRAWAL, "run": "down"}),
+        _cell_data("support", {**_NET_INJECTION, **_UP}, _STEADY),
+    ],
+    "stage_iii": [
+        # Withdrawal widening: a sprout or forming of stage IV.
+        _cell_data("observation_only", {**_NET_WITHDRAWAL, **_DOWN}, turn_hint=_hint("stage_iv")),
+        _cell_data("support", _STEADY),
+    ],
+    "stage_iv": [
+        _cell_data("observation_only", _SURGING),
+        _cell_data("support", _NET_WITHDRAWAL),
+    ],
+    "stage_v": [
+        _cell_data("observation_only", _SURGING),
+        _cell_data("support", _NET_WITHDRAWAL, _STEADY),
+    ],
+    "stage_vi": [
+        _cell_data("observation_only", {**_NET_WITHDRAWAL, **_DOWN}),
+        _cell_data("support", {**_NET_INJECTION, **_UP}, _STEADY),
+    ],
+}
+_LIQUIDITY: dict[str, Any] = {
+    "key": "liquidity",
+    "timing": "leading",
+    "name": "流动性投放",
+    "dimension": "policy",
+    "metric_id": "CN_OMO_7D_AMOUNT",
+    "main": {
+        "name": "net_injection",
+        "label": "七天逆回购净投放（每期合计）",
+        "session_formula": "omo-7d-net-injection-v0001",
+        "aggregate": "sum",
+    },
+    "auxiliary": [
+        {
+            **_member_data(
+                "short_term_reverse_repo",
+                "月度工具投放：短期逆回购净投放",
+                tool="短期逆回购",
+                measure="net_injection",
+            ),
+            "metric_id": "CN_TOOL_LIQUIDITY_MONTHLY",
+            "frequency": "monthly",
+        }
+    ],
+    "level_line": 0,
+    "frequency": "daily",
+    "period_sessions": 5,
+    # Twelve periods: whether the newest change is marked.
+    "lookback_periods": 12,
+    "expectations": _stages(_POLICY_PROPOSITIONS, _LIQUIDITY_CELLS),
+}
+
+# DR007's period mean against the policy rate in force at its end.
+_ABOVE_POLICY, _BELOW_POLICY = {"level": "above"}, {"level": "below"}
+# The policy acted and DR007 did not fall: DR007 is observed, never support nor
+# counterevidence, in every stage (D1; user, 2026-10-07); the action answers its own cell.
+_ACTED_NOT_FALLEN = [
+    {
+        "text": text,
+        "when": [{"indicator": indicator, "action": "cut"}, {"momentum": ["flat", "up"]}],
+    }
+    for indicator, text in (
+        ("policy_rate", "政策利率已下调而 DR007 未降"),
+        ("lpr", "LPR 已下调而 DR007 未降"),
+        ("rrr", "已降准而 DR007 未降"),
+    )
+]
+_DR007_CELLS = {
+    "stage_i": [
+        _cell_data("counterevidence", {**_UP, **_ABOVE_POLICY}),
+        _cell_data("support", _DOWN, _BELOW_POLICY),
+    ],
+    "stage_ii": [
+        _cell_data("counterevidence", {**_UP, **_ABOVE_POLICY}),
+        _cell_data("support", _BELOW_POLICY, {**_LOW, **_STEADY}),
+    ],
+    "stage_iii": [
+        _cell_data("observation_only", {**_UP, **_ABOVE_POLICY}, turn_hint=_hint("stage_iv")),
+        _cell_data("support", _STEADY, _BELOW_POLICY),
+    ],
+    "stage_iv": [
+        _cell_data("counterevidence", {**_DOWN, **_BELOW_POLICY}, grace=True),
+        _cell_data("support", _UP, _ABOVE_POLICY),
+    ],
+    "stage_v": [
+        _cell_data("support", _HIGH, _ABOVE_POLICY),
+        _cell_data("observation_only", _DOWN),
+    ],
+    "stage_vi": [
+        _cell_data("support", _DOWN, turn_hint=_hint("stage_i")),
+        _cell_data("observation_only", _UP),
+    ],
+}
+_DR007: dict[str, Any] = {
+    "key": "dr007",
+    "timing": "leading",
+    "name": "DR007",
+    "dimension": "policy",
+    "metric_id": "CN_DR007",
+    "main": {**_member_data("dr007", "DR007（每期均值）"), "aggregate": "mean"},
+    "auxiliary": [
+        {
+            **_member_data("shibor_1w", "SHIBOR 1 周（每期均值）", tenor="1w"),
+            "metric_id": "CN_SHIBOR_ON_1W_3M",
+            "aggregate": "mean",
+        }
+    ],
+    # Shown, never counted (ADR-0037).
+    "derived": [
+        {
+            "name": "policy_spread",
+            "label": "DR007 政策利差（基点）",
+            "formula": "dr007-policy-spread-sessions-v0001",
+            "of": ["dr007"],
+        }
+    ],
+    "level_line": {"metric_id": "CN_OMO_7D_RATE", "dimensions": {}},
+    "frequency": "daily",
+    "period_sessions": 5,
+    # Fifty periods of five sessions: a year's range.
+    "lookback_periods": 50,
+    "expectations": _stages(
+        _POLICY_PROPOSITIONS,
+        _DR007_CELLS,
+        caps=dict.fromkeys(_STAGES, _ACTED_NOT_FALLEN),
+    ),
+}
+
 _KEY_INDICATORS: list[dict[str, Any]] = [
     {
         "key": "pmi",
@@ -1889,4 +2518,9 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
         "lookback_months": YEAR_MONTHS,
         "expectations": _stages(_CREDIT_PROPOSITIONS, _MONEY_CELLS),
     },
+    _POLICY_RATE,
+    _LPR,
+    _RRR,
+    _LIQUIDITY,
+    _DR007,
 ]

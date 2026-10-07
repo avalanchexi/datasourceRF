@@ -410,7 +410,7 @@ def test_the_counts_cover_overheat_price_and_credit_and_no_derived_value(tmp_pat
     }
     keys = {name: [i["key"] for i in item["key_indicators"]] for name, item in dimensions.items()}
     assert keys == {
-        "policy": [],
+        "policy": ["policy_rate", "lpr", "rrr", "liquidity", "dr007"],
         "credit": ["social_financing", "money"],
         "overheat": ["pmi", "industrial_va"],
         "price": ["ppi", "cpi", "pmi_prices"],

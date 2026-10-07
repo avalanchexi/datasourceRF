@@ -28,6 +28,7 @@ from pring_cycle.tushare_context import TushareContextAdapter
 from pring_cycle.worker import process_pending_run
 from tests.integration.test_full_run_retrieval import prepare, seed_core_history
 from tests.integration.test_official_gdp_fallback import admit_gdp_candidate, delivery
+from tests.integration.test_trading_calendar import record_sse_calendar
 
 WEEKDAYS = TradingCalendar()
 
@@ -227,10 +228,82 @@ def test_a_reading_declared_twice_for_a_metric_is_refused() -> None:
         )
 
 
-def test_a_daily_reading_beyond_the_fetch_margin_is_refused() -> None:
-    # The fetch reaches two weeks before the window, two sessions in any market.
+def test_a_daily_reading_of_many_sessions_is_covered_back_from_each_day_on_the_calendar() -> None:
+    # Counted on the SSE calendar from the window's first day (2026-04-06): its holidays
+    # are no sessions. A reading of the newest two keeps to the fetch's fixed lead.
+    holidays = {date(2026, 1, 1), date(2026, 2, 17), date(2026, 2, 18)}
+    stated = TradingCalendar(
+        day
+        for day in (date(2025, 9, 1) + timedelta(days=offset) for offset in range(400))
+        if day.weekday() < 5 and day not in holidays
+    )
+    window = _window_to(date(2026, 6, 30))
+    read = resolve(
+        (
+            Reading("CN_DR007", "range", Periods.sessions(100)),
+            own_reading("CN_SHIBOR_ON_1W_3M", "daily"),
+        ),
+        formula_versions={},
+        window=window,
+        public_cutoff=datetime.combine(window[-1], time.max, tzinfo=ZoneInfo("Asia/Shanghai")),
+        calendar=stated,
+    )
+
+    covered = read.coverage.periods["CN_DR007"]
+    first = stated.sessions_back(window[0], 100)[0]
+    assert covered[0] == first.isoformat() and covered[-1] == "2026-06-30"
+    assert not {day.isoformat() for day in holidays} & set(covered)
+    assert "CN_SHIBOR_ON_1W_3M" not in read.coverage.periods
+
+
+def test_a_daily_reading_beyond_the_calendar_starts_a_holiday_margin_before_its_weekdays() -> None:
+    read = _resolve(Reading("CN_DR007", "range", Periods.sessions(250)))
+
+    # 249 weekdays before 2026-04-06 (2025-04-22), then 7 days and one for each 15 more.
+    assert read.coverage.periods["CN_DR007"][0] == "2025-03-30"
+
+
+def test_a_daily_reading_of_many_sessions_every_day_is_refused() -> None:
+    # The plan would require each day's own sessions: not one it reads that way.
     with pytest.raises(ValueError, match="lookback_sessions_beyond_daily_lead"):
-        _resolve(Reading("CN_DR007", "range", Periods.sessions(250)))
+        _resolve(
+            Reading(
+                "CN_DR007",
+                "range",
+                Periods.sessions(250),
+                required=Periods.sessions(2),
+                every_day=True,
+            )
+        )
+
+
+def test_a_plan_counts_a_daily_reading_s_sessions_past_the_window() -> None:
+    window = tuple(f"2026-08-{day:02d}" for day in (24, 25, 26, 27, 28))
+    history = ("2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21", *window)
+    read = Lookback(
+        (
+            own_reading("CN_DR007", "daily", every_session=True),
+            Reading("CN_DR007", "range", Periods.sessions(7)),
+        )
+    )
+
+    required = read.required(
+        "CN_DR007", "2026-08-28", sessions=history, window=window, whole_window=True
+    )
+
+    assert list(required) == [*history[-7:]]
+    # Sessions the calendar does not state are not named.
+    assert list(read.required("CN_DR007", "2026-08-28", sessions=window, whole_window=True)) == [
+        *window
+    ]
+    # Counted from the target day, whatever event was held last: the rate in force on the
+    # session before a window of five, though the newest rate held is of 25 August.
+    baseline = Lookback(
+        (Reading("CN_OMO_7D_RATE", "baseline", Periods.explicit(5, unit="session")),)
+    )
+    assert list(
+        baseline.required("CN_OMO_7D_RATE", "2026-08-25", sessions=history, window=window)
+    ) == ["2026-08-21"]
 
 
 def test_a_reading_read_on_the_target_day_alone_takes_its_set_at_the_anchor() -> None:
@@ -518,6 +591,98 @@ def test_a_confirmation_model_plans_the_months_each_member_reads(
     assert periods["CN_SF_COMPONENTS"] == three
     assert sorted(members["CN_SF_COMPONENTS"]["2026-05"]) == sorted(components)
     _assert_the_fetch_covers_the_plan(periods, requests)
+
+
+def test_the_policy_readings_declare_their_windows_baselines_and_lead() -> None:
+    from pring_cycle.context_projection import ContextProjectionRules
+    from pring_cycle.lookback import declare
+
+    readings = {
+        item.reading: item
+        for item in declare(ContextProjectionRules.from_manifest(model_v0015_manifest()))
+        if item.reading.startswith("confirmation:")
+        and item.reading.split(":")[1] in {"policy_rate", "lpr", "rrr", "liquidity", "dr007"}
+    }
+
+    assert {
+        name: (item.metric_id, item.periods, item.members) for name, item in readings.items()
+    } == {
+        # The rate in force on the session before the 120-session window, and the
+        # operation notice of that session and of each in the window.
+        "confirmation:policy_rate": (
+            "CN_OMO_7D_RATE",
+            Periods.explicit(120, unit="session"),
+            None,
+        ),
+        "confirmation:policy_rate:notices": (
+            "CN_OMO_7D_AMOUNT",
+            Periods.sessions(121),
+            ({"measure": "injection"},),
+        ),
+        # The window's months and the fixing before them.
+        "confirmation:lpr": ("CN_LPR_1Y_5Y", Periods.consecutive(8), ({"tenor": "1y"},)),
+        "confirmation:lpr:5y_plus": (
+            "CN_LPR_1Y_5Y",
+            Periods.consecutive(8),
+            ({"tenor": "5y_plus"},),
+        ),
+        # Fourteen five-session periods and the ten sessions before them, whose
+        # injections mature in the first.
+        "confirmation:liquidity": (
+            "CN_OMO_7D_AMOUNT",
+            Periods.sessions(80),
+            ({"measure": "injection"},),
+        ),
+        "confirmation:liquidity:short_term_reverse_repo": (
+            "CN_TOOL_LIQUIDITY_MONTHLY",
+            Periods.consecutive(3),
+            ({"tool": "短期逆回购", "measure": "net_injection"},),
+        ),
+        "confirmation:dr007": ("CN_DR007", Periods.sessions(260), None),
+        "confirmation:dr007:shibor_1w": (
+            "CN_SHIBOR_ON_1W_3M",
+            Periods.sessions(15),
+            ({"tenor": "1w"},),
+        ),
+    }
+
+
+def test_a_policy_model_counts_its_sessions_and_months_past_the_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The SSE calendar states 400 sessions to the target day. DR007 reads a year of
+    # five-session periods and the two grace reads back before them: 260 sessions to the
+    # target day, and back from the window's first day for the fetch. The policy rate
+    # reads each session's notice in the window and the one before it for the rate in
+    # force there, the LPR the window's months and the fixing before them (macro
+    # semantics ticket 06).
+    days = [
+        day
+        for day in (date(2026, 8, 28) - timedelta(days=offset) for offset in range(560))
+        if day.weekday() < 5
+    ][:400][::-1]
+    plan, requests = _full_run(
+        tmp_path,
+        monkeypatch,
+        model_v0015_manifest(),
+        lambda paths: record_sse_calendar(paths, days),
+    )
+    periods = _periods(plan["initial"])
+    members = _members(plan["initial"])
+    sessions = [day.isoformat() for day in days]
+
+    assert periods["CN_DR007"] == sessions[-260:]
+    # A session before the window is read for DR007 alone, its one member.
+    assert members["CN_DR007"][sessions[-121]] is None
+    assert sessions[-121] in periods["CN_OMO_7D_RATE"]
+    assert periods["CN_LPR_1Y_5Y"] == [f"2026-{month:02d}" for month in range(1, 9)]
+    assert sorted(members["CN_LPR_1Y_5Y"]["2026-03"]) == sorted(
+        member_keys("CN_LPR_1Y_5Y", ({"tenor": "1y"}, {"tenor": "5y_plus"}))
+    )
+    # The notices from the session before the window: the policy rate's history; net
+    # injection's periods and the lead before them lie in the window.
+    assert periods["CN_OMO_7D_AMOUNT"] == sessions[-121:]
+    assert requests["transmission"]["start_date"] == sessions[-120 - 259]
 
 
 def _members(plan: dict[str, Any]) -> dict[str, dict[str, list[str] | None]]:

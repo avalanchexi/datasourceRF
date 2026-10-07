@@ -81,12 +81,36 @@ class TradingCalendar(Sessions):
         Only from what the source covers, never weekday stand-ins: LookupError when ``day``
         is outside it or the sessions wanted reach before it.
         """
-        if self._first is None or self._last is None or not self._first <= day <= self._last:
+        if not self.covers(day):
             raise LookupError("window_calendar_unavailable")
+        assert self._first is not None
         known = sorted(d for d in self._days if max(since, self._first) <= d <= day)
         if len(known) < count and since < self._first:
             raise LookupError("window_calendar_unavailable")
         return tuple(known[-count:])
+
+    def stated_to(self, day: date) -> tuple[date, ...]:
+        """Every session the source states up to ``day``, oldest first."""
+        return tuple(sorted(item for item in self._days if item <= day)) if self.covers(day) else ()
+
+    def sessions_from(self, first: date, last: date) -> tuple[date, ...]:
+        """The sessions from ``first`` to ``last``: LookupError unless the source covers both."""
+        if not self.covers(first) or not self.covers(last):
+            raise LookupError("window_calendar_unavailable")
+        return tuple(sorted(day for day in self._days if first <= day <= last))
+
+    def sessions_back(self, day: date, count: int) -> tuple[date, ...]:
+        """The last ``count`` sessions to ``day``, oldest first, all of them from the source.
+
+        LookupError when ``day`` is outside what it covers or the sessions reach before it.
+        """
+        return self.sessions_to(day, count, since=date.min)
+
+    def covers(self, day: date) -> bool:
+        """Whether the source says if ``day`` is a session, rather than weekdays standing in."""
+        return (
+            self._first is not None and self._last is not None and self._first <= day <= self._last
+        )
 
 
 class HolidayCalendar(Sessions):
