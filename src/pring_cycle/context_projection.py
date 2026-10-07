@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Any
@@ -18,6 +18,7 @@ from pring_cycle.confirmation import (
     ConfirmationRules,
     DerivedInput,
     KeyIndicator,
+    Member,
     MemberReading,
     confirmation_document,
     derived_points,
@@ -587,14 +588,18 @@ def build_context_projection(
             for version in (
                 member.inputs
                 if member.member.formula is not None
-                else tuple(version for _period, _value, version in member.points)
+                else tuple(
+                    version
+                    for reading in (member, *member.earlier)
+                    for _period, _value, version in reading.points
+                )
             )
         }
         # The four labels are not given, nor stood in for: the dimension summary is.
         macro_document = {
             "output_structure": OUTPUT_STRUCTURE,
             "confirmation": confirmation_document(
-                rules.confirmation.indicators,
+                rules.confirmation,
                 readings,
                 current_stage=formal_stage.current_stage,
                 stage_reason=formal_stage.reason,
@@ -677,13 +682,15 @@ def _member_readings(
     as_of: datetime,
     as_of_mode: AsOfMode,
 ) -> tuple[MemberReading, ...]:
-    """Each member's newest months, the main member first.
+    """Each member's newest periods, the main member first.
 
     The newest is the member's evidence row as shown (or its stand-in's, when newer); the
-    months before it are read whether or not the visible window shows them, as a
-    comparison is (ticket 30). A month not held is missing and ends the run: an older one
+    periods before it are read whether or not the visible window shows them, as a
+    comparison is (ticket 30). A period not held is missing and ends the run: an older one
     held never stands in for it. A month the member is never released for is passed over.
-    A derived member is read for the main member's newest month and the one before.
+    Each of the periods grace reaches back is read too, as the member stood then, from the
+    periods the lookback declares and none before. A derived member is read for the main
+    member's newest month and the one before.
     """
     usable: dict[tuple[str, str], dict[str, MetricSeriesPoint]] = {}
 
@@ -705,7 +712,7 @@ def _member_readings(
         ("main", indicator.main),
         *(("auxiliary", item) for item in indicator.auxiliary),
     ):
-        months = indicator.months(member)
+        months = indicator.periods(member)
         if member.formula is not None:
             main = readings[0]
             newest = main.points[-1][0][:7] if main.points else None
@@ -755,33 +762,67 @@ def _member_readings(
             )
             continue
         newest = str(row["period"])[:7]
-        held: list[tuple[str, float, str]] = []
-        missing: list[str] = []
-        for offset in range(months):
-            month = month_back(newest, offset)
-            number = int(month[5:7])
-            if number in member.unreleased_months:
-                continue
-            point = points(member.metric_id, member.stand_ins.get(number, member.dimensions)).get(
-                month_end(month)
+        step = indicator.step
+        # The farthest month the lookback declares: grace reads no further back.
+        history = indicator.history(member)
+        oldest = month_back(newest, (indicator.reach(member) - 1) * step)
+        status = str(row["status"])
+        earlier: list[MemberReading] = []
+        end = newest
+        for _ in range(history):
+            end = month_back(end, step)
+            while int(end[5:7]) in member.unreleased_months:
+                end = month_back(end, step)
+            held, missing = _member_window(points, member, end, months, step, oldest)
+            earlier.append(
+                MemberReading(member, role, status, held, missing, indicator.level_line, months)
             )
-            value = _numeric_value(point.selected_value) if point is not None else None
-            if point is None or value is None or point.selected_claim_id is None:
-                missing.append(month)
-            elif not missing:
-                held.insert(0, (month_end(month), value, point.selected_claim_id))
+        held, missing = _member_window(points, member, newest, months, step, oldest)
         readings.append(
             MemberReading(
                 member,
                 role,
-                str(row["status"]),
-                tuple(held),
-                tuple(reversed(missing)),
+                status,
+                held,
+                missing,
                 indicator.level_line,
                 months,
+                earlier=tuple(earlier),
             )
         )
     return tuple(readings)
+
+
+def _member_window(
+    points: Callable[[str, Mapping[str, str]], Mapping[str, MetricSeriesPoint]],
+    member: Member,
+    end: str,
+    months: int,
+    step: int,
+    oldest: str,
+) -> tuple[tuple[tuple[str, float, str], ...], tuple[str, ...]]:
+    """``member``'s ``months`` periods to ``end``: those held to the first missing, and those
+    missing (``YYYY-MM``); none before ``oldest`` is read."""
+    held: list[tuple[str, float, str]] = []
+    missing: list[str] = []
+    for offset in range(months):
+        month = month_back(end, offset * step)
+        number = int(month[5:7])
+        if number in member.unreleased_months:
+            continue
+        point = (
+            points(member.metric_id, member.stand_ins.get(number, member.dimensions)).get(
+                month_end(month)
+            )
+            if month >= oldest
+            else None
+        )
+        value = _numeric_value(point.selected_value) if point is not None else None
+        if point is None or value is None or point.selected_claim_id is None:
+            missing.append(month)
+        elif not missing:
+            held.insert(0, (month_end(month), value, point.selected_claim_id))
+    return tuple(held), tuple(reversed(missing))
 
 
 def _adoptable_claims(

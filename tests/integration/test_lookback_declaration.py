@@ -446,19 +446,26 @@ def test_a_confirmation_model_plans_the_months_each_member_reads(
 ) -> None:
     # Each key indicator's main member reads what its readings need (ADR-0037): the PMIs'
     # slope three months, the others' place in a year twelve; an auxiliary member three,
-    # a flow derived from year-to-date totals its month and a year before. The other
+    # a flow derived from year-to-date totals its month and a year before. The main
+    # members, and those a turn hint reads, read the two months before too, as grace reads
+    # each month as it stood (ticket 05): five months, fourteen back to t-13. The other
     # series still read their newest period alone, and the fetch covers them all.
     plan, requests = _run(tmp_path, monkeypatch, "model-v0015")
     periods = _periods(plan)
     members = _members(plan)
-    year = [f"{2025 + (7 + i) // 12}-{(7 + i) % 12 + 1:02d}" for i in range(12)]
-    three = ["2026-05", "2026-06", "2026-07"]
+    year = [f"{2025 + (5 + i) // 12}-{(5 + i) % 12 + 1:02d}" for i in range(14)]
+    five = ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07"]
+    three = five[2:]
 
-    assert periods["CN_PMI_ACTIVITY"] == three
-    assert periods["CN_PMI_PRICES"] == three
+    assert year[0] == "2025-06" and year[-1] == "2026-07"
+    assert periods["CN_PMI_ACTIVITY"] == five
+    assert periods["CN_PMI_PRICES"] == five
     assert periods["CN_PMI_INVENTORY"] == ["2026-07"]
     assert periods["CN_CPI_HEADLINE"] == periods["CN_PPI"] == periods["CN_M1_M2"] == year
     assert periods["CN_CORE_CPI"] == three
+    # PPI's month-on-month is read back for grace: stage II's hint reads it (F4).
+    mom = member_keys("CN_PPI", ({"category": "headline", "measure": "mom"},))[0]
+    assert mom in members["CN_PPI"]["2026-03"] and mom not in members["CN_PPI"]["2026-02"]
     pmi = member_keys(
         "CN_PMI_ACTIVITY",
         tuple(
@@ -545,6 +552,46 @@ def _manufacturing_pmi(payload: dict[str, Any]) -> bytes:
     ).encode()
 
 
+def _manufacturing_pmi_in_may(payload: dict[str, Any]) -> bytes:
+    """TuShare's PMI for May alone, the manufacturing index alone."""
+    fields = str(payload["fields"]).split(",")
+    item = [
+        "202605" if field == "month" else 49.5 if field == "pmi010000" else None for field in fields
+    ]
+    return json.dumps({"code": 0, "data": {"fields": fields, "items": [item]}}).encode()
+
+
+@pytest.mark.usefixtures("runtime_clock")
+def test_the_plan_reads_back_from_the_newest_month_due_not_an_older_one_held(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Only May's PMI held, July out and due by the release calendar on 2026-08-28: the
+    # plan reads back from July, so June and July are asked for, not left out because
+    # May is the newest held (ticket 05).
+    manifest = model_v0015_manifest()
+
+    def hold(paths: RuntimePaths) -> None:
+        adapter = TushareContextAdapter("fixture-only", transport=_manufacturing_pmi_in_may)
+        adapter.acquire_scalars(
+            paths,
+            lambda: adapter.pmi(start_month="202605", end_month="202605"),
+            definition_version=str(manifest["metric_catalog_version"]),
+        )
+
+    plan, _requests = _full_run(tmp_path, monkeypatch, manifest, hold)
+
+    periods = _periods(plan["initial"])
+    assert periods["CN_PMI_ACTIVITY"] == ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07"]
+    asked = {
+        document["period"]
+        for document in plan["initial"]["scopes"]
+        if "CN_PMI_ACTIVITY" in document["metric_ids"]
+    }
+    assert {"2026-06", "2026-07"} <= asked
+    # A series read as itself alone is asked for its newest month due, too.
+    assert _periods(plan["initial"])["CN_PMI_INVENTORY"] == ["2026-07"]
+
+
 @pytest.mark.usefixtures("runtime_clock")
 def test_the_members_a_reading_names_carry_from_the_plan_to_the_final_evaluation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
@@ -604,7 +651,14 @@ def test_the_members_a_reading_names_carry_from_the_plan_to_the_final_evaluation
         for requirement in plan["final"]["requirements"]
         if requirement["metric_id"] == "CN_PMI_ACTIVITY"
     }
-    assert final == {"2026-05": named, "2026-06": named, "2026-07": None}
+    # March and April too, for grace (ticket 05).
+    assert final == {
+        "2026-03": named,
+        "2026-04": named,
+        "2026-05": named,
+        "2026-06": named,
+        "2026-07": None,
+    }
 
 
 def _assert_the_fetch_covers_the_plan(

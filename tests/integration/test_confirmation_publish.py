@@ -186,6 +186,47 @@ def test_the_pages_list_the_dimension_summary_and_the_pmi_reading(tmp_path: Path
     assert "库存维度尚未接入" in inventory and "七张阶段特征卡" not in inventory
 
 
+def test_the_pages_and_the_report_tell_the_turn_its_maturity_and_grace(tmp_path: Path) -> None:
+    # Stage III: the PMI below 50 in July alone, a sprout within two months' grace.
+    projection = confirmed(tmp_path, (50.5, 50.4, 49.6))
+
+    pmi = pmi_of(projection)
+    assert pmi["relation"] == "observation_only"
+    macro = _text(dashboard_page("/macro", projection, (), ()))
+    assert "时序：同步" in macro
+    assert "转折观察：萌芽（已持续 1 期，自 2026-07-31）" in macro
+    assert "宽限：反证条件已持续 1 期，自 2026-07-31，宽限 2 个月，未过宽限" in macro
+    bundle = report_input_from_projection(projection)
+    reading = bundle.results["confirmation"]["key_indicators"]["pmi"]
+    assert reading["timing"] == "coincident"
+    assert reading["statistical_period"] == "2026-07-31"
+    assert reading["turn"]["maturity"] == "sprout"
+    assert reading["grace"]["past"] is False and reading["grace"]["limit"] == 2
+    assert bundle.conclusions["key_indicator:pmi"] == "observation_only"
+
+
+def test_a_signal_held_past_what_was_read_is_told_as_at_least(tmp_path: Path) -> None:
+    # Below 50 in every month read: past grace, from a month before those read.
+    projection = confirmed(tmp_path, (49.8, 49.5, 49.2))
+
+    assert pmi_of(projection)["relation"] == "counterevidence"
+    macro = _text(dashboard_page("/macro", projection, (), ()))
+    assert "转折观察：确认（至少已持续 3 期，起点早于所读历史）" in macro
+    assert "宽限：反证条件至少已持续 3 期，起点早于所读历史，宽限 2 个月，已过宽限" in macro
+
+
+def test_a_counterevidence_within_grace_is_not_published(tmp_path: Path) -> None:
+    # Counted as counterevidence, its signal still within grace: a sprout counted.
+    projection = confirmed(tmp_path, (50.5, 50.4, 49.6))
+    datasets = copy.deepcopy(projection.datasets)
+    dimension = datasets["macro"]["confirmation"]["dimensions"][2]
+    dimension["key_indicators"][0]["relation"] = "counterevidence"
+    dimension["counts"].update(observation_only=0, counterevidence=1)
+
+    with pytest.raises(ValueError, match="projection_confirmation_invalid"):
+        validate_analytical_projection(projection.envelope, datasets)
+
+
 def test_the_report_carries_the_counts_and_relations_as_conclusions(tmp_path: Path) -> None:
     bundle = report_input_from_projection(confirmed(tmp_path))
 

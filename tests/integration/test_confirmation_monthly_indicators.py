@@ -204,7 +204,8 @@ def read(
     return indicator(project(repository, FormalStage(stage)), key)
 
 
-_GRACE = {"grace": "not_evaluated"}
+# The counterevidence holds and waits on grace: within it, only observed.
+_GRACE = {"grace": "within"}
 # Changes of 0.3 to 0.4 through the year, the last two of 0.1 and 0.2 down: ordinary.
 ZIGZAG = (8.0, 8.4, 8.1, 8.5, 8.2, 8.6, 8.3, 8.7, 8.4, 8.5, 8.3, 8.2)
 
@@ -299,7 +300,7 @@ ZIGZAG = (8.0, 8.4, 8.1, 8.5, 8.2, 8.6, 8.3, 8.7, 8.4, 8.5, 8.3, 8.2)
             {"turn_hint": "stage_vi"},
         ),
         ("pmi_prices", "stage_vi", year(49.0, 48.5, 48.0, fill=50.0), "support", {}),
-        ("pmi_prices", "stage_vi", year(50.2, 50.5, 51.0, fill=50.0), "observation_only", _GRACE),
+        ("pmi_prices", "stage_vi", year(50.0, 50.5, 51.0, fill=50.0), "observation_only", _GRACE),
         # M1, leading.
         ("money", "stage_i", year(2.0, 1.8, 1.5, fill=2.0), "support", {}),
         ("money", "stage_i", year(1.0, 1.0, 1.0, fill=3.0), "support", {"position": "low"}),
@@ -389,6 +390,9 @@ def test_each_stage_reads_each_monthly_indicator_against_its_cells(
     main = item["members"][0]
     assert main["role"] == "main"
     for name, expected in extra.items():
+        if expected == "within":
+            assert item[name]["past"] is False, name
+            continue
         actual = main[name] if name in {"position", "level", "momentum"} else item[name]
         assert actual == expected, name
 
@@ -603,10 +607,18 @@ def test_ppi_rising_on_by_equal_steps_is_rising_on(
 def test_social_financing_quickening_markedly_in_stage_i_still_hints_at_stage_ii(
     tmp_path: Path,
 ) -> None:
-    item = read(tmp_path, "social_financing", "stage_i", year(8.0, 8.1, 8.5, fill=8.0))
+    # The months before the year too: whether July quickened markedly reads back to them.
+    repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    seed(repository, "social_financing", year(8.0, 8.1, 8.5, fill=8.0))
+    stock = INDICATORS["social_financing"][0]
+    append(repository, stock[0], stock[1], (8.0, 8.0), months=BEFORE)
+
+    item = indicator(project(repository, FormalStage.STAGE_I), "social_financing")
 
     assert item["members"][0]["change_size"] == "marked"
-    assert item["relation"] == "observation_only" and item["grace"] == "not_evaluated"
+    # Quickening in July and August: two months, within grace.
+    assert item["relation"] == "observation_only"
+    assert item["grace"]["periods"] == 2 and item["grace"]["past"] is False
     assert item["turn_hint"] == "stage_ii"
 
 

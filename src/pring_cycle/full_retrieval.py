@@ -17,7 +17,12 @@ from pring_cycle.catalog import MetricDefinition
 from pring_cycle.catalog_registry import BUILTIN_CATALOG_VERSIONS
 from pring_cycle.context_projection import ContextProjectionRules
 from pring_cycle.evidence import AsOfMode, EvidenceRepository, EvidenceValueState
-from pring_cycle.freshness import DERIVED_INPUTS, FRESHNESS_REGISTRY, latest_released_period
+from pring_cycle.freshness import (
+    DERIVED_INPUTS,
+    FRESHNESS_REGISTRY,
+    assess,
+    latest_released_period,
+)
 from pring_cycle.full_run_requirements import (
     formula_requirements,
     required_calendar,
@@ -395,7 +400,9 @@ class FullRunRetrieval:
         calendar = required_calendar(self.paths, run, selector)
         daily_window = tuple(calendar["dates"])
         period_by_metric = {
-            definition.metric_id: self._period(run, definition, selector)
+            definition.metric_id: self._period(
+                run, definition, selector, due_first=rules.confirmation is not None
+            )
             for definition in rules.metric_definitions
         }
         read = run_lookback(
@@ -572,7 +579,12 @@ class FullRunRetrieval:
         }
 
     def _period(
-        self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector
+        self,
+        run: RunRecord,
+        definition: MetricDefinition,
+        selector: ModelInputSelector,
+        *,
+        due_first: bool = False,
     ) -> str | None:
         target = date.fromisoformat(run.target_business_date)
         frequency = evidence_frequency(definition.metric_id, definition.frequency)
@@ -595,9 +607,15 @@ class FullRunRetrieval:
             if published:
                 return max(published)
             return latest.isoformat() if latest is not None else None
+        # Held, the newest held. A model confirming the stage reads back from the newest
+        # due by the release calendar when that is later: a period out and past its grace
+        # is asked for, not left behind an older one held (macro semantics ticket 05). One
+        # out but not yet due is looked for, not required; the models before keep their
+        # plans.
+        due = self._due(run, definition, selector) if due_first and released is not None else None
         if frequency == "quarterly":
             period = (
-                date.fromisoformat(max(published))
+                max(date.fromisoformat(max(published)), due or date.min)
                 if published
                 else released
                 or date(target.year, ((target.month - 1) // 3) * 3 + 1, 1) - timedelta(days=1)
@@ -605,11 +623,19 @@ class FullRunRetrieval:
             return f"{period.year}-Q{(period.month - 1) // 3 + 1}"
         if frequency == "monthly":
             return (
-                max(published)[:7]
+                max(max(published)[:7], due.isoformat()[:7] if due is not None else "")
                 if published
                 else (released or target.replace(day=1) - timedelta(days=1)).isoformat()[:7]
             )
         return None
+
+    def _due(
+        self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector
+    ) -> date | None:
+        """The newest period due at the release gate's cutoff: out and past its grace."""
+        cutoff = min(selector.as_of, utc_now(), _target_end(run))
+        due = assess(definition.metric_id, None, cutoff, current_calendar()).due_period
+        return date.fromisoformat(due) if due is not None else None
 
     def _latest_released(
         self, run: RunRecord, definition: MetricDefinition, selector: ModelInputSelector

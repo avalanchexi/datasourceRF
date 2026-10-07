@@ -8,9 +8,9 @@
 | [02](issues/02-lookback-declaration-prefactor.md) | 预备重构：按"成员＋读法＋发布期"声明回看 | done |
 | [03](issues/03-tracer-new-model-with-pmi.md) | 打通全链路：新模型版本与 PMI 一项确认度 | done |
 | [04](issues/04-monthly-official-key-indicators.md) | 月度官方值类关键指标 | done（Q1 工业增加值 2 月取 1—2 月累计同比；Q2 社融辅成员为政府债＋7 个非政府分项：用户确认） |
-| [05](issues/05-timing-grace-and-maturity.md) | 指标时序、宽限与信号成熟度 | ready-for-agent（阻塞于 04） |
+| [05](issues/05-timing-grace-and-maturity.md) | 指标时序、宽限与信号成熟度 | done（月度检索锚点按发布日历到期期修正，仅新模型） |
 | [06](issues/06-policy-dimension.md) | 政策维度：政策动作、DR007 与净投放 | ready-for-agent（阻塞于 03） |
-| [07](issues/07-cumulative-and-quarterly-indicators.md) | 累计口径与季度关键指标 | ready-for-agent（阻塞于 05） |
+| [07](issues/07-cumulative-and-quarterly-indicators.md) | 累计口径与季度关键指标 | ready-for-agent |
 | [08](issues/08-inventory-quadrant-and-warrants.md) | 库存象限新规则与仓单读法 | ready-for-agent（阻塞于 04） |
 | [09](issues/09-price-consistency-and-observation-interfaces.md) | 价格内部一致性、观察接口与商品供需附注 | ready-for-agent（阻塞于 04） |
 | [10](issues/10-bond-trend-attribution.md) | 债券归因 | ready-for-agent（阻塞于 04、06） |
@@ -21,4 +21,4 @@
 - 关键指标与读法：[key-indicators.md](key-indicators.md)；六阶段预期表、通用规则、债券归因、供需规则与扩充准入：[expectation-table.md](expectation-table.md)；决定汇总：[ADR-0037](../../docs/adr/0037-confirmation-counts-key-indicators-against-stage-narrative.md)；术语见 `CONTEXT.md`。
 - 用户方向：**先集中把普林格模型设计准确**，首页原型与页面改造暂缓。
 
-**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：按阻塞关系逐票 `/implement`，每票之间清空上下文；01—04 已完成（2026-10-07），下一张是 05；06、08、09 已解锁。
+**规格**：[spec.md](spec.md)（2026-10-07）。**下一步**：按阻塞关系逐票 `/implement`，每票之间清空上下文；01—05 已完成（2026-10-07），下一张是 06；07、08、09 已解锁。

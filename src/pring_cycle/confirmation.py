@@ -19,8 +19,15 @@ leaves the indicator unconfirmed with the months named, and an unchanged value i
 not an easing. A month a member is never released for is no gap: it is passed over, or
 read from the official member standing in for it.
 
-Not here: grace and signal maturity (ticket 05). A cell whose counterevidence waits on
-grace is observation only, its grace not evaluated, until grace is read.
+Timing and grace (ticket 05): each indicator leads, moves with or lags the cycle. A
+counterevidence cell waiting on grace -- marked so in the table, or met by a lagging
+indicator still in the previous stage's form or a leading one already in the next's -- is
+observation only until the signal has held longer than its grace (two months, one
+quarter), counted in independent periods back from the newest, each read as it stood:
+never by how many runs saw it. A turn signal is told with its maturity: a sprout when it
+first shows, forming once it holds two periods or leading indicators turn toward the same
+stage together, confirmed past grace. Only confirmed counts. An indicator counts once for
+its newest period, however many days read it.
 """
 
 from __future__ import annotations
@@ -41,6 +48,12 @@ MACRO_RULES_VERSION = "macro-confirmation-v0001"
 MANIFEST_FIELDS = ("macro_rules_version", "projection_output_structure", "confirmation_rules")
 DIMENSIONS = ("policy", "credit", "overheat", "price", "inventory")
 RELATIONS = ("support", "counterevidence", "observation_only", "unconfirmed", "not_applicable")
+TIMINGS = ("leading", "coincident", "lagging")
+MATURITIES = ("sprout", "forming", "confirmed")
+# The months a period of each frequency spans.
+FREQUENCIES = {"monthly": 1, "quarterly": 3}
+_UNITS = {"monthly": "month", "quarterly": "quarter"}
+_ADJACENT = {"next": 1, "previous": -1}
 # A year of a monthly series: where a value stands in its range, and how large a change is,
 # are read within it and nowhere further back (ADR-0035).
 YEAR_MONTHS = 12
@@ -176,7 +189,7 @@ class Annotation:
 class Cell:
     """One cell of a stage's expectations: the relation when any alternative holds.
 
-    ``grace`` says the relation needs the indicator past its grace, which is not read yet.
+    ``grace`` says its counterevidence needs the signal held past the indicator's grace.
     """
 
     relation: str
@@ -184,6 +197,9 @@ class Cell:
     note: Annotation | None = None
     turn_hint: Annotation | None = None
     grace: bool = False
+    # Confirms the turn within grace: the main member's substantial change passed on, as
+    # the cell names it (none of the first rules does).
+    confirmed_when: Annotation | None = None
 
 
 @dataclass(frozen=True)
@@ -203,6 +219,13 @@ class Expectation:
 
 @dataclass(frozen=True)
 class KeyIndicator:
+    """A key indicator: its members, its periods (months or quarters) and its timing.
+
+    ``lookback`` periods are read for its readings and ``grace`` more before them, so
+    each of the newest ``grace`` + 1 periods reads as it stood: of the main member, and of
+    any other a turn hint reads.
+    """
+
     key: str
     name: str
     dimension: str
@@ -212,20 +235,66 @@ class KeyIndicator:
     # Shown, never counted nor agreeing: a value derived from the members.
     derived: tuple[Spread, ...]
     level_line: float | None
-    lookback_months: int
+    lookback: int
     expectations: Mapping[str, Expectation]
+    timing: str
+    grace: int
+    frequency: str = "monthly"
+    # The farthest period back anything is read: grace reads no further (ADR-0035).
+    horizon: int = 13
 
     @property
     def members(self) -> tuple[Member, ...]:
         return (self.main, *self.auxiliary)
 
-    def months(self, member: Member) -> int:
-        """How many months back ``member`` is read: the indicator's, or an auxiliary's."""
+    @property
+    def step(self) -> int:
+        """The months one period spans."""
+        return FREQUENCIES[self.frequency]
+
+    @property
+    def unit(self) -> str:
+        return _UNITS[self.frequency]
+
+    def history(self, member: Member) -> int:
+        """How many periods before the newest ``member`` is read as it stood then."""
+        named = {
+            condition.member
+            for expectation in self.expectations.values()
+            for hint in (
+                *expectation.turn_hints,
+                *(cell.turn_hint for cell in expectation.cells if cell.turn_hint is not None),
+            )
+            for condition in hint.when
+        }
+        return self.grace if member is self.main or member.name in named else 0
+
+    def reach(self, member: Member) -> int:
+        """How many periods back ``member`` is read in all: its own and its grace's, up to
+        the horizon. A period grace reads that needs one beyond reads that one unknown."""
+        return min(self.periods(member) + self.history(member), self.horizon + 1)
+
+    def periods(self, member: Member) -> int:
+        """How many periods back ``member`` is read: the indicator's, or an auxiliary's."""
         if member is self.main:
-            return self.lookback_months
+            return self.lookback
         if member.formula is not None:
             return DERIVED_FORMULAS[member.formula].months
-        return min(self.lookback_months, AUXILIARY_MONTHS)
+        return min(self.lookback, AUXILIARY_MONTHS)
+
+
+@dataclass(frozen=True)
+class TimingRules:
+    """How timing points a turn, and when a turn signal forms (ADR-0037).
+
+    ``adjacent`` names, by timing, the stage whose support form tells a lag (the previous)
+    or a lead (the next). A signal holding ``forming_periods`` periods, or the leading
+    indicators turning toward one stage being ``forming_signals`` or more, is forming.
+    """
+
+    adjacent: Mapping[str, str]
+    forming_periods: int
+    forming_signals: int
 
 
 @dataclass(frozen=True)
@@ -235,6 +304,7 @@ class ConfirmationRules:
     output_structure: str
     macro_rules_version: str
     indicators: tuple[KeyIndicator, ...]
+    timing: TimingRules
 
     @classmethod
     def from_manifest(cls, manifest: Mapping[str, object]) -> ConfirmationRules | None:
@@ -252,10 +322,13 @@ class ConfirmationRules:
         raw = document.get("key_indicators")
         if not isinstance(raw, list) or not raw:
             raise ValueError("confirmation_rules_invalid")
-        indicators = tuple(_indicator(item) for item in raw)
+        grace, horizon, timing = _timing_rules(
+            document.get("timing_rules"), document.get("maturity_rules")
+        )
+        indicators = tuple(_indicator(item, grace, horizon) for item in raw)
         if len({item.key for item in indicators}) != len(indicators):
             raise ValueError("confirmation_key_indicator_duplicate")
-        return cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators)
+        return cls(OUTPUT_STRUCTURE, MACRO_RULES_VERSION, indicators, timing)
 
     def metric_ids(self) -> frozenset[str]:
         """Every metric the indicators read: their members' and derived members' inputs."""
@@ -277,9 +350,11 @@ class MemberReading:
 
     ``points`` are (period end, value, observation version) of the periods held of the
     lookback, a month never released for the member passed over; ``missing`` the months
-    (``YYYY-MM``) of it that are not held. ``months`` is how far back it was read: a year
-    reads where the value stands and how large its change is. A derived member's points
-    carry its formula for a version; ``inputs`` are the observations it was derived from.
+    (``YYYY-MM``) of it that are not held. ``months`` is how many periods back it was read:
+    a year of months reads where the value stands and how large its change is. A derived
+    member's points carry its formula for a version; ``inputs`` are the observations it
+    was derived from. ``earlier`` is the member read as it stood at each period before the
+    newest, the nearest first, as far as grace reaches.
     """
 
     member: Member
@@ -290,10 +365,22 @@ class MemberReading:
     level_line: float | None
     months: int = AUXILIARY_MONTHS
     inputs: tuple[str, ...] = ()
+    earlier: tuple[MemberReading, ...] = ()
 
     @property
     def values(self) -> tuple[float, ...]:
         return tuple(value for _period, value, _version in self.points)
+
+    @property
+    def period(self) -> str | None:
+        """The newest period held (its end), when the newest of the lookback is."""
+        return self.points[-1][0] if self.points else None
+
+    def before(self, periods: int) -> MemberReading | None:
+        """The member as it stood ``periods`` periods before the newest; None past grace."""
+        if periods == 0:
+            return self
+        return self.earlier[periods - 1] if periods <= len(self.earlier) else None
 
     @property
     def change(self) -> float | None:
@@ -404,18 +491,22 @@ class MemberReading:
 
 
 def confirmation_document(
-    indicators: Sequence[KeyIndicator],
+    rules: ConfirmationRules,
     readings: Mapping[str, Sequence[MemberReading]],
     *,
     current_stage: FormalStage | None,
     stage_reason: str,
 ) -> dict[str, object]:
-    """The dimension summary of ``indicators`` read as ``readings`` under the formal stage.
+    """The dimension summary of the rules' indicators read as ``readings`` under the stage.
 
     ``readings`` holds each indicator's members by its key, the main one first.
     """
     stage = current_stage.value if current_stage is not None else None
-    documents = [_indicator_document(item, readings[item.key], stage=stage) for item in indicators]
+    documents = [
+        _indicator_document(item, readings[item.key], stage=stage, timing=rules.timing)
+        for item in rules.indicators
+    ]
+    _leading_together(rules, documents)
     dimensions = []
     for dimension in DIMENSIONS:
         own = [document for document in documents if document["dimension"] == dimension]
@@ -495,7 +586,11 @@ def month_end(month: str) -> str:
 
 
 def _indicator_document(
-    indicator: KeyIndicator, members: Sequence[MemberReading], *, stage: str | None
+    indicator: KeyIndicator,
+    members: Sequence[MemberReading],
+    *,
+    stage: str | None,
+    timing: TimingRules,
 ) -> dict[str, object]:
     main, auxiliary = members[0], tuple(members[1:])
     agreement = [_agreement(main, member) for member in auxiliary]
@@ -506,6 +601,9 @@ def _indicator_document(
         "name": indicator.name,
         "dimension": indicator.dimension,
         "metric_id": indicator.metric_id,
+        "timing": indicator.timing,
+        # What the indicator counts for: its newest period, however many days read it.
+        "statistical_period": main.period,
         "level_line": indicator.level_line,
         "consistency": (
             "unknown" if main.momentum is None else "divergent" if divergent else "consistent"
@@ -523,6 +621,7 @@ def _indicator_document(
         "matched": None,
         "notes": [],
         "turn_hint": None,
+        "turn": None,
         "grace": None,
         "divergence_capped": False,
         "capped_by": [],
@@ -537,48 +636,125 @@ def _indicator_document(
         status = (
             [main.evidence_status] if main.evidence_status != "current" or not main.points else []
         )
-        missing = [f"{_member_label(main)}:{item}" for item in (*status, *main.missing)]
+        missing = [f"{_member_label(main.member)}:{item}" for item in (*status, *main.missing)]
         return {**document, "relation": "unconfirmed", "missing": missing}
     expectation = indicator.expectations[stage]
-    matched: tuple[Cell, Condition] | None = None
-    for cell in expectation.cells:
-        holds = [_holds(condition, main, by_member) for condition in cell.when]
-        hit = next(
-            (condition for condition, held in zip(cell.when, holds, strict=True) if held), None
+    cell, condition, known = _answer(expectation, main, by_member)
+    if not known and cell is not None:
+        # An earlier cell may hold: what it reads is not known, so nothing is said.
+        missing = [f"{_member_label(main.member)}:{_unknown_readings(cell, main)}"]
+        return {**document, "relation": "unconfirmed", "missing": missing}
+    relation = cell.relation if cell is not None else "observation_only"
+    # A lag or a lead: the reading is the support form of the stage its timing points to.
+    adjacent = (
+        _adjacent(indicator, stage, main, by_member, timing) if relation != "support" else None
+    )
+    graced = (
+        cell is not None and relation == "counterevidence" and (cell.grace or adjacent is not None)
+    )
+    cell_hint = (
+        cell.turn_hint
+        if cell is not None
+        and cell.turn_hint is not None
+        and _annotated(cell.turn_hint, main, by_member)
+        else None
+    )
+    stage_hint = next(
+        (hint for hint in expectation.turn_hints if _annotated(hint, main, by_member)), None
+    )
+    toward, basis = (
+        (cell_hint.text, "expectation")
+        if cell_hint is not None
+        else (stage_hint.text, "expectation")
+        if stage_hint is not None
+        else (adjacent, indicator.timing)
+        if adjacent is not None
+        else (None, None)
+    )
+    # A hint tells the stage approached; a lag, the stage still shown.
+    document["turn_hint"] = toward if basis in {"expectation", "leading"} else None
+    if graced or toward is not None:
+        # How long each signal has held, read back period by period as each stood. The
+        # grace counts the stage still answering with the cell met, and a lag or a lead
+        # that makes it wait still in its form; the turn, the hint's own conditions too,
+        # or the stage's hint alone, which reads a member of its own.
+        def answered(main: MemberReading, by_member: Mapping[str, MemberReading]) -> bool | None:
+            met, _condition, known = _answer(expectation, main, by_member)
+            return met is cell if known else None
+
+        def form(
+            other: str, main: MemberReading, by_member: Mapping[str, MemberReading]
+        ) -> bool | None:
+            met, _condition, known = _answer(indicator.expectations[other], main, by_member)
+            return met is not None and met.relation == "support" if known else None
+
+        def grace_signal(
+            main: MemberReading, by_member: Mapping[str, MemberReading]
+        ) -> bool | None:
+            parts = [answered(main, by_member)]
+            if cell is not None and not cell.grace and adjacent is not None:
+                parts.append(form(adjacent, main, by_member))
+            return _all(parts)
+
+        def turn_signal(main: MemberReading, by_member: Mapping[str, MemberReading]) -> bool | None:
+            if stage_hint is not None and cell_hint is None:
+                return _annotation_state(stage_hint, main, by_member)
+            parts = [answered(main, by_member)]
+            if cell_hint is not None:
+                parts.append(_annotation_state(cell_hint, main, by_member))
+            if basis in {"leading", "lagging"} and toward is not None:
+                parts.append(form(toward, main, by_member))
+            return _all(parts)
+
+        # Confirmed within grace: the main indicator changed in substance and passed it on,
+        # as the cell names (ADR-0037).
+        transmitted = (
+            cell is not None
+            and cell.confirmed_when is not None
+            and _annotated(cell.confirmed_when, main, by_member)
         )
-        if hit is not None:
-            matched = (cell, hit)
-            break
-        if None in holds:
-            # An earlier cell may hold: what it reads is not known, so nothing is said.
-            missing = [f"{_member_label(main)}:{_unknown_readings(cell, main)}"]
-            return {**document, "relation": "unconfirmed", "missing": missing}
+        held, since, at_least, unknown = _run(turn_signal, members, indicator.grace)
+        document["turn"] = {
+            "toward": toward,
+            "basis": basis,
+            **_maturity(held, unknown, transmitted, indicator.grace, timing),
+            # Read no further back than past grace: a signal held longer is held at least
+            # that long, from a period not read.
+            "periods": held,
+            "at_least": at_least,
+            "since": since,
+            "leading_signals": [],
+            "missing": list(unknown),
+        }
+        if graced:
+            held, since, at_least, unknown = _run(grace_signal, members, indicator.grace)
+            past = True if transmitted else None if unknown else held > indicator.grace
+            document["grace"] = {
+                "limit": indicator.grace,
+                "unit": indicator.unit,
+                "periods": held,
+                "at_least": at_least,
+                "since": since,
+                "past": past,
+                "confirmed_by": _maturity(held, unknown, transmitted, indicator.grace, timing)[
+                    "confirmed_by"
+                ],
+            }
+            if past is None:
+                # Within grace or past it is not known: neither relation is said.
+                return {**document, "relation": "unconfirmed", "missing": list(unknown)}
+            relation = "counterevidence" if past else "observation_only"
     document["proposition"] = expectation.proposition
     caps = [cap for cap in expectation.caps if _annotated(cap, main, by_member)]
-    notes = (matched[0].note,) if matched is not None and matched[0].note is not None else ()
+    notes = (cell.note,) if cell is not None and cell.note is not None else ()
     document["notes"] = [
         note.text
         for note in (*notes, *expectation.notes, *caps)
         if _annotated(note, main, by_member)
     ]
-    hints = (
-        (matched[0].turn_hint,) if matched is not None and matched[0].turn_hint is not None else ()
-    )
-    document["turn_hint"] = next(
-        (
-            hint.text
-            for hint in (*hints, *expectation.turn_hints)
-            if _annotated(hint, main, by_member)
-        ),
-        None,
-    )
-    if matched is None:
+    if cell is None or condition is None:
         # Known, and no cell of the stage names it: related, not counted.
         return {**document, "relation": "observation_only"}
-    cell, condition = matched
-    relation = cell.relation
-    if cell.grace:
-        relation, document["grace"] = "observation_only", "not_evaluated"
     if relation in {"support", "counterevidence"} and (divergent or caps):
         # Each says why the relation is no higher than observation only.
         document["divergence_capped"] = divergent
@@ -589,6 +765,123 @@ def _indicator_document(
         for name, value in condition.readings.items()
     }
     return {**document, "relation": relation}
+
+
+def _answer(
+    expectation: Expectation, main: MemberReading, by_member: Mapping[str, MemberReading]
+) -> tuple[Cell | None, Condition | None, bool]:
+    """The first cell that holds and the alternative met, and whether that is known.
+
+    A cell whose reading is not known before one holds leaves the answer unknown, that
+    cell given: an earlier cell may hold. None holding answers no cell.
+    """
+    for cell in expectation.cells:
+        holds = [_holds(condition, main, by_member) for condition in cell.when]
+        hit = next(
+            (condition for condition, held in zip(cell.when, holds, strict=True) if held), None
+        )
+        if hit is not None:
+            return cell, hit, True
+        if None in holds:
+            return cell, None, False
+    return None, None, True
+
+
+def _adjacent(
+    indicator: KeyIndicator,
+    stage: str,
+    main: MemberReading,
+    by_member: Mapping[str, MemberReading],
+    timing: TimingRules,
+) -> str | None:
+    """The stage a lag or a lead shows, or None.
+
+    A lagging indicator still in the previous stage's support form, a leading one already
+    in the next's: that stage's cells answer support for the reading.
+    """
+    direction = timing.adjacent.get(indicator.timing)
+    if direction is None:
+        return None
+    other = _STAGES[(_STAGES.index(stage) + _ADJACENT[direction]) % len(_STAGES)]
+    cell, _condition, _known = _answer(indicator.expectations[other], main, by_member)
+    return other if cell is not None and cell.relation == "support" else None
+
+
+def _run(
+    signal: Callable[[MemberReading, Mapping[str, MemberReading]], bool | None],
+    members: Sequence[MemberReading],
+    grace: int,
+) -> tuple[int, str | None, bool, tuple[str, ...]]:
+    """For how many periods, the newest back, ``signal`` held, each read as it stood.
+
+    Read up to one period past ``grace``. Returns the periods held; the first of them, or
+    None when the run reaches back past what was read, held at least that long; whether
+    it does; and, when a period's reading is not known before the run ends, what the
+    members read back miss there.
+    """
+    held, since = 0, None
+    for back in range(grace + 1):
+        shifted = [member.before(back) for member in members]
+        main = shifted[0]
+        holds = (
+            signal(main, {item.member.name: item for item in shifted if item is not None})
+            if main is not None
+            else None
+        )
+        if holds is None:
+            return held, since, False, _run_missing(members, back)
+        if not holds:
+            return held, since, False, ()
+        held, since = held + 1, main.period if main is not None else None
+    return held, None, True, ()
+
+
+def _run_missing(members: Sequence[MemberReading], back: int) -> tuple[str, ...]:
+    """What the members read back miss ``back`` periods before the newest."""
+    missing: list[str] = []
+    for member in members:
+        if member is not members[0] and not member.earlier:
+            continue
+        shifted = member.before(back)
+        gaps = (shifted.missing or (shifted.evidence_status,)) if shifted else ("not_read",)
+        missing.extend(f"{_member_label(member.member)}:{gap}" for gap in gaps)
+    return tuple(dict.fromkeys(missing))
+
+
+def _maturity(
+    held: int, unknown: Sequence[str], transmitted: bool, grace: int, timing: TimingRules
+) -> dict[str, str | None]:
+    """A turn signal's maturity, and what confirmed it: passed on, or held past grace."""
+    if transmitted:
+        return {"maturity": "confirmed", "confirmed_by": "transmission"}
+    if unknown:
+        return {"maturity": None, "confirmed_by": None}
+    if held > grace:
+        return {"maturity": "confirmed", "confirmed_by": "grace"}
+    forming = held >= timing.forming_periods
+    return {"maturity": "forming" if forming else "sprout", "confirmed_by": None}
+
+
+def _all(parts: Sequence[bool | None]) -> bool | None:
+    """True when every part holds: False wins over not known (None)."""
+    return False if False in parts else None if None in parts else True
+
+
+def _leading_together(rules: ConfirmationRules, documents: Sequence[dict[str, Any]]) -> None:
+    """Leading indicators turning toward one stage together form, each a sprout or more."""
+    together: dict[str, list[dict[str, Any]]] = {}
+    for indicator, document in zip(rules.indicators, documents, strict=True):
+        turn = document["turn"]
+        if indicator.timing == "leading" and turn is not None and turn["toward"] is not None:
+            together.setdefault(turn["toward"], []).append(document)
+    for group in together.values():
+        if len(group) < rules.timing.forming_signals:
+            continue
+        for document in group:
+            turn = document["turn"]
+            turn["leading_signals"] = [other["key"] for other in group if other is not document]
+            if turn["maturity"] == "sprout":
+                turn["maturity"] = "forming"
 
 
 def _holds(
@@ -623,7 +916,14 @@ def _holds(
 def _annotated(
     annotation: Annotation, main: MemberReading, by_member: Mapping[str, MemberReading]
 ) -> bool:
-    return all(_holds(condition, main, by_member) is True for condition in annotation.when)
+    return _annotation_state(annotation, main, by_member) is True
+
+
+def _annotation_state(
+    annotation: Annotation, main: MemberReading, by_member: Mapping[str, MemberReading]
+) -> bool | None:
+    """Whether every condition holds: False wins over not known (None)."""
+    return _all([_holds(condition, main, by_member) for condition in annotation.when])
 
 
 def _agreement(main: MemberReading, member: MemberReading) -> str:
@@ -714,8 +1014,8 @@ def _unknown_readings(cell: Cell, main: MemberReading) -> str:
     return "unknown_" + "_".join(names)
 
 
-def _member_label(member: MemberReading) -> str:
-    dimensions = member.member.dimensions
+def _member_label(member: Member) -> str:
+    dimensions = member.dimensions
     return ",".join(f"{key}={value}" for key, value in sorted(dimensions.items()))
 
 
@@ -732,18 +1032,69 @@ def _direction(value: float, previous: float) -> str:
     return "flat"
 
 
-def _indicator(value: object) -> KeyIndicator:
+def _timing_rules(
+    timing: object, maturity: object
+) -> tuple[dict[str, int], dict[str, int], TimingRules]:
+    """Grace and the farthest period back by frequency, the stage each timing points to,
+    and when a signal forms."""
+    if not isinstance(timing, Mapping) or not isinstance(maturity, Mapping):
+        raise ValueError("confirmation_timing_rules_invalid")
+    grace, adjacent = timing.get("grace_periods"), timing.get("adjacent_stage")
+    horizon = timing.get("horizon_periods")
+    counts = [
+        item.get(name)
+        for item in (grace, horizon)
+        if isinstance(item, Mapping)
+        for name in FREQUENCIES
+    ]
+    counts += [maturity.get("forming_periods"), maturity.get("forming_signals")]
+    if (
+        not isinstance(grace, Mapping)
+        or not isinstance(horizon, Mapping)
+        or set(grace) != set(FREQUENCIES)
+        or set(horizon) != set(FREQUENCIES)
+        or not all(
+            isinstance(item, int) and not isinstance(item, bool) and item >= 1 for item in counts
+        )
+        or not isinstance(adjacent, Mapping)
+        or not set(adjacent) <= set(TIMINGS)
+        or not set(adjacent.values()) <= set(_ADJACENT)
+    ):
+        raise ValueError("confirmation_timing_rules_invalid")
+    return (
+        {str(name): int(grace[name]) for name in FREQUENCIES},
+        {str(name): int(horizon[name]) for name in FREQUENCIES},
+        TimingRules(
+            {str(name): str(item) for name, item in adjacent.items()},
+            int(maturity["forming_periods"]),
+            int(maturity["forming_signals"]),
+        ),
+    )
+
+
+def _indicator(value: object, grace: Mapping[str, int], horizon: Mapping[str, int]) -> KeyIndicator:
     if not isinstance(value, Mapping):
         raise ValueError("confirmation_key_indicator_invalid")
     texts = {}
-    for name in ("key", "name", "dimension", "metric_id"):
+    for name in ("key", "name", "dimension", "metric_id", "timing"):
         raw = value.get(name)
         if not isinstance(raw, str) or not raw:
             raise ValueError("confirmation_key_indicator_invalid")
         texts[name] = raw
     if texts["dimension"] not in DIMENSIONS:
         raise ValueError("confirmation_dimension_unknown")
-    line, lookback = value.get("level_line"), value.get("lookback_months")
+    if texts["timing"] not in TIMINGS:
+        raise ValueError("confirmation_timing_unknown")
+    frequency = value.get("frequency", "monthly")
+    if frequency not in FREQUENCIES:
+        raise ValueError("confirmation_frequency_unknown")
+    # Months are read up to a year, quarters up to four.
+    own, other = (
+        ("lookback_months", "lookback_quarters")
+        if frequency == "monthly"
+        else ("lookback_quarters", "lookback_months")
+    )
+    line, lookback = value.get("level_line"), value.get(own)
     raw_auxiliary = value.get("auxiliary")
     raw_derived = value.get("derived", [])
     expectations = value.get("expectations")
@@ -751,13 +1102,19 @@ def _indicator(value: object) -> KeyIndicator:
         (line is not None and (not isinstance(line, (int, float)) or isinstance(line, bool)))
         or not isinstance(lookback, int)
         or isinstance(lookback, bool)
-        or not 1 <= lookback <= YEAR_MONTHS
+        or not 1 <= lookback <= YEAR_MONTHS // FREQUENCIES[str(frequency)]
+        or other in value
         or not isinstance(raw_auxiliary, list)
         or not isinstance(raw_derived, list)
         or not isinstance(expectations, Mapping)
         or set(expectations) != set(_STAGES)
     ):
         raise ValueError("confirmation_key_indicator_invalid")
+    periods_grace, farthest = grace[str(frequency)], horizon[str(frequency)]
+    if lookback - 1 > farthest:
+        # Grace reads each period as it stood as far as the horizon; the readings never
+        # beyond it.
+        raise ValueError("confirmation_lookback_beyond_horizon")
     main = _member(value.get("main"), texts["metric_id"])
     if main.formula is not None:
         raise ValueError("confirmation_main_member_derived")
@@ -765,6 +1122,11 @@ def _indicator(value: object) -> KeyIndicator:
     names = {member.name for member in (main, *auxiliary)}
     if len(names) != 1 + len(auxiliary):
         raise ValueError("confirmation_member_duplicate")
+    if frequency != "monthly" and any(
+        member.unreleased_months or member.stand_ins or member.formula
+        for member in (main, *auxiliary)
+    ):
+        raise ValueError("confirmation_member_months_need_monthly")
     derived = tuple(_spread(item, names) for item in raw_derived)
     stages = {stage: _expectation(expectations[stage], names) for stage in _STAGES}
     if lookback < YEAR_MONTHS and any(
@@ -781,8 +1143,11 @@ def _indicator(value: object) -> KeyIndicator:
         auxiliary=auxiliary,
         derived=derived,
         level_line=float(line) if line is not None else None,
-        lookback_months=lookback,
+        lookback=lookback,
         expectations=stages,
+        grace=periods_grace,
+        frequency=str(frequency),
+        horizon=farthest,
     )
 
 
@@ -802,6 +1167,9 @@ def _expectation(value: object, names: set[str]) -> Expectation:
         tuple(annotation for item in items if (annotation := _annotation(item, names)) is not None)
         for items in lists
     )
+    if any(not hint.when or hint.text not in _STAGES for hint in turn_hints):
+        # A stage's hint is a signal of its own: what it reads is how long it held.
+        raise ValueError("confirmation_turn_hint_invalid")
     return Expectation(
         proposition,
         tuple(_cell(item, names) for item in raw_cells),
@@ -822,14 +1190,30 @@ def _cell(value: object, names: set[str]) -> Cell:
         # The main member gives the indicator's opinion; the others show agreement only.
         raise ValueError("confirmation_cell_reads_main_member_only")
     grace = value.get("grace", False)
-    if not isinstance(grace, bool):
+    turn_hint = _annotation(value.get("turn_hint"), names)
+    raw_confirmed = value.get("confirmed_when")
+    confirmed_when = (
+        _annotation({"text": "transmission", "when": raw_confirmed}, names)
+        if raw_confirmed is not None
+        else None
+    )
+    if (
+        not isinstance(grace, bool)
+        or (grace and value["relation"] != "counterevidence")
+        or (turn_hint is not None and turn_hint.text not in _STAGES)
+        or (
+            confirmed_when is not None
+            and (not confirmed_when.when or value["relation"] != "counterevidence")
+        )
+    ):
         raise ValueError("confirmation_cell_invalid")
     return Cell(
         relation=str(value["relation"]),
         when=conditions,
         note=_annotation(value.get("note"), names),
-        turn_hint=_annotation(value.get("turn_hint"), names),
+        turn_hint=turn_hint,
         grace=grace,
+        confirmed_when=confirmed_when,
     )
 
 
@@ -1002,7 +1386,23 @@ def rules_v0001() -> dict[str, Any]:
     Stabilising is no longer falling: flat or rising. An indicator read for its place in a
     year's range, or the size of its change, reads a year of months.
     """
-    return {"key_indicators": copy.deepcopy(_KEY_INDICATORS)}
+    return {
+        "key_indicators": copy.deepcopy(_KEY_INDICATORS),
+        "timing_rules": copy.deepcopy(_TIMING_RULES),
+        "maturity_rules": dict(_MATURITY_RULES),
+    }
+
+
+# Grace in independent periods; the farthest period back a reading or its grace reaches,
+# thirteen months and four quarters (ADR-0035); the stage a lag still shows, the stage a
+# lead already shows (expectation-table.md E3/D4, N4).
+_TIMING_RULES = {
+    "grace_periods": {"monthly": 2, "quarterly": 1},
+    "horizon_periods": {"monthly": 13, "quarterly": 3},
+    "adjacent_stage": {"leading": "next", "lagging": "previous"},
+}
+# Forming: held two periods, or two leading indicators turning toward one stage (ADR-0037).
+_MATURITY_RULES = {"forming_periods": 2, "forming_signals": 2}
 
 
 _PMI_MEMBERS = {
@@ -1399,6 +1799,7 @@ _SOCIAL_FINANCING_CELLS = {
 _KEY_INDICATORS: list[dict[str, Any]] = [
     {
         "key": "pmi",
+        "timing": "coincident",
         "name": "PMI",
         "dimension": "overheat",
         "metric_id": "CN_PMI_ACTIVITY",
@@ -1410,6 +1811,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     },
     {
         "key": "industrial_va",
+        "timing": "coincident",
         "name": "工业增加值",
         "dimension": "overheat",
         "metric_id": "CN_INDUSTRIAL_VA",
@@ -1420,6 +1822,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     },
     {
         "key": "ppi",
+        "timing": "coincident",
         "name": "PPI",
         "dimension": "price",
         "metric_id": "CN_PPI",
@@ -1436,6 +1839,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     },
     {
         "key": "cpi",
+        "timing": "lagging",
         "name": "CPI",
         "dimension": "price",
         "metric_id": "CN_CPI_HEADLINE",
@@ -1450,6 +1854,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     },
     {
         "key": "pmi_prices",
+        "timing": "coincident",
         "name": "PMI 价格",
         "dimension": "price",
         "metric_id": "CN_PMI_PRICES",
@@ -1460,6 +1865,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     },
     {
         "key": "social_financing",
+        "timing": "leading",
         "name": "社融",
         "dimension": "credit",
         "metric_id": "CN_SF_TOTAL",
@@ -1474,6 +1880,7 @@ _KEY_INDICATORS: list[dict[str, Any]] = [
     },
     {
         "key": "money",
+        "timing": "leading",
         "name": "M1/M2",
         "dimension": "credit",
         "metric_id": "CN_M1_M2",

@@ -138,19 +138,20 @@ def seed(repository: EvidenceRepository, main: tuple[float | None, ...], **auxil
         ("stage_iii", (50.2, 50.8, 51.0), "observation_only", {"notes": ["扩张仍在、动能减弱"]}),
         # A fall narrowing is no slowing of the expansion: no cell names it.
         ("stage_iii", (52.0, 51.0, 50.5), "observation_only", {"notes": [], "matched": None}),
-        ("stage_iii", (49.8, 49.5, 49.2), "observation_only", {"grace": "not_evaluated"}),
+        # Below 50 for two months is within grace.
+        ("stage_iii", (50.5, 49.8, 49.2), "observation_only", {"grace": "within"}),
         # IV: above 50 supports; rising slower is the late phase.
         ("stage_iv", (51.0, 51.5, 51.2), "support", {}),
         ("stage_iv", (50.5, 51.2, 51.4), "observation_only", {"notes": ["扩张后段，斜率放缓"]}),
         ("stage_iv", (52.0, 51.0, 50.5), "support", {"notes": []}),
-        ("stage_iv", (50.5, 50.2, 49.6), "observation_only", {"grace": "not_evaluated"}),
+        ("stage_iv", (50.5, 50.2, 49.6), "observation_only", {"grace": "within"}),
         # V: momentum down supports, the level still high noted; flat is only observed.
         ("stage_v", (51.5, 51.2, 50.8), "support", {"notes": ["水平仍高、动量下降"]}),
         ("stage_v", (51.0, 51.2, 51.2), "observation_only", {"momentum": "flat"}),
-        ("stage_v", (50.0, 50.2, 50.8), "observation_only", {"grace": "not_evaluated"}),
+        ("stage_v", (50.0, 50.2, 50.8), "observation_only", {"grace": "within"}),
         # VI: below 50 and falling supports; above and rising waits on grace.
         ("stage_vi", (49.5, 49.2, 48.8), "support", {}),
-        ("stage_vi", (50.0, 50.4, 51.0), "observation_only", {"grace": "not_evaluated"}),
+        ("stage_vi", (50.0, 50.4, 51.0), "observation_only", {"grace": "within"}),
     ],
 )
 def test_each_stage_reads_the_pmi_against_its_own_cells(
@@ -161,6 +162,9 @@ def test_each_stage_reads_the_pmi_against_its_own_cells(
     extra: dict[str, Any],
 ) -> None:
     repository = EvidenceRepository.create(tmp_path / "evidence.sqlite3")
+    # The two months before as the first: grace reads back over them.
+    for series in SERIES:
+        append_pmi(repository, series, (values[0], values[0]), months=("2026-04", "2026-05"))
     seed(repository, values)
 
     indicator = pmi(project(repository, FormalStage(stage)))
@@ -173,6 +177,10 @@ def test_each_stage_reads_the_pmi_against_its_own_cells(
     assert main["values"] == list(values)
     assert main["periods"] == ["2026-06-30", "2026-07-31", "2026-08-31"]
     for key, expected in extra.items():
+        if expected == "within":
+            # The counterevidence holds and waits on grace: within it, only observed.
+            assert indicator[key]["past"] is False
+            continue
         actual = main[key] if key in {"slope", "crossed", "momentum"} else indicator[key]
         assert actual == expected
 

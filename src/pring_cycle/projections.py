@@ -490,7 +490,8 @@ def _validate_confirmation(
     """A dimension summary of the published stage, with no label standing in (ADR-0037).
 
     It confirms the stage the set states, or none; each dimension's counts are its key
-    indicators' relations, and a dimension not read yet has neither.
+    indicators' relations, and a dimension not read yet has neither. A counterevidence
+    waiting on grace counts only past it.
     """
     if any(label in macro for label in _RETIRED_MACRO_LABELS) or "cards" in inventory:
         raise ValueError("projection_confirmation_retired_label_present")
@@ -533,6 +534,13 @@ def _validate_confirmation(
             or any(
                 type(counts[relation]) is not int or counts[relation] != relations.count(relation)
                 for relation in CONFIRMATION_RELATIONS
+            )
+            # Only a signal past its grace counts as counterevidence (ADR-0037).
+            or any(
+                item.get("relation") == "counterevidence"
+                and isinstance(item.get("grace"), dict)
+                and item["grace"].get("past") is not True
+                for item in indicators
             )
         ):
             raise ValueError("projection_confirmation_invalid")

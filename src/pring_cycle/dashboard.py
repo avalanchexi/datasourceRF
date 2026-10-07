@@ -870,10 +870,12 @@ def _indicator_card(indicator: dict[str, object]) -> html.Article:
     details.extend(
         str(note) for note in _list_of(indicator.get("notes")) if str(note) not in capped
     )
+    if indicator.get("timing") in _TIMING_LABELS:
+        details.append(f"时序：{_TIMING_LABELS[str(indicator['timing'])]}")
     if indicator.get("turn_hint"):
         details.append(f"转折提示：接近{_stage_label(indicator['turn_hint'])}")
-    if indicator.get("grace") == "not_evaluated":
-        details.append("反证条件成立，宽限待判定")
+    details.extend(_turn_details(_object_document(indicator.get("turn"))))
+    details.extend(_grace_details(_object_document(indicator.get("grace"))))
     if indicator.get("divergence_capped"):
         details.append("成员分化，不高于仅观察")
     details.extend(f"{cap}，不高于仅观察" for cap in capped)
@@ -919,6 +921,53 @@ def _indicator_card(indicator: dict[str, object]) -> html.Article:
         ],
         className="domain-panel evidence-panel",
     )
+
+
+_TIMING_LABELS = {"leading": "先行", "coincident": "同步", "lagging": "滞后"}
+_MATURITY_LABELS = {"sprout": "萌芽", "forming": "成形", "confirmed": "确认"}
+_GRACE_UNITS = {"month": "个月", "quarter": "个季度"}
+
+
+def _turn_details(turn: dict[str, object]) -> list[str]:
+    """A turn signal: the stage a lag still shows, its maturity and how long it held."""
+    if not turn:
+        return []
+    details = []
+    if turn.get("basis") == "lagging" and turn.get("toward"):
+        details.append(f"滞后未转：仍呈{_stage_label(turn['toward'])}形态")
+    maturity = _MATURITY_LABELS.get(str(turn.get("maturity")), "成熟度未定")
+    if turn.get("confirmed_by") == "transmission":
+        maturity += "，已传导"
+    held = _held(turn)
+    details.append(f"转折观察：{maturity}（{held}）" if held else f"转折观察：{maturity}")
+    together = [str(key) for key in _list_of(turn.get("leading_signals"))]
+    if together:
+        details.append("与同向先行信号共同成形：" + "、".join(together))
+    if turn.get("missing"):
+        details.append("成熟度缺：" + "、".join(str(item) for item in _list_of(turn["missing"])))
+    return details
+
+
+def _grace_details(grace: dict[str, object]) -> list[str]:
+    """How long a counterevidence waiting on grace has held, against its grace."""
+    if not grace:
+        return []
+    past = grace.get("past")
+    state = "已过宽限" if past is True else "未过宽限" if past is False else "是否过宽限未定"
+    if grace.get("confirmed_by") == "transmission":
+        state = "已传导确认"
+    unit = _GRACE_UNITS.get(str(grace.get("unit")), "期")
+    held = _held(grace) or f"已持续 {grace.get('periods')} 期"
+    return [f"宽限：反证条件{held}，宽限 {grace.get('limit')} {unit}，{state}"]
+
+
+def _held(run: dict[str, object]) -> str:
+    """How long a signal held: since a period, or at least as far back as was read."""
+    if run.get("at_least"):
+        return f"至少已持续 {run.get('periods')} 期，起点早于所读历史"
+    if run.get("since"):
+        return f"已持续 {run.get('periods')} 期，自 {run.get('since')}"
+    return ""
 
 
 def _confirmation_inventory_page(document: dict[str, object]) -> html.Div:

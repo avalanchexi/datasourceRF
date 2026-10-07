@@ -221,7 +221,9 @@ def declare(rules: ContextProjectionRules) -> tuple[Reading, ...]:
 
 
 def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
-    """What a key indicator reads of each member: its months, less those never released.
+    """What a key indicator reads of each member: its periods, and those before them its
+    grace reads back of the main member or one a turn hint reads, less the months never
+    released.
 
     The main member's months stood in for by another member are that member's alone; a
     derived member reads each input at its months and a year before them.
@@ -234,7 +236,7 @@ def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
             if member is indicator.main
             else f"confirmation:{indicator.key}:{member.name}"
         )
-        months = indicator.months(member)
+        months = indicator.periods(member)
         if member.formula is not None:
             for item in DERIVED_FORMULAS[member.formula].inputs:
                 offsets = {month + offset for month in range(months) for offset in item.offsets}
@@ -247,11 +249,13 @@ def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
                     )
                 )
             continue
+        # Each period grace reaches back reads as it stood: its own lookback before it.
+        periods = Periods.consecutive(indicator.reach(member), indicator.unit)
         readings.append(
             Reading(
                 member.metric_id,
                 name,
-                Periods.consecutive(months),
+                periods,
                 members=(member.dimensions,),
                 unreleased_months=member.unreleased_months | frozenset(member.stand_ins),
             )
@@ -260,7 +264,7 @@ def _confirmation_readings(indicator: KeyIndicator) -> list[Reading]:
             Reading(
                 member.metric_id,
                 f"{name}:stand_in:{month}",
-                Periods.consecutive(months),
+                periods,
                 members=(dimensions,),
                 unreleased_months=every_month - {month},
             )
@@ -313,10 +317,11 @@ class Lookback:
     ) -> dict[str, tuple[Mapping[str, str], ...] | None]:
         """The periods a full run requires of ``metric_id``, and the members of each.
 
-        Each reading requires its least at ``anchor``, the newest period held or out
-        (sessions counted on ``sessions``); one read every day, what each day of the window
-        needs up to ``anchor`` instead, the target day's least among it (a release not
-        held yet is looked for, not required). A daily series read on every session of a
+        Each reading requires its least at ``anchor``: the newest period held, or the
+        newest due when later, or with none held the newest out (sessions counted on
+        ``sessions``); one read every day, what each day of the window needs up to
+        ``anchor`` instead, the target day's least among it (a release out but not yet
+        due beside one held is looked for, not required). A daily series read on every session of a
         complete window (``whole_window``) requires each of them, and nothing outside it.
         A period some reading requires of every member is checked for every member, and
         for any other a reading names: those the catalog does not require of the period
