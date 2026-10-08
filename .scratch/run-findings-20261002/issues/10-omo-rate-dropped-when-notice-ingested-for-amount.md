@@ -21,3 +21,7 @@ Type: task
 ### 2026-10-08 分流
 
 原推测已实测证实（回执 `acquisition-d8a46a7e4baf49e287065fe82556a60e` 规范化含利率 1.4 与金额 905，只关联金额声明）。与社融分项被丢是同一过滤点（`official_context.py:563–575`），**并入 [lookback-fetch-gaps 02](../../lookback-fetch-gaps-20261008/issues/02-sf-components-ingest-all-members.md) 一并修复**。
+
+### 2026-10-08 修复
+
+已随 lookback 02 修复（e10db1b）。除金额范围丢利率外，还修了第二个原因：范围含利率时，前一日旧利率被算作"已持有"而挡住当天公告利率。状态保持 duplicate（仓库惯例：并入票以主票 done 为准）。
