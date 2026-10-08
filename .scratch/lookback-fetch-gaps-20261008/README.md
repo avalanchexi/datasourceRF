@@ -17,8 +17,13 @@
 | 9 | [08](issues/08-pre-window-lookback-claims-untraceable.md) | 保留被投影引用的窗口前声明 | done |
 | 10 | [10](issues/10-l01-regression-core-preheat-and-test-time.md) | L01 后回归：同日第三次运行三核心预热未读入；测试变慢 | done |
 | 11 | [11](issues/11-runs-get-rereads-all-attempts.md) | `runs.get` 重读全部检索尝试（平方增长） | needs-triage（不阻塞验收） |
-| 12 | [09](issues/09-real-run-acceptance.md) | 全套测试与真实运行验收 | ready-for-agent（阻塞于以上全部） |
+| 12 | [09](issues/09-real-run-acceptance.md) | 全套测试与真实运行验收 | done（[验收记录](acceptance-20261009.md)：全套 2107 通过；真实运行模型输入缺失 168→10，17 项完整 6→16） |
+| 13 | [12](issues/12-judging-calendar-drops-known-holidays.md) | 截止日超出已存日历时判定日历丢弃已知休市日（既有缺陷，09 发现） | needs-triage |
+| 14 | [13](issues/13-capacity-utilization-title-and-path.md) | 产能利用率标题含"规模以上"漏识别；`/zwfwck/sjfb/` 不在白名单 | needs-triage |
+| 15 | [14](issues/14-sf-stock-yoy-2025-separate-report.md) | 2025 年社融单独报告未识别；AI 候选只留存量金额 | needs-triage |
+| 16 | [15](issues/15-news-rule-city-level-industrial-va.md) | 资讯规则把地方口径工业增加值当全国 | needs-triage |
+| 17 | [16](issues/16-derived-coverage-flag-counts-whole-family.md) | 派生指标覆盖标志按整个家族判断（既有问题） | needs-triage |
 
-**下一步**：序 12，[09](issues/09-real-run-acceptance.md)（全套测试与真实运行验收）；序 11 待用户分流。
+**下一步**：本批（序 1–12）已完成，验收见 [acceptance-20261009.md](acceptance-20261009.md)。票 11 及 09 新开的票 12–16（序 13–17）待用户分流；其中票 13（产能利用率 2026Q1，17 项中唯一仍缺的主要成员）与票 12（日历误判使日频指标显示陈旧）对读法影响最大。
 
-相关：[run-findings 10](../run-findings-20261002/issues/10-omo-rate-dropped-when-notice-ingested-for-amount.md)（duplicate，并入 02）。DR007 09-30 单日 0 行属上游，不另开票。
+相关：[run-findings 10](../run-findings-20261002/issues/10-omo-rate-dropped-when-notice-ingested-for-amount.md)（duplicate，并入 02）。DR007 09-30 单日 0 行属上游，不另开票（2026-10-09 验收运行时已回填，取到 1.3665）。
